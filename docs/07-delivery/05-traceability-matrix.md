@@ -11,5 +11,6 @@ Matrix nối yêu cầu với feature, contract/data, test và tiêu chí nghi�
 | REQ-AI-001 Recognition xử lý unknown | `04-artifact-recognition.md` | INV-AI-002 | Recognition job/result | Chưa có | Top-k/confidence/fallback | PLANNED |
 | REQ-3D-001 Thiếu model vẫn xem được | `05-digital-twin.md` | INV-3D-001 | Artifact media contract | Chưa có | Media/text fallback | PLANNED |
 | REQ-AUTH-001 Ownership history | `07-auth-user-history.md` | INV-AUTH-002 | User history API | Chưa có | Không truy cập chéo user | PLANNED |
+| REQ-SEARCH-001 Hybrid search đúng quyền/publish | `09-search-discovery.md` | INV-CONTENT-001 | Search contract/index | Chưa có | Relevance + không rò draft/private | PLANNED |
 
 Trạng thái: `PLANNED`, `IMPLEMENTED`, `VERIFIED`, `DEFERRED`. Coding agent không tự đặt `VERIFIED`.

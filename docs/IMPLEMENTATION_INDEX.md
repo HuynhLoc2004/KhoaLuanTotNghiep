@@ -27,6 +27,7 @@
 | Voice/i18n | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/06-multilingual-voice.md` |
 | Auth/History | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/07-auth-user-history.md` |
 | Dashboard | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/08-dashboard-analytics.md` |
+| Search/Discovery | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/09-search-discovery.md` |
 
 ## Merge history
 

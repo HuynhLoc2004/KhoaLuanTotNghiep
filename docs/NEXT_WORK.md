@@ -39,6 +39,7 @@ Chỉ chuyển task sang `DONE` sau khi merge vào `develop` và Merge Memory Sy
 | TASK-ADMIN-001 | Admin shell + navigation + CMS form foundation | BLOCKED | Chưa có | — | TASK-FOUND-001, auth/contract skeleton | 2–4 person-days, LOW | `apps/admin/**`, CMS contracts | `docs/03-features/01-admin-cms.md` |
 | TASK-API-001 | Express API skeleton, health endpoint và validation/error contract | BLOCKED | Chưa có | — | TASK-FOUND-001 | 1–3 person-days, MEDIUM | `services/api/**`, base contracts | `docs/02-data/02-api-contract.md` |
 | TASK-DATA-001 | PostgreSQL migration foundation và entity baseline | BLOCKED | Chưa có | — | TASK-FOUND-001, TASK-API-001 | 2–4 person-days, LOW | migrations, schema, seed foundation | `docs/02-data/01-data-model.md` |
+| TASK-SEARCH-001 | Search contract, indexing và public discovery MVP | BLOCKED | Chưa có | — | Foundation, API, data và CMS/artifact baseline | 8–18 person-days, LOW | search module/contracts/index/UI | `docs/03-features/09-search-discovery.md` |
 
 Estimate trên chỉ phục vụ chọn việc và phải được rà soát lại khi bắt đầu task.
 

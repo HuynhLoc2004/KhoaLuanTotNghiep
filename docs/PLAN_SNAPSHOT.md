@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0001`
+- Revision: `PLAN-0002`
 - Updated: 2026-07-29
 - Status: BASELINE_PENDING_TEAM_REVIEW
-- Scope: kiến trúc, feature plans, AI collaboration workflow.
+- Scope: mở rộng công nghệ có kiểm soát và Search/Discovery.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -23,20 +23,21 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | Revision | Date | Change | Affected owners/tasks | Required action | Confirmed by |
 |---|---|---|---|---|---|
 | PLAN-0001 | 2026-07-29 | Tạo baseline toàn bộ plan và quy trình AI/cộng tác | Tất cả; TASK-FOUND-001 | Nhóm review, commit và push develop | Chờ nhóm |
+| PLAN-0002 | 2026-07-29 | Cho phép đề xuất runtime ngoài baseline và thêm Search/Discovery | Architecture; FEAT-SEARCH-001; TASK-SEARCH-001 | Review; chưa triển khai trước foundation/data | `loc` yêu cầu |
 
 ## Changed owner documents in current revision
 
 - `PROJECT_BRAIN.md`
-- `AGENTS.md`
-- `docs/PROJECT_STATUS.md`
+- `docs/03-features/09-search-discovery.md`
+- `docs/01-architecture/03-integration-map.md`
 - `docs/NEXT_WORK.md`
-- `docs/03-features/*`
-- `docs/01-architecture/*`
-- `docs/02-data/*`
-- `docs/04-design/*`
-- `docs/07-delivery/*`
+- `docs/CONTEXT_ROUTER.md`
+- `docs/IMPLEMENTATION_INDEX.md`
+- `docs/07-delivery/05-traceability-matrix.md`
+- `docs/PROJECT_STATUS.md`
+- `README.md`
 
-Vì đây là baseline đầu tiên, danh sách rộng. Revision sau chỉ liệt kê owner documents thực sự thay đổi.
+Task không liên quan search chưa cần đổi implementation.
 
 ## Revision rules
 

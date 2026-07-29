@@ -72,6 +72,7 @@ Dùng khi người dùng nói rõ “đọc src/source/code xem dự án đang l
 | Đa ngôn ngữ/TTS | `03-features/06-multilingual-voice.md` | AI Tour Guide, data model, security |
 | Login/RBAC/history | `03-features/07-auth-user-history.md` | API contract, data model, invariants, security |
 | Dashboard/analytics | `03-features/08-dashboard-analytics.md` | Data model, integration map, performance/privacy |
+| Search/autocomplete/discovery | `03-features/09-search-discovery.md` | CMS, artifact/data model, API/contract, integration map, performance/security |
 | Database/API/contracts | `02-data/01-data-model.md`, `02-data/02-api-contract.md` | Contract catalog, integration map, invariants |
 | UI/animation/design | `04-design/01-ui-ux-design-system.md` | Admin CMS, performance, ADR-004 |
 | Docker/Nginx/CI | `06-devops/01-local-environment.md` | Architecture, observability, security |

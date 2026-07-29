@@ -26,6 +26,8 @@ Hai thành viên làm feature branch riêng nhưng dùng cùng hợp đồng. Fi
 | RAG/Guide service | Web/Analytics | Answer, citation, refusal reason, locale, TTS ref | Guide contract | PLANNED |
 | Digital Twin pipeline | Viewer/CMS/Dashboard | Model version, review status, LOD/assets | Digital Twin contract | PLANNED |
 | Interaction events | Dashboard | Event envelope, anonymous session, consent | Event schema | PLANNED |
+| CMS/Artifact/Exhibition/Tour | Search/Discovery | Search document, publish/version event, locale/media refs | Search contract + outbox | PLANNED |
+| Search/Discovery | Public Web/Admin/AI Guide | Results, suggestions, facets, correction, ranking version | Search OpenAPI | PLANNED |
 
 ## Shared semantic baseline
 

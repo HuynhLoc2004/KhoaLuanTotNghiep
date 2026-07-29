@@ -25,6 +25,8 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Shared implementation memory: IMPLEMENTED ở mức tài liệu; sau mỗi merge develop phải đồng bộ Implementation Index và UI Registry.
 - Plan Publication & Sync: IMPLEMENTED ở mức quy trình; shared plan dùng PLAN_SNAPSHOT revision và phải được đưa lên remote develop.
 - Feature Report Standard: IMPLEMENTED ở mức quy trình; mọi feature phải có Mermaid flow, explanation, technology, algorithm, auth, trade-offs, estimate và evidence.
+- Search/Discovery: PLANNED; hybrid lexical/vector baseline, BLOCKED bởi foundation/API/data/CMS.
+- Polyglot extension policy: IMPLEMENTED; runtime mới cần Option Review và bằng chứng.
 
 ## Milestone
 

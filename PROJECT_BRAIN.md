@@ -168,6 +168,14 @@ Tier được chọn từ capability probe và tín hiệu người dùng, khôn
 
 Có thể sử dụng công nghệ hiện đại khi tạo giá trị rõ ràng, nhưng mỗi dependency phải ghi mục đích, kích thước/chi phí runtime, bảo mật, khả năng bảo trì và phương án thay thế. Không cài nhiều thư viện trùng vai trò. AI giúp triển khai nhanh nhưng không loại bỏ bundle budget, compatibility test và dependency audit.
 
+### Ngôn ngữ và công nghệ không bị khóa cứng
+
+React/TypeScript, Express và Python là baseline, không phải danh sách duy nhất được phép dùng. Codex có thể đề xuất Go, Rust, Java/Kotlin, C/C++, WebAssembly, search/vector engine hoặc dịch vụ chuyên dụng khi workload chứng minh cần.
+
+Trước khi thêm runtime/service mới phải có Option Review: nút thắt, benchmark/evidence, boundary/contract, Docker/CI/observability, chi phí học và bảo trì cho nhóm hai người, license/hosting/vendor lock-in, ưu nhược điểm, migration/rollback và phương án không thêm công nghệ.
+
+Không thêm ngôn ngữ chỉ để báo cáo “đa công nghệ”. Nếu TypeScript/Python đáp ứng SLO với độ phức tạp thấp hơn thì giữ baseline.
+
 ## 7. Chuẩn hiệu năng và scale
 
 - API cache hit p95 dưới 200 ms; cache miss phổ biến p95 dưới 500 ms.

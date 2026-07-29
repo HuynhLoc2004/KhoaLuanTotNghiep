@@ -9,7 +9,7 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 - Expected branch: `develop` — hiện chỉ chuẩn hóa tài liệu.
 - Base branch: `develop`.
 - Coding agent được phép commit/merge/push: Không.
-- Last reviewed shared plan revision: `PLAN-0001`.
+- Last reviewed shared plan revision: `PLAN-0002`.
 
 ## Task
 
