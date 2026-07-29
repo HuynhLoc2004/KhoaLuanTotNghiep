@@ -1,0 +1,183 @@
+# Quy trình cộng tác cho nhóm hai người
+
+## Mục tiêu
+
+Để hai thành viên và Codex biết ai đang làm gì, tránh nhận trùng task, sửa trùng contract/migration và phụ thuộc vào thông tin chỉ tồn tại trong một feature branch.
+
+## Danh tính thành viên
+
+`docs/TEAM.md` ánh xạ Member ID với Git author alias. AI đọc `git config user.name` để gợi ý người hiện tại mà không cần GitHub permission. Không khớp duy nhất thì hỏi Member ID; không claim task cho danh tính chưa xác nhận.
+
+## Hai loại thay đổi
+
+### Coordination change trên `develop`
+
+Chỉ cập nhật `docs/NEXT_WORK.md` để nhận/trả task, owner, branch và write scope. Đây là thay đổi nhỏ cần xuất hiện trên remote `develop` để người còn lại nhìn thấy.
+
+### Implementation change trên `feature/*`
+
+Code, test, `CURRENT_TASK.md`, feature specification và change history nằm trong feature branch cho đến khi nhóm review/merge.
+
+## Branch isolation
+
+- Người A làm `feature/A`, người B làm `feature/B`.
+- A không cần pull/checkout B; B không cần pull/checkout A.
+- Hai người cập nhật `develop` để nhận những gì đã được merge chung.
+- Pull `develop` không mang code chưa merge của A/B vào `develop`.
+- Remote branch của người khác chỉ được track khi review, hỗ trợ hoặc handoff đã thống nhất.
+
+### Git theo tình huống
+
+| Việc cần làm | Các bước |
+|---|---|
+| Bắt đầu task mới | Switch `develop` -> pull `origin/develop` -> tạo feature branch |
+| Tiếp tục task của mình | Switch feature branch -> pull chính branch đó |
+| Nhận code chung vừa merge | Cập nhật `develop` -> quay lại feature -> merge `develop` |
+| Review/hỗ trợ branch khác | Fetch -> track remote branch sau khi thống nhất |
+
+Không đứng ở feature branch rồi dùng `git pull origin develop` như một thói quen, vì thao tác đó nhập develop vào branch hiện tại theo cách dễ gây nhầm. Tách rõ bước cập nhật develop và bước merge.
+
+## Code isolation, contract alignment
+
+Hai người không cần đọc code dang dở của nhau, nhưng phải đọc cùng integration map và contract accepted trên `develop`.
+
+- UI không tự đoán response API.
+- API không tự đổi field mà chưa cập nhật consumer.
+- Worker không phát event riêng ngoài event catalog.
+- Hai task cần cùng shared contract phải chốt contract trên `develop` trước, sau đó mỗi người triển khai phía mình.
+- Nếu một phía chưa sẵn sàng, dùng mock/fixture sinh từ cùng schema, không viết object giả khác contract.
+
+Khi merge, contract/provider nên vào trước hoặc giữ backward compatibility để consumer branch không bị vỡ.
+
+## Publish plan chung
+
+Quyết định ảnh hưởng người còn lại phải được cập nhật trong owner doc và `PLAN_SNAPSHOT.md` trên `develop`, sau đó người dùng commit/push. Không để contract/dependency mới chỉ tồn tại trong feature branch rồi yêu cầu người khác tự đoán.
+
+## Quy trình nhận task
+
+1. Đồng bộ local `develop`.
+2. Chọn một task `READY`.
+3. Xác nhận Member ID từ `TEAM.md`, rồi kiểm tra dependency và write scope với task `IN_PROGRESS`.
+4. Trên `develop`, cập nhật:
+   - Status: `IN_PROGRESS`.
+   - Owner.
+   - Planned branch.
+   - `ClaimedAt`, `LastUpdated`.
+   - Write scope.
+5. Người dùng commit/push coordination change.
+6. Tạo feature branch từ `develop`.
+7. Cập nhật `CURRENT_TASK.md` trong feature branch rồi code.
+
+Codex không tự commit/push. Nó có thể chuẩn bị nội dung registry, sau đó yêu cầu người dùng review và đưa thay đổi lên remote trước khi bắt đầu code nếu cần tránh xung đột.
+
+## Write scope
+
+Write scope là khóa mềm, không phải quyền filesystem. Ví dụ:
+
+```text
+apps/web/**
+packages/ui/**
+docs/04-design/01-ui-ux-design-system.md
+```
+
+Hoặc:
+
+```text
+services/api/src/modules/auth/**
+packages/contracts/auth/**
+db/migrations/*auth*
+docs/03-features/07-auth-user-history.md
+```
+
+Nếu hai task cùng cần `packages/contracts`, database migration hoặc root config, ghi ranh giới field/module/file cụ thể hoặc làm tuần tự.
+
+## Collision levels
+
+| Mức | Dấu hiệu | Xử lý |
+|---|---|---|
+| LOW | Chỉ đọc cùng tài liệu, code khác thư mục | Có thể song song |
+| MEDIUM | Cùng shared package nhưng khác module/file | Thống nhất contract trước |
+| HIGH | Cùng migration/entity/API/schema/feature owner | Không làm song song nếu chưa chia lát cắt |
+
+## Stale task
+
+Một task có thể được cảnh báo `STALE` khi quá ba ngày làm việc không cập nhật hoặc vượt mốc dự kiến mà không có ghi chú. Đây chỉ là tín hiệu hỏi lại.
+
+AI phải nói:
+
+> Task này có dấu hiệu stale, cần xác nhận với owner trước khi nhận lại.
+
+AI không được tự đổi owner, xóa branch hoặc đặt task về `READY`.
+
+## Hoàn thành và trả task
+
+1. Agent ghi `IMPLEMENTED`, handoff và test đã chạy trên feature branch.
+2. Người dùng test/review.
+3. Sau khi người dùng xác nhận và merge, cập nhật registry trên `develop` thành `DONE`.
+4. Ghi commit/PR tham chiếu nếu nhóm sử dụng.
+5. Task tiếp theo bị dependency có thể chuyển `BLOCKED -> READY`.
+6. Sau khi merge, chạy `08-merge-memory-sync.md`; task chưa đồng bộ trí nhớ chung chưa được xem là hoàn tất về tài liệu.
+
+## Task Switching Protocol
+
+Áp dụng khi người dùng muốn chuyển chức năng, nhận task mới, tạm dừng hoặc làm hotfix.
+
+### Đã được nhóm xác nhận
+
+1. Feature status là `VERIFIED`.
+2. AI đề xuất commit/push feature branch.
+3. Người dùng chạy CI và review/PR.
+4. AI có thể đề xuất merge vào `develop`; người dùng tự thực hiện.
+5. Sau merge, registry chuyển `DONE` và mở dependency liên quan.
+
+### Code xong nhưng chưa review
+
+1. Giữ `IMPLEMENTED`, không tự nâng `VERIFIED`.
+2. Cập nhật handoff và hướng dẫn review.
+3. Đề xuất push feature branch để backup/chia sẻ.
+4. Không đề xuất merge cho đến khi người dùng xác nhận đã test/review đạt.
+
+### Còn dang dở
+
+1. Ghi phần đã làm, phần chưa làm, test hiện tại và cách tiếp tục.
+2. Cập nhật feature Change history và `CURRENT_TASK.md`.
+3. Chuyển task thành `PAUSED`, giữ owner/branch/write scope.
+4. Đề xuất commit WIP và push feature branch nếu người dùng muốn lưu remote.
+5. Không merge vào `develop`.
+6. Chỉ nhận task khác nếu write scope không xung đột hoặc người dùng chấp nhận chuyển ngữ cảnh.
+
+### Bỏ hoặc chuyển giao task
+
+Không tự đặt lại `READY`. Owner/người dùng phải xác nhận handoff hoặc hủy; ghi lý do, trạng thái, branch và migration/dữ liệu dang dở trước khi giải phóng write scope.
+
+### Lệnh Git minh họa
+
+AI thay placeholder bằng branch/file thực tế sau khi kiểm tra:
+
+```bash
+git status
+git add <cac-file-da-review>
+git commit -m "feat(scope): mo ta thay doi"
+git push -u origin feature/ten-task
+```
+
+Merge chỉ được đề xuất sau `VERIFIED`. Không merge feature chưa hoàn thiện chỉ để chuyển sang task khác.
+
+### Bắt đầu task mới
+
+1. Đồng bộ `develop`.
+2. Chọn task `READY` không xung đột.
+3. Claim trên `develop` và đưa coordination change lên remote.
+4. Tạo branch mới từ `develop`.
+5. Viết lại `CURRENT_TASK.md` và thực hiện Definition of Ready.
+
+## Nếu feature branch chưa merge
+
+Người mới clone thấy remote branch nhưng không cần checkout hoặc đọc nó trong onboarding. Registry trên `develop` phải cho biết task đang `IN_PROGRESS`, owner và branch. Chỉ đọc branch đó khi owner yêu cầu review/hỗ trợ/chuyển giao.
+
+## Xử lý ngoại lệ
+
+- Quên claim nhưng đã code: cập nhật registry sớm nhất, kiểm tra collision trước khi tiếp tục.
+- Hai người nhận trùng: dừng sửa phần giao nhau, chọn owner chính, chia lại lát cắt và ghi quyết định.
+- Owner tạm nghỉ: owner/người dùng xác nhận handoff, cập nhật registry rồi người mới mới tiếp tục.
+- Hotfix khẩn: dùng `fix/*`, ghi scope nhỏ và vẫn cập nhật registry nếu chạm task đang làm.

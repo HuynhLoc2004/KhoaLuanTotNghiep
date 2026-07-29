@@ -2,6 +2,18 @@
 
 Nền tảng web và mobile-first ứng dụng công nghệ 4.0, AI, 3D và Digital Twin để bảo tồn và phát huy giá trị di sản tại Bảo tàng Lịch sử Thành phố Hồ Chí Minh.
 
+> Trước khi code hoặc dùng AI/vibe coding, đọc [PROJECT_BRAIN.md](PROJECT_BRAIN.md). Đây là nguồn định hướng chung về kiến trúc, flow, dữ liệu, thuật toán, bảo mật, scale và quy trình làm việc.
+
+Chat mới chỉ cần hiểu sơ qua: bắt đầu tại [AI_CONTEXT.md](docs/AI_CONTEXT.md) rồi dùng [CONTEXT_ROUTER.md](docs/CONTEXT_ROUTER.md). Không cần đọc toàn bộ tài liệu hoặc source code.
+
+Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Chi tiết quyết định và lịch sử thay đổi phải được ghi trong đúng file chức năng.
+
+Mọi yêu cầu code, sửa lỗi hoặc bổ sung chức năng đều tự động kéo theo cập nhật/tạo tài liệu sở hữu tương ứng. Plan cũ được giữ và đánh dấu thay thế, không bị ghi đè âm thầm.
+
+Thành viên vừa clone repository và chưa chọn việc: yêu cầu AI vào chế độ onboarding, đọc tài liệu và đề xuất task `READY` từ [docs/NEXT_WORK.md](docs/NEXT_WORK.md). Chưa cần đọc source code cho đến khi chọn task.
+
+AI nhận diện thành viên bằng Git author local và [docs/TEAM.md](docs/TEAM.md), không cần quyền GitHub và không lưu email.
+
 ## Nguyên tắc cốt lõi
 
 - Nội dung hiển thị cho khách tham quan được quản trị từ CMS/Admin, không hard-code trong giao diện.
@@ -39,6 +51,31 @@ Nền tảng web và mobile-first ứng dụng công nghệ 4.0, AI, 3D và Digi
 23. [Tiêu chí nghiệm thu](docs/07-delivery/03-acceptance-criteria.md)
 24. [Quy trình quản lý thay đổi](docs/07-delivery/04-change-management.md)
 25. [Mẫu đặc tả chức năng mới](docs/templates/feature-template.md)
+26. [Trạng thái triển khai hiện tại](docs/PROJECT_STATUS.md)
+27. [Business invariants](docs/00-product/03-business-invariants.md)
+28. [Contract catalog](docs/02-data/03-contract-catalog.md)
+29. [Data catalog](docs/02-data/04-data-catalog.md)
+30. [Traceability matrix](docs/07-delivery/05-traceability-matrix.md)
+31. [ADR index](docs/01-architecture/adr/README.md)
+32. [Công việc hiện tại](CURRENT_TASK.md)
+33. [Mẫu bàn giao](docs/templates/handoff-template.md)
+34. [Công việc có thể nhận tiếp](docs/NEXT_WORK.md)
+35. [Quy trình cộng tác hai người](docs/07-delivery/06-two-person-collaboration.md)
+36. [Mẫu trả lời onboarding](docs/templates/onboarding-response-template.md)
+37. [Danh sách thành viên](docs/TEAM.md)
+38. [Git playbook cho nhóm](docs/07-delivery/07-git-playbook.md)
+39. [Bản đồ tích hợp giữa các chức năng](docs/01-architecture/03-integration-map.md)
+40. [Mẫu so sánh và khóa phương án](docs/templates/option-review-template.md)
+41. [AI context đọc nhanh](docs/AI_CONTEXT.md)
+42. [Context Router tiết kiệm token](docs/CONTEXT_ROUTER.md)
+43. [Mẫu hướng dẫn từng bước](docs/templates/guided-execution-template.md)
+44. [Idea Backlog](docs/IDEA_BACKLOG.md)
+45. [Mẫu Creative Concept Review](docs/templates/creative-concept-template.md)
+46. [Implementation Index](docs/IMPLEMENTATION_INDEX.md)
+47. [UI Component, Motion và 3D Registry](docs/04-design/02-ui-component-registry.md)
+48. [Merge Memory Sync Gate](docs/07-delivery/08-merge-memory-sync.md)
+49. [Plan Snapshot và change feed](docs/PLAN_SNAPSHOT.md)
+50. [Feature Report Standard](docs/templates/feature-report-standard.md)
 
 ## Trạng thái
 
