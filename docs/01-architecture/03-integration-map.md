@@ -28,6 +28,8 @@ Hai thành viên làm feature branch riêng nhưng dùng cùng hợp đồng. Fi
 | Interaction events | Dashboard | Event envelope, anonymous session, consent | Event schema | PLANNED |
 | CMS/Artifact/Exhibition/Tour | Search/Discovery | Search document, publish/version event, locale/media refs | Search contract + outbox | PLANNED |
 | Search/Discovery | Public Web/Admin/AI Guide | Results, suggestions, facets, correction, ranking version | Search OpenAPI | PLANNED |
+| CMS/Map | Indoor Location | Zone/node/QR/reference image/index version | Location contract | PLANNED |
+| Indoor Location | Web 3D/Tour Guide/History | Confirmed/top-k zone, confidence, start node, method | Location result event/API | PLANNED |
 
 ## Shared semantic baseline
 

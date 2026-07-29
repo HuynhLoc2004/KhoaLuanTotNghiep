@@ -78,6 +78,7 @@ AI nhận diện thành viên bằng Git author local và [docs/TEAM.md](docs/TE
 49. [Plan Snapshot và change feed](docs/PLAN_SNAPSHOT.md)
 50. [Feature Report Standard](docs/templates/feature-report-standard.md)
 51. [Tìm kiếm và khám phá nội dung](docs/03-features/09-search-discovery.md)
+52. [Xác định vị trí bằng QR và ảnh](docs/03-features/10-indoor-location-detection.md)
 
 ## Trạng thái
 

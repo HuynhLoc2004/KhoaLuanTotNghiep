@@ -18,6 +18,7 @@ Bảo tàng cần một nền tảng số giúp khách khám phá không gian, n
 1. Website responsive với trang chủ, triển lãm, hiện vật, bản đồ 3D và tìm kiếm.
 2. CMS động cho menu, banner, trang, khu vực, tour, hiện vật, QR, media và bản dịch.
 3. Tour Guide mobile-first: quét QR, định vị khu vực, phát thuyết minh.
+3a. Xác định vị trí hiện tại bằng QR hoặc nhận diện ảnh không gian; luôn có xác nhận/fallback khi AI không chắc.
 4. Nhận diện hiện vật từ ảnh với top-k kết quả và cơ chế “không chắc chắn”.
 5. Viewer cho mô hình 3D có sẵn; pipeline tạo 3D được xử lý bất đồng bộ.
 6. Đăng nhập email/Google, phân quyền và lịch sử người dùng.

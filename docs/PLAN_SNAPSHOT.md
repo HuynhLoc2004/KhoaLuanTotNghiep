@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0002`
+- Revision: `PLAN-0003`
 - Updated: 2026-07-29
 - Status: BASELINE_PENDING_TEAM_REVIEW
-- Scope: mở rộng công nghệ có kiểm soát và Search/Discovery.
+- Scope: Indoor Location Detection bằng QR và ảnh.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -24,11 +24,12 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 |---|---|---|---|---|---|
 | PLAN-0001 | 2026-07-29 | Tạo baseline toàn bộ plan và quy trình AI/cộng tác | Tất cả; TASK-FOUND-001 | Nhóm review, commit và push develop | Chờ nhóm |
 | PLAN-0002 | 2026-07-29 | Cho phép đề xuất runtime ngoài baseline và thêm Search/Discovery | Architecture; FEAT-SEARCH-001; TASK-SEARCH-001 | Review; chưa triển khai trước foundation/data | `loc` yêu cầu |
+| PLAN-0003 | 2026-07-29 | Thêm xác định vị trí bằng QR hoặc chụp ảnh không gian | FEAT-LOCATION-001; Web 3D/Map; Tour Guide | Thu thập QR/reference dataset; chưa triển khai trước map/AI foundation | `loc` yêu cầu |
 
 ## Changed owner documents in current revision
 
-- `PROJECT_BRAIN.md`
-- `docs/03-features/09-search-discovery.md`
+- `docs/03-features/10-indoor-location-detection.md`
+- `docs/03-features/02-web-3d-navigation.md`
 - `docs/01-architecture/03-integration-map.md`
 - `docs/NEXT_WORK.md`
 - `docs/CONTEXT_ROUTER.md`
@@ -37,7 +38,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 - `docs/PROJECT_STATUS.md`
 - `README.md`
 
-Task không liên quan search chưa cần đổi implementation.
+Task không liên quan map/location chưa cần đổi implementation.
 
 ## Revision rules
 

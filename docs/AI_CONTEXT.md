@@ -9,6 +9,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 - Public Web/PWA mobile-first.
 - CMS/Admin điều khiển toàn bộ nội dung, layout, theme, motion và scene; không hard-code dữ liệu production.
 - Web 3D và dẫn đường trong nhà bằng graph/A*.
+- Xác định vị trí bắt đầu bằng QR hoặc ảnh không gian với confidence/fallback.
 - QR Tour, AI Guide dùng hybrid RAG và voice đa ngôn ngữ.
 - Nhận diện hiện vật bằng embedding retrieval/top-k/confidence.
 - Digital Twin/photogrammetry, model version và kiểm duyệt.

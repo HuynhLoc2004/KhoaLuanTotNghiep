@@ -12,5 +12,6 @@ Matrix nối yêu cầu với feature, contract/data, test và tiêu chí nghi�
 | REQ-3D-001 Thiếu model vẫn xem được | `05-digital-twin.md` | INV-3D-001 | Artifact media contract | Chưa có | Media/text fallback | PLANNED |
 | REQ-AUTH-001 Ownership history | `07-auth-user-history.md` | INV-AUTH-002 | User history API | Chưa có | Không truy cập chéo user | PLANNED |
 | REQ-SEARCH-001 Hybrid search đúng quyền/publish | `09-search-discovery.md` | INV-CONTENT-001 | Search contract/index | Chưa có | Relevance + không rò draft/private | PLANNED |
+| REQ-LOC-001 Xác định start node bằng QR/ảnh | `10-indoor-location-detection.md` | INV-UX-002 | Location API/result | Chưa có | QR chính xác, ảnh top-k/confidence/fallback | PLANNED |
 
 Trạng thái: `PLANNED`, `IMPLEMENTED`, `VERIFIED`, `DEFERRED`. Coding agent không tự đặt `VERIFIED`.

@@ -13,7 +13,7 @@ Hiển thị Digital Twin/sơ đồ 3D, cho phép chọn điểm đến và nh�
 
 ## Flow người dùng
 
-1. Chọn tầng hoặc quét QR xác định điểm bắt đầu.
+1. Chọn tầng, quét QR hoặc chụp ảnh không gian để xác định điểm bắt đầu.
 2. Chọn POI/hiện vật/khu vực đích.
 3. API tính đường trên graph đi bộ.
 4. Client vẽ polyline, danh sách chỉ dẫn và đồng bộ camera 3D.
@@ -41,6 +41,7 @@ Hiển thị Digital Twin/sơ đồ 3D, cho phép chọn điểm đến và nh�
 - WebGL yếu: bản đồ 2D SVG/canvas.
 - Chưa có scan 3D: sơ đồ 2.5D hoặc floor plan.
 - Không biết vị trí: yêu cầu chọn “Tôi đang ở đâu?” hoặc quét QR gần nhất.
+- Nhận diện ảnh confidence thấp: hiện top-k để xác nhận hoặc fallback QR/chọn thủ công; không tự đặt start node sai.
 
 ## Ưu/nhược điểm và phù hợp
 
@@ -58,6 +59,7 @@ A* trên graph có mức phù hợp rất cao: nhanh, dễ debug và hỗ trợ 
 |---|---|---|
 | 2026-07-29 | A* trên graph là thuật toán mặc định, QR cập nhật vị trí | Dễ giải thích, nhanh và chi phí thấp; không định vị liên tục |
 | 2026-07-29 | Scene và camera choreography là CMS-driven preset | Tạo trải nghiệm riêng theo triển lãm mà không sửa code; preset phải qua performance review |
+| 2026-07-29 | Điểm bắt đầu hỗ trợ QR và visual place recognition | QR là anchor chính xác; ảnh bổ trợ và luôn có confidence/fallback |
 
 ## Change history
 
@@ -65,3 +67,4 @@ A* trên graph có mức phù hợp rất cao: nhanh, dễ debug và hỗ trợ 
 |---|---|---|---|
 | 2026-07-29 | ADDED | Tạo baseline bản đồ 3D và dẫn đường | Review tài liệu, chưa có code |
 | 2026-07-29 | CHANGED | Bổ sung spatial transition, quality tier và cấu hình scene từ CMS | Review tài liệu, chưa có code |
+| 2026-07-29 | CHANGED | Liên kết Indoor Location Detection bằng QR/ảnh | PLAN-0003, chưa có code |
