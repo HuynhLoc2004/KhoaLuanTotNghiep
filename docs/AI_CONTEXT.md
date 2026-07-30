@@ -42,7 +42,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 ## Cách AI làm việc
 
 1. Onboarding đọc docs ngắn, không đọc source.
-2. Xác nhận Member ID.
+2. Hỏi người dùng tên/Member ID rồi mới đối chiếu `TEAM.md`; không suy luận danh tính từ Git trước câu trả lời.
 3. Đề xuất task `READY`, không nhận task người khác.
 4. Đưa phương án `DESIGN_OPTIONS`; người dùng chọn rồi `PLAN_LOCKED`.
 5. Implementation mới đọc feature doc và code trong write scope.
@@ -52,6 +52,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 9. AI hướng dẫn theo gate/checkpoint, mỗi lần một bước an toàn và bám dependency của plan.
 10. Sau merge vào develop, chạy Merge Memory Sync để người sau biết capability/component/contract đã có.
 11. Shared plan có revision trong `PLAN_SNAPSHOT.md`; sau pull chỉ đọc lại owner docs liên quan revision mới.
+12. Trước mỗi implementation session mới hoặc sau 4 giờ không hoạt động được ghi nhận, hỏi lại tên/Member ID; ghi contribution ledger và handoff trong feature owner.
 
 ## Trạng thái hiện tại
 

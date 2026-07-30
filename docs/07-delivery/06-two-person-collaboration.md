@@ -6,7 +6,9 @@
 
 ## Danh tính thành viên
 
-`docs/TEAM.md` ánh xạ Member ID với Git author alias. AI đọc `git config user.name` để gợi ý người hiện tại mà không cần GitHub permission. Không khớp duy nhất thì hỏi Member ID; không claim task cho danh tính chưa xác nhận.
+`docs/TEAM.md` ánh xạ Member ID với tên/alias. Trong chat mới, AI hỏi người dùng tên hoặc Member ID trước; không tự gọi tên từ Git author hoặc liệt kê placeholder. Sau câu trả lời, `git config user.name` chỉ là kiểm tra nhất quán phụ. Không claim task cho danh tính chưa được người dùng xác nhận.
+
+Mỗi phiên implementation áp dụng `09-work-session-contribution-ledger.md`. Chat mới, đổi branch/task/người hoặc quá 4 giờ từ hoạt động được ghi nhận phải hỏi lại danh tính. Mốc này không làm task tự hết owner.
 
 ## Hai loại thay đổi
 
@@ -57,7 +59,7 @@ Quyết định ảnh hưởng người còn lại phải được cập nhật 
 
 1. Đồng bộ local `develop`.
 2. Chọn một task `READY`.
-3. Xác nhận Member ID từ `TEAM.md`, rồi kiểm tra dependency và write scope với task `IN_PROGRESS`.
+3. Hỏi người dùng tên/Member ID, đối chiếu `TEAM.md`, nhận xác nhận, rồi kiểm tra dependency và write scope với task `IN_PROGRESS`.
 4. Trên `develop`, cập nhật:
    - Status: `IN_PROGRESS`.
    - Owner.
@@ -109,6 +111,8 @@ AI phải nói:
 
 AI không được tự đổi owner, xóa branch hoặc đặt task về `READY`.
 
+Identity recheck sau 4 giờ và task `STALE` sau ba ngày làm việc là hai cơ chế khác nhau. Recheck chỉ xác nhận ai đang ngồi làm; task vẫn thuộc owner hiện tại cho đến khi có handoff/coordination change.
+
 ## Hoàn thành và trả task
 
 1. Agent ghi `IMPLEMENTED`, handoff và test đã chạy trên feature branch.
@@ -145,10 +149,13 @@ AI không được tự đổi owner, xóa branch hoặc đặt task về `READY
 4. Đề xuất commit WIP và push feature branch nếu người dùng muốn lưu remote.
 5. Không merge vào `develop`.
 6. Chỉ nhận task khác nếu write scope không xung đột hoặc người dùng chấp nhận chuyển ngữ cảnh.
+7. Đóng session thành `PAUSED`; ghi StartedAt/LastActiveAt/EndedAt, scope, test và next checkpoint vào feature Contribution Ledger.
 
 ### Bỏ hoặc chuyển giao task
 
 Không tự đặt lại `READY`. Owner/người dùng phải xác nhận handoff hoặc hủy; ghi lý do, trạng thái, branch và migration/dữ liệu dang dở trước khi giải phóng write scope.
+
+Người nhận bàn giao tạo session row mới bằng danh tính đã tự xác nhận. Không sửa contribution row, thời gian hoặc bằng chứng của người cũ. Nếu phiên cũ không có giờ kết thúc đáng tin cậy, ghi `INTERRUPTED` và `EndedAt: UNKNOWN`.
 
 ### Lệnh Git minh họa
 

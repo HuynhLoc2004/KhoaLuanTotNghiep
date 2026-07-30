@@ -4,7 +4,7 @@ Before changing code or architecture, read [PROJECT_BRAIN.md](PROJECT_BRAIN.md) 
 
 For an active implementation, also read `CURRENT_TASK.md`, `docs/00-product/03-business-invariants.md`, applicable ADRs, and relevant contracts listed in `docs/02-data/03-contract-catalog.md`.
 
-Identify the current collaborator using `docs/TEAM.md` before suggesting or claiming work. Read local Git author metadata only; GitHub access is not required.
+Before claiming work, ask the current collaborator for their name or Member ID, then confirm it against `docs/TEAM.md`. Do not identify or address a person from local Git metadata alone; shared machines and inherited repository config make that unreliable. GitHub access is not required.
 
 For Git/branch questions or before changing development context, read `docs/07-delivery/07-git-playbook.md`.
 
@@ -28,7 +28,7 @@ When a user has just cloned/opened the repository and asks what to do next:
 
 1. Enter documentation-only onboarding mode.
 2. Read `docs/AI_CONTEXT.md`, `docs/PROJECT_STATUS.md`, `docs/NEXT_WORK.md` and `docs/TEAM.md`. Use `docs/CONTEXT_ROUTER.md`; do not load all detailed plans.
-2a. Read `docs/TEAM.md`, then compare the local `git config user.name` with active member aliases.
+2a. Ask the user for their name or Member ID. Only after they answer, compare it with `docs/TEAM.md`; local `git config user.name` is a secondary consistency check, not identity proof.
 3. Do not inspect application source code, install dependencies or edit files yet.
 4. Do not assume the current branch or another developer's unfinished task is the work the new user should continue.
 5. Summarize project status and propose 2–4 independent `READY` tasks from `docs/NEXT_WORK.md`.
@@ -37,7 +37,7 @@ When a user has just cloned/opened the repository and asks what to do next:
 8. If the documentation is incomplete or stale, propose a documentation reconciliation task; do not silently infer completed code from an absent record.
 9. Follow `docs/07-delivery/06-two-person-collaboration.md` when suggesting or claiming work. A task is not safely claimed until its owner, branch, claimed date and write scope are visible on `develop`.
 10. Check task write scopes before proposing parallel work. Do not propose two tasks that own the same migration, contract, shared package or feature document unless an explicit coordination boundary is recorded.
-11. State the inferred Member ID and confidence. If there is no unique match, ask the user for their Member ID before claiming a task; do not guess.
+11. Do not infer or announce a name/Member ID before the user identifies themselves. After their answer, state the confirmed/matched Member ID and confidence. If no unique match exists, ask how they want to be registered before claiming a task; do not guess or assign placeholder identities.
 
 Rules:
 
@@ -67,7 +67,7 @@ Rules:
 24. If the user wants to switch to another feature, follow the Task Switching Protocol in `docs/07-delivery/06-two-person-collaboration.md` before proposing new work.
 25. Proactively recommend the correct Git handoff: verified work may be proposed for merge after push/review; implemented-but-unverified work should be pushed for review but not merged; incomplete work may be pushed as WIP and marked `PAUSED` but must not be merged.
 26. Codex may show exact Git commands after checking branch/status, but must not execute commit, push, PR or merge under the team's standing instruction.
-27. Do not print, persist or use Git email for routine identity matching. Prefer `user.name` aliases in `docs/TEAM.md`; never store credentials or tokens there.
+27. Do not print, persist or use Git email for identity matching. After the user states their identity, `user.name` aliases may be used only as a consistency warning; never use local Git metadata to override the user's answer or store credentials/tokens in `docs/TEAM.md`.
 28. Identity inference does not authorize actions. The user must still choose a task, and `docs/NEXT_WORK.md` remains the source of task ownership.
 29. Respect branch isolation: each member normally reads/edits/pulls only their own feature branch. Do not fetch, track, inspect or modify another member's feature branch unless the user explicitly asks for review, support or handoff.
 30. Treat `origin/develop` as the shared integration source. Pulling `develop` retrieves only work already merged/pushed to `develop`; it does not bring another feature branch's code into the working tree.
@@ -116,3 +116,8 @@ Rules:
 73. Diagrams must match the implemented behavior. After code changes, update nodes, branches, states, API names and failure paths; stale diagrams make the feature documentation incomplete.
 74. Explain each diagram below it: entry condition, numbered steps, decision points, errors/fallback, output and persisted/audited data. Do not assume the thesis reader understands implementation jargon.
 75. A feature cannot be handed off as `IMPLEMENTED` when its required report sections are missing; record `IN_PROGRESS` and list the documentation gaps.
+76. Before the first implementation action in a new chat, changed branch/task, uncertain continuation, or after at least four hours since recorded activity, ask the user for their name or Member ID again. The four-hour threshold revalidates identity only; it never releases task ownership.
+77. Every implementation session must follow `docs/07-delivery/09-work-session-contribution-ledger.md`: record session ID, confirmed contributor, task/branch, start/last-active/end timestamps, scope, output, tests and handoff in the feature owner.
+78. If a prior session has no reliable end, mark it `INTERRUPTED` with `EndedAt: UNKNOWN`; never invent duration, completion time or active effort from wall-clock absence.
+79. A different contributor continuing work requires confirmed handoff/coordination, a new ledger row and preserved prior attribution. Do not overwrite another contributor's timestamps, scope or evidence.
+80. Track feature lifecycle milestones from claim through implementation, verification, merge and completion. `VERIFIED`, merged/completed timestamps and actual effort require user/team evidence.

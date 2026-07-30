@@ -13,7 +13,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - AI/project memory governance: IMPLEMENTED, chờ nhóm review; gồm invariants, ADR, contract/data catalog, traceability, current task và handoff.
 - Two-person coordination protocol: IMPLEMENTED, chờ nhóm review; gồm task claim, write scope, collision và stale detection.
 - Task switching protocol: IMPLEMENTED, chờ nhóm review; AI đề xuất push/merge theo mức hoàn thiện nhưng không tự thực hiện.
-- Member identity protocol: IMPLEMENTED, chờ bổ sung profile `member-02`; không cần GitHub permission.
+- Member identity protocol: IMPLEMENTED, chờ nhóm review; chat mới phải hỏi tên/Member ID trước, không suy luận từ Git hoặc dùng placeholder. Git author chỉ kiểm tra nhất quán sau xác nhận.
 - Branch isolation protocol: IMPLEMENTED, chờ nhóm review; mỗi người làm branch riêng và dùng `develop` làm nguồn tích hợp.
 - Git beginner assistance: IMPLEMENTED, chờ nhóm review; gồm clone, tracking, pull/fetch/merge và xử lý trạng thái bất thường.
 - Cross-feature integration protocol: IMPLEMENTED ở mức plan; shared contracts thực tế sẽ được tạo trong Pha 1.
@@ -28,6 +28,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - AI Experience & Documentation Quality Gate: PLAN_LOCKED ở mức tài liệu; cho phép nhiều công nghệ có trách nhiệm, bắt buộc dependency inventory, thematic motion, desktop/mobile performance evidence và quality-tier fallback. Automation bị chặn bởi foundation.
 - Code, Secret & Configuration Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc clean-code review, typed config, server-only secrets, URL/provider configuration và evidence từ scan/test. Automation gộp vào `TASK-DOC-QUALITY-001` sau foundation.
 - Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc server validation, parameterized query/allowlist, evidence-based index, scoped cache/invalidation và response/log redaction. Automation chờ API/data foundation.
+- Work Session & Feature Contribution Ledger: PLAN_LOCKED ở mức quy trình; hỏi lại danh tính sau 4 giờ/new context, lưu từng phiên/người/scope/test/handoff và feature lifecycle; chưa có implementation session vì source chưa khởi tạo.
 - Search/Discovery: PLANNED; hybrid lexical/vector baseline, BLOCKED bởi foundation/API/data/CMS.
 - Polyglot extension policy: IMPLEMENTED; runtime mới cần Option Review và bằng chứng.
 - Indoor Location QR/Photo: PLANNED; QR là anchor, visual place recognition là bổ trợ có confidence/fallback.

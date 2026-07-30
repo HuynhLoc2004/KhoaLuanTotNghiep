@@ -167,6 +167,14 @@ Nêu Decision/ADR và lý do `PLAN_LOCKED`.
 | Actual effort | Chỉ sau xác nhận |
 | Completion date | Chỉ sau xác nhận |
 
+### Contributors and work sessions
+
+| Session ID | Contributor | Role/Scope | StartedAt | EndedAt | Status | Output/Test/Handoff |
+|---|---|---|---|---|---|---|
+| | | | | | | |
+
+Phân biệt calendar span với active effort. Phiên không có thời điểm kết thúc đáng tin cậy ghi `UNKNOWN/INTERRUPTED`; không tính toàn bộ thời gian vắng mặt thành giờ làm.
+
 ## 12. Testing and evidence
 
 | Type | Scenario | Expected | Result/Evidence |
@@ -210,3 +218,6 @@ Liên kết/ghi Decision log, Plan revisions, Change history, merge reference v�
 - [ ] Query/index quan trọng có owner, query-plan/query-count evidence và read/write trade-off.
 - [ ] Cache key/version/TTL/invalidation giữ đúng publish/permission/ownership/locale và có outage/stampede fallback.
 - [ ] Response/error/log redaction không lộ SQL, schema, internal path hoặc field ngoài contract.
+- [ ] Feature lifecycle và contribution ledger ghi đúng người, session, timestamp, scope, test và handoff.
+- [ ] Người tiếp tục có row riêng; lịch sử người trước không bị ghi đè.
+- [ ] Actual effort/completion/VERIFIED/merge chỉ ghi khi có bằng chứng phù hợp.

@@ -65,6 +65,19 @@ Upload ảnh -> job queue -> processing -> technical QA -> curator QA -> publish
 |---|---|---|
 | 2026-07-29 | Ưu tiên photogrammetry cho hiện vật chọn lọc và LOD GLB cho web | Chi phí phù hợp đồ án; vật bóng/trong suốt cần fallback |
 
+## Feature lifecycle và Contribution ledger
+
+Áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`. Chưa có implementation session; không suy diễn contributor/timestamp từ plan.
+
+| Mốc | Timestamp | Member/Actor | Evidence |
+|---|---|---|---|
+| Planned | Baseline docs | Nhóm | Feature plan |
+| Claimed/Started/IMPLEMENTED/VERIFIED/Merged/Completed | Chưa có | — | — |
+
+| Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Chưa có | — | — | — | — | — | — | PLANNED | — | NOT RUN | Chờ task READY |
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Test/Bằng chứng |

@@ -13,12 +13,14 @@ AI dùng cấu trúc này khi người dùng vừa clone/mở dự án và chỉ
 
 ## Nhận diện thành viên
 
-- Git author local:
-- Member ID suy ra:
-- Confidence: HIGH/UNCONFIRMED
-- Cần người dùng xác nhận: Có/Không
+- Người dùng đã tự cung cấp tên/Member ID: Có/Không
+- Member ID đã đối chiếu sau câu trả lời:
+- Confidence: CONFIRMED/MATCHED/UNCONFIRMED
+- Git author consistency check sau xác nhận: MATCH/MISMATCH/NOT_CHECKED
 
-Không hiển thị Git email. Nếu chưa khớp duy nhất với `docs/TEAM.md`, dừng trước bước claim task và hỏi Member ID.
+Trong chat mới, không gọi người dùng bằng tên, không liệt kê tên/member placeholder và không suy luận danh tính từ Git. Hỏi ngắn: “Bạn tên gì hoặc muốn dùng Member ID nào trong dự án?” Có thể vẫn tóm tắt dự án và đề xuất task `READY`, nhưng dừng trước bước claim cho đến khi người dùng tự xác nhận danh tính.
+
+Không hiển thị Git email. Chỉ kiểm tra `git config user.name` sau câu trả lời như tín hiệu nhất quán; mismatch là cảnh báo cấu hình, không được ghi đè danh tính người dùng.
 
 ## Tình trạng cộng tác
 
@@ -52,7 +54,7 @@ Chọn một task và giải thích ngắn bằng dependency, giá trị và m�
 ## Hướng dẫn theo checkpoint
 
 - Gate hiện tại:
-- Bước tiếp theo duy nhất:
+- Bước tiếp theo duy nhất: nếu chưa biết danh tính, hỏi tên/Member ID; nếu đã xác nhận, yêu cầu chọn task.
 - USER ACTION:
 - CODEX ACTION sau khi người dùng phản hồi:
 - Kết quả mong đợi:

@@ -58,6 +58,19 @@ Giới hạn kích thước, magic byte, malware scan, signed upload, retention 
 |---|---|---|
 | 2026-07-29 | MVP dùng embedding retrieval + top-k/confidence | Cần ít dữ liệu và thêm hiện vật không phải retrain toàn bộ; có thể nhầm vật giống nhau |
 
+## Feature lifecycle và Contribution ledger
+
+Áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`. Chưa có implementation session; không suy diễn contributor/timestamp từ plan.
+
+| Mốc | Timestamp | Member/Actor | Evidence |
+|---|---|---|---|
+| Planned | Baseline docs | Nhóm | Feature plan |
+| Claimed/Started/IMPLEMENTED/VERIFIED/Merged/Completed | Chưa có | — | — |
+
+| Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Chưa có | — | — | — | — | — | — | PLANNED | — | NOT RUN | Chờ task READY |
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Test/Bằng chứng |

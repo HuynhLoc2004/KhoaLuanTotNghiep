@@ -45,6 +45,19 @@ Hiển thị dữ liệu tổng hợp, ẩn IP, hạn chế truy vấn từng ng
 |---|---|---|
 | 2026-07-29 | Dashboard đọc dữ liệu pre-aggregated thay vì query raw trực tiếp | Nhanh và ít tải production; số liệu có độ trễ chấp nhận được |
 
+## Feature lifecycle và Contribution ledger
+
+Áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`. Chưa có implementation session; không suy diễn contributor/timestamp từ plan.
+
+| Mốc | Timestamp | Member/Actor | Evidence |
+|---|---|---|---|
+| Planned | Baseline docs | Nhóm | Feature plan |
+| Claimed/Started/IMPLEMENTED/VERIFIED/Merged/Completed | Chưa có | — | — |
+
+| Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Chưa có | — | — | — | — | — | — | PLANNED | — | NOT RUN | Chờ task READY |
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Test/Bằng chứng |

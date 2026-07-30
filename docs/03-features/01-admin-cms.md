@@ -100,6 +100,19 @@ RBAC theo hành động và phạm vi; sanitize rich text; signed upload; chốn
 | 2026-07-29 | Dùng page builder theo block có schema thay vì trình kéo thả tự do | Giữ responsive, bảo mật và tính nhất quán; giảm mức tự do của editor |
 | 2026-07-29 | CMS điều khiển theme/motion/scene qua preset registry | Không hard-code quyết định biên tập nhưng vẫn ngăn arbitrary code và bảo vệ hiệu năng |
 
+## Feature lifecycle và Contribution ledger
+
+Áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`. Chưa có implementation session; không suy diễn contributor/timestamp từ plan.
+
+| Mốc | Timestamp | Member/Actor | Evidence |
+|---|---|---|---|
+| Planned | Baseline docs | Nhóm | Feature plan |
+| Claimed/Started/IMPLEMENTED/VERIFIED/Merged/Completed | Chưa có | — | — |
+
+| Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Chưa có | — | — | — | — | — | — | PLANNED | — | NOT RUN | Chờ task READY |
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Test/Bằng chứng |

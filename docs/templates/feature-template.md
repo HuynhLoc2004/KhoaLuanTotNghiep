@@ -25,6 +25,26 @@ Sau khi feature đi vào implementation, file này phải đáp ứng `docs/temp
 
 Trạng thái hợp lệ: `PLANNED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `DEFERRED`. Chỉ nhóm/người dùng xác nhận `VERIFIED` sau review/test.
 
+## Feature lifecycle
+
+| Mốc | Timestamp | Member/Actor | Evidence |
+|---|---|---|---|
+| Planned | | | |
+| Claimed | | | |
+| Implementation started | | | |
+| First IMPLEMENTED | | | |
+| VERIFIED | Chỉ sau người dùng xác nhận | | |
+| Merged to develop | Chỉ sau xác nhận merge | | |
+| Completed | Sau Merge Memory Sync PASS | | |
+
+## Contribution ledger
+
+Áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`. Không dùng Git email, không suy diễn thời lượng từ khoảng nghỉ và không ghi đè lịch sử người trước.
+
+| Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
+|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | |
+
 ## Mục tiêu và giá trị
 
 Mô tả vấn đề, người dùng và kết quả đo được.

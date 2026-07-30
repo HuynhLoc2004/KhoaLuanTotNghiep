@@ -80,6 +80,7 @@ AI nhận diện thành viên bằng Git author local và [docs/TEAM.md](docs/TE
 51. [AI Experience & Documentation Quality Gate](docs/04-design/03-ai-experience-quality-gate.md)
 52. [Code, Secret & Configuration Quality Gate](docs/05-quality/04-code-configuration-quality-gate.md)
 53. [Database Query, Cache & Input Security Quality Gate](docs/05-quality/05-database-query-cache-quality-gate.md)
+54. [Work Session & Feature Contribution Ledger](docs/07-delivery/09-work-session-contribution-ledger.md)
 51. [Tìm kiếm và khám phá nội dung](docs/03-features/09-search-discovery.md)
 52. [Xác định vị trí bằng QR và ảnh](docs/03-features/10-indoor-location-detection.md)
 

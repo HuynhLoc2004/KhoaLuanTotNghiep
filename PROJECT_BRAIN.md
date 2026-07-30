@@ -513,11 +513,14 @@ AI dùng [mẫu onboarding](docs/templates/onboarding-response-template.md) đ�
 
 ### Nhận diện thành viên
 
-Nguồn chuẩn danh tính nhóm là `docs/TEAM.md`. AI có thể đọc `git config user.name` trên máy và chuẩn hóa chữ hoa/thường/khoảng trắng để so với `gitAuthorAliases`.
+Nguồn chuẩn registry nhóm là `docs/TEAM.md`, nhưng nguồn chuẩn cho người đang trò chuyện là câu trả lời trực tiếp của họ.
 
-- Khớp duy nhất một thành viên `ACTIVE`: báo Member ID suy ra và mức tin cậy cao, đồng thời cho phép người dùng sửa.
-- Không khớp hoặc khớp nhiều người: hỏi Member ID; không đoán.
-- Member chưa có alias: sau khi người dùng xác nhận, đề xuất cập nhật `TEAM.md` trên `develop`.
+- Trong chat mới, hỏi “Bạn tên gì hoặc muốn dùng Member ID nào trong dự án?” trước khi gọi tên hoặc claim task.
+- Không liệt kê tên thành viên/placeholder để người dùng chọn và không suy luận danh tính từ Git config.
+- Sau câu trả lời, chuẩn hóa và đối chiếu với member `ACTIVE`; khớp duy nhất thì báo để người dùng xác nhận/sửa.
+- Không khớp hoặc khớp nhiều người: hỏi cách đăng ký; không đoán hoặc tự sinh Member ID placeholder.
+- Chỉ sau khi người dùng tự xác nhận, `git config user.name` mới được dùng làm consistency check. Mismatch chỉ tạo cảnh báo, không ghi đè danh tính.
+- Member chưa có alias: sau khi người dùng/nhóm xác nhận, đề xuất cập nhật `TEAM.md` trên `develop`.
 - Không dùng email cho matching thông thường và không in email ra câu trả lời.
 - Không gọi GitHub API chỉ để nhận diện. GitHub username là metadata tùy chọn.
 - Máy dùng chung hoặc cấu hình Git sai: lời xác nhận trực tiếp của người dùng có ưu tiên cao hơn Git config.
@@ -1010,3 +1013,16 @@ Mọi data-access path phải áp dụng `docs/05-quality/05-database-query-cach
 - Response/error/log không lộ SQL, schema, internal path, PII/secret hoặc field ngoài contract.
 - “Code ngắn” không phải acceptance metric. Ưu tiên đúng, an toàn, rõ và nhanh theo benchmark; loại duplication/over-fetch/abstraction dư thừa có bằng chứng.
 - Thiếu injection/IDOR, query-plan/query-count, cache correctness hoặc redaction evidence thì feature giữ `IN_PROGRESS`.
+
+## 34. Work Session & Feature Contribution Ledger
+
+Mọi implementation session áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`.
+
+- Chat mới, đổi branch/task/người, continuation không rõ hoặc từ 4 giờ sau hoạt động được ghi nhận phải hỏi lại tên/Member ID trước khi code.
+- Bốn giờ chỉ là identity recheck threshold; không tự giải phóng claim, đổi owner hoặc đánh dấu task stale.
+- Mỗi session ghi ID, contributor đã xác nhận, role, task/branch, StartedAt, LastActiveAt, EndedAt, status, scope/output, tests và handoff.
+- Nếu không biết lúc người dùng rời đi, ghi `INTERRUPTED` và `EndedAt: UNKNOWN`; không bịa duration.
+- Feature owner giữ lifecycle từ Planned/Claimed/Started đến IMPLEMENTED/VERIFIED/Merged/Completed và contribution ledger append-only.
+- Người khác tiếp tục cần handoff/coordination đã xác nhận và session row mới; attribution người trước được bảo toàn.
+- Wall-clock span không mặc nhiên là active effort. Actual effort, completion date và `VERIFIED` chỉ ghi theo bằng chứng/nhóm xác nhận.
+- `CURRENT_TASK.md` chỉ chứa phiên/checkpoint hiện tại; durable contribution history thuộc feature owner.

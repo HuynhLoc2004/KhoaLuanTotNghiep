@@ -44,6 +44,19 @@ API key TTS chỉ ở backend; quota theo vai trò; admin xem ước tính chi p
 |---|---|---|
 | 2026-07-29 | Hybrid giọng thật và TTS có kiểm duyệt | Cân bằng cảm xúc, tốc độ cập nhật và chi phí |
 
+## Feature lifecycle và Contribution ledger
+
+Áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`. Chưa có implementation session; không suy diễn contributor/timestamp từ plan.
+
+| Mốc | Timestamp | Member/Actor | Evidence |
+|---|---|---|---|
+| Planned | Baseline docs | Nhóm | Feature plan |
+| Claimed/Started/IMPLEMENTED/VERIFIED/Merged/Completed | Chưa có | — | — |
+
+| Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Chưa có | — | — | — | — | — | — | PLANNED | — | NOT RUN | Chờ task READY |
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Test/Bằng chứng |

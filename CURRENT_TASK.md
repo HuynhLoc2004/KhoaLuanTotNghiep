@@ -25,6 +25,8 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 - AI Experience & Documentation Quality Gate cho sáng tạo, dependency inventory và hiệu năng đa thiết bị.
 - Code, Secret & Configuration Quality Gate cho clean code, typed config, URL/provider và credential safety.
 - Database Query, Cache & Input Security Quality Gate cho server validation, injection prevention, index evidence và cache correctness.
+- User-first identity gate: hỏi tên/Member ID trước, Git author chỉ kiểm tra sau xác nhận.
+- Work Session & Feature Contribution Ledger cho identity recheck, attribution, timestamp và handoff.
 
 ## Ngoài phạm vi
 
@@ -40,7 +42,9 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 - UI/motion/3D có quality tiers, desktop/mobile evidence và technology inventory bắt buộc.
 - Code/config có review evidence; secret không vào client/log/docs và environment-specific URL không hard-code.
 - Data access có parameter binding/allowlist, query-plan/index evidence, scoped cache/invalidation và response/log redaction.
+- Onboarding không gọi tên, suy luận danh tính từ Git hoặc dùng member placeholder trước câu trả lời của người dùng.
+- Mỗi implementation session/người tiếp tục có row riêng; feature lifecycle giữ mốc bắt đầu, bàn giao, verification, merge và completion có evidence.
 
 ## Handoff status
 
-Đã tạo baseline tài liệu, khóa `DEC-UX-QUALITY-001`, `DEC-QUALITY-001` và `DEC-DATA-QUALITY-001`; người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation/API/data tooling. Task code tiếp theo dự kiến dùng branch `feature/project-foundation` và phải viết lại file này theo phạm vi foundation.
+Đã tạo baseline tài liệu, khóa các Quality Gate, user-first identity và Work Session Ledger tại `PLAN-0008`; người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation/API/data tooling. Task code tiếp theo dự kiến dùng branch `feature/project-foundation` và phải viết lại file này theo phạm vi foundation.

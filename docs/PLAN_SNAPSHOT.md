@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0006`
+- Revision: `PLAN-0008`
 - Updated: 2026-07-30
 - Status: BASELINE_PENDING_TEAM_REVIEW
-- Scope: Database Query, Cache & Input Security Quality Gate.
+- Scope: Work Session & Feature Contribution Ledger.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -28,26 +28,25 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0004 | 2026-07-30 | Khóa Quality Gate cho sáng tạo UI/motion/3D, inventory công nghệ và hiệu năng đa thiết bị | IDEA-001; mọi UI feature; TASK-DOC-QUALITY-001 | Áp dụng Markdown gate ngay; automation sau TASK-FOUND-001 | `loc` xác nhận |
 | PLAN-0005 | 2026-07-30 | Khóa clean-code review, server-only secret, typed config và URL/provider rules | Mọi implementation; TASK-DOC-QUALITY-001 | Áp dụng review/docs gate ngay; thêm scan/CI sau TASK-FOUND-001 | `loc` xác nhận |
 | PLAN-0006 | 2026-07-30 | Khóa server input validation, parameterized query, evidence-based index, scoped cache và data redaction | Mọi data/API feature; TASK-DOC-QUALITY-001 | Áp dụng docs/review gate ngay; automation sau API/data foundation | `loc` xác nhận |
+| PLAN-0007 | 2026-07-30 | Onboarding hỏi tên/Member ID trước, không suy luận hoặc gọi tên từ Git/placeholder | Mọi chat onboarding; TEAM/collaboration | Áp dụng ngay; Git author chỉ consistency check sau xác nhận | Người dùng xác nhận |
+| PLAN-0008 | 2026-07-30 | Thêm identity recheck 4 giờ, work-session ledger, feature lifecycle và continuation attribution | Mọi implementation/handoff; feature owner templates | Áp dụng từ implementation session đầu tiên | Người dùng xác nhận |
 
 ## Changed owner documents in current revision
 
-- `docs/05-quality/05-database-query-cache-quality-gate.md`
-- `docs/05-quality/01-security-privacy.md`
-- `docs/05-quality/02-performance-scalability.md`
-- `docs/05-quality/03-testing-strategy.md`
-- `docs/00-product/03-business-invariants.md`
-- `docs/02-data/01-data-model.md`
-- `docs/02-data/02-api-contract.md`
+- `docs/07-delivery/09-work-session-contribution-ledger.md`
 - `docs/templates/feature-template.md`
 - `docs/templates/feature-report-standard.md`
+- `docs/templates/handoff-template.md`
+- `docs/07-delivery/06-two-person-collaboration.md`
+- `AGENTS.md`
+- `docs/AI_CONTEXT.md`
 - `PROJECT_BRAIN.md`
-- `docs/NEXT_WORK.md`
-- `docs/CONTEXT_ROUTER.md`
 - `docs/PROJECT_STATUS.md`
 - `README.md`
 - `CURRENT_TASK.md`
+- `docs/03-features/01-admin-cms.md` đến `10-indoor-location-detection.md`
 
-Mọi task data/API/cache phải đọc Query/Cache/Input Security Quality Gate. Automation chưa triển khai trước API/data foundation.
+Mọi implementation session phải xác nhận identity/context và ghi ledger; task ownership không tự hết hạn sau 4 giờ.
 
 ## Revision rules
 

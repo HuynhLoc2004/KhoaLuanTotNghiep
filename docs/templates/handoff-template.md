@@ -6,6 +6,19 @@
 - Base branch:
 - Commit/merge/push do agent thực hiện: Không.
 
+## Work session
+
+- Session ID:
+- Contributor đã tự xác nhận:
+- Task/Branch:
+- StartedAt:
+- LastActiveAt:
+- EndedAt: ISO-8601/UNKNOWN
+- Session status: CLOSED/PAUSED/INTERRUPTED
+- Active effort: USER_CONFIRMED/UNKNOWN
+- Contribution ledger đã cập nhật:
+- Người nhận tiếp tục đã xác nhận:
+
 ## Kết quả
 
 Mô tả hành vi đã triển khai, dẫn đầu bằng kết quả người dùng nhìn thấy.
@@ -75,6 +88,8 @@ Các bước ngắn để người dùng test, điểm cần chú ý và accepta
 ## Trạng thái
 
 Agent tối đa ghi `IMPLEMENTED`. Người dùng/nhóm đổi thành `VERIFIED` sau review.
+
+Không lấy thời gian giữa StartedAt/EndedAt làm actual effort nếu có nghỉ/chờ. Nếu phiên mất kết nối hoặc người dùng rời đi không báo, ghi `INTERRUPTED` và `EndedAt: UNKNOWN`.
 
 ## Git action được đề xuất
 
