@@ -41,6 +41,7 @@ Chỉ chuyển task sang `DONE` sau khi merge vào `develop` và Merge Memory Sy
 | TASK-DATA-001 | PostgreSQL migration foundation và entity baseline | BLOCKED | Chưa có | — | TASK-FOUND-001, TASK-API-001 | 2–4 person-days, LOW | migrations, schema, seed foundation | `docs/02-data/01-data-model.md` |
 | TASK-SEARCH-001 | Search contract, indexing và public discovery MVP | BLOCKED | Chưa có | — | Foundation, API, data và CMS/artifact baseline | 8–18 person-days, LOW | search module/contracts/index/UI | `docs/03-features/09-search-discovery.md` |
 | TASK-LOCATION-001 | QR location và visual place recognition | BLOCKED | Chưa có | — | Foundation, map graph, CMS/media, AI worker và dataset | 12–28 person-days, LOW | location contracts/API/vision/UI | `docs/03-features/10-indoor-location-detection.md` |
+| TASK-DOC-QUALITY-001 | Documentation Quality Gate linter/CI | BLOCKED | Chưa có | — | TASK-FOUND-001, accepted Quality Gate schema | 1–2 person-days, MEDIUM | docs lint config/scripts, CI check, documentation tests | `docs/04-design/03-ai-experience-quality-gate.md` |
 
 Estimate trên chỉ phục vụ chọn việc và phải được rà soát lại khi bắt đầu task.
 

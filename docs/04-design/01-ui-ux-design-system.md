@@ -8,6 +8,8 @@ Thiết kế phải có chất riêng, nhận ra được ngay cả khi bỏ log
 
 Ý tưởng animation/3D mới không được thêm rời rạc. Mỗi vertical slice cần một Creative Concept Review, signature interaction, quality-tier fallback, CMS preset và metric; sau khi người dùng chọn mới `PLAN_LOCKED`.
 
+Mọi AI và thành viên phải áp dụng [AI Experience & Documentation Quality Gate](03-ai-experience-quality-gate.md). Dự án cho phép dùng nhiều thư viện animation/3D hoặc runtime khi có giá trị và ranh giới rõ; không dùng số lượng dependency làm giới hạn thay cho bundle/runtime budget, compatibility, fallback và evidence. Mọi công nghệ thực sự sử dụng phải được ghi đầy đủ trong feature Markdown.
+
 ## Design tokens
 
 - Màu semantic: background, surface, text, muted, primary, accent, success, warning, danger.
@@ -114,3 +116,18 @@ Mục tiêu “sống động” được đo bằng chất lượng chuyển c�
 - Admin thay hero scene, theme, motion preset và thứ tự section mà không sửa code/deploy.
 - Reduced motion và Lite tier vẫn truyền đủ nội dung, không chặn thao tác.
 - Không có long animation làm người dùng phải đợi mới đọc hoặc bấm.
+- Mỗi dependency UI/motion/3D có owner, cost, loading strategy, lifecycle, fallback và evidence trong feature report.
+- Tuyên bố “mượt” có kết quả đo trên desktop và mobile đại diện, kèm build mode, browser, thiết bị và scene/kịch bản.
+- Feature thiếu technology inventory, quality tiers hoặc test evidence giữ trạng thái `IN_PROGRESS`, không ghi `IMPLEMENTED`.
+
+## Decision log
+
+| Ngày | Decision | Trạng thái | Lý do |
+|---|---|---|---|
+| 2026-07-30 | `DEC-UX-QUALITY-001`: Cho phép nhiều công nghệ có trách nhiệm; áp dụng Quality Gate Markdown ngay và automation sau foundation | PLAN_LOCKED | Giữ tự do sáng tạo nhưng kiểm soát hiệu năng đa thiết bị và bảo đảm hồ sơ báo cáo |
+
+## Change history
+
+| Ngày | Loại | Thay đổi |
+|---|---|---|
+| 2026-07-30 | ADDED | Liên kết Quality Gate, dependency inventory và performance evidence cho desktop/mobile |

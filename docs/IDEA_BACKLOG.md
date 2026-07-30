@@ -17,7 +17,7 @@ Kho tiếp nhận ý tưởng mới. Đây là chỉ mục, không thay feature 
 
 | Idea ID | Ý tưởng | Feature owner | Trạng thái | Concept/Decision | Confidence | Estimate | Task/Owner |
 |---|---|---|---|---|---|---|---|
-| IDEA-001 | Immersive 3D storytelling và animation có bản sắc | `docs/04-design/01-ui-ux-design-system.md` | EVALUATING | Chưa tạo concept review riêng | MEDIUM | Chốt theo từng vertical slice | Chưa có |
+| IDEA-001 | Immersive 3D storytelling và animation có bản sắc | `docs/04-design/01-ui-ux-design-system.md` | PLAN_LOCKED | `docs/04-design/03-ai-experience-quality-gate.md`; `DEC-UX-QUALITY-001` | HIGH | Gate docs: <1 person-day; automation: 1–2 person-days sau foundation | `loc`; automation chưa nhận |
 
 ## Quy tắc
 

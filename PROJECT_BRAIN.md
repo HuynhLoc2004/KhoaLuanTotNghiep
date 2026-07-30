@@ -969,3 +969,16 @@ Mỗi feature phải nói rõ public/authenticated/admin/service path; token/ses
 ### Gate báo cáo
 
 Feature chỉ được `IMPLEMENTED` khi sơ đồ phản ánh code, phần giải thích đầy đủ, technology/algorithm/estimate/security/test evidence đã cập nhật. Người dùng vẫn là người xác nhận `VERIFIED`.
+
+## 31. AI Experience & Documentation Quality Gate
+
+Chuẩn bắt buộc cho UI, animation, 3D và interaction nằm tại `docs/04-design/03-ai-experience-quality-gate.md`.
+
+- Dự án cho phép nhiều thư viện, ngôn ngữ và kỹ thuật khi mỗi công nghệ có giá trị, phạm vi sở hữu và fallback rõ.
+- Không giới hạn sáng tạo bằng số dependency; kiểm soát bằng bundle/runtime/asset budget, compatibility, lifecycle, security và benchmark.
+- Mọi công nghệ thực sự dùng phải xuất hiện trong technology inventory của feature Markdown.
+- Mỗi vertical slice có thematic concept, signature interaction, CMS configuration và `PLAN_LOCKED`.
+- Animation/3D phải có Cinematic, Balanced, Lite, reduced-motion và no-WebGL behavior phù hợp.
+- “Mượt” phải có evidence trên desktop/mobile đại diện; cảm nhận trên máy dev không đủ.
+- Thiếu inventory, performance evidence hoặc fallback thì feature giữ `IN_PROGRESS`.
+- Sau project foundation, documentation linter/CI kiểm tra cấu trúc và liên kết; review con người vẫn xác nhận chất lượng và tính đúng.

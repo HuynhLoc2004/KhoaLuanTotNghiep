@@ -75,7 +75,7 @@ Dùng khi người dùng nói rõ “đọc src/source/code xem dự án đang l
 | Search/autocomplete/discovery | `03-features/09-search-discovery.md` | CMS, artifact/data model, API/contract, integration map, performance/security |
 | Xác định vị trí bằng QR/ảnh | `03-features/10-indoor-location-detection.md` | Web 3D/map, media upload, AI worker, data catalog, security/performance |
 | Database/API/contracts | `02-data/01-data-model.md`, `02-data/02-api-contract.md` | Contract catalog, integration map, invariants |
-| UI/animation/design | `04-design/01-ui-ux-design-system.md` | Admin CMS, performance, ADR-004 |
+| UI/animation/design | `04-design/01-ui-ux-design-system.md` | AI Experience Quality Gate, Admin CMS, performance, ADR-004 |
 | Docker/Nginx/CI | `06-devops/01-local-environment.md` | Architecture, observability, security |
 | Git/branch/teamwork | `07-delivery/07-git-playbook.md` | Collaboration, TEAM, NEXT_WORK |
 

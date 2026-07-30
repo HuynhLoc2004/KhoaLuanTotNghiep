@@ -77,6 +77,7 @@ AI nhận diện thành viên bằng Git author local và [docs/TEAM.md](docs/TE
 48. [Merge Memory Sync Gate](docs/07-delivery/08-merge-memory-sync.md)
 49. [Plan Snapshot và change feed](docs/PLAN_SNAPSHOT.md)
 50. [Feature Report Standard](docs/templates/feature-report-standard.md)
+51. [AI Experience & Documentation Quality Gate](docs/04-design/03-ai-experience-quality-gate.md)
 51. [Tìm kiếm và khám phá nội dung](docs/03-features/09-search-discovery.md)
 52. [Xác định vị trí bằng QR và ảnh](docs/03-features/10-indoor-location-detection.md)
 

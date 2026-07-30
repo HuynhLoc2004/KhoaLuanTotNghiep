@@ -22,6 +22,7 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 
 - Authority order, invariants, ADR baseline, contract/data catalog.
 - Traceability matrix, Definition of Ready và handoff template.
+- AI Experience & Documentation Quality Gate cho sáng tạo, dependency inventory và hiệu năng đa thiết bị.
 
 ## Ngoài phạm vi
 
@@ -34,7 +35,8 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 - Có quy tắc giải quyết mâu thuẫn và bảo toàn lịch sử.
 - Có nơi sở hữu invariant, ADR, contract, data, traceability và handoff.
 - Tất cả tài liệu mới được liên kết từ README/bộ não.
+- UI/motion/3D có quality tiers, desktop/mobile evidence và technology inventory bắt buộc.
 
 ## Handoff status
 
-Đã tạo baseline tài liệu; người dùng review. Task code tiếp theo dự kiến dùng branch `feature/project-foundation` và phải viết lại file này theo phạm vi foundation.
+Đã tạo baseline tài liệu và khóa `DEC-UX-QUALITY-001`; người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation. Task code tiếp theo dự kiến dùng branch `feature/project-foundation` và phải viết lại file này theo phạm vi foundation.

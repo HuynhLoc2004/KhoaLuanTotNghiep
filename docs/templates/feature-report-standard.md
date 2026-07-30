@@ -107,6 +107,8 @@ function execute(input):
 |---|---|---|---|---|---|---|---|---|
 | | | | | | | | | |
 
+Với UI/motion/3D, mỗi dependency còn phải ghi rõ behavior/property ownership, initial/async bundle cost, loading strategy, lifecycle cleanup, desktop/mobile/browser compatibility, quality-tier fallback, benchmark evidence và replacement boundary. Không bỏ sót thư viện chỉ vì nó là dependency phụ hoặc chỉ dùng cho animation.
+
 ## 8. Alternatives and suitability
 
 | Phương án | Flow/algorithm | Ưu | Nhược | Effort | Scale | Mức phù hợp |
@@ -124,6 +126,11 @@ Nêu Decision/ADR và lý do `PLAN_LOCKED`.
 - Backpressure/degraded mode:
 - Scale path:
 - Benchmark evidence:
+- Desktop/mobile test matrix:
+- LCP/INP/long task và JS chunk:
+- FPS/frame time, dropped frame và scene load khi có animation/3D:
+- Asset/texture/model budget và memory/lifecycle evidence:
+- Cinematic/Balanced/Lite/reduced-motion/no-WebGL behavior:
 
 ## 10. Security and privacy
 
@@ -178,3 +185,6 @@ Liên kết/ghi Decision log, Plan revisions, Change history, merge reference v�
 - [ ] Estimate và evidence.
 - [ ] Test, limitation và fallback.
 - [ ] Feature/Integration/UI indexes được cập nhật khi merge.
+- [ ] Mọi technology/dependency thực sự dùng đã có inventory, owner, runtime cost và fallback.
+- [ ] Animation/3D có evidence trên desktop và mobile; không tuyên bố “mượt” chỉ từ cảm nhận.
+- [ ] Quality tiers, reduced motion, no-WebGL và dependency failure đã được kiểm tra.
