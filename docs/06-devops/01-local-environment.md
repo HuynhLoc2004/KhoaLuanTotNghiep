@@ -39,9 +39,13 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 AI_PROVIDER_API_KEY=
+PUBLIC_API_ORIGIN=
+MEDIA_ORIGIN=
 ```
 
 File thật là `.env.local`/Docker secret và bị ignore. `.env.example` chỉ để tên và mô tả.
+
+Mỗi runtime dùng một config module typed/schema-validated và fail fast khi biến bắt buộc thiếu hoặc sai. Business logic không đọc `process.env` trực tiếp. Chỉ biến có nhãn public mới được expose vào frontend; server secret không được dùng prefix/public injection. External origin, callback, provider endpoint, timeout và quota phụ thuộc môi trường không được hard-code trong runtime source. Internal API route/event vẫn thuộc shared contract, không biến thành environment variable.
 
 ## Thiết lập theo pha
 

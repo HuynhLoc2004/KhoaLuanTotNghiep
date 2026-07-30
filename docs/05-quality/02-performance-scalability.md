@@ -27,6 +27,8 @@
 
 Key có content version. Publish ghi outbox event và xóa namespace liên quan. Có stale-while-revalidate cho nội dung public; không cache dữ liệu cá nhân chung.
 
+Mọi query/index/cache phải qua `05-database-query-cache-quality-gate.md`: baseline và query-plan evidence, projection/pagination/timeout, index read-vs-write cost, scoped versioned key, TTL jitter, stampede protection và authorization đúng ở cả hit/miss. Không tuyên bố “đã tối ưu” chỉ từ code review.
+
 ## Capacity test
 
 K6 scenarios:

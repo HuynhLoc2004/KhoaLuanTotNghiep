@@ -20,8 +20,13 @@
 | INV-DATA-001 | PostgreSQL là nguồn sự thật cho quyền, publish state và entity nghiệp vụ. | Data layer |
 | INV-DATA-002 | Binary media không lưu trực tiếp trong PostgreSQL/MongoDB. | Upload/storage |
 | INV-DATA-003 | Consumer event/job phải idempotent; retry không tạo bản ghi nghiệp vụ trùng. | Outbox, BullMQ |
+| INV-DATA-004 | Untrusted input không được trở thành query/filter/operator/identifier trực tiếp; server phải validate, authorize và dùng parameter binding/allowlist. | API, worker, PostgreSQL, MongoDB, search |
+| INV-CACHE-001 | Cache không được làm lộ hoặc public dữ liệu sai publish state, permission, ownership, locale hay audience. | Redis, CDN, API/BFF |
 | INV-SEC-001 | Secret, access token và connection string thật không được commit hoặc log. | Repo, CI, observability |
 | INV-SEC-002 | Upload phải giới hạn size/type, kiểm tra nội dung và dùng ID không đoán được. | Media |
+| INV-SEC-003 | Credential/server secret không được xuất hiện trong frontend bundle, public config, log, error response, fixture hoặc tài liệu. | Web/Admin/API/worker/CI/docs |
+| INV-CONFIG-001 | URL/provider/config phụ thuộc môi trường phải đi qua typed validated config; internal route/event dùng accepted contract, không rải literal hoặc DTO song song. | Mọi runtime và integration |
+| INV-SEC-004 | Response, error và log không được lộ SQL/query parameter nhạy cảm, schema, stack trace, internal path hoặc field ngoài response contract. | API, worker, observability |
 | INV-UX-001 | Reduced motion/Lite tier giữ đầy đủ nội dung và thao tác. | Web/PWA/Admin |
 | INV-UX-002 | Animation/3D không chặn người dùng đọc, điều hướng hoặc hoàn thành tác vụ. | Public UI |
 

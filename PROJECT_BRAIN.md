@@ -982,3 +982,31 @@ Chuẩn bắt buộc cho UI, animation, 3D và interaction nằm tại `docs/04-
 - “Mượt” phải có evidence trên desktop/mobile đại diện; cảm nhận trên máy dev không đủ.
 - Thiếu inventory, performance evidence hoặc fallback thì feature giữ `IN_PROGRESS`.
 - Sau project foundation, documentation linter/CI kiểm tra cấu trúc và liên kết; review con người vẫn xác nhận chất lượng và tính đúng.
+
+## 32. Code, Secret & Configuration Quality Gate
+
+Mọi implementation phải áp dụng `docs/05-quality/04-code-configuration-quality-gate.md`.
+
+- Code do AI viết phải được review như code production: rõ domain, trách nhiệm nhỏ, không duplicate và không abstraction/comment/dependency dư thừa.
+- Không che lỗi bằng catch-all, default im lặng hoặc mock/placeholder lọt vào runtime.
+- Secret/server credential không xuất hiện trong source, frontend bundle, public config, fixture, log, error, tài liệu hoặc Git history.
+- Mỗi runtime dùng typed/schema-validated config và fail fast bằng lỗi đã redact; business logic không đọc environment rải rác.
+- URL/provider/timeout/quota phụ thuộc môi trường phải cấu hình được. Internal route/event/DTO dùng shared contract, không biến mọi literal thành environment variable.
+- External/user-provided URL phải có validation, allowlist và kiểm soát SSRF/open redirect phù hợp.
+- Handoff ghi chính xác lint, typecheck, test, secret/dependency/config/security scan đã chạy; check chưa chạy phải ghi `NOT RUN`.
+- Feature thiếu code review evidence, config/secret inventory hoặc security fallback giữ `IN_PROGRESS`.
+
+## 33. Database Query, Cache & Input Security Quality Gate
+
+Mọi data-access path phải áp dụng `docs/05-quality/05-database-query-cache-quality-gate.md`.
+
+- Client/header/event/provider input luôn không tin cậy; server validate, normalize, authenticate và authorize lại.
+- Query dùng parameter binding/prepared statement hoặc safe ORM API; identifier/operator động chỉ từ allowlist.
+- Không truyền request object trực tiếp vào SQL/Mongo/search filter/update/DSL và không serialize entity trực tiếp ra response.
+- Query có projection, pagination/limit, timeout, transaction/lock boundary và N+1 prevention phù hợp.
+- Index chỉ thêm khi có query owner, query shape, cardinality/query-plan evidence và phân tích write/storage/migration cost.
+- Cache key có scope/version/locale/audience; cache hit không được bỏ qua permission, ownership hoặc publish state.
+- Invalidation có producer/consumer/order; TTL jitter và stampede/outage fallback không tạo retry storm.
+- Response/error/log không lộ SQL, schema, internal path, PII/secret hoặc field ngoài contract.
+- “Code ngắn” không phải acceptance metric. Ưu tiên đúng, an toàn, rõ và nhanh theo benchmark; loại duplication/over-fetch/abstraction dư thừa có bằng chứng.
+- Thiếu injection/IDOR, query-plan/query-count, cache correctness hoặc redaction evidence thì feature giữ `IN_PROGRESS`.

@@ -59,6 +59,12 @@ stateDiagram-v2
 |---|---|---|---|---|---|
 | | | | | | |
 
+### Query, index and cache evidence
+
+| Query/cache owner | Input/authorization | Shape/projection/pagination | Index + plan evidence | Cache key/TTL/invalidation | p50/p95/rows/query count | Security/fallback |
+|---|---|---|---|---|---|---|
+| | | | | | | |
+
 ## 5. Authentication and Authorization Flow
 
 ```mermaid
@@ -108,6 +114,14 @@ function execute(input):
 | | | | | | | | | |
 
 Với UI/motion/3D, mỗi dependency còn phải ghi rõ behavior/property ownership, initial/async bundle cost, loading strategy, lifecycle cleanup, desktop/mobile/browser compatibility, quality-tier fallback, benchmark evidence và replacement boundary. Không bỏ sót thư viện chỉ vì nó là dependency phụ hoặc chỉ dùng cho animation.
+
+### Configuration and secret inventory
+
+| Config/secret name | Runtime owner | Public/server-only | Required/default/range | Validation | Source/injection | Redaction/rotation | Failure/fallback |
+|---|---|---|---|---|---|---|---|
+| | | | | | | | |
+
+Không ghi giá trị thật. External API còn phải ghi base-origin owner, auth method, timeout/retry, rate limit, egress/redirect allowlist và degraded behavior.
 
 ## 8. Alternatives and suitability
 
@@ -188,3 +202,11 @@ Liên kết/ghi Decision log, Plan revisions, Change history, merge reference v�
 - [ ] Mọi technology/dependency thực sự dùng đã có inventory, owner, runtime cost và fallback.
 - [ ] Animation/3D có evidence trên desktop và mobile; không tuyên bố “mượt” chỉ từ cảm nhận.
 - [ ] Quality tiers, reduced motion, no-WebGL và dependency failure đã được kiểm tra.
+- [ ] Code review đã kiểm tra abstraction/duplication/comment/dependency thừa và không che lỗi bằng fallback im lặng.
+- [ ] Không có environment-specific URL trong business/runtime code; route/event nội bộ dùng accepted contract.
+- [ ] Config/secret inventory không chứa giá trị thật và khớp config schema/runtime boundary.
+- [ ] Handoff ghi rõ lint/typecheck/secret/config/security check đã chạy hoặc chưa chạy.
+- [ ] Server-side input limits, parameter binding/allowlist và injection/IDOR tests đã được ghi.
+- [ ] Query/index quan trọng có owner, query-plan/query-count evidence và read/write trade-off.
+- [ ] Cache key/version/TTL/invalidation giữ đúng publish/permission/ownership/locale và có outage/stampede fallback.
+- [ ] Response/error/log redaction không lộ SQL, schema, internal path hoặc field ngoài contract.

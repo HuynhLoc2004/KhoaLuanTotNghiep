@@ -23,6 +23,8 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 - Authority order, invariants, ADR baseline, contract/data catalog.
 - Traceability matrix, Definition of Ready và handoff template.
 - AI Experience & Documentation Quality Gate cho sáng tạo, dependency inventory và hiệu năng đa thiết bị.
+- Code, Secret & Configuration Quality Gate cho clean code, typed config, URL/provider và credential safety.
+- Database Query, Cache & Input Security Quality Gate cho server validation, injection prevention, index evidence và cache correctness.
 
 ## Ngoài phạm vi
 
@@ -36,7 +38,9 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 - Có nơi sở hữu invariant, ADR, contract, data, traceability và handoff.
 - Tất cả tài liệu mới được liên kết từ README/bộ não.
 - UI/motion/3D có quality tiers, desktop/mobile evidence và technology inventory bắt buộc.
+- Code/config có review evidence; secret không vào client/log/docs và environment-specific URL không hard-code.
+- Data access có parameter binding/allowlist, query-plan/index evidence, scoped cache/invalidation và response/log redaction.
 
 ## Handoff status
 
-Đã tạo baseline tài liệu và khóa `DEC-UX-QUALITY-001`; người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation. Task code tiếp theo dự kiến dùng branch `feature/project-foundation` và phải viết lại file này theo phạm vi foundation.
+Đã tạo baseline tài liệu, khóa `DEC-UX-QUALITY-001`, `DEC-QUALITY-001` và `DEC-DATA-QUALITY-001`; người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation/API/data tooling. Task code tiếp theo dự kiến dùng branch `feature/project-foundation` và phải viết lại file này theo phạm vi foundation.

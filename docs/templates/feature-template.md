@@ -68,6 +68,8 @@ Màn hình, loading/empty/error/offline, responsive, accessibility và motion.
 
 Entity, field, quan hệ, index, retention; chỉ rõ PostgreSQL, MongoDB, Redis hay media storage.
 
+Với query/cache, ghi input schema/limit, authorization predicate, query shape/projection/pagination/transaction, index owner và plan evidence, cache key/version/TTL/invalidation/degraded mode. Áp dụng `docs/05-quality/05-database-query-cache-quality-gate.md`.
+
 ## API và event
 
 Endpoint, request/response, error, idempotency, pagination, event version và cache invalidation.
@@ -91,6 +93,8 @@ Với quyết định quan trọng, dùng `docs/templates/option-review-template
 
 Threat, validation, authorization, rate limit, secret, consent và audit.
 
+Ghi secret/config flow mà không ghi giá trị thật: config variable, runtime owner, public/server-only, validation/default/range, injection, redaction, rotation, external URL/allowlist và failure behavior. Áp dụng `docs/05-quality/04-code-configuration-quality-gate.md`.
+
 ## Hiệu năng và scale
 
 SLO, cache, queue, concurrency, asset budget và failure isolation.
@@ -98,6 +102,10 @@ SLO, cache, queue, concurrency, asset budget và failure isolation.
 ## Kiểm thử
 
 Unit, integration, E2E, AI/data evaluation, load và security cases.
+
+Ghi command/phạm vi/kết quả cho format, lint, typecheck, secret scan, dependency scan và config validation khi tooling đã tồn tại. Không tuyên bố pass cho check chưa chạy.
+
+Nếu feature đọc/ghi dữ liệu, thêm injection/IDOR, query-count/N+1, query plan/index, cache hit/miss/invalidation và response/log redaction tests.
 
 ## Tiêu chí nghiệm thu
 

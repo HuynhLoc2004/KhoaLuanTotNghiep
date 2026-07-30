@@ -54,6 +54,17 @@ Không dùng transaction phân tán. PostgreSQL commit nghiệp vụ và ghi `ou
 - HNSW/IVFFlat pgvector cho embedding; chỉ tạo sau khi đánh giá kích thước dataset.
 - Mongo TTL index cho log tạm; compound index theo `sessionId + createdAt`.
 
+Mọi index trên chỉ là baseline dự kiến. Trước implementation phải áp dụng `docs/05-quality/05-database-query-cache-quality-gate.md`: gắn index với query owner/shape, kiểm tra selectivity và plan, ghi read benefit so với write/storage/migration cost. Không tạo index cho mọi cột hoặc giữ index trùng prefix mà không có bằng chứng.
+
+## Query và cache discipline
+
+- Parameterized query hoặc API an toàn của ORM/query builder; identifier/operator động dùng allowlist server-side.
+- Server validate/normalize input và kiểm tra permission/ownership; không truyền request object thẳng vào filter/update.
+- Projection/DTO chỉ lấy field cần thiết; cursor pagination cho tập lớn; statement timeout và transaction ngắn.
+- Tránh N+1 bằng join/batch phù hợp, không eager-load toàn graph.
+- Cache key có namespace/version/locale/scope; dữ liệu permission-sensitive không dùng shared public cache.
+- Publish/update/rollback có invalidation owner; cache failure không được làm sai authorization hoặc publish state.
+
 ## Xóa và lưu giữ
 
 - Nội dung dùng soft delete và versioning.

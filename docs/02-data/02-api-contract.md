@@ -8,6 +8,8 @@
 - Pagination cursor cho feed lớn, page/limit cho bảng admin nhỏ.
 - Mọi lỗi có `{ code, message, details?, correlationId }`.
 - Header `Accept-Language`, `Idempotency-Key`, `If-None-Match` được hỗ trợ đúng ngữ cảnh.
+- Server luôn validate/normalize input, giới hạn pagination/filter/sort và dùng response DTO allowlist; không tin client validation.
+- Filter/sort/include chỉ dùng field/operator đã công bố trong contract; không nhận raw SQL/Mongo/search DSL.
 
 ## Nhóm endpoint
 
@@ -39,3 +41,6 @@
 - Upload/AI: yêu cầu quota, signed upload, MIME/magic-byte scan.
 - Admin mutation: RBAC, CSRF nếu dùng cookie, MFA khuyến nghị, audit.
 - Không trả stack trace, internal path hoặc secret.
+- Mọi DB/search value dùng parameter binding; dynamic identifier/operator ánh xạ từ allowlist server-side.
+- Permission/ownership phải đúng ở cả cache hit và cache miss; không lọc dữ liệu nhạy cảm sau khi đã đọc rộng.
+- Không serialize ORM entity/provider error trực tiếp; response/log không lộ SQL, schema hoặc query parameter nhạy cảm.

@@ -21,6 +21,17 @@ Tài sản cần bảo vệ: tài khoản admin, nội dung chưa xuất bản, 
 
 `.env` chỉ local và nằm trong `.gitignore`; commit `.env.example` không chứa giá trị. Production dùng secret manager/runtime secrets. Không log token, cookie, connection string hoặc prompt chứa PII.
 
+Áp dụng thêm [Code, Secret & Configuration Quality Gate](04-code-configuration-quality-gate.md):
+
+- Server secret không được đưa vào frontend/public environment, source map, fixture, tài liệu hoặc build artifact.
+- Config loader phải validate schema và fail fast bằng lỗi đã redact.
+- Không log nguyên request header, config object hoặc process environment.
+- External origin/provider endpoint dùng typed config; user-supplied URL phải qua SSRF/redirect allowlist.
+- Query/filter/operator từ input phải qua schema và allowlist; DB/search dùng parameter binding, không nối chuỗi.
+- Response/cache/log phải giữ permission/ownership/publish boundary và không lộ SQL/schema/field nội bộ.
+
+Chi tiết tại [Database Query, Cache & Input Security Quality Gate](05-database-query-cache-quality-gate.md).
+
 ## Rate limit
 
 - Public read: token bucket theo IP + session, nới hơn khi cache hit.
@@ -35,6 +46,8 @@ Tách system instruction khỏi retrieved content, đánh dấu nguồn không t
 ## Checklist trước demo/deploy
 
 - Không có secret trong Git history hiện tại.
+- Frontend bundle/build artifact không chứa credential hoặc server-only configuration.
+- Log/error mẫu đã được kiểm tra redaction.
 - Seed admin không dùng mật khẩu mặc định production.
 - Backup được restore thử.
 - Test IDOR trên mọi endpoint theo ID.

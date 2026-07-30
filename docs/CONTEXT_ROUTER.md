@@ -77,6 +77,8 @@ Dùng khi người dùng nói rõ “đọc src/source/code xem dự án đang l
 | Database/API/contracts | `02-data/01-data-model.md`, `02-data/02-api-contract.md` | Contract catalog, integration map, invariants |
 | UI/animation/design | `04-design/01-ui-ux-design-system.md` | AI Experience Quality Gate, Admin CMS, performance, ADR-004 |
 | Docker/Nginx/CI | `06-devops/01-local-environment.md` | Architecture, observability, security |
+| Clean code/secret/config/API URL | `05-quality/04-code-configuration-quality-gate.md` | Security, local environment, testing, contracts |
+| Query/index/cache/input security | `05-quality/05-database-query-cache-quality-gate.md` | Data model, API contract, security, performance, testing |
 | Git/branch/teamwork | `07-delivery/07-git-playbook.md` | Collaboration, TEAM, NEXT_WORK |
 
 Đường dẫn trong bảng tương đối với thư mục `docs/`.

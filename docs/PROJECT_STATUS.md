@@ -26,6 +26,8 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Plan Publication & Sync: IMPLEMENTED ở mức quy trình; shared plan dùng PLAN_SNAPSHOT revision và phải được đưa lên remote develop.
 - Feature Report Standard: IMPLEMENTED ở mức quy trình; mọi feature phải có Mermaid flow, explanation, technology, algorithm, auth, trade-offs, estimate và evidence.
 - AI Experience & Documentation Quality Gate: PLAN_LOCKED ở mức tài liệu; cho phép nhiều công nghệ có trách nhiệm, bắt buộc dependency inventory, thematic motion, desktop/mobile performance evidence và quality-tier fallback. Automation bị chặn bởi foundation.
+- Code, Secret & Configuration Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc clean-code review, typed config, server-only secrets, URL/provider configuration và evidence từ scan/test. Automation gộp vào `TASK-DOC-QUALITY-001` sau foundation.
+- Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc server validation, parameterized query/allowlist, evidence-based index, scoped cache/invalidation và response/log redaction. Automation chờ API/data foundation.
 - Search/Discovery: PLANNED; hybrid lexical/vector baseline, BLOCKED bởi foundation/API/data/CMS.
 - Polyglot extension policy: IMPLEMENTED; runtime mới cần Option Review và bằng chứng.
 - Indoor Location QR/Photo: PLANNED; QR là anchor, visual place recognition là bổ trợ có confidence/fallback.
