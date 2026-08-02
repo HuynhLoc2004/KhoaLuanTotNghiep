@@ -29,6 +29,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Code, Secret & Configuration Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc clean-code review, typed config, server-only secrets, URL/provider configuration và evidence từ scan/test. Automation gộp vào `TASK-DOC-QUALITY-001` sau foundation.
 - Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc server validation, parameterized query/allowlist, evidence-based index, scoped cache/invalidation và response/log redaction. Automation chờ API/data foundation.
 - Work Session & Feature Contribution Ledger: PLAN_LOCKED ở mức quy trình; hỏi lại danh tính sau 4 giờ/new context, lưu từng phiên/người/scope/test/handoff và feature lifecycle; chưa có implementation session vì source chưa khởi tạo.
+- Living Timeline/Dòng thời gian sống: PLAN_LOCKED ở mức concept tại `docs/03-features/11-living-timeline.md`; một QR pipeline hỗ trợ `FREE_EXPLORE` và `GUIDED_JOURNEY`, guided dùng curator graph/deterministic rule engine còn free không mutate narrative progress; chưa có code và BLOCKED bởi foundation/contracts/content baseline.
 - Search/Discovery: PLANNED; hybrid lexical/vector baseline, BLOCKED bởi foundation/API/data/CMS.
 - Polyglot extension policy: IMPLEMENTED; runtime mới cần Option Review và bằng chứng.
 - Indoor Location QR/Photo: PLANNED; QR là anchor, visual place recognition là bổ trợ có confidence/fallback.
@@ -40,7 +41,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 | Pha 0 — Chuẩn hóa | IN_PROGRESS | `docs/00-product/`, `docs/01-architecture/` | Baseline và trí nhớ vận hành đã có, chờ nhóm review |
 | Pha 1 — Nền tảng | PLANNED | `docs/06-devops/01-local-environment.md` | Monorepo, Docker, auth skeleton |
 | Pha 2 — CMS + public content | PLANNED | `docs/03-features/01-admin-cms.md` | |
-| Pha 3 — QR Tour + voice | PLANNED | `03-ai-tour-guide.md`, `06-multilingual-voice.md` | |
+| Pha 3 — QR Tour + voice + narrative journey | PLANNED | `03-ai-tour-guide.md`, `06-multilingual-voice.md`, `11-living-timeline.md` | Living Timeline làm MVP 2D trước AI/3D |
 | Pha 4 — Bản đồ 3D | PLANNED | `02-web-3d-navigation.md` | |
 | Pha 5 — AI | PLANNED | `03-ai-tour-guide.md`, `04-artifact-recognition.md` | |
 | Pha 6 — Digital Twin + dashboard | PLANNED | `05-digital-twin.md`, `08-dashboard-analytics.md` | |

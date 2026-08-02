@@ -8,6 +8,7 @@
 | DTO/validation | `packages/contracts/src/` | React, Express | PLANNED |
 | Event schema | `packages/contracts/events/` | API, workers | PLANNED |
 | CMS block schema | `packages/contracts/cms/` | Admin, API, Web renderer | PLANNED |
+| Narrative Journey schema/API/event | `packages/contracts/journeys/` + OpenAPI/event catalog | CMS, Public Web, API, AI Guide, History, Analytics, Web 3D | PLANNED; gồm allowlisted `FREE_EXPLORE`/`GUIDED_JOURNEY`, chưa accepted implementation contract |
 | Permission matrix | Tài liệu này + seed/migration | API, Admin | BASELINE |
 | Error catalog | `packages/contracts/errors/` | Mọi client/service | PLANNED |
 | Environment catalog | `.env.example` + DevOps docs | Mọi service | PLANNED |

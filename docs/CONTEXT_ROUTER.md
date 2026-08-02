@@ -67,6 +67,7 @@ Dùng khi người dùng nói rõ “đọc src/source/code xem dự án đang l
 | CMS/Admin/page builder | `03-features/01-admin-cms.md` | UI design, API contract, data model, integration map, security |
 | Web 3D/dẫn đường | `03-features/02-web-3d-navigation.md` | Digital Twin, UI design, integration map, performance |
 | QR/AI Tour Guide/RAG | `03-features/03-ai-tour-guide.md` | Multilingual voice, API contract, integration map, security |
+| Dòng thời gian sống/narrative journey | `03-features/11-living-timeline.md` | CMS, AI Tour Guide, Web 3D/Map, API contract, integration map, UI Quality Gate |
 | Nhận diện hiện vật | `03-features/04-artifact-recognition.md` | Data catalog, API contract, integration map, security/testing |
 | Digital Twin/quét 3D | `03-features/05-digital-twin.md` | Web 3D, data catalog, performance |
 | Đa ngôn ngữ/TTS | `03-features/06-multilingual-voice.md` | AI Tour Guide, data model, security |

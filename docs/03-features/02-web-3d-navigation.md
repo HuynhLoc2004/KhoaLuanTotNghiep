@@ -53,6 +53,10 @@ A* trên graph có mức phù hợp rất cao: nhanh, dễ debug và hỗ trợ 
 - 3D đạt mục tiêu 30–60 FPS trên thiết bị trung bình với scene mẫu.
 - Có 2D fallback và nội dung vẫn truy cập được nếu model lỗi.
 
+## Tích hợp Dòng thời gian sống
+
+Web 3D chỉ tiêu thụ `sceneRef/cameraPathRef/hotspotSetRef` đã được duyệt từ published narrative node của `docs/03-features/11-living-timeline.md`. `FREE_EXPLORE` cho người dùng tự chọn POI; `GUIDED_JOURNEY` mới highlight/route tới narrative node kế tiếp. Timeline 2D/static là critical path; scene/AI failure không được làm mất nội dung hoặc progress. Shared contract chưa accepted và integration này được để sau MVP timeline 2D.
+
 ## Decision log
 
 | Ngày | Quyết định | Lý do/Hệ quả |
@@ -81,3 +85,5 @@ A* trên graph có mức phù hợp rất cao: nhanh, dễ debug và hỗ trợ 
 | 2026-07-29 | ADDED | Tạo baseline bản đồ 3D và dẫn đường | Review tài liệu, chưa có code |
 | 2026-07-29 | CHANGED | Bổ sung spatial transition, quality tier và cấu hình scene từ CMS | Review tài liệu, chưa có code |
 | 2026-07-29 | CHANGED | Liên kết Indoor Location Detection bằng QR/ảnh | PLAN-0003, chưa có code |
+| 2026-08-02 | CHANGED | Ghi consumer boundary và fallback cho Dòng thời gian sống | `IDEA-002`, `PLAN-0009`; code/test NOT RUN |
+| 2026-08-02 | CHANGED | Phân biệt free POI selection và guided next-node routing | `DEC-TIMELINE-MODE-001`, `PLAN-0010`; code/test NOT RUN |

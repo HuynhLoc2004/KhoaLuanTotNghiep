@@ -13,12 +13,16 @@
 
 ## Nhóm endpoint
 
-- Public: `/pages`, `/menus`, `/banners`, `/artifacts`, `/exhibitions`, `/tours`, `/maps`.
-- Experience: `/qr/:token`, `/navigation/routes`, `/recognitions`, `/guide/sessions`.
+- Public: `/pages`, `/menus`, `/banners`, `/artifacts`, `/exhibitions`, `/tours`, `/journeys`, `/maps`.
+- Experience: `/qr/:token`, `/navigation/routes`, `/recognitions`, `/guide/sessions`, `/journey-progress` (server sync chỉ khi có auth/consent).
 - User: `/me`, `/me/history`, `/me/favorites`, `/me/assets`.
 - Admin: `/admin/content/*`, `/admin/media/*`, `/admin/publishing/*`, `/admin/users/*`.
 - Jobs: `/jobs/:id`, `/jobs/:id/events` (SSE), `/jobs/:id/cancel`.
 - Auth: `/auth/google`, `/auth/callback`, `/auth/refresh`, `/auth/logout`.
+
+`/journeys` và Narrative Journey event/schema hiện chỉ là planning contract của `FEAT-TIMELINE-001`; chưa được coi là implementation contract cho đến khi schema nguồn trong `packages/contracts/` được tạo, review và accepted trên `develop`.
+
+Living Timeline dùng allowlisted `exploreMode = FREE_EXPLORE | GUIDED_JOURNEY`. QR resolver không tự chọn mode: direct Scan/Map/Search là free; Start/Continue journey là guided. Hai mode dùng chung artifact DTO/resolver; chỉ guided mode được gửi narrative progress mutation.
 
 ## Ví dụ tạo nhận diện
 

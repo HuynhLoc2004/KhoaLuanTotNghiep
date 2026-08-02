@@ -29,6 +29,7 @@
 | Dashboard | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/08-dashboard-analytics.md` |
 | Search/Discovery | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/09-search-discovery.md` |
 | Indoor Location QR/Photo | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Cần map/dataset | `03-features/10-indoor-location-detection.md` |
+| Living Timeline/Dòng thời gian sống | Chưa có code | Narrative graph/data + free/guided mode PLANNED | Shared QR/Narrative/mode contract PLANNED | DOCS_ONLY | Concept/modes PLAN_LOCKED; task BLOCKED bởi foundation/CMS/contracts/content | `03-features/11-living-timeline.md` |
 
 ## Merge history
 

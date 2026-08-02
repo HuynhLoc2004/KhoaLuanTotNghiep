@@ -39,6 +39,7 @@ Chỉ chuyển task sang `DONE` sau khi merge vào `develop` và Merge Memory Sy
 | TASK-ADMIN-001 | Admin shell + navigation + CMS form foundation | BLOCKED | Chưa có | — | TASK-FOUND-001, auth/contract skeleton | 2–4 person-days, LOW | `apps/admin/**`, CMS contracts | `docs/03-features/01-admin-cms.md` |
 | TASK-API-001 | Express API skeleton, health endpoint và validation/error contract | BLOCKED | Chưa có | — | TASK-FOUND-001 | 1–3 person-days, MEDIUM | `services/api/**`, base contracts | `docs/02-data/02-api-contract.md` |
 | TASK-DATA-001 | PostgreSQL migration foundation và entity baseline | BLOCKED | Chưa có | — | TASK-FOUND-001, TASK-API-001 | 2–4 person-days, LOW | migrations, schema, seed foundation | `docs/02-data/01-data-model.md` |
+| TASK-TIMELINE-001 | MVP Dòng thời gian sống: free/guided modes, CMS narrative graph, public API và timeline 2D | BLOCKED | Chưa có | — | TASK-FOUND-001, CMS/API/data/artifact/tour contract baseline và content mẫu đã duyệt | 7/14/29 person-days, LOW | Shared QR/mode contract; Narrative module; Admin journey editor; Public free/timeline UX; tests/docs | `docs/03-features/11-living-timeline.md` |
 | TASK-SEARCH-001 | Search contract, indexing và public discovery MVP | BLOCKED | Chưa có | — | Foundation, API, data và CMS/artifact baseline | 8–18 person-days, LOW | search module/contracts/index/UI | `docs/03-features/09-search-discovery.md` |
 | TASK-LOCATION-001 | QR location và visual place recognition | BLOCKED | Chưa có | — | Foundation, map graph, CMS/media, AI worker và dataset | 12–28 person-days, LOW | location contracts/API/vision/UI | `docs/03-features/10-indoor-location-detection.md` |
 | TASK-DOC-QUALITY-001 | Documentation, code/config, secret và data-access Quality Gate trong CI | BLOCKED | Chưa có | — | TASK-FOUND-001, TASK-API-001/data tooling, accepted Quality Gate schemas | 3–6 person-days, LOW | docs lint, static checks, secret/config/dependency scan, injection/query/cache regression, CI tests | `docs/04-design/03-ai-experience-quality-gate.md`; `docs/05-quality/04-code-configuration-quality-gate.md`; `docs/05-quality/05-database-query-cache-quality-gate.md` |
@@ -53,6 +54,8 @@ Task duy nhất đang `READY` là `TASK-FOUND-001`. Sau khi hoàn tất và nhó
 - Người còn lại nhận `TASK-WEB-001` trước, rồi `TASK-ADMIN-001`.
 
 Không mở AI/3D/CMS nghiệp vụ trước khi foundation, contract và data baseline đủ ổn định.
+
+`TASK-TIMELINE-001` đã có concept `PLAN_LOCKED` nhưng vẫn `BLOCKED`; không claim hoặc tạo branch timeline trước khi các dependency và write-scope coordination với CMS/Web/API được chấp nhận trên `develop`.
 
 ## Mẫu thêm task
 

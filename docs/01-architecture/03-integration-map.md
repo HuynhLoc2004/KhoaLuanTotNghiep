@@ -20,6 +20,8 @@ Hai thành viên làm feature branch riêng nhưng dùng cùng hợp đồng. Fi
 | Auth API | Web/Admin/History | Session, user identity, role/permission | Auth OpenAPI + permission matrix | PLANNED |
 | Media module | CMS/Web/AI/3D | MediaRef, signed upload, rights/verification | Media contract + data catalog | PLANNED |
 | Tour module | QR Guide/Map/History | Tour, stop, zone, QR resolution | Tour OpenAPI/event | PLANNED |
+| Admin CMS + Artifact/Tour modules | Living Timeline | Narrative journey/node/edge, artifact/content/media refs, publish/version/locale, allowlisted explore mode config | Narrative Journey contract + CMS schema | PLANNED; `TASK-TIMELINE-001` BLOCKED |
+| Living Timeline | Public Web/AI Guide/History/Analytics/Web 3D | Shared QR/artifact result, `FREE_EXPLORE`/`GUIDED_JOURNEY`, published manifest, node context, progress/event, scene/fallback refs | Narrative Journey OpenAPI/event | PLANNED; no accepted implementation schema |
 | Map module | Web 3D/Tour | Floor, node, edge, POI, route | Map contract | PLANNED |
 | Artifact module | Recognition/Guide/Viewer | Artifact summary/detail, locale, media, Digital Twin ref | Artifact contract | PLANNED |
 | Recognition worker | Web/History/Dashboard | Job progress, top-k, confidence, model version | Recognition event/result schema | PLANNED |
@@ -64,6 +66,8 @@ Consumer nhận ID/public delivery metadata, không nhận Cloudinary secret ho�
 | Ngày | Contract | Thay đổi/version | Producer | Consumers | Compatibility/Migration | Owner confirmation |
 |---|---|---|---|---|---|---|
 | — | Chưa có implementation contract | Baseline planning | — | — | — | — |
+| 2026-08-02 | Narrative Journey contract | Planning baseline; version chưa tạo | CMS + Timeline module | Web/PWA, AI Guide, History, Analytics, Web 3D | Additive contract sau foundation; 2D/static fallback khi AI/3D chưa sẵn sàng; deploy producer/schema trước consumers | `thanh` xác nhận concept; contract owners chưa xác nhận implementation |
+| 2026-08-02 | Narrative Journey `exploreMode` | Plan Revision; enum/version chưa tạo | Shared QR + Timeline module | Web/PWA, CMS, AI Guide, Map, History/Analytics | Additive allowlisted enum; direct scan remains free; only guided mutates narrative progress; no parallel QR DTO | `thanh` xác nhận `PLAN-0010`; contract owners chưa xác nhận implementation |
 
 ## Integration readiness checklist
 

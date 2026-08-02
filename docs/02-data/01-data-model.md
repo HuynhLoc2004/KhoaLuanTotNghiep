@@ -9,6 +9,7 @@ Các bảng chính:
 - `artifacts`, `artifact_translations`, `artifact_media`, `artifact_versions`.
 - `exhibitions`, `exhibition_artifacts`, `zones`, `floors`, `map_nodes`, `map_edges`.
 - `tours`, `tour_stops`, `qr_codes`, `audio_tracks`.
+- `narrative_journeys`, `narrative_nodes`, `narrative_edges`; `journey_progress` chỉ dùng cho member đồng ý đồng bộ và có thể giữ `explore_mode` gần nhất. Anonymous mode/progress mặc định local-first.
 - `digital_twins`, `model_versions`, `processing_jobs`.
 - `favorites`, `visit_history`, `user_generated_assets`.
 - `publishing_workflows`, `audit_events`, `redirects`.
@@ -18,6 +19,7 @@ Các bảng chính:
 - Một `artifact` có nhiều bản dịch, media và phiên bản Digital Twin.
 - Một `exhibition` có nhiều hiện vật qua bảng nối có thứ tự.
 - Một `tour` có nhiều `tour_stops`; stop tham chiếu zone/artifact và audio.
+- Một `narrative_journey` có graph versioned gồm `narrative_nodes` và `narrative_edges`; node có thể tham chiếu artifact/content/media/scene đã duyệt. Tên/field cuối cùng phải được accepted trong Narrative Journey contract trước migration.
 - Một tầng có graph gồm node và edge; POI có thể gắn với zone/artifact.
 - `page_section` lưu `type` và JSONB cấu hình đã được validate theo schema; đây là nền tảng page builder không hard-code nội dung.
 

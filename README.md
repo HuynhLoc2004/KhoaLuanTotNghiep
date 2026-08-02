@@ -12,7 +12,7 @@ Mọi yêu cầu code, sửa lỗi hoặc bổ sung chức năng đều tự đ�
 
 Thành viên vừa clone repository và chưa chọn việc: yêu cầu AI vào chế độ onboarding, đọc tài liệu và đề xuất task `READY` từ [docs/NEXT_WORK.md](docs/NEXT_WORK.md). Chưa cần đọc source code cho đến khi chọn task.
 
-AI nhận diện thành viên bằng Git author local và [docs/TEAM.md](docs/TEAM.md), không cần quyền GitHub và không lưu email.
+AI hỏi tên hoặc Member ID trước rồi đối chiếu [docs/TEAM.md](docs/TEAM.md); Git author chỉ là kiểm tra nhất quán phụ sau xác nhận, không cần quyền GitHub và không lưu email.
 
 ## Nguyên tắc cốt lõi
 
@@ -81,8 +81,9 @@ AI nhận diện thành viên bằng Git author local và [docs/TEAM.md](docs/TE
 52. [Code, Secret & Configuration Quality Gate](docs/05-quality/04-code-configuration-quality-gate.md)
 53. [Database Query, Cache & Input Security Quality Gate](docs/05-quality/05-database-query-cache-quality-gate.md)
 54. [Work Session & Feature Contribution Ledger](docs/07-delivery/09-work-session-contribution-ledger.md)
-51. [Tìm kiếm và khám phá nội dung](docs/03-features/09-search-discovery.md)
-52. [Xác định vị trí bằng QR và ảnh](docs/03-features/10-indoor-location-detection.md)
+55. [Tìm kiếm và khám phá nội dung](docs/03-features/09-search-discovery.md)
+56. [Xác định vị trí bằng QR và ảnh](docs/03-features/10-indoor-location-detection.md)
+57. [Dòng thời gian sống](docs/03-features/11-living-timeline.md)
 
 ## Trạng thái
 

@@ -13,6 +13,7 @@ Xây dựng nền tảng bảo tàng số mobile-first gồm:
 - Website nội dung và trải nghiệm không gian 3D.
 - Bản đồ trong nhà, chọn điểm đến và dẫn đường.
 - QR Tour Guide theo khu vực/hiện vật.
+- Dòng thời gian sống nối hiện vật thành hành trình kể chuyện theo thời kỳ, nhân vật hoặc sự kiện, đồng thời giữ mode khám phá tự do dùng chung QR/artifact pipeline.
 - AI hỏi đáp có nguồn và voice đa ngôn ngữ.
 - AI nhận diện hiện vật từ ảnh.
 - Digital Twin và quy trình quản lý mô hình 3D.
@@ -306,6 +307,7 @@ Dùng [mẫu chức năng](docs/templates/feature-template.md) khi tạo file m�
 | CMS/Admin | `docs/03-features/01-admin-cms.md` |
 | Web 3D/map | `02-web-3d-navigation.md`, `05-digital-twin.md` |
 | QR/AI Guide | `03-ai-tour-guide.md`, `06-multilingual-voice.md` |
+| Dòng thời gian sống | `11-living-timeline.md`, `01-admin-cms.md`, `03-ai-tour-guide.md` |
 | Recognition | `04-artifact-recognition.md` |
 | Auth/history | `07-auth-user-history.md` |
 | Dashboard | `08-dashboard-analytics.md` |

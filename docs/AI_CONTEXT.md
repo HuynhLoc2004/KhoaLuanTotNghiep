@@ -11,6 +11,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 - Web 3D và dẫn đường trong nhà bằng graph/A*.
 - Xác định vị trí bắt đầu bằng QR hoặc ảnh không gian với confidence/fallback.
 - QR Tour, AI Guide dùng hybrid RAG và voice đa ngôn ngữ.
+- Dòng thời gian sống có hai mode tường minh dùng chung QR resolver: tự do (`FREE_EXPLORE`) và theo câu chuyện (`GUIDED_JOURNEY`); guided dùng narrative graph do curator duyệt, MVP 2D trước AI/3D.
 - Nhận diện hiện vật bằng embedding retrieval/top-k/confidence.
 - Digital Twin/photogrammetry, model version và kiểm duyệt.
 - Dashboard nội dung, AI, job và analytics.

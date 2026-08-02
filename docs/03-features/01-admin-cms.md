@@ -93,6 +93,10 @@ RBAC theo hành động và phạm vi; sanitize rich text; signed upload; chốn
 - Admin đổi layout/theme/motion/scene và preview được trên mobile/desktop mà không deploy.
 - Cấu hình animation không hợp lệ hoặc quá budget bị API từ chối/fallback an toàn.
 
+## Tích hợp Dòng thời gian sống
+
+CMS là producer cho journey/node/edge, content/artifact/media refs, publish/version/locale, mode copy/config và presentation preset của `docs/03-features/11-living-timeline.md`. Mode chỉ thuộc allowlist `FREE_EXPLORE | GUIDED_JOURNEY`; direct Scan/Map vẫn free và Start/Continue mới guided. Condition/preset phải đến từ schema/allowlist; Admin không nhập code hoặc DSL tùy ý. Contract implementation chưa accepted và `TASK-TIMELINE-001` còn BLOCKED.
+
 ## Decision log
 
 | Ngày | Quyết định | Lý do/Hệ quả |
@@ -119,3 +123,5 @@ RBAC theo hành động và phạm vi; sanitize rich text; signed upload; chốn
 |---|---|---|---|
 | 2026-07-29 | ADDED | Tạo baseline đặc tả CMS động | Review tài liệu, chưa có code |
 | 2026-07-29 | CHANGED | Mở rộng CMS thành Experience Builder quản trị layout, theme, motion và 3D scene | Review schema/acceptance criteria, chưa có code |
+| 2026-08-02 | CHANGED | Ghi producer boundary cho Dòng thời gian sống; chi tiết thuộc feature owner mới | `IDEA-002`, `PLAN-0009`; code/test NOT RUN |
+| 2026-08-02 | CHANGED | Bổ sung allowlisted free/guided mode config; CMS không tự đổi direct scan sang guided | `DEC-TIMELINE-MODE-001`, `PLAN-0010`; code/test NOT RUN |

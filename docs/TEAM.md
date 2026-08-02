@@ -7,6 +7,7 @@ File này là nguồn định danh thành viên cho AI và task registry. Không
 | Member ID | Tên hiển thị | Git author aliases | GitHub username | Trạng thái | Vai trò ưu tiên |
 |---|---|---|---|---|---|
 | `loc` | Huynh Tan Loc | `Huynh Tan Loc`; `HUYNH TAN LOC` | Chưa khai báo | ACTIVE | Điều phối, full-stack |
+| `thanh` | Trịnh Vĩ Thành | `vithanh135` | `trinhvithanh147` | ACTIVE | Điều phối, full-stack |
 
 ## Quy tắc nhận diện
 
