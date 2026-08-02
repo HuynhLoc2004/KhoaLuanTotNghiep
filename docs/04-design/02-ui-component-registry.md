@@ -37,6 +37,7 @@ Nguồn đọc nhanh để hai người xây một sản phẩm thống nhất. 
 | Immersive Hero | Entry storytelling | DOCS_ONLY | — | Layered image/video | Home/Exhibition |
 | Artifact Orbit | Inspect object | DOCS_ONLY | — | 360/gallery | Artifact |
 | Living Timeline | Narrative graph/timeline nối hiện vật và bối cảnh | DOCS_ONLY | `docs/03-features/11-living-timeline.md` | `FREE_EXPLORE` artifact detail; `GUIDED_JOURNEY` vertical cards/lines; static 2D/reduced-motion; Cinematic scene là extension | Timeline, Tour, Artifact, AI Guide |
+| Related Artifact Card | Hiển thị target artifact cùng relation type, localized reason/source và approved 3D/media fallback | DOCS_ONLY | `docs/03-features/11-living-timeline.md` | Compact rail/list; không relation thì ẩn và dùng search/map fallback | Artifact Detail, Timeline, AI Guide |
 
 ## Reuse gate
 

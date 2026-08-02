@@ -29,7 +29,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Code, Secret & Configuration Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc clean-code review, typed config, server-only secrets, URL/provider configuration và evidence từ scan/test. Automation gộp vào `TASK-DOC-QUALITY-001` sau foundation.
 - Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc server validation, parameterized query/allowlist, evidence-based index, scoped cache/invalidation và response/log redaction. Automation chờ API/data foundation.
 - Work Session & Feature Contribution Ledger: PLAN_LOCKED ở mức quy trình; hỏi lại danh tính sau 4 giờ/new context, lưu từng phiên/người/scope/test/handoff và feature lifecycle; chưa có implementation session vì source chưa khởi tạo.
-- Living Timeline/Dòng thời gian sống: PLAN_LOCKED ở mức concept tại `docs/03-features/11-living-timeline.md`; một QR pipeline hỗ trợ `FREE_EXPLORE` và `GUIDED_JOURNEY`, guided dùng curator graph/deterministic rule engine còn free không mutate narrative progress; chưa có code và BLOCKED bởi foundation/contracts/content baseline.
+- Living Timeline/Dòng thời gian sống: PLAN_LOCKED ở mức concept tại `docs/03-features/11-living-timeline.md`; một QR pipeline hỗ trợ free/guided modes, typed curator-approved Artifact Relationship và explained deterministic recommendation; QR chỉ mở 3D đã duyệt/fallback, chưa có code và BLOCKED bởi foundation/contracts/content/relation baseline.
 - Search/Discovery: PLANNED; hybrid lexical/vector baseline, BLOCKED bởi foundation/API/data/CMS.
 - Polyglot extension policy: IMPLEMENTED; runtime mới cần Option Review và bằng chứng.
 - Indoor Location QR/Photo: PLANNED; QR là anchor, visual place recognition là bổ trợ có confidence/fallback.

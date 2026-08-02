@@ -11,14 +11,14 @@ Sau khi feature đi vào implementation, file này phải tiếp tục được 
 - Last updated: 2026-08-02.
 - Liên quan: CMS/Admin, Artifact, QR Tour/AI Guide, Web 3D/Map, Voice, Analytics.
 - Feature owner document: file hiện tại.
-- Idea/Concept IDs: `IDEA-002`, `DEC-TIMELINE-CONCEPT-001`, `DEC-TIMELINE-MODE-001`.
+- Idea/Concept IDs: `IDEA-002`, `DEC-TIMELINE-CONCEPT-001`, `DEC-TIMELINE-MODE-001`, `DEC-TIMELINE-RELATION-001`.
 
 ## Implementation status
 
 | Hạng mục | Trạng thái | Bằng chứng/Ghi chú |
 |---|---|---|
 | Spec/Creative Concept | PLANNED | Concept đã `PLAN_LOCKED`; đặc tả cần review cùng contract owners trước implementation |
-| UI | PLANNED | Chưa có application source; MVP phải có `FREE_EXPLORE` và `GUIDED_JOURNEY` dùng chung QR pipeline |
+| UI | PLANNED | Chưa có application source; MVP phải có free/guided modes và danh sách hiện vật liên quan có lý do/nguồn |
 | API | PLANNED | Narrative Journey contract chưa được tạo/accepted |
 | Data/migration | PLANNED | Entity và index mới là thiết kế dự kiến, chưa có migration |
 | AI/3D integration | DEFERRED | Chỉ làm sau MVP 2D và contract nền ổn định |
@@ -66,6 +66,8 @@ Giá trị mong muốn:
 - Hai mode tường minh: `FREE_EXPLORE` để khám phá tự do và `GUIDED_JOURNEY` để đi theo narrative graph.
 - Cùng một QR resolver/artifact detail pipeline; mode chỉ quyết định lớp trải nghiệm sau khi resolve hiện vật.
 - Người dùng tự chuyển mode; hệ thống không âm thầm đoán hoặc đổi mode và không làm mất progress journey.
+- Hiện vật liên quan dùng taxonomy/edge do curator phê duyệt; hỗ trợ cùng triều đại, thời kỳ, văn hóa, nhân vật, sự kiện, chủ đề và chức năng.
+- QR/recognition chỉ mở Digital Twin/3D đã duyệt; không tạo model 3D mới trong request tham quan.
 - Timeline 2D với node hiện vật, node bối cảnh, lựa chọn nhánh và kết thúc.
 - Curator tạo journey/node/edge qua CMS schema có validate, preview và workflow duyệt.
 - QR hoặc chọn thủ công đánh dấu node hiện tại; không bắt buộc đăng nhập.
@@ -91,13 +93,13 @@ Giá trị mong muốn:
 
 | Trường | Giá trị |
 |---|---|
-| Phạm vi được tính | MVP 2D end-to-end: CMS schema/editor cơ bản, public API, rule engine, public timeline, QR/manual progress, analytics tối thiểu và test |
+| Phạm vi được tính | MVP 2D end-to-end: CMS journey/relation editor cơ bản, public journey/related API, mode gate, graph/ranking rules, public timeline/related UI, QR/manual progress, analytics tối thiểu và test |
 | Không bao gồm | Foundation, auth/CMS/artifact/tour baseline, sản xuất nội dung lịch sử, model 3D, voice provider và AI/3D nâng cao |
 | Giả định | Một vertical slice, dữ liệu demo đã được curator cung cấp, dùng stack baseline và shared contracts |
-| Dependency/Blocker | `TASK-FOUND-001`; CMS/API/data/artifact/tour contract; content mẫu đã duyệt |
-| Optimistic | 7 person-days (baseline 6 + mode revision 1) |
-| Expected | 14 person-days (baseline 12 + mode revision 2) |
-| Pessimistic | 29 person-days (baseline 25 + mode revision 4) |
+| Dependency/Blocker | `TASK-FOUND-001`; CMS/API/data/artifact/tour/relation contract; content và relation mẫu đã duyệt |
+| Optimistic | 9 person-days (baseline/modes 7 + relationship revision 2) |
+| Expected | 18 person-days (baseline/modes 14 + relationship revision 4) |
+| Pessimistic | 36 person-days (baseline/modes 29 + relationship revision 7) |
 | Mức tin cậy | LOW — source/contracts/content chưa tồn tại |
 | Planned start/review/completion | Chưa có; nhóm chưa cung cấp lịch |
 | Actual effort/completion | Chưa có; chỉ ghi sau khi nhóm xác nhận |
@@ -105,6 +107,8 @@ Giá trị mong muốn:
 Estimate này là planning aid, cần revision sau khi foundation và contract skeleton được merge.
 
 Estimate revision ngày 2026-08-02 giữ baseline cũ `6/12/25` và cộng `1/2/4` person-days cho mode switch, state persistence, contract/event field và E2E chuyển mode.
+
+Estimate revision tiếp theo giữ mốc `7/14/29` và cộng `2/4/7` person-days cho artifact relationship entity/workflow, CMS editor, API ranking/cache, UI explanation và contract/security/E2E tests; tổng mới `9/18/36`.
 
 ## Creative Concept Review — IDEA-002
 
@@ -168,7 +172,7 @@ Người dùng `thanh` chọn Concept A ngày 2026-08-02. Các concept khác đ�
 
 | Mode | Entry mặc định | Hành vi sau khi quét QR | Progress/đề xuất |
 |---|---|---|---|
-| `FREE_EXPLORE` | Người dùng mở Scan/Map/Search trực tiếp | Hiển thị artifact detail độc lập, audio/AI theo artifact và các lựa chọn liên quan | Không mutate narrative progress; người dùng tự chọn điểm tiếp theo |
+| `FREE_EXPLORE` | Người dùng mở Scan/Map/Search trực tiếp | Hiển thị artifact detail, 3D đã duyệt/fallback, audio/AI và top hiện vật liên quan có lý do/nguồn | Không mutate narrative progress; người dùng tự chọn điểm tiếp theo |
 | `GUIDED_JOURNEY` | Người dùng bấm “Bắt đầu/Tiếp tục hành trình” | Resolve artifact rồi kiểm tra node trong journey/version hiện tại | Node hợp lệ mới cập nhật progress và đề xuất node kế theo curator graph |
 
 Quy tắc chuyển mode:
@@ -189,7 +193,8 @@ flowchart TD
   B -->|Bắt đầu/Tiếp tục journey| D[GUIDED_JOURNEY]
   C --> E[Quét/chọn artifact]
   E --> F[Resolve và hiển thị artifact detail]
-  F --> G{Người dùng muốn đổi mode?}
+  F --> P[Hiển thị hiện vật liên quan đã được curator duyệt]
+  P --> G{Người dùng muốn đổi mode?}
   G -->|Không| E
   G -->|Chọn journey| D
   D --> H[Quét/chọn artifact]
@@ -213,6 +218,8 @@ Giải thích: Scan/Map/Search đi vào free mode; chỉ hành động “Bắt 
 - Mobile: timeline dạng đường kể chuyện dọc, thao tác một tay, CTA Scan/Nghe/Tiếp tục cố định nhưng không che nội dung.
 - Mode switch phải có nhãn chữ/icon rõ, hiển thị mode hiện tại và xác nhận tác động; không dùng màu làm tín hiệu duy nhất.
 - Free mode không hiện “node hoàn thành” giả; guided mode luôn hiển thị journey title, progress và CTA trở lại node kế.
+- Related card phải ghi loại/lý do quan hệ như “Cùng triều Nguyễn” hoặc “Cùng sự kiện”, không chỉ ghi chung “Có thể bạn thích”.
+- Guided mode ưu tiên narrative next node; related artifacts chỉ là lựa chọn phụ và không tự thay đổi progress.
 - Chuyển sang free mode không xóa progress; tiếp tục journey phục hồi đúng journey/version/node gần nhất còn hợp lệ.
 - Desktop: timeline và artifact/story panel song song; 3D chỉ lazy-load khi người dùng mở.
 - Cinematic: camera/scene transition theo era/node; hiệu ứng có thể skip.
@@ -242,7 +249,11 @@ sequenceDiagram
   API->>R: Read published artifact cache
   API-->>W: Artifact DTO + refs
   alt FREE_EXPLORE
-    W-->>V: Render independent artifact detail/options
+    W->>API: GET approved related artifacts
+    API->>PG: Query approved relations + published targets
+    PG-->>API: Relation reason/source + target summaries
+    API-->>W: Ranked related artifacts
+    W-->>V: Render artifact detail/3D fallback/related options
     W->>E: Optional free-explore event with consent
   else GUIDED_JOURNEY
     W->>API: GET published journey/version
@@ -290,15 +301,17 @@ Giải thích: PostgreSQL là nguồn sự thật cho journey, node, edge, versi
 - `NarrativeEdge`: UUID, journey UUID, from/to node, condition type/config, editorial priority, enabled.
 - `JourneyProgress`: gồm journey/version/current/completed nodes và mode gần nhất; chỉ server-side khi member đồng ý đồng bộ, anonymous progress mặc định local-first.
 - `ExploreMode`: enum `FREE_EXPLORE | GUIDED_JOURNEY`; là session/client preference có validation, không phải quyền và không được dùng để bỏ qua publish/authorization checks.
+- `ArtifactRelationship`: source/target artifact UUID, allowlisted type, direction/bidirectional flag, localized reason content ref, citation/source refs, editorial priority, curator approval/publish state, version và audit metadata.
 - `JourneyInteractionEvent`: versioned event, anonymous session/member ref theo consent, journey/node/action/timestamp; retention và redaction theo privacy policy.
 
-Index chỉ được chốt sau query-plan evidence. Query shape dự kiến cần unique `(journey_id, node_id)`, published lookup theo `(slug, locale, status, effective_at)` và edge traversal theo `(journey_id, from_node_id, enabled)`.
+Index chỉ được chốt sau query-plan evidence. Query shape dự kiến cần unique `(journey_id, node_id)`, published lookup theo `(slug, locale, status, effective_at)`, edge traversal theo `(journey_id, from_node_id, enabled)` và relation lookup theo `(source_artifact_id, status, relation_type)`; bidirectional relation phải được normalize hoặc query qua contract thống nhất, không nối OR tùy tiện.
 
 ## API và event dự kiến
 
 - `GET /api/v1/journeys`: danh sách journey đã publish, cursor/filter allowlist.
 - `GET /api/v1/journeys/:slug`: versioned manifest theo locale/audience, ETag và fallback metadata.
 - `GET /api/v1/qr/:token`: resolver dùng chung trả artifact/tour-stop đã publish; không tự chọn mode.
+- `GET /api/v1/artifacts/:id/related`: tối đa 6 kết quả mặc định, 12 tối đa; chỉ relation đã duyệt và target đang publish, trả `relationType`, localized reason, source refs và deterministic rank reason.
 - `POST /api/v1/journey-progress`: chỉ khi cần server sync; idempotency key và ownership bắt buộc.
 - Admin endpoints nằm dưới `/api/v1/admin/content/journeys/*`, dùng shared publish/version workflow.
 - Event dự kiến: `narrative.journey.published.v1`, `narrative.journey.invalidated.v1`, `narrative.node.completed.v1`.
@@ -310,7 +323,9 @@ Request/event liên quan phải dùng allowlisted `mode`; unknown mode trả con
 ```mermaid
 flowchart TD
   I[Input: mode, artifact, optional manifest/progress/choice] --> M{Mode?}
-  M -->|FREE_EXPLORE| Z[Return artifact detail + related/map options; no progress mutation]
+  M -->|FREE_EXPLORE| P[Load approved relationships and published targets]
+  P --> Q[Rank by curator priority and relation tier; proximity tie-break]
+  Q --> Z[Return artifact detail + explained related/map options; no progress mutation]
   M -->|GUIDED_JOURNEY| V[Validate version/publish state/node membership]
   M -->|Unknown| U[Require explicit mode selection]
   V -->|Invalid/stale| R[Keep artifact visible; reload journey hoặc offer free mode]
@@ -332,7 +347,7 @@ MVP dùng mode gate tường minh trước directed graph. Free mode không ch�
 Pseudocode:
 
 ```text
-if mode == FREE_EXPLORE: return artifactDetailWithoutProgressMutation
+if mode == FREE_EXPLORE: return artifactDetail + recommendApprovedRelations(artifact)
 if mode != GUIDED_JOURNEY: return requireExplicitModeSelection
 assert manifest.isPublished && currentNode belongsTo manifest
 candidates = outgoingEdges(currentNode)
@@ -343,6 +358,43 @@ return stableSort(candidates, editorialPriority, edgeId).first.to
 ```
 
 Complexity của traversal một bước là `O(outDegree log outDegree)` với sort; có thể giảm về `O(outDegree)` nếu priority được chuẩn hóa/lưu sẵn. Metric: traversal validity 100% trên graph fixture, không có dead-end ngoài ending được khai báo, deterministic output cùng input/version.
+
+### Artifact Relationship và recommendation đã khóa
+
+| Relation type | Ý nghĩa | Ví dụ |
+|---|---|---|
+| `SAME_DYNASTY` | Cùng triều đại đã được curator xác nhận | Hai hiện vật thuộc triều Nguyễn |
+| `SAME_PERIOD` | Cùng giai đoạn lịch sử nhưng không nhất thiết cùng triều đại | Hai hiện vật thế kỷ XIX |
+| `SAME_CULTURE` | Cùng nền văn hóa/cộng đồng | Hai hiện vật Champa hoặc Óc Eo |
+| `SAME_PERSON` | Cùng nhân vật lịch sử | Hiện vật cùng liên quan một vua/nhân vật |
+| `SAME_EVENT` | Cùng sự kiện có nguồn | Hiện vật cùng một cuộc cải cách/trận đánh |
+| `SAME_THEME` | Cùng chủ đề trưng bày | Giao thương, tín ngưỡng, đời sống |
+| `SAME_FUNCTION` | Cùng công năng/loại hình | Tiền tệ, ấn tín, đồ ngự dụng |
+| `CURATOR_RELATED` | Liên kết chuyên môn khác có giải thích và nguồn | Ảnh hưởng/giao lưu giữa hai nhóm hiện vật |
+
+Recommendation không suy ra sự thật chỉ từ chuỗi metadata. CMS/AI có thể gợi ý candidate ở trạng thái draft, nhưng public API chỉ dùng relation đã được curator duyệt và target artifact đang publish.
+
+Thứ tự deterministic cho free mode:
+
+1. `editorialPriority` của relation đã duyệt.
+2. Nhóm mạnh: `SAME_PERSON`, `SAME_EVENT`, `CURATOR_RELATED`.
+3. Nhóm chủ đề: `SAME_THEME`, `SAME_FUNCTION`, `SAME_CULTURE`.
+4. Nhóm rộng: `SAME_DYNASTY`, `SAME_PERIOD`.
+5. Khoảng cách/POI đang mở chỉ là tie-break; không biến “ở gần” thành bằng chứng lịch sử.
+6. Tie cuối dùng UUID/ID ổn định để cùng input/version luôn ra cùng thứ tự.
+
+Trong guided mode, explicit narrative edge luôn đứng trước recommendation. Related artifacts có thể hiển thị phụ nhưng không được tự thay next node. Nếu không có relation đạt điều kiện, UI không bịa đề xuất; hiển thị tìm kiếm/map hoặc tiếp tục journey.
+
+Ví dụ triều Nguyễn:
+
+```text
+QR resolve artifact A thuộc triều Nguyễn
+→ mở 3D đã duyệt hoặc media/text fallback
+→ query relation APPROVED từ A
+→ lọc target đang PUBLISHED
+→ xếp hạng relation có lý do/nguồn
+→ hiển thị tối đa 6 hiện vật liên quan
+```
 
 ## Authentication & Authorization Flow
 
@@ -373,6 +425,7 @@ Giải thích: public journey chỉ trả content đã publish. Member chỉ qu�
 - Graph: node/edge, entry/ending, condition allowlist, editorial priority và validation rule.
 - Presentation: `themePreset`, `motionPreset`, `motionIntensity`, `sceneRef`, `cameraPathRef`, `hotspotSetRef`, desktop/mobile/static fallback.
 - Content: artifact/content/audio/media refs, citations, transcript, alt text và curator note.
+- Artifact relation: source/target, relation type, localized reason, citation refs, editorial priority, direction, status/version và curator approval; có batch suggestion nhưng không auto-publish.
 - Preview: breakpoint, locale, quality tier, unpublished version và broken-reference/dead-end report.
 
 Admin không nhập JavaScript/CSS/GLSL hoặc condition DSL tùy ý. Condition/preset mới cần schema/registry version được review.
@@ -383,6 +436,8 @@ Admin không nhập JavaScript/CSS/GLSL hoặc condition DSL tùy ý. Condition/
 - Slug, filter, sort, node/action input phải validate/allowlist; query parameterized.
 - `mode` là enum allowlist; client không được dùng mode để vượt publish, audience, permission hoặc ownership boundary.
 - Rich text sanitize; media chỉ dùng public delivery metadata đã duyệt.
+- Related API không trả relation draft/rejected/expired hoặc target artifact chưa publish; permission/publish boundary phải đúng ở cache hit và miss.
+- Relation reason/citation phải sanitize/allowlist; audit ghi actor, source/target, before/after và quyết định duyệt.
 - Public read rate limit theo IP/session; progress/event có idempotency, quota và payload allowlist.
 - Không bắt buộc login. Anonymous progress local-first; analytics chỉ thu dữ liệu tối thiểu và theo consent/retention.
 - AI Guide chỉ nhận ID/context allowlisted; retrieved content là dữ liệu, không phải instruction; thiếu nguồn phải từ chối.
@@ -392,6 +447,7 @@ Admin không nhập JavaScript/CSS/GLSL hoặc condition DSL tùy ý. Condition/
 
 - Cache manifest theo `journeyId/version/locale/audience`; publish event mới invalidation sau commit.
 - Manifest trả projection cần thiết, không hydrate toàn bộ media/model; asset tải theo node/viewport.
+- Related result giới hạn 6 mặc định/12 tối đa, projection summary, cache theo artifact/relation-version/locale/audience; publish/rollback artifact hoặc relation phải invalidation đúng.
 - Rule traversal chủ yếu chạy deterministic ở client trên manifest đã validate; server vẫn là nguồn sự thật cho publish/version.
 - API stateless, cache hit hướng tới p95 <200 ms; cache miss phổ biến <500 ms theo baseline, phải load test mới được xác nhận.
 - 3D/AI failure không làm timeline 2D mất nội dung; circuit breaker/timeout ở integration tùy chọn.
@@ -399,8 +455,8 @@ Admin không nhập JavaScript/CSS/GLSL hoặc condition DSL tùy ý. Condition/
 
 ## Kiểm thử
 
-- Unit: mode gate, no-progress-mutation trong free mode, graph validation, cycle/dead-end policy, deterministic next-node, locale/fallback và condition allowlist.
-- Contract/integration: published-only read, ETag/version, cache hit/miss/invalidation, event idempotency và error DTO.
+- Unit: mode gate, relation taxonomy/approval filter/deterministic ranking, no-progress-mutation trong free mode, graph validation, cycle/dead-end policy, deterministic next-node, locale/fallback và condition allowlist.
+- Contract/integration: related endpoint chỉ trả approved/published target, reason/source/rank DTO, limit, ETag/version, cache hit/miss/invalidation, event idempotency và error DTO.
 - E2E: direct scan vào free mode; explicit start vào guided mode; chuyển hai chiều không mất progress; artifact ngoài journey; anonymous journey, QR/manual fallback, branch choice, resume local, ending/recap, admin draft/preview/publish/rollback.
 - Security: draft leakage, IDOR progress, injection/filter/operator, XSS rich text, rate limit, log/response redaction.
 - Accessibility: keyboard/screen reader, focus after node transition, contrast, transcript, reduced motion và no-WebGL.
@@ -417,6 +473,9 @@ Hiện chưa có test nào chạy vì application source/tooling chưa được 
 - Free mode không mutate narrative progress; chuyển sang free rồi quay lại guided phục hồi đúng progress/version còn hợp lệ.
 - Hai mode dùng chung QR/artifact resolver; không có DTO hoặc scanner pipeline song song.
 - Artifact ngoài journey vẫn xem được, không bị gán node sai và cho phép người dùng chọn tiếp tục/chuyển mode.
+- Quét một artifact triều Nguyễn có relation `SAME_DYNASTY` đã duyệt sẽ hiển thị các target triều Nguyễn đang publish, kèm lý do/nguồn; relation draft hoặc target chưa publish tuyệt đối không xuất hiện.
+- QR/recognition không tạo 3D đồng bộ; chỉ mở model version đã duyệt và fallback media/text khi thiếu/lỗi.
+- Related list tối đa 6 mặc định, cùng artifact/relation version/locale/audience cho kết quả deterministic; không có relation thì UI dùng map/search/continue journey fallback.
 - Cùng manifest/version/input luôn chọn cùng next node; graph không có dead-end không khai báo.
 - Draft/expired/wrong-audience journey không xuất hiện ở public API, cache hoặc AI retrieval.
 - Lite/reduced-motion/no-WebGL giữ đủ nội dung, quan hệ node và thao tác.
@@ -442,6 +501,7 @@ Không có migration hiện tại vì source/schema chưa tồn tại.
 - Threshold comprehension/completion và asset budget mới là `TO_VALIDATE`.
 - Nội dung theo nhiều locale cần policy fallback và review cùng Voice/i18n.
 - Nếu ranking cá nhân hóa được đề xuất, phải review privacy, bias, explainability và mở quyết định mới.
+- Curator/content owner chưa chốt taxonomy tiếng Việt hiển thị và bộ relation mẫu; không auto-generate quan hệ production từ metadata/AI.
 
 ## Decision log
 
@@ -449,6 +509,7 @@ Không có migration hiện tại vì source/schema chưa tồn tại.
 |---|---|---|---|---|---|
 | `DEC-TIMELINE-CONCEPT-001` | 2026-08-02 | PLAN_LOCKED | Chọn Concept A “Dòng thời gian sống”; MVP 2D/CMS-driven dùng curator graph + deterministic rule engine trước AI/3D | B/C/D giữ `DEFERRED`; A nối trực tiếp capability hiện có, có giá trị bảo tàng và fallback rõ | Không code trước foundation/contracts; AI/3D là extension, thay đổi cần Plan Revision |
 | `DEC-TIMELINE-MODE-001` | 2026-08-02 | PLAN_LOCKED | Một QR pipeline, hai mode tường minh `FREE_EXPLORE` và `GUIDED_JOURNEY`; người dùng chủ động chuyển và progress được bảo toàn | Guided-only bị loại vì gò bó; auto-detect mode bị loại vì khó đoán ý định và tạo hành vi bất ngờ | Contract/event dùng enum mode; free không mutate narrative; guided mới chạy graph |
+| `DEC-TIMELINE-RELATION-001` | 2026-08-02 | PLAN_LOCKED | Related artifacts dùng typed, versioned, curator-approved relationship; deterministic ranking và lý do/nguồn hiển thị | Chỉ match cùng dynasty bị loại vì quá rộng; AI/metadata auto-link production bị loại vì dễ tạo quan hệ sai | Guided next node ưu tiên; free mode related list tối đa 6 mặc định; không relation thì fallback search/map |
 
 ## Change history
 
@@ -456,6 +517,7 @@ Không có migration hiện tại vì source/schema chưa tồn tại.
 |---|---|---|---|---|
 | 2026-08-02 | ADDED | Tạo feature owner và khóa Concept A, flow, graph rule, CMS fields, fallback, security, estimate và acceptance | `docs/03-features/11-living-timeline.md` | Người dùng `thanh` chọn; docs review, code/test NOT RUN |
 | 2026-08-02 | CHANGED | Bổ sung hai mode tự do/có hướng dẫn dùng chung QR pipeline, mode switch, progress preservation và test/acceptance | `docs/03-features/11-living-timeline.md` | Người dùng `thanh` xác nhận; docs review, code/test NOT RUN |
+| 2026-08-02 | CHANGED | Khóa artifact relationship taxonomy, curator approval, recommendation ranking, related API/CMS/data/fallback/test | `docs/03-features/11-living-timeline.md` | Người dùng `thanh` yêu cầu; docs review, code/test NOT RUN |
 
 ## Plan revisions
 
@@ -463,3 +525,4 @@ Không có migration hiện tại vì source/schema chưa tồn tại.
 |---|---|---|---|---|
 | 2026-08-02 | Product experience | Chưa có feature narrative timeline owner | `FEAT-TIMELINE-001`, Concept A PLAN_LOCKED; B/C/D DEFERRED | `thanh` chọn sau Creative Concept Review |
 | 2026-08-02 | Exploration modes và estimate | Guided journey là flow chính; free exploration nằm rải rác ở QR/Map | Khóa `FREE_EXPLORE` + `GUIDED_JOURNEY`, shared QR resolver, explicit switch, giữ progress; estimate 6/12/25 → 7/14/29 | `thanh` yêu cầu bổ sung; `DEC-TIMELINE-MODE-001` |
+| 2026-08-02 | Related artifacts và estimate | Free mode chỉ có related placeholder; chưa có taxonomy/ranking/approval | Khóa typed curator-approved relations, explained deterministic ranking và 3D-approved-only rule; estimate 7/14/29 → 9/18/36 | `thanh` yêu cầu; `DEC-TIMELINE-RELATION-001` |

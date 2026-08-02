@@ -24,6 +24,7 @@ Hai thành viên làm feature branch riêng nhưng dùng cùng hợp đồng. Fi
 | Living Timeline | Public Web/AI Guide/History/Analytics/Web 3D | Shared QR/artifact result, `FREE_EXPLORE`/`GUIDED_JOURNEY`, published manifest, node context, progress/event, scene/fallback refs | Narrative Journey OpenAPI/event | PLANNED; no accepted implementation schema |
 | Map module | Web 3D/Tour | Floor, node, edge, POI, route | Map contract | PLANNED |
 | Artifact module | Recognition/Guide/Viewer | Artifact summary/detail, locale, media, Digital Twin ref | Artifact contract | PLANNED |
+| CMS/Artifact module | Public Web/Living Timeline/AI Guide | Approved typed artifact relationships, localized reason/citation, deterministic rank reason | Artifact Relationship contract | PLANNED; `TASK-TIMELINE-001` BLOCKED |
 | Recognition worker | Web/History/Dashboard | Job progress, top-k, confidence, model version | Recognition event/result schema | PLANNED |
 | RAG/Guide service | Web/Analytics | Answer, citation, refusal reason, locale, TTS ref | Guide contract | PLANNED |
 | Digital Twin pipeline | Viewer/CMS/Dashboard | Model version, review status, LOD/assets | Digital Twin contract | PLANNED |
@@ -68,6 +69,7 @@ Consumer nhận ID/public delivery metadata, không nhận Cloudinary secret ho�
 | — | Chưa có implementation contract | Baseline planning | — | — | — | — |
 | 2026-08-02 | Narrative Journey contract | Planning baseline; version chưa tạo | CMS + Timeline module | Web/PWA, AI Guide, History, Analytics, Web 3D | Additive contract sau foundation; 2D/static fallback khi AI/3D chưa sẵn sàng; deploy producer/schema trước consumers | `thanh` xác nhận concept; contract owners chưa xác nhận implementation |
 | 2026-08-02 | Narrative Journey `exploreMode` | Plan Revision; enum/version chưa tạo | Shared QR + Timeline module | Web/PWA, CMS, AI Guide, Map, History/Analytics | Additive allowlisted enum; direct scan remains free; only guided mutates narrative progress; no parallel QR DTO | `thanh` xác nhận `PLAN-0010`; contract owners chưa xác nhận implementation |
+| 2026-08-02 | Artifact Relationship contract | Plan Revision; schema/version chưa tạo | CMS + Artifact module | Web/PWA, Living Timeline, AI Guide | Additive typed relations; only approved relation + published targets; 3D ref remains approved-only; producer/schema deploy trước consumers | `thanh` xác nhận `PLAN-0011`; contract owners chưa xác nhận implementation |
 
 ## Integration readiness checklist
 

@@ -24,6 +24,8 @@
 
 Living Timeline dùng allowlisted `exploreMode = FREE_EXPLORE | GUIDED_JOURNEY`. QR resolver không tự chọn mode: direct Scan/Map/Search là free; Start/Continue journey là guided. Hai mode dùng chung artifact DTO/resolver; chỉ guided mode được gửi narrative progress mutation.
 
+Related artifact dùng `GET /artifacts/:id/related`, mặc định 6 và tối đa 12 kết quả. Response chỉ gồm relation đã duyệt và target đang publish, với `relationType`, localized `reason`, source refs và deterministic `rankReason`. QR/recognition chỉ mở model 3D đã duyệt hoặc media/text fallback; không tạo 3D đồng bộ trong request.
+
 ## Ví dụ tạo nhận diện
 
 1. Client xin signed upload.

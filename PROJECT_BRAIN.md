@@ -13,7 +13,7 @@ Xây dựng nền tảng bảo tàng số mobile-first gồm:
 - Website nội dung và trải nghiệm không gian 3D.
 - Bản đồ trong nhà, chọn điểm đến và dẫn đường.
 - QR Tour Guide theo khu vực/hiện vật.
-- Dòng thời gian sống nối hiện vật thành hành trình kể chuyện theo thời kỳ, nhân vật hoặc sự kiện, đồng thời giữ mode khám phá tự do dùng chung QR/artifact pipeline.
+- Dòng thời gian sống nối hiện vật thành hành trình kể chuyện, giữ mode tự do dùng chung QR/artifact pipeline và chỉ đề xuất related artifacts từ typed relationship đã được curator duyệt, có lý do/nguồn.
 - AI hỏi đáp có nguồn và voice đa ngôn ngữ.
 - AI nhận diện hiện vật từ ảnh.
 - Digital Twin và quy trình quản lý mô hình 3D.

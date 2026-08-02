@@ -57,6 +57,8 @@ A* trên graph có mức phù hợp rất cao: nhanh, dễ debug và hỗ trợ 
 
 Web 3D chỉ tiêu thụ `sceneRef/cameraPathRef/hotspotSetRef` đã được duyệt từ published narrative node của `docs/03-features/11-living-timeline.md`. `FREE_EXPLORE` cho người dùng tự chọn POI; `GUIDED_JOURNEY` mới highlight/route tới narrative node kế tiếp. Timeline 2D/static là critical path; scene/AI failure không được làm mất nội dung hoặc progress. Shared contract chưa accepted và integration này được để sau MVP timeline 2D.
 
+QR/recognition không tạo model 3D theo request. Viewer chỉ mở model version đã được curator/technical review; thiếu/lỗi model dùng ảnh 360, video, gallery hoặc text fallback. Related artifact ở phòng khác chỉ nhận route sau khi Map contract sẵn sàng.
+
 ## Decision log
 
 | Ngày | Quyết định | Lý do/Hệ quả |
@@ -87,3 +89,4 @@ Web 3D chỉ tiêu thụ `sceneRef/cameraPathRef/hotspotSetRef` đã được du
 | 2026-07-29 | CHANGED | Liên kết Indoor Location Detection bằng QR/ảnh | PLAN-0003, chưa có code |
 | 2026-08-02 | CHANGED | Ghi consumer boundary và fallback cho Dòng thời gian sống | `IDEA-002`, `PLAN-0009`; code/test NOT RUN |
 | 2026-08-02 | CHANGED | Phân biệt free POI selection và guided next-node routing | `DEC-TIMELINE-MODE-001`, `PLAN-0010`; code/test NOT RUN |
+| 2026-08-02 | CHANGED | Khóa approved-model-only và route/fallback cho related artifacts | `DEC-TIMELINE-RELATION-001`, `PLAN-0011`; code/test NOT RUN |

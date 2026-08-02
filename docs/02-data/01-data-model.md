@@ -6,7 +6,7 @@ Các bảng chính:
 
 - `users`, `auth_accounts`, `roles`, `permissions`, `user_roles`.
 - `pages`, `page_sections`, `menus`, `menu_items`, `banners`.
-- `artifacts`, `artifact_translations`, `artifact_media`, `artifact_versions`.
+- `artifacts`, `artifact_translations`, `artifact_media`, `artifact_versions`, `artifact_relationships`.
 - `exhibitions`, `exhibition_artifacts`, `zones`, `floors`, `map_nodes`, `map_edges`.
 - `tours`, `tour_stops`, `qr_codes`, `audio_tracks`.
 - `narrative_journeys`, `narrative_nodes`, `narrative_edges`; `journey_progress` chỉ dùng cho member đồng ý đồng bộ và có thể giữ `explore_mode` gần nhất. Anonymous mode/progress mặc định local-first.
@@ -17,6 +17,7 @@ Các bảng chính:
 ## Quan hệ cốt lõi
 
 - Một `artifact` có nhiều bản dịch, media và phiên bản Digital Twin.
+- `artifact_relationships` nối source/target artifact bằng relation type allowlist, localized reason/citation, editorial priority, direction, version, approval/publish state và audit; public consumer chỉ nhận relation đã duyệt với hai artifact đang publish.
 - Một `exhibition` có nhiều hiện vật qua bảng nối có thứ tự.
 - Một `tour` có nhiều `tour_stops`; stop tham chiếu zone/artifact và audio.
 - Một `narrative_journey` có graph versioned gồm `narrative_nodes` và `narrative_edges`; node có thể tham chiếu artifact/content/media/scene đã duyệt. Tên/field cuối cùng phải được accepted trong Narrative Journey contract trước migration.

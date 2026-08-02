@@ -92,10 +92,13 @@ RBAC theo hành động và phạm vi; sanitize rich text; signed upload; chốn
 - Section không hợp schema bị từ chối với lỗi rõ ràng.
 - Admin đổi layout/theme/motion/scene và preview được trên mobile/desktop mà không deploy.
 - Cấu hình animation không hợp lệ hoặc quá budget bị API từ chối/fallback an toàn.
+- Curator tạo relation `SAME_DYNASTY` có lý do/nguồn, reviewer duyệt rồi public API mới trả; draft/rejected relation không public.
 
 ## Tích hợp Dòng thời gian sống
 
 CMS là producer cho journey/node/edge, content/artifact/media refs, publish/version/locale, mode copy/config và presentation preset của `docs/03-features/11-living-timeline.md`. Mode chỉ thuộc allowlist `FREE_EXPLORE | GUIDED_JOURNEY`; direct Scan/Map vẫn free và Start/Continue mới guided. Condition/preset phải đến từ schema/allowlist; Admin không nhập code hoặc DSL tùy ý. Contract implementation chưa accepted và `TASK-TIMELINE-001` còn BLOCKED.
+
+CMS còn quản lý typed Artifact Relationship gồm source/target, relation type, localized reason, citation refs, editorial priority, direction, version và approval. Batch/AI chỉ tạo draft candidate; curator phải duyệt trước khi public API dùng relation.
 
 ## Decision log
 
@@ -125,3 +128,4 @@ CMS là producer cho journey/node/edge, content/artifact/media refs, publish/ver
 | 2026-07-29 | CHANGED | Mở rộng CMS thành Experience Builder quản trị layout, theme, motion và 3D scene | Review schema/acceptance criteria, chưa có code |
 | 2026-08-02 | CHANGED | Ghi producer boundary cho Dòng thời gian sống; chi tiết thuộc feature owner mới | `IDEA-002`, `PLAN-0009`; code/test NOT RUN |
 | 2026-08-02 | CHANGED | Bổ sung allowlisted free/guided mode config; CMS không tự đổi direct scan sang guided | `DEC-TIMELINE-MODE-001`, `PLAN-0010`; code/test NOT RUN |
+| 2026-08-02 | CHANGED | Bổ sung Artifact Relationship editor/workflow và cấm batch/AI auto-publish quan hệ | `DEC-TIMELINE-RELATION-001`, `PLAN-0011`; code/test NOT RUN |

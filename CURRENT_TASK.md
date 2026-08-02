@@ -9,7 +9,7 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 - Expected branch: `develop` — hiện chỉ chuẩn hóa tài liệu.
 - Base branch: `develop`.
 - Coding agent được phép commit/merge/push: Không.
-- Last reviewed shared plan revision: `PLAN-0010`.
+- Last reviewed shared plan revision: `PLAN-0011`.
 
 ## Task
 
@@ -29,6 +29,7 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 - Work Session & Feature Contribution Ledger cho identity recheck, attribution, timestamp và handoff.
 - Đăng ký thành viên `thanh` và intake/PLAN_LOCKED `IDEA-002` Dòng thời gian sống ở mức tài liệu; không claim implementation task.
 - Khóa Plan Revision `DEC-TIMELINE-MODE-001`: free/guided modes dùng chung QR pipeline, explicit switch và giữ progress.
+- Khóa `DEC-TIMELINE-RELATION-001`: typed curator-approved artifact relations, explained ranking và approved-3D-only/fallback.
 
 ## Ngoài phạm vi
 
@@ -49,4 +50,4 @@ Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. 
 
 ## Handoff status
 
-Đã tạo baseline tài liệu, khóa các Quality Gate, user-first identity và Work Session Ledger; `PLAN-0009` bổ sung thành viên `thanh` và Dòng thời gian sống, `PLAN-0010` khóa hai mode free/guided dùng chung QR pipeline. Người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation/API/data tooling. Task code tiếp theo vẫn là `TASK-FOUND-001` trên branch dự kiến `feature/project-foundation`; khi bắt đầu phải viết lại file này theo phạm vi foundation.
+Đã tạo baseline tài liệu, khóa các Quality Gate, user-first identity và Work Session Ledger; `PLAN-0009` bổ sung Dòng thời gian sống, `PLAN-0010` khóa free/guided modes và `PLAN-0011` khóa Artifact Relationship/recommendation/approved-3D fallback. Người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation/API/data tooling. Task code tiếp theo vẫn là `TASK-FOUND-001` trên branch dự kiến `feature/project-foundation`; khi bắt đầu phải viết lại file này theo phạm vi foundation.

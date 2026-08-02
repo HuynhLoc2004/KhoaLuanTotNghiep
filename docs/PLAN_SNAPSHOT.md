@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0010`
+- Revision: `PLAN-0011`
 - Updated: 2026-08-02
 - Status: BASELINE_PENDING_TEAM_REVIEW
-- Scope: Khóa hai mode khám phá dùng chung QR pipeline cho Dòng thời gian sống.
+- Scope: Khóa Artifact Relationship và related-artifact recommendation cho Dòng thời gian sống.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -16,7 +16,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 - Task tiếp theo: `TASK-FOUND-001`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
-- Narrative experience: `FEAT-TIMELINE-001` có `FREE_EXPLORE` và `GUIDED_JOURNEY`; direct Scan/Map/Search là free, Start/Continue mới guided, hai mode dùng chung QR/artifact resolver và guided mới mutate narrative progress.
+- Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
 - Collaboration: branch isolation, contract alignment, progressive context, plan lock và merge memory sync.
 
 ## Change feed
@@ -33,6 +33,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0008 | 2026-07-30 | Thêm identity recheck 4 giờ, work-session ledger, feature lifecycle và continuation attribution | Mọi implementation/handoff; feature owner templates | Áp dụng từ implementation session đầu tiên | Người dùng xác nhận |
 | PLAN-0009 | 2026-08-02 | Đăng ký Member ID `thanh`; chọn Concept A “Dòng thời gian sống”, khóa MVP 2D/CMS-driven trước AI/3D và giữ B/C/D DEFERRED | TEAM; IDEA-002; FEAT-TIMELINE-001; CMS/Tour/Map; TASK-TIMELINE-001 | Review/publish coordination docs; không implement trước foundation/contracts/content | `thanh` xác nhận |
 | PLAN-0010 | 2026-08-02 | Khóa `FREE_EXPLORE` và `GUIDED_JOURNEY` dùng chung QR/artifact resolver; explicit switch, giữ progress, AI/Map nhận context theo mode | IDEA-002; FEAT-TIMELINE-001; CMS/QR/Map/AI Guide; TASK-TIMELINE-001 | Đồng bộ mode enum/contract; không tạo scanner/DTO song song; task vẫn BLOCKED | `thanh` xác nhận |
+| PLAN-0011 | 2026-08-02 | Khóa typed curator-approved Artifact Relationship, explained deterministic ranking và approved-3D-only/fallback sau QR | IDEA-002; FEAT-TIMELINE-001; CMS/Artifact/QR/AI Guide/Web 3D; TASK-TIMELINE-001 | Tạo shared relation contract sau foundation; không auto-link/auto-publish bằng AI/metadata | `thanh` xác nhận |
 
 ## Changed owner documents in current revision
 
@@ -42,7 +43,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 - `docs/IMPLEMENTATION_INDEX.md`, `docs/04-design/02-ui-component-registry.md`.
 - `PROJECT_BRAIN.md`, `CURRENT_TASK.md`.
 
-`TASK-TIMELINE-001` chưa được claim và vẫn BLOCKED. Estimate được revision từ 6/12/25 thành 7/14/29 person-days. Plan chỉ trở thành nguồn chung cho collaborator sau khi người dùng review, commit và push lên `origin/develop`.
+`TASK-TIMELINE-001` chưa được claim và vẫn BLOCKED. Estimate giữ lịch sử 6/12/25 → 7/14/29 → 9/18/36 person-days. Plan chỉ trở thành nguồn chung cho collaborator sau khi người dùng review, commit và push lên `origin/develop`.
 
 ## Revision rules
 

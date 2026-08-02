@@ -18,7 +18,7 @@ Kho tiếp nhận ý tưởng mới. Đây là chỉ mục, không thay feature 
 | Idea ID | Ý tưởng | Feature owner | Trạng thái | Concept/Decision | Confidence | Estimate | Task/Owner |
 |---|---|---|---|---|---|---|---|
 | IDEA-001 | Immersive 3D storytelling và animation có bản sắc | `docs/04-design/01-ui-ux-design-system.md` | PLAN_LOCKED | `docs/04-design/03-ai-experience-quality-gate.md`; `DEC-UX-QUALITY-001` | HIGH | Gate docs: <1 person-day; automation: 1–2 person-days sau foundation | `loc`; automation chưa nhận |
-| IDEA-002 | Dòng thời gian sống nối hiện vật thành narrative journey theo thời kỳ/nhân vật/sự kiện | `docs/03-features/11-living-timeline.md` | PLAN_LOCKED | `DEC-TIMELINE-CONCEPT-001`; `DEC-TIMELINE-MODE-001`; Concept A selected, B/C/D DEFERRED | LOW về schedule, MEDIUM về UX | 7/14/29 person-days cho MVP 2D + dual mode, không gồm foundation/content/3D | `TASK-TIMELINE-001` BLOCKED; chưa claim |
+| IDEA-002 | Dòng thời gian sống nối hiện vật thành narrative journey theo thời kỳ/nhân vật/sự kiện | `docs/03-features/11-living-timeline.md` | PLAN_LOCKED | `DEC-TIMELINE-CONCEPT-001`; `DEC-TIMELINE-MODE-001`; `DEC-TIMELINE-RELATION-001`; Concept A selected, B/C/D DEFERRED | LOW về schedule, MEDIUM về UX | 9/18/36 person-days cho MVP 2D + modes + related artifacts, không gồm foundation/content/3D production | `TASK-TIMELINE-001` BLOCKED; chưa claim |
 
 ## Quy tắc
 

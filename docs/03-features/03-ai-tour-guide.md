@@ -58,6 +58,8 @@ Khách quét QR tại khu vực để nghe lịch sử, nguồn gốc, câu chuy
 
 AI Guide nhận artifact-only context trong `FREE_EXPLORE`, và có thể nhận thêm `journeyId/nodeId` trong `GUIDED_JOURNEY` của `docs/03-features/11-living-timeline.md`. AI không được tự đổi mode, tạo narrative edge hoặc sự thật lịch sử. Chỉ content đã publish được retrieval; thiếu nguồn phải từ chối. Integration là optional và không nằm trên critical path của timeline 2D.
 
+Nếu AI Guide giải thích “hiện vật liên quan”, nó chỉ được dùng Artifact Relationship đã duyệt và citation/source tương ứng. AI/metadata có thể gợi ý relation draft cho curator nhưng không được tự tạo relation production.
+
 ## Decision log
 
 | Ngày | Quyết định | Lý do/Hệ quả |
@@ -84,3 +86,4 @@ AI Guide nhận artifact-only context trong `FREE_EXPLORE`, và có thể nhận
 | 2026-07-29 | ADDED | Tạo baseline QR Tour và AI Guide | Review tài liệu, chưa có code |
 | 2026-08-02 | CHANGED | Ghi consumer boundary cho Dòng thời gian sống và cấm AI tự quyết định narrative | `IDEA-002`, `PLAN-0009`; code/test NOT RUN |
 | 2026-08-02 | CHANGED | Khóa AI context artifact-only ở free mode và artifact+journey/node ở guided mode | `DEC-TIMELINE-MODE-001`, `PLAN-0010`; code/test NOT RUN |
+| 2026-08-02 | CHANGED | Khóa AI chỉ giải thích relation đã duyệt; AI suggestion giữ draft | `DEC-TIMELINE-RELATION-001`, `PLAN-0011`; code/test NOT RUN |
