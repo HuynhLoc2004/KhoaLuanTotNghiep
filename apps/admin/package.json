@@ -13,7 +13,11 @@
     "build": "tsc -p tsconfig.json",
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\"",
     "lint": "eslint src test",
-    "test": "node --test dist/test/component.test.js",
+    "test": "node --test dist/test/component.test.js dist/test/admin.test.js",
     "typecheck": "tsc -p tsconfig.json --noEmit --incremental false"
+  },
+  "dependencies": {
+    "@hcmc-museum/contracts": "workspace:*",
+    "@hcmc-museum/ui": "workspace:*"
   }
 }

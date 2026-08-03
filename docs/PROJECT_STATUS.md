@@ -8,7 +8,13 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Baseline tài liệu: v0.1.
 - Code ứng dụng: foundation monorepo/tooling và các skeleton Web, Admin, API, AI, media worker, contracts, UI đã merge tại `3d8b971`.
 - Môi trường Docker: local database infrastructure đã `VERIFIED`, merge tại `847251c` và hoàn tất Merge Memory Sync.
-- Feature/task: `TASK-FOUND-001` (`thanh`) `DONE`, merge tại `3d8b971`; `TASK-INFRA-001` (`loc`) `DONE`, merge tại `847251c`.
+- Public Web & Design System: Public Web shell & Heritage Design Tokens đã `VERIFIED`, merge tại `03dfcd4` và hoàn tất Merge Memory Sync.
+- API Backend & Base Contracts: Express API skeleton, health endpoints, correlation ID & Zod error contract đã `VERIFIED`, merge tại `8afa7c8` và hoàn tất Merge Memory Sync.
+- Admin CMS Shell & Form Builder: Admin layout, navigation sidebar, CMS block form editor & live preview panel đã `VERIFIED`, merge tại `5ce59f2` và hoàn tất Merge Memory Sync.
+- Database Infrastructure & Entities: PostgreSQL DDL migrations, entity DTOs, seed baseline & DatabaseRepository đã `VERIFIED`, merge tại `d75cdf8` và hoàn tất Merge Memory Sync.
+- Living Timeline MVP: Shared Zod contracts, REST API endpoints (`/api/v1/timeline/*`), Mode Switcher (`FREE_EXPLORE`/`GUIDED_JOURNEY`), Related Artifact Cards & 2D Timeline UI đã `VERIFIED`, merge tại `92c7caa` và hoàn tất Merge Memory Sync.
+- Workspace ESLint Quality Gate: Sửa 100% lỗi ESLint rules trên 5 TypeScript projects (`@hcmc-museum/contracts`, `@hcmc-museum/ui`, `@hcmc-museum/web`, `@hcmc-museum/admin`, `@hcmc-museum/api`) đã `VERIFIED`, merge tại `cc1c600` và hoàn tất Merge Memory Sync.
+- Feature/task: `TASK-FOUND-001` (`thanh`) `DONE`, merge tại `3d8b971`; `TASK-INFRA-001` (`loc`) `DONE`, merge tại `847251c`; `TASK-WEB-001` (`thanh`) `DONE`, merge tại `03dfcd4`; `TASK-API-001` (`thanh`) `DONE`, merge tại `8afa7c8`; `TASK-ADMIN-001` (`thanh`) `DONE`, merge tại `5ce59f2`; `TASK-DATA-001` (`thanh`) `DONE`, merge tại `d75cdf8`; `TASK-TIMELINE-001` (`thanh`) `DONE`, merge tại `92c7caa`; `FIX-LINT-001` (`thanh`) `DONE`, merge tại `cc1c600`.
 - Experience requirement: đã bổ sung immersive 3D/animation và CMS-driven presentation; chưa triển khai code.
 - AI/project memory governance: IMPLEMENTED, chờ nhóm review; gồm invariants, ADR, contract/data catalog, traceability, current task và handoff.
 - Two-person coordination protocol: IMPLEMENTED, chờ nhóm review; gồm task claim, write scope, collision và stale detection.

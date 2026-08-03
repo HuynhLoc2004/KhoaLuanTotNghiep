@@ -13,18 +13,18 @@ Nguồn đọc nhanh để hai người xây một sản phẩm thống nhất. 
 
 | Group | Status | Location/version | Usage |
 |---|---|---|---|
-| Color | DOCS_ONLY | — | Bronze/jade/neutral semantic |
-| Typography | DOCS_ONLY | — | Vietnamese + WCAG |
-| Spacing/radius/shadow | DOCS_ONLY | — | Một shared source |
-| Motion | DOCS_ONLY | — | Quality/reduced tiers |
+| Color | CODE_CONFIRMED | `packages/ui/src/tokens/theme.ts` | Primary Red (`#9E1B1B`), Gold Accent (`#D4AF37`), Bronze, Dark Charcoal, Silk White |
+| Typography | CODE_CONFIRMED | `packages/ui/src/tokens/theme.ts` | Outfit, Cinzel, Inter, Roboto font families |
+| Spacing/radius/shadow | CODE_CONFIRMED | `packages/ui/src/tokens/theme.ts` | Glassmorphism card backdrop-filter & shadow |
+| Motion | CODE_CONFIRMED | `packages/ui/src/tokens/theme.ts` | Fast, Normal, Slow transitions & pulseGlow |
 
 ## Components and shells
 
 | Component/Pattern | Purpose | Status | Location | Variants | Consumers | Do not duplicate |
 |---|---|---|---|---|---|---|
-| App shell | Public navigation/layout | DOCS_ONLY | — | Mobile/Desktop | Public Web | Có |
-| Admin shell | CMS layout | DOCS_ONLY | — | Desktop/Tablet | Admin | Có |
-| Content block renderer | CMS sections | DOCS_ONLY | — | Schema-driven | Public Web | Có |
+| App shell | Public navigation/layout | CODE_CONFIRMED | `apps/web/src/shell/layout.ts`, `apps/web/src/shell/webShell.ts` | Responsive Mobile/Desktop Header & Footer | Public Web | Có |
+| Admin shell | CMS layout | CODE_CONFIRMED | `apps/admin/src/shell/layout.ts`, `apps/admin/src/shell/adminShell.ts` | Sidebar navigation, Header, Content Form Editor & Live Preview Panel | Admin | Có |
+| Content block renderer | CMS sections | CODE_CONFIRMED | `packages/ui/src/cms/renderer.ts` | Hero, ArtifactGrid, TimelinePreview, Banner | Public Web, Admin | Có |
 | Audio player | Tour/voice | DOCS_ONLY | — | Compact/Full | Tour/Artifact | Có |
 | 3D viewer shell | Scene/model/fallback | DOCS_ONLY | — | Quality tiers | Artifact/Map | Có |
 
@@ -36,8 +36,8 @@ Nguồn đọc nhanh để hai người xây một sản phẩm thống nhất. 
 | Spatial transition | Map/3D continuity | DOCS_ONLY | — | Instant/2D | Map/Viewer |
 | Immersive Hero | Entry storytelling | DOCS_ONLY | — | Layered image/video | Home/Exhibition |
 | Artifact Orbit | Inspect object | DOCS_ONLY | — | 360/gallery | Artifact |
-| Living Timeline | Narrative graph/timeline nối hiện vật và bối cảnh | DOCS_ONLY | `docs/03-features/11-living-timeline.md` | `FREE_EXPLORE` artifact detail; `GUIDED_JOURNEY` vertical cards/lines; static 2D/reduced-motion; Cinematic scene là extension | Timeline, Tour, Artifact, AI Guide |
-| Related Artifact Card | Hiển thị target artifact cùng relation type, localized reason/source và approved 3D/media fallback | DOCS_ONLY | `docs/03-features/11-living-timeline.md` | Compact rail/list; không relation thì ẩn và dùng search/map fallback | Artifact Detail, Timeline, AI Guide |
+| Living Timeline | Narrative graph/timeline nối hiện vật và bối cảnh | CODE_CONFIRMED | `packages/ui/src/timeline/renderer.ts`, `apps/web/src/timeline/page.ts` | `FREE_EXPLORE` artifact detail; `GUIDED_JOURNEY` vertical cards/lines; static 2D/reduced-motion; Cinematic scene là extension | Timeline, Tour, Artifact, AI Guide |
+| Related Artifact Card | Hiển thị target artifact cùng relation type, localized reason/source và approved 3D/media fallback | CODE_CONFIRMED | `packages/ui/src/timeline/renderer.ts` | Compact rail/list; không relation thì ẩn và dùng search/map fallback | Artifact Detail, Timeline, AI Guide |
 
 ## Reuse gate
 
