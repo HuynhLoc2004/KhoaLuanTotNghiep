@@ -33,7 +33,7 @@ Chỉ chuyển task sang `DONE` sau khi merge vào `develop` và Merge Memory Sy
 
 | ID | Task | Trạng thái | Owner/Branch | Claimed/Updated | Dependency | Estimate | Write scope | Feature owner |
 |---|---|---|---|---|---|---|---|---|
-| TASK-FOUND-001 | Khởi tạo monorepo, tooling và cấu trúc ứng dụng | READY | Chưa có | — | Baseline docs | 1–2 person-days, MEDIUM | Root config, app/service/package skeletons | `docs/06-devops/01-local-environment.md` |
+| TASK-FOUND-001 | Khởi tạo monorepo, tooling và cấu trúc ứng dụng | IN_PROGRESS | `thanh` / `feature/project-foundation` | ClaimedAt: 2026-08-03T10:57:18+07:00; LastUpdated: 2026-08-03T10:57:18+07:00 | Baseline docs | 1–2 person-days, MEDIUM | Root workspace/tooling config; app/service/worker/package skeletons; foundation docs/tests; không gồm `infra/**`, Compose, migration hoặc hành vi/contract nghiệp vụ | `docs/06-devops/01-local-environment.md` |
 | TASK-INFRA-001 | Docker Compose cho PostgreSQL, MongoDB, Redis và health checks | BLOCKED | Chưa có | — | TASK-FOUND-001 | 1–2 person-days, MEDIUM | `infra/**`, Compose, service health config | `docs/06-devops/01-local-environment.md` |
 | TASK-WEB-001 | Public Web shell + design tokens + CMS renderer skeleton | BLOCKED | Chưa có | — | TASK-FOUND-001, contract skeleton | 2–4 person-days, LOW | `apps/web/**`, `packages/ui/**` | `docs/04-design/01-ui-ux-design-system.md` |
 | TASK-ADMIN-001 | Admin shell + navigation + CMS form foundation | BLOCKED | Chưa có | — | TASK-FOUND-001, auth/contract skeleton | 2–4 person-days, LOW | `apps/admin/**`, CMS contracts | `docs/03-features/01-admin-cms.md` |
@@ -48,7 +48,7 @@ Estimate trên chỉ phục vụ chọn việc và phải được rà soát l�
 
 ## Đề xuất hiện tại
 
-Task duy nhất đang `READY` là `TASK-FOUND-001`. Sau khi hoàn tất và nhóm xác nhận, có thể mở song song:
+`TASK-FOUND-001` đang `IN_PROGRESS`, do `thanh` thực hiện trên nhánh dự kiến `feature/project-foundation`; hiện không còn task `READY`. Sau khi foundation hoàn tất và nhóm xác nhận, có thể mở song song:
 
 - Một người nhận `TASK-API-001` + `TASK-INFRA-001` nếu ranh giới file rõ.
 - Người còn lại nhận `TASK-WEB-001` trước, rồi `TASK-ADMIN-001`.
