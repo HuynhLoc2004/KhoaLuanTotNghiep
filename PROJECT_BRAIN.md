@@ -245,6 +245,8 @@ Mọi shared plan/task coordination update đã được nhóm chấp nhận ph�
 
 Hai thành viên không phải theo dõi hoặc nhắc nhau về thay đổi branch-local. AI chịu trách nhiệm đọc coordination state mới nhất trên remote `develop` ở đầu phiên và khóa chỉnh sửa theo write scope đã công bố. Không biết code chưa push của người kia không phải blocker nếu scope không giao nhau; yêu cầu chạm shared/foreign scope phải dừng và đi qua coordination Markdown trên `develop`.
 
+Để tránh conflict cấu trúc, feature branch không sửa README, CURRENT_TASK, NEXT_WORK, PLAN_SNAPSHOT, PROJECT_STATUS, implementation/UI indexes hoặc shared contract/integration catalogs. Mọi task-local plan/session/evidence/handoff nằm tại `docs/work/<TASK-ID>.md`; sau merge, AI mới tổng hợp capability/trạng thái chung trên `develop` qua Merge Memory Sync.
+
 ### Những thay đổi bắt buộc phải lưu vết
 
 - Thêm/sửa/xóa flow hoặc trạng thái UI.

@@ -30,6 +30,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc server validation, parameterized query/allowlist, evidence-based index, scoped cache/invalidation và response/log redaction. Automation chờ API/data foundation.
 - Work Session & Feature Contribution Ledger: PLAN_LOCKED ở mức quy trình; hỏi lại danh tính sau 4 giờ/new context, lưu từng phiên/người/scope/test/handoff và feature lifecycle; chưa có implementation session vì source chưa khởi tạo.
 - Local infrastructure: VERIFIED trên feature branch; PostgreSQL/pgvector, MongoDB và Redis đều healthy trong runtime smoke, local env được ignore; chờ user-owned review/merge và Merge Memory Sync trước khi ghi vào shared implemented baseline.
+- Conflict-free task documentation: PLAN_LOCKED tại `PLAN-0017`; feature branch dùng `docs/work/<TASK-ID>.md`, shared status/index/catalog files chỉ sửa trên `develop`. PR foundation/infra hiện tại cần cleanup một lần trước merge.
 - Living Timeline/Dòng thời gian sống: PLAN_LOCKED ở mức concept tại `docs/03-features/11-living-timeline.md`; một QR pipeline hỗ trợ free/guided modes, typed curator-approved Artifact Relationship và explained deterministic recommendation; QR chỉ mở 3D đã duyệt/fallback, chưa có code và BLOCKED bởi foundation/contracts/content/relation baseline.
 - Search/Discovery: PLANNED; hybrid lexical/vector baseline, BLOCKED bởi foundation/API/data/CMS.
 - Polyglot extension policy: IMPLEMENTED; runtime mới cần Option Review và bằng chứng.

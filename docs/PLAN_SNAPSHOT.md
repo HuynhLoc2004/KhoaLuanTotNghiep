@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0016`
+- Revision: `PLAN-0017`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PENDING_REMOTE_DEVELOP_SYNC
-- Scope: Công bố `TASK-INFRA-001` đã VERIFIED/push và chuyển REVIEW; implementation vẫn branch-local đến khi user merge.
+- Scope: Loại bỏ conflict tài liệu bằng task report riêng và shared-file denylist cho feature branches.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -39,6 +39,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0014 | 2026-08-03 | Giới hạn AI chỉ tự commit/push Markdown coordination lên `develop`; ưu tiên worktree để không đổi active branch; feature push/review/merge do người dùng thực hiện | Git workflow; mọi task/feature branch | Chặn non-Markdown trong coordination commit; không tự push/merge implementation; AI chỉ đề xuất handoff commands | `loc` xác nhận |
 | PLAN-0015 | 2026-08-03 | Khóa scope isolation do AI thực thi; thành viên không cần theo dõi/nhắc/xem branch của nhau | Mọi task song song; session start gate | AI đọc remote `develop` đầu phiên, chỉ sửa owned scope; unknown branch-local work không là blocker nếu scope tách; shared/foreign scope phải qua coordination Markdown | `loc` xác nhận |
 | PLAN-0016 | 2026-08-03 | `TASK-INFRA-001` VERIFIED và đã push feature commit `5936397`; registry chuyển REVIEW | TASK-INFRA-001; local environment | Người dùng/nhóm review feature branch; chỉ merge khi chấp nhận; sau merge chạy Merge Memory Sync | `loc` xác nhận verification và push |
+| PLAN-0017 | 2026-08-03 | Feature branch chỉ sửa owned code/spec + `docs/work/<TASK-ID>.md`; shared status/index/catalog files chỉ cập nhật trên `develop` | Mọi task/PR; CURRENT_TASK; owner/index/status docs | Cleanup PR #2/#3 lần cuối; từ task sau chạy denylist check trước push và promote docs sau merge | `loc` yêu cầu giải quyết triệt để conflict |
 
 ## Changed owner documents in current revision
 
