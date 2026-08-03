@@ -4,7 +4,6 @@ Matrix nối yêu cầu với feature, contract/data, test và tiêu chí nghi�
 
 | Requirement | Feature owner | Invariant | Contract/Data | Test/Bằng chứng | Acceptance | Trạng thái |
 |---|---|---|---|---|---|---|
-| REQ-FOUND-001 Monorepo foundation tái lập, không lấn scope nghiệp vụ | `docs/06-devops/01-local-environment.md` | INV-CONTENT-002, INV-SEC-001, INV-SEC-003, INV-CONFIG-001 | pnpm/Turbo workspace; uv project độc lập; contract nghiệp vụ vẫn PLANNED | Frozen/locked install/sync PASS; forced root gate PASS trên Node 24; 5 Node + 2 Python tests; ignore/secret/scope review; 3 dependency audits PASS | Reviewer còn lặp lại gate trên fresh clone trước `VERIFIED` | IMPLEMENTED |
 | REQ-CMS-001 Nội dung public không hard-code | `01-admin-cms.md` | INV-CONTENT-002 | CMS block schema | Chưa có | Admin đổi nội dung không deploy | PLANNED |
 | REQ-CMS-002 Draft không public | `01-admin-cms.md` | INV-CONTENT-001 | Public content API | Chưa có | Draft không xuất hiện | PLANNED |
 | REQ-MAP-001 Tính tuyến trong bảo tàng | `02-web-3d-navigation.md` | INV-UX-002 | Map graph API/tables | Chưa có | A* đúng route và accessibility | PLANNED |

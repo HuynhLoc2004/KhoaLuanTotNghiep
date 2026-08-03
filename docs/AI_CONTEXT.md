@@ -54,10 +54,11 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 10. Sau merge vào develop, chạy Merge Memory Sync để người sau biết capability/component/contract đã có.
 11. Shared plan có revision trong `PLAN_SNAPSHOT.md`; sau pull chỉ đọc lại owner docs liên quan revision mới.
 12. Trước mỗi implementation session mới hoặc sau 4 giờ không hoạt động được ghi nhận, hỏi lại tên/Member ID; ghi contribution ledger và handoff trong feature owner.
+13. Feature branch ghi session/evidence tại `docs/work/<TASK-ID>.md`, không sửa shared README/CURRENT_TASK/status/index/contract catalogs; AI chỉ cập nhật các file chung bằng coordination worktree trên `develop`.
 
 ## Trạng thái hiện tại
 
-Baseline tài liệu đã có. Monorepo/tooling skeleton của `TASK-FOUND-001` đã `IMPLEMENTED` trên feature branch; local database infrastructure của `TASK-INFRA-001` đã `VERIFIED/push` và đang `REVIEW`. Cả hai chưa là shared implemented baseline cho đến khi được review/merge; runtime nghiệp vụ chưa triển khai. Task tiếp theo lấy từ `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
+Baseline tài liệu đã có; source application chưa được khởi tạo theo `docs/PROJECT_STATUS.md`. Task tiếp theo lấy từ `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
 
 ## Đọc tiếp
 

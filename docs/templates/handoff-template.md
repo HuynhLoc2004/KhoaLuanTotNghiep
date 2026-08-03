@@ -18,6 +18,8 @@
 - Active effort: USER_CONFIRMED/UNKNOWN
 - Contribution ledger đã cập nhật:
 - Người nhận tiếp tục đã xác nhận:
+- Task work report `docs/work/<TASK-ID>.md` đã cập nhật:
+- Shared-file denylist check: PASS/FAIL
 
 ## Kết quả
 
@@ -35,6 +37,7 @@ Mô tả hành vi đã triển khai, dẫn đầu bằng kết quả người d�
 - Shared plan revision trước/sau:
 - Plan Snapshot cần publish lên develop:
 - Feature Report Standard: PASS/FAIL và phần còn thiếu:
+- Feature branch không sửa shared status/index/catalog files: PASS/FAIL
 
 ## Test đã chạy
 
