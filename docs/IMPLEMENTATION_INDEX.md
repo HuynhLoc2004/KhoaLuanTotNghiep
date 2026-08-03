@@ -5,8 +5,8 @@
 ## Baseline
 
 - Application source: foundation skeleton đã khởi tạo.
-- Last synchronized merge: `03dfcd4` — `TASK-WEB-001`.
-- Shared contracts implemented: chưa có.
+- Last synchronized merge: `8afa7c8` — `TASK-API-001`.
+- Shared contracts implemented: ApiErrorResponseSchema, HealthStatusResponseSchema, ApiError class, ErrorCode enum.
 - UI components implemented: Heritage Theme tokens, CMS Block Renderer, Public Header & Footer layouts.
 
 ## Applications
@@ -15,10 +15,10 @@
 |---|---|---|---|---|---|
 | Public Web | Public Web shell responsive layout, Header, Footer và CMS Page renderer | `apps/web/` | `apps/web/src/index.ts` | CODE_CONFIRMED | 5/5 web tests PASS; verified by `thanh` |
 | Admin | TypeScript build/test skeleton | `apps/admin/` | `apps/admin/src/index.ts` | CODE_CONFIRMED | Root gate + component test PASS |
-| API | TypeScript build/test skeleton; chưa có endpoint nghiệp vụ | `services/api/` | `services/api/src/index.ts` | CODE_CONFIRMED | Root gate + component test PASS |
+| API | Express API skeleton, `/health` & `/api/v1/health` endpoints, correlation ID middleware, Zod validator & error handler | `services/api/` | `services/api/src/index.ts` | CODE_CONFIRMED | 7/7 api tests PASS; verified by `thanh` |
 | AI service | Python package/test skeleton; chưa có AI runtime behavior | `services/ai/` | `services/ai/src/ai_service/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
 | Media worker | Python package/test skeleton; chưa có queue/media runtime behavior | `workers/media/` | `workers/media/src/media_worker/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
-| Shared contracts | TypeScript package skeleton; chưa có contract nghiệp vụ | `packages/contracts/` | `packages/contracts/src/index.ts` | CODE_CONFIRMED | Root gate + component test PASS |
+| Shared contracts | Base ApiError, ErrorCode, ApiErrorResponseSchema, HealthStatusResponseSchema | `packages/contracts/` | `packages/contracts/src/index.ts` | CODE_CONFIRMED | 1/1 contract test PASS; verified by `thanh` |
 | Shared UI | Heritage Modern Dark Theme tokens, CMS Block types và CmsBlockRenderer (Hero, ArtifactGrid, Timeline, Banner) | `packages/ui/` | `packages/ui/src/index.ts` | CODE_CONFIRMED | 8/8 ui tests PASS; verified by `thanh` |
 | Local data services | PostgreSQL + pgvector, MongoDB và Redis qua Docker Compose; authenticated health checks và named volumes | `infra/` | `infra/compose.yaml` | CODE_CONFIRMED | Compose config validation + runtime smoke/health PASS; verified by `loc` |
 
@@ -45,6 +45,7 @@
 | 2026-08-03 | `3d8b971` / PR `#2` | `TASK-FOUND-001` | Monorepo/tooling, 5 TypeScript workspace skeletons và 2 Python project skeletons | YES | `thanh` |
 | 2026-08-03 | `847251c` / PR `#3` | `TASK-INFRA-001` | PostgreSQL/pgvector, MongoDB, Redis, health checks, volumes, env template và runbook | YES | `loc` |
 | 2026-08-03 | `03dfcd4` / PR `#5` | `TASK-WEB-001` | Public Web shell, Heritage design tokens, CMS Block Renderer | YES | `thanh` |
+| 2026-08-03 | `8afa7c8` / PR `#4` | `TASK-API-001` | Express API skeleton, health endpoints, correlation ID và Zod error contracts | YES | `thanh` |
 
 ## Quy tắc
 

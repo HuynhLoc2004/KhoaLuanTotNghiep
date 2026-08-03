@@ -9,7 +9,8 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Code ứng dụng: foundation monorepo/tooling và các skeleton Web, Admin, API, AI, media worker, contracts, UI đã merge tại `3d8b971`.
 - Môi trường Docker: local database infrastructure đã `VERIFIED`, merge tại `847251c` và hoàn tất Merge Memory Sync.
 - Public Web & Design System: Public Web shell & Heritage Design Tokens đã `VERIFIED`, merge tại `03dfcd4` và hoàn tất Merge Memory Sync.
-- Feature/task: `TASK-FOUND-001` (`thanh`) `DONE`, merge tại `3d8b971`; `TASK-INFRA-001` (`loc`) `DONE`, merge tại `847251c`; `TASK-WEB-001` (`thanh`) `DONE`, merge tại `03dfcd4`.
+- API Backend & Base Contracts: Express API skeleton, health endpoints, correlation ID & Zod error contract đã `VERIFIED`, merge tại `8afa7c8` và hoàn tất Merge Memory Sync.
+- Feature/task: `TASK-FOUND-001` (`thanh`) `DONE`, merge tại `3d8b971`; `TASK-INFRA-001` (`loc`) `DONE`, merge tại `847251c`; `TASK-WEB-001` (`thanh`) `DONE`, merge tại `03dfcd4`; `TASK-API-001` (`thanh`) `DONE`, merge tại `8afa7c8`.
 - Experience requirement: đã bổ sung immersive 3D/animation và CMS-driven presentation; chưa triển khai code.
 - AI/project memory governance: IMPLEMENTED, chờ nhóm review; gồm invariants, ADR, contract/data catalog, traceability, current task và handoff.
 - Two-person coordination protocol: IMPLEMENTED, chờ nhóm review; gồm task claim, write scope, collision và stale detection.
