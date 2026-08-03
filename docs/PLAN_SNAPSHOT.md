@@ -4,20 +4,20 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0017`
+- Revision: `PLAN-0018`
 - Updated: 2026-08-03
-- Status: TEAM_CONFIRMED_PENDING_REMOTE_DEVELOP_SYNC
-- Scope: Loại bỏ conflict tài liệu bằng task report riêng và shared-file denylist cho feature branches.
+- Status: TEAM_CONFIRMED_PUBLISHED
+- Scope: Tuần tự hóa merge/push `develop` bằng single-writer integration turn; hoàn tất Merge Memory Sync trước khi chuyển lượt.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
-- Pha hiện tại: chuẩn hóa, chuẩn bị project foundation.
-- Task tiếp theo: `TASK-FOUND-001`.
+- Pha hiện tại: foundation implementation.
+- Task tiếp theo: chọn từ registry sau khi Infra Merge Memory Sync hoàn tất và write scope được xác nhận.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
-- Collaboration: branch isolation, contract alignment, progressive context, plan lock và merge memory sync.
+- Collaboration: branch isolation, contract alignment, progressive context, plan lock, single-writer integration turn và merge memory sync.
 
 ## Change feed
 
@@ -40,15 +40,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0015 | 2026-08-03 | Khóa scope isolation do AI thực thi; thành viên không cần theo dõi/nhắc/xem branch của nhau | Mọi task song song; session start gate | AI đọc remote `develop` đầu phiên, chỉ sửa owned scope; unknown branch-local work không là blocker nếu scope tách; shared/foreign scope phải qua coordination Markdown | `loc` xác nhận |
 | PLAN-0016 | 2026-08-03 | `TASK-INFRA-001` VERIFIED và đã push feature commit `5936397`; registry chuyển REVIEW | TASK-INFRA-001; local environment | Người dùng/nhóm review feature branch; chỉ merge khi chấp nhận; sau merge chạy Merge Memory Sync | `loc` xác nhận verification và push |
 | PLAN-0017 | 2026-08-03 | Feature branch chỉ sửa owned code/spec + `docs/work/<TASK-ID>.md`; shared status/index/catalog files chỉ cập nhật trên `develop` | Mọi task/PR; CURRENT_TASK; owner/index/status docs | Cleanup PR #2/#3 lần cuối; từ task sau chạy denylist check trước push và promote docs sau merge | `loc` yêu cầu giải quyết triệt để conflict |
+| PLAN-0018 | 2026-08-03 | Chỉ một người merge/push `develop` tại một thời điểm; chuyển lượt sau khi merge trước và Merge Memory Sync hoàn tất | Mọi implementation merge; `TASK-FOUND-001`; `TASK-INFRA-001`; Git workflow | Owner giữ integration turn thông báo checkpoint; người kế tiếp `pull --ff-only`, merge task VERIFIED một lần, test rồi push; dừng nếu rejected/conflict | `loc` xác nhận |
 
 ## Changed owner documents in current revision
 
-- `docs/06-devops/01-local-environment.md`.
-- `docs/02-data/03-contract-catalog.md`.
-- `docs/NEXT_WORK.md`, `docs/PROJECT_STATUS.md`.
-- `README.md`, `AGENTS.md`, `PROJECT_BRAIN.md`, `docs/07-delivery/06-two-person-collaboration.md`.
+- `README.md`.
+- `AGENTS.md`.
+- `docs/07-delivery/06-two-person-collaboration.md`.
+- `docs/07-delivery/07-git-playbook.md`.
 
-`TASK-INFRA-001` đã `VERIFIED` và push trên `feature/TASK-INFRA-001` tại commit `5936397`; trạng thái `REVIEW`, chưa merge và chưa `DONE`. `TASK-TIMELINE-001` vẫn BLOCKED.
+`TASK-FOUND-001` đã `DONE` sau merge `3d8b971` và Memory Sync `32ed7d5`. `TASK-INFRA-001` đã merge tại `847251c`, còn chờ Merge Memory Sync riêng. `TASK-TIMELINE-001` vẫn BLOCKED.
 
 ## Revision rules
 

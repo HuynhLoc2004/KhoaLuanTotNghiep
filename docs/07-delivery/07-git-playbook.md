@@ -137,6 +137,26 @@ Không cần làm bước này cho branch người khác nếu chỉ muốn làm
 
 Sau đó mới cập nhật `develop` và tạo branch task mới. Xem Task Switching Protocol trong tài liệu cộng tác.
 
+## Tự merge task đã VERIFIED vào develop
+
+Điều kiện: working tree sạch, task đã `VERIFIED`, người dùng đang giữ integration turn và người merge trước đã hoàn tất cả merge lẫn Merge Memory Sync.
+
+```bash
+git switch develop
+git pull --ff-only origin develop
+git merge --no-ff feature/ten-task
+```
+
+`pull --ff-only` chỉ chấp nhận local `develop` tiến thẳng tới remote, tránh tạo merge commit ngoài ý muốn. Sau merge, chạy test/gate của task. Chỉ khi PASS mới:
+
+```bash
+git push origin develop
+```
+
+Sau push, chờ Codex hoàn tất Merge Memory Sync trước khi chuyển integration turn. Không để hai thành viên cùng merge/push `develop`; không force-push nếu remote thay đổi.
+
+Nếu feature đã code xong và scope không giao nhau, không cần merge `develop` vào feature trước. Chỉ làm vậy khi còn tiếp tục code/test với baseline mới hoặc khi có conflict thật cần xử lý trước handoff.
+
 ## Các tình huống phải dừng
 
 ### Working tree chưa sạch

@@ -57,6 +57,21 @@ Mỗi feature branch ghi toàn bộ session, decision, evidence, test và handof
 
 Không đứng ở feature branch rồi dùng `git pull origin develop` như một thói quen, vì thao tác đó nhập develop vào branch hiện tại theo cách dễ gây nhầm. Tách rõ bước cập nhật develop và bước merge.
 
+### Single-writer integration turn
+
+Code vẫn được làm song song trong write scope riêng, nhưng merge/push `develop` được thực hiện tuần tự:
+
+1. Chỉ một thành viên giữ integration turn tại một thời điểm và báo task/merge chuẩn bị thực hiện.
+2. Task phải `VERIFIED`, feature branch đã push và shared-file denylist PASS.
+3. Người giữ lượt cập nhật local `develop` bằng fast-forward-only, merge feature đúng một lần, chạy gate liên quan rồi push `develop`.
+4. Sau push, Codex chạy Merge Memory Sync và push coordination Markdown lên `develop`.
+5. Chỉ khi remote merge và Memory Sync đều được xác minh thì chuyển integration turn cho người kế tiếp.
+6. Người kế tiếp cập nhật `develop` mới nhất rồi mới merge task của mình. Nếu pull không fast-forward, merge conflict hoặc push rejected thì dừng; không force-push.
+
+Không cần merge `develop` vào feature chỉ để “phòng conflict” khi feature đã code xong. Nếu write scope tách biệt, merge feature trực tiếp vào local `develop` mới nhất. Chỉ nhập `develop` vào feature khi cần tiếp tục phát triển/test với shared code mới hoặc khi Git báo conflict thật cần giải quyết trong feature.
+
+Integration turn không yêu cầu hai người theo dõi code realtime. Nó chỉ tuần tự hóa cửa ghi vào `develop`; coding trên feature vẫn độc lập.
+
 ## Code isolation, contract alignment
 
 Hai người không cần đọc code dang dở của nhau, nhưng phải đọc cùng integration map và contract accepted trên `develop`.
