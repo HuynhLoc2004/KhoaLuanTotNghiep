@@ -241,6 +241,8 @@ Code cho biết hệ thống đang chạy như thế nào; tài liệu phải ch
 
 Không sao chép nguyên một thông tin dài ở nhiều nơi. Ghi chi tiết tại nơi sở hữu, các nơi khác liên kết tới nó.
 
+Mọi shared plan/task coordination update đã được nhóm chấp nhận phải cập nhật `README.md` trong cùng commit trên `develop`. README chỉ giữ revision/trạng thái/task owner hiện hành và đường dẫn đến nguồn chi tiết; không sao chép toàn bộ plan hoặc decision log.
+
 ### Những thay đổi bắt buộc phải lưu vết
 
 - Thêm/sửa/xóa flow hoặc trạng thái UI.

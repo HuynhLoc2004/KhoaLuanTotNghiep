@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0012`
+- Revision: `PLAN-0013`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PENDING_REMOTE_DEVELOP_SYNC
-- Scope: Đề xuất local service naming/ports và tách `TASK-INFRA-001` để `loc` triển khai song song với foundation.
+- Scope: Bắt buộc README cập nhật cùng mọi shared plan/task coordination change trên remote `develop`.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -35,12 +35,14 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0010 | 2026-08-02 | Khóa `FREE_EXPLORE` và `GUIDED_JOURNEY` dùng chung QR/artifact resolver; explicit switch, giữ progress, AI/Map nhận context theo mode | IDEA-002; FEAT-TIMELINE-001; CMS/QR/Map/AI Guide; TASK-TIMELINE-001 | Đồng bộ mode enum/contract; không tạo scanner/DTO song song; task vẫn BLOCKED | `thanh` xác nhận |
 | PLAN-0011 | 2026-08-02 | Khóa typed curator-approved Artifact Relationship, explained deterministic ranking và approved-3D-only/fallback sau QR | IDEA-002; FEAT-TIMELINE-001; CMS/Artifact/QR/AI Guide/Web 3D; TASK-TIMELINE-001 | Tạo shared relation contract sau foundation; không auto-link/auto-publish bằng AI/metadata | `thanh` xác nhận |
 | PLAN-0012 | 2026-08-03 | Khóa Compose project/service DNS, host/container ports, tách infra write scope và bắt buộc mọi shared plan/task change được publish trên remote `develop` qua Pre-code Plan Sync Gate | TASK-INFRA-001; TASK-FOUND-001; mọi task song song | Publish coordination change lên remote `develop`; collaborator pull và kiểm tra collision trước code hoặc sau mỗi shared plan/task revision | `loc` + `thanh` xác nhận theo thông tin người dùng cung cấp |
+| PLAN-0013 | 2026-08-03 | Bắt buộc cập nhật README trong cùng commit với mọi shared plan/task coordination change | README; mọi task/plan owner | Giữ README ngắn gọn với revision, active owner/branch và link; Codex xác minh README trên remote `develop` trước khi quay lại feature branch | `loc` xác nhận |
 
 ## Changed owner documents in current revision
 
 - `docs/06-devops/01-local-environment.md`.
 - `docs/02-data/03-contract-catalog.md`.
 - `docs/NEXT_WORK.md`, `docs/PROJECT_STATUS.md`.
+- `README.md`, `AGENTS.md`, `PROJECT_BRAIN.md`, `docs/07-delivery/06-two-person-collaboration.md`.
 
 `TASK-INFRA-001` đã được hai thành viên xác nhận cho `loc` trên `feature/TASK-INFRA-001`, nhưng implementation chỉ bắt đầu sau khi coordination change xuất hiện trên remote `develop` và collaborator pull/xác nhận không collision (`PRE_CODE_PLAN_SYNC: PASS`). `TASK-TIMELINE-001` vẫn BLOCKED. Bản này chưa là shared plan cho đến khi được publish lên remote `develop`.
 

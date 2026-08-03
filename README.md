@@ -8,6 +8,15 @@ Chat mới chỉ cần hiểu sơ qua: bắt đầu tại [AI_CONTEXT.md](docs/A
 
 Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Chi tiết quyết định và lịch sử thay đổi phải được ghi trong đúng file chức năng.
 
+## Trạng thái phối hợp hiện tại
+
+- Shared plan revision: `PLAN-0013` — bắt buộc cập nhật README cùng mọi shared plan/task coordination change trên remote `develop`.
+- `TASK-FOUND-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-FOUND-001`.
+- `TASK-INFRA-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-INFRA-001`; implementation chờ collaborator pull `develop` và xác nhận `PRE_CODE_PLAN_SYNC: PASS`.
+- Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
+
+Mọi thay đổi shared plan, task, owner, branch, dependency, write scope hoặc shared contract phải được Codex commit/push lên remote `develop`, kèm cập nhật README. Sau khi xác minh remote, Codex quay lại đúng feature branch; collaborator pull `develop` trước khi code để tránh làm chồng chéo.
+
 Mọi yêu cầu code, sửa lỗi hoặc bổ sung chức năng đều tự động kéo theo cập nhật/tạo tài liệu sở hữu tương ứng. Plan cũ được giữ và đánh dấu thay thế, không bị ghi đè âm thầm.
 
 Thành viên vừa clone repository và chưa chọn việc: yêu cầu AI vào chế độ onboarding, đọc tài liệu và đề xuất task `READY` từ [docs/NEXT_WORK.md](docs/NEXT_WORK.md). Chưa cần đọc source code cho đến khi chọn task.
@@ -87,4 +96,4 @@ AI hỏi tên hoặc Member ID trước rồi đối chiếu [docs/TEAM.md](docs
 
 ## Trạng thái
 
-Đây là baseline kiến trúc v0.1. Khi thêm một chức năng mới, tạo một file riêng trong `docs/03-features/`, cập nhật mục lục này và ghi rõ flow, dữ liệu, API, thuật toán, bảo mật, kiểm thử, ưu/nhược điểm.
+Đây là baseline kiến trúc v0.1; trạng thái phối hợp tóm tắt ở đầu README phải được cập nhật liên tục cùng shared plan/task changes trên `develop`. Khi thêm một chức năng mới, tạo một file riêng trong `docs/03-features/`, cập nhật mục lục này và ghi rõ flow, dữ liệu, API, thuật toán, bảo mật, kiểm thử, ưu/nhược điểm.

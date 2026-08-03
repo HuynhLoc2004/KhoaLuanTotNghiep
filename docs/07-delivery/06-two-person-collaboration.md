@@ -18,6 +18,8 @@ Cập nhật shared planning/task coordination gồm `docs/NEXT_WORK.md`, `docs/
 
 Không giữ shared plan/task change chỉ trên feature branch. Feature branch có thể dùng để thảo luận/review bản nháp, nhưng sau khi nhóm thống nhất phải chuẩn bị coordination-only change trên `develop`, commit/push lên remote và yêu cầu collaborator pull trước khi code phụ thuộc bắt đầu.
 
+Mỗi coordination-only change phải cập nhật `README.md` trong cùng commit: Plan Snapshot revision hiện tại, task active/owner/branch và link đến registry/owner docs. README là bản tóm tắt/router; chi tiết vẫn thuộc `NEXT_WORK`, `PLAN_SNAPSHOT` và owner documents.
+
 ### Implementation change trên `feature/*`
 
 Code, test, `CURRENT_TASK.md`, feature specification và change history nằm trong feature branch cho đến khi nhóm review/merge.
