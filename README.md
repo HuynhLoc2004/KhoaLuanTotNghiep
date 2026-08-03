@@ -10,7 +10,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0022` — mở `FIX-CLEAN-GATE-001` để root quality gate chạy đúng trên fresh clone: Turbo build workspace dependencies trước lint/typecheck và loại bỏ Admin re-export không tồn tại.
+- Shared plan revision: `PLAN-0023` — mở rộng `FIX-CLEAN-GATE-001` theo R1 để khôi phục validation control và stable live-preview container trong Admin renderer, sau khi clean gate lộ regression từ quality fix trước đó.
 - `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - `TASK-WEB-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `03dfcd4`, Merge Memory Sync đã công bố Public Web shell & Design Tokens baseline.
@@ -21,7 +21,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 - `FIX-LINT-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `cc1c600`, Merge Memory Sync đã công bố workspace ESLint quality gate 100% PASS.
 - `FIX-FORMAT-001`: `REVIEW`, owner `thanh`, branch `fix/format-contracts-ui-admin`; đã merge ngoài gate vào `develop` tại `8d199db` nhưng chưa được người dùng xác nhận `VERIFIED`, Merge Memory Sync chưa PASS.
 - `TASK-CI-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-CI-001`; scope `.github/workflows/**`, task report và formatting-only `infra/compose.yaml`.
-- `FIX-CLEAN-GATE-001`: `IN_PROGRESS`, owner `thanh`, branch `fix/clean-workspace-quality-gate`; scope `turbo.json`, `apps/admin/src/index.ts` và task report riêng; không sửa UI renderer/contracts/workflow CI.
+- `FIX-CLEAN-GATE-001`: `IN_PROGRESS`, owner `thanh`, branch `fix/clean-workspace-quality-gate`; scope `turbo.json`, `apps/admin/src/index.ts`, `apps/admin/src/forms/cmsFormBuilder.ts` và task report riêng; không sửa contracts/workflow CI.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 
 Mọi thay đổi shared plan, task, owner, branch, dependency, write scope hoặc shared contract phải được Codex commit/push dưới dạng Markdown-only lên remote `develop`, kèm cập nhật README. AI ưu tiên coordination worktree để giữ nguyên active feature branch. Code/test trên feature branch không được AI tự push hoặc merge; khi hoàn tất, AI chỉ đề xuất để người dùng tự push/review/merge.
