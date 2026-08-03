@@ -7,8 +7,8 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Giai đoạn: Pha 1 - triển khai foundation.
 - Baseline tài liệu: v0.1.
 - Code ứng dụng: monorepo/tooling skeleton của `TASK-FOUND-001` đã `IMPLEMENTED` trên `feature/TASK-FOUND-001`, chờ người dùng review; chưa thuộc baseline dùng chung trên `develop`.
-- Môi trường Docker: chưa khởi tạo.
-- Feature/task: `TASK-FOUND-001` (owner `thanh`, nhánh `feature/TASK-FOUND-001`) đã `IMPLEMENTED` ở phạm vi branch-local và đang chờ review/merge; coordination của `TASK-INFRA-001` (owner `loc`) đã được công bố trên `origin/develop`, còn implementation chờ owner pull và xác nhận `PRE_CODE_PLAN_SYNC: PASS`.
+- Môi trường Docker: đã `VERIFIED` trên `feature/TASK-INFRA-001` tại `5936397`, chưa merge vào shared baseline.
+- Feature/task: `TASK-FOUND-001` (owner `thanh`, nhánh `feature/TASK-FOUND-001`) đã `IMPLEMENTED` ở phạm vi branch-local và đang chờ review/merge; `TASK-INFRA-001` (owner `loc`) đã `VERIFIED`, push tại `5936397` và đang `REVIEW`, chưa merge vào `develop`.
 - Experience requirement: đã bổ sung immersive 3D/animation và CMS-driven presentation; chưa triển khai code.
 - AI/project memory governance: IMPLEMENTED, chờ nhóm review; gồm invariants, ADR, contract/data catalog, traceability, current task và handoff.
 - Two-person coordination protocol: IMPLEMENTED, chờ nhóm review; gồm task claim, write scope, collision và stale detection.
@@ -29,7 +29,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Code, Secret & Configuration Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc clean-code review, typed config, server-only secrets, URL/provider configuration và evidence từ scan/test. Automation gộp vào `TASK-DOC-QUALITY-001` sau foundation.
 - Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc server validation, parameterized query/allowlist, evidence-based index, scoped cache/invalidation và response/log redaction. Automation chờ API/data foundation.
 - Work Session & Feature Contribution Ledger: PLAN_LOCKED ở mức quy trình; phiên `WS-TASK-FOUND-001-20260803-01` ghi nhận phần triển khai foundation của `thanh` trong owner document.
-- Local infrastructure contract: `PLAN_LOCKED` bởi `loc` và `thanh`, đã được công bố trên `origin/develop`; Compose project `hcm-museum`, container ports chuẩn và host ports riêng cho PostgreSQL/MongoDB/Redis. Compose/health check vẫn `PLANNED` và chỉ bắt đầu sau khi owner `loc` pull/xác nhận không collision.
+- Local infrastructure: VERIFIED trên feature branch; PostgreSQL/pgvector, MongoDB và Redis đều healthy trong runtime smoke, local env được ignore; chờ user-owned review/merge và Merge Memory Sync trước khi ghi vào shared implemented baseline.
 - Living Timeline/Dòng thời gian sống: PLAN_LOCKED ở mức concept tại `docs/03-features/11-living-timeline.md`; một QR pipeline hỗ trợ free/guided modes, typed curator-approved Artifact Relationship và explained deterministic recommendation; QR chỉ mở 3D đã duyệt/fallback, chưa có code và BLOCKED bởi foundation/contracts/content/relation baseline.
 - Search/Discovery: PLANNED; hybrid lexical/vector baseline, BLOCKED bởi foundation/API/data/CMS.
 - Polyglot extension policy: IMPLEMENTED; runtime mới cần Option Review và bằng chứng.
@@ -40,7 +40,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 | Milestone | Trạng thái | Tài liệu chính | Ghi chú |
 |---|---|---|---|
 | Pha 0 — Chuẩn hóa | IN_PROGRESS | `docs/00-product/`, `docs/01-architecture/` | Baseline và trí nhớ vận hành đã có, chờ nhóm review |
-| Pha 1 — Nền tảng | IN_PROGRESS | `docs/06-devops/01-local-environment.md` | `TASK-FOUND-001` đã IMPLEMENTED branch-local, chờ review/merge; `TASK-INFRA-001` đã có shared plan nhưng chưa có code; auth thuộc task sau |
+| Pha 1 — Nền tảng | IN_PROGRESS | `docs/06-devops/01-local-environment.md` | `TASK-FOUND-001` đã IMPLEMENTED branch-local; `TASK-INFRA-001` đã VERIFIED/push và đang REVIEW; cả hai chưa merge vào shared baseline; auth thuộc task sau |
 | Pha 2 — CMS + public content | PLANNED | `docs/03-features/01-admin-cms.md` | |
 | Pha 3 — QR Tour + voice + narrative journey | PLANNED | `03-ai-tour-guide.md`, `06-multilingual-voice.md`, `11-living-timeline.md` | Living Timeline làm MVP 2D trước AI/3D |
 | Pha 4 — Bản đồ 3D | PLANNED | `02-web-3d-navigation.md` | |
@@ -50,7 +50,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 
 ## Việc tiếp theo được đề xuất
 
-Task `READY` và phân công mới được quản lý tại `docs/NEXT_WORK.md`. Bước tiếp theo của `thanh` là review/tích hợp `TASK-FOUND-001`; `loc` chỉ bắt đầu `TASK-INFRA-001` sau khi pull shared plan và xác nhận `PRE_CODE_PLAN_SYNC: PASS`. Các task phụ thuộc khác chưa được mở chỉ từ code branch-local.
+Task `READY` và phân công mới được quản lý tại `docs/NEXT_WORK.md`. Bước tiếp theo của `thanh` là review/tích hợp `TASK-FOUND-001`; `TASK-INFRA-001` đang chờ user-owned review/merge. Các task phụ thuộc khác chưa được mở chỉ từ code branch-local.
 
 ## Blocker và câu hỏi mở
 

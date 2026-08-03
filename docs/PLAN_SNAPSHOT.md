@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0016`
+- Revision: `PLAN-0017`
 - Updated: 2026-08-03
 - Status: PLAN_LOCKED_PENDING_PUBLICATION
-- Scope: Khóa tooling và boundary implementation cho `TASK-FOUND-001`; đồng bộ trên shared baseline `PLAN-0015`.
-- Remote visibility: `PLAN-0012`–`PLAN-0015` đã có trên `origin/develop`; `PLAN-0016` đang nằm trên `feature/TASK-FOUND-001` và chỉ thành plan chung sau review/merge.
+- Scope: Khóa tooling và boundary implementation cho `TASK-FOUND-001`; đồng bộ trên shared baseline `PLAN-0016`.
+- Remote visibility: `PLAN-0012`–`PLAN-0016` đã có trên `origin/develop`; `PLAN-0017` đang nằm trên `feature/TASK-FOUND-001` và chỉ thành plan chung sau review/merge.
 
 ## Current direction
 
 - Pha hiện tại: review project foundation và chuẩn bị local infrastructure theo write scope tách biệt.
-- Task hiện tại: `TASK-FOUND-001` đã `IMPLEMENTED` branch-local, chờ review/merge; `TASK-INFRA-001` chờ owner sync/confirm trước implementation.
+- Task hiện tại: `TASK-FOUND-001` đã `IMPLEMENTED` branch-local, chờ review/merge; `TASK-INFRA-001` đã `VERIFIED`, push và đang `REVIEW`, chưa merge vào shared baseline.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Foundation tooling: Node 24 LTS target (Node 22 LTS được hỗ trợ), pnpm 11.18.0, Turborepo 2.10.8 và uv 0.11.x theo từng Python runtime; remote cache nằm ngoài scope.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
@@ -39,7 +39,8 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0013 | 2026-08-03 | Bắt buộc cập nhật README trong cùng commit với mọi shared plan/task coordination change | README; mọi task/plan owner | Giữ README ngắn gọn với revision, active owner/branch và link; Codex xác minh README trên remote `develop` trước khi quay lại feature branch | `loc` xác nhận |
 | PLAN-0014 | 2026-08-03 | Giới hạn AI chỉ tự commit/push Markdown coordination lên `develop`; ưu tiên worktree để không đổi active branch; feature push/review/merge do người dùng thực hiện | Git workflow; mọi task/feature branch | Chặn non-Markdown trong coordination commit; không tự push/merge implementation; AI chỉ đề xuất handoff commands | `loc` xác nhận |
 | PLAN-0015 | 2026-08-03 | Khóa scope isolation do AI thực thi; thành viên không cần theo dõi/nhắc/xem branch của nhau | Mọi task song song; session start gate | AI đọc remote `develop` đầu phiên, chỉ sửa owned scope; unknown branch-local work không là blocker nếu scope tách; shared/foreign scope phải qua coordination Markdown | `loc` xác nhận |
-| PLAN-0016 | 2026-08-03 | Chọn pnpm + Turborepo + uv; khóa skeleton-only boundary và Python lockfile riêng cho foundation; đổi số từ revision branch-local `PLAN-0012` sau khi đồng bộ shared feed | `TASK-FOUND-001`; mọi task phụ thuộc foundation | Implement trên `feature/TASK-FOUND-001`; không mở task downstream trước review/merge | `thanh` xác nhận |
+| PLAN-0016 | 2026-08-03 | `TASK-INFRA-001` VERIFIED và đã push feature commit `5936397`; registry chuyển REVIEW | TASK-INFRA-001; local environment | Người dùng/nhóm review feature branch; chỉ merge khi chấp nhận; sau merge chạy Merge Memory Sync | `loc` xác nhận verification và push |
+| PLAN-0017 | 2026-08-03 | Chọn pnpm + Turborepo + uv; khóa skeleton-only boundary và Python lockfile riêng cho foundation; nối revision branch-local sau khi đồng bộ shared feed `PLAN-0016` | `TASK-FOUND-001`; mọi task phụ thuộc foundation | Implement trên `feature/TASK-FOUND-001`; không mở task downstream trước review/merge | `thanh` xác nhận |
 
 ## Changed owner documents in current revision
 
@@ -48,7 +49,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 - `README.md`, `docs/PROJECT_STATUS.md`.
 - `docs/07-delivery/05-traceability-matrix.md`.
 
-`PLAN-0016` cụ thể hóa baseline đã có, không đổi service/database boundary và không mở các task downstream. Revision foundation trước đó mang số `PLAN-0012` nhưng chưa từng được công bố; nó được đổi thành `PLAN-0016` để giữ nguyên shared history `PLAN-0012`–`PLAN-0015` trên `origin/develop`. `PLAN-0016` chỉ trở thành nguồn chung sau khi foundation được người dùng review và merge vào `origin/develop`.
+`PLAN-0017` cụ thể hóa foundation tooling, không đổi service/database boundary và không mở các task downstream. Revision foundation bắt đầu là branch-local `PLAN-0012`, từng được nối thành `PLAN-0016`, nhưng chưa lần nào được công bố; nay được nối thành `PLAN-0017` để giữ nguyên shared history `PLAN-0012`–`PLAN-0016` trên `origin/develop`. `PLAN-0017` chỉ trở thành nguồn chung sau khi foundation được người dùng review và merge. `TASK-INFRA-001` đang `REVIEW`, chưa merge/chưa `DONE`; `TASK-TIMELINE-001` vẫn `BLOCKED`.
 
 ## Revision rules
 

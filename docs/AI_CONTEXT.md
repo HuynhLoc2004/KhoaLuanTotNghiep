@@ -57,7 +57,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 
 ## Trạng thái hiện tại
 
-Baseline tài liệu đã có. Monorepo/tooling skeleton của `TASK-FOUND-001` đã `IMPLEMENTED` trên `feature/TASK-FOUND-001` nhưng chưa là shared baseline cho đến khi review/merge; Docker/runtime nghiệp vụ chưa được triển khai. Task tiếp theo lấy từ `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
+Baseline tài liệu đã có. Monorepo/tooling skeleton của `TASK-FOUND-001` đã `IMPLEMENTED` trên feature branch; local database infrastructure của `TASK-INFRA-001` đã `VERIFIED/push` và đang `REVIEW`. Cả hai chưa là shared implemented baseline cho đến khi được review/merge; runtime nghiệp vụ chưa triển khai. Task tiếp theo lấy từ `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
 
 ## Đọc tiếp
 

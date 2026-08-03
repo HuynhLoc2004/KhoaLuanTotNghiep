@@ -381,6 +381,7 @@ Tiêu chí đã dùng khi khóa plan: phù hợp dự án 30%, bảo trì 25%, t
 |---|---|---|---|---|---|---|---|---|---|---|
 | `WS-TASK-FOUND-001-20260803-01` | `thanh` | implement | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T11:14:29+07:00 | 2026-08-03T11:52:48+07:00 | 2026-08-03T11:52:48+07:00 | CLOSED | PLAN_LOCKED; root tooling; 5 TS và 2 Python skeleton; locks, tests, hygiene và feature report | Node 24 forced root gate PASS; 5/5 package ở mỗi lint/typecheck/test/build, 5 Node tests, 2 pytest, frozen/locked sync, ignore/env checks và 3 dependency audits PASS | Handoff ở trạng thái IMPLEMENTED; user review/fresh-clone verification trước VERIFIED |
 | `WS-TASK-FOUND-001-20260803-02` | `thanh` | conflict resolution | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:03:19+07:00 | 2026-08-03T12:15:09+07:00 | 2026-08-03T12:15:09+07:00 | CLOSED | Sync `origin/develop` `PLAN-0015`; merge foundation report với shared infra plan; đổi branch-local foundation revision thành `PLAN-0016` | Marker/revision/Prettier/root gate/cached diff checks PASS; independent review không có finding | Resolution đã stage; merge commit vẫn là user action |
+| `WS-TASK-FOUND-001-20260803-03` | `thanh` | conflict resolution | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:37:09+07:00 | 2026-08-03T12:41:51+07:00 | 2026-08-03T12:41:51+07:00 | CLOSED | Sync `origin/develop` `PLAN-0016`; giữ Infra `VERIFIED/REVIEW`; nối foundation revision thành `PLAN-0017` | Marker/revision/Prettier/root gate/cached diff PASS; không còn unmerged path | Resolution đã stage; merge commit vẫn là user action |
 
 Không suy ra active effort từ khoảng thời gian calendar; actual effort vẫn `UNKNOWN`. `EndedAt` chỉ ghi thời điểm đóng phiên, không phải thời lượng làm việc liên tục.
 
@@ -404,6 +405,7 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 | Performance/visual/AI | Cold benchmark, browser/mobile, model quality | Không có runtime | NOT RUN/NOT APPLICABLE |
 | Security scan | `pnpm audit --audit-level high`; `uv export --all-groups --locked` + `pip-audit` cho mỗi Python project; secret regex | Không có known vulnerability/secret value | PASS tại 2026-08-03; SBOM, dedicated secret scanner và image scan chưa có |
 | Merge sync | Merge `origin/develop` `7d99302`; scan marker; kiểm tra revision feed; forced root gate | Giữ đủ Foundation + Infra plan, không trùng revision, không đổi behavior | PASS; không còn marker; `PLAN-0001`–`PLAN-0016` đủ/duy nhất; root gate PASS; review độc lập không có finding |
+| Merge sync | Merge `origin/develop` `e9d671a`; scan marker; kiểm tra revision feed; forced root gate | Giữ shared `PLAN-0016` cho Infra review và nối foundation chưa công bố thành revision kế tiếp, không đổi behavior | PASS; không còn marker; `PLAN-0001`–`PLAN-0017` đủ/duy nhất; Prettier, lint, typecheck, 5 package test/build và 2 pytest PASS |
 
 ### Acceptance criteria foundation
 
@@ -448,7 +450,7 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 - `TASK-DOC-QUALITY-001`: CI quality gate, security/license/SBOM scan và fresh-clone automation.
 - Khi dependency/runtime thật được thêm, owner phải cập nhật technology inventory, config schema, auth path, query/cache evidence và acceptance test tại feature tương ứng.
 
-### Kế hoạch Docker/CI được bảo lưu, chưa triển khai
+### Hạ tầng local: shared plan và branch-local review status
 
 Repository target vẫn dự kiến có:
 
@@ -527,9 +529,9 @@ Mỗi runtime dùng một config module typed/schema-validated và fail fast khi
 
 #### TASK-INFRA-001 implementation status
 
-- Owner/write scope đã được `loc` và `thanh` xác nhận; coordination được công bố trên `origin/develop` qua commit `b5a2ef5` và shared feed hiện ở `PLAN-0015`.
-- `PRE_CODE_PLAN_SYNC` vẫn `PENDING` cho implementation của `loc` đến khi owner pull `origin/develop` và xác nhận không collision; việc resolve conflict trên branch foundation không thay thế xác nhận đó.
-- Compose, health checks và smoke test vẫn `PLANNED`; chưa có implementation/test evidence.
+- Owner/write scope đã được `loc` và `thanh` xác nhận; shared feed `PLAN-0016` ghi nhận kết quả verification.
+- `TASK-INFRA-001` đã `VERIFIED` và push trên `feature/TASK-INFRA-001` tại commit `5936397`; PostgreSQL/pgvector, MongoDB và Redis healthy trong runtime smoke, local env được ignore.
+- Registry đang `REVIEW`; implementation chưa merge vào `develop`, chưa `DONE` và chưa thuộc shared implemented baseline.
 
 CI target vẫn là lint -> typecheck -> unit -> integration -> build -> image/security scan -> E2E smoke. Migration tương lai phải được kiểm tra trên database rỗng và snapshot gần production; staging đi trước production, production cần approval và rollback image. Đây là roadmap, không phải implementation evidence của foundation.
 
@@ -542,7 +544,7 @@ Windows tiếp tục dùng LF qua `.gitattributes`, CRLF riêng cho `.bat/.cmd`;
 | Decision | Ngày | Người xác nhận | Trạng thái | Nội dung |
 |---|---|---|---|---|
 | `DEC-FOUND-TOOLING-001` | 2026-08-03 | `thanh` | `PLAN_LOCKED` | Chọn pnpm `11.18.0` + Turbo `2.10.8` + hai uv project độc lập; local cache only; fallback `pnpm -r` |
-| `DEC-INFRA-LOCAL-PORTS-001` | 2026-08-03 | `loc` + `thanh` | `PLAN_LOCKED`; published on `origin/develop`; `PRE_CODE_PLAN_SYNC` pending owner confirmation | Giữ port chuẩn trong container; dùng host ports `15432`, `27018`, `16379`; Compose DNS là `postgres`, `mongo`, `redis`; reserve dải app/proxy theo bảng trên |
+| `DEC-INFRA-LOCAL-PORTS-001` | 2026-08-03 | `loc` + `thanh` | `PLAN_LOCKED`; Infra `VERIFIED/REVIEW` tại `5936397`, chưa merge | Giữ port chuẩn trong container; dùng host ports `15432`, `27018`, `16379`; Compose DNS là `postgres`, `mongo`, `redis`; reserve dải app/proxy theo bảng trên |
 
 ### Change history
 
@@ -557,6 +559,8 @@ Windows tiếp tục dùng LF qua `.gitattributes`, CRLF riêng cho `.bat/.cmd`;
 | 2026-08-03 | `loc` chọn Phương án B và chuẩn bị service naming, host/container ports, volume/database naming cùng estimate cho `TASK-INFRA-001` | `DEC-INFRA-LOCAL-PORTS-001`; lúc tạo còn chờ shared publication; chưa có implementation/test |
 | 2026-08-03 | `loc` + `thanh` xác nhận owner/write scope và coordination được công bố trên `origin/develop` | Commit `b5a2ef5`; implementation còn chờ owner pull và xác nhận `PRE_CODE_PLAN_SYNC: PASS` |
 | 2026-08-03 | Resolve merge với `origin/develop`: giữ shared `PLAN-0012`–`PLAN-0015`, đổi revision foundation chưa công bố thành `PLAN-0016` và hợp nhất Infra plan vào owner report | Không rewrite shared history; marker/revision/format/root gate/review đều PASS; merge commit vẫn là user action |
+| 2026-08-03 | `TASK-INFRA-001` được `loc` xác nhận `VERIFIED` và push tại `5936397`; registry chuyển `REVIEW` | Runtime smoke PostgreSQL/pgvector, MongoDB, Redis PASS theo shared coordination `PLAN-0016`; chưa merge/chưa `DONE` |
+| 2026-08-03 | Resolve merge với `origin/develop` `e9d671a`: giữ shared `PLAN-0016` cho Infra `VERIFIED/REVIEW` và chuyển foundation revision chưa công bố thành `PLAN-0017` | Không rewrite shared history; marker/revision/format/root gate đều PASS; merge commit vẫn là user action |
 
 - **Deviation:** không có deviation khỏi PLAN_LOCKED.
 - **Merge reference:** chưa có; không suy diễn commit/push/merge.

@@ -4,11 +4,11 @@
 
 - Expected branch: `feature/TASK-FOUND-001`.
 - Base branch: `develop` tại commit claim `8e90a24`.
-- Merge sync source: `origin/develop` tại `7d99302`; conflict resolution đã validate/stage, merge commit vẫn là user action.
+- Merge sync source: `origin/develop` tại `e9d671a`; conflict resolution đã được kiểm tra và stage, merge commit vẫn là user action.
 - Task registry: `TASK-FOUND-001` đang `IN_PROGRESS`, owner `thanh`.
 - Coding agent được phép commit/merge/push: Không.
-- Last reviewed shared plan revision: `PLAN-0015` từ `origin/develop`.
-- Branch-local accepted revision: `PLAN-0016` cho foundation tooling/boundary, chờ review/merge để công bố.
+- Last reviewed shared plan revision: `PLAN-0016` từ `origin/develop`, ghi `TASK-INFRA-001` ở trạng thái `REVIEW`.
+- Branch-local accepted revision: `PLAN-0017` cho foundation tooling/boundary, chờ review/merge để công bố.
 
 ## Task
 
@@ -21,15 +21,15 @@
 
 ## Work session
 
-- Session ID: `WS-TASK-FOUND-001-20260803-02`.
-- StartedAt: `2026-08-03T12:03:19+07:00`.
-- LastActiveAt: `2026-08-03T12:15:09+07:00`.
-- EndedAt: `2026-08-03T12:15:09+07:00`.
+- Session ID: `WS-TASK-FOUND-001-20260803-03`.
+- StartedAt: `2026-08-03T12:37:09+07:00`.
+- LastActiveAt: `2026-08-03T12:41:51+07:00`.
+- EndedAt: `2026-08-03T12:41:51+07:00`.
 - Status: `CLOSED`.
 - Active effort: `UNKNOWN`; không suy ra từ wall-clock.
-- Scope: resolve merge conflict với `origin/develop`, giữ shared revisions `PLAN-0012`–`PLAN-0015` và đổi revision foundation chưa công bố thành `PLAN-0016`.
-- Previous implementation session: `WS-TASK-FOUND-001-20260803-01`, `CLOSED` lúc `2026-08-03T11:52:48+07:00`.
-- Next checkpoint: Thành tạo merge commit local để kết thúc merge; sau đó kiểm tra status trước khi push.
+- Scope: resolve merge conflict mới với `origin/develop`; giữ shared `PLAN-0016` cho Infra `REVIEW` và nối revision foundation chưa công bố thành `PLAN-0017`.
+- Previous conflict session: `WS-TASK-FOUND-001-20260803-02`, `CLOSED` lúc `2026-08-03T12:15:09+07:00`.
+- Next checkpoint: Thành tạo merge commit local để kết thúc merge, sau đó gửi kết quả để kiểm tra trước khi push.
 
 ## PLAN_LOCKED
 
@@ -79,13 +79,14 @@
 - Đã triển khai root pnpm/Turbo tooling, 5 TypeScript workspace và 2 Python/uv project độc lập đúng phương án A.
 - Chỉ có skeleton metadata/test; không triển khai nhầm UI, endpoint, contract nghiệp vụ, Docker, database hay production content.
 - Đã hợp nhất coordination từ `origin/develop` `7d99302`: giữ nguyên shared `PLAN-0012`–`PLAN-0015`, chuyển revision foundation chưa công bố thành `PLAN-0016` và bảo toàn kế hoạch Infra.
+- Đã đồng bộ `origin/develop` `e9d671a`: giữ shared `PLAN-0016` cho Infra `VERIFIED/REVIEW` và nối foundation thành `PLAN-0017`.
 - Trạng thái `IMPLEMENTED`; agent không tự đặt `VERIFIED`.
 
 ### Trí nhớ dự án
 
 - Feature owner: `docs/06-devops/01-local-environment.md`, đạt Feature Report Standard với 5 sơ đồ Mermaid và evidence khớp code.
 - `docs/PROJECT_STATUS.md`, `docs/PLAN_SNAPSHOT.md` và traceability đã ghi rõ trạng thái branch-local/pending publication.
-- Shared baseline đã đọc: `PLAN-0015`; foundation revision `PLAN-0016` chỉ thành plan chung sau review/merge vào `develop`.
+- Shared baseline đã đọc: `PLAN-0016`; foundation revision `PLAN-0017` chỉ thành plan chung sau review/merge vào `develop`.
 
 ### Test đã chạy
 
@@ -97,7 +98,8 @@
 | Turbo cache-input review | PASS | Root config/lock/workspace files nằm trong global hash; remote cache disabled |
 | Secret/config/ignore/scope review | PASS | `.env.example` trống; local env/cache/build ignored; không lấn downstream scope |
 | `pnpm audit` + hai exported-lock `pip-audit` | PASS | Không có known vulnerability tại 2026-08-03 |
-| Merge resolution | PASS | Không còn marker; 16 revision duy nhất/liên tục; forced root gate và review độc lập không có finding |
+| Merge resolution `7d99302` | PASS | Không còn marker; 16 revision duy nhất/liên tục; forced root gate và review độc lập không có finding |
+| Merge resolution `e9d671a` | PASS | Không còn marker; 17 revision duy nhất/liên tục; forced root gate PASS, không đổi behavior |
 
 ### Chưa kiểm tra được
 
@@ -118,7 +120,7 @@
 
 ### Git action đề xuất
 
-- Merge `origin/develop` vào feature branch: conflict đã resolve/stage; Thành cần tự tạo merge commit local để kết thúc trạng thái merging.
+- Merge `origin/develop` vào feature branch: nội dung conflict đã resolve, validation PASS và resolution đã stage; Thành tạo merge commit local.
 - Nên push feature branch sau khi Thành review: Có, để tạo bằng chứng review; Codex chưa commit/push.
 - Đủ điều kiện merge vào `develop`: Chưa, cho đến khi người dùng/nhóm xác nhận `VERIFIED`.
 - Merge Memory Sync: `PENDING`; chưa cập nhật `docs/IMPLEMENTATION_INDEX.md` hoặc registry completion khi chưa có bằng chứng merge.
