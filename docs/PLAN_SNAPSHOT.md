@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0013`
+- Revision: `PLAN-0014`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PENDING_REMOTE_DEVELOP_SYNC
-- Scope: Bắt buộc README cập nhật cùng mọi shared plan/task coordination change trên remote `develop`.
+- Scope: Giới hạn tự động Git vào Markdown-only coordination trên `develop`; giữ nguyên active feature branch và để người dùng push/merge implementation.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -36,6 +36,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0011 | 2026-08-02 | Khóa typed curator-approved Artifact Relationship, explained deterministic ranking và approved-3D-only/fallback sau QR | IDEA-002; FEAT-TIMELINE-001; CMS/Artifact/QR/AI Guide/Web 3D; TASK-TIMELINE-001 | Tạo shared relation contract sau foundation; không auto-link/auto-publish bằng AI/metadata | `thanh` xác nhận |
 | PLAN-0012 | 2026-08-03 | Khóa Compose project/service DNS, host/container ports, tách infra write scope và bắt buộc mọi shared plan/task change được publish trên remote `develop` qua Pre-code Plan Sync Gate | TASK-INFRA-001; TASK-FOUND-001; mọi task song song | Publish coordination change lên remote `develop`; collaborator pull và kiểm tra collision trước code hoặc sau mỗi shared plan/task revision | `loc` + `thanh` xác nhận theo thông tin người dùng cung cấp |
 | PLAN-0013 | 2026-08-03 | Bắt buộc cập nhật README trong cùng commit với mọi shared plan/task coordination change | README; mọi task/plan owner | Giữ README ngắn gọn với revision, active owner/branch và link; Codex xác minh README trên remote `develop` trước khi quay lại feature branch | `loc` xác nhận |
+| PLAN-0014 | 2026-08-03 | Giới hạn AI chỉ tự commit/push Markdown coordination lên `develop`; ưu tiên worktree để không đổi active branch; feature push/review/merge do người dùng thực hiện | Git workflow; mọi task/feature branch | Chặn non-Markdown trong coordination commit; không tự push/merge implementation; AI chỉ đề xuất handoff commands | `loc` xác nhận |
 
 ## Changed owner documents in current revision
 

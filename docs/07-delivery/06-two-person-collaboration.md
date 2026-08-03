@@ -85,7 +85,7 @@ Sau khi hai thành viên xác nhận owner/write scope nhưng trước dòng cod
 
 Plan chỉ được push trên feature branch chưa phải shared coordination. Nếu nhóm review plan bằng feature branch trước, sau khi thống nhất vẫn phải đưa phần coordination đã chấp nhận lên remote `develop` rồi người còn lại pull về. Mọi thay đổi shared plan/task về sau cũng lặp lại gate này. Codex phải dừng ở checkpoint và không ngầm xem việc “đã nói trong chat” là đã đồng bộ cho cả nhóm.
 
-Codex tự commit/push chỉ coordination-only change đã được nhóm xác nhận lên remote `develop`, rồi quay lại branch của task owner. Codex không tự merge/push implementation branch, không force-push và không xử lý conflict bằng reset; các trường hợp bất thường phải dừng để nhóm quyết định.
+Codex tự commit/push chỉ các file Markdown của coordination change đã được nhóm xác nhận lên remote `develop`. Ưu tiên một coordination worktree riêng để active feature branch không bị checkout qua lại. Codex không đưa non-Markdown/feature commit vào `develop`, không tự push hoặc merge implementation branch, không force-push và không xử lý conflict bằng reset; các trường hợp bất thường phải dừng để nhóm quyết định. Khi feature hoàn tất, Codex chỉ đề xuất lệnh push/review/merge để người dùng tự thực hiện.
 
 ## Write scope
 

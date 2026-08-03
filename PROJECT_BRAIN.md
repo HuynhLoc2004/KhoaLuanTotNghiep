@@ -192,7 +192,7 @@ Không tuyên bố chịu được 500 user chỉ từ thiết kế; phải có 
 
 ## 8. Git và phạm vi trách nhiệm
 
-Nhóm tự thực hiện test, review và merge implementation. Coding agent tự commit/push coordination-only change đã được nhóm xác nhận lên remote `develop`, xác minh remote rồi quay lại đúng feature branch; không tự merge implementation hoặc force-push.
+Nhóm tự thực hiện push, test, review và merge implementation. Coding agent chỉ tự commit/push Markdown-only coordination change đã được nhóm xác nhận lên remote `develop`, ưu tiên worktree riêng để giữ nguyên active feature branch; không tự push/merge implementation hoặc force-push.
 
 Branch:
 
