@@ -15,6 +15,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - `TASK-WEB-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `03dfcd4`, Merge Memory Sync đã công bố Public Web shell & Design Tokens baseline.
 - `TASK-API-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `8afa7c8`, Merge Memory Sync đã công bố Express API skeleton & Error Contract baseline.
+- `TASK-ADMIN-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-ADMIN-001`; scope `apps/admin/**`, CMS contracts.
 - `TASK-CI-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-CI-001`; scope `.github/workflows/**`, task report và formatting-only `infra/compose.yaml`.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 
