@@ -8,53 +8,24 @@ Chat mới chỉ cần hiểu sơ qua: bắt đầu tại [AI_CONTEXT.md](docs/A
 
 Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Chi tiết quyết định và lịch sử thay đổi phải được ghi trong đúng file chức năng.
 
+## Trạng thái phối hợp hiện tại
+
+- Shared plan revision: `PLAN-0017` — task reports riêng và shared-doc denylist loại bỏ conflict tài liệu giữa feature branches.
+- `TASK-FOUND-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-FOUND-001`.
+- `TASK-INFRA-001`: `REVIEW`, owner `loc`, branch `feature/TASK-INFRA-001`, commit `5936397`; runtime smoke PASS, chưa merge vào `develop`.
+- Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
+
+Mọi thay đổi shared plan, task, owner, branch, dependency, write scope hoặc shared contract phải được Codex commit/push dưới dạng Markdown-only lên remote `develop`, kèm cập nhật README. AI ưu tiên coordination worktree để giữ nguyên active feature branch. Code/test trên feature branch không được AI tự push hoặc merge; khi hoàn tất, AI chỉ đề xuất để người dùng tự push/review/merge.
+
+Mỗi người chỉ làm write scope đã công bố trên `develop`; không cần biết hoặc xem realtime branch của người kia. Đầu phiên, AI tự đọc trạng thái coordination mới nhất và chặn thay đổi ngoài scope. Chỉ shared file/contract mới tạo coordination checkpoint.
+
+Feature branch ghi session/evidence tại `docs/work/<TASK-ID>.md` và không sửa README, CURRENT_TASK, shared status/index/catalog files. Các file chung chỉ được AI cập nhật trên `develop`; sau merge, Merge Memory Sync promote evidence vào owner docs/indexes.
+
 Mọi yêu cầu code, sửa lỗi hoặc bổ sung chức năng đều tự động kéo theo cập nhật/tạo tài liệu sở hữu tương ứng. Plan cũ được giữ và đánh dấu thay thế, không bị ghi đè âm thầm.
 
 Thành viên vừa clone repository và chưa chọn việc: yêu cầu AI vào chế độ onboarding, đọc tài liệu và đề xuất task `READY` từ [docs/NEXT_WORK.md](docs/NEXT_WORK.md). Chưa cần đọc source code cho đến khi chọn task.
 
 AI hỏi tên hoặc Member ID trước rồi đối chiếu [docs/TEAM.md](docs/TEAM.md); Git author chỉ là kiểm tra nhất quán phụ sau xác nhận, không cần quyền GitHub và không lưu email.
-
-## Khởi động repository
-
-### Yêu cầu
-
-- Git.
-- Node.js `24.18.0` là target trong `.node-version`; chỉ các dòng LTS Node.js `>=22.13 <23` hoặc `>=24 <25` được hỗ trợ.
-- npm/npx đi kèm Node; pnpm `11.18.0` được bootstrap và pin bởi repository.
-- Python `3.11` là target cho mỗi uv project; range hỗ trợ là `>=3.11 <3.14`.
-- uv `0.11.x`.
-
-### Cài đặt và kiểm tra
-
-Từ thư mục gốc repository:
-
-```powershell
-npx --yes pnpm@11.18.0 install --frozen-lockfile
-uv --directory services/ai sync --locked
-uv --directory workers/media sync --locked
-npx --yes pnpm@11.18.0 check
-```
-
-Hai lệnh `uv sync` giúp chuẩn bị riêng từng Python runtime. `npx --yes pnpm@11.18.0 check` chạy format, lint, typecheck, unit test và build cho workspace, đồng thời kiểm tra hai uv project bằng dependency đã khóa. Cách bootstrap này không cài pnpm global hoặc cần quyền Administrator trên Windows; trường `packageManager` vẫn khóa cùng phiên bản cho môi trường đã có pnpm/Corepack shim. Skeleton không cần secret thật để chạy các kiểm tra này; `.env.example` chỉ là catalog placeholder và mọi file môi trường local phải được giữ ngoài Git.
-
-## Cấu trúc repository
-
-```text
-apps/
-  admin/            TypeScript skeleton cho ứng dụng quản trị
-  web/              TypeScript skeleton cho trải nghiệm công khai
-packages/
-  contracts/        Biên package cho contract dùng chung trong tương lai
-  ui/               Biên package cho UI dùng chung trong tương lai
-services/
-  ai/               Python/uv project độc lập cho AI
-  api/              TypeScript skeleton cho API
-workers/
-  media/            Python/uv project độc lập cho xử lý media/3D
-docs/               Kiến trúc, đặc tả, kế hoạch và bằng chứng bàn giao
-```
-
-Foundation hiện chỉ cung cấp tooling, package discovery và skeleton có thể format/lint/typecheck/test/build. Docker Compose, Nginx, database/migration, endpoint runtime, auth, UI nghiệp vụ, shared contract thực tế, CI, remote cache và deployment thuộc các task sau; xem [tài liệu môi trường và CI/CD](docs/06-devops/01-local-environment.md) để biết ranh giới và kế hoạch đã chấp nhận.
 
 ## Nguyên tắc cốt lõi
 
@@ -126,7 +97,9 @@ Foundation hiện chỉ cung cấp tooling, package discovery và skeleton có t
 55. [Tìm kiếm và khám phá nội dung](docs/03-features/09-search-discovery.md)
 56. [Xác định vị trí bằng QR và ảnh](docs/03-features/10-indoor-location-detection.md)
 57. [Dòng thời gian sống](docs/03-features/11-living-timeline.md)
+58. [Task work reports](docs/work/README.md)
+59. [Task work report template](docs/templates/task-work-report-template.md)
 
 ## Trạng thái
 
-Đây là baseline kiến trúc v0.1. Khi thêm một chức năng mới, tạo một file riêng trong `docs/03-features/`, cập nhật mục lục này và ghi rõ flow, dữ liệu, API, thuật toán, bảo mật, kiểm thử, ưu/nhược điểm.
+Đây là baseline kiến trúc v0.1; trạng thái phối hợp tóm tắt ở đầu README phải được cập nhật liên tục cùng shared plan/task changes trên `develop`. Khi thêm một chức năng mới, tạo một file riêng trong `docs/03-features/`, cập nhật mục lục này và ghi rõ flow, dữ liệu, API, thuật toán, bảo mật, kiểm thử, ưu/nhược điểm.
