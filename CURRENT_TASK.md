@@ -1,53 +1,117 @@
 # Công việc hiện tại
 
-File này dành cho task đang hoạt động trên branch hiện tại. Khi bắt đầu feature, thay nội dung placeholder bằng task thực tế. Không dùng file này thay cho feature specification hoặc change history.
-
-Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. Hãy dùng `docs/NEXT_WORK.md` để chọn task `READY`.
-
 ## Git context
 
-- Expected branch: `develop` — hiện chỉ chuẩn hóa tài liệu.
-- Base branch: `develop`.
+- Expected branch: `feature/TASK-FOUND-001`.
+- Base branch: `develop` tại commit claim `8e90a24`.
+- Task registry: `TASK-FOUND-001` đang `IN_PROGRESS`, owner `thanh`.
 - Coding agent được phép commit/merge/push: Không.
-- Last reviewed shared plan revision: `PLAN-0011`.
+- Last reviewed shared plan revision: `PLAN-0012` (branch-local, chờ merge để công bố trên `develop`).
 
 ## Task
 
-- Mã: DOC-GOVERNANCE-001
-- Mục tiêu: Hoàn thiện trí nhớ vận hành và quy tắc làm việc cho AI/nhóm.
-- Feature owner: `PROJECT_BRAIN.md`.
-- Trạng thái: IMPLEMENTED, chờ nhóm review.
+- Mã: `TASK-FOUND-001`.
+- Mục tiêu: khởi tạo monorepo, tooling và skeleton ứng dụng có thể cài đặt, kiểm tra và build tái lập.
+- Feature owner: `docs/06-devops/01-local-environment.md`.
+- Contributor đã xác nhận: `thanh` (Trịnh Vĩ Thành).
+- Trạng thái: `IMPLEMENTED` — chờ người dùng/nhóm review, chưa `VERIFIED`.
+- Decision: `DEC-FOUND-TOOLING-001` — `PLAN_LOCKED`.
+
+## Work session
+
+- Session ID: `WS-TASK-FOUND-001-20260803-01`.
+- StartedAt: `2026-08-03T11:14:29+07:00`.
+- LastActiveAt: `2026-08-03T11:52:48+07:00`.
+- EndedAt: `2026-08-03T11:52:48+07:00`.
+- Status: `CLOSED`.
+- Active effort: `UNKNOWN`; không suy ra từ wall-clock.
+- Next checkpoint: Thành review diff và lặp lại frozen/locked install cùng root gate trước khi xác nhận `VERIFIED`.
+
+## PLAN_LOCKED
+
+- Node target: Node 24 LTS; hỗ trợ Node 22 LTS để tương thích môi trường hiện tại.
+- TypeScript workspace: pnpm `11.18.0` + Turborepo `2.10.8`.
+- Python: uv `0.11.x`, mỗi runtime có `pyproject.toml` và lockfile riêng.
+- Turbo chỉ dùng local cache trong task này; không cấu hình remote credential/cache.
+- TypeScript và Python giữ dependency boundary riêng; root command chỉ điều phối kiểm tra.
+- Plan chỉ mở lại khi có lỗi tương thích, dependency conflict hoặc bằng chứng CI/maintenance bất lợi.
 
 ## Trong phạm vi
 
-- Authority order, invariants, ADR baseline, contract/data catalog.
-- Traceability matrix, Definition of Ready và handoff template.
-- AI Experience & Documentation Quality Gate cho sáng tạo, dependency inventory và hiệu năng đa thiết bị.
-- Code, Secret & Configuration Quality Gate cho clean code, typed config, URL/provider và credential safety.
-- Database Query, Cache & Input Security Quality Gate cho server validation, injection prevention, index evidence và cache correctness.
-- User-first identity gate: hỏi tên/Member ID trước, Git author chỉ kiểm tra sau xác nhận.
-- Work Session & Feature Contribution Ledger cho identity recheck, attribution, timestamp và handoff.
-- Đăng ký thành viên `thanh` và intake/PLAN_LOCKED `IDEA-002` Dòng thời gian sống ở mức tài liệu; không claim implementation task.
-- Khóa Plan Revision `DEC-TIMELINE-MODE-001`: free/guided modes dùng chung QR pipeline, explicit switch và giữ progress.
-- Khóa `DEC-TIMELINE-RELATION-001`: typed curator-approved artifact relations, explained ranking và approved-3D-only/fallback.
+- Root workspace/tooling/config: pnpm, Turbo, TypeScript, lint, format, test và build scripts.
+- Skeleton tối thiểu cho `apps/web`, `apps/admin`, `services/api`, `services/ai`, `workers/media`, `packages/ui`, `packages/contracts`.
+- Python project độc lập cho AI và media worker.
+- `.gitignore`, `.gitattributes`, `.editorconfig`, `.env.example` không chứa secret.
+- Test foundation, tài liệu owner, traceability, project status và handoff.
 
 ## Ngoài phạm vi
 
-- Khởi tạo source code ứng dụng.
-- Cài dependency hoặc Docker.
+- `infra/**`, Docker Compose, Nginx, database, migration và service health configuration.
+- React UI/shell, Express/FastAPI endpoint, auth, CMS, business behavior hoặc production content.
+- Shared OpenAPI/DTO/event/CMS/error contract thực tế.
+- CI automation, remote cache và deployment.
+
+## Invariants liên quan
+
+- `INV-CONTENT-002`: skeleton không hard-code production content.
+- `INV-SEC-001`, `INV-SEC-003`: không commit/log secret hoặc credential.
+- `INV-CONFIG-001`: config phụ thuộc môi trường phải có owner/validation; task này chỉ tạo catalog placeholder.
+- `INV-DATA-004`, `INV-SEC-004`: chưa có data path; không tạo query/error contract giả.
 
 ## Acceptance criteria
 
-- AI biết phải đọc gì trước khi code.
-- Có quy tắc giải quyết mâu thuẫn và bảo toàn lịch sử.
-- Có nơi sở hữu invariant, ADR, contract, data, traceability và handoff.
-- Tất cả tài liệu mới được liên kết từ README/bộ não.
-- UI/motion/3D có quality tiers, desktop/mobile evidence và technology inventory bắt buộc.
-- Code/config có review evidence; secret không vào client/log/docs và environment-specific URL không hard-code.
-- Data access có parameter binding/allowlist, query-plan/index evidence, scoped cache/invalidation và response/log redaction.
-- Onboarding không gọi tên, suy luận danh tính từ Git hoặc dùng member placeholder trước câu trả lời của người dùng.
-- Mỗi implementation session/người tiếp tục có row riêng; feature lifecycle giữ mốc bắt đầu, bàn giao, verification, merge và completion có evidence.
+- Fresh clone cài dependency từ lockfile bằng lệnh được tài liệu hóa.
+- Workspace phát hiện đúng toàn bộ TypeScript package và không có dependency cycle.
+- Một root check chạy format, lint, typecheck, unit test và build cho skeleton TypeScript.
+- Hai Python project lock/sync/lint/test độc lập bằng uv.
+- Không có secret thật; `.env*`, cache, virtual environment và build output được ignore đúng.
+- Không triển khai nhầm scope của `TASK-INFRA-001`, `TASK-WEB-001`, `TASK-ADMIN-001`, `TASK-API-001` hoặc `TASK-DOC-QUALITY-001`.
+- Owner document, diagrams, technology/config inventory, estimate, ledger, tests và limitations khớp implementation.
 
 ## Handoff status
 
-Đã tạo baseline tài liệu, khóa các Quality Gate, user-first identity và Work Session Ledger; `PLAN-0009` bổ sung Dòng thời gian sống, `PLAN-0010` khóa free/guided modes và `PLAN-0011` khóa Artifact Relationship/recommendation/approved-3D fallback. Người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation/API/data tooling. Task code tiếp theo vẫn là `TASK-FOUND-001` trên branch dự kiến `feature/project-foundation`; khi bắt đầu phải viết lại file này theo phạm vi foundation.
+### Kết quả
+
+- Đã triển khai root pnpm/Turbo tooling, 5 TypeScript workspace và 2 Python/uv project độc lập đúng phương án A.
+- Chỉ có skeleton metadata/test; không triển khai nhầm UI, endpoint, contract nghiệp vụ, Docker, database hay production content.
+- Trạng thái `IMPLEMENTED`; agent không tự đặt `VERIFIED`.
+
+### Trí nhớ dự án
+
+- Feature owner: `docs/06-devops/01-local-environment.md`, đạt Feature Report Standard với 5 sơ đồ Mermaid và evidence khớp code.
+- `docs/PROJECT_STATUS.md`, `docs/PLAN_SNAPSHOT.md` và traceability đã ghi rõ trạng thái branch-local/pending publication.
+- Shared plan revision: `PLAN-0012`; chỉ thành plan chung sau review/merge vào `develop`.
+
+### Test đã chạy
+
+| Gate | Kết quả | Phạm vi |
+|---|---|---|
+| Frozen pnpm install + hai uv locked sync | PASS | 6 pnpm project entries; 2 Python project/lock riêng |
+| Node engine negative test | PASS | `engineStrict` chặn Node 26.5.0 ngoài policy bằng `ERR_PNPM_UNSUPPORTED_ENGINE` |
+| Forced root `pnpm check` trên Node 24.18.0, pnpm 11.18.0, uv 0.11.32 | PASS | Prettier; 5/5 mỗi lint/typecheck/test/build; 5 Node test; 2 pytest |
+| Turbo cache-input review | PASS | Root config/lock/workspace files nằm trong global hash; remote cache disabled |
+| Secret/config/ignore/scope review | PASS | `.env.example` trống; local env/cache/build ignored; không lấn downstream scope |
+| `pnpm audit` + hai exported-lock `pip-audit` | PASS | Không có known vulnerability tại 2026-08-03 |
+
+### Chưa kiểm tra được
+
+- Fresh clone do người dùng/reviewer thực hiện; Python 3.12/3.13 và Linux/macOS chưa chạy.
+- Chưa có CI, automated license/SBOM/dedicated secret/container scan, coverage threshold, negative-cycle fixture hoặc cold-build benchmark; thuộc task chất lượng/hạ tầng sau.
+
+### Invariants và integration
+
+- Giữ `INV-CONTENT-002`, `INV-SEC-001`, `INV-SEC-003`, `INV-CONFIG-001`; regression evidence nằm trong descriptor tests và hygiene/scope scans.
+- Không tạo producer/consumer, schema, permission, entity ID, error code, cache invalidation hay shared contract mới.
+- Cross-feature integration gate: `PASS` cho isolation/alignment; task downstream vẫn chờ foundation được review/merge.
+
+### Plan conformance và hạn chế
+
+- `DEC-FOUND-TOOLING-001`: `PLAN_LOCKED`; implementation đúng pnpm + Turbo + uv, không deviation.
+- Corepack shim bị EPERM trên host Windows; README dùng fallback pnpm exact qua npx đã kiểm chứng.
+- uv fallback từ hardlink sang full copy giữa filesystem; đúng chức năng nhưng có thể sync chậm hơn.
+
+### Git action đề xuất
+
+- Nên push feature branch sau khi Thành review: Có, để tạo bằng chứng review; Codex chưa commit/push.
+- Đủ điều kiện merge vào `develop`: Chưa, cho đến khi người dùng/nhóm xác nhận `VERIFIED`.
+- Merge Memory Sync: `PENDING`; chưa cập nhật `docs/IMPLEMENTATION_INDEX.md` hoặc registry completion khi chưa có bằng chứng merge.

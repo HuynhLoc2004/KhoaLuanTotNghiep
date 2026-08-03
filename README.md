@@ -14,6 +14,48 @@ Thành viên vừa clone repository và chưa chọn việc: yêu cầu AI vào 
 
 AI hỏi tên hoặc Member ID trước rồi đối chiếu [docs/TEAM.md](docs/TEAM.md); Git author chỉ là kiểm tra nhất quán phụ sau xác nhận, không cần quyền GitHub và không lưu email.
 
+## Khởi động repository
+
+### Yêu cầu
+
+- Git.
+- Node.js `24.18.0` là target trong `.node-version`; chỉ các dòng LTS Node.js `>=22.13 <23` hoặc `>=24 <25` được hỗ trợ.
+- npm/npx đi kèm Node; pnpm `11.18.0` được bootstrap và pin bởi repository.
+- Python `3.11` là target cho mỗi uv project; range hỗ trợ là `>=3.11 <3.14`.
+- uv `0.11.x`.
+
+### Cài đặt và kiểm tra
+
+Từ thư mục gốc repository:
+
+```powershell
+npx --yes pnpm@11.18.0 install --frozen-lockfile
+uv --directory services/ai sync --locked
+uv --directory workers/media sync --locked
+npx --yes pnpm@11.18.0 check
+```
+
+Hai lệnh `uv sync` giúp chuẩn bị riêng từng Python runtime. `npx --yes pnpm@11.18.0 check` chạy format, lint, typecheck, unit test và build cho workspace, đồng thời kiểm tra hai uv project bằng dependency đã khóa. Cách bootstrap này không cài pnpm global hoặc cần quyền Administrator trên Windows; trường `packageManager` vẫn khóa cùng phiên bản cho môi trường đã có pnpm/Corepack shim. Skeleton không cần secret thật để chạy các kiểm tra này; `.env.example` chỉ là catalog placeholder và mọi file môi trường local phải được giữ ngoài Git.
+
+## Cấu trúc repository
+
+```text
+apps/
+  admin/            TypeScript skeleton cho ứng dụng quản trị
+  web/              TypeScript skeleton cho trải nghiệm công khai
+packages/
+  contracts/        Biên package cho contract dùng chung trong tương lai
+  ui/               Biên package cho UI dùng chung trong tương lai
+services/
+  ai/               Python/uv project độc lập cho AI
+  api/              TypeScript skeleton cho API
+workers/
+  media/            Python/uv project độc lập cho xử lý media/3D
+docs/               Kiến trúc, đặc tả, kế hoạch và bằng chứng bàn giao
+```
+
+Foundation hiện chỉ cung cấp tooling, package discovery và skeleton có thể format/lint/typecheck/test/build. Docker Compose, Nginx, database/migration, endpoint runtime, auth, UI nghiệp vụ, shared contract thực tế, CI, remote cache và deployment thuộc các task sau; xem [tài liệu môi trường và CI/CD](docs/06-devops/01-local-environment.md) để biết ranh giới và kế hoạch đã chấp nhận.
+
 ## Nguyên tắc cốt lõi
 
 - Nội dung hiển thị cho khách tham quan được quản trị từ CMS/Admin, không hard-code trong giao diện.

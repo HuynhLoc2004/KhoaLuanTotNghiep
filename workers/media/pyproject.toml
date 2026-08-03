@@ -1,0 +1,44 @@
+[project]
+name = "hcmc-museum-media-worker"
+version = "0.1.0"
+description = "Python foundation package for the media worker."
+requires-python = ">=3.11,<3.14"
+dependencies = []
+
+[build-system]
+requires = ["hatchling==1.31.0"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "hatchling==1.31.0",
+    "pytest>=9.1,<10",
+    "ruff>=0.16,<0.17",
+]
+
+[tool.uv]
+required-version = ">=0.11,<0.12"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/media_worker"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+pythonpath = ["src"]
+testpaths = ["tests"]
+xfail_strict = true
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["media_worker"]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "double"
