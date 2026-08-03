@@ -67,7 +67,7 @@ export function renderLivingTimeline2D(
 
   const nodesHtml = journey.nodes
     .map((node: NarrativeNode, index: number) => {
-      const relatedList = node.artifactCode ? relatedArtifactsMap[node.artifactCode] ?? [] : [];
+      const relatedList = node.artifactCode ? (relatedArtifactsMap[node.artifactCode] ?? []) : [];
       const relatedCardsHtml = relatedList.map(renderRelatedArtifactCard).join("\n");
 
       return `

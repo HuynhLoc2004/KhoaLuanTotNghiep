@@ -8,8 +8,8 @@ void test("Public Web Living Timeline Page Test Suite", async (t) => {
     () => {
       const html = renderLivingTimelinePage({ mode: "FREE_EXPLORE" });
       assert.ok(html.includes("<!DOCTYPE html>"));
-      assert.ok(html.includes('<header id="app-header"'));
-      assert.ok(html.includes('<footer id="app-footer"'));
+      assert.ok(html.includes('<header id="main-header"'));
+      assert.ok(html.includes('<footer id="main-footer"'));
       assert.ok(html.includes("LIVING TIMELINE — DÒNG THỜI GIAN SỐNG"));
       assert.ok(html.includes("timeline-mode-switcher"));
       assert.ok(html.includes("related-artifact-card"));
