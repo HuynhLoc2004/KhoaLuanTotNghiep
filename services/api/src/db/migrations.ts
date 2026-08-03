@@ -95,14 +95,14 @@ export const BASELINE_MIGRATIONS: Migration[] = [
 ];
 
 export class MigrationRunner {
-  private appliedMigrations: Set<string> = new Set();
+  private appliedMigrations = new Set<string>();
 
   public getAppliedMigrations(): string[] {
     return Array.from(this.appliedMigrations);
   }
 
-  public runMigrations(): Array<{ id: string; name: string; status: "APPLIED" | "SKIPPED" }> {
-    const results: Array<{ id: string; name: string; status: "APPLIED" | "SKIPPED" }> = [];
+  public runMigrations(): { id: string; name: string; status: "APPLIED" | "SKIPPED" }[] {
+    const results: { id: string; name: string; status: "APPLIED" | "SKIPPED" }[] = [];
 
     for (const migration of BASELINE_MIGRATIONS) {
       if (this.appliedMigrations.has(migration.id)) {

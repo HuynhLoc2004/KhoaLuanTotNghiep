@@ -64,7 +64,7 @@ timelineRouter.get("/api/v1/timeline/journeys", (_req: Request, res: Response) =
 
 // GET /api/v1/timeline/journeys/:id
 timelineRouter.get("/api/v1/timeline/journeys/:id", (req: Request, res: Response) => {
-  const idParam = req.params["id"];
+  const idParam = req.params.id;
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
   const journey = SAMPLE_JOURNEYS.find((j) => j.id === id);
 
@@ -72,7 +72,7 @@ timelineRouter.get("/api/v1/timeline/journeys/:id", (req: Request, res: Response
     throw new ApiError(
       404,
       ErrorCode.NOT_FOUND,
-      `Không tìm thấy hành trình dòng thời gian với ID ${id}`,
+      `Không tìm thấy hành trình dòng thời gian với ID ${id ?? ""}`,
     );
   }
 
@@ -81,10 +81,10 @@ timelineRouter.get("/api/v1/timeline/journeys/:id", (req: Request, res: Response
 
 // GET /api/v1/timeline/artifacts/:code/related
 timelineRouter.get("/api/v1/timeline/artifacts/:code/related", (req: Request, res: Response) => {
-  const codeParam = req.params["code"];
+  const codeParam = req.params.code;
   const code = Array.isArray(codeParam) ? codeParam[0] : codeParam;
-  const upperCode = (code || "").toUpperCase();
-  const related = SAMPLE_RELATED_ARTIFACTS[upperCode] || [];
+  const upperCode = (code ?? "").toUpperCase();
+  const related = SAMPLE_RELATED_ARTIFACTS[upperCode] ?? [];
 
   res.json({ data: related });
 });

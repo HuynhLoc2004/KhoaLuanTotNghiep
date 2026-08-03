@@ -13,7 +13,7 @@ import {
   type CmsBannerBlock,
 } from "../src/index.js";
 
-test("UI Design System & CMS Renderer Test Suite", async (t) => {
+void test("UI Design System & CMS Renderer Test Suite", async (t) => {
   await t.test("Heritage Theme tokens are exported correctly", () => {
     assert.equal(heritageTheme.name, "Heritage Modern Dark");
     assert.equal(heritageTheme.colors.primaryRed, "#9E1B1B");

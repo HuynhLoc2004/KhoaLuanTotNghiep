@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { renderLivingTimelinePage } from "../src/index.js";
 
-test("Public Web Living Timeline Page Test Suite", async (t) => {
+void test("Public Web Living Timeline Page Test Suite", async (t) => {
   await t.test(
     "renderLivingTimelinePage renders header, footer, 2D timeline nodes and mode switcher",
     () => {

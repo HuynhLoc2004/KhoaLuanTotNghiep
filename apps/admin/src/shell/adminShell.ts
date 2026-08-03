@@ -1,6 +1,6 @@
 import { heritageTheme, type CmsBlock } from "@hcmc-museum/ui";
 import { renderAdminSidebar, renderAdminHeader, type AdminUser } from "./layout.js";
-import { renderCmsBlockFormEditor, renderLivePreviewPanel } from "../forms/cmsFormBuilder.js";
+import { renderCmsBlockFormEditor } from "../forms/cmsFormBuilder.js";
 
 export interface AdminPageRenderOptions {
   user?: AdminUser | undefined;
@@ -9,13 +9,13 @@ export interface AdminPageRenderOptions {
 }
 
 export function renderAdminShellPage(options: AdminPageRenderOptions = {}): string {
-  const user = options.user || {
+  const user = options.user ?? {
     name: "Trịnh Vĩ Thành",
     role: "Curator Admin",
   };
-  const activeNav = options.activeNav || "cms-content";
+  const activeNav = options.activeNav ?? "cms-content";
 
-  const defaultSampleBlock: CmsBlock = options.sampleBlock || {
+  const defaultSampleBlock: CmsBlock = options.sampleBlock ?? {
     type: "hero",
     id: "hero-preview-01",
     title: "Hành Trình Khám Phá Di Sản Bảo Tàng Lịch Sử",
@@ -28,7 +28,6 @@ export function renderAdminShellPage(options: AdminPageRenderOptions = {}): stri
   const sidebarHtml = renderAdminSidebar(activeNav);
   const headerHtml = renderAdminHeader(user);
   const formHtml = renderCmsBlockFormEditor("hero", defaultSampleBlock);
-  const previewHtml = renderLivePreviewPanel(defaultSampleBlock);
 
   return `
     <!DOCTYPE html>
@@ -52,13 +51,8 @@ export function renderAdminShellPage(options: AdminPageRenderOptions = {}): stri
         ${sidebarHtml}
         <div style="flex: 1; display: flex; flex-direction: column;">
           ${headerHtml}
-          <main id="admin-main-content" style="flex: 1; padding: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
-            <div id="editor-column">
-              ${formHtml}
-            </div>
-            <div id="preview-column">
-              ${previewHtml}
-            </div>
+          <main id="admin-main-content" style="flex: 1; padding: 2rem;">
+            ${formHtml}
           </main>
         </div>
       </div>

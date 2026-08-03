@@ -6,7 +6,7 @@ import {
   RelatedArtifactSchema,
 } from "../src/index.js";
 
-test("Living Timeline Contracts Test Suite", async (t) => {
+void test("Living Timeline Contracts Test Suite", async (t) => {
   await t.test("ExplorationModeSchema accepts FREE_EXPLORE and GUIDED_JOURNEY", () => {
     assert.equal(ExplorationModeSchema.parse("FREE_EXPLORE"), "FREE_EXPLORE");
     assert.equal(ExplorationModeSchema.parse("GUIDED_JOURNEY"), "GUIDED_JOURNEY");

@@ -37,9 +37,7 @@ export function errorHandler(
       if (issue.path.length > 0) {
         detail.field = issue.path.join(".");
       }
-      if (issue.code) {
-        detail.code = issue.code;
-      }
+      detail.code = issue.code;
       return detail;
     });
 

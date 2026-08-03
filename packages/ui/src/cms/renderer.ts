@@ -14,7 +14,7 @@ export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
     : `background: linear-gradient(135deg, ${heritageTheme.colors.primaryRedDark}, ${heritageTheme.colors.bgDark});`;
 
   const ctaHtml = block.ctaText
-    ? `<a id="hero-cta-btn" href="${block.ctaLink || "#"}" class="btn-primary" style="display:inline-block; margin-top:1.5rem; padding:0.75rem 1.75rem; background-color:${heritageTheme.colors.accentGold}; color:#121212; font-weight:bold; border-radius:0.375rem; text-decoration:none; transition:${heritageTheme.animations.transitionFast};">${block.ctaText}</a>`
+    ? `<a id="hero-cta-btn" href="${block.ctaLink ?? "#"}" class="btn-primary" style="display:inline-block; margin-top:1.5rem; padding:0.75rem 1.75rem; background-color:${heritageTheme.colors.accentGold}; color:#121212; font-weight:bold; border-radius:0.375rem; text-decoration:none; transition:${heritageTheme.animations.transitionFast};">${block.ctaText}</a>`
     : "";
 
   const html = `
@@ -91,7 +91,7 @@ export function renderTimelinePreviewBlock(block: CmsTimelinePreviewBlock): CmsR
   const eventsHtml = block.events
     .map((ev, idx) =>
       `
-      <div id="timeline-event-${idx}" style="position:relative; padding-left:2rem; border-left:2px solid ${heritageTheme.colors.accentGold}; margin-bottom:1.5rem;">
+      <div id="timeline-event-${String(idx)}" style="position:relative; padding-left:2rem; border-left:2px solid ${heritageTheme.colors.accentGold}; margin-bottom:1.5rem;">
         <div style="position:absolute; left:-7px; top:0; width:12px; height:12px; border-radius:50%; background:${heritageTheme.colors.accentGold};"></div>
         <span style="font-weight:bold; color:${heritageTheme.colors.accentGold}; font-size:${heritageTheme.typography.sizes.sm};">${ev.year}</span>
         <h4 style="font-family:${heritageTheme.typography.fontFamilyHeading}; color:${heritageTheme.colors.textPrimary}; margin:0.25rem 0;">${ev.title}</h4>
