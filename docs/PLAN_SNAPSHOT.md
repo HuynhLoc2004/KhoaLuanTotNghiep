@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0021`
+- Revision: `PLAN-0022`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Cho phép `TASK-CI-001` sửa formatting-only `infra/compose.yaml` sau khi root gate phát hiện baseline đã merge không đạt Prettier.
+- Scope: Mở `FIX-CLEAN-GATE-001` cho `thanh`: dùng Turbo `^build` prerequisites để workspace dependency declarations tồn tại trước lint/typecheck trên fresh clone, đồng thời xóa Admin re-export không có implementation; ghi nhận `FIX-FORMAT-001` đã merge nhưng chưa `VERIFIED`.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: `TASK-API-001` (`thanh`) và `TASK-CI-001` (`loc`) với write scope không giao nhau.
+- Task đang chạy: `TASK-CI-001` (`loc`) và `FIX-CLEAN-GATE-001` (`thanh`) với write scope không giao nhau; fix baseline là dependency để hosted CI đạt PASS.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -44,14 +44,14 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0019 | 2026-08-03 | Sau khi AI trình bày task/scope/branch và người dùng xác nhận bắt đầu, AI tự publish claim, đồng bộ local `develop`, tạo/chuyển feature branch, mở ledger/report và code | Mọi task implementation; Pre-code Plan Sync; Git startup | AI thực hiện safe startup trên workspace của phiên; dừng ở dirty/diverged/conflict/ambiguous state; không tự push/merge implementation | `loc` xác nhận |
 | PLAN-0020 | 2026-08-03 | Tách Foundation CI Quality Gate thành `TASK-CI-001`, owner `loc`, chỉ sở hữu GitHub Actions và task report | TASK-CI-001; TASK-API-001; Quality/DevOps | Publish claim; chọn CI design; không sửa API/contracts/root tooling; chạy workflow evidence trước handoff | `loc` xác nhận bắt đầu |
 | PLAN-0021 | 2026-08-03 | Mở rộng `TASK-CI-001` đúng một file `infra/compose.yaml` để sửa Prettier cơ học; cấm đổi Compose behavior | TASK-CI-001; TASK-INFRA-001; root quality gate | Publish scope revision; format file; so sánh Compose config trước/sau; chạy lại root gate | `loc` xác nhận formatting-only |
+| PLAN-0022 | 2026-08-03 | Khóa `OPTION-CLEAN-GATE-001/A`: Turbo lint/typecheck phải build workspace dependencies trước dependent task; xóa Admin stale re-export; không sửa consumer bằng `any` hoặc làm yếu CI. `FIX-FORMAT-001` đã merge tại `8d199db` nhưng giữ REVIEW vì chưa VERIFIED | FIX-CLEAN-GATE-001; TASK-CI-001; TASK-FOUND-001; TASK-ADMIN-001; FIX-FORMAT-001 | Publish claim; tạo branch từ latest `develop`; clean build artifacts rồi chạy lint/typecheck/root gate; sau fix đồng bộ TASK-CI-001 và lấy hosted PASS | `thanh` chọn phương án chính xác nhất; Codex khóa phương án A theo evidence local + hosted run `30829451628` và Turbo docs chính thức |
 
 ## Changed owner documents in current revision
 
 - `README.md`.
-- `AGENTS.md`.
-- `docs/07-delivery/06-two-person-collaboration.md`.
-- `docs/07-delivery/07-git-playbook.md`.
 - `docs/NEXT_WORK.md`.
+- `docs/PROJECT_STATUS.md`.
+- `docs/work/FIX-FORMAT-001.md`.
 
 `TASK-FOUND-001` và `TASK-INFRA-001` đã `DONE` sau merge `3d8b971`/`847251c` và Merge Memory Sync. `TASK-TIMELINE-001` vẫn BLOCKED.
 

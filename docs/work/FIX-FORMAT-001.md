@@ -5,13 +5,14 @@
 - Owner/contributor: `thanh`.
 - Branch: `fix/format-contracts-ui-admin`.
 - Base/shared plan revision: `PLAN-0021`.
-- Status: `IMPLEMENTED`.
+- Status: `REVIEW/MERGED_UNVERIFIED`; merged into `develop` at `8d199db`, but the user has not confirmed `VERIFIED`.
 
 ## Objective and write scope
 
 - Objective: Chạy Prettier định dạng cho đúng 3 file thuộc ownership của `thanh`: `apps/admin/src/forms/cmsFormBuilder.ts`, `packages/contracts/src/common/error.ts`, `packages/ui/src/timeline/renderer.ts` để đảm bảo CI Prettier check PASS.
 - Owned paths: `apps/admin/src/forms/cmsFormBuilder.ts`, `packages/contracts/src/common/error.ts`, `packages/ui/src/timeline/renderer.ts`, `docs/work/FIX-FORMAT-001.md`.
 - Explicitly excluded: `.github/workflows/**`, `infra/compose.yaml` (thuộc Lộc), `feature/TASK-CI-001`.
+- Scope deviation recorded after merge: commit `59e5b9a` also changed `apps/web/src/timeline/page.ts` and `apps/web/test/timeline.test.ts` for compatibility. The deviation was merged at `8d199db`; it is preserved as history and is not retroactively treated as part of the original claim.
 
 ## Contribution ledger
 
@@ -34,6 +35,6 @@
 
 ## Handoff
 
-- Verification status: UNVERIFIED (Chờ người dùng review)
-- Feature commit/PR: TBD (Người dùng tự push/merge)
-- Merge status: NOT_MERGED
+- Verification status: UNVERIFIED (chờ người dùng review; không tự nâng `VERIFIED` chỉ vì PR đã merge)
+- Feature commit/PR: `59e5b9a`; PR #6 merge `8d199db`
+- Merge status: MERGED_TO_DEVELOP; Merge Memory Sync remains FAIL/PENDING until verification and scope-deviation review are resolved
