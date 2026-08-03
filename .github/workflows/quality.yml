@@ -48,3 +48,16 @@ jobs:
 
       - name: Run the cross-runtime quality gate
         run: npx --yes pnpm@11.18.0 check
+
+  dependency-vulnerability-scan:
+    name: OSV lockfile vulnerability scan
+    permissions:
+      contents: read
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      scan-args: |-
+        --lockfile=pnpm-lock.yaml
+        --lockfile=services/ai/uv.lock
+        --lockfile=workers/media/uv.lock
+      fail-on-vuln: true
+      upload-sarif: false

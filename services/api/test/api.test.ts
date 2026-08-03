@@ -36,6 +36,10 @@ void test("API Skeleton & Error Contract Test Suite", async (t) => {
     next(new ApiError(403, "FORBIDDEN", "Access denied to resource"));
   });
 
+  app.get("/test-internal-error", (_req, _res, next) => {
+    next(new Error("Synthetic SQL/schema/internal-path details must remain server-only"));
+  });
+
   app.use(notFoundHandler);
   app.use(errorHandler);
 
@@ -102,5 +106,27 @@ void test("API Skeleton & Error Contract Test Suite", async (t) => {
     const body = (await res.json()) as { code: string; message: string };
     assert.equal(body.code, "FORBIDDEN");
     assert.equal(body.message, "Access denied to resource");
+  });
+
+  await t.test("Operator-shaped malicious input is rejected without reflection", async () => {
+    const res = await fetch(`${baseUrl}/test-validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ age: { $gt: 18 } }),
+    });
+
+    assert.equal(res.status, 400);
+    const responseText = await res.text();
+    assert.equal(responseText.includes("$gt"), false);
+    assert.equal(responseText.includes("SELECT"), false);
+  });
+
+  await t.test("Unexpected errors redact SQL, schema and internal path details", async () => {
+    const res = await fetch(`${baseUrl}/test-internal-error`);
+    assert.equal(res.status, 500);
+    const body = (await res.json()) as { code: string; message: string; correlationId: string };
+    assert.equal(body.code, "INTERNAL_SERVER_ERROR");
+    assert.equal(body.message, "Internal Server Error");
+    assert.ok(body.correlationId);
   });
 });

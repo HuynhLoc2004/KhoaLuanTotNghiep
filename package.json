@@ -16,15 +16,19 @@
     "lint": "turbo run lint && eslint eslint.config.mjs scripts",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "check:ts": "prettier --check . && turbo run lint --force && eslint eslint.config.mjs scripts && turbo run typecheck --force && turbo run test --force && turbo run build --force",
+    "check:quality": "node scripts/quality/run-quality.mjs",
+    "check:ts": "prettier --check . && node scripts/quality/run-quality.mjs && turbo run lint --force && eslint eslint.config.mjs scripts && turbo run typecheck --force && turbo run test --force && turbo run build --force",
     "check:python": "node scripts/check-python.mjs",
-    "check": "prettier --check . && turbo run lint --force && eslint eslint.config.mjs scripts && turbo run typecheck --force && turbo run test --force && turbo run build --force && node scripts/check-python.mjs"
+    "check": "prettier --check . && node scripts/quality/run-quality.mjs && turbo run lint --force && eslint eslint.config.mjs scripts && turbo run typecheck --force && turbo run test --force && turbo run build --force && node scripts/check-python.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.4",
     "@types/node": "22.20.1",
     "eslint": "10.8.0",
+    "markdownlint-cli2": "0.23.2",
     "prettier": "3.9.6",
+    "secretlint": "13.0.4",
     "turbo": "2.10.8",
     "typescript": "6.0.3",
     "typescript-eslint": "8.65.0"
