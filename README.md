@@ -10,11 +10,11 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0020` — `TASK-CI-001` được tách độc lập để tự động hóa Foundation quality gate, không chạm API/contracts của Thành.
+- Shared plan revision: `PLAN-0021` — `TASK-CI-001` được phép sửa formatting-only `infra/compose.yaml` để baseline hiện tại đạt lại root quality gate; không đổi Compose behavior.
 - `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - `TASK-API-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-API-001`.
-- `TASK-CI-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-CI-001`; scope `.github/workflows/**` và task report riêng.
+- `TASK-CI-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-CI-001`; scope `.github/workflows/**`, task report và formatting-only `infra/compose.yaml`.
 - `TASK-WEB-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-WEB-001`; scope `apps/web/**`, `packages/ui/**`.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 
