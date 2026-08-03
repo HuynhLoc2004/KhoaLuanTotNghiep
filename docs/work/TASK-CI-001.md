@@ -184,6 +184,7 @@ No production dependency, runtime service, API contract, schema or database is a
 | 2026-08-03 | FIXED | Format merged `infra/compose.yaml` without changing normalized Compose config | `PLAN-0021`; identical normalized SHA-256 before/after |
 | 2026-08-03 | TEST | Run TypeScript gate and isolated pinned-uv Python checks | 5/5 lint/type/test/build; Ruff/format; 2/2 pytest PASS |
 | 2026-08-03 | CI EVIDENCE | PR `#4` executed the workflow successfully through install/format and failed at lint on defects already merged in contracts/UI; external owner fixed and synced the baseline | Failed run `30824882920`, job `91723843393`; fix `60d73c9`, merge `cc1c600`, Memory Sync `ed3edf6`; rerun pending this report push |
+| 2026-08-03 | CI EVIDENCE | `thanh` hỗ trợ đồng bộ `develop` tại merge `b8ff720` và chạy lại root gate; Prettier cùng 5/5 lint PASS, sau đó typecheck phát hiện lỗi baseline Admin ngoài scope CI | `apps/admin/src/index.ts` export `renderLivePreviewPanel` nhưng `apps/admin/src/forms/cmsFormBuilder.ts` không cung cấp symbol; cần fix riêng trước hosted PASS |
 
 ## Contribution ledger
 
@@ -191,17 +192,18 @@ No production dependency, runtime service, API contract, schema or database is a
 |---|---|---|---|---|---|---|---|---|
 | `WS-TASK-CI-001-20260803-01` | `loc` | 2026-08-03T21:32:56+07:00 | 2026-08-03T21:44:15+07:00 | 2026-08-03T21:44:15+07:00 | CLOSED | Claim/scope sync; Option A PLAN_LOCKED; workflow implemented; Compose formatting baseline fixed without semantic change; report completed | YAML/Prettier/risk scan PASS; lock supply-chain PASS; TS format + 5 lint/type/test/build PASS; pinned uv Ruff/format + 2/2 pytest PASS | User reviews diff, pushes feature, opens PR and obtains hosted CI evidence |
 | `WS-TASK-CI-001-20260803-02` | `loc` | 2026-08-03T22:16:13+07:00 | 2026-08-03T22:16:13+07:00 | 2026-08-03T22:16:13+07:00 | CLOSED | Reconfirm identity; inspect PR `#4` hosted failure; attribute failures to merged foreign scopes; record completed external fix and prepare a report-only synchronization commit | PR `#4` run `30824882920` reached the quality command; lint exposed 5 baseline defects; `FIX-LINT-001` merged at `cc1c600` and Memory Sync completed at `ed3edf6` | User commits/pushes report-only update; new PR run validates current `develop` + CI feature |
+| `WS-TASK-CI-001-20260803-03` | `thanh` | 2026-08-03T22:48:24+07:00 | 2026-08-03T22:49:44+07:00 | 2026-08-03T22:49:44+07:00 | CLOSED | Support theo xác nhận của `loc`; merge `develop` vào branch CI tại `b8ff720`; chạy root gate và khoanh vùng failure ngoài scope | Prettier PASS; 5/5 lint PASS; typecheck dừng tại `TS2305` do Admin export mismatch đã có trên `develop` | Giữ task `IMPLEMENTED`; sửa baseline Admin bằng task/scope riêng, sau đó đồng bộ và chạy lại hosted CI |
 
 ## Implementation evidence
 
 - Behavior/files: `.github/workflows/quality.yml` adds the locked cross-runtime quality job; task report records the decision and pins.
-- Tests: YAML parse, workflow/report/Compose Prettier and workflow risk-pattern scan PASS; lockfile supply-chain verification PASS; TypeScript format + 5 lint + 5 typecheck + 5 test + 5 build PASS; pinned uv `0.11.32` Ruff check/format and 2/2 pytest PASS. Exact local root command stops only because host uv is `0.10.7`; equivalent Python stages passed with isolated pinned uv. Hosted PR `#4` proved workflow execution and correctly failed on 5 foreign-scope lint defects already present in `develop`; those defects were fixed and memory-synced through `ed3edf6`, so a fresh hosted run is pending.
+- Tests: YAML parse, workflow/report/Compose Prettier and workflow risk-pattern scan PASS; lockfile supply-chain verification PASS; earlier isolated evidence covered TypeScript format + 5 lint/type/test/build and pinned uv `0.11.32` Ruff/format + 2/2 pytest. After sync merge `b8ff720`, the exact root gate passed Prettier and 5/5 lint, then stopped at Admin typecheck `TS2305`: `apps/admin/src/index.ts` exports missing `renderLivePreviewPanel`. Hosted PR `#4` therefore still needs a fresh run after this foreign-scope baseline defect is fixed.
 - Security/invariants: no product behavior/data/contract change; workflow must use least privilege and no secrets.
 - Known limitations/fallback: hosted-runner evidence requires pushing the feature branch; local validation cannot prove GitHub execution. Local global uv remains `0.10.7` and was not modified; isolated accepted uv `0.11.32` supplied Python evidence. Fallback is the same pinned local component gate.
 
 ## Handoff
 
-- Verification status: `IMPLEMENTED`, not `VERIFIED`; hosted run `30824882920` failed correctly on now-fixed baseline defects, and a fresh PASS against `develop` at/after `ed3edf6` is pending.
+- Verification status: `IMPLEMENTED`, not `VERIFIED`; branch synced through `develop` merge `b8ff720`, but exact local root gate now exposes an Admin typecheck baseline defect outside CI scope. A fresh hosted PASS remains pending after the owning scope fixes that defect.
 - Feature commit/PR: none.
 - Merge status: not merged.
 - Merge Memory Sync checklist: not applicable before merge.
