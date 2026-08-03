@@ -32,7 +32,14 @@ importers:
 
   apps/admin: {}
 
-  apps/web: {}
+  apps/web:
+    dependencies:
+      '@hcmc-museum/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@hcmc-museum/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
 
   packages/contracts: {}
 
