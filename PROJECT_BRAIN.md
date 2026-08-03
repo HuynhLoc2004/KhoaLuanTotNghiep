@@ -243,6 +243,8 @@ Không sao chép nguyên một thông tin dài ở nhiều nơi. Ghi chi tiết 
 
 Mọi shared plan/task coordination update đã được nhóm chấp nhận phải cập nhật `README.md` trong cùng commit trên `develop`. README chỉ giữ revision/trạng thái/task owner hiện hành và đường dẫn đến nguồn chi tiết; không sao chép toàn bộ plan hoặc decision log.
 
+Hai thành viên không phải theo dõi hoặc nhắc nhau về thay đổi branch-local. AI chịu trách nhiệm đọc coordination state mới nhất trên remote `develop` ở đầu phiên và khóa chỉnh sửa theo write scope đã công bố. Không biết code chưa push của người kia không phải blocker nếu scope không giao nhau; yêu cầu chạm shared/foreign scope phải dừng và đi qua coordination Markdown trên `develop`.
+
 ### Những thay đổi bắt buộc phải lưu vết
 
 - Thêm/sửa/xóa flow hoặc trạng thái UI.

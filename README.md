@@ -10,12 +10,14 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0014` — AI chỉ tự push Markdown coordination lên `develop`; feature push/merge luôn thuộc người dùng.
+- Shared plan revision: `PLAN-0015` — scope isolation do AI thực thi; thành viên không cần theo dõi hoặc nhắc nhau về feature branch.
 - `TASK-FOUND-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-FOUND-001`.
 - `TASK-INFRA-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-INFRA-001`; implementation chờ collaborator pull `develop` và xác nhận `PRE_CODE_PLAN_SYNC: PASS`.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 
 Mọi thay đổi shared plan, task, owner, branch, dependency, write scope hoặc shared contract phải được Codex commit/push dưới dạng Markdown-only lên remote `develop`, kèm cập nhật README. AI ưu tiên coordination worktree để giữ nguyên active feature branch. Code/test trên feature branch không được AI tự push hoặc merge; khi hoàn tất, AI chỉ đề xuất để người dùng tự push/review/merge.
+
+Mỗi người chỉ làm write scope đã công bố trên `develop`; không cần biết hoặc xem realtime branch của người kia. Đầu phiên, AI tự đọc trạng thái coordination mới nhất và chặn thay đổi ngoài scope. Chỉ shared file/contract mới tạo coordination checkpoint.
 
 Mọi yêu cầu code, sửa lỗi hoặc bổ sung chức năng đều tự động kéo theo cập nhật/tạo tài liệu sở hữu tương ứng. Plan cũ được giữ và đánh dấu thay thế, không bị ghi đè âm thầm.
 

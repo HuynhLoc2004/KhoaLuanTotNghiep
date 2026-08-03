@@ -32,6 +32,14 @@ Code, test, `CURRENT_TASK.md`, feature specification và change history nằm tr
 - Pull `develop` không mang code chưa merge của A/B vào `develop`.
 - Remote branch của người khác chỉ được track khi review, hỗ trợ hoặc handoff đã thống nhất.
 
+### Scope isolation không cần theo dõi lẫn nhau
+
+- Thành viên chỉ cần làm task và write scope của mình; không phải nhắn nhắc, xem realtime, pull hoặc đoán nội dung feature branch của người kia.
+- Đầu mỗi phiên, Codex fetch/read remote `develop`, đối chiếu task owner/write scope và tự chặn chỉnh sửa ngoài phạm vi.
+- Code chưa push của người kia không cản task hiện tại nếu write scope trên `develop` không giao nhau.
+- Khi cần shared file/contract hoặc phạm vi của owner khác, Codex dừng trước khi sửa và tự chuẩn bị/publish Markdown coordination request trên `develop`.
+- Con người chỉ cần review/test/handoff ở checkpoint; AI chịu trách nhiệm nhắc gate và giữ phạm vi trong từng phiên.
+
 ### Git theo tình huống
 
 | Việc cần làm | Các bước |
