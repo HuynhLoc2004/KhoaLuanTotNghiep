@@ -4,6 +4,14 @@ export const packageIdentity = Object.freeze({
 } as const);
 
 export { createApp } from "./app.js";
-export { correlationIdMiddleware } from "./middleware/correlationId.js";
-export { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
-export { validateRequest } from "./middleware/validate.js";
+export { dbRepository, DatabaseRepository } from "./db/client.js";
+export { MigrationRunner, BASELINE_MIGRATIONS } from "./db/migrations.js";
+export { SEED_ROLES, SEED_USERS, SEED_PAGES, SEED_ARTIFACTS, SEED_MEDIA } from "./db/seed.js";
+export type {
+  RoleEntity,
+  UserEntity,
+  CmsPageEntity,
+  CmsSectionEntity,
+  ArtifactEntity,
+  MediaAssetEntity,
+} from "./db/schema.js";
