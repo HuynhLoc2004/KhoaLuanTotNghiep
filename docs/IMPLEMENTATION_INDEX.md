@@ -5,16 +5,16 @@
 ## Baseline
 
 - Application source: foundation skeleton đã khởi tạo.
-- Last synchronized merge: `8afa7c8` — `TASK-API-001`.
+- Last synchronized merge: `5ce59f2` — `TASK-ADMIN-001`.
 - Shared contracts implemented: ApiErrorResponseSchema, HealthStatusResponseSchema, ApiError class, ErrorCode enum.
-- UI components implemented: Heritage Theme tokens, CMS Block Renderer, Public Header & Footer layouts.
+- UI components implemented: Heritage Theme tokens, CMS Block Renderer, Admin Shell (Sidebar, Header), Public Header & Footer layouts.
 
 ## Applications
 
 | App/Service | Capability đã merge | Code location | Entry/Route | Status | Test/Evidence |
 |---|---|---|---|---|---|
 | Public Web | Public Web shell responsive layout, Header, Footer và CMS Page renderer | `apps/web/` | `apps/web/src/index.ts` | CODE_CONFIRMED | 5/5 web tests PASS; verified by `thanh` |
-| Admin | TypeScript build/test skeleton | `apps/admin/` | `apps/admin/src/index.ts` | CODE_CONFIRMED | Root gate + component test PASS |
+| Admin | Admin shell layout (Sidebar, Header), interactive CMS Block Form Editor và Live Preview panel | `apps/admin/` | `apps/admin/src/index.ts` | CODE_CONFIRMED | 7/7 admin tests PASS; verified by `thanh` |
 | API | Express API skeleton, `/health` & `/api/v1/health` endpoints, correlation ID middleware, Zod validator & error handler | `services/api/` | `services/api/src/index.ts` | CODE_CONFIRMED | 7/7 api tests PASS; verified by `thanh` |
 | AI service | Python package/test skeleton; chưa có AI runtime behavior | `services/ai/` | `services/ai/src/ai_service/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
 | Media worker | Python package/test skeleton; chưa có queue/media runtime behavior | `workers/media/` | `workers/media/src/media_worker/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
@@ -26,7 +26,7 @@
 
 | Feature | Behavior đã merge | Backend/Data | Contract | Status | Limitations | Owner doc |
 |---|---|---|---|---|---|---|
-| CMS/Admin | CMS Block DTO & Renderer skeleton đã merge | Chưa có | CMS Block types | CODE_CONFIRMED | Chưa có CMS Admin Form UI | `03-features/01-admin-cms.md` |
+| CMS/Admin | Admin Shell layout (Sidebar, Header), CMS Block Form Editor và Live Preview panel đã merge | Chưa có | CMS Block types | CODE_CONFIRMED | Chưa nối backend API lưu DB | `03-features/01-admin-cms.md` |
 | Web 3D/Map | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/02-web-3d-navigation.md` |
 | AI Tour Guide | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/03-ai-tour-guide.md` |
 | Recognition | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/04-artifact-recognition.md` |
@@ -46,6 +46,7 @@
 | 2026-08-03 | `847251c` / PR `#3` | `TASK-INFRA-001` | PostgreSQL/pgvector, MongoDB, Redis, health checks, volumes, env template và runbook | YES | `loc` |
 | 2026-08-03 | `03dfcd4` / PR `#5` | `TASK-WEB-001` | Public Web shell, Heritage design tokens, CMS Block Renderer | YES | `thanh` |
 | 2026-08-03 | `8afa7c8` / PR `#4` | `TASK-API-001` | Express API skeleton, health endpoints, correlation ID và Zod error contracts | YES | `thanh` |
+| 2026-08-03 | `5ce59f2` / PR `#6` | `TASK-ADMIN-001` | Admin shell layout (Sidebar, Header), CMS Block Form Editor và Live Preview | YES | `thanh` |
 
 ## Quy tắc
 
