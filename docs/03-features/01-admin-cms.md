@@ -5,7 +5,8 @@
 | Hạng mục | Trạng thái | Ghi chú |
 |---|---|---|
 | Đặc tả | IN_PROGRESS | Baseline v0.1, chờ nhóm review |
-| UI/API/Data/Tests | PLANNED | Chưa khởi tạo code |
+| Admin shell/form foundation | CODE_CONFIRMED | Sidebar/Header, semantic CMS form, validation/save controls và integrated Live Preview đã merge; 7/7 Admin tests PASS local |
+| Full CMS API/Data/Publishing | PLANNED | Chưa nối persistence, approval/publish workflow hoặc public CMS API |
 
 ## Mục tiêu
 
@@ -114,11 +115,13 @@ CMS còn quản lý typed Artifact Relationship gồm source/target, relation ty
 | Mốc | Timestamp | Member/Actor | Evidence |
 |---|---|---|---|
 | Planned | Baseline docs | Nhóm | Feature plan |
-| Claimed/Started/IMPLEMENTED/VERIFIED/Merged/Completed | Chưa có | — | — |
+| Admin foundation VERIFIED/Merged | 2026-08-03 | `thanh` | `TASK-ADMIN-001`, merge `5ce59f2` |
+| Admin semantic regression fix Merged/UNVERIFIED | 2026-08-03 | `thanh` | `FIX-CLEAN-GATE-001`, PR `#7`, merge `8bf9c9e`; hosted integration pending |
 
 | Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Chưa có | — | — | — | — | — | — | PLANNED | — | NOT RUN | Chờ task READY |
+| `TASK-ADMIN-001` | `thanh` | Implementer | `TASK-ADMIN-001` / `feature/TASK-ADMIN-001` | 2026-08-03 | 2026-08-03 | 2026-08-03 | VERIFIED/MERGED | Admin shell, form foundation and live preview | 7/7 Admin tests PASS | Merge `5ce59f2`; Merge Memory Sync PASS |
+| `FIX-CLEAN-GATE-001` | `thanh` | Fix implementer | `FIX-CLEAN-GATE-001` / `fix/clean-workspace-quality-gate` | 2026-08-03T23:01:50+07:00 | 2026-08-03T23:19:15+07:00 | 2026-08-03T23:19:15+07:00 | MERGED_UNVERIFIED | Restore semantic form/validation/live-preview behavior while fixing fresh-clone checks | Admin 7/7 and workspace tests PASS locally | Merge `8bf9c9e`; hosted integration pending |
 
 ## Change history
 
@@ -129,3 +132,4 @@ CMS còn quản lý typed Artifact Relationship gồm source/target, relation ty
 | 2026-08-02 | CHANGED | Ghi producer boundary cho Dòng thời gian sống; chi tiết thuộc feature owner mới | `IDEA-002`, `PLAN-0009`; code/test NOT RUN |
 | 2026-08-02 | CHANGED | Bổ sung allowlisted free/guided mode config; CMS không tự đổi direct scan sang guided | `DEC-TIMELINE-MODE-001`, `PLAN-0010`; code/test NOT RUN |
 | 2026-08-02 | CHANGED | Bổ sung Artifact Relationship editor/workflow và cấm batch/AI auto-publish quan hệ | `DEC-TIMELINE-RELATION-001`, `PLAN-0011`; code/test NOT RUN |
+| 2026-08-03 | IMPLEMENTED | Admin shell/form foundation merge tại `5ce59f2`; semantic form/validation/live-preview regression được sửa tại `8bf9c9e` / PR `#7` | 7/7 Admin tests PASS local; hosted combined gate pending |

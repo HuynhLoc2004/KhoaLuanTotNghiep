@@ -5,8 +5,4 @@ export const packageIdentity = Object.freeze({
 
 export { renderAdminShellPage } from "./shell/adminShell.js";
 export { renderAdminSidebar, renderAdminHeader } from "./shell/layout.js";
-export {
-  renderCmsBlockFormEditor,
-  renderLivePreviewPanel,
-  validateBlockData,
-} from "./forms/cmsFormBuilder.js";
+export { renderCmsBlockFormEditor, validateBlockData } from "./forms/cmsFormBuilder.js";
