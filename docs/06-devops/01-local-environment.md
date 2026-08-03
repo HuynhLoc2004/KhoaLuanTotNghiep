@@ -380,6 +380,7 @@ Tiêu chí đã dùng khi khóa plan: phù hợp dự án 30%, bảo trì 25%, t
 | Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `WS-TASK-FOUND-001-20260803-01` | `thanh` | implement | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T11:14:29+07:00 | 2026-08-03T11:52:48+07:00 | 2026-08-03T11:52:48+07:00 | CLOSED | PLAN_LOCKED; root tooling; 5 TS và 2 Python skeleton; locks, tests, hygiene và feature report | Node 24 forced root gate PASS; 5/5 package ở mỗi lint/typecheck/test/build, 5 Node tests, 2 pytest, frozen/locked sync, ignore/env checks và 3 dependency audits PASS | Handoff ở trạng thái IMPLEMENTED; user review/fresh-clone verification trước VERIFIED |
+| `WS-TASK-FOUND-001-20260803-02` | `thanh` | conflict resolution | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:03:19+07:00 | 2026-08-03T12:15:09+07:00 | 2026-08-03T12:15:09+07:00 | CLOSED | Sync `origin/develop` `PLAN-0015`; merge foundation report với shared infra plan; đổi branch-local foundation revision thành `PLAN-0016` | Marker/revision/Prettier/root gate/cached diff checks PASS; independent review không có finding | Resolution đã stage; merge commit vẫn là user action |
 
 Không suy ra active effort từ khoảng thời gian calendar; actual effort vẫn `UNKNOWN`. `EndedAt` chỉ ghi thời điểm đóng phiên, không phải thời lượng làm việc liên tục.
 
@@ -402,6 +403,7 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 | Integration/E2E | Runtime request/browser/database | Không thuộc foundation | NOT APPLICABLE |
 | Performance/visual/AI | Cold benchmark, browser/mobile, model quality | Không có runtime | NOT RUN/NOT APPLICABLE |
 | Security scan | `pnpm audit --audit-level high`; `uv export --all-groups --locked` + `pip-audit` cho mỗi Python project; secret regex | Không có known vulnerability/secret value | PASS tại 2026-08-03; SBOM, dedicated secret scanner và image scan chưa có |
+| Merge sync | Merge `origin/develop` `7d99302`; scan marker; kiểm tra revision feed; forced root gate | Giữ đủ Foundation + Infra plan, không trùng revision, không đổi behavior | PASS; không còn marker; `PLAN-0001`–`PLAN-0016` đủ/duy nhất; root gate PASS; review độc lập không có finding |
 
 ### Acceptance criteria foundation
 
@@ -473,9 +475,65 @@ Trình tự tương lai được bảo lưu:
 4. Chạy migration/seed bằng command có kiểm soát sau khi data owner chấp nhận contract.
 5. Chạy app/worker và CI pipeline sau khi feature owner cung cấp runtime behavior.
 
-CI target vẫn là lint -> typecheck -> unit -> integration -> build -> image/security scan -> E2E smoke; staging trước production, production cần approval và rollback image. Đây là roadmap, không phải implementation evidence.
+#### Local service contract - SHARED PLAN_LOCKED
 
-Windows tiếp tục dùng LF qua `.gitattributes`, CRLF riêng cho `.bat/.cmd`, named volume cho database tương lai và package scripts thống nhất để tránh command drift.
+Compose project dùng tên `hcm-museum`. Port trong container giữ port chuẩn; port publish lên host dùng dải riêng để giảm xung đột với dịch vụ đã cài trên máy phát triển.
+
+| Service | Compose name | Host port | Container port | Trạng thái |
+|---|---|---:|---:|---|
+| PostgreSQL | `postgres` | `15432` | `5432` | TASK-INFRA-001 |
+| MongoDB | `mongo` | `27018` | `27017` | TASK-INFRA-001 |
+| Redis | `redis` | `16379` | `6379` | TASK-INFRA-001 |
+| API | `api` | `3000` | `3000` | Reserved |
+| AI worker/service | `ai-worker` | `8000` | `8000` | Reserved |
+| Media worker | `media-worker` | `8001` | `8001` | Reserved |
+| Public Web | `web` | `5173` | `5173` | Reserved |
+| Admin | `admin` | `5174` | `5174` | Reserved |
+| Nginx | `nginx` | `8080` | `80` | Reserved |
+| MinIO API | `minio` | `19000` | `9000` | Optional/reserved |
+| MinIO Console | `minio` | `19001` | `9001` | Optional/reserved |
+
+Container-to-container connection dùng Compose DNS và container port (`postgres:5432`, `mongo:27017`, `redis:6379`). Process chạy trực tiếp trên host dùng `localhost` và host port tương ứng. Reserved port chưa cho phép TASK-INFRA-001 tạo app container ngoài write scope.
+
+Named volume baseline: `postgres_data`, `mongo_data`, `redis_data`. Database local mặc định là `museum`, PostgreSQL role ứng dụng là `museum_app`; credential thật phải đến từ ignored local environment hoặc Docker secret.
+
+#### Ví dụ endpoint local
+
+```dotenv
+# Dùng từ container trong Compose network
+DATABASE_URL=postgresql://museum_app:<local-password>@postgres:5432/museum
+MONGODB_URI=mongodb://mongo:27017/museum
+REDIS_URL=redis://redis:6379
+
+# Dùng khi runtime chạy trực tiếp trên host
+DATABASE_URL_HOST=postgresql://museum_app:<local-password>@localhost:15432/museum
+MONGODB_URI_HOST=mongodb://localhost:27018/museum
+REDIS_URL_HOST=redis://localhost:16379
+```
+
+Tên có hậu tố `_HOST` là tài liệu phân biệt ngữ cảnh, không mặc định yêu cầu runtime hỗ trợ hai bộ biến cùng lúc. Mỗi runtime vẫn nhận đúng một `DATABASE_URL`, `MONGODB_URI` và `REDIS_URL` đã được typed validation.
+
+Mỗi runtime dùng một config module typed/schema-validated và fail fast khi biến bắt buộc thiếu hoặc sai. Business logic không đọc `process.env` trực tiếp. Chỉ biến có nhãn public mới được expose vào frontend; server secret không được dùng prefix/public injection. External origin, callback, provider endpoint, timeout và quota phụ thuộc môi trường không được hard-code trong runtime source. Internal API route/event vẫn thuộc shared contract, không biến thành environment variable.
+
+#### TASK-INFRA-001 delivery estimate
+
+- Optimistic: 1 person-day.
+- Expected: 2 person-days.
+- Pessimistic: 3 person-days.
+- Confidence: MEDIUM.
+- Bao gồm: Compose cho PostgreSQL/MongoDB/Redis, health checks, named volumes, `.env.example` liên quan và smoke verification.
+- Không bao gồm: app container, migration nghiệp vụ, production deployment, Nginx và MinIO implementation.
+- Dependency/risk: cấu trúc root/Compose entrypoint từ `TASK-FOUND-001`; xung đột port trên máy; Docker Desktop/Windows filesystem.
+
+#### TASK-INFRA-001 implementation status
+
+- Owner/write scope đã được `loc` và `thanh` xác nhận; coordination được công bố trên `origin/develop` qua commit `b5a2ef5` và shared feed hiện ở `PLAN-0015`.
+- `PRE_CODE_PLAN_SYNC` vẫn `PENDING` cho implementation của `loc` đến khi owner pull `origin/develop` và xác nhận không collision; việc resolve conflict trên branch foundation không thay thế xác nhận đó.
+- Compose, health checks và smoke test vẫn `PLANNED`; chưa có implementation/test evidence.
+
+CI target vẫn là lint -> typecheck -> unit -> integration -> build -> image/security scan -> E2E smoke. Migration tương lai phải được kiểm tra trên database rỗng và snapshot gần production; staging đi trước production, production cần approval và rollback image. Đây là roadmap, không phải implementation evidence của foundation.
+
+Windows tiếp tục dùng LF qua `.gitattributes`, CRLF riêng cho `.bat/.cmd`; tránh mount quá nhiều file gây chậm, ưu tiên named volume cho database tương lai và package scripts thống nhất để tránh command drift.
 
 ## 14. Decision and change history
 
@@ -484,6 +542,7 @@ Windows tiếp tục dùng LF qua `.gitattributes`, CRLF riêng cho `.bat/.cmd`,
 | Decision | Ngày | Người xác nhận | Trạng thái | Nội dung |
 |---|---|---|---|---|
 | `DEC-FOUND-TOOLING-001` | 2026-08-03 | `thanh` | `PLAN_LOCKED` | Chọn pnpm `11.18.0` + Turbo `2.10.8` + hai uv project độc lập; local cache only; fallback `pnpm -r` |
+| `DEC-INFRA-LOCAL-PORTS-001` | 2026-08-03 | `loc` + `thanh` | `PLAN_LOCKED`; published on `origin/develop`; `PRE_CODE_PLAN_SYNC` pending owner confirmation | Giữ port chuẩn trong container; dùng host ports `15432`, `27018`, `16379`; Compose DNS là `postgres`, `mongo`, `redis`; reserve dải app/proxy theo bảng trên |
 
 ### Change history
 
@@ -495,13 +554,16 @@ Windows tiếp tục dùng LF qua `.gitattributes`, CRLF riêng cho `.bat/.cmd`,
 | 2026-08-03 | Thêm root workspace/tooling, 5 TS skeleton, 2 Python skeleton, locks, tests và repository hygiene | `IMPLEMENTED`, chưa `VERIFIED` |
 | 2026-08-03 | Cập nhật feature report với flow/sequence/state/auth/algorithm/inventory/test/limitation | Khớp source/config evidence trên feature branch |
 | 2026-08-03 | Siết Node LTS range bằng `engineStrict`, Turbo global cache inputs, uv guard/Hatchling lock và env ignore; buộc root gate bỏ cache giữa Node 22/24; chạy Node 24 gate, Node 26 negative test và ba dependency audit | PASS; không có code defect còn mở, vẫn chờ user review |
+| 2026-08-03 | `loc` chọn Phương án B và chuẩn bị service naming, host/container ports, volume/database naming cùng estimate cho `TASK-INFRA-001` | `DEC-INFRA-LOCAL-PORTS-001`; lúc tạo còn chờ shared publication; chưa có implementation/test |
+| 2026-08-03 | `loc` + `thanh` xác nhận owner/write scope và coordination được công bố trên `origin/develop` | Commit `b5a2ef5`; implementation còn chờ owner pull và xác nhận `PRE_CODE_PLAN_SYNC: PASS` |
+| 2026-08-03 | Resolve merge với `origin/develop`: giữ shared `PLAN-0012`–`PLAN-0015`, đổi revision foundation chưa công bố thành `PLAN-0016` và hợp nhất Infra plan vào owner report | Không rewrite shared history; marker/revision/format/root gate/review đều PASS; merge commit vẫn là user action |
 
 - **Deviation:** không có deviation khỏi PLAN_LOCKED.
 - **Merge reference:** chưa có; không suy diễn commit/push/merge.
 - **Verified-by:** chưa có; chờ người dùng/nhóm.
 - **Superseded history:** không có decision cũ bị xóa. Kế hoạch Docker/CI lịch sử được giữ dưới future scope.
 
-## Completion checklist
+## TASK-FOUND-001 completion checklist
 
 - [x] User/business flow, system sequence, data/state, auth boundary và algorithm phản ánh code hiện tại.
 - [x] Mỗi sơ đồ có entry condition, main steps, decision, error/fallback, output và persisted/audited data phù hợp.

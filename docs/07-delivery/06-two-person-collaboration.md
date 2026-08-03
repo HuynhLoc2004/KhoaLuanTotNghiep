@@ -14,7 +14,11 @@ Mỗi phiên implementation áp dụng `09-work-session-contribution-ledger.md`.
 
 ### Coordination change trên `develop`
 
-Chỉ cập nhật `docs/NEXT_WORK.md` để nhận/trả task, owner, branch và write scope. Đây là thay đổi nhỏ cần xuất hiện trên remote `develop` để người còn lại nhìn thấy.
+Cập nhật shared planning/task coordination gồm `docs/NEXT_WORK.md`, `docs/PLAN_SNAPSHOT.md` và owner/contract/index liên quan khi cần: nhận/trả task, status, owner, branch, dependency, write scope, accepted shared decision và cross-task contract. Đây là thay đổi nhỏ bắt buộc xuất hiện trên remote `develop` để người còn lại chỉ cần pull `develop` là nhìn thấy.
+
+Không giữ shared plan/task change chỉ trên feature branch. Feature branch có thể dùng để thảo luận/review bản nháp, nhưng sau khi nhóm thống nhất phải chuẩn bị coordination-only change trên `develop`, commit/push lên remote và yêu cầu collaborator pull trước khi code phụ thuộc bắt đầu.
+
+Mỗi coordination-only change phải cập nhật `README.md` trong cùng commit: Plan Snapshot revision hiện tại, task active/owner/branch và link đến registry/owner docs. README là bản tóm tắt/router; chi tiết vẫn thuộc `NEXT_WORK`, `PLAN_SNAPSHOT` và owner documents.
 
 ### Implementation change trên `feature/*`
 
@@ -27,6 +31,14 @@ Code, test, `CURRENT_TASK.md`, feature specification và change history nằm tr
 - Hai người cập nhật `develop` để nhận những gì đã được merge chung.
 - Pull `develop` không mang code chưa merge của A/B vào `develop`.
 - Remote branch của người khác chỉ được track khi review, hỗ trợ hoặc handoff đã thống nhất.
+
+### Scope isolation không cần theo dõi lẫn nhau
+
+- Thành viên chỉ cần làm task và write scope của mình; không phải nhắn nhắc, xem realtime, pull hoặc đoán nội dung feature branch của người kia.
+- Đầu mỗi phiên, Codex fetch/read remote `develop`, đối chiếu task owner/write scope và tự chặn chỉnh sửa ngoài phạm vi.
+- Code chưa push của người kia không cản task hiện tại nếu write scope trên `develop` không giao nhau.
+- Khi cần shared file/contract hoặc phạm vi của owner khác, Codex dừng trước khi sửa và tự chuẩn bị/publish Markdown coordination request trên `develop`.
+- Con người chỉ cần review/test/handoff ở checkpoint; AI chịu trách nhiệm nhắc gate và giữ phạm vi trong từng phiên.
 
 ### Git theo tình huống
 
@@ -53,7 +65,7 @@ Khi merge, contract/provider nên vào trước hoặc giữ backward compatibil
 
 ## Publish plan chung
 
-Quyết định ảnh hưởng người còn lại phải được cập nhật trong owner doc và `PLAN_SNAPSHOT.md` trên `develop`, sau đó người dùng commit/push. Không để contract/dependency mới chỉ tồn tại trong feature branch rồi yêu cầu người khác tự đoán.
+Quyết định ảnh hưởng người còn lại phải được cập nhật trong owner doc và `PLAN_SNAPSHOT.md` trên `develop`. Sau khi hai thành viên xác nhận, Codex tự thực hiện coordination-only commit/push lên remote `develop`, xác minh remote rồi quay lại đúng feature branch. Không để contract/dependency mới chỉ tồn tại trong feature branch rồi yêu cầu người khác tự đoán.
 
 ## Quy trình nhận task
 
@@ -66,11 +78,22 @@ Quyết định ảnh hưởng người còn lại phải được cập nhật 
    - Planned branch.
    - `ClaimedAt`, `LastUpdated`.
    - Write scope.
-5. Người dùng commit/push coordination change.
+5. Codex commit/push coordination-only change lên remote `develop` và xác minh commit remote; dừng nếu conflict/divergence/rejected push hoặc có file ngoài scope.
 6. Tạo feature branch từ `develop`.
 7. Cập nhật `CURRENT_TASK.md` trong feature branch rồi code.
 
-Codex không tự commit/push. Nó có thể chuẩn bị nội dung registry, sau đó yêu cầu người dùng review và đưa thay đổi lên remote trước khi bắt đầu code nếu cần tránh xung đột.
+### Pre-code Plan Sync Gate
+
+Sau khi hai thành viên xác nhận owner/write scope nhưng trước dòng code implementation đầu tiên:
+
+1. Codex phải nhắc owner publish task claim, branch, dependency, write scope và shared plan/contract liên quan lên remote `develop`.
+2. Người còn lại cập nhật local `develop` từ `origin/develop`; không cần checkout/pull feature branch của owner.
+3. Hai bên xác nhận registry/Plan Snapshot mới không chồng file, migration, contract hoặc shared package.
+4. Owner chỉ bắt đầu code khi coordination change đã hiện trên remote `develop`, đúng feature branch và working tree không chứa thay đổi của task khác.
+
+Plan chỉ được push trên feature branch chưa phải shared coordination. Nếu nhóm review plan bằng feature branch trước, sau khi thống nhất vẫn phải đưa phần coordination đã chấp nhận lên remote `develop` rồi người còn lại pull về. Mọi thay đổi shared plan/task về sau cũng lặp lại gate này. Codex phải dừng ở checkpoint và không ngầm xem việc “đã nói trong chat” là đã đồng bộ cho cả nhóm.
+
+Codex tự commit/push chỉ các file Markdown của coordination change đã được nhóm xác nhận lên remote `develop`. Ưu tiên một coordination worktree riêng để active feature branch không bị checkout qua lại. Codex không đưa non-Markdown/feature commit vào `develop`, không tự push hoặc merge implementation branch, không force-push và không xử lý conflict bằng reset; các trường hợp bất thường phải dừng để nhóm quyết định. Khi feature hoàn tất, Codex chỉ đề xuất lệnh push/review/merge để người dùng tự thực hiện.
 
 ## Write scope
 
@@ -174,9 +197,11 @@ Merge chỉ được đề xuất sau `VERIFIED`. Không merge feature chưa ho�
 
 1. Đồng bộ `develop`.
 2. Chọn task `READY` không xung đột.
-3. Claim trên `develop` và đưa coordination change lên remote.
-4. Tạo branch mới từ `develop`.
-5. Viết lại `CURRENT_TASK.md` và thực hiện Definition of Ready.
+3. Hai thành viên xác nhận owner, dependency và write scope.
+4. Claim trên `develop` và đưa coordination change/shared plan lên remote.
+5. Người còn lại pull `origin/develop` và xác nhận không collision.
+6. Tạo hoặc tiếp tục branch riêng từ shared baseline đã đồng bộ.
+7. Viết lại `CURRENT_TASK.md` và thực hiện Definition of Ready.
 
 ## Nếu feature branch chưa merge
 

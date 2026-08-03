@@ -49,7 +49,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 5. Implementation mới đọc feature doc và code trong write scope.
 6. Cập nhật flow, thuật toán, ưu/nhược điểm, decision/change history.
 7. Tối đa ghi `IMPLEMENTED`; người dùng xác nhận `VERIFIED`.
-8. AI không tự commit/push/merge.
+8. AI chỉ tự commit/push Markdown-only coordination đã được nhóm xác nhận lên remote `develop`, ưu tiên worktree riêng để giữ nguyên feature branch; không tự push/merge implementation, force-push hoặc bỏ qua conflict. Khi feature xong, AI chỉ đề xuất để người dùng tự push/review/merge.
 9. AI hướng dẫn theo gate/checkpoint, mỗi lần một bước an toàn và bám dependency của plan.
 10. Sau merge vào develop, chạy Merge Memory Sync để người sau biết capability/component/contract đã có.
 11. Shared plan có revision trong `PLAN_SNAPSHOT.md`; sau pull chỉ đọc lại owner docs liên quan revision mới.
@@ -57,7 +57,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 
 ## Trạng thái hiện tại
 
-Baseline tài liệu đã có; source application chưa được khởi tạo theo `docs/PROJECT_STATUS.md`. Task tiếp theo lấy từ `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
+Baseline tài liệu đã có. Monorepo/tooling skeleton của `TASK-FOUND-001` đã `IMPLEMENTED` trên `feature/TASK-FOUND-001` nhưng chưa là shared baseline cho đến khi review/merge; Docker/runtime nghiệp vụ chưa được triển khai. Task tiếp theo lấy từ `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
 
 ## Đọc tiếp
 
