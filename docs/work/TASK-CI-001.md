@@ -4,7 +4,7 @@
 
 - Owner/contributor: `loc` (reconfirmed 2026-08-03T21:32:56+07:00; TEAM match `CONFIRMED`).
 - Branch: `feature/TASK-CI-001`.
-- Base/shared plan revision: `PLAN-0021`; claim commit `28a31fb`, scope revision `ba33782` on `develop`.
+- Base/shared plan revision: `PLAN-0024`; claim commit `28a31fb`, scope revision `ba33782`, clean-gate merge `8bf9c9e` and Merge Memory Sync `3a3794f` on `develop`.
 - Status: `IMPLEMENTED`; waiting for user review and hosted GitHub Actions evidence.
 - `PRE_CODE_PLAN_SYNC: PASS` — remote claim verified, local branch created from updated `develop`, published scopes do not overlap `TASK-API-001`.
 
@@ -186,6 +186,7 @@ No production dependency, runtime service, API contract, schema or database is a
 | 2026-08-03 | CI EVIDENCE | PR `#4` executed the workflow successfully through install/format and failed at lint on defects already merged in contracts/UI; external owner fixed and synced the baseline | Failed run `30824882920`, job `91723843393`; fix `60d73c9`, merge `cc1c600`, Memory Sync `ed3edf6`; rerun pending this report push |
 | 2026-08-03 | CI EVIDENCE | `thanh` hỗ trợ đồng bộ `develop` tại merge `b8ff720` và chạy lại root gate; Prettier cùng 5/5 lint PASS, sau đó typecheck phát hiện lỗi baseline Admin ngoài scope CI | `apps/admin/src/index.ts` export `renderLivePreviewPanel` nhưng `apps/admin/src/forms/cmsFormBuilder.ts` không cung cấp symbol; cần fix riêng trước hosted PASS |
 | 2026-08-03 | CI EVIDENCE | Hosted run `30829451628` trên PR `#4` qua cài đặt và Prettier nhưng fail tại `packages/ui` lint vì clean runner không có contracts declarations trong ignored `dist` | 10 annotations tại `packages/ui/src/timeline/renderer.ts`; package export trỏ `@hcmc-museum/contracts` types tới `./dist/src/index.d.ts`, trong khi Turbo lint chỉ phụ thuộc `^lint`, không build dependency trước |
+| 2026-08-03 | CI EVIDENCE | Hosted run `30829724233` lặp lại clean-runner UI lint failure vì PR head vẫn là `dbb8f2d`, chưa chứa clean-gate fix | `FIX-CLEAN-GATE-001` sau đó merge vào `develop` tại `8bf9c9e`; branch CI sync latest develop tại local merge `7d756c7` |
 
 ## Contribution ledger
 
@@ -195,17 +196,18 @@ No production dependency, runtime service, API contract, schema or database is a
 | `WS-TASK-CI-001-20260803-02` | `loc` | 2026-08-03T22:16:13+07:00 | 2026-08-03T22:16:13+07:00 | 2026-08-03T22:16:13+07:00 | CLOSED | Reconfirm identity; inspect PR `#4` hosted failure; attribute failures to merged foreign scopes; record completed external fix and prepare a report-only synchronization commit | PR `#4` run `30824882920` reached the quality command; lint exposed 5 baseline defects; `FIX-LINT-001` merged at `cc1c600` and Memory Sync completed at `ed3edf6` | User commits/pushes report-only update; new PR run validates current `develop` + CI feature |
 | `WS-TASK-CI-001-20260803-03` | `thanh` | 2026-08-03T22:48:24+07:00 | 2026-08-03T22:49:44+07:00 | 2026-08-03T22:49:44+07:00 | CLOSED | Support theo xác nhận của `loc`; merge `develop` vào branch CI tại `b8ff720`; chạy root gate và khoanh vùng failure ngoài scope | Prettier PASS; 5/5 lint PASS; typecheck dừng tại `TS2305` do Admin export mismatch đã có trên `develop` | Giữ task `IMPLEMENTED`; sửa baseline Admin bằng task/scope riêng, sau đó đồng bộ và chạy lại hosted CI |
 | `WS-TASK-CI-001-20260803-04` | `thanh` | 2026-08-03T22:53:36+07:00 | 2026-08-03T22:53:36+07:00 | 2026-08-03T22:53:36+07:00 | CLOSED | Support diagnosis cho hosted run `30829451628`; đối chiếu annotations, package exports, ignored build artifacts và Turbo dependency order | CI Prettier PASS rồi UI lint FAIL; local `packages/contracts/dist/src/index.d.ts` tồn tại nhưng bị ignore, còn clean runner không tạo file trước lint | Mở fix riêng cho clean-environment dependency build order và Admin stale export; không nới scope CI hoặc làm yếu gate |
+| `WS-TASK-CI-001-20260803-05` | `thanh` | 2026-08-03T23:33:06+07:00 | 2026-08-03T23:33:06+07:00 | 2026-08-03T23:33:06+07:00 | CLOSED | Support integration after `FIX-CLEAN-GATE-001`; user merged latest `develop` into CI branch at `7d756c7`; ran the exact root gate on the combined branch | Prettier PASS; lint 7/7 PASS; typecheck 7/7 PASS; test 10/10 PASS; build 5/5 PASS; local command stops only because locked uv 0.11.x is not installed on this host | User commits this evidence, pushes `feature/TASK-CI-001`, then hosted GitHub Actions supplies uv and becomes authoritative verification |
 
 ## Implementation evidence
 
 - Behavior/files: `.github/workflows/quality.yml` adds the locked cross-runtime quality job; task report records the decision and pins.
-- Tests: YAML parse, workflow/report/Compose Prettier and workflow risk-pattern scan PASS; lockfile supply-chain verification PASS; earlier isolated evidence covered TypeScript format + 5 lint/type/test/build and pinned uv `0.11.32` Ruff/format + 2/2 pytest. After sync merge `b8ff720`, the exact local root gate passed Prettier and 5/5 lint using existing ignored declarations, then stopped at Admin typecheck `TS2305`. Hosted run `30829451628` on a clean runner instead stopped earlier at UI lint because `@hcmc-museum/contracts` exports declarations from ignored `dist` and Turbo does not build workspace dependencies before lint. A fresh hosted PASS needs both baseline defects fixed outside CI scope.
+- Tests: YAML parse, workflow/report/Compose Prettier and workflow risk-pattern scan PASS; lockfile supply-chain verification PASS; earlier isolated evidence covered TypeScript format + 5 lint/type/test/build and pinned uv `0.11.32` Ruff/format + 2/2 pytest. After clean-gate fix `8bf9c9e` and sync merge `7d756c7`, the exact combined root command passes Prettier, lint 7/7, typecheck 7/7, test 10/10 and build 5/5; it stops only at the final Python step because this host does not have the locked uv 0.11.x toolchain. The GitHub workflow provisions uv, so a new hosted run after push is the authoritative remaining check.
 - Security/invariants: no product behavior/data/contract change; workflow must use least privilege and no secrets.
 - Known limitations/fallback: hosted-runner evidence requires pushing the feature branch; local validation cannot prove GitHub execution. Local global uv remains `0.10.7` and was not modified; isolated accepted uv `0.11.32` supplied Python evidence. Fallback is the same pinned local component gate.
 
 ## Handoff
 
-- Verification status: `IMPLEMENTED`, not `VERIFIED`; branch synced through `develop` merge `b8ff720`. Hosted run `30829451628` exposes clean-runner dependency-resolution failure before lint, while the warmed local workspace exposes a later Admin typecheck defect. Both belong to baseline/root or product scopes outside this CI task; fresh hosted PASS remains pending.
-- Feature commit/PR: none.
+- Verification status: `IMPLEMENTED`, not `VERIFIED`; branch is locally synced through merge `7d756c7`. All Node/TypeScript stages of the exact combined root gate PASS; hosted Python and complete workflow evidence remain pending after push.
+- Feature commit/PR: PR `#4`; local merge `7d756c7` and this report update are not pushed yet.
 - Merge status: not merged.
 - Merge Memory Sync checklist: not applicable before merge.
