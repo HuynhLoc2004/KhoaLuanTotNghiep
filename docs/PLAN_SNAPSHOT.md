@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0015`
+- Revision: `PLAN-0016`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PENDING_REMOTE_DEVELOP_SYNC
-- Scope: AI-enforced scope isolation; thành viên làm độc lập mà không cần theo dõi, nhắc hoặc xem branch của nhau.
+- Scope: Công bố `TASK-INFRA-001` đã VERIFIED/push và chuyển REVIEW; implementation vẫn branch-local đến khi user merge.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -38,6 +38,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0013 | 2026-08-03 | Bắt buộc cập nhật README trong cùng commit với mọi shared plan/task coordination change | README; mọi task/plan owner | Giữ README ngắn gọn với revision, active owner/branch và link; Codex xác minh README trên remote `develop` trước khi quay lại feature branch | `loc` xác nhận |
 | PLAN-0014 | 2026-08-03 | Giới hạn AI chỉ tự commit/push Markdown coordination lên `develop`; ưu tiên worktree để không đổi active branch; feature push/review/merge do người dùng thực hiện | Git workflow; mọi task/feature branch | Chặn non-Markdown trong coordination commit; không tự push/merge implementation; AI chỉ đề xuất handoff commands | `loc` xác nhận |
 | PLAN-0015 | 2026-08-03 | Khóa scope isolation do AI thực thi; thành viên không cần theo dõi/nhắc/xem branch của nhau | Mọi task song song; session start gate | AI đọc remote `develop` đầu phiên, chỉ sửa owned scope; unknown branch-local work không là blocker nếu scope tách; shared/foreign scope phải qua coordination Markdown | `loc` xác nhận |
+| PLAN-0016 | 2026-08-03 | `TASK-INFRA-001` VERIFIED và đã push feature commit `5936397`; registry chuyển REVIEW | TASK-INFRA-001; local environment | Người dùng/nhóm review feature branch; chỉ merge khi chấp nhận; sau merge chạy Merge Memory Sync | `loc` xác nhận verification và push |
 
 ## Changed owner documents in current revision
 
@@ -46,7 +47,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 - `docs/NEXT_WORK.md`, `docs/PROJECT_STATUS.md`.
 - `README.md`, `AGENTS.md`, `PROJECT_BRAIN.md`, `docs/07-delivery/06-two-person-collaboration.md`.
 
-`TASK-INFRA-001` đã được hai thành viên xác nhận cho `loc` trên `feature/TASK-INFRA-001`, nhưng implementation chỉ bắt đầu sau khi coordination change xuất hiện trên remote `develop` và collaborator pull/xác nhận không collision (`PRE_CODE_PLAN_SYNC: PASS`). `TASK-TIMELINE-001` vẫn BLOCKED. Bản này chưa là shared plan cho đến khi được publish lên remote `develop`.
+`TASK-INFRA-001` đã `VERIFIED` và push trên `feature/TASK-INFRA-001` tại commit `5936397`; trạng thái `REVIEW`, chưa merge và chưa `DONE`. `TASK-TIMELINE-001` vẫn BLOCKED.
 
 ## Revision rules
 
