@@ -10,7 +10,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0018` — task reports riêng, shared-doc denylist và single-writer integration turn giảm conflict khi hai thành viên merge tuần tự.
+- Shared plan revision: `PLAN-0019` — sau xác nhận bắt đầu task, AI tự publish claim, đồng bộ `develop`, tạo/chuyển feature branch và triển khai; merge/push implementation vẫn do người dùng quyết định.
 - `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
@@ -20,6 +20,8 @@ Mọi thay đổi shared plan, task, owner, branch, dependency, write scope ho�
 Mỗi người chỉ làm write scope đã công bố trên `develop`; không cần biết hoặc xem realtime branch của người kia. Đầu phiên, AI tự đọc trạng thái coordination mới nhất và chặn thay đổi ngoài scope. Chỉ shared file/contract mới tạo coordination checkpoint.
 
 Chỉ một thành viên giữ integration turn để merge/push `develop` tại một thời điểm. Người kế tiếp chờ merge trước và Markdown Merge Memory Sync hoàn tất, cập nhật local `develop` bằng fast-forward rồi mới merge task `VERIFIED` của mình; không force-push hoặc nhập `develop` qua lại vào feature đã code xong chỉ để phòng conflict.
+
+Khi AI đã trình bày task, owner, branch, dependency và write scope, câu xác nhận bắt đầu của người dùng là quyền cho AI tự hoàn tất Pre-code Plan Sync trên workspace hiện tại: publish coordination Markdown, kiểm tra working tree, cập nhật local `develop` bằng fast-forward, tạo/chuyển đúng feature branch, mở session/task report và code. AI dừng khi có dirty tree, divergence, conflict, missing tracking hoặc scope mơ hồ; không tự push/merge implementation.
 
 Feature branch ghi session/evidence tại `docs/work/<TASK-ID>.md` và không sửa README, CURRENT_TASK, shared status/index/catalog files. Các file chung chỉ được AI cập nhật trên `develop`; sau merge, Merge Memory Sync promote evidence vào owner docs/indexes.
 

@@ -116,6 +116,19 @@ Plan chỉ được push trên feature branch chưa phải shared coordination. 
 
 Codex tự commit/push chỉ các file Markdown của coordination change đã được nhóm xác nhận lên remote `develop`. Ưu tiên một coordination worktree riêng để active feature branch không bị checkout qua lại. Codex không đưa non-Markdown/feature commit vào `develop`, không tự push hoặc merge implementation branch, không force-push và không xử lý conflict bằng reset; các trường hợp bất thường phải dừng để nhóm quyết định. Khi feature hoàn tất, Codex chỉ đề xuất lệnh push/review/merge để người dùng tự thực hiện.
 
+### AI-managed task startup sau xác nhận
+
+Sau khi AI đã trình bày objective, owner, dependency, write scope, branch và plan cần thiết, câu xác nhận rõ ràng như “chốt”, “bắt đầu” hoặc “làm task này” cho phép AI thực hiện trọn startup sequence trên workspace của phiên:
+
+1. Publish và xác minh coordination Markdown/README trên remote `develop`.
+2. Kiểm tra branch, tracking và working tree; chỉ tiếp tục khi trạng thái an toàn.
+3. Cập nhật local `develop` bằng `git pull --ff-only origin develop`.
+4. Tạo feature branch mới từ `develop`, hoặc chuyển/pull đúng feature branch nếu task đã tồn tại; không tái tạo branch cũ.
+5. Tạo/cập nhật `docs/work/<TASK-ID>.md`, mở contribution session và ghi `PRE_CODE_PLAN_SYNC: PASS`.
+6. Đọc context tối thiểu theo router rồi bắt đầu implementation trong write scope.
+
+Người dùng không phải chạy hoặc xác nhận lại từng lệnh an toàn trong chuỗi này. AI phải dừng và báo nếu có dirty tree, divergence, detached HEAD, conflict, rejected/missing remote, branch không đúng owner hoặc phạm vi mơ hồ. Quyền startup không cho phép AI tự commit/push feature, mở/merge PR, rebase hoặc force-push.
+
 ## Write scope
 
 Write scope là khóa mềm, không phải quyền filesystem. Ví dụ:
@@ -221,8 +234,8 @@ Merge chỉ được đề xuất sau `VERIFIED`. Không merge feature chưa ho�
 3. Hai thành viên xác nhận owner, dependency và write scope.
 4. Claim trên `develop` và đưa coordination change/shared plan lên remote.
 5. Người còn lại pull `origin/develop` và xác nhận không collision.
-6. Tạo hoặc tiếp tục branch riêng từ shared baseline đã đồng bộ.
-7. Viết lại `CURRENT_TASK.md` và thực hiện Definition of Ready.
+6. Sau xác nhận bắt đầu, AI tự tạo hoặc tiếp tục branch riêng từ shared baseline đã đồng bộ.
+7. AI mở task report/session, ghi Pre-code Plan Sync evidence và thực hiện Definition of Ready trước khi code.
 
 ## Nếu feature branch chưa merge
 

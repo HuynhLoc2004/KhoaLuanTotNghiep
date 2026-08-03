@@ -85,6 +85,8 @@ git push -u origin feature/ten-task
 
 `-u` thiết lập tracking để lần sau có thể dùng `git pull`/`git push` ngắn.
 
+Khi AI đã trình bày đầy đủ task/branch/write scope và người dùng xác nhận bắt đầu, AI tự chạy kiểm tra an toàn, publish claim, `switch develop`, `pull --ff-only` và tạo/chuyển feature branch trên workspace hiện tại. Người dùng không cần gõ từng lệnh. AI dừng nếu working tree bẩn, branch/tracking bất thường, divergence hoặc conflict. Xác nhận này không cấp quyền tự commit/push/merge implementation.
+
 ## Tiếp tục feature của mình
 
 Nếu local branch đã có:
