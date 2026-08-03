@@ -5,21 +5,21 @@
 ## Baseline
 
 - Application source: foundation skeleton đã khởi tạo.
-- Last synchronized merge: `d75cdf8` — `TASK-DATA-001`.
-- Shared contracts implemented: ApiErrorResponseSchema, HealthStatusResponseSchema, ApiError class, ErrorCode enum, Database Entity DTOs (RoleEntity, UserEntity, CmsPageEntity, CmsSectionEntity, ArtifactEntity, MediaAssetEntity).
-- UI components implemented: Heritage Theme tokens, CMS Block Renderer, Admin Shell (Sidebar, Header), Public Header & Footer layouts.
+- Last synchronized merge: `92c7caa` — `TASK-TIMELINE-001`.
+- Shared contracts implemented: ApiErrorResponseSchema, HealthStatusResponseSchema, ApiError class, ErrorCode enum, Database Entity DTOs, Living Timeline Zod Schemas (ExplorationMode, NarrativeJourney, NarrativeNode, RelatedArtifact).
+- UI components implemented: Heritage Theme tokens, CMS Block Renderer, Admin Shell (Sidebar, Header), Public Header & Footer layouts, Living Timeline 2D Renderer, Mode Switcher, Related Artifact Cards.
 
 ## Applications
 
 | App/Service | Capability đã merge | Code location | Entry/Route | Status | Test/Evidence |
 |---|---|---|---|---|---|
-| Public Web | Public Web shell responsive layout, Header, Footer và CMS Page renderer | `apps/web/` | `apps/web/src/index.ts` | CODE_CONFIRMED | 5/5 web tests PASS; verified by `thanh` |
+| Public Web | Public Web shell responsive layout, Header, Footer, CMS Page renderer và Living Timeline Page renderer | `apps/web/` | `apps/web/src/index.ts` | CODE_CONFIRMED | 5/5 web tests PASS; verified by `thanh` |
 | Admin | Admin shell layout (Sidebar, Header), interactive CMS Block Form Editor và Live Preview panel | `apps/admin/` | `apps/admin/src/index.ts` | CODE_CONFIRMED | 7/7 admin tests PASS; verified by `thanh` |
-| API | Express API skeleton, health endpoints, correlation ID middleware, Zod validator & error handler; Database DDL migrations, Entity DTOs, seed data & DatabaseRepository | `services/api/` | `services/api/src/index.ts` | CODE_CONFIRMED | 12/12 api tests PASS; verified by `thanh` |
+| API | Express API skeleton, health endpoints, correlation ID middleware, Zod validator & error handler; Database DDL migrations, Entity DTOs, seed data & DatabaseRepository; REST API endpoints `/api/v1/timeline/*` | `services/api/` | `services/api/src/index.ts` | CODE_CONFIRMED | 17/17 api tests PASS; verified by `thanh` |
 | AI service | Python package/test skeleton; chưa có AI runtime behavior | `services/ai/` | `services/ai/src/ai_service/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
 | Media worker | Python package/test skeleton; chưa có queue/media runtime behavior | `workers/media/` | `workers/media/src/media_worker/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
-| Shared contracts | Base ApiError, ErrorCode, ApiErrorResponseSchema, HealthStatusResponseSchema | `packages/contracts/` | `packages/contracts/src/index.ts` | CODE_CONFIRMED | 1/1 contract test PASS; verified by `thanh` |
-| Shared UI | Heritage Modern Dark Theme tokens, CMS Block types và CmsBlockRenderer (Hero, ArtifactGrid, Timeline, Banner) | `packages/ui/` | `packages/ui/src/index.ts` | CODE_CONFIRMED | 8/8 ui tests PASS; verified by `thanh` |
+| Shared contracts | Base ApiError, ErrorCode, ApiErrorResponseSchema, HealthStatusResponseSchema, Living Timeline Zod schemas | `packages/contracts/` | `packages/contracts/src/index.ts` | CODE_CONFIRMED | 5/5 contract tests PASS; verified by `thanh` |
+| Shared UI | Heritage Modern Dark Theme tokens, CMS Block types, CmsBlockRenderer, Living Timeline 2D Renderer, Mode Switcher, Related Artifact Cards | `packages/ui/` | `packages/ui/src/index.ts` | CODE_CONFIRMED | 12/12 ui tests PASS; verified by `thanh` |
 | Local data services | PostgreSQL + pgvector, MongoDB và Redis qua Docker Compose; authenticated health checks và named volumes | `infra/` | `infra/compose.yaml` | CODE_CONFIRMED | Compose config validation + runtime smoke/health PASS; verified by `loc` |
 
 ## Features
@@ -36,7 +36,7 @@
 | Dashboard | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/08-dashboard-analytics.md` |
 | Search/Discovery | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/09-search-discovery.md` |
 | Indoor Location QR/Photo | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Cần map/dataset | `03-features/10-indoor-location-detection.md` |
-| Living Timeline/Dòng thời gian sống | Chưa có code | Narrative graph + free/guided + Artifact Relationship PLANNED | Shared QR/Narrative/mode/relation contracts PLANNED | DOCS_ONLY | Concept/modes/relations PLAN_LOCKED; task BLOCKED bởi foundation/CMS/contracts/content | `03-features/11-living-timeline.md` |
+| Living Timeline/Dòng thời gian sống | Mode Switcher (`FREE_EXPLORE`/`GUIDED_JOURNEY`), Related Artifact Cards, REST API endpoints (`/api/v1/timeline/*`) và 2D Timeline UI | Sample Narrative Journeys & Related Artifact Links | Shared Zod timeline contracts | CODE_CONFIRMED | Cinematic 3D camera transition là extension sau MVP | `03-features/11-living-timeline.md` |
 
 ## Merge history
 
@@ -48,6 +48,7 @@
 | 2026-08-03 | `8afa7c8` / PR `#4` | `TASK-API-001` | Express API skeleton, health endpoints, correlation ID và Zod error contracts | YES | `thanh` |
 | 2026-08-03 | `5ce59f2` / PR `#6` | `TASK-ADMIN-001` | Admin shell layout (Sidebar, Header), CMS Block Form Editor và Live Preview | YES | `thanh` |
 | 2026-08-03 | `d75cdf8` / PR `#7` | `TASK-DATA-001` | PostgreSQL DDL migrations, entity DTOs, seed data baseline và DatabaseRepository | YES | `thanh` |
+| 2026-08-03 | `92c7caa` / PR `#8` | `TASK-TIMELINE-001` | Living Timeline MVP (FREE_EXPLORE/GUIDED_JOURNEY modes, Related Artifact Cards, REST API endpoints và 2D Timeline UI) | YES | `thanh` |
 
 ## Quy tắc
 

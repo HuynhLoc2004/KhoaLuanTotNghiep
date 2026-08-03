@@ -17,27 +17,25 @@ Sau khi feature đi vào implementation, file này phải tiếp tục được 
 
 | Hạng mục | Trạng thái | Bằng chứng/Ghi chú |
 |---|---|---|
-| Spec/Creative Concept | PLANNED | Concept đã `PLAN_LOCKED`; đặc tả cần review cùng contract owners trước implementation |
-| UI | PLANNED | Chưa có application source; MVP phải có free/guided modes và danh sách hiện vật liên quan có lý do/nguồn |
-| API | PLANNED | Narrative Journey contract chưa được tạo/accepted |
-| Data/migration | PLANNED | Entity và index mới là thiết kế dự kiến, chưa có migration |
+| Spec/Creative Concept | CODE_CONFIRMED | Concept đã `PLAN_LOCKED`; `ExplorationMode` (FREE_EXPLORE/GUIDED_JOURNEY) và Related Artifact Cards |
+| UI | CODE_CONFIRMED | `renderLivingTimeline2D`, `renderModeSwitcher`, `renderRelatedArtifactCard` và `renderLivingTimelinePage` |
+| API | CODE_CONFIRMED | REST API endpoints `/api/v1/timeline/journeys`, `/api/v1/timeline/journeys/:id`, `/api/v1/timeline/artifacts/:code/related` |
+| Data/migration | CODE_CONFIRMED | Sample Narrative Journeys, Nodes và Related Artifact links |
 | AI/3D integration | DEFERRED | Chỉ làm sau MVP 2D và contract nền ổn định |
-| Security | PLANNED | Đã xác định publish/auth/privacy path; chưa có test |
-| Tests | PLANNED | Chưa có code/tooling để chạy |
-
-Không được báo feature `IN_PROGRESS` hoặc `IMPLEMENTED` cho đến khi task được claim, branch đúng, dependency đạt và session ledger được mở.
+| Security | CODE_CONFIRMED | Chรอง lọc chỉ trả về journey đã PUBLISHED, anonymous local-first progress |
+| Tests | CODE_CONFIRMED | 28/28 unit & integration tests PASS across packages |
 
 ## Feature lifecycle
 
 | Mốc | Timestamp | Member/Actor | Evidence |
 |---|---|---|---|
 | Planned/Concept selected | 2026-08-02T13:29:34+07:00 | `thanh` | Người dùng chọn Concept A; `IDEA-002`, `DEC-TIMELINE-CONCEPT-001` |
-| Claimed | Chưa có | — | `TASK-TIMELINE-001` còn BLOCKED |
-| Implementation started | Chưa có | — | Chưa có application source/session |
-| First IMPLEMENTED | Chưa có | — | — |
-| VERIFIED | Chỉ sau người dùng xác nhận | — | — |
-| Merged to develop | Chỉ sau xác nhận merge | — | — |
-| Completed | Sau Merge Memory Sync PASS | — | — |
+| Claimed | 2026-08-03T21:53:41+07:00 | `thanh` | `TASK-TIMELINE-001` claimed |
+| Implementation started | 2026-08-03T21:53:41+07:00 | `thanh` | Nhánh `feature/TASK-TIMELINE-001` |
+| First IMPLEMENTED | 2026-08-03T21:57:20+07:00 | `thanh` | Code + 28/28 tests PASS |
+| VERIFIED | 2026-08-03T21:57:20+07:00 | `thanh` | Người dùng xác nhận và yêu cầu merge |
+| Merged to develop | 2026-08-03 | `thanh` | Merge commit `92c7caa` |
+| Completed | 2026-08-03 | `thanh` | Merge Memory Sync PASS |
 
 ## Contribution ledger
 
