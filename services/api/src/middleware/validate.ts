@@ -1,10 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
-import type { ZodSchema } from "zod";
+import type { z } from "zod";
 
 export interface RequestValidationSchemas {
-  body?: ZodSchema;
-  query?: ZodSchema;
-  params?: ZodSchema;
+  body?: z.ZodType;
+  query?: z.ZodType;
+  params?: z.ZodType;
 }
 
 export function validateRequest(schemas: RequestValidationSchemas) {

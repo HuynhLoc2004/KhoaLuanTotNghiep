@@ -7,7 +7,7 @@ import {
   renderFooter,
 } from "../src/index.js";
 
-test("Public Web Shell & Page Renderer Test Suite", async (t) => {
+void test("Public Web Shell & Page Renderer Test Suite", async (t) => {
   await t.test("renderHeader outputs brand, logo, and navigation links", () => {
     const header = renderHeader();
     assert.ok(header.includes("BẢO TÀNG LỊCH SỬ TP.HCM"));

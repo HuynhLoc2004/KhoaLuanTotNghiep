@@ -40,7 +40,7 @@ export function renderRelatedArtifactCard(related: RelatedArtifact): string {
     RELATED_THEME: heritageTheme.colors.accentGold,
   };
 
-  const badgeColor = badgeColors[related.relationType] || heritageTheme.colors.accentGold;
+  const badgeColor = badgeColors[related.relationType] ?? heritageTheme.colors.accentGold;
 
   return `
     <div class="related-artifact-card" style="background: ${heritageTheme.colors.bgCard}; border: 1px solid ${heritageTheme.colors.borderGlass}; border-radius: 0.5rem; padding: 1rem; margin-top: 0.75rem;">
@@ -67,7 +67,7 @@ export function renderLivingTimeline2D(
 
   const nodesHtml = journey.nodes
     .map((node: NarrativeNode, index: number) => {
-      const relatedList = node.artifactCode ? relatedArtifactsMap[node.artifactCode] || [] : [];
+      const relatedList = node.artifactCode ? relatedArtifactsMap[node.artifactCode] ?? [] : [];
       const relatedCardsHtml = relatedList.map(renderRelatedArtifactCard).join("\n");
 
       return `
@@ -76,7 +76,7 @@ export function renderLivingTimeline2D(
           <div style="background: ${heritageTheme.colors.bgCard}; border: 1px solid ${heritageTheme.colors.borderGlass}; border-radius: 0.5rem; padding: 1.25rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
               <span style="background: rgba(158, 27, 27, 0.3); color: ${heritageTheme.colors.accentGold}; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.75rem; font-weight: bold; border: 1px solid ${heritageTheme.colors.accentGold};">
-                Mốc #${index + 1} — ${node.period}
+                Mốc #${String(index + 1)} — ${node.period}
               </span>
               ${node.artifactCode ? `<span style="font-size:0.75rem; color:${heritageTheme.colors.textSecondary};">Artifact Code: ${node.artifactCode}</span>` : ""}
             </div>

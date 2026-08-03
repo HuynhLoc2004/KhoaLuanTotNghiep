@@ -8,7 +8,7 @@ import {
   validateBlockData,
 } from "../src/index.js";
 
-test("Admin CMS Shell & Form Editor Test Suite", async (t) => {
+void test("Admin CMS Shell & Form Editor Test Suite", async (t) => {
   await t.test("renderAdminSidebar renders brand and navigation links", () => {
     const sidebar = renderAdminSidebar("cms-content");
     assert.ok(sidebar.includes("CMS ADMIN PORTAL"));

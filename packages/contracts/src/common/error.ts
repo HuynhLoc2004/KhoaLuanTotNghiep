@@ -25,7 +25,7 @@ export const ApiErrorResponseSchema = z.object({
   code: z.string(),
   message: z.string(),
   details: z.array(ApiErrorDetailSchema).optional(),
-  correlationId: z.string().uuid().or(z.string()),
+  correlationId: z.string(),
 });
 
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
@@ -33,13 +33,13 @@ export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
 export class ApiError extends Error {
   public readonly statusCode: number;
   public readonly code: string;
-  public readonly details?: ApiErrorDetail[] | undefined;
+  public readonly details?: ApiErrorDetail[];
 
   constructor(
     statusCode: number,
     code: string,
     message: string,
-    details?: ApiErrorDetail[] | undefined,
+    details?: ApiErrorDetail[],
   ) {
     super(message);
     this.name = "ApiError";

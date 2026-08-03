@@ -9,8 +9,8 @@ export interface TimelinePageOptions {
 }
 
 export function renderLivingTimelinePage(options: TimelinePageOptions = {}): string {
-  const mode = options.mode || "FREE_EXPLORE";
-  const journey: NarrativeJourney = options.journey || {
+  const mode = options.mode ?? "FREE_EXPLORE";
+  const journey: NarrativeJourney = options.journey ?? {
     id: "journey-dong-son-to-oc-eo",
     title: "Từ Văn Hóa Đông Sơn Đến Nền Văn Minh Óc Eo",
     theme: "Lịch sử cổ đại Việt Nam",
@@ -35,7 +35,7 @@ export function renderLivingTimelinePage(options: TimelinePageOptions = {}): str
     ],
   };
 
-  const relatedMap: Record<string, RelatedArtifact[]> = options.relatedArtifactsMap || {
+  const relatedMap: Record<string, RelatedArtifact[]> = options.relatedArtifactsMap ?? {
     "ART-DS-001": [
       {
         artifactId: "art-oc-eo-01",

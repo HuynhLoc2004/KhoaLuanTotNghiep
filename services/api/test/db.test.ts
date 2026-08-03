@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { MigrationRunner, BASELINE_MIGRATIONS, DatabaseRepository } from "../src/index.js";
 
-test("Database Migration & Entity Repository Test Suite", async (t) => {
+void test("Database Migration & Entity Repository Test Suite", async (t) => {
   await t.test("MigrationRunner executes baseline migrations without error", () => {
     const runner = new MigrationRunner();
     const results = runner.runMigrations();

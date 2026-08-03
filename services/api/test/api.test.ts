@@ -11,7 +11,7 @@ import { z } from "zod";
 import { validateRequest } from "../src/middleware/validate.js";
 import { ApiError } from "@hcmc-museum/contracts";
 
-test("API Skeleton & Error Contract Test Suite", async (t) => {
+void test("API Skeleton & Error Contract Test Suite", async (t) => {
   const app = express();
   app.use(helmet());
   app.use(cors());
@@ -41,7 +41,7 @@ test("API Skeleton & Error Contract Test Suite", async (t) => {
 
   const server = app.listen(0);
   const address = server.address() as AddressInfo;
-  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const baseUrl = `http://127.0.0.1:${String(address.port)}`;
 
   t.after(() => {
     server.close();
@@ -89,7 +89,7 @@ test("API Skeleton & Error Contract Test Suite", async (t) => {
     const body = (await res.json()) as {
       code: string;
       message: string;
-      details: Array<{ field?: string; message: string }>;
+      details: { field?: string; message: string }[];
     };
     assert.equal(body.code, "VALIDATION_ERROR");
     assert.ok(Array.isArray(body.details));

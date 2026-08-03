@@ -10,7 +10,7 @@ export interface RenderedWebPage {
 
 export function renderWebShellPage(pagePayload: CmsPagePayload): RenderedWebPage {
   const metaDescription =
-    pagePayload.metaDescription || "Nền tảng bảo tàng số Bảo tàng Lịch sử Thành phố Hồ Chí Minh";
+    pagePayload.metaDescription ?? "Nền tảng bảo tàng số Bảo tàng Lịch sử Thành phố Hồ Chí Minh";
 
   const headerHtml = renderHeader();
   const footerHtml = renderFooter();

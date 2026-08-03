@@ -7,7 +7,7 @@ import {
 } from "../src/index.js";
 import type { NarrativeJourney, RelatedArtifact } from "@hcmc-museum/contracts";
 
-test("Living Timeline UI Components Test Suite", async (t) => {
+void test("Living Timeline UI Components Test Suite", async (t) => {
   await t.test("renderModeSwitcher highlights active mode button", () => {
     const freeHtml = renderModeSwitcher("FREE_EXPLORE");
     assert.ok(freeHtml.includes("btn-mode-free"));
