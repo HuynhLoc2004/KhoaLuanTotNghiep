@@ -58,7 +58,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 
 ## Trạng thái hiện tại
 
-Foundation monorepo, local data infrastructure, Web/Admin/API/data baselines, Living Timeline MVP và deterministic lint/type/test/build quality graph đã merge. `TASK-CI-001` cũng đã merge tại `be2a18e`; hosted run `30832872900` PASS và Merge Memory Sync hoàn tất. Task tiếp theo lấy từ dòng `READY` trong `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
+Foundation monorepo, local data infrastructure, Web/Admin/API/data baselines, Living Timeline MVP và repository documentation/code/config/secret/data-access quality policies đã merge. Direct pinned OSV scan cùng deterministic Node/Python gate PASS trên `develop@7c63cbb`; PLAN-0030 Merge Memory Sync hoàn tất. Task tiếp theo lấy từ dòng `READY` trong `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
 
 ## Đọc tiếp
 

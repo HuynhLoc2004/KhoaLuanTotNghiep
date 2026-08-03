@@ -5,7 +5,7 @@
 - Owner/contributor: `thanh`, confirmed against `docs/TEAM.md` in this session.
 - Branch: `fix/FIX-DOC-QUALITY-CI-001`.
 - Base: `origin/develop@99dc9db`; shared revision `PLAN-0029`.
-- Status: `IMPLEMENTED / AWAITING USER VERIFICATION`; hosted evidence pending.
+- Status: `VERIFIED / DONE`; commit `fd49df3`, PR `#10`, merge `7c63cbb`, hosted evidence PASS and PLAN-0030 Merge Memory Sync PASS.
 - `PRE_CODE_PLAN_SYNC: PASS` — the Markdown-only claim, decision, dependency and write scope were pushed to and verified on remote `develop@99dc9db`; the branch was then created from that exact commit with a clean tree.
 
 ## Objective
@@ -16,7 +16,7 @@ Repair the GitHub Actions startup failure introduced by the hosted OSV extension
 
 - Owned paths: `.github/workflows/quality.yml` and `docs/work/FIX-DOC-QUALITY-CI-001.md`.
 - Excluded: quality scripts, manifests and lockfiles, runtime source/tests, migrations/contracts/catalogs, shared coordination/status files and real `.env` files.
-- Dependency state: `TASK-DOC-QUALITY-001` implementation is merged at `e0c4139` / PR `#9`, but remains unverified until this fix produces exact-commit hosted PASS evidence.
+- Dependency state: `TASK-DOC-QUALITY-001` implementation merged at `e0c4139` / PR `#9` and is now `DONE` after this fix produced exact-commit hosted PASS evidence.
 - Invariants: preserve read-only checkout, immutable action pins, the same three lockfile targets and fail-closed vulnerability detection; do not grant unused write permission.
 
 ## Root cause and testing evidence
@@ -98,7 +98,8 @@ Sequence explanation: the job only needs repository read access. Checkout does n
   - `git diff --check`: PASS.
   - Root `corepack pnpm check`: PASS with Node 22.16.0, pnpm 11.18.0 and uv 0.11.32; quality policy/tests PASS, Turbo lint 7/7, typecheck 7/7, test 10/10, build 5/5, both Ruff suites PASS and both Python pytest suites 1/1 PASS.
 - Security/invariants: only `contents: read`; checkout credentials are not persisted; no SARIF/write path, dependency, runtime, contract, data or secret change.
-- Known limitation/fallback: GitHub server-side workflow admission and the Docker action itself require a hosted run after the user-owned push. Any direct-action incompatibility triggers Plan Revision rather than permission broadening or scan removal.
+- Hosted result: PR run `30841432956` on `fd49df3` and develop push run `30841444661` on `7c63cbb` both created `Node and Python quality` plus `OSV lockfile vulnerability scan`; all jobs PASS.
+- Known limitation/fallback: future GitHub/action incompatibility still requires a Plan Revision rather than permission broadening or scan removal.
 
 ## Change history
 
@@ -107,12 +108,27 @@ Sequence explanation: the job only needs repository read access. Checkout does n
 | 2026-08-04 | Claimed fix and locked option B | PLAN-0029; `thanh` selection; runs `30838513724` and `30838613737` |
 | 2026-08-04 | Opened task report and contribution session | PRE_CODE_PLAN_SYNC PASS at `origin/develop@99dc9db` |
 | 2026-08-04 | Implemented direct pinned OSV normal job | Local full root gate and static workflow assertions PASS |
+| 2026-08-04 | Pushed and merged fix | Commit `fd49df3`; PR `#10`; merge `7c63cbb` |
+| 2026-08-04 | VERIFIED / DONE | Runs `30841432956` and `30841444661` both created two jobs and PASS; PLAN-0030 Merge Memory Sync |
 
 ## Handoff
 
-- Verification status: `IMPLEMENTED / AWAITING USER VERIFICATION`; all available local checks pass, but hosted workflow evidence is still required.
-- Feature commit/PR: user-owned; none yet.
-- Merge status: not merged.
-- Recommended review: confirm the diff contains only `.github/workflows/quality.yml` and this task report; then commit/push the fix branch and inspect both hosted jobs on the exact pushed commit.
-- Stop condition: do not mark VERIFIED or merge if GitHub still reports startup failure, either job fails, or the hosted commit does not equal the reviewed fix commit.
-- Merge Memory Sync: blocked until implementation is merged, exact-commit hosted jobs pass and `thanh` confirms VERIFIED.
+- Verification status: `VERIFIED / DONE` by `thanh` at 2026-08-04T01:31:35+07:00 from the supplied green run links.
+- Feature commit/PR: `fd49df3` / PR `#10`.
+- Merge status: merged into `develop` at `7c63cbb` on 2026-08-04T01:28:37+07:00.
+- Hosted evidence: PR run `30841432956` and develop run `30841444661`, both with two successful jobs.
+- Merge Memory Sync: PASS under PLAN-0030; integration turn reopened.
+
+## Merge Memory Sync result
+
+```text
+MERGE_MEMORY_SYNC: PASS
+Merge ref: 7c63cbb / PR #10; feature commit fd49df3
+Feature/task: FIX-DOC-QUALITY-CI-001; closes hosted verification for TASK-DOC-QUALITY-001
+Indexes updated: README, AI_CONTEXT, PLAN_SNAPSHOT, NEXT_WORK, PROJECT_STATUS, IMPLEMENTATION_INDEX, traceability, quality owners and task reports
+Contracts/integration updated: no change required; no shared API/event/entity/schema/migration changed
+UI registry updated: no change required; no UI capability changed
+Tests/evidence: local root gate PASS; PR run 30841432956 and develop run 30841444661 both Node/Python + OSV PASS
+Remaining limitation: hosted OSV depends on GitHub and the external vulnerability feed; outage remains fail/inconclusive, never silent PASS
+Next tasks unblocked: integration turn reopened; TASK-SEARCH-001 remains READY
+```

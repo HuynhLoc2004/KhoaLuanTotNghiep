@@ -228,9 +228,12 @@ Automation không tự quyết định index tốt hay query tối ưu; query pl
 
 `DEC-DOC-QUALITY-AUTOMATION-001` khóa Option C cho static/AST query-policy checks và synthetic validation/redaction regression trong `services/api/test/**`. Baseline API hiện chỉ có repository in-memory, chưa có SQL query adapter hoặc cache runtime; vì vậy query plan, query count, cache-key/invalidation runtime evidence phải ghi `NOT_APPLICABLE` kèm lý do. Task không được tạo production query/cache implementation chỉ để làm gate pass.
 
+Implementation status: `VERIFIED / DONE`. Static/AST fixtures và API synthetic regressions đã merge tại `e0c4139`; API suite 19/19 và integrated hosted run `30841444661` PASS. SQL query-plan, query-count và cache invalidation runtime evidence vẫn `NOT_APPLICABLE` cho đến khi production seams tồn tại.
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Bằng chứng |
 |---|---|---|---|
 | 2026-07-30 | ADDED/SECURITY/PERFORMANCE | Khóa input, injection, query/index, cache và exposure gate | Người dùng `loc` yêu cầu |
 | 2026-08-04 | PLAN_LOCKED | Liên kết Option C static/AST và synthetic regression; khóa N/A boundary khi SQL/cache runtime chưa tồn tại | `thanh` chọn Option C; PLAN-0028 |
+| 2026-08-04 | VERIFIED / MERGED | Static query/cache policy và synthetic validation/redaction regressions merge, giữ nguyên N/A runtime boundary | `e0c4139` / PR `#9`; API 19/19; run `30841444661`; PLAN-0030 |

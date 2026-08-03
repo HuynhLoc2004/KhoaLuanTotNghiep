@@ -106,12 +106,12 @@ Lint -> typecheck -> unit -> integration -> build -> image scan -> E2E smoke. Mi
 - Evidence: GitHub Actions run `30832872900` `SUCCESS` trên exact merge commit `be2a18e`; `thanh` xác nhận `VERIFIED` ngày 2026-08-03.
 - Limitation/fallback: một job tuần tự, không dependency cache và chưa gồm image scan/E2E/deploy. Khi GitHub outage có thể chạy cùng root gate local để chẩn đoán, nhưng local evidence không thay hosted status.
 
-### Hosted OSV extension startup fix — PLAN_LOCKED
+### Hosted OSV extension startup fix — IMPLEMENTED / VERIFIED
 
 - `TASK-DOC-QUALITY-001` đã merge tại `e0c4139`, nhưng runs `30838513724` và `30838613737` không tạo job vì reusable OSV workflow yêu cầu `actions: read` và `security-events: write` vượt quyền caller.
 - `FIX-DOC-QUALITY-CI-001` dùng normal job với direct OSV action tại immutable SHA, checkout read-only và chỉ `contents: read`; không upload SARIF.
 - Ba lockfile vẫn được quét và scanner vẫn fail closed. Root deterministic job không đổi.
-- Hosted PASS trên exact fix/merge commit và xác nhận của `thanh` là gate trước khi TASK-DOC-QUALITY-001 được VERIFIED và chạy Merge Memory Sync.
+- Commit `fd49df3` merge qua PR `#10` tại `7c63cbb`. PR run `30841432956` và develop push run `30841444661` đều tạo đủ Node/Python + OSV jobs và PASS; `thanh` xác nhận evidence, PLAN-0030 Merge Memory Sync PASS.
 
 ## Lưu ý Windows
 
@@ -136,6 +136,8 @@ Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu t
 - Local service/port contract: branch-local `PLAN_LOCKED` bởi `loc` ngày 2026-08-03 và đã được hai thành viên đồng thuận; chưa là shared plan cho đến khi xuất hiện trên remote `develop`.
 - Compose, health checks và smoke test: `PLANNED`.
 - `TASK-CI-001`: `DONE`; owner `loc`, merge `be2a18e`, hosted run `30832872900` PASS, Merge Memory Sync PASS.
+- `TASK-DOC-QUALITY-001`: `DONE`; owner `thanh`, merge `e0c4139` / PR `#9`, verified by integrated run `30841444661`, Merge Memory Sync PASS.
+- `FIX-DOC-QUALITY-CI-001`: `DONE`; owner `thanh`, commit `fd49df3`, merge `7c63cbb` / PR `#10`, runs `30841432956` and `30841444661` PASS, Merge Memory Sync PASS.
 
 ## Decision log
 
@@ -143,6 +145,7 @@ Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu t
 |---|---|---|---|---|
 | 2026-08-03 | `DEC-INFRA-LOCAL-PORTS-001` | IMPLEMENTED; VERIFIED | Giữ port chuẩn trong container, dùng host ports `15432`, `27018`, `16379`; Compose DNS dùng `postgres`, `mongo`, `redis`; reserve dải app/proxy theo bảng trên. | Giảm va chạm với dịch vụ local nhưng vẫn giữ kết nối nội bộ theo convention. Không chọn publish trực tiếp toàn bộ port chuẩn vì dễ collision trên máy phát triển. |
 | 2026-08-03 | `OPTION-CI-001/A` | IMPLEMENTED; VERIFIED | Dùng một deterministic cross-runtime GitHub Actions job gọi root `pnpm check`, pin tool/action, frozen install, least privilege và không cache. | Giữ một nguồn orchestration và bề mặt bảo trì nhỏ. Chưa chọn parallel/reusable workflows vì chưa có evidence về thời gian hay nhiều consumer. |
+| 2026-08-04 | `DEC-DOC-QUALITY-OSV-STARTUP-FIX-001` | IMPLEMENTED; VERIFIED | Dùng normal hosted job gọi direct OSV action tại immutable SHA, giữ ba lockfile và chỉ `contents: read`; không upload SARIF. | Reusable workflow bị GitHub từ chối vì yêu cầu quyền vượt caller. Không chọn cấp write permission không phục vụ output hiện tại. |
 
 ## Change history
 
@@ -153,3 +156,4 @@ Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu t
 | 2026-08-03 | MERGED | Tích hợp `TASK-INFRA-001` vào `develop` và promote shared implementation memory. | Merge `847251c`; Merge Memory Sync PASS. |
 | 2026-08-03 | MERGED / VERIFIED | Tích hợp `TASK-CI-001` và promote Foundation hosted quality gate. | Merge `be2a18e`; hosted run `30832872900` SUCCESS; Merge Memory Sync PASS. |
 | 2026-08-04 | PLAN_REVISION | Claim `FIX-DOC-QUALITY-CI-001` và khóa direct pinned OSV action để sửa caller/reusable permission mismatch. | `thanh` chọn phương án B; PLAN-0029; hosted runs `30838513724`, `30838613737` startup failure. |
+| 2026-08-04 | VERIFIED / MERGED | Repository quality extension và direct OSV fix được xác minh trên PR và exact develop merge commit; Merge Memory Sync hoàn tất. | `e0c4139` / PR `#9`; `7c63cbb` / PR `#10`; runs `30841432956`, `30841444661`; PLAN-0030. |

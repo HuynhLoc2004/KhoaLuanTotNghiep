@@ -191,6 +191,8 @@ Implementation boundary:
 - Option A (cấp toàn bộ quyền reusable workflow yêu cầu) không chọn vì mở quyền write không phục vụ output hiện tại. Fallback nếu direct action upstream không tương thích: quay lại Plan Revision, không tự bỏ dependency scan.
 - Acceptance: workflow tạo được cả hai jobs, root quality job PASS, OSV job PASS trên exact fix/merge commit, sau đó `thanh` xác nhận VERIFIED trước Merge Memory Sync.
 
+Implementation result: `VERIFIED / DONE`. `TASK-DOC-QUALITY-001` merge tại `e0c4139` / PR `#9`; direct-action fix commit `fd49df3` merge qua PR `#10` tại `7c63cbb`. PR run `30841432956` và exact develop run `30841444661` đều tạo đủ `Node and Python quality` cùng `OSV lockfile vulnerability scan` và PASS. Quyền vẫn chỉ `contents: read`; không có SARIF/write path.
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Bằng chứng |
@@ -198,3 +200,4 @@ Implementation boundary:
 | 2026-07-30 | ADDED/SECURITY | Khóa clean-code, secret, typed configuration và API/URL gate | Người dùng `loc` yêu cầu bổ sung |
 | 2026-08-04 | PLAN_LOCKED | Chọn Option C hybrid với markdownlint, Secretlint, project-specific checks và hosted OSV lockfile scan | `thanh` chọn Option C; PLAN-0028 |
 | 2026-08-04 | PLAN_REVISION | Khóa direct pinned OSV action job với `contents: read` để sửa reusable-workflow permission startup failure | `thanh` chọn phương án B; PLAN-0029; runs `30838513724`, `30838613737` |
+| 2026-08-04 | VERIFIED / MERGED | Repository quality gate và direct OSV startup fix PASS trên PR và exact develop merge commit | `e0c4139` / PR `#9`; `7c63cbb` / PR `#10`; runs `30841432956`, `30841444661`; PLAN-0030 |

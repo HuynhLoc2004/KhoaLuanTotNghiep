@@ -5,12 +5,12 @@
 | Field | Value |
 |---|---|
 | Task | `TASK-DOC-QUALITY-001` |
-| Status | `IMPLEMENTED / AWAITING USER VERIFICATION` |
+| Status | `VERIFIED / DONE`; merge `e0c4139`, integrated hosted PASS and PLAN-0030 Merge Memory Sync PASS |
 | Owner | `thanh` |
 | Branch | `feature/TASK-DOC-QUALITY-001` |
 | ClaimedAt | `2026-08-04T00:10:24+07:00` |
 | Session | `WS-TASK-DOC-QUALITY-001-20260804-01` |
-| Shared plan | `PLAN-0028` |
+| Shared plan | `PLAN-0028`; OSV fix `PLAN-0029`; completion sync `PLAN-0030` |
 | Claim evidence | `origin/develop` commit `6e46073cb3b534f5360ebc820cd2f238ddd65309` |
 | Plan-lock evidence | `origin/develop` commit `188e42a50f15aee515953f6088aca75f2a2fad8d` |
 
@@ -276,10 +276,10 @@ sequenceDiagram
 | Unit | Custom quality-rule positive/negative fixtures | Deterministic diagnostics and exit codes | PASS; 8/8 Node tests |
 | Documentation | Generic Markdown style plus required sections, Mermaid explanations and local links | Detect missing/broken structure without semantic overclaim | PASS; Markdownlint plus project policy inspected 168 Git-visible files |
 | Security | Secret/config patterns and narrow allowlist | Fail closed; suspected secret values remain masked | PASS locally; Secretlint preset and project config reported no violation; exact exceptions documented in [quality policy](../../scripts/quality/POLICY.md) |
-| Dependency | Root pnpm lockfile and two uv lockfiles | Frozen lockfile is consistent; hosted OSV job fails on a reported vulnerability | Frozen lockfile validation PASS with pnpm 11.18.0; OSV is NOT RUN locally and awaits the feature commit's GitHub Actions run |
+| Dependency | Root pnpm lockfile and two uv lockfiles | Frozen lockfile is consistent; hosted OSV job fails on a reported vulnerability | PASS; direct pinned OSV job scanned all three lockfiles in PR run `30841432956` and develop run `30841444661` |
 | Data access | Operator-shaped malicious input and unknown-error redaction | Reject invalid input without reflection; hide internal error detail | PASS; API suite 19/19, including both new synthetic regressions |
 | Scope | Changed paths and patch whitespace | Only accepted feature write scope; no malformed patch | PASS; `git diff --check` clean and no shared-file denylist path changed |
-| CI | Fresh checkout exact root command plus hosted OSV job | Hosted PASS on exact feature commit | NOT RUN; requires user-owned feature push |
+| CI | Fresh checkout exact root command plus hosted OSV job | Hosted PASS on exact integrated commit | PASS; both named jobs succeeded on `develop@7c63cbb` in run `30841444661` |
 
 ## 12. Feature lifecycle
 
@@ -289,9 +289,9 @@ sequenceDiagram
 | Claimed | 2026-08-04T00:10:24+07:00 | `thanh` | PLAN-0027 / remote commit `6e46073` |
 | Implementation started | 2026-08-04T00:12:34+07:00 | `thanh` | Task report/session opened; DESIGN_OPTIONS work only |
 | First IMPLEMENTED | 2026-08-04T00:36:53+07:00 | `thanh` / Codex | Locked implementation complete; local root gate PASS |
-| VERIFIED | — | — | Requires user/team evidence |
-| Merged to develop | — | — | Requires user merge evidence |
-| Completed | — | — | Requires Merge Memory Sync PASS |
+| VERIFIED | 2026-08-04T01:31:35+07:00 | `thanh` | User supplied both green run links; job metadata confirms Node/Python + OSV PASS |
+| Merged to develop | 2026-08-04T00:51:09+07:00 | GitHub PR `#9` | Merge `e0c4139`; later OSV fix integrated at `7c63cbb` / PR `#10` |
+| Completed | 2026-08-04T01:31:35+07:00 | Codex coordination | PLAN-0030 Merge Memory Sync PASS |
 
 ## 13. Feature Contribution Ledger
 
@@ -305,7 +305,7 @@ sequenceDiagram
 - Decision state: `PLAN_LOCKED` — Option C.
 - Generic tool layer: pinned `markdownlint-cli2@0.23.2`, `secretlint@13.0.4` and `@secretlint/secretlint-rule-preset-recommend@13.0.4` in the root lockfile.
 - Project layer: `run-quality.mjs` orchestrates the exact Node entry points without relying on a nested global pnpm shim; `project-quality.mjs` checks Git-visible Markdown, environment templates/config coverage, environment URLs, TypeScript query/cache patterns and active task reports.
-- CI layer: the existing root job runs the same `pnpm check`; a separate least-privilege reusable OSV job scans `pnpm-lock.yaml`, `services/ai/uv.lock` and `workers/media/uv.lock` with action commit `9a498708959aeaef5ef730655706c5a1df1edbc2` (`v2.3.8`).
+- CI layer: the existing root job runs the same `pnpm check`; after PLAN-0029, a separate least-privilege normal job calls the direct OSV action to scan `pnpm-lock.yaml`, `services/ai/uv.lock` and `workers/media/uv.lock` at immutable commit `9a498708959aeaef5ef730655706c5a1df1edbc2` (`v2.3.8`).
 - Data regression: two synthetic API tests cover operator-shaped input rejection/non-reflection and redaction of unknown internal errors. No runtime source, database schema, migration or cache implementation changed.
 - Exception policy: exact style, placeholder, lockfile and legacy Mermaid exceptions are documented in [Repository quality policy](../../scripts/quality/POLICY.md), with compensating controls and a path/ordinal scoping test.
 - Applicability: runtime SQL query-plan and cache invalidation evidence remains `NOT_APPLICABLE`; the baseline has no production SQL/query or cache seam, and static AST policy is not reported as runtime evidence.
@@ -319,7 +319,7 @@ sequenceDiagram
 | markdownlint-cli2 | `0.23.2` | Generic Markdown style | MIT; locked Node dev dependency | Project-specific checks still run independently, but missing install fails the deterministic root gate |
 | Secretlint + recommended preset | `13.0.4` | Credential-pattern detection with masked diagnostics | MIT; locked Node dev dependencies | Scanner failure is a gate failure; it is not downgraded to a warning |
 | TypeScript compiler API | Existing locked `typescript@6.0.3` | AST inspection for query/cache call shapes | Existing root dependency; local source only | Syntax or parser failure fails the project policy instead of silently passing |
-| OSV-Scanner reusable workflow | Commit `9a498708959aeaef5ef730655706c5a1df1edbc2` (`v2.3.8`) | Hosted lockfile vulnerability evidence | External GitHub Action, immutable commit, read-only contents permission | Feed/action outage leaves the hosted dependency job failed or inconclusive and requires rerun; local policy does not impersonate OSV evidence |
+| OSV-Scanner direct action | Commit `9a498708959aeaef5ef730655706c5a1df1edbc2` (`v2.3.8`) | Hosted lockfile vulnerability evidence | External GitHub Action, immutable commit, direct normal job and read-only contents permission | Feed/action outage leaves the hosted dependency job failed or inconclusive and requires rerun; local policy does not impersonate OSV evidence |
 
 ### Cross-feature consistency review
 
@@ -331,14 +331,9 @@ sequenceDiagram
 
 ## 15. Handoff and stop condition
 
-Current stop condition: implementation is ready for user review, but the task must remain unverified until GitHub Actions passes on the exact user-pushed feature commit and the user/team explicitly confirms `VERIFIED`.
+Completion state: `VERIFIED / DONE`. Implementation merged through PR `#9` at `e0c4139`; PLAN-0029 fixed the hosted OSV caller through PR `#10` at `7c63cbb`. User-provided run evidence confirms both named jobs PASS on the fix PR and exact develop merge commit.
 
-Next checkpoint:
-
-1. User reviews the scoped diff and confirms the documented exceptions are acceptable.
-2. User commits and pushes `feature/TASK-DOC-QUALITY-001`; this changes local history and the remote feature branch but not `develop`.
-3. Wait for both `Node and Python quality` and `OSV lockfile vulnerability scan` on that exact commit.
-4. After explicit `VERIFIED` evidence, follow the single-writer integration-turn gate before any merge decision.
+Remaining limitations: semantic documentation correctness, visual/accessibility/performance review and runtime SQL/query-plan/cache evidence are not inferred from static automation. OSV requires hosted network/feed availability and fails closed when unavailable.
 
 ## 16. Change history
 
@@ -348,3 +343,19 @@ Next checkpoint:
 | 2026-08-04 | DESIGN_OPTIONS | Added repo-native, GitHub-native and hybrid options; recommended hybrid without selecting for the user | Scoped source/config inspection and official tooling documentation |
 | 2026-08-04 | PLAN_LOCKED | User selected Option C; published dependency/flow/fallback/N/A boundary and synchronized feature branch | PLAN-0028; remote commit `188e42a` |
 | 2026-08-04 | IMPLEMENTED | Added locked Markdown/secret/project policy, API regression tests and separate hosted OSV lockfile scan; recorded narrow legacy exceptions and N/A runtime boundary | Local `pnpm check` PASS; 8/8 custom tests; API 19/19; hosted CI pending |
+| 2026-08-04 | MERGED | Integrated repository quality implementation into `develop` | `e0c4139` / PR `#9` |
+| 2026-08-04 | VERIFIED / DONE | Direct OSV fix integrated; both jobs PASS and shared memory synchronized | `7c63cbb` / PR `#10`; runs `30841432956`, `30841444661`; PLAN-0030 |
+
+## 17. Merge Memory Sync result
+
+```text
+MERGE_MEMORY_SYNC: PASS
+Merge ref: e0c4139 / PR #9; hosted OSV fix 7c63cbb / PR #10
+Feature/task: TASK-DOC-QUALITY-001; FIX-DOC-QUALITY-CI-001
+Indexes updated: README, AI_CONTEXT, PLAN_SNAPSHOT, NEXT_WORK, PROJECT_STATUS, IMPLEMENTATION_INDEX, traceability, quality owners and both task reports
+Contracts/integration updated: no change required; no API/event/entity/schema/migration contract changed
+UI registry updated: no change required; no component/token/motion/3D pattern changed
+Tests/evidence: local pnpm check PASS; custom fixtures 8/8; API 19/19; PR run 30841432956 and develop run 30841444661 both Node/Python + OSV PASS
+Remaining limitation: semantic/visual/performance review remains human; runtime SQL/cache evidence remains NOT_APPLICABLE until production seams exist
+Next tasks unblocked: integration turn reopened; TASK-SEARCH-001 remains READY for a separate claim
+```

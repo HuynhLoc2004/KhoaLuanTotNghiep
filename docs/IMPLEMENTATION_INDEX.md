@@ -5,7 +5,7 @@
 ## Baseline
 
 - Application source: foundation skeleton đã khởi tạo.
-- Last synchronized merge: `be2a18e` — `TASK-CI-001` (`VERIFIED`; hosted run `30832872900` SUCCESS; Merge Memory Sync PASS).
+- Last synchronized merge: `7c63cbb` — `FIX-DOC-QUALITY-CI-001` and dependent `TASK-DOC-QUALITY-001` (`VERIFIED`; hosted run `30841444661` SUCCESS; Merge Memory Sync PASS).
 - Shared contracts implemented: ApiErrorResponseSchema, HealthStatusResponseSchema, ApiError class, ErrorCode enum, Database Entity DTOs, Living Timeline Zod Schemas (ExplorationMode, NarrativeJourney, NarrativeNode, RelatedArtifact).
 - UI components implemented: Heritage Theme tokens, CMS Block Renderer, Admin Shell (Sidebar, Header), Public Header & Footer layouts, Living Timeline 2D Renderer, Mode Switcher, Related Artifact Cards.
 
@@ -23,6 +23,7 @@
 | Local data services | PostgreSQL + pgvector, MongoDB và Redis qua Docker Compose; authenticated health checks và named volumes | `infra/` | `infra/compose.yaml` | CODE_CONFIRMED | Compose config validation + runtime smoke/health PASS; verified by `loc` |
 | Workspace quality graph | Turbo builds direct workspace dependencies before dependent lint/typecheck so ignored declaration outputs exist on fresh clones | `turbo.json` | root `lint` / `typecheck` tasks | CODE_CONFIRMED | Clean lint 7/7, typecheck 7/7, test 10/10 and build 5/5 tasks PASS locally; hosted run `30832872900` PASS |
 | Foundation CI quality gate | Deterministic cross-runtime GitHub Actions job with pinned Node/pnpm/uv/Python setup, frozen install, least-privilege checkout and root `pnpm check` | `.github/workflows/quality.yml` | push `develop`/`main`; PR to `develop`; manual dispatch | CODE_CONFIRMED | Hosted run `30832872900` SUCCESS on exact merge commit `be2a18e`; verified by `thanh` |
+| Repository policy and dependency quality gate | Markdownlint, Secretlint, project-specific report/link/Mermaid/config/URL/TypeScript AST policies, synthetic API security regressions and a direct pinned OSV scan of one pnpm plus two uv lockfiles | `scripts/quality/`, `services/api/test/`, `.github/workflows/quality.yml` | root `pnpm check`; `Node and Python quality`; `OSV lockfile vulnerability scan` | CODE_CONFIRMED | Local root gate PASS; PR run `30841432956` and exact develop run `30841444661` both PASS; verified by `thanh` |
 
 ## Features
 
@@ -55,6 +56,8 @@
 | 2026-08-03 | `8d199db` / PR `#6` | `FIX-FORMAT-001` | Prettier normalization for Admin/contracts/UI plus recorded Web header compatibility call-site and test alignment | YES | `thanh`; hosted integrated run `30832872900` PASS |
 | 2026-08-03 | `8bf9c9e` / PR `#7` | `FIX-CLEAN-GATE-001` | Fresh-clone Turbo dependency ordering; remove stale Admin export; restore semantic form/validation/live-preview markers | YES | `thanh`; hosted integrated run `30832872900` PASS |
 | 2026-08-03 | `be2a18e` / PR `#4` | `TASK-CI-001` | Pinned, least-privilege Foundation quality workflow running the accepted root TypeScript/Python gate | YES | `thanh`; hosted run `30832872900` SUCCESS |
+| 2026-08-04 | `e0c4139` / PR `#9` | `TASK-DOC-QUALITY-001` | Repository-controlled Markdown, secret, config/URL, TypeScript AST and API security-regression quality policies plus hosted OSV integration | YES | `thanh`; integrated develop run `30841444661` SUCCESS |
+| 2026-08-04 | `7c63cbb` / PR `#10` | `FIX-DOC-QUALITY-CI-001` | Replaced permission-incompatible reusable OSV workflow with direct pinned read-only action job | YES | `thanh`; PR run `30841432956` and develop run `30841444661` SUCCESS |
 
 ## Quy tắc
 

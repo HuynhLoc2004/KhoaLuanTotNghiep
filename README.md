@@ -10,7 +10,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0029` — `thanh` chọn phương án B cho `FIX-DOC-QUALITY-CI-001`: thay reusable OSV workflow bị từ chối quyền bằng direct pinned OSV action job với `contents: read`.
+- Shared plan revision: `PLAN-0030` — Merge Memory Sync hoàn tất cho repository quality gate và hosted OSV startup fix; cả hai job PASS trên `develop@7c63cbb`.
 - `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - `TASK-WEB-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `03dfcd4`, Merge Memory Sync đã công bố Public Web shell & Design Tokens baseline.
@@ -22,8 +22,8 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 - `FIX-FORMAT-001`: `DONE`, owner `thanh`; PR `#6` merge tại `8d199db`, actual six-path scope deviation đã được review, hosted run `30832872900` PASS và Merge Memory Sync PASS.
 - `TASK-CI-001`: `DONE`, owner `loc`; PR `#4` merge tại `be2a18e`, hosted run `30832872900` PASS và Merge Memory Sync PASS; verified by `thanh`.
 - `FIX-CLEAN-GATE-001`: `DONE`, owner `thanh`; PR `#7` merge tại `8bf9c9e`, local clean gates và hosted integrated run `30832872900` PASS; Merge Memory Sync PASS.
-- `TASK-DOC-QUALITY-001`: implementation đã merge qua PR `#9` tại `e0c4139` nhưng vẫn `IN_PROGRESS`/chưa `VERIFIED`; hai hosted runs `30838513724` và `30838613737` dừng ở `startup_failure` trước khi tạo job.
-- `FIX-DOC-QUALITY-CI-001`: `IN_PROGRESS`, owner `thanh`, branch `fix/FIX-DOC-QUALITY-CI-001`; write scope chỉ gồm `.github/workflows/quality.yml` và task report riêng.
+- `TASK-DOC-QUALITY-001`: `DONE`, owner `thanh`; PR `#9` merge tại `e0c4139`, repository quality policies được xác minh bởi integrated run `30841444661` và Merge Memory Sync PASS.
+- `FIX-DOC-QUALITY-CI-001`: `DONE`, owner `thanh`; commit `fd49df3` / PR `#10` merge tại `7c63cbb`; PR run `30841432956` và develop run `30841444661` đều có hai job PASS.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 
 Mọi thay đổi shared plan, task, owner, branch, dependency, write scope hoặc shared contract phải được Codex commit/push dưới dạng Markdown-only lên remote `develop`, kèm cập nhật README. AI ưu tiên coordination worktree để giữ nguyên active feature branch. Code/test trên feature branch không được AI tự push hoặc merge; khi hoàn tất, AI chỉ đề xuất để người dùng tự push/review/merge.

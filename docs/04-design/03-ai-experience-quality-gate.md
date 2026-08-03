@@ -181,6 +181,8 @@ CI chỉ kiểm tra sự hiện diện/cấu trúc và liên kết; không thể
 
 `DEC-DOC-QUALITY-AUTOMATION-001` khóa Option C: `markdownlint-cli2` xử lý Markdown style, project-specific Node checks xử lý section/link/Mermaid explanation và mọi diagnostic có fixture. Quyết định chính nằm tại `docs/05-quality/04-code-configuration-quality-gate.md`; automation không nâng presence check thành semantic/visual/performance evidence.
 
+Implementation status: `VERIFIED / DONE`. Task merge tại `e0c4139` / PR `#9`; integrated develop run `30841444661` PASS sau OSV startup fix tại `7c63cbb`. Static automation đã được xác minh nhưng human semantic, visual, accessibility và performance review vẫn là giới hạn bắt buộc.
+
 ## Acceptance criteria
 
 - Mọi AI/người làm dùng cùng flow từ concept đến handoff.
@@ -196,3 +198,4 @@ CI chỉ kiểm tra sự hiện diện/cấu trúc và liên kết; không thể
 |---|---|---|---|
 | 2026-07-30 | ADDED | Khóa Quality Gate hai giai đoạn cho sáng tạo, dependency inventory, adaptive performance và báo cáo | Người dùng `loc` chọn phương án C |
 | 2026-08-04 | PLAN_LOCKED | Liên kết Option C automation cho Markdown structure/link/Mermaid evidence, giữ human review/benchmark boundary | `thanh` chọn Option C; PLAN-0028 |
+| 2026-08-04 | VERIFIED / MERGED | Repository documentation gate merge và PASS trên integrated develop | `e0c4139` / PR `#9`; run `30841444661`; PLAN-0030 Merge Memory Sync |
