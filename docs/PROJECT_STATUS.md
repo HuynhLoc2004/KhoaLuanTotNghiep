@@ -8,7 +8,7 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Baseline tài liệu: v0.1.
 - Code ứng dụng: chưa khởi tạo.
 - Môi trường Docker: chưa khởi tạo.
-- Feature/task: `TASK-FOUND-001` (`thanh`) đang triển khai; `TASK-INFRA-001` (`loc`) đã được hai thành viên xác nhận nhưng chưa bắt đầu implementation vì `PRE_CODE_PLAN_SYNC` chưa được publish/pull qua remote `develop`.
+- Feature/task: `TASK-FOUND-001` (`thanh`) đang triển khai; `TASK-INFRA-001` (`loc`) đã `VERIFIED`, push trên `feature/TASK-INFRA-001` tại `5936397` và đang `REVIEW`, chưa merge vào `develop`.
 - Experience requirement: đã bổ sung immersive 3D/animation và CMS-driven presentation; chưa triển khai code.
 - AI/project memory governance: IMPLEMENTED, chờ nhóm review; gồm invariants, ADR, contract/data catalog, traceability, current task và handoff.
 - Two-person coordination protocol: IMPLEMENTED, chờ nhóm review; gồm task claim, write scope, collision và stale detection.
@@ -29,7 +29,8 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Code, Secret & Configuration Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc clean-code review, typed config, server-only secrets, URL/provider configuration và evidence từ scan/test. Automation gộp vào `TASK-DOC-QUALITY-001` sau foundation.
 - Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc server validation, parameterized query/allowlist, evidence-based index, scoped cache/invalidation và response/log redaction. Automation chờ API/data foundation.
 - Work Session & Feature Contribution Ledger: PLAN_LOCKED ở mức quy trình; hỏi lại danh tính sau 4 giờ/new context, lưu từng phiên/người/scope/test/handoff và feature lifecycle; chưa có implementation session vì source chưa khởi tạo.
-- Local infrastructure contract: PLAN_LOCKED bởi `loc` và được hai thành viên xác nhận; Compose project `hcm-museum`, container ports chuẩn và host ports riêng cho PostgreSQL/MongoDB/Redis; chờ publish/pull coordination change trên remote `develop` trước implementation.
+- Local infrastructure: VERIFIED trên feature branch; PostgreSQL/pgvector, MongoDB và Redis đều healthy trong runtime smoke, local env được ignore; chờ user-owned review/merge và Merge Memory Sync trước khi ghi vào shared implemented baseline.
+- Conflict-free task documentation: PLAN_LOCKED tại `PLAN-0017`; feature branch dùng `docs/work/<TASK-ID>.md`, shared status/index/catalog files chỉ sửa trên `develop`. PR foundation/infra hiện tại cần cleanup một lần trước merge.
 - Living Timeline/Dòng thời gian sống: PLAN_LOCKED ở mức concept tại `docs/03-features/11-living-timeline.md`; một QR pipeline hỗ trợ free/guided modes, typed curator-approved Artifact Relationship và explained deterministic recommendation; QR chỉ mở 3D đã duyệt/fallback, chưa có code và BLOCKED bởi foundation/contracts/content/relation baseline.
 - Search/Discovery: PLANNED; hybrid lexical/vector baseline, BLOCKED bởi foundation/API/data/CMS.
 - Polyglot extension policy: IMPLEMENTED; runtime mới cần Option Review và bằng chứng.

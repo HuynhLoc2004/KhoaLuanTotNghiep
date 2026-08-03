@@ -10,14 +10,16 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0015` — scope isolation do AI thực thi; thành viên không cần theo dõi hoặc nhắc nhau về feature branch.
+- Shared plan revision: `PLAN-0017` — task reports riêng và shared-doc denylist loại bỏ conflict tài liệu giữa feature branches.
 - `TASK-FOUND-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-FOUND-001`.
-- `TASK-INFRA-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-INFRA-001`; implementation chờ collaborator pull `develop` và xác nhận `PRE_CODE_PLAN_SYNC: PASS`.
+- `TASK-INFRA-001`: `REVIEW`, owner `loc`, branch `feature/TASK-INFRA-001`, commit `5936397`; runtime smoke PASS, chưa merge vào `develop`.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 
 Mọi thay đổi shared plan, task, owner, branch, dependency, write scope hoặc shared contract phải được Codex commit/push dưới dạng Markdown-only lên remote `develop`, kèm cập nhật README. AI ưu tiên coordination worktree để giữ nguyên active feature branch. Code/test trên feature branch không được AI tự push hoặc merge; khi hoàn tất, AI chỉ đề xuất để người dùng tự push/review/merge.
 
 Mỗi người chỉ làm write scope đã công bố trên `develop`; không cần biết hoặc xem realtime branch của người kia. Đầu phiên, AI tự đọc trạng thái coordination mới nhất và chặn thay đổi ngoài scope. Chỉ shared file/contract mới tạo coordination checkpoint.
+
+Feature branch ghi session/evidence tại `docs/work/<TASK-ID>.md` và không sửa README, CURRENT_TASK, shared status/index/catalog files. Các file chung chỉ được AI cập nhật trên `develop`; sau merge, Merge Memory Sync promote evidence vào owner docs/indexes.
 
 Mọi yêu cầu code, sửa lỗi hoặc bổ sung chức năng đều tự động kéo theo cập nhật/tạo tài liệu sở hữu tương ứng. Plan cũ được giữ và đánh dấu thay thế, không bị ghi đè âm thầm.
 
@@ -95,6 +97,8 @@ AI hỏi tên hoặc Member ID trước rồi đối chiếu [docs/TEAM.md](docs
 55. [Tìm kiếm và khám phá nội dung](docs/03-features/09-search-discovery.md)
 56. [Xác định vị trí bằng QR và ảnh](docs/03-features/10-indoor-location-detection.md)
 57. [Dòng thời gian sống](docs/03-features/11-living-timeline.md)
+58. [Task work reports](docs/work/README.md)
+59. [Task work report template](docs/templates/task-work-report-template.md)
 
 ## Trạng thái
 

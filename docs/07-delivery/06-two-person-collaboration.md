@@ -40,6 +40,12 @@ Code, test, `CURRENT_TASK.md`, feature specification và change history nằm tr
 - Khi cần shared file/contract hoặc phạm vi của owner khác, Codex dừng trước khi sửa và tự chuẩn bị/publish Markdown coordination request trên `develop`.
 - Con người chỉ cần review/test/handoff ở checkpoint; AI chịu trách nhiệm nhắc gate và giữ phạm vi trong từng phiên.
 
+### Conflict-free documentation boundary
+
+Feature branches không sửa các shared files sau: `README.md`, `CURRENT_TASK.md`, `NEXT_WORK.md`, `PLAN_SNAPSHOT.md`, `PROJECT_STATUS.md`, implementation/UI indexes, integration map và shared contract catalogs. AI chỉ sửa chúng trong Markdown-only coordination worktree trên `develop`.
+
+Mỗi feature branch ghi toàn bộ session, decision, evidence, test và handoff vào `docs/work/<TASK-ID>.md`. Trước PR, Codex kiểm tra changed paths; nếu thấy shared file bị sửa thì chuyển evidence sang task report và restore shared file theo `origin/develop`. Owner specs/indexes chỉ được promote sau merge qua Merge Memory Sync.
+
 ### Git theo tình huống
 
 | Việc cần làm | Các bước |
