@@ -34,9 +34,9 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Shared implementation memory: IMPLEMENTED ở mức tài liệu; sau mỗi merge develop phải đồng bộ Implementation Index và UI Registry.
 - Plan Publication & Sync: IMPLEMENTED ở mức quy trình; shared plan dùng PLAN_SNAPSHOT revision và phải được đưa lên remote develop.
 - Feature Report Standard: IMPLEMENTED ở mức quy trình; mọi feature phải có Mermaid flow, explanation, technology, algorithm, auth, trade-offs, estimate và evidence.
-- AI Experience & Documentation Quality Gate: PLAN_LOCKED ở mức tài liệu; cho phép nhiều công nghệ có trách nhiệm, bắt buộc dependency inventory, thematic motion, desktop/mobile performance evidence và quality-tier fallback. Automation bị chặn bởi foundation.
-- Code, Secret & Configuration Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc clean-code review, typed config, server-only secrets, URL/provider configuration và evidence từ scan/test. Automation gộp vào `TASK-DOC-QUALITY-001` sau foundation.
-- Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; bắt buộc server validation, parameterized query/allowlist, evidence-based index, scoped cache/invalidation và response/log redaction. Automation chờ API/data foundation.
+- AI Experience & Documentation Quality Gate: PLAN_LOCKED ở mức tài liệu; automation được claim trong `TASK-DOC-QUALITY-001`, owner `thanh`, đang ở `DESIGN_OPTIONS`.
+- Code, Secret & Configuration Quality Gate: PLAN_LOCKED ở mức tài liệu; secret/config/dependency/static scan automation được claim trong `TASK-DOC-QUALITY-001`, chưa code trước khi chọn scanner/policy.
+- Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED ở mức tài liệu; injection/query/cache regression automation được claim trong `TASK-DOC-QUALITY-001`, giới hạn ở test/tooling và không sửa runtime/migration/schema trong scope hiện tại.
 - Work Session & Feature Contribution Ledger: PLAN_LOCKED ở mức quy trình; hỏi lại danh tính sau 4 giờ/new context, lưu từng phiên/người/scope/test/handoff và feature lifecycle; chưa có implementation session vì source chưa khởi tạo.
 - Project foundation: VERIFIED và merge tại `3d8b971`; root quality gate, 5 TypeScript package tests và 2 Python tests PASS theo task evidence. Fresh-clone độc lập và CI automation vẫn là giới hạn mở.
 - Local infrastructure: VERIFIED, merge tại `847251c` và Merge Memory Sync PASS; PostgreSQL/pgvector, MongoDB và Redis đều healthy trong runtime smoke, local env được ignore.
