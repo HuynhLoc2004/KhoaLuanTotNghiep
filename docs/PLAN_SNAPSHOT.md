@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0028`
+- Revision: `PLAN-0029`
 - Updated: 2026-08-04
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Khóa Option C cho `TASK-DOC-QUALITY-001`: markdownlint + Secretlint + project-specific Node/TypeScript checks, API synthetic regression và hosted OSV scan cho pnpm/uv lockfiles.
+- Scope: Khóa phương án B cho `FIX-DOC-QUALITY-CI-001`: thay reusable OSV workflow bị caller permission rejection bằng direct pinned action job, giữ least privilege và cùng ba lockfile.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: `TASK-DOC-QUALITY-001` `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-DOC-QUALITY-001`, Option C `PLAN_LOCKED`; `TASK-SEARCH-001` vẫn `READY`.
+- Task đang chạy: `FIX-DOC-QUALITY-CI-001` `IN_PROGRESS`, owner `thanh`, branch `fix/FIX-DOC-QUALITY-CI-001`, phương án B `PLAN_LOCKED`; `TASK-DOC-QUALITY-001` đã merge nhưng chưa VERIFIED; `TASK-SEARCH-001` vẫn `READY`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -51,17 +51,18 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0026 | 2026-08-03 | `FIX-FORMAT-001` chuyển `DONE` sau khi review actual six-path merge và scope deviation; hosted integrated gate PASS | FIX-FORMAT-001; Web/Admin/contracts/UI formatting baseline; task registry | Publish Merge Memory Sync; giữ deviation trong lịch sử; task mới phải claim riêng | `thanh` xác nhận thực hiện |
 | PLAN-0027 | 2026-08-04 | Claim `TASK-DOC-QUALITY-001` cho `thanh` trên `feature/TASK-DOC-QUALITY-001`; dependency foundation/API/data/CI đều DONE; write scope giới hạn ở quality tooling/CI, root quality config, API regression tests và task report | TASK-DOC-QUALITY-001; documentation/code/config/secret/data-access quality gates | Publish claim; tạo feature branch/report/session; so sánh các scanner/policy option và chỉ implement sau khi người dùng chọn `PLAN_LOCKED` | `thanh` xác nhận bắt đầu |
 | PLAN-0028 | 2026-08-04 | Chọn Option C hybrid repo-controlled: markdownlint + Secretlint chạy local/CI; custom checks chỉ giữ invariant riêng; OSV quét một pnpm và hai uv lockfiles trong hosted job; không thêm CodeQL/platform settings vào scope hiện tại | TASK-DOC-QUALITY-001; documentation/code/config/secret/data-access quality gates | Implement đúng write scope; mask secret diagnostics; allowlist hẹp có lý do; API hiện chưa có SQL/cache runtime nên chỉ static/synthetic evidence và phải ghi N/A thay vì tuyên bố coverage giả | `thanh` chọn phương án C |
+| PLAN-0029 | 2026-08-04 | Hai runs sau merge `TASK-DOC-QUALITY-001` đều `startup_failure` vì reusable OSV workflow yêu cầu `actions: read` và `security-events: write` vượt quyền caller. Chọn phương án B: normal job gọi direct OSV action tại immutable SHA, chỉ `contents: read`, giữ ba lockfile và fail theo scanner exit code | FIX-DOC-QUALITY-CI-001; TASK-DOC-QUALITY-001; hosted quality gate | Publish fix claim; sửa duy nhất workflow + task report; không cấp quyền SARIF không dùng. TASK-DOC-QUALITY-001 vẫn chưa VERIFIED cho đến exact-commit hosted PASS và Merge Memory Sync | `thanh` chọn phương án B |
 
 ## Changed owner documents in current revision
 
 - `README.md`.
 - `docs/NEXT_WORK.md`.
 - `docs/PROJECT_STATUS.md`.
-- `docs/04-design/03-ai-experience-quality-gate.md`.
+- `docs/PLAN_SNAPSHOT.md`.
 - `docs/05-quality/04-code-configuration-quality-gate.md`.
-- `docs/05-quality/05-database-query-cache-quality-gate.md`.
+- `docs/06-devops/01-local-environment.md`.
 
-`TASK-DOC-QUALITY-001` triển khai theo `DEC-DOC-QUALITY-AUTOMATION-001`; mọi thay đổi thư viện/scanner/flow material phải quay lại Plan Revision. Feature branch không sửa shared status/index/catalog files.
+`FIX-DOC-QUALITY-CI-001` triển khai theo `DEC-DOC-QUALITY-OSV-STARTUP-FIX-001`; workflow direct-action không upload SARIF và không được cấp `security-events: write`. Fix branch không sửa shared status/index/catalog files.
 
 ## Revision rules
 

@@ -34,8 +34,8 @@ File này là ảnh chụp trạng thái hiện tại, không thay thế chi ti�
 - Shared implementation memory: IMPLEMENTED ở mức tài liệu; sau mỗi merge develop phải đồng bộ Implementation Index và UI Registry.
 - Plan Publication & Sync: IMPLEMENTED ở mức quy trình; shared plan dùng PLAN_SNAPSHOT revision và phải được đưa lên remote develop.
 - Feature Report Standard: IMPLEMENTED ở mức quy trình; mọi feature phải có Mermaid flow, explanation, technology, algorithm, auth, trade-offs, estimate và evidence.
-- AI Experience & Documentation Quality Gate: PLAN_LOCKED; `TASK-DOC-QUALITY-001` triển khai Option C với markdownlint và project-specific section/link/Mermaid checks, không tự chấm semantic/visual/performance quality.
-- Code, Secret & Configuration Quality Gate: PLAN_LOCKED; `TASK-DOC-QUALITY-001` dùng Secretlint, custom config/URL/static checks và hosted OSV lockfile scan; CodeQL/repository settings ngoài scope hiện tại.
+- AI Experience & Documentation Quality Gate: implementation đã merge tại `e0c4139` / PR `#9`, nhưng `TASK-DOC-QUALITY-001` vẫn chưa VERIFIED vì hosted workflow không khởi tạo được job.
+- Code, Secret & Configuration Quality Gate: `FIX-DOC-QUALITY-CI-001` đang `IN_PROGRESS` theo PLAN-0029; direct pinned OSV action sẽ thay reusable workflow bị permission rejection, không mở quyền SARIF không dùng.
 - Database Query, Cache & Input Security Quality Gate: PLAN_LOCKED; static/AST policy và synthetic API regression được triển khai trong test/tooling scope. API chưa có SQL/cache runtime nên query-plan/cache evidence phải ghi N/A, không suy diễn coverage.
 - Work Session & Feature Contribution Ledger: PLAN_LOCKED ở mức quy trình; hỏi lại danh tính sau 4 giờ/new context, lưu từng phiên/người/scope/test/handoff và feature lifecycle; chưa có implementation session vì source chưa khởi tạo.
 - Project foundation: VERIFIED và merge tại `3d8b971`; root quality gate, 5 TypeScript package tests và 2 Python tests PASS theo task evidence. Fresh-clone độc lập và CI automation vẫn là giới hạn mở.
@@ -65,7 +65,7 @@ Task `READY` và phân công mới được quản lý tại `docs/NEXT_WORK.md`
 
 ## Blocker và câu hỏi mở
 
-- Chưa có blocker kỹ thuật.
+- Hosted verification đang bị chặn bởi GitHub Actions `startup_failure`: reusable OSV workflow yêu cầu quyền cao hơn caller. Fix đã được claim và `PLAN_LOCKED`; chưa có evidence PASS mới.
 - Cần nhóm review baseline trước khi khóa kiến trúc Pha 1.
 
 ## Quy tắc cập nhật

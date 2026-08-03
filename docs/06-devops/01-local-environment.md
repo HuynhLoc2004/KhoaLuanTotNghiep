@@ -106,6 +106,13 @@ Lint -> typecheck -> unit -> integration -> build -> image scan -> E2E smoke. Mi
 - Evidence: GitHub Actions run `30832872900` `SUCCESS` trên exact merge commit `be2a18e`; `thanh` xác nhận `VERIFIED` ngày 2026-08-03.
 - Limitation/fallback: một job tuần tự, không dependency cache và chưa gồm image scan/E2E/deploy. Khi GitHub outage có thể chạy cùng root gate local để chẩn đoán, nhưng local evidence không thay hosted status.
 
+### Hosted OSV extension startup fix — PLAN_LOCKED
+
+- `TASK-DOC-QUALITY-001` đã merge tại `e0c4139`, nhưng runs `30838513724` và `30838613737` không tạo job vì reusable OSV workflow yêu cầu `actions: read` và `security-events: write` vượt quyền caller.
+- `FIX-DOC-QUALITY-CI-001` dùng normal job với direct OSV action tại immutable SHA, checkout read-only và chỉ `contents: read`; không upload SARIF.
+- Ba lockfile vẫn được quét và scanner vẫn fail closed. Root deterministic job không đổi.
+- Hosted PASS trên exact fix/merge commit và xác nhận của `thanh` là gate trước khi TASK-DOC-QUALITY-001 được VERIFIED và chạy Merge Memory Sync.
+
 ## Lưu ý Windows
 
 Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu tiên named volume cho database và chạy command thống nhất qua package scripts.
@@ -145,3 +152,4 @@ Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu t
 | 2026-08-03 | IMPLEMENTED | Thêm Compose cho PostgreSQL+pgvector, MongoDB, Redis, health checks, volumes, env template và runbook. | Runtime smoke/health PASS; `loc` xác nhận `VERIFIED`. |
 | 2026-08-03 | MERGED | Tích hợp `TASK-INFRA-001` vào `develop` và promote shared implementation memory. | Merge `847251c`; Merge Memory Sync PASS. |
 | 2026-08-03 | MERGED / VERIFIED | Tích hợp `TASK-CI-001` và promote Foundation hosted quality gate. | Merge `be2a18e`; hosted run `30832872900` SUCCESS; Merge Memory Sync PASS. |
+| 2026-08-04 | PLAN_REVISION | Claim `FIX-DOC-QUALITY-CI-001` và khóa direct pinned OSV action để sửa caller/reusable permission mismatch. | `thanh` chọn phương án B; PLAN-0029; hosted runs `30838513724`, `30838613737` startup failure. |

@@ -180,9 +180,21 @@ Implementation boundary:
 - OSV-Scanner chạy hosted job riêng, pin immutable reference và quét `pnpm-lock.yaml` cùng hai `uv.lock`; network/tool outage không được biến thành silent PASS.
 - Existing formatter/lint/typecheck/test/build/Python checks vẫn là deterministic root gate; không thêm CodeQL, repository setting hoặc runtime product change vào scope hiện tại.
 
+### FIX-DOC-QUALITY-CI-001 plan revision
+
+- Decision: `DEC-DOC-QUALITY-OSV-STARTUP-FIX-001`.
+- Status: `PLAN_LOCKED`; confirmed by `thanh` ngày 2026-08-04.
+- Evidence: runs `30838513724` và `30838613737` đều dừng ở `startup_failure`; GitHub báo reusable OSV workflow yêu cầu `actions: read` và `security-events: write` trong khi caller không cấp các quyền đó.
+- Selected option B: đổi riêng OSV scan thành normal `ubuntu-24.04` job, checkout read-only và gọi direct OSV action tại immutable SHA; job chỉ có `contents: read`.
+- Inputs/behavior giữ nguyên: quét `pnpm-lock.yaml`, `services/ai/uv.lock` và `workers/media/uv.lock`; scanner finding/error phải làm job fail theo exit code, không silent PASS.
+- Không upload SARIF trong fix này nên không cấp `security-events: write`; deterministic root Node/Python quality job không đổi.
+- Option A (cấp toàn bộ quyền reusable workflow yêu cầu) không chọn vì mở quyền write không phục vụ output hiện tại. Fallback nếu direct action upstream không tương thích: quay lại Plan Revision, không tự bỏ dependency scan.
+- Acceptance: workflow tạo được cả hai jobs, root quality job PASS, OSV job PASS trên exact fix/merge commit, sau đó `thanh` xác nhận VERIFIED trước Merge Memory Sync.
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Bằng chứng |
 |---|---|---|---|
 | 2026-07-30 | ADDED/SECURITY | Khóa clean-code, secret, typed configuration và API/URL gate | Người dùng `loc` yêu cầu bổ sung |
 | 2026-08-04 | PLAN_LOCKED | Chọn Option C hybrid với markdownlint, Secretlint, project-specific checks và hosted OSV lockfile scan | `thanh` chọn Option C; PLAN-0028 |
+| 2026-08-04 | PLAN_REVISION | Khóa direct pinned OSV action job với `contents: read` để sửa reusable-workflow permission startup failure | `thanh` chọn phương án B; PLAN-0029; runs `30838513724`, `30838613737` |
