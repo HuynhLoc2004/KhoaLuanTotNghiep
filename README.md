@@ -10,7 +10,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0025` — `TASK-CI-001` đã merge vào `develop` tại `be2a18e`; hosted Foundation quality gate run `30832872900` PASS và Merge Memory Sync đã hoàn tất.
+- Shared plan revision: `PLAN-0026` — `FIX-FORMAT-001` đã được `thanh` xác nhận `VERIFIED/DONE`; merge `8d199db`, hosted run `30832872900` PASS và Merge Memory Sync hoàn tất.
 - `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - `TASK-WEB-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `03dfcd4`, Merge Memory Sync đã công bố Public Web shell & Design Tokens baseline.
@@ -19,7 +19,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 - `TASK-DATA-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `d75cdf8`, Merge Memory Sync đã công bố PostgreSQL DDL migration & entity baseline.
 - `TASK-TIMELINE-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `92c7caa`, Merge Memory Sync đã công bố Living Timeline MVP baseline.
 - `FIX-LINT-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `cc1c600`, Merge Memory Sync đã công bố workspace ESLint quality gate 100% PASS.
-- `FIX-FORMAT-001`: `REVIEW`, owner `thanh`, branch `fix/format-contracts-ui-admin`; đã merge ngoài gate vào `develop` tại `8d199db` nhưng chưa được người dùng xác nhận `VERIFIED`, Merge Memory Sync chưa PASS.
+- `FIX-FORMAT-001`: `DONE`, owner `thanh`; PR `#6` merge tại `8d199db`, actual six-path scope deviation đã được review, hosted run `30832872900` PASS và Merge Memory Sync PASS.
 - `TASK-CI-001`: `DONE`, owner `loc`; PR `#4` merge tại `be2a18e`, hosted run `30832872900` PASS và Merge Memory Sync PASS; verified by `thanh`.
 - `FIX-CLEAN-GATE-001`: `DONE`, owner `thanh`; PR `#7` merge tại `8bf9c9e`, local clean gates và hosted integrated run `30832872900` PASS; Merge Memory Sync PASS.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).

@@ -52,6 +52,7 @@
 | 2026-08-03 | `d75cdf8` / PR `#7` | `TASK-DATA-001` | PostgreSQL DDL migrations, entity DTOs, seed data baseline và DatabaseRepository | YES | `thanh` |
 | 2026-08-03 | `92c7caa` / PR `#8` | `TASK-TIMELINE-001` | Living Timeline MVP (FREE_EXPLORE/GUIDED_JOURNEY modes, Related Artifact Cards, REST API endpoints và 2D Timeline UI) | YES | `thanh` |
 | 2026-08-03 | `cc1c600` / PR `#9` | `FIX-LINT-001` | Sửa toàn bộ lỗi ESLint rules trên contracts, UI, web, admin và api packages | YES | `thanh` |
+| 2026-08-03 | `8d199db` / PR `#6` | `FIX-FORMAT-001` | Prettier normalization for Admin/contracts/UI plus recorded Web header compatibility call-site and test alignment | YES | `thanh`; hosted integrated run `30832872900` PASS |
 | 2026-08-03 | `8bf9c9e` / PR `#7` | `FIX-CLEAN-GATE-001` | Fresh-clone Turbo dependency ordering; remove stale Admin export; restore semantic form/validation/live-preview markers | YES | `thanh`; hosted integrated run `30832872900` PASS |
 | 2026-08-03 | `be2a18e` / PR `#4` | `TASK-CI-001` | Pinned, least-privilege Foundation quality workflow running the accepted root TypeScript/Python gate | YES | `thanh`; hosted run `30832872900` SUCCESS |
 

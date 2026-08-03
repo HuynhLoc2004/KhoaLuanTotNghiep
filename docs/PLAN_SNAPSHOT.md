@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0025`
+- Revision: `PLAN-0026`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Ghi nhận `TASK-CI-001` merge tại `be2a18e`, hosted run `30832872900` PASS và Merge Memory Sync PASS; đóng `TASK-CI-001` cùng `FIX-CLEAN-GATE-001` thành `DONE` theo xác nhận của `thanh`.
+- Scope: Ghi nhận `thanh` review scope deviation và xác nhận `FIX-FORMAT-001` là `VERIFIED/DONE`; merge `8d199db`, hosted run `30832872900` PASS và Merge Memory Sync hoàn tất.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: không có task `IN_PROGRESS` trong registry. `TASK-DOC-QUALITY-001` và `TASK-SEARCH-001` đang `READY`; `FIX-FORMAT-001` vẫn `REVIEW` chờ xác nhận riêng.
+- Task đang chạy: không có task `IN_PROGRESS` hoặc `REVIEW` trong registry. `TASK-DOC-QUALITY-001` và `TASK-SEARCH-001` đang `READY`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -48,21 +48,18 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0023 | 2026-08-03 | Clean validation sau Option A lộ Admin regression: integrated renderer thiếu validation control và stable live-preview container mà accepted Admin tests/spec yêu cầu. Khóa revision R1, không phục hồi standalone preview export và không sửa tests để che regression | FIX-CLEAN-GATE-001; TASK-ADMIN-001; TASK-CI-001 | Mở rộng đúng `apps/admin/src/forms/cmsFormBuilder.ts`; khôi phục hai accepted markers; chạy lại clean/full gate; giữ `infra/compose.yaml` cho `loc` | `thanh` xác nhận tiếp tục sửa sau khi xem evidence hosted/local |
 | PLAN-0024 | 2026-08-03 | PR `#7` merge `FIX-CLEAN-GATE-001` vào `develop` tại `8bf9c9e`; Merge Memory Sync PASS, chưa tự đặt VERIFIED | FIX-CLEAN-GATE-001; TASK-CI-001; TASK-ADMIN-001; root quality gate | `loc` pull latest develop, merge vào `feature/TASK-CI-001`, push và lấy hosted PASS; không rerun head cũ | GitHub merge evidence và local clean lint/typecheck/test/build PASS |
 | PLAN-0025 | 2026-08-03 | PR `#4` merge `TASK-CI-001` tại `be2a18e`; hosted Foundation quality gate run `30832872900` PASS trên exact merge commit; `TASK-CI-001` và dependent `FIX-CLEAN-GATE-001` chuyển `DONE` | TASK-CI-001; FIX-CLEAN-GATE-001; DevOps/testing baseline; task registry | Publish Merge Memory Sync; giữ FIX-FORMAT-001 ở REVIEW; chọn task READY tiếp theo sau claim/scope gate | `thanh` xác nhận và yêu cầu đồng bộ trạng thái |
+| PLAN-0026 | 2026-08-03 | `FIX-FORMAT-001` chuyển `DONE` sau khi review actual six-path merge và scope deviation; hosted integrated gate PASS | FIX-FORMAT-001; Web/Admin/contracts/UI formatting baseline; task registry | Publish Merge Memory Sync; giữ deviation trong lịch sử; task mới phải claim riêng | `thanh` xác nhận thực hiện |
 
 ## Changed owner documents in current revision
 
 - `README.md`.
-- `docs/AI_CONTEXT.md`.
 - `docs/NEXT_WORK.md`.
 - `docs/PROJECT_STATUS.md`.
 - `docs/IMPLEMENTATION_INDEX.md`.
-- `docs/06-devops/01-local-environment.md`.
-- `docs/05-quality/03-testing-strategy.md`.
 - `docs/07-delivery/05-traceability-matrix.md`.
-- `docs/work/TASK-CI-001.md`.
-- `docs/work/FIX-CLEAN-GATE-001.md`.
+- `docs/work/FIX-FORMAT-001.md`.
 
-Foundation, infrastructure, Web, API, Admin, data, Living Timeline, lint, clean-gate và CI tasks đã `DONE` sau merge/verification/Memory Sync. Task mới phải lấy từ các dòng `READY` trong `NEXT_WORK.md`.
+Foundation, infrastructure, Web, API, Admin, data, Living Timeline, lint, formatting, clean-gate và CI tasks đã `DONE` sau merge/verification/Memory Sync. Task mới phải lấy từ các dòng `READY` trong `NEXT_WORK.md`.
 
 ## Revision rules
 
