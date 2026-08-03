@@ -47,7 +47,7 @@ export function renderLivingTimelinePage(options: TimelinePageOptions = {}): str
     ],
   };
 
-  const headerHtml = renderHeader("timeline");
+  const headerHtml = renderHeader();
   const timelineHtml = renderLivingTimeline2D(journey, mode, relatedMap);
   const footerHtml = renderFooter();
 

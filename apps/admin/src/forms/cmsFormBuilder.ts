@@ -19,20 +19,22 @@ export function validateBlockData(
   const errors: { field: string; message: string }[] = [];
 
   const rawId = data.id;
-  const idVal = typeof rawId === "string" ? rawId : (typeof rawId === "number" ? String(rawId) : "");
+  const idVal = typeof rawId === "string" ? rawId : typeof rawId === "number" ? String(rawId) : "";
   if (idVal.trim().length === 0) {
     errors.push({ field: "id", message: "ID block không được để trống" });
   }
 
   const rawTitle = data.title;
-  const titleVal = typeof rawTitle === "string" ? rawTitle : (typeof rawTitle === "number" ? String(rawTitle) : "");
+  const titleVal =
+    typeof rawTitle === "string" ? rawTitle : typeof rawTitle === "number" ? String(rawTitle) : "";
   if (titleVal.trim().length === 0) {
     errors.push({ field: "title", message: "Tiêu đề block không được để trống" });
   }
 
   if (type === "hero") {
     const rawSub = data.subtitle;
-    const subVal = typeof rawSub === "string" ? rawSub : (typeof rawSub === "number" ? String(rawSub) : "");
+    const subVal =
+      typeof rawSub === "string" ? rawSub : typeof rawSub === "number" ? String(rawSub) : "";
     if (subVal.trim().length === 0) {
       errors.push({
         field: "subtitle",
@@ -43,7 +45,8 @@ export function validateBlockData(
 
   if (type === "banner") {
     const rawMsg = data.message;
-    const msgVal = typeof rawMsg === "string" ? rawMsg : (typeof rawMsg === "number" ? String(rawMsg) : "");
+    const msgVal =
+      typeof rawMsg === "string" ? rawMsg : typeof rawMsg === "number" ? String(rawMsg) : "";
     if (msgVal.trim().length === 0) {
       errors.push({
         field: "message",
