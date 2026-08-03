@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0027`
+- Revision: `PLAN-0028`
 - Updated: 2026-08-04
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Claim `TASK-DOC-QUALITY-001` cho `thanh` trên `feature/TASK-DOC-QUALITY-001`, khóa dependency/write scope và mở cổng `DESIGN_OPTIONS` trước implementation.
+- Scope: Khóa Option C cho `TASK-DOC-QUALITY-001`: markdownlint + Secretlint + project-specific Node/TypeScript checks, API synthetic regression và hosted OSV scan cho pnpm/uv lockfiles.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: `TASK-DOC-QUALITY-001` `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-DOC-QUALITY-001`, đang ở `DESIGN_OPTIONS`; `TASK-SEARCH-001` vẫn `READY`.
+- Task đang chạy: `TASK-DOC-QUALITY-001` `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-DOC-QUALITY-001`, Option C `PLAN_LOCKED`; `TASK-SEARCH-001` vẫn `READY`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -50,14 +50,18 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0025 | 2026-08-03 | PR `#4` merge `TASK-CI-001` tại `be2a18e`; hosted Foundation quality gate run `30832872900` PASS trên exact merge commit; `TASK-CI-001` và dependent `FIX-CLEAN-GATE-001` chuyển `DONE` | TASK-CI-001; FIX-CLEAN-GATE-001; DevOps/testing baseline; task registry | Publish Merge Memory Sync; giữ FIX-FORMAT-001 ở REVIEW; chọn task READY tiếp theo sau claim/scope gate | `thanh` xác nhận và yêu cầu đồng bộ trạng thái |
 | PLAN-0026 | 2026-08-03 | `FIX-FORMAT-001` chuyển `DONE` sau khi review actual six-path merge và scope deviation; hosted integrated gate PASS | FIX-FORMAT-001; Web/Admin/contracts/UI formatting baseline; task registry | Publish Merge Memory Sync; giữ deviation trong lịch sử; task mới phải claim riêng | `thanh` xác nhận thực hiện |
 | PLAN-0027 | 2026-08-04 | Claim `TASK-DOC-QUALITY-001` cho `thanh` trên `feature/TASK-DOC-QUALITY-001`; dependency foundation/API/data/CI đều DONE; write scope giới hạn ở quality tooling/CI, root quality config, API regression tests và task report | TASK-DOC-QUALITY-001; documentation/code/config/secret/data-access quality gates | Publish claim; tạo feature branch/report/session; so sánh các scanner/policy option và chỉ implement sau khi người dùng chọn `PLAN_LOCKED` | `thanh` xác nhận bắt đầu |
+| PLAN-0028 | 2026-08-04 | Chọn Option C hybrid repo-controlled: markdownlint + Secretlint chạy local/CI; custom checks chỉ giữ invariant riêng; OSV quét một pnpm và hai uv lockfiles trong hosted job; không thêm CodeQL/platform settings vào scope hiện tại | TASK-DOC-QUALITY-001; documentation/code/config/secret/data-access quality gates | Implement đúng write scope; mask secret diagnostics; allowlist hẹp có lý do; API hiện chưa có SQL/cache runtime nên chỉ static/synthetic evidence và phải ghi N/A thay vì tuyên bố coverage giả | `thanh` chọn phương án C |
 
 ## Changed owner documents in current revision
 
 - `README.md`.
 - `docs/NEXT_WORK.md`.
 - `docs/PROJECT_STATUS.md`.
+- `docs/04-design/03-ai-experience-quality-gate.md`.
+- `docs/05-quality/04-code-configuration-quality-gate.md`.
+- `docs/05-quality/05-database-query-cache-quality-gate.md`.
 
-`TASK-DOC-QUALITY-001` chỉ được triển khai trong write scope đã công bố sau khi `DESIGN_OPTIONS` được người dùng chọn và ghi `PLAN_LOCKED`; feature branch không sửa shared status/index/catalog files.
+`TASK-DOC-QUALITY-001` triển khai theo `DEC-DOC-QUALITY-AUTOMATION-001`; mọi thay đổi thư viện/scanner/flow material phải quay lại Plan Revision. Feature branch không sửa shared status/index/catalog files.
 
 ## Revision rules
 

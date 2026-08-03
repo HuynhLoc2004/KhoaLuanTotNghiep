@@ -164,8 +164,25 @@ Không ghi secret value vào tài liệu. Chỉ ghi tên biến, mục đích v�
 
 Các rule chống false positive phải có allowlist theo file/test scope và lý do review được. Automation không tự đánh giá code “đẹp”; nó cung cấp bằng chứng cho human review.
 
+### TASK-DOC-QUALITY-001 implementation decision
+
+- Decision: `DEC-DOC-QUALITY-AUTOMATION-001`.
+- Status: `PLAN_LOCKED`.
+- Confirmed by: `thanh`.
+- Date: 2026-08-04.
+- Selected option: Option C — hybrid repo-controlled.
+
+Implementation boundary:
+
+- `markdownlint-cli2` và Secretlint là locked Node dev dependencies chạy cùng command local/CI; Secretlint giữ masking mặc định.
+- `scripts/quality/**` chỉ sở hữu rule đặc thù: feature-report sections/local links/Mermaid explanations, `.env.example`/config coverage, environment URL boundary và TypeScript AST policy cho dangerous query/operator/cache-key shapes.
+- False-positive suppression phải hẹp theo rule/path, có lý do và positive/negative fixture; không có blanket ignore.
+- OSV-Scanner chạy hosted job riêng, pin immutable reference và quét `pnpm-lock.yaml` cùng hai `uv.lock`; network/tool outage không được biến thành silent PASS.
+- Existing formatter/lint/typecheck/test/build/Python checks vẫn là deterministic root gate; không thêm CodeQL, repository setting hoặc runtime product change vào scope hiện tại.
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Bằng chứng |
 |---|---|---|---|
 | 2026-07-30 | ADDED/SECURITY | Khóa clean-code, secret, typed configuration và API/URL gate | Người dùng `loc` yêu cầu bổ sung |
+| 2026-08-04 | PLAN_LOCKED | Chọn Option C hybrid với markdownlint, Secretlint, project-specific checks và hosted OSV lockfile scan | `thanh` chọn Option C; PLAN-0028 |

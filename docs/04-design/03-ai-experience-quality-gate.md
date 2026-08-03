@@ -177,6 +177,10 @@ Sau `TASK-FOUND-001`, triển khai `TASK-DOC-QUALITY-001` để kiểm tra tự 
 
 CI chỉ kiểm tra sự hiện diện/cấu trúc và liên kết; không thể tự chứng minh nội dung đúng, trải nghiệm đẹp hoặc performance đạt. Review con người và benchmark vẫn là gate bắt buộc.
 
+### TASK-DOC-QUALITY-001 implementation cross-link
+
+`DEC-DOC-QUALITY-AUTOMATION-001` khóa Option C: `markdownlint-cli2` xử lý Markdown style, project-specific Node checks xử lý section/link/Mermaid explanation và mọi diagnostic có fixture. Quyết định chính nằm tại `docs/05-quality/04-code-configuration-quality-gate.md`; automation không nâng presence check thành semantic/visual/performance evidence.
+
 ## Acceptance criteria
 
 - Mọi AI/người làm dùng cùng flow từ concept đến handoff.
@@ -191,3 +195,4 @@ CI chỉ kiểm tra sự hiện diện/cấu trúc và liên kết; không thể
 | Ngày | Loại | Thay đổi | Bằng chứng |
 |---|---|---|---|
 | 2026-07-30 | ADDED | Khóa Quality Gate hai giai đoạn cho sáng tạo, dependency inventory, adaptive performance và báo cáo | Người dùng `loc` chọn phương án C |
+| 2026-08-04 | PLAN_LOCKED | Liên kết Option C automation cho Markdown structure/link/Mermaid evidence, giữ human review/benchmark boundary | `thanh` chọn Option C; PLAN-0028 |

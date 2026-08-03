@@ -224,8 +224,13 @@ Sau foundation, `TASK-DOC-QUALITY-001` mở rộng để kiểm tra:
 
 Automation không tự quyết định index tốt hay query tối ưu; query plan, workload và review vẫn là nguồn bằng chứng.
 
+### TASK-DOC-QUALITY-001 implementation cross-link
+
+`DEC-DOC-QUALITY-AUTOMATION-001` khóa Option C cho static/AST query-policy checks và synthetic validation/redaction regression trong `services/api/test/**`. Baseline API hiện chỉ có repository in-memory, chưa có SQL query adapter hoặc cache runtime; vì vậy query plan, query count, cache-key/invalidation runtime evidence phải ghi `NOT_APPLICABLE` kèm lý do. Task không được tạo production query/cache implementation chỉ để làm gate pass.
+
 ## Change history
 
 | Ngày | Loại | Thay đổi | Bằng chứng |
 |---|---|---|---|
 | 2026-07-30 | ADDED/SECURITY/PERFORMANCE | Khóa input, injection, query/index, cache và exposure gate | Người dùng `loc` yêu cầu |
+| 2026-08-04 | PLAN_LOCKED | Liên kết Option C static/AST và synthetic regression; khóa N/A boundary khi SQL/cache runtime chưa tồn tại | `thanh` chọn Option C; PLAN-0028 |
