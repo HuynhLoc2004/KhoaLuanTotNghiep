@@ -15,6 +15,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - `TASK-API-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-API-001`.
 - `TASK-CI-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-CI-001`; scope `.github/workflows/**` và task report riêng.
+- `TASK-WEB-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-WEB-001`; scope `apps/web/**`, `packages/ui/**`.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 
 Mọi thay đổi shared plan, task, owner, branch, dependency, write scope hoặc shared contract phải được Codex commit/push dưới dạng Markdown-only lên remote `develop`, kèm cập nhật README. AI ưu tiên coordination worktree để giữ nguyên active feature branch. Code/test trên feature branch không được AI tự push hoặc merge; khi hoàn tất, AI chỉ đề xuất để người dùng tự push/review/merge.
