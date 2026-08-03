@@ -1,53 +1,54 @@
 # Công việc hiện tại
 
-File này dành cho task đang hoạt động trên branch hiện tại. Khi bắt đầu feature, thay nội dung placeholder bằng task thực tế. Không dùng file này thay cho feature specification hoặc change history.
-
-Thành viên vừa clone không mặc nhiên tiếp tục task trong file này. Hãy dùng `docs/NEXT_WORK.md` để chọn task `READY`.
-
 ## Git context
 
-- Expected branch: `develop` — hiện chỉ chuẩn hóa tài liệu.
-- Base branch: `develop`.
-- Coding agent được phép commit/merge/push: Không.
-- Last reviewed shared plan revision: `PLAN-0011`.
+- Expected branch: `feature/TASK-INFRA-001`.
+- Base branch: `develop` at shared plan `PLAN-0015`.
+- Shared coordination automation: Markdown-only trên `develop`; implementation branch không tự push/merge.
 
 ## Task
 
-- Mã: DOC-GOVERNANCE-001
-- Mục tiêu: Hoàn thiện trí nhớ vận hành và quy tắc làm việc cho AI/nhóm.
-- Feature owner: `PROJECT_BRAIN.md`.
-- Trạng thái: IMPLEMENTED, chờ nhóm review.
+- Mã: `TASK-INFRA-001`.
+- Owner/contributor: `loc`.
+- Mục tiêu: Docker Compose local cho PostgreSQL + pgvector, MongoDB, Redis và health checks.
+- Feature owner: `docs/06-devops/01-local-environment.md`.
+- Trạng thái: `VERIFIED` bởi người dùng; chờ user-owned commit/push feature branch.
+- Session: `WS-TASK-INFRA-001-20260803-01`.
+- StartedAt: `2026-08-03T11:50:45+07:00`.
+- LastActiveAt: `2026-08-03T12:00:24+07:00`.
 
-## Trong phạm vi
+## Write scope
 
-- Authority order, invariants, ADR baseline, contract/data catalog.
-- Traceability matrix, Definition of Ready và handoff template.
-- AI Experience & Documentation Quality Gate cho sáng tạo, dependency inventory và hiệu năng đa thiết bị.
-- Code, Secret & Configuration Quality Gate cho clean code, typed config, URL/provider và credential safety.
-- Database Query, Cache & Input Security Quality Gate cho server validation, injection prevention, index evidence và cache correctness.
-- User-first identity gate: hỏi tên/Member ID trước, Git author chỉ kiểm tra sau xác nhận.
-- Work Session & Feature Contribution Ledger cho identity recheck, attribution, timestamp và handoff.
-- Đăng ký thành viên `thanh` và intake/PLAN_LOCKED `IDEA-002` Dòng thời gian sống ở mức tài liệu; không claim implementation task.
-- Khóa Plan Revision `DEC-TIMELINE-MODE-001`: free/guided modes dùng chung QR pipeline, explicit switch và giữ progress.
-- Khóa `DEC-TIMELINE-RELATION-001`: typed curator-approved artifact relations, explained ranking và approved-3D-only/fallback.
+- `infra/**`.
+- `CURRENT_TASK.md`.
+- Branch-local implementation evidence trong `docs/06-devops/01-local-environment.md`.
 
-## Ngoài phạm vi
+Không sửa root workspace/tooling, app/service/package/worker skeleton hoặc root `.env.example` thuộc `TASK-FOUND-001`.
 
-- Khởi tạo source code ứng dụng.
-- Cài dependency hoặc Docker.
+## PLAN_LOCKED
+
+- Compose project: `hcm-museum`.
+- PostgreSQL: host `15432`, container `5432`.
+- MongoDB: host `27018`, container `27017`.
+- Redis: host `16379`, container `6379`.
+- Named volumes: `postgres_data`, `mongo_data`, `redis_data`.
+- Secret thật chỉ ở ignored `infra/.env`; repository chỉ có placeholder `infra/.env.example`.
 
 ## Acceptance criteria
 
-- AI biết phải đọc gì trước khi code.
-- Có quy tắc giải quyết mâu thuẫn và bảo toàn lịch sử.
-- Có nơi sở hữu invariant, ADR, contract, data, traceability và handoff.
-- Tất cả tài liệu mới được liên kết từ README/bộ não.
-- UI/motion/3D có quality tiers, desktop/mobile evidence và technology inventory bắt buộc.
-- Code/config có review evidence; secret không vào client/log/docs và environment-specific URL không hard-code.
-- Data access có parameter binding/allowlist, query-plan/index evidence, scoped cache/invalidation và response/log redaction.
-- Onboarding không gọi tên, suy luận danh tính từ Git hoặc dùng member placeholder trước câu trả lời của người dùng.
-- Mỗi implementation session/người tiếp tục có row riêng; feature lifecycle giữ mốc bắt đầu, bàn giao, verification, merge và completion có evidence.
+- Compose config render hợp lệ.
+- Ba service có pinned image, named volume và healthcheck.
+- Không commit secret/default production credential.
+- Hướng dẫn start/stop/status/log và connection endpoint rõ.
+- Runtime smoke test chứng minh cả ba service healthy khi Docker engine khả dụng.
 
-## Handoff status
+## Current checkpoint
 
-Đã tạo baseline tài liệu, khóa các Quality Gate, user-first identity và Work Session Ledger; `PLAN-0009` bổ sung Dòng thời gian sống, `PLAN-0010` khóa free/guided modes và `PLAN-0011` khóa Artifact Relationship/recommendation/approved-3D fallback. Người dùng review. Automation được theo dõi bởi `TASK-DOC-QUALITY-001` sau foundation/API/data tooling. Task code tiếp theo vẫn là `TASK-FOUND-001` trên branch dự kiến `feature/project-foundation`; khi bắt đầu phải viết lại file này theo phạm vi foundation.
+- Docker CLI `28.4.0`, engine `28.4.0` và Compose `v2.39.4-desktop.1`.
+- Static Compose config: PASS.
+- Runtime health: PostgreSQL/MongoDB/Redis đều `healthy`.
+- Smoke: PostgreSQL accepting connections; pgvector available `0.8.5`; Mongo ping `1`; Redis `PONG`.
+- User-owned ignored `infra/.env`: config và smoke PASS; credential values không được in/log.
+- Containers đang chạy healthy với volumes mới của user verification.
+- User `loc` xác nhận `VERIFIED` lúc `2026-08-03T12:00:24+07:00`.
+- Tiếp theo: người dùng commit/push feature branch để review/merge; AI không tự push/merge implementation.
