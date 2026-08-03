@@ -13,18 +13,18 @@ Nguồn đọc nhanh để hai người xây một sản phẩm thống nhất. 
 
 | Group | Status | Location/version | Usage |
 |---|---|---|---|
-| Color | DOCS_ONLY | — | Bronze/jade/neutral semantic |
-| Typography | DOCS_ONLY | — | Vietnamese + WCAG |
-| Spacing/radius/shadow | DOCS_ONLY | — | Một shared source |
-| Motion | DOCS_ONLY | — | Quality/reduced tiers |
+| Color | CODE_CONFIRMED | `packages/ui/src/tokens/theme.ts` | Primary Red (`#9E1B1B`), Gold Accent (`#D4AF37`), Bronze, Dark Charcoal, Silk White |
+| Typography | CODE_CONFIRMED | `packages/ui/src/tokens/theme.ts` | Outfit, Cinzel, Inter, Roboto font families |
+| Spacing/radius/shadow | CODE_CONFIRMED | `packages/ui/src/tokens/theme.ts` | Glassmorphism card backdrop-filter & shadow |
+| Motion | CODE_CONFIRMED | `packages/ui/src/tokens/theme.ts` | Fast, Normal, Slow transitions & pulseGlow |
 
 ## Components and shells
 
 | Component/Pattern | Purpose | Status | Location | Variants | Consumers | Do not duplicate |
 |---|---|---|---|---|---|---|
-| App shell | Public navigation/layout | DOCS_ONLY | — | Mobile/Desktop | Public Web | Có |
+| App shell | Public navigation/layout | CODE_CONFIRMED | `apps/web/src/shell/layout.ts`, `apps/web/src/shell/webShell.ts` | Responsive Mobile/Desktop Header & Footer | Public Web | Có |
 | Admin shell | CMS layout | DOCS_ONLY | — | Desktop/Tablet | Admin | Có |
-| Content block renderer | CMS sections | DOCS_ONLY | — | Schema-driven | Public Web | Có |
+| Content block renderer | CMS sections | CODE_CONFIRMED | `packages/ui/src/cms/renderer.ts` | Hero, ArtifactGrid, TimelinePreview, Banner | Public Web, Admin | Có |
 | Audio player | Tour/voice | DOCS_ONLY | — | Compact/Full | Tour/Artifact | Có |
 | 3D viewer shell | Scene/model/fallback | DOCS_ONLY | — | Quality tiers | Artifact/Map | Có |
 
