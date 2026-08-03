@@ -5,7 +5,7 @@
 ## Baseline
 
 - Application source: foundation skeleton đã khởi tạo.
-- Last synchronized merge: `8bf9c9e` — `FIX-CLEAN-GATE-001` (`MERGED_UNVERIFIED`; hosted integration check pending).
+- Last synchronized merge: `be2a18e` — `TASK-CI-001` (`VERIFIED`; hosted run `30832872900` SUCCESS; Merge Memory Sync PASS).
 - Shared contracts implemented: ApiErrorResponseSchema, HealthStatusResponseSchema, ApiError class, ErrorCode enum, Database Entity DTOs, Living Timeline Zod Schemas (ExplorationMode, NarrativeJourney, NarrativeNode, RelatedArtifact).
 - UI components implemented: Heritage Theme tokens, CMS Block Renderer, Admin Shell (Sidebar, Header), Public Header & Footer layouts, Living Timeline 2D Renderer, Mode Switcher, Related Artifact Cards.
 
@@ -14,14 +14,15 @@
 | App/Service | Capability đã merge | Code location | Entry/Route | Status | Test/Evidence |
 |---|---|---|---|---|---|
 | Public Web | Public Web shell responsive layout, Header, Footer, CMS Page renderer và Living Timeline Page renderer | `apps/web/` | `apps/web/src/index.ts` | CODE_CONFIRMED | 5/5 web tests PASS; verified by `thanh` |
-| Admin | Admin shell layout (Sidebar, Header), semantic CMS Block Form with validation control, and integrated Live Preview panel | `apps/admin/` | `apps/admin/src/index.ts` | CODE_CONFIRMED | 7/7 admin tests PASS locally; hosted integration pending |
+| Admin | Admin shell layout (Sidebar, Header), semantic CMS Block Form with validation control, and integrated Live Preview panel | `apps/admin/` | `apps/admin/src/index.ts` | CODE_CONFIRMED | 7/7 admin tests PASS locally; hosted integrated gate PASS in run `30832872900` |
 | API | Express API skeleton, health endpoints, correlation ID middleware, Zod validator & error handler; Database DDL migrations, Entity DTOs, seed data & DatabaseRepository; REST API endpoints `/api/v1/timeline/*` | `services/api/` | `services/api/src/index.ts` | CODE_CONFIRMED | 17/17 api tests PASS; verified by `thanh` |
 | AI service | Python package/test skeleton; chưa có AI runtime behavior | `services/ai/` | `services/ai/src/ai_service/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
 | Media worker | Python package/test skeleton; chưa có queue/media runtime behavior | `workers/media/` | `workers/media/src/media_worker/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
 | Shared contracts | Base ApiError, ErrorCode, ApiErrorResponseSchema, HealthStatusResponseSchema, Living Timeline Zod schemas | `packages/contracts/` | `packages/contracts/src/index.ts` | CODE_CONFIRMED | 5/5 contract tests PASS; verified by `thanh` |
 | Shared UI | Heritage Modern Dark Theme tokens, CMS Block types, CmsBlockRenderer, Living Timeline 2D Renderer, Mode Switcher, Related Artifact Cards | `packages/ui/` | `packages/ui/src/index.ts` | CODE_CONFIRMED | 12/12 ui tests PASS; verified by `thanh` |
 | Local data services | PostgreSQL + pgvector, MongoDB và Redis qua Docker Compose; authenticated health checks và named volumes | `infra/` | `infra/compose.yaml` | CODE_CONFIRMED | Compose config validation + runtime smoke/health PASS; verified by `loc` |
-| Workspace quality graph | Turbo builds direct workspace dependencies before dependent lint/typecheck so ignored declaration outputs exist on fresh clones | `turbo.json` | root `lint` / `typecheck` tasks | CODE_CONFIRMED | Clean lint 7/7, typecheck 7/7, test 10/10 and build 5/5 tasks PASS locally; hosted integration pending |
+| Workspace quality graph | Turbo builds direct workspace dependencies before dependent lint/typecheck so ignored declaration outputs exist on fresh clones | `turbo.json` | root `lint` / `typecheck` tasks | CODE_CONFIRMED | Clean lint 7/7, typecheck 7/7, test 10/10 and build 5/5 tasks PASS locally; hosted run `30832872900` PASS |
+| Foundation CI quality gate | Deterministic cross-runtime GitHub Actions job with pinned Node/pnpm/uv/Python setup, frozen install, least-privilege checkout and root `pnpm check` | `.github/workflows/quality.yml` | push `develop`/`main`; PR to `develop`; manual dispatch | CODE_CONFIRMED | Hosted run `30832872900` SUCCESS on exact merge commit `be2a18e`; verified by `thanh` |
 
 ## Features
 
@@ -51,7 +52,8 @@
 | 2026-08-03 | `d75cdf8` / PR `#7` | `TASK-DATA-001` | PostgreSQL DDL migrations, entity DTOs, seed data baseline và DatabaseRepository | YES | `thanh` |
 | 2026-08-03 | `92c7caa` / PR `#8` | `TASK-TIMELINE-001` | Living Timeline MVP (FREE_EXPLORE/GUIDED_JOURNEY modes, Related Artifact Cards, REST API endpoints và 2D Timeline UI) | YES | `thanh` |
 | 2026-08-03 | `cc1c600` / PR `#9` | `FIX-LINT-001` | Sửa toàn bộ lỗi ESLint rules trên contracts, UI, web, admin và api packages | YES | `thanh` |
-| 2026-08-03 | `8bf9c9e` / PR `#7` | `FIX-CLEAN-GATE-001` | Fresh-clone Turbo dependency ordering; remove stale Admin export; restore semantic form/validation/live-preview markers | YES | UNVERIFIED — hosted `TASK-CI-001` rerun pending |
+| 2026-08-03 | `8bf9c9e` / PR `#7` | `FIX-CLEAN-GATE-001` | Fresh-clone Turbo dependency ordering; remove stale Admin export; restore semantic form/validation/live-preview markers | YES | `thanh`; hosted integrated run `30832872900` PASS |
+| 2026-08-03 | `be2a18e` / PR `#4` | `TASK-CI-001` | Pinned, least-privilege Foundation quality workflow running the accepted root TypeScript/Python gate | YES | `thanh`; hosted run `30832872900` SUCCESS |
 
 ## Quy tắc
 

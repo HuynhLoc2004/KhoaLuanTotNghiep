@@ -97,6 +97,15 @@ Mỗi runtime dùng một config module typed/schema-validated và fail fast khi
 
 Lint -> typecheck -> unit -> integration -> build -> image scan -> E2E smoke. Migration kiểm tra trên database rỗng và bản snapshot gần production. Deploy staging trước production; production cần approval và rollback image.
 
+### Foundation quality gate — IMPLEMENTED / VERIFIED
+
+- Workflow: `.github/workflows/quality.yml`; merge `be2a18e` / PR `#4`.
+- Trigger: push vào `develop`/`main`, pull request hướng tới `develop`, hoặc manual dispatch; run cũ cùng ref bị hủy bằng concurrency group.
+- Flow: checkout read-only không persist credential -> cài Node/pnpm/uv/Python đã pin -> `pnpm install --frozen-lockfile` -> chạy root `pnpm check`.
+- Security: workflow chỉ có `contents: read`, không dùng project secret, không khởi động Compose, không deploy và không truy cập dữ liệu production.
+- Evidence: GitHub Actions run `30832872900` `SUCCESS` trên exact merge commit `be2a18e`; `thanh` xác nhận `VERIFIED` ngày 2026-08-03.
+- Limitation/fallback: một job tuần tự, không dependency cache và chưa gồm image scan/E2E/deploy. Khi GitHub outage có thể chạy cùng root gate local để chẩn đoán, nhưng local evidence không thay hosted status.
+
 ## Lưu ý Windows
 
 Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu tiên named volume cho database và chạy command thống nhất qua package scripts.
@@ -119,12 +128,14 @@ Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu t
 - Limitation: chỉ là local development infrastructure; chưa có production secret manager, backup/restore automation, TLS, monitoring hoặc schema/migration nghiệp vụ.
 - Local service/port contract: branch-local `PLAN_LOCKED` bởi `loc` ngày 2026-08-03 và đã được hai thành viên đồng thuận; chưa là shared plan cho đến khi xuất hiện trên remote `develop`.
 - Compose, health checks và smoke test: `PLANNED`.
+- `TASK-CI-001`: `DONE`; owner `loc`, merge `be2a18e`, hosted run `30832872900` PASS, Merge Memory Sync PASS.
 
 ## Decision log
 
 | Ngày | ID | Trạng thái | Quyết định | Lý do và phương án không chọn |
 |---|---|---|---|---|
 | 2026-08-03 | `DEC-INFRA-LOCAL-PORTS-001` | IMPLEMENTED; VERIFIED | Giữ port chuẩn trong container, dùng host ports `15432`, `27018`, `16379`; Compose DNS dùng `postgres`, `mongo`, `redis`; reserve dải app/proxy theo bảng trên. | Giảm va chạm với dịch vụ local nhưng vẫn giữ kết nối nội bộ theo convention. Không chọn publish trực tiếp toàn bộ port chuẩn vì dễ collision trên máy phát triển. |
+| 2026-08-03 | `OPTION-CI-001/A` | IMPLEMENTED; VERIFIED | Dùng một deterministic cross-runtime GitHub Actions job gọi root `pnpm check`, pin tool/action, frozen install, least privilege và không cache. | Giữ một nguồn orchestration và bề mặt bảo trì nhỏ. Chưa chọn parallel/reusable workflows vì chưa có evidence về thời gian hay nhiều consumer. |
 
 ## Change history
 
@@ -133,3 +144,4 @@ Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu t
 | 2026-08-03 | ADDED | Chuẩn bị đề xuất service naming, host/container ports, volume/database naming và estimate cho `TASK-INFRA-001` trên feature branch. | User `loc` chọn Phương án B; chờ nhóm thống nhất; implementation/test chưa chạy. |
 | 2026-08-03 | IMPLEMENTED | Thêm Compose cho PostgreSQL+pgvector, MongoDB, Redis, health checks, volumes, env template và runbook. | Runtime smoke/health PASS; `loc` xác nhận `VERIFIED`. |
 | 2026-08-03 | MERGED | Tích hợp `TASK-INFRA-001` vào `develop` và promote shared implementation memory. | Merge `847251c`; Merge Memory Sync PASS. |
+| 2026-08-03 | MERGED / VERIFIED | Tích hợp `TASK-CI-001` và promote Foundation hosted quality gate. | Merge `be2a18e`; hosted run `30832872900` SUCCESS; Merge Memory Sync PASS. |

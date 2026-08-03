@@ -5,7 +5,7 @@
 - Owner/contributor: `loc` (reconfirmed 2026-08-03T21:32:56+07:00; TEAM match `CONFIRMED`).
 - Branch: `feature/TASK-CI-001`.
 - Base/shared plan revision: `PLAN-0024`; claim commit `28a31fb`, scope revision `ba33782`, clean-gate merge `8bf9c9e` and Merge Memory Sync `3a3794f` on `develop`.
-- Status: `IMPLEMENTED`; waiting for user review and hosted GitHub Actions evidence.
+- Status: `VERIFIED / DONE`; merged into `develop` at `be2a18e` and verified by `thanh` from hosted GitHub Actions run `30832872900` (`success`).
 - `PRE_CODE_PLAN_SYNC: PASS` — remote claim verified, local branch created from updated `develop`, published scopes do not overlap `TASK-API-001`.
 
 ## Objective and write scope
@@ -173,8 +173,8 @@ No production dependency, runtime service, API contract, schema or database is a
 - [x] TypeScript formatting, 5 lint, 5 typecheck, 5 tests and builds PASS locally.
 - [x] Pinned uv `0.11.32` runs Ruff check/format and 2/2 pytest PASS.
 - [x] Formatting-only Compose change preserves normalized config hash.
-- [ ] Hosted GitHub Actions run PASS after user push/PR.
-- [ ] User reviews and confirms `VERIFIED`.
+- [x] Hosted GitHub Actions run `30832872900` PASS on merge commit `be2a18e`.
+- [x] `thanh` reviewed the merge/hosted evidence and confirmed `VERIFIED` on 2026-08-03.
 
 ## Change history
 
@@ -187,6 +187,7 @@ No production dependency, runtime service, API contract, schema or database is a
 | 2026-08-03 | CI EVIDENCE | `thanh` hỗ trợ đồng bộ `develop` tại merge `b8ff720` và chạy lại root gate; Prettier cùng 5/5 lint PASS, sau đó typecheck phát hiện lỗi baseline Admin ngoài scope CI | `apps/admin/src/index.ts` export `renderLivePreviewPanel` nhưng `apps/admin/src/forms/cmsFormBuilder.ts` không cung cấp symbol; cần fix riêng trước hosted PASS |
 | 2026-08-03 | CI EVIDENCE | Hosted run `30829451628` trên PR `#4` qua cài đặt và Prettier nhưng fail tại `packages/ui` lint vì clean runner không có contracts declarations trong ignored `dist` | 10 annotations tại `packages/ui/src/timeline/renderer.ts`; package export trỏ `@hcmc-museum/contracts` types tới `./dist/src/index.d.ts`, trong khi Turbo lint chỉ phụ thuộc `^lint`, không build dependency trước |
 | 2026-08-03 | CI EVIDENCE | Hosted run `30829724233` lặp lại clean-runner UI lint failure vì PR head vẫn là `dbb8f2d`, chưa chứa clean-gate fix | `FIX-CLEAN-GATE-001` sau đó merge vào `develop` tại `8bf9c9e`; branch CI sync latest develop tại local merge `7d756c7` |
+| 2026-08-03 | VERIFIED | PR `#4` merged into `develop`; the workflow ran on the exact merge commit and completed successfully | Merge `be2a18e`; hosted run `30832872900`; verified by `thanh` |
 
 ## Contribution ledger
 
@@ -201,13 +202,27 @@ No production dependency, runtime service, API contract, schema or database is a
 ## Implementation evidence
 
 - Behavior/files: `.github/workflows/quality.yml` adds the locked cross-runtime quality job; task report records the decision and pins.
-- Tests: YAML parse, workflow/report/Compose Prettier and workflow risk-pattern scan PASS; lockfile supply-chain verification PASS; earlier isolated evidence covered TypeScript format + 5 lint/type/test/build and pinned uv `0.11.32` Ruff/format + 2/2 pytest. After clean-gate fix `8bf9c9e` and sync merge `7d756c7`, the exact combined root command passes Prettier, lint 7/7, typecheck 7/7, test 10/10 and build 5/5; it stops only at the final Python step because this host does not have the locked uv 0.11.x toolchain. The GitHub workflow provisions uv, so a new hosted run after push is the authoritative remaining check.
+- Tests: YAML parse, workflow/report/Compose Prettier and workflow risk-pattern scan PASS; lockfile supply-chain verification PASS; earlier isolated evidence covered TypeScript format + 5 lint/type/test/build and pinned uv `0.11.32` Ruff/format + 2/2 pytest. After clean-gate fix `8bf9c9e` and sync merge `7d756c7`, the exact combined local root command passed Prettier, lint 7/7, typecheck 7/7, test 10/10 and build 5/5 before stopping at the unavailable local uv 0.11.x toolchain. Hosted run `30832872900` then provisioned the pinned uv/Python environment and completed the full workflow successfully on `develop@be2a18e`.
 - Security/invariants: no product behavior/data/contract change; workflow must use least privilege and no secrets.
-- Known limitations/fallback: hosted-runner evidence requires pushing the feature branch; local validation cannot prove GitHub execution. Local global uv remains `0.10.7` and was not modified; isolated accepted uv `0.11.32` supplied Python evidence. Fallback is the same pinned local component gate.
+- Known limitations/fallback: the gate is one sequential job without dependency caching or deployment behavior. A GitHub outage can be diagnosed with the same pinned local component gate, but local evidence does not replace the hosted required-check status.
 
 ## Handoff
 
-- Verification status: `IMPLEMENTED`, not `VERIFIED`; branch is locally synced through merge `7d756c7`. All Node/TypeScript stages of the exact combined root gate PASS; hosted Python and complete workflow evidence remain pending after push.
-- Feature commit/PR: PR `#4`; local merge `7d756c7` and this report update are not pushed yet.
-- Merge status: not merged.
-- Merge Memory Sync checklist: not applicable before merge.
+- Verification status: `VERIFIED` by `thanh` on 2026-08-03 from the successful hosted run on the exact merge commit.
+- Feature commit/PR: PR `#4`; merge commit `be2a18e`.
+- Merge status: merged into `develop` on 2026-08-03.
+- Merge Memory Sync: `PASS`; shared status, plan, implementation, DevOps/testing and traceability memory were promoted on `develop`.
+
+## Merge Memory Sync result
+
+```text
+MERGE_MEMORY_SYNC: PASS
+Merge ref: be2a18e / PR #4
+Feature/task: TASK-CI-001 — Foundation CI Quality Gate
+Indexes updated: README, PLAN_SNAPSHOT, NEXT_WORK, PROJECT_STATUS, IMPLEMENTATION_INDEX, AI_CONTEXT, DevOps/testing owners, traceability, task report
+Contracts/integration updated: no change required; no contract/API/event/entity/migration changed
+UI registry updated: no change required; no UI component/token/motion/3D pattern changed
+Tests/evidence: hosted Foundation quality gate run 30832872900 SUCCESS on be2a18e; local TypeScript and isolated pinned-Python evidence retained above
+Remaining limitation: one sequential hosted job, no dependency cache or deployment stage; local fallback does not replace hosted status
+Next tasks unblocked: TASK-DOC-QUALITY-001 and TASK-SEARCH-001 remain READY
+```

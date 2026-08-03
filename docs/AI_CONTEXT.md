@@ -58,7 +58,7 @@ Nền tảng bảo tàng số cho Bảo tàng Lịch sử Thành phố Hồ Chí
 
 ## Trạng thái hiện tại
 
-Baseline tài liệu đã có; source application chưa được khởi tạo theo `docs/PROJECT_STATUS.md`. Task tiếp theo lấy từ `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
+Foundation monorepo, local data infrastructure, Web/Admin/API/data baselines, Living Timeline MVP và deterministic lint/type/test/build quality graph đã merge. `TASK-CI-001` cũng đã merge tại `be2a18e`; hosted run `30832872900` PASS và Merge Memory Sync hoàn tất. Task tiếp theo lấy từ dòng `READY` trong `docs/NEXT_WORK.md`, không suy đoán từ feature branch.
 
 ## Đọc tiếp
 

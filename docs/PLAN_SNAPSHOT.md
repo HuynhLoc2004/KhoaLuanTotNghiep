@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0024`
+- Revision: `PLAN-0025`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Ghi nhận PR `#7` / `FIX-CLEAN-GATE-001` đã merge tại `8bf9c9e` và Merge Memory Sync PASS; giữ trạng thái `MERGED_UNVERIFIED` cho đến khi `TASK-CI-001` sync latest `develop` và có hosted PASS.
+- Scope: Ghi nhận `TASK-CI-001` merge tại `be2a18e`, hosted run `30832872900` PASS và Merge Memory Sync PASS; đóng `TASK-CI-001` cùng `FIX-CLEAN-GATE-001` thành `DONE` theo xác nhận của `thanh`.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: `TASK-CI-001` (`loc`) cần merge latest `develop` chứa `8bf9c9e` vào `feature/TASK-CI-001` rồi push; `FIX-CLEAN-GATE-001` (`thanh`) đã merge/sync memory nhưng chờ cùng hosted evidence để VERIFIED.
+- Task đang chạy: không có task `IN_PROGRESS` trong registry. `TASK-DOC-QUALITY-001` và `TASK-SEARCH-001` đang `READY`; `FIX-FORMAT-001` vẫn `REVIEW` chờ xác nhận riêng.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -47,15 +47,22 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0022 | 2026-08-03 | Khóa `OPTION-CLEAN-GATE-001/A`: Turbo lint/typecheck phải build workspace dependencies trước dependent task; xóa Admin stale re-export; không sửa consumer bằng `any` hoặc làm yếu CI. `FIX-FORMAT-001` đã merge tại `8d199db` nhưng giữ REVIEW vì chưa VERIFIED | FIX-CLEAN-GATE-001; TASK-CI-001; TASK-FOUND-001; TASK-ADMIN-001; FIX-FORMAT-001 | Publish claim; tạo branch từ latest `develop`; clean build artifacts rồi chạy lint/typecheck/root gate; sau fix đồng bộ TASK-CI-001 và lấy hosted PASS | `thanh` chọn phương án chính xác nhất; Codex khóa phương án A theo evidence local + hosted run `30829451628` và Turbo docs chính thức |
 | PLAN-0023 | 2026-08-03 | Clean validation sau Option A lộ Admin regression: integrated renderer thiếu validation control và stable live-preview container mà accepted Admin tests/spec yêu cầu. Khóa revision R1, không phục hồi standalone preview export và không sửa tests để che regression | FIX-CLEAN-GATE-001; TASK-ADMIN-001; TASK-CI-001 | Mở rộng đúng `apps/admin/src/forms/cmsFormBuilder.ts`; khôi phục hai accepted markers; chạy lại clean/full gate; giữ `infra/compose.yaml` cho `loc` | `thanh` xác nhận tiếp tục sửa sau khi xem evidence hosted/local |
 | PLAN-0024 | 2026-08-03 | PR `#7` merge `FIX-CLEAN-GATE-001` vào `develop` tại `8bf9c9e`; Merge Memory Sync PASS, chưa tự đặt VERIFIED | FIX-CLEAN-GATE-001; TASK-CI-001; TASK-ADMIN-001; root quality gate | `loc` pull latest develop, merge vào `feature/TASK-CI-001`, push và lấy hosted PASS; không rerun head cũ | GitHub merge evidence và local clean lint/typecheck/test/build PASS |
+| PLAN-0025 | 2026-08-03 | PR `#4` merge `TASK-CI-001` tại `be2a18e`; hosted Foundation quality gate run `30832872900` PASS trên exact merge commit; `TASK-CI-001` và dependent `FIX-CLEAN-GATE-001` chuyển `DONE` | TASK-CI-001; FIX-CLEAN-GATE-001; DevOps/testing baseline; task registry | Publish Merge Memory Sync; giữ FIX-FORMAT-001 ở REVIEW; chọn task READY tiếp theo sau claim/scope gate | `thanh` xác nhận và yêu cầu đồng bộ trạng thái |
 
 ## Changed owner documents in current revision
 
 - `README.md`.
+- `docs/AI_CONTEXT.md`.
 - `docs/NEXT_WORK.md`.
 - `docs/PROJECT_STATUS.md`.
-- `docs/work/FIX-FORMAT-001.md`.
+- `docs/IMPLEMENTATION_INDEX.md`.
+- `docs/06-devops/01-local-environment.md`.
+- `docs/05-quality/03-testing-strategy.md`.
+- `docs/07-delivery/05-traceability-matrix.md`.
+- `docs/work/TASK-CI-001.md`.
+- `docs/work/FIX-CLEAN-GATE-001.md`.
 
-`TASK-FOUND-001` và `TASK-INFRA-001` đã `DONE` sau merge `3d8b971`/`847251c` và Merge Memory Sync. `TASK-TIMELINE-001` vẫn BLOCKED.
+Foundation, infrastructure, Web, API, Admin, data, Living Timeline, lint, clean-gate và CI tasks đã `DONE` sau merge/verification/Memory Sync. Task mới phải lấy từ các dòng `READY` trong `NEXT_WORK.md`.
 
 ## Revision rules
 

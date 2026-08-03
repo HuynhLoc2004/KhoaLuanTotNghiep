@@ -5,7 +5,7 @@
 - Owner/contributor: `thanh` (TEAM match confirmed in this session).
 - Branch: `fix/clean-workspace-quality-gate`.
 - Base/shared plan revision: `PLAN-0023`; coordination commit `45f53a5` verified on `origin/develop`.
-- Status: `REVIEW / MERGED_UNVERIFIED` (hosted integration verification pending).
+- Status: `VERIFIED / DONE`; merged at `8bf9c9e`, with the combined clean environment verified by hosted run `30832872900` on `develop@be2a18e` and confirmed by `thanh`.
 - `PRE_CODE_PLAN_SYNC: PASS` — branch started from `origin/develop@c630409`; revision R1 was published and verified at `origin/develop@45f53a5`; the expanded Admin form path does not overlap `TASK-CI-001`.
 
 ## Objective and write scope
@@ -124,9 +124,9 @@ Entry condition is a clean workspace with dependencies installed but generated d
   - changed implementation files Prettier check: PASS; whole-repository Prettier check is blocked only by unchanged `infra/compose.yaml`, which belongs to Lộc's active formatting-only `TASK-CI-001` scope and already passes in hosted run `30829724233`.
   - targeted Admin build: PASS; targeted Admin test: 7/7 PASS.
   - clean forced Turbo test: 10/10 tasks PASS — Contracts 5, UI 12, API 17, Web 7, Admin 7 tests PASS.
-  - Python check is not runnable locally because the locked `uv` 0.11.x toolchain is not installed; hosted CI remains the authoritative Python environment.
+  - Hosted Foundation quality gate run `30832872900` completed successfully on `develop@be2a18e`, covering the integrated clean-runner task graph, Admin corrections and pinned Python checks.
 - Security/invariants: no lint disable, `any`, dependency, workflow, package export mapping, secret, data, or runtime security change.
-- Known limitations/fallback: hosted PASS requires both this fix and Lộc's formatting-only `infra/compose.yaml` change to reach the CI branch; local validation cannot itself produce a GitHub required-check status.
+- Known limitations/fallback: the fix depends on generated workspace declarations produced by the accepted Turbo build ordering; regression protection is the root gate plus hosted CI. No runtime/product fallback is required because behavior and contracts were not changed.
 
 ## Change history
 
@@ -135,14 +135,15 @@ Entry condition is a clean workspace with dependencies installed but generated d
 | 2026-08-03 | Implemented `OPTION-CLEAN-GATE-001/A` within the published two-file scope | Clean lint/typecheck now pass without pre-existing declarations |
 | 2026-08-03 | Opened revision checkpoint R1/R2/R3 without editing additional source | Full validation exposed an Admin regression and a separately owned Compose formatting blocker |
 | 2026-08-03 | Published `PLAN-0023` and implemented R1 in the integrated Admin renderer | Restored accepted form/validation/live-preview semantics; full workspace tests pass |
+| 2026-08-03 | Marked `VERIFIED / DONE` after the combined hosted gate passed | Run `30832872900` succeeded on `develop@be2a18e`; confirmed by `thanh` |
 
 ## Handoff
 
-- Verification status: UNVERIFIED; implementation checks pass, but the authoritative root/hosted gate requires Lộc's separately owned `infra/compose.yaml` formatting change in the same integration candidate.
+- Verification status: VERIFIED by `thanh`; the authoritative combined hosted gate passed on `develop@be2a18e`.
 - Feature commit/PR: `430ab28` / PR `#7`.
 - Merge status: MERGED into `develop` at `8bf9c9e` on 2026-08-03.
 - Merge Memory Sync: PASS — task report, README, Plan Snapshot, task/status registry, Implementation Index, UI registry, feature owner and traceability were synchronized; contracts/integration/data catalogs are unchanged because this fix adds no shared contract, API, event, entity or migration.
-- Remaining limitation: Lộc must fast-forward local `develop`, merge it into `feature/TASK-CI-001`, push, and obtain a hosted PASS before either task can be marked `VERIFIED`/`DONE`.
+- Remaining limitation: none for this fix's acceptance criteria; future Turbo/package export changes remain protected by the root and hosted quality gates.
 
 ## Merge Memory Sync result
 
@@ -153,7 +154,7 @@ Feature/task: FIX-CLEAN-GATE-001
 Indexes updated: README, PLAN_SNAPSHOT, NEXT_WORK, PROJECT_STATUS, IMPLEMENTATION_INDEX, UI registry, traceability, Admin feature owner, task report
 Contracts/integration updated: no change required; no contract/API/event/data boundary changed
 UI registry updated: existing Admin shell/form entry now records semantic form, validation and live-preview markers
-Tests/evidence: clean lint 7/7, typecheck 7/7, Turbo test 10/10, build 5/5; hosted combined gate pending
-Remaining limitation: TASK-CI-001 must sync develop and rerun GitHub Actions
-Next tasks unblocked: TASK-CI-001 hosted verification
+Tests/evidence: clean lint 7/7, typecheck 7/7, Turbo test 10/10, build 5/5; hosted run 30832872900 SUCCESS on develop@be2a18e
+Remaining limitation: none for the accepted fix scope
+Next tasks unblocked: TASK-CI-001 verification completed; READY work may now be selected
 ```
