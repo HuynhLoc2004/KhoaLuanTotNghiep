@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0019`
+- Revision: `PLAN-0020`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Xác nhận bắt đầu task cho phép AI tự chạy toàn bộ safe startup sequence trên workspace hiện tại sau khi coordination claim được publish.
+- Scope: Claim `TASK-CI-001` cho `loc` với scope GitHub Actions riêng, độc lập `TASK-API-001` của `thanh`.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task tiếp theo: chọn từ registry sau khi Infra Merge Memory Sync hoàn tất và write scope được xác nhận.
+- Task đang chạy: `TASK-API-001` (`thanh`) và `TASK-CI-001` (`loc`) với write scope không giao nhau.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -42,6 +42,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0017 | 2026-08-03 | Feature branch chỉ sửa owned code/spec + `docs/work/<TASK-ID>.md`; shared status/index/catalog files chỉ cập nhật trên `develop` | Mọi task/PR; CURRENT_TASK; owner/index/status docs | Cleanup PR #2/#3 lần cuối; từ task sau chạy denylist check trước push và promote docs sau merge | `loc` yêu cầu giải quyết triệt để conflict |
 | PLAN-0018 | 2026-08-03 | Chỉ một người merge/push `develop` tại một thời điểm; chuyển lượt sau khi merge trước và Merge Memory Sync hoàn tất | Mọi implementation merge; `TASK-FOUND-001`; `TASK-INFRA-001`; Git workflow | Owner giữ integration turn thông báo checkpoint; người kế tiếp `pull --ff-only`, merge task VERIFIED một lần, test rồi push; dừng nếu rejected/conflict | `loc` xác nhận |
 | PLAN-0019 | 2026-08-03 | Sau khi AI trình bày task/scope/branch và người dùng xác nhận bắt đầu, AI tự publish claim, đồng bộ local `develop`, tạo/chuyển feature branch, mở ledger/report và code | Mọi task implementation; Pre-code Plan Sync; Git startup | AI thực hiện safe startup trên workspace của phiên; dừng ở dirty/diverged/conflict/ambiguous state; không tự push/merge implementation | `loc` xác nhận |
+| PLAN-0020 | 2026-08-03 | Tách Foundation CI Quality Gate thành `TASK-CI-001`, owner `loc`, chỉ sở hữu GitHub Actions và task report | TASK-CI-001; TASK-API-001; Quality/DevOps | Publish claim; chọn CI design; không sửa API/contracts/root tooling; chạy workflow evidence trước handoff | `loc` xác nhận bắt đầu |
 
 ## Changed owner documents in current revision
 
@@ -49,6 +50,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 - `AGENTS.md`.
 - `docs/07-delivery/06-two-person-collaboration.md`.
 - `docs/07-delivery/07-git-playbook.md`.
+- `docs/NEXT_WORK.md`.
 
 `TASK-FOUND-001` và `TASK-INFRA-001` đã `DONE` sau merge `3d8b971`/`847251c` và Merge Memory Sync. `TASK-TIMELINE-001` vẫn BLOCKED.
 

@@ -38,6 +38,7 @@ Chỉ chuyển task sang `DONE` sau khi merge vào `develop` và Merge Memory Sy
 | TASK-WEB-001 | Public Web shell + design tokens + CMS renderer skeleton | BLOCKED | Chưa có | — | TASK-FOUND-001, contract skeleton | 2–4 person-days, LOW | `apps/web/**`, `packages/ui/**` | `docs/04-design/01-ui-ux-design-system.md` |
 | TASK-ADMIN-001 | Admin shell + navigation + CMS form foundation | BLOCKED | Chưa có | — | TASK-FOUND-001, auth/contract skeleton | 2–4 person-days, LOW | `apps/admin/**`, CMS contracts | `docs/03-features/01-admin-cms.md` |
 | TASK-API-001 | Express API skeleton, health endpoint và validation/error contract | IN_PROGRESS | `thanh` / `feature/TASK-API-001` | ClaimedAt: 2026-08-03T21:16:42+07:00 | TASK-FOUND-001 (DONE) | 1–3 person-days, MEDIUM | `services/api/**`, base contracts | `docs/02-data/02-api-contract.md` |
+| TASK-CI-001 | Foundation CI Quality Gate trên GitHub Actions | IN_PROGRESS | `loc` / `feature/TASK-CI-001` | ClaimedAt: 2026-08-03T21:28:23+07:00 | TASK-FOUND-001 (DONE); không phụ thuộc TASK-API-001 | O/E/P: 0.5/1/2 person-days, MEDIUM-HIGH | `.github/workflows/**`, `docs/work/TASK-CI-001.md`; không sửa `services/api/**`, `packages/contracts/**`, root tooling hoặc shared status files trên feature | `docs/work/TASK-CI-001.md` → promote vào Quality/DevOps owner sau merge |
 | TASK-DATA-001 | PostgreSQL migration foundation và entity baseline | BLOCKED | Chưa có | — | TASK-FOUND-001, TASK-API-001 | 2–4 person-days, LOW | migrations, schema, seed foundation | `docs/02-data/01-data-model.md` |
 | TASK-TIMELINE-001 | MVP Dòng thời gian sống: free/guided modes, related artifacts, CMS graph, public API và timeline 2D | BLOCKED | Chưa có | — | TASK-FOUND-001, CMS/API/data/artifact/tour contract baseline và content/relation mẫu đã duyệt | 9/18/36 person-days, LOW | Shared QR/mode/relation contract; Narrative/Artifact modules; Admin journey/relation editor; Public free/timeline UX; tests/docs | `docs/03-features/11-living-timeline.md` |
 | TASK-SEARCH-001 | Search contract, indexing và public discovery MVP | BLOCKED | Chưa có | — | Foundation, API, data và CMS/artifact baseline | 8–18 person-days, LOW | search module/contracts/index/UI | `docs/03-features/09-search-discovery.md` |
@@ -48,7 +49,7 @@ Estimate trên chỉ phục vụ chọn việc và phải được rà soát l�
 
 ## Đề xuất hiện tại
 
-`TASK-FOUND-001` của `thanh` và `TASK-INFRA-001` của `loc` đều đã `DONE`, `VERIFIED`, merge và hoàn tất Merge Memory Sync (`3d8b971`, `847251c`). Hiện không còn task `READY`; task kế tiếp cần được nhóm chọn, chia write scope và publish claim trên `develop` trước khi code. Có thể xem xét:
+`TASK-FOUND-001` và `TASK-INFRA-001` đã `DONE`. `TASK-API-001` do `thanh` thực hiện trong `services/api/**` + base contracts; `TASK-CI-001` do `loc` thực hiện trong `.github/workflows/**`. Hai scope không giao nhau. Hiện không còn task `READY`; task mới chỉ mở sau khi kiểm tra dependency/write scope.
 
 - Một người nhận `TASK-API-001` khi contract skeleton đã sẵn sàng.
 - Người còn lại nhận `TASK-WEB-001` trước, rồi `TASK-ADMIN-001`.
