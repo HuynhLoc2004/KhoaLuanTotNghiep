@@ -13,5 +13,6 @@ Matrix nối yêu cầu với feature, contract/data, test và tiêu chí nghi�
 | REQ-AUTH-001 Ownership history | `07-auth-user-history.md` | INV-AUTH-002 | User history API | Chưa có | Không truy cập chéo user | PLANNED |
 | REQ-SEARCH-001 Hybrid search đúng quyền/publish | `09-search-discovery.md` | INV-CONTENT-001 | Search contract/index | Chưa có | Relevance + không rò draft/private | PLANNED |
 | REQ-LOC-001 Xác định start node bằng QR/ảnh | `10-indoor-location-detection.md` | INV-UX-002 | Location API/result | Chưa có | QR chính xác, ảnh top-k/confidence/fallback | PLANNED |
+| REQ-FOUND-001 Một root gate kiểm tra workspace TypeScript và Python đã khóa dependency | `docs/work/TASK-FOUND-001.md` | Không thay đổi business invariant | Root workspace/tooling; chưa có contract nghiệp vụ | Root gate PASS; 5/5 Node component tests và 2/2 pytest; merge `3d8b971` | Toolchain/skeleton build, lint, typecheck và test đạt; secret template không chứa value | VERIFIED |
 
 Trạng thái: `PLANNED`, `IMPLEMENTED`, `VERIFIED`, `DEFERRED`. Coding agent không tự đặt `VERIFIED`.

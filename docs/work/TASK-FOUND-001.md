@@ -11,7 +11,7 @@ Task-local report cho foundation môi trường phát triển. Tài liệu lưu 
 - Original implementation commit: `d8de400`.
 - Pull request: `#2` vào `develop`.
 - Remote cleanup commits: `0308b10`, merge sync `47b9ea0`.
-- Status: `VERIFIED` — Thành xác nhận review/test ngày 2026-08-03; chưa merge.
+- Status: `DONE` — Thành xác nhận `VERIFIED`; merge vào `develop` tại `3d8b971`, Merge Memory Sync hoàn tất.
 - Owned paths: root workspace/tooling config; app/service/worker/package skeletons; `docs/work/TASK-FOUND-001.md`.
 - Explicitly excluded: shared status/index/catalog files, `infra/**`, Compose, migration, runtime behavior và contract nghiệp vụ.
 
@@ -24,7 +24,7 @@ Task-local report cho foundation môi trường phát triển. Tài liệu lưu 
 | Task | `TASK-FOUND-001` |
 | Branch | `feature/TASK-FOUND-001` |
 | Owner/contributor | `thanh` |
-| Status | `VERIFIED` — Thành xác nhận review/test; chưa merge |
+| Status | `DONE` — `VERIFIED` bởi Thành; merge `3d8b971`; Merge Memory Sync PASS |
 | Version | Foundation `0.1.0` |
 | Decision | `DEC-FOUND-TOOLING-001` — `PLAN_LOCKED` ngày 2026-08-03 |
 | Runtime behavior | Không có; skeleton chỉ xuất metadata tĩnh để kiểm tra boundary |
@@ -490,10 +490,11 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 | 2026-08-03 | Hai lần đồng bộ `origin/develop` trước quy tắc task-report đã resolve marker và giữ lịch sử plan chung | Root gate/revision/cached diff PASS; merge commits do user thực hiện |
 | 2026-08-03 | Nhận shared `PLAN-0017`; chuyển toàn bộ Foundation evidence khỏi shared files sang report riêng này | Shared files khớp `origin/develop`; denylist check bắt buộc trước push |
 | 2026-08-03 | Hợp nhất remote cleanup `0308b10`/`47b9ea0` vào report đầy đủ; bảo toàn attribution hỗ trợ của `loc` và toàn bộ session/evidence của `thanh` | Chưa nâng `VERIFIED`; validation và merge commit vẫn là user action |
-| 2026-08-03 | Thành xác nhận đã review/test và chấp nhận `TASK-FOUND-001` | `VERIFIED` lúc 2026-08-03T12:58:13+07:00; fresh-clone độc lập chưa có evidence riêng; chưa merge |
+| 2026-08-03 | Thành xác nhận đã review/test và chấp nhận `TASK-FOUND-001` | `VERIFIED` lúc 2026-08-03T12:58:13+07:00; fresh-clone độc lập chưa có evidence riêng |
+| 2026-08-03 | Merge Foundation vào `develop` và đồng bộ shared memory | Merge `3d8b971`; Implementation Index, Project Status, NEXT_WORK, README và traceability được cập nhật; `MERGE_MEMORY_SYNC: PASS` |
 
 - **Deviation:** không có deviation khỏi PLAN_LOCKED.
-- **Merge reference:** chưa có; không suy diễn commit/push/merge.
+- **Merge reference:** `3d8b971` trên `develop`.
 - **Verified-by:** `thanh` tại 2026-08-03T12:58:13+07:00.
 - **Superseded history:** không có decision cũ bị xóa. Kế hoạch Docker/CI lịch sử được giữ dưới future scope.
 
@@ -501,11 +502,11 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 
 - Verification status: `VERIFIED` bởi `thanh` lúc 2026-08-03T12:58:13+07:00; fresh-clone độc lập chưa có evidence riêng.
 - Feature commit/PR: commit implementation `d8de400`; latest pushed feature commit `1a7e5a4`; PR `#2` vào `develop`; commit/push verification evidence và merge vẫn là user action.
-- Merge status: chưa merge vào `develop`.
+- Merge status: đã merge vào `develop` tại `3d8b971`.
 - Task work report: `docs/work/TASK-FOUND-001.md` đã cập nhật đầy đủ plan, ledger, evidence, tests, limitations và next work.
 - Shared-file denylist check: `PASS` so với `origin/develop` `65c92f1`.
 - Incoming merge note: `git diff --cached --check` báo hai blank EOF đã có sẵn trong `docs/templates/task-work-report-template.md` và `docs/work/README.md`; feature delta riêng `git diff --cached MERGE_HEAD --check` PASS nên không sửa shared baseline trên feature branch.
-- Merge Memory Sync checklist: `PENDING`; chỉ chạy sau khi feature được review và merge.
+- Merge Memory Sync checklist: `PASS`; shared status/index/traceability và README được cập nhật sau merge `3d8b971`.
 
 ## TASK-FOUND-001 completion checklist
 

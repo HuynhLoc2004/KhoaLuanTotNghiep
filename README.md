@@ -11,8 +11,8 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 ## Trạng thái phối hợp hiện tại
 
 - Shared plan revision: `PLAN-0017` — task reports riêng và shared-doc denylist loại bỏ conflict tài liệu giữa feature branches.
-- `TASK-FOUND-001`: `IN_PROGRESS`, owner `thanh`, branch `feature/TASK-FOUND-001`.
-- `TASK-INFRA-001`: `REVIEW`, owner `loc`, branch `feature/TASK-INFRA-001`, commit `5936397`; runtime smoke PASS, chưa merge vào `develop`.
+- `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
+- `TASK-INFRA-001`: `VERIFIED`, owner `loc`, branch `feature/TASK-INFRA-001`; merge vào `develop` tại `847251c`, còn chờ Merge Memory Sync riêng.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 
 Mọi thay đổi shared plan, task, owner, branch, dependency, write scope hoặc shared contract phải được Codex commit/push dưới dạng Markdown-only lên remote `develop`, kèm cập nhật README. AI ưu tiên coordination worktree để giữ nguyên active feature branch. Code/test trên feature branch không được AI tự push hoặc merge; khi hoàn tất, AI chỉ đề xuất để người dùng tự push/review/merge.
