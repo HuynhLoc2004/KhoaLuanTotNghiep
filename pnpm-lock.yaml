@@ -30,7 +30,14 @@ importers:
         specifier: 8.65.0
         version: 8.65.0(eslint@10.8.0)(typescript@6.0.3)
 
-  apps/admin: {}
+  apps/admin:
+    dependencies:
+      '@hcmc-museum/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@hcmc-museum/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
 
   apps/web:
     dependencies:
