@@ -1,0 +1,64 @@
+# JavaScript and package-manager artifacts
+node_modules/
+.pnpm-store/
+.turbo/
+.vite/
+.eslintcache
+*.tsbuildinfo
+
+# Python environments and caches
+.venv/
+.direnv/
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+.eggs/
+__pypackages__/
+.uv-cache/
+
+# Build and test output
+dist/
+build/
+out/
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Logs and process files
+logs/
+*.log
+*.log.*
+*.pid
+*.pid.lock
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local environment files and secrets
+.env*
+!.env.example
+!**/.env.example
+
+# Tool and operating-system files
+.cache/
+.tmp/
+tmp/
+temp/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
