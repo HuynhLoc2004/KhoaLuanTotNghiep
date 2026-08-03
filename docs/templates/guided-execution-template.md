@@ -6,6 +6,8 @@
 - Các gate tiếp theo:
 - Mục tiêu cuối của task:
 
+Trước implementation phải có `PRE_CODE_PLAN_SYNC: PASS`: task claim/shared plan đã xuất hiện trên remote `develop`, collaborator đã pull và write scope không collision. Codex phải nhắc bước publish/pull này; xác nhận miệng hoặc plan chỉ tồn tại trên feature branch chưa đủ để qua gate.
+
 Không liệt kê toàn bộ lệnh chi tiết cho các gate tương lai.
 
 ## Bước tiếp theo được khuyến nghị

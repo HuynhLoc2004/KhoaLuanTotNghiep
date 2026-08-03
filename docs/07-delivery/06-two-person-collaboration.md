@@ -70,6 +70,17 @@ Quyết định ảnh hưởng người còn lại phải được cập nhật 
 6. Tạo feature branch từ `develop`.
 7. Cập nhật `CURRENT_TASK.md` trong feature branch rồi code.
 
+### Pre-code Plan Sync Gate
+
+Sau khi hai thành viên xác nhận owner/write scope nhưng trước dòng code implementation đầu tiên:
+
+1. Codex phải nhắc owner publish task claim, branch, dependency, write scope và shared plan/contract liên quan lên remote `develop`.
+2. Người còn lại cập nhật local `develop` từ `origin/develop`; không cần checkout/pull feature branch của owner.
+3. Hai bên xác nhận registry/Plan Snapshot mới không chồng file, migration, contract hoặc shared package.
+4. Owner chỉ bắt đầu code khi coordination change đã hiện trên remote `develop`, đúng feature branch và working tree không chứa thay đổi của task khác.
+
+Plan chỉ được push trên feature branch chưa phải shared coordination. Nếu nhóm review plan bằng feature branch trước, sau khi thống nhất vẫn phải đưa phần coordination đã chấp nhận lên remote `develop` rồi người còn lại pull về. Codex phải dừng ở checkpoint này và không ngầm xem việc “đã nói trong chat” là đã đồng bộ cho cả nhóm.
+
 Codex không tự commit/push. Nó có thể chuẩn bị nội dung registry, sau đó yêu cầu người dùng review và đưa thay đổi lên remote trước khi bắt đầu code nếu cần tránh xung đột.
 
 ## Write scope
@@ -174,9 +185,11 @@ Merge chỉ được đề xuất sau `VERIFIED`. Không merge feature chưa ho�
 
 1. Đồng bộ `develop`.
 2. Chọn task `READY` không xung đột.
-3. Claim trên `develop` và đưa coordination change lên remote.
-4. Tạo branch mới từ `develop`.
-5. Viết lại `CURRENT_TASK.md` và thực hiện Definition of Ready.
+3. Hai thành viên xác nhận owner, dependency và write scope.
+4. Claim trên `develop` và đưa coordination change/shared plan lên remote.
+5. Người còn lại pull `origin/develop` và xác nhận không collision.
+6. Tạo hoặc tiếp tục branch riêng từ shared baseline đã đồng bộ.
+7. Viết lại `CURRENT_TASK.md` và thực hiện Definition of Ready.
 
 ## Nếu feature branch chưa merge
 

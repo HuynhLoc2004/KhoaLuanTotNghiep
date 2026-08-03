@@ -34,7 +34,7 @@ Chỉ chuyển task sang `DONE` sau khi merge vào `develop` và Merge Memory Sy
 | ID | Task | Trạng thái | Owner/Branch | Claimed/Updated | Dependency | Estimate | Write scope | Feature owner |
 |---|---|---|---|---|---|---|---|---|
 | TASK-FOUND-001 | Khởi tạo monorepo, tooling và cấu trúc ứng dụng | IN_PROGRESS | `thanh` / `feature/TASK-FOUND-001` | ClaimedAt: 2026-08-03T10:57:18+07:00; LastUpdated: 2026-08-03T11:03:30+07:00 | Baseline docs | 1–2 person-days, MEDIUM | Root workspace/tooling config; app/service/worker/package skeletons; foundation docs/tests; không gồm `infra/**`, Compose, migration hoặc hành vi/contract nghiệp vụ | `docs/06-devops/01-local-environment.md` |
-| TASK-INFRA-001 | Docker Compose cho PostgreSQL, MongoDB, Redis và health checks | BLOCKED | Chưa có | — | TASK-FOUND-001 | 1–2 person-days, MEDIUM | `infra/**`, Compose, service health config | `docs/06-devops/01-local-environment.md` |
+| TASK-INFRA-001 | Docker Compose cho PostgreSQL, MongoDB, Redis và health checks | IN_PROGRESS | `loc` / `feature/TASK-INFRA-001` | ConfirmedAt: 2026-08-03T11:15:06+07:00 by `loc` + `thanh`; PRE_CODE_PLAN_SYNC pending remote `develop` | TASK-FOUND-001 interface baseline; triển khai song song sau Plan Sync Gate | O/E/P: 1/2/3 person-days, MEDIUM | `infra/**`, `infra/compose.yaml`, service health config; không sửa root workspace/tooling hoặc app skeleton của `TASK-FOUND-001` | `docs/06-devops/01-local-environment.md` |
 | TASK-WEB-001 | Public Web shell + design tokens + CMS renderer skeleton | BLOCKED | Chưa có | — | TASK-FOUND-001, contract skeleton | 2–4 person-days, LOW | `apps/web/**`, `packages/ui/**` | `docs/04-design/01-ui-ux-design-system.md` |
 | TASK-ADMIN-001 | Admin shell + navigation + CMS form foundation | BLOCKED | Chưa có | — | TASK-FOUND-001, auth/contract skeleton | 2–4 person-days, LOW | `apps/admin/**`, CMS contracts | `docs/03-features/01-admin-cms.md` |
 | TASK-API-001 | Express API skeleton, health endpoint và validation/error contract | BLOCKED | Chưa có | — | TASK-FOUND-001 | 1–3 person-days, MEDIUM | `services/api/**`, base contracts | `docs/02-data/02-api-contract.md` |
@@ -48,9 +48,9 @@ Estimate trên chỉ phục vụ chọn việc và phải được rà soát l�
 
 ## Đề xuất hiện tại
 
-`TASK-FOUND-001` đang `IN_PROGRESS`, do `thanh` thực hiện trên nhánh dự kiến `feature/TASK-FOUND-001`; hiện không còn task `READY`. Sau khi foundation hoàn tất và nhóm xác nhận, có thể mở song song:
+`TASK-FOUND-001` đang `IN_PROGRESS`, do `thanh` thực hiện trên `feature/TASK-FOUND-001`. `loc` và `thanh` đã xác nhận `loc` nhận `TASK-INFRA-001` trên `feature/TASK-INFRA-001` với write scope tách biệt. Implementation chưa bắt đầu: `PRE_CODE_PLAN_SYNC` chỉ PASS sau khi coordination change xuất hiện trên remote `develop` và collaborator pull/xác nhận không collision. Hiện không còn task `READY`. Sau khi foundation hoàn tất và nhóm xác nhận, có thể mở tiếp:
 
-- Một người nhận `TASK-API-001` + `TASK-INFRA-001` nếu ranh giới file rõ.
+- Một người nhận `TASK-API-001` khi contract skeleton đã sẵn sàng.
 - Người còn lại nhận `TASK-WEB-001` trước, rồi `TASK-ADMIN-001`.
 
 Không mở AI/3D/CMS nghiệp vụ trước khi foundation, contract và data baseline đủ ổn định.
