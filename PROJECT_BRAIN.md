@@ -192,7 +192,7 @@ Không tuyên bố chịu được 500 user chỉ từ thiết kế; phải có 
 
 ## 8. Git và phạm vi trách nhiệm
 
-Nhóm tự thực hiện test, review và merge. Coding agent không tự commit, push hoặc merge.
+Nhóm tự thực hiện test, review và merge implementation. Coding agent tự commit/push coordination-only change đã được nhóm xác nhận lên remote `develop`, xác minh remote rồi quay lại đúng feature branch; không tự merge implementation hoặc force-push.
 
 Branch:
 
@@ -546,7 +546,7 @@ AI không được lập tức bảo tạo nhánh mới khi task hiện tại ch
 | IN_PROGRESS/PAUSED | Có thể push WIP | Không merge |
 | Có test quan trọng đang fail | Có thể push để điều tra | Không merge |
 
-Chỉ đề xuất merge khi không có secret, tài liệu/handoff đã cập nhật, test bắt buộc đạt hoặc được chấp nhận, migration/dependency rõ và người dùng đã xác nhận `VERIFIED`. AI không tự commit, push hoặc merge.
+Chỉ đề xuất merge implementation khi không có secret, tài liệu/handoff đã cập nhật, test bắt buộc đạt hoặc được chấp nhận, migration/dependency rõ và người dùng đã xác nhận `VERIFIED`. Ngoại lệ Git tự động duy nhất là coordination-only commit/push lên remote `develop` sau xác nhận nhóm; AI không tự merge implementation.
 
 ## 22. Branch isolation và đồng bộ code chung
 
@@ -595,7 +595,7 @@ git switch feature/ten-task
 git merge develop
 ```
 
-Các lệnh là hướng dẫn; người dùng tự thực hiện. Codex không tự đổi nhánh/pull/merge theo quy ước hiện tại.
+Với implementation Git, các lệnh là hướng dẫn và người dùng tự thực hiện. Với shared plan/task coordination đã được nhóm xác nhận, Codex tự kiểm tra, chuyển sang `develop`, commit/push, xác minh remote rồi quay lại feature branch; dừng khi trạng thái không an toàn.
 
 ## 23. AI hỗ trợ Git cho người mới
 
@@ -908,7 +908,7 @@ Markdown local hoặc chỉ nằm trên feature branch chưa phải plan chung. 
 prepare docs -> user review -> commit -> push/merge to origin/develop
 ```
 
-AI không tự thực hiện Git action nhưng phải báo rõ collaborator chưa thể thấy plan cho đến khi remote `develop` có thay đổi.
+AI tự hoàn tất coordination-only Git action sau khi nhóm xác nhận và phải báo rõ collaborator chưa thể thấy plan cho đến khi remote `develop` có thay đổi; sau push phải xác minh remote và quay lại đúng feature branch.
 
 ## 30. Feature Report Standard
 
