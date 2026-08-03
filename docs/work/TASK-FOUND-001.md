@@ -5,8 +5,12 @@ Task-local report cho foundation môi trường phát triển. Tài liệu lưu 
 ## Identity and Git context
 
 - Owner/contributor: `thanh` (Trịnh Vĩ Thành).
+- Support cleanup contributor: `loc` (documentation-boundary migration only; không thay đổi attribution của Foundation code).
 - Branch: `feature/TASK-FOUND-001`.
 - Base/shared plan revision: `PLAN-0017` tại `origin/develop` commit `65c92f1`.
+- Original implementation commit: `d8de400`.
+- Pull request: `#2` vào `develop`.
+- Remote cleanup commits: `0308b10`, merge sync `47b9ea0`.
 - Status: `IMPLEMENTED` — chưa `VERIFIED`, chưa merge.
 - Owned paths: root workspace/tooling config; app/service/worker/package skeletons; `docs/work/TASK-FOUND-001.md`.
 - Explicitly excluded: shared status/index/catalog files, `infra/**`, Compose, migration, runtime behavior và contract nghiệp vụ.
@@ -392,6 +396,8 @@ Tiêu chí đã dùng khi khóa plan: phù hợp dự án 30%, bảo trì 25%, t
 | `WS-TASK-FOUND-001-20260803-02` | `thanh` | conflict resolution | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:03:19+07:00 | 2026-08-03T12:15:09+07:00 | 2026-08-03T12:15:09+07:00 | CLOSED | Sync `origin/develop` `PLAN-0015`; merge foundation report với shared infra plan; đổi branch-local foundation revision thành `PLAN-0016` | Marker/revision/Prettier/root gate/cached diff checks PASS; independent review không có finding | Resolution đã stage; merge commit vẫn là user action |
 | `WS-TASK-FOUND-001-20260803-03` | `thanh` | conflict resolution | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:37:09+07:00 | 2026-08-03T12:41:51+07:00 | 2026-08-03T12:41:51+07:00 | CLOSED | Sync `origin/develop` `PLAN-0016`; giữ Infra `VERIFIED/REVIEW`; nối foundation revision thành `PLAN-0017` | Marker/revision/Prettier/root gate/cached diff PASS; không còn unmerged path | Resolution đã stage; merge commit vẫn là user action |
 | `WS-TASK-FOUND-001-20260803-04` | `thanh` | documentation-boundary migration | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:45:16+07:00 | 2026-08-03T12:48:24+07:00 | 2026-08-03T12:48:24+07:00 | CLOSED | Sync `origin/develop` `65c92f1`; chuyển Foundation plan/evidence/ledger khỏi shared files sang task report | Shared-file denylist, marker, Prettier, forced root gate và feature-delta diff check PASS; không còn unmerged path | Resolution đã stage; merge commit vẫn là user action |
+| `WS-TASK-FOUND-001-20260803-LOC-01` | `loc` | support cleanup | `TASK-FOUND-001` / remote feature cleanup | 2026-08-03T12:47:42+07:00 | 2026-08-03T12:47:42+07:00 | 2026-08-03T12:47:42+07:00 | CLOSED | Migration hỗ trợ evidence của Thành khỏi shared docs sang task report; không sửa hoặc nhận attribution Foundation code | Shared-file denylist cleanup tại `0308b10`; merge sync `47b9ea0` | Remote report ban đầu dùng ID `...-02`, trùng session đã tồn tại của Thành; chỉ chuẩn hóa ID, giữ nguyên contributor/timestamp/scope |
+| `WS-TASK-FOUND-001-20260803-05` | `thanh` | remote feature integration | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:53:25+07:00 | 2026-08-03T12:54:33+07:00 | 2026-08-03T12:54:33+07:00 | CLOSED | Merge `origin/feature/TASK-FOUND-001` `47b9ea0`; hợp nhất task report đầy đủ với remote cleanup metadata | Marker, Prettier, full root gate, denylist và cached diff PASS; không còn unmerged path | Resolution đã stage; merge commit và push vẫn là user action |
 
 Không suy ra active effort từ khoảng thời gian calendar; actual effort vẫn `UNKNOWN`. `EndedAt` chỉ ghi thời điểm đóng phiên, không phải thời lượng làm việc liên tục.
 
@@ -417,6 +423,7 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 | Merge sync | Merge `origin/develop` `7d99302`; scan marker; kiểm tra revision feed; forced root gate | Giữ đủ Foundation + Infra plan, không trùng revision, không đổi behavior | PASS; không còn marker; `PLAN-0001`–`PLAN-0016` đủ/duy nhất; root gate PASS; review độc lập không có finding |
 | Merge sync | Merge `origin/develop` `e9d671a`; scan marker; kiểm tra revision feed; forced root gate | Giữ shared `PLAN-0016` cho Infra review và nối foundation chưa công bố thành revision kế tiếp, không đổi behavior | PASS; không còn marker; `PLAN-0001`–`PLAN-0017` đủ/duy nhất; Prettier, lint, typecheck, 5 package test/build và 2 pytest PASS |
 | Documentation boundary sync | Merge `origin/develop` `65c92f1`; restore shared files; migrate evidence; run denylist/marker/root gate | Feature delta chỉ còn owned code/config/skeleton và `docs/work/TASK-FOUND-001.md` | PASS; shared files khớp `origin/develop`; không còn unmerged path; full root gate PASS |
+| Remote feature integration | Merge `origin/feature/TASK-FOUND-001` `47b9ea0`; hợp nhất hai report add/add | Bảo toàn Foundation evidence/session của `thanh` và remote cleanup attribution/timestamp của `loc`; không đổi code | PASS; marker/Prettier/root gate/denylist/cached diff sạch; chỉ task report được stage |
 
 ### Acceptance criteria foundation
 
@@ -481,6 +488,7 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 | 2026-08-03 | Siết Node LTS range bằng `engineStrict`, Turbo global cache inputs, uv guard/Hatchling lock và env ignore; buộc root gate bỏ cache giữa Node 22/24; chạy Node 24 gate, Node 26 negative test và ba dependency audit | PASS; không có code defect còn mở, vẫn chờ user review |
 | 2026-08-03 | Hai lần đồng bộ `origin/develop` trước quy tắc task-report đã resolve marker và giữ lịch sử plan chung | Root gate/revision/cached diff PASS; merge commits do user thực hiện |
 | 2026-08-03 | Nhận shared `PLAN-0017`; chuyển toàn bộ Foundation evidence khỏi shared files sang report riêng này | Shared files khớp `origin/develop`; denylist check bắt buộc trước push |
+| 2026-08-03 | Hợp nhất remote cleanup `0308b10`/`47b9ea0` vào report đầy đủ; bảo toàn attribution hỗ trợ của `loc` và toàn bộ session/evidence của `thanh` | Chưa nâng `VERIFIED`; validation và merge commit vẫn là user action |
 
 - **Deviation:** không có deviation khỏi PLAN_LOCKED.
 - **Merge reference:** chưa có; không suy diễn commit/push/merge.
@@ -490,7 +498,7 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 ## Handoff
 
 - Verification status: `IMPLEMENTED`; chờ Thành/reviewer chạy fresh-clone verification trước khi đặt `VERIFIED`.
-- Feature commit/PR: commit implementation `d8de400`; các merge sync là local và merge commit hiện tại vẫn là user action.
+- Feature commit/PR: commit implementation `d8de400`; PR `#2` vào `develop`; remote cleanup `0308b10`/`47b9ea0`; merge commit hiện tại vẫn là user action.
 - Merge status: chưa merge vào `develop`.
 - Task work report: `docs/work/TASK-FOUND-001.md` đã cập nhật đầy đủ plan, ledger, evidence, tests, limitations và next work.
 - Shared-file denylist check: `PASS` so với `origin/develop` `65c92f1`.
