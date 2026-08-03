@@ -54,7 +54,11 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
-  packages/ui: {}
+  packages/ui:
+    dependencies:
+      '@hcmc-museum/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   services/api:
     dependencies:
