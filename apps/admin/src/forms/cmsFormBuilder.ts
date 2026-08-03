@@ -151,16 +151,23 @@ export function renderCmsBlockFormEditor(
 
   return `
     <div id="cms-editor-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; background: ${heritageTheme.colors.bgDark}; color: ${heritageTheme.colors.textPrimary}; padding: 2rem; border-radius: 0.5rem; border: 1px solid ${heritageTheme.colors.borderGlass};">
-      <div id="cms-form-panel" style="background: ${heritageTheme.colors.bgCard}; padding: 1.5rem; border-radius: 0.5rem; border: 1px solid ${heritageTheme.colors.borderGlass};">
-        <h3 style="font-family: ${heritageTheme.typography.fontFamilyHeading}; color: ${heritageTheme.colors.accentGold}; margin-bottom: 1rem; border-bottom: 1px solid ${heritageTheme.colors.borderGlass}; padding-bottom: 0.5rem;">Biên Tập Nội Dung Block (Form Editor)</h3>
-        ${blockTypeSelectorHtml}
-        ${fieldsFormHtml}
-        <button id="btn-save-block" type="button" style="width: 100%; padding: 0.75rem; background: ${heritageTheme.colors.primaryRed}; color: ${heritageTheme.colors.textPrimary}; font-weight: bold; border: none; border-radius: 0.25rem; cursor: pointer; transition: ${heritageTheme.animations.transitionFast};">Lưu Cấu Hình Content Block</button>
-      </div>
+      <form id="cms-block-form" style="margin: 0;">
+        <div id="cms-form-panel" style="background: ${heritageTheme.colors.bgCard}; padding: 1.5rem; border-radius: 0.5rem; border: 1px solid ${heritageTheme.colors.borderGlass};">
+          <h3 style="font-family: ${heritageTheme.typography.fontFamilyHeading}; color: ${heritageTheme.colors.accentGold}; margin-bottom: 1rem; border-bottom: 1px solid ${heritageTheme.colors.borderGlass}; padding-bottom: 0.5rem;">Biên Tập Nội Dung Block (Form Editor)</h3>
+          ${blockTypeSelectorHtml}
+          ${fieldsFormHtml}
+          <div style="display: flex; gap: 1rem;">
+            <button id="btn-validate-block" type="button" style="flex: 1; padding: 0.75rem; background: transparent; color: ${heritageTheme.colors.accentGold}; font-weight: bold; border: 1px solid ${heritageTheme.colors.accentGold}; border-radius: 0.25rem; cursor: pointer; transition: ${heritageTheme.animations.transitionFast};">Validate Payload</button>
+            <button id="btn-save-block" type="submit" style="flex: 1; padding: 0.75rem; background: ${heritageTheme.colors.primaryRed}; color: ${heritageTheme.colors.textPrimary}; font-weight: bold; border: none; border-radius: 0.25rem; cursor: pointer; transition: ${heritageTheme.animations.transitionFast};">Lưu Cấu Hình Content Block</button>
+          </div>
+        </div>
+      </form>
       <div id="cms-preview-panel" style="background: ${heritageTheme.colors.bgCard}; padding: 1.5rem; border-radius: 0.5rem; border: 1px solid ${heritageTheme.colors.borderGlass};">
         <h3 style="font-family: ${heritageTheme.typography.fontFamilyHeading}; color: ${heritageTheme.colors.textPrimary}; margin-bottom: 1rem; border-bottom: 1px solid ${heritageTheme.colors.borderGlass}; padding-bottom: 0.5rem;">Xem Trước Trực Tiếp (Live Preview)</h3>
-        <div id="live-preview-box" style="border: 1px dashed ${heritageTheme.colors.borderGlass}; border-radius: 0.25rem; padding: 1rem;">
-          ${livePreviewHtml}
+        <div id="live-preview-container">
+          <div id="live-preview-box" style="border: 1px dashed ${heritageTheme.colors.borderGlass}; border-radius: 0.25rem; padding: 1rem;">
+            ${livePreviewHtml}
+          </div>
         </div>
       </div>
     </div>
