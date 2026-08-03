@@ -18,7 +18,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 - `TASK-ADMIN-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `5ce59f2`, Merge Memory Sync đã công bố Admin Shell & CMS Form Editor baseline.
 - `TASK-DATA-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `d75cdf8`, Merge Memory Sync đã công bố PostgreSQL DDL migration & entity baseline.
 - `TASK-TIMELINE-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `92c7caa`, Merge Memory Sync đã công bố Living Timeline MVP baseline.
-- `FIX-LINT-001`: `IN_PROGRESS`, owner `thanh`, branch `fix/workspace-lint`; scope `packages/contracts/**`, `packages/ui/**`, `apps/web/**`, `apps/admin/**`, `services/api/**`.
+- `FIX-LINT-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `cc1c600`, Merge Memory Sync đã công bố workspace ESLint quality gate 100% PASS.
 - `TASK-CI-001`: `IN_PROGRESS`, owner `loc`, branch `feature/TASK-CI-001`; scope `.github/workflows/**`, task report và formatting-only `infra/compose.yaml`.
 - Nguồn chi tiết: [Task registry](docs/NEXT_WORK.md), [Plan Snapshot](docs/PLAN_SNAPSHOT.md), [Project Status](docs/PROJECT_STATUS.md).
 

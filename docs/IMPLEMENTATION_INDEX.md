@@ -5,7 +5,7 @@
 ## Baseline
 
 - Application source: foundation skeleton đã khởi tạo.
-- Last synchronized merge: `92c7caa` — `TASK-TIMELINE-001`.
+- Last synchronized merge: `cc1c600` — `FIX-LINT-001`.
 - Shared contracts implemented: ApiErrorResponseSchema, HealthStatusResponseSchema, ApiError class, ErrorCode enum, Database Entity DTOs, Living Timeline Zod Schemas (ExplorationMode, NarrativeJourney, NarrativeNode, RelatedArtifact).
 - UI components implemented: Heritage Theme tokens, CMS Block Renderer, Admin Shell (Sidebar, Header), Public Header & Footer layouts, Living Timeline 2D Renderer, Mode Switcher, Related Artifact Cards.
 
@@ -49,6 +49,7 @@
 | 2026-08-03 | `5ce59f2` / PR `#6` | `TASK-ADMIN-001` | Admin shell layout (Sidebar, Header), CMS Block Form Editor và Live Preview | YES | `thanh` |
 | 2026-08-03 | `d75cdf8` / PR `#7` | `TASK-DATA-001` | PostgreSQL DDL migrations, entity DTOs, seed data baseline và DatabaseRepository | YES | `thanh` |
 | 2026-08-03 | `92c7caa` / PR `#8` | `TASK-TIMELINE-001` | Living Timeline MVP (FREE_EXPLORE/GUIDED_JOURNEY modes, Related Artifact Cards, REST API endpoints và 2D Timeline UI) | YES | `thanh` |
+| 2026-08-03 | `cc1c600` / PR `#9` | `FIX-LINT-001` | Sửa toàn bộ lỗi ESLint rules trên contracts, UI, web, admin và api packages | YES | `thanh` |
 
 ## Quy tắc
 
