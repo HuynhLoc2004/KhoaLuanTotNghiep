@@ -11,7 +11,7 @@ Task-local report cho foundation môi trường phát triển. Tài liệu lưu 
 - Original implementation commit: `d8de400`.
 - Pull request: `#2` vào `develop`.
 - Remote cleanup commits: `0308b10`, merge sync `47b9ea0`.
-- Status: `IMPLEMENTED` — chưa `VERIFIED`, chưa merge.
+- Status: `VERIFIED` — Thành xác nhận review/test ngày 2026-08-03; chưa merge.
 - Owned paths: root workspace/tooling config; app/service/worker/package skeletons; `docs/work/TASK-FOUND-001.md`.
 - Explicitly excluded: shared status/index/catalog files, `infra/**`, Compose, migration, runtime behavior và contract nghiệp vụ.
 
@@ -24,7 +24,7 @@ Task-local report cho foundation môi trường phát triển. Tài liệu lưu 
 | Task | `TASK-FOUND-001` |
 | Branch | `feature/TASK-FOUND-001` |
 | Owner/contributor | `thanh` |
-| Status | `IMPLEMENTED` — chưa `VERIFIED`, chưa merge |
+| Status | `VERIFIED` — Thành xác nhận review/test; chưa merge |
 | Version | Foundation `0.1.0` |
 | Decision | `DEC-FOUND-TOOLING-001` — `PLAN_LOCKED` ngày 2026-08-03 |
 | Runtime behavior | Không có; skeleton chỉ xuất metadata tĩnh để kiểm tra boundary |
@@ -32,7 +32,7 @@ Task-local report cho foundation môi trường phát triển. Tài liệu lưu 
 - **Mục tiêu:** tạo baseline đa runtime có thể cài từ lockfile, phát hiện package, kiểm tra chất lượng và build lặp lại.
 - **Actor/persona:** cộng tác viên phát triển, reviewer và CI runner tương lai; không phải khách tham quan hay quản trị viên nghiệp vụ.
 - **Giá trị:** mọi task sau có chung cấu trúc package, compiler/linter/test runner, quy tắc secret và một quality gate fail-fast.
-- **Status semantics:** `IMPLEMENTED` nghĩa là source/config/lock/test đã có và root gate đã PASS với toolchain khóa. Chỉ người dùng/nhóm đổi sang `VERIFIED` sau review/fresh-clone verification.
+- **Status semantics:** `IMPLEMENTED` nghĩa là source/config/lock/test đã có và root gate đã PASS với toolchain khóa. Thành đã review/test và xác nhận `VERIFIED` lúc 2026-08-03T12:58:13+07:00; fresh-clone độc lập vẫn chưa có evidence riêng.
 
 ### Trong phạm vi
 
@@ -384,7 +384,7 @@ Tiêu chí đã dùng khi khóa plan: phù hợp dự án 30%, bảo trì 25%, t
 | Claimed | 2026-08-03T10:57:18+07:00 | `thanh` | Coordination claim trên `origin/develop` |
 | Implementation started | 2026-08-03T11:14:29+07:00 | `thanh` | `WS-TASK-FOUND-001-20260803-01` |
 | First `IMPLEMENTED` | 2026-08-03T11:45:04+07:00 | `thanh` | Source/config/locks, forced root gate và dependency audits PASS trên feature branch |
-| `VERIFIED` | — | — | Chỉ sau người dùng/nhóm review |
+| `VERIFIED` | 2026-08-03T12:58:13+07:00 | `thanh` | Người dùng xác nhận review/test; full root gate gần nhất PASS |
 | Merged to develop | — | — | Chỉ sau bằng chứng merge |
 | Completed | — | — | Chỉ sau Merge Memory Sync PASS |
 
@@ -398,6 +398,7 @@ Tiêu chí đã dùng khi khóa plan: phù hợp dự án 30%, bảo trì 25%, t
 | `WS-TASK-FOUND-001-20260803-04` | `thanh` | documentation-boundary migration | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:45:16+07:00 | 2026-08-03T12:48:24+07:00 | 2026-08-03T12:48:24+07:00 | CLOSED | Sync `origin/develop` `65c92f1`; chuyển Foundation plan/evidence/ledger khỏi shared files sang task report | Shared-file denylist, marker, Prettier, forced root gate và feature-delta diff check PASS; không còn unmerged path | Resolution đã stage; merge commit vẫn là user action |
 | `WS-TASK-FOUND-001-20260803-LOC-01` | `loc` | support cleanup | `TASK-FOUND-001` / remote feature cleanup | 2026-08-03T12:47:42+07:00 | 2026-08-03T12:47:42+07:00 | 2026-08-03T12:47:42+07:00 | CLOSED | Migration hỗ trợ evidence của Thành khỏi shared docs sang task report; không sửa hoặc nhận attribution Foundation code | Shared-file denylist cleanup tại `0308b10`; merge sync `47b9ea0` | Remote report ban đầu dùng ID `...-02`, trùng session đã tồn tại của Thành; chỉ chuẩn hóa ID, giữ nguyên contributor/timestamp/scope |
 | `WS-TASK-FOUND-001-20260803-05` | `thanh` | remote feature integration | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:53:25+07:00 | 2026-08-03T12:54:33+07:00 | 2026-08-03T12:54:33+07:00 | CLOSED | Merge `origin/feature/TASK-FOUND-001` `47b9ea0`; hợp nhất task report đầy đủ với remote cleanup metadata | Marker, Prettier, full root gate, denylist và cached diff PASS; không còn unmerged path | Resolution đã stage; merge commit và push vẫn là user action |
+| `WS-TASK-FOUND-001-20260803-06` | `thanh` | verification confirmation | `TASK-FOUND-001` / `feature/TASK-FOUND-001` | 2026-08-03T12:58:13+07:00 | 2026-08-03T12:58:13+07:00 | 2026-08-03T12:58:13+07:00 | CLOSED | Thành xác nhận đã review/test và chấp nhận `TASK-FOUND-001` ở trạng thái `VERIFIED` | Full root gate gần nhất PASS; user confirmation trong phiên hiện tại; fresh-clone độc lập chưa có evidence riêng | Commit/push verification evidence, sau đó merge PR/feature vào `develop` |
 
 Không suy ra active effort từ khoảng thời gian calendar; actual effort vẫn `UNKNOWN`. `EndedAt` chỉ ghi thời điểm đóng phiên, không phải thời lượng làm việc liên tục.
 
@@ -437,9 +438,9 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 - [x] Sơ đồ, inventory, algorithm, security, test, limitation và decision history khớp code hiện tại.
 - [x] Root cross-runtime gate PASS trên target Node `24.18.0`, pnpm `11.18.0` và uv `0.11.32`.
 - [x] Engine guard chặn Node ngoài hai range LTS; negative install trên Node `26.5.0` trả lỗi như mong đợi.
-- [ ] Reviewer chạy cùng gate trên fresh clone trước khi xác nhận `VERIFIED`.
+- [ ] Reviewer độc lập chạy cùng gate trên fresh clone; Thành đã review/test và xác nhận `VERIFIED`, nhưng chưa có fresh-clone evidence riêng.
 - [ ] Negative cycle fixture, automated license/SBOM/dedicated secret/container scan và CI evidence được bổ sung ở task chất lượng phù hợp.
-- [ ] Người dùng/nhóm review và đổi trạng thái từ `IMPLEMENTED` sang `VERIFIED`.
+- [x] Thành review/test và xác nhận trạng thái từ `IMPLEMENTED` sang `VERIFIED` lúc 2026-08-03T12:58:13+07:00.
 
 ## 13. Limitations, fallback and next work
 
@@ -489,16 +490,17 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 | 2026-08-03 | Hai lần đồng bộ `origin/develop` trước quy tắc task-report đã resolve marker và giữ lịch sử plan chung | Root gate/revision/cached diff PASS; merge commits do user thực hiện |
 | 2026-08-03 | Nhận shared `PLAN-0017`; chuyển toàn bộ Foundation evidence khỏi shared files sang report riêng này | Shared files khớp `origin/develop`; denylist check bắt buộc trước push |
 | 2026-08-03 | Hợp nhất remote cleanup `0308b10`/`47b9ea0` vào report đầy đủ; bảo toàn attribution hỗ trợ của `loc` và toàn bộ session/evidence của `thanh` | Chưa nâng `VERIFIED`; validation và merge commit vẫn là user action |
+| 2026-08-03 | Thành xác nhận đã review/test và chấp nhận `TASK-FOUND-001` | `VERIFIED` lúc 2026-08-03T12:58:13+07:00; fresh-clone độc lập chưa có evidence riêng; chưa merge |
 
 - **Deviation:** không có deviation khỏi PLAN_LOCKED.
 - **Merge reference:** chưa có; không suy diễn commit/push/merge.
-- **Verified-by:** chưa có; chờ người dùng/nhóm.
+- **Verified-by:** `thanh` tại 2026-08-03T12:58:13+07:00.
 - **Superseded history:** không có decision cũ bị xóa. Kế hoạch Docker/CI lịch sử được giữ dưới future scope.
 
 ## Handoff
 
-- Verification status: `IMPLEMENTED`; chờ Thành/reviewer chạy fresh-clone verification trước khi đặt `VERIFIED`.
-- Feature commit/PR: commit implementation `d8de400`; PR `#2` vào `develop`; remote cleanup `0308b10`/`47b9ea0`; merge commit hiện tại vẫn là user action.
+- Verification status: `VERIFIED` bởi `thanh` lúc 2026-08-03T12:58:13+07:00; fresh-clone độc lập chưa có evidence riêng.
+- Feature commit/PR: commit implementation `d8de400`; latest pushed feature commit `1a7e5a4`; PR `#2` vào `develop`; commit/push verification evidence và merge vẫn là user action.
 - Merge status: chưa merge vào `develop`.
 - Task work report: `docs/work/TASK-FOUND-001.md` đã cập nhật đầy đủ plan, ledger, evidence, tests, limitations và next work.
 - Shared-file denylist check: `PASS` so với `origin/develop` `65c92f1`.
@@ -519,7 +521,7 @@ Môi trường evidence: Windows; host Node `22.16.0`; target Node `24.18.0` đ�
 - [x] Query/index/cache và UI/motion/3D mục không áp dụng đã được ghi rõ; không tuyên bố performance/visual chưa đo.
 - [x] Root cross-runtime check PASS trên target Node/pnpm/uv đúng version, buộc Turbo bỏ cache.
 - [ ] Reviewer lặp lại frozen/locked install và root gate trên fresh clone.
-- [ ] Code review và user review hoàn tất; trạng thái được người có thẩm quyền đổi sang `VERIFIED`.
-- [x] Task report ghi đúng trạng thái `IMPLEMENTED` branch-local; shared status/traceability chờ promote sau merge.
+- [x] Thành xác nhận code/user review và trạng thái được đổi sang `VERIFIED`.
+- [x] Task report ghi đúng trạng thái `VERIFIED` branch-local; shared status/traceability chờ promote sau merge.
 - [ ] Implementation Index, NEXT_WORK và Merge Memory Sync được cập nhật sau bằng chứng push/merge.
 - [ ] Automated dependency/license/SBOM/dedicated secret/container scan được CI task triển khai; audit thủ công hiện tại chỉ là point-in-time evidence.
