@@ -7,7 +7,7 @@
 - Base/shared plan revision: `PLAN-0017`.
 - Feature commit: `5936397`.
 - Pull request: `#3`.
-- Status: `VERIFIED`, `REVIEW`; chưa merge.
+- Status: `DONE`; `VERIFIED` bởi `loc`, merge vào `develop` tại `847251c`, Merge Memory Sync PASS.
 
 ## Objective and write scope
 
@@ -98,13 +98,14 @@ Credential local có thể hiện trong Docker inspection nên không được t
 
 - Root scripts/root `.env.example`, migrations, app containers, Nginx and MinIO remain outside scope.
 - Override occupied ports only through ignored `infra/.env`.
-- Shared DevOps owner/index/status promotion waits for merge and Merge Memory Sync.
+- Shared DevOps owner/index/status promotion hoàn tất sau merge `847251c` qua Merge Memory Sync.
 
 ## Handoff
 
 - Verification status: `VERIFIED`.
 - Feature branch/commit: `feature/TASK-INFRA-001` / `5936397`.
 - PR: `#3`, open.
-- Merge status: not merged.
+- Merge status: merged into `develop` at `847251c`.
+- Merge Memory Sync: `PASS`; README, Project Status, NEXT_WORK, Implementation Index, DevOps owner và traceability đã được cập nhật.
 - Shared-file denylist check: pending cleanup commit that restores shared files to `origin/develop`.
 - After merge: update DevOps owner, Implementation Index, Project Status, NEXT_WORK, README and traceability on `develop`.

@@ -49,7 +49,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 - `docs/07-delivery/06-two-person-collaboration.md`.
 - `docs/07-delivery/07-git-playbook.md`.
 
-`TASK-FOUND-001` đã `DONE` sau merge `3d8b971` và Memory Sync `32ed7d5`. `TASK-INFRA-001` đã merge tại `847251c`, còn chờ Merge Memory Sync riêng. `TASK-TIMELINE-001` vẫn BLOCKED.
+`TASK-FOUND-001` và `TASK-INFRA-001` đã `DONE` sau merge `3d8b971`/`847251c` và Merge Memory Sync. `TASK-TIMELINE-001` vẫn BLOCKED.
 
 ## Revision rules
 

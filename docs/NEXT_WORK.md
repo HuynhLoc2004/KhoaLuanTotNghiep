@@ -34,7 +34,7 @@ Chỉ chuyển task sang `DONE` sau khi merge vào `develop` và Merge Memory Sy
 | ID | Task | Trạng thái | Owner/Branch | Claimed/Updated | Dependency | Estimate | Write scope | Feature owner |
 |---|---|---|---|---|---|---|---|---|
 | TASK-FOUND-001 | Khởi tạo monorepo, tooling và cấu trúc ứng dụng | DONE | `thanh` / `feature/TASK-FOUND-001` | VerifiedAt: 2026-08-03T12:58:13+07:00; MergedAt: 2026-08-03; merge `3d8b971` | Baseline docs | 1–2 person-days, MEDIUM; actual effort chưa được team cung cấp | Root workspace/tooling config; app/service/worker/package skeletons; `docs/work/TASK-FOUND-001.md`; không gồm shared status files, `infra/**`, Compose, migration hoặc hành vi/contract nghiệp vụ | `docs/work/TASK-FOUND-001.md`; Merge Memory Sync PASS |
-| TASK-INFRA-001 | Docker Compose cho PostgreSQL, MongoDB, Redis và health checks | REVIEW | `loc` / `feature/TASK-INFRA-001` | VerifiedAt: 2026-08-03T12:00:24+07:00; PushedAt: 2026-08-03T12:08:23+07:00; commit `5936397` | TASK-FOUND-001 interface baseline; implementation độc lập trong write scope | O/E/P: 1/2/3 person-days, MEDIUM | `infra/**`, `docs/work/TASK-INFRA-001.md`; không sửa shared status files/root tooling/app skeleton | `docs/work/TASK-INFRA-001.md` → promote vào DevOps owner sau merge |
+| TASK-INFRA-001 | Docker Compose cho PostgreSQL, MongoDB, Redis và health checks | DONE | `loc` / `feature/TASK-INFRA-001` | VerifiedAt: 2026-08-03T12:00:24+07:00; MergedAt: 2026-08-03; merge `847251c` | TASK-FOUND-001 interface baseline; implementation độc lập trong write scope | O/E/P: 1/2/3 person-days, MEDIUM; actual effort chưa được team cung cấp | `infra/**`, `docs/work/TASK-INFRA-001.md`; không sửa shared status files/root tooling/app skeleton | `docs/work/TASK-INFRA-001.md`; Merge Memory Sync PASS |
 | TASK-WEB-001 | Public Web shell + design tokens + CMS renderer skeleton | BLOCKED | Chưa có | — | TASK-FOUND-001, contract skeleton | 2–4 person-days, LOW | `apps/web/**`, `packages/ui/**` | `docs/04-design/01-ui-ux-design-system.md` |
 | TASK-ADMIN-001 | Admin shell + navigation + CMS form foundation | BLOCKED | Chưa có | — | TASK-FOUND-001, auth/contract skeleton | 2–4 person-days, LOW | `apps/admin/**`, CMS contracts | `docs/03-features/01-admin-cms.md` |
 | TASK-API-001 | Express API skeleton, health endpoint và validation/error contract | BLOCKED | Chưa có | — | TASK-FOUND-001 | 1–3 person-days, MEDIUM | `services/api/**`, base contracts | `docs/02-data/02-api-contract.md` |
@@ -48,7 +48,7 @@ Estimate trên chỉ phục vụ chọn việc và phải được rà soát l�
 
 ## Đề xuất hiện tại
 
-`TASK-FOUND-001` của `thanh` đã `DONE`, `VERIFIED` và merge tại `3d8b971`; Merge Memory Sync đã công bố foundation baseline. `TASK-INFRA-001` của `loc` đã merge tại `847251c` nhưng còn chờ Merge Memory Sync riêng nên chưa chuyển `DONE`. Hiện không còn task `READY`. Sau khi dependency/write scope được xác nhận, có thể mở tiếp:
+`TASK-FOUND-001` của `thanh` và `TASK-INFRA-001` của `loc` đều đã `DONE`, `VERIFIED`, merge và hoàn tất Merge Memory Sync (`3d8b971`, `847251c`). Hiện không còn task `READY`; task kế tiếp cần được nhóm chọn, chia write scope và publish claim trên `develop` trước khi code. Có thể xem xét:
 
 - Một người nhận `TASK-API-001` khi contract skeleton đã sẵn sàng.
 - Người còn lại nhận `TASK-WEB-001` trước, rồi `TASK-ADMIN-001`.

@@ -113,7 +113,10 @@ Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu t
 
 ## Implementation status
 
-- `TASK-INFRA-001`: owner/write scope đã được `loc` và `thanh` xác nhận; `PRE_CODE_PLAN_SYNC` đang chờ publish lên remote `develop` và collaborator pull/xác nhận.
+- `TASK-INFRA-001`: `DONE`; owner `loc`, `VERIFIED` tại 2026-08-03T12:00:24+07:00, merge vào `develop` tại `847251c`; Merge Memory Sync PASS.
+- Implemented baseline: PostgreSQL + pgvector, MongoDB, Redis, named volumes, authenticated health checks, ignored local environment và runbook trong `infra/`.
+- Evidence: Compose config validation và runtime smoke/health PASS theo `docs/work/TASK-INFRA-001.md`.
+- Limitation: chỉ là local development infrastructure; chưa có production secret manager, backup/restore automation, TLS, monitoring hoặc schema/migration nghiệp vụ.
 - Local service/port contract: branch-local `PLAN_LOCKED` bởi `loc` ngày 2026-08-03 và đã được hai thành viên đồng thuận; chưa là shared plan cho đến khi xuất hiện trên remote `develop`.
 - Compose, health checks và smoke test: `PLANNED`.
 
@@ -121,10 +124,12 @@ Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu t
 
 | Ngày | ID | Trạng thái | Quyết định | Lý do và phương án không chọn |
 |---|---|---|---|---|
-| 2026-08-03 | `DEC-INFRA-LOCAL-PORTS-001` | PLAN_LOCKED; PENDING REMOTE DEVELOP SYNC | Giữ port chuẩn trong container, dùng host ports `15432`, `27018`, `16379`; Compose DNS dùng `postgres`, `mongo`, `redis`; reserve dải app/proxy theo bảng trên. | Giảm va chạm với dịch vụ local nhưng vẫn giữ kết nối nội bộ theo convention. Không chọn publish trực tiếp toàn bộ port chuẩn vì dễ collision trên máy phát triển. |
+| 2026-08-03 | `DEC-INFRA-LOCAL-PORTS-001` | IMPLEMENTED; VERIFIED | Giữ port chuẩn trong container, dùng host ports `15432`, `27018`, `16379`; Compose DNS dùng `postgres`, `mongo`, `redis`; reserve dải app/proxy theo bảng trên. | Giảm va chạm với dịch vụ local nhưng vẫn giữ kết nối nội bộ theo convention. Không chọn publish trực tiếp toàn bộ port chuẩn vì dễ collision trên máy phát triển. |
 
 ## Change history
 
 | Ngày | Loại | Thay đổi | Evidence |
 |---|---|---|---|
 | 2026-08-03 | ADDED | Chuẩn bị đề xuất service naming, host/container ports, volume/database naming và estimate cho `TASK-INFRA-001` trên feature branch. | User `loc` chọn Phương án B; chờ nhóm thống nhất; implementation/test chưa chạy. |
+| 2026-08-03 | IMPLEMENTED | Thêm Compose cho PostgreSQL+pgvector, MongoDB, Redis, health checks, volumes, env template và runbook. | Runtime smoke/health PASS; `loc` xác nhận `VERIFIED`. |
+| 2026-08-03 | MERGED | Tích hợp `TASK-INFRA-001` vào `develop` và promote shared implementation memory. | Merge `847251c`; Merge Memory Sync PASS. |

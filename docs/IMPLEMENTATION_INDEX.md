@@ -5,7 +5,7 @@
 ## Baseline
 
 - Application source: foundation skeleton đã khởi tạo.
-- Last synchronized merge: `3d8b971` — `TASK-FOUND-001`.
+- Last synchronized merge: `847251c` — `TASK-INFRA-001`.
 - Shared contracts implemented: chưa có.
 - UI components implemented: chưa có.
 
@@ -20,6 +20,7 @@
 | Media worker | Python package/test skeleton; chưa có queue/media runtime behavior | `workers/media/` | `workers/media/src/media_worker/` | CODE_CONFIRMED | Ruff/format + pytest PASS |
 | Shared contracts | TypeScript package skeleton; chưa có contract nghiệp vụ | `packages/contracts/` | `packages/contracts/src/index.ts` | CODE_CONFIRMED | Root gate + component test PASS |
 | Shared UI | TypeScript package skeleton; chưa có UI component đăng ký | `packages/ui/` | `packages/ui/src/index.ts` | CODE_CONFIRMED | Root gate + component test PASS |
+| Local data services | PostgreSQL + pgvector, MongoDB và Redis qua Docker Compose; authenticated health checks và named volumes | `infra/` | `infra/compose.yaml` | CODE_CONFIRMED | Compose config validation + runtime smoke/health PASS; verified by `loc` |
 
 ## Features
 
@@ -42,6 +43,7 @@
 | Date | Merge/PR/Commit | Task/Feature | Added/Changed | Docs synchronized | Verified by |
 |---|---|---|---|---|---|
 | 2026-08-03 | `3d8b971` / PR `#2` | `TASK-FOUND-001` | Monorepo/tooling, 5 TypeScript workspace skeletons và 2 Python project skeletons | YES | `thanh` |
+| 2026-08-03 | `847251c` / PR `#3` | `TASK-INFRA-001` | PostgreSQL/pgvector, MongoDB, Redis, health checks, volumes, env template và runbook | YES | `loc` |
 
 ## Quy tắc
 
