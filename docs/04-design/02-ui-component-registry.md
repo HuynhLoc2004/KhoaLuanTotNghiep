@@ -23,7 +23,7 @@ Nguồn đọc nhanh để hai người xây một sản phẩm thống nhất. 
 | Component/Pattern | Purpose | Status | Location | Variants | Consumers | Do not duplicate |
 |---|---|---|---|---|---|---|
 | App shell | Public navigation/layout | CODE_CONFIRMED | `apps/web/src/shell/layout.ts`, `apps/web/src/shell/webShell.ts` | Responsive Mobile/Desktop Header & Footer | Public Web | Có |
-| Admin shell | CMS layout | CODE_CONFIRMED | `apps/admin/src/shell/layout.ts`, `apps/admin/src/shell/adminShell.ts` | Sidebar navigation, Header, Content Form Editor & Live Preview Panel | Admin | Có |
+| Admin shell | CMS layout | CODE_CONFIRMED | `apps/admin/src/shell/layout.ts`, `apps/admin/src/shell/adminShell.ts`, `apps/admin/src/forms/cmsFormBuilder.ts` | Sidebar, Header, semantic `cms-block-form`, validation/save controls, integrated Live Preview with stable container | Admin | Có |
 | Content block renderer | CMS sections | CODE_CONFIRMED | `packages/ui/src/cms/renderer.ts` | Hero, ArtifactGrid, TimelinePreview, Banner | Public Web, Admin | Có |
 | Audio player | Tour/voice | DOCS_ONLY | — | Compact/Full | Tour/Artifact | Có |
 | 3D viewer shell | Scene/model/fallback | DOCS_ONLY | — | Quality tiers | Artifact/Map | Có |

@@ -5,7 +5,7 @@
 - Owner/contributor: `thanh` (TEAM match confirmed in this session).
 - Branch: `fix/clean-workspace-quality-gate`.
 - Base/shared plan revision: `PLAN-0023`; coordination commit `45f53a5` verified on `origin/develop`.
-- Status: `IMPLEMENTED` (integration verification pending).
+- Status: `REVIEW / MERGED_UNVERIFIED` (hosted integration verification pending).
 - `PRE_CODE_PLAN_SYNC: PASS` — branch started from `origin/develop@c630409`; revision R1 was published and verified at `origin/develop@45f53a5`; the expanded Admin form path does not overlap `TASK-CI-001`.
 
 ## Objective and write scope
@@ -139,6 +139,21 @@ Entry condition is a clean workspace with dependencies installed but generated d
 ## Handoff
 
 - Verification status: UNVERIFIED; implementation checks pass, but the authoritative root/hosted gate requires Lộc's separately owned `infra/compose.yaml` formatting change in the same integration candidate.
-- Feature commit/PR: none.
-- Merge status: NOT_MERGED.
-- Merge Memory Sync checklist: not applicable before merge.
+- Feature commit/PR: `430ab28` / PR `#7`.
+- Merge status: MERGED into `develop` at `8bf9c9e` on 2026-08-03.
+- Merge Memory Sync: PASS — task report, README, Plan Snapshot, task/status registry, Implementation Index, UI registry, feature owner and traceability were synchronized; contracts/integration/data catalogs are unchanged because this fix adds no shared contract, API, event, entity or migration.
+- Remaining limitation: Lộc must fast-forward local `develop`, merge it into `feature/TASK-CI-001`, push, and obtain a hosted PASS before either task can be marked `VERIFIED`/`DONE`.
+
+## Merge Memory Sync result
+
+```text
+MERGE_MEMORY_SYNC: PASS
+Merge ref: 8bf9c9e / PR #7
+Feature/task: FIX-CLEAN-GATE-001
+Indexes updated: README, PLAN_SNAPSHOT, NEXT_WORK, PROJECT_STATUS, IMPLEMENTATION_INDEX, UI registry, traceability, Admin feature owner, task report
+Contracts/integration updated: no change required; no contract/API/event/data boundary changed
+UI registry updated: existing Admin shell/form entry now records semantic form, validation and live-preview markers
+Tests/evidence: clean lint 7/7, typecheck 7/7, Turbo test 10/10, build 5/5; hosted combined gate pending
+Remaining limitation: TASK-CI-001 must sync develop and rerun GitHub Actions
+Next tasks unblocked: TASK-CI-001 hosted verification
+```

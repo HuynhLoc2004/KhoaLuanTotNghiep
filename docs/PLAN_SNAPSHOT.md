@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0023`
+- Revision: `PLAN-0024`
 - Updated: 2026-08-03
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Mở rộng `FIX-CLEAN-GATE-001` theo R1: giữ integrated Admin editor/preview, khôi phục validation control và stable live-preview container trong `cmsFormBuilder.ts`; tiếp tục dùng Turbo `^build` prerequisites và xóa stale Admin re-export; không chạm workflow/contracts hoặc formatting-only Compose scope của `loc`.
+- Scope: Ghi nhận PR `#7` / `FIX-CLEAN-GATE-001` đã merge tại `8bf9c9e` và Merge Memory Sync PASS; giữ trạng thái `MERGED_UNVERIFIED` cho đến khi `TASK-CI-001` sync latest `develop` và có hosted PASS.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: `TASK-CI-001` (`loc`) và `FIX-CLEAN-GATE-001` (`thanh`) với write scope không giao nhau; `loc` giữ workflow/Compose formatting, `thanh` giữ root graph và đúng một Admin form renderer; fix baseline là dependency để hosted CI đạt PASS.
+- Task đang chạy: `TASK-CI-001` (`loc`) cần merge latest `develop` chứa `8bf9c9e` vào `feature/TASK-CI-001` rồi push; `FIX-CLEAN-GATE-001` (`thanh`) đã merge/sync memory nhưng chờ cùng hosted evidence để VERIFIED.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -46,6 +46,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 | PLAN-0021 | 2026-08-03 | Mở rộng `TASK-CI-001` đúng một file `infra/compose.yaml` để sửa Prettier cơ học; cấm đổi Compose behavior | TASK-CI-001; TASK-INFRA-001; root quality gate | Publish scope revision; format file; so sánh Compose config trước/sau; chạy lại root gate | `loc` xác nhận formatting-only |
 | PLAN-0022 | 2026-08-03 | Khóa `OPTION-CLEAN-GATE-001/A`: Turbo lint/typecheck phải build workspace dependencies trước dependent task; xóa Admin stale re-export; không sửa consumer bằng `any` hoặc làm yếu CI. `FIX-FORMAT-001` đã merge tại `8d199db` nhưng giữ REVIEW vì chưa VERIFIED | FIX-CLEAN-GATE-001; TASK-CI-001; TASK-FOUND-001; TASK-ADMIN-001; FIX-FORMAT-001 | Publish claim; tạo branch từ latest `develop`; clean build artifacts rồi chạy lint/typecheck/root gate; sau fix đồng bộ TASK-CI-001 và lấy hosted PASS | `thanh` chọn phương án chính xác nhất; Codex khóa phương án A theo evidence local + hosted run `30829451628` và Turbo docs chính thức |
 | PLAN-0023 | 2026-08-03 | Clean validation sau Option A lộ Admin regression: integrated renderer thiếu validation control và stable live-preview container mà accepted Admin tests/spec yêu cầu. Khóa revision R1, không phục hồi standalone preview export và không sửa tests để che regression | FIX-CLEAN-GATE-001; TASK-ADMIN-001; TASK-CI-001 | Mở rộng đúng `apps/admin/src/forms/cmsFormBuilder.ts`; khôi phục hai accepted markers; chạy lại clean/full gate; giữ `infra/compose.yaml` cho `loc` | `thanh` xác nhận tiếp tục sửa sau khi xem evidence hosted/local |
+| PLAN-0024 | 2026-08-03 | PR `#7` merge `FIX-CLEAN-GATE-001` vào `develop` tại `8bf9c9e`; Merge Memory Sync PASS, chưa tự đặt VERIFIED | FIX-CLEAN-GATE-001; TASK-CI-001; TASK-ADMIN-001; root quality gate | `loc` pull latest develop, merge vào `feature/TASK-CI-001`, push và lấy hosted PASS; không rerun head cũ | GitHub merge evidence và local clean lint/typecheck/test/build PASS |
 
 ## Changed owner documents in current revision
 
