@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { renderPublicSearchPage } from "../src/search/page.js";
 
-test("renderPublicSearchPage renders full HTML document with header, search section and footer", () => {
+void test("renderPublicSearchPage renders full HTML document with header, search section and footer", () => {
   const html = renderPublicSearchPage({
     query: "Óc Eo",
     items: [

@@ -3,18 +3,17 @@ import { test } from "node:test";
 import {
   SearchQueryRequestSchema,
   SearchResponseSchema,
-  SearchSuggestRequestSchema,
   SearchSuggestResponseSchema,
 } from "../src/search/schemas.js";
 
-test("SearchQueryRequestSchema applies default values", () => {
+void test("SearchQueryRequestSchema applies default values", () => {
   const result = SearchQueryRequestSchema.parse({});
   assert.equal(result.q, "");
   assert.equal(result.locale, "vi");
   assert.equal(result.limit, 20);
 });
 
-test("SearchQueryRequestSchema validates custom params", () => {
+void test("SearchQueryRequestSchema validates custom params", () => {
   const result = SearchQueryRequestSchema.parse({
     q: "Áo dài",
     types: ["artifact", "exhibition"],
@@ -27,7 +26,7 @@ test("SearchQueryRequestSchema validates custom params", () => {
   assert.equal(result.limit, 10);
 });
 
-test("SearchResponseSchema validates structured search results", () => {
+void test("SearchResponseSchema validates structured search results", () => {
   const response = SearchResponseSchema.parse({
     items: [
       {
@@ -52,7 +51,7 @@ test("SearchResponseSchema validates structured search results", () => {
   assert.equal(response.facets[0]?.count, 1);
 });
 
-test("SearchSuggestResponseSchema validates autocomplete responses", () => {
+void test("SearchSuggestResponseSchema validates autocomplete responses", () => {
   const response = SearchSuggestResponseSchema.parse({
     suggestions: ["Ấn vàng", "Áo dài truyền thống"],
     featured: [],
