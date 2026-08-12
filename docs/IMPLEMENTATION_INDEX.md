@@ -35,7 +35,7 @@
 | Recognition | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/04-artifact-recognition.md` |
 | Digital Twin | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/05-digital-twin.md` |
 | Voice/i18n | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/06-multilingual-voice.md` |
-| Auth/History | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/07-auth-user-history.md` |
+| Auth/History | Keycloak IAM Container (Port 18080), AuthHeaderBadge, AuthModal, UserProfileDrawer, /profile Web page và REST API /api/v1/auth/* | Keycloak OIDC/JWT Auth Verifier, PostgreSQL auth_users & In-memory bookmarks/history | AuthTokenRequestSchema, UserProfileSchema, UserBookmarkItemSchema, UserHistoryItemSchema | CODE_CONFIRMED | Full Keycloak Realm Export json là extension ở pha sản xuất | `03-features/07-auth-user-history.md` |
 | Dashboard | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/08-dashboard-analytics.md` |
 | Search/Discovery | SearchBar, Facet Filters, SearchResultCard, SearchPage UI và GET /api/v1/search & /suggest endpoints với unaccent Vietnamese matching | In-memory unaccent Vietnamese normalization & relevance matching | SearchQueryRequestSchema, SearchResponseSchema, SearchSuggestRequestSchema | CODE_CONFIRMED | Dedicated search cluster (Meilisearch/OpenSearch) là extension sau MVP | `03-features/09-search-discovery.md` |
 | Indoor Location QR/Photo | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Cần map/dataset | `03-features/10-indoor-location-detection.md` |
@@ -45,6 +45,7 @@
 
 | Date | Merge/PR/Commit | Task/Feature | Added/Changed | Docs synchronized | Verified by |
 |---|---|---|---|---|---|
+| 2026-08-12 | `8e76271` / PR `#12` | `TASK-AUTH-001` | Keycloak IAM Docker Service, Auth Zod Contracts, Express Auth Router, UI Auth components & Web Profile page | YES | `loc` |
 | 2026-08-12 | `400d328` / PR `#11` | `TASK-SEARCH-001` | Search Zod contracts, Express API search router, unaccent Vietnamese matching, UI Search components & Web search page | YES | `loc` |
 | 2026-08-03 | `3d8b971` / PR `#2` | `TASK-FOUND-001` | Monorepo/tooling, 5 TypeScript workspace skeletons và 2 Python project skeletons | YES | `thanh` |
 | 2026-08-03 | `847251c` / PR `#3` | `TASK-INFRA-001` | PostgreSQL/pgvector, MongoDB, Redis, health checks, volumes, env template và runbook | YES | `loc` |

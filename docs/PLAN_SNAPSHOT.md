@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0031`
+- Revision: `PLAN-0032`
 - Updated: 2026-08-12
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Hoàn tất Merge Memory Sync cho `TASK-SEARCH-001` (Search Contract, Express API Search Router với unaccent Vietnamese matching, UI Search components & Web search page) sau PR `#11` / merge `400d328`.
+- Scope: Hoàn tất Merge Memory Sync cho `TASK-AUTH-001` (Keycloak IAM Container port 18080, Auth Zod contracts, Express Auth Router `/api/v1/auth/*`, UI Auth components & Web Profile page) sau PR `#12` / merge `8e76271`.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: không có; `TASK-SEARCH-001` đã `DONE`.
+- Task đang chạy: không có; `TASK-AUTH-001` và `TASK-SEARCH-001` đã `DONE`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -23,6 +23,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 | Revision | Date | Change | Affected owners/tasks | Required action | Confirmed by |
 |---|---|---|---|---|---|
+| PLAN-0032 | 2026-08-12 | Hoàn tất Merge Memory Sync cho TASK-AUTH-001 (PR #12 / merge 8e76271) | TASK-AUTH-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0031 | 2026-08-12 | Hoàn tất Merge Memory Sync cho TASK-SEARCH-001 (PR #11 / merge 400d328) | TASK-SEARCH-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0001 | 2026-07-29 | Tạo baseline toàn bộ plan và quy trình AI/cộng tác | Tất cả; TASK-FOUND-001 | Nhóm review, commit và push develop | Chờ nhóm |
 | PLAN-0002 | 2026-07-29 | Cho phép đề xuất runtime ngoài baseline và thêm Search/Discovery | Architecture; FEAT-SEARCH-001; TASK-SEARCH-001 | Review; chưa triển khai trước foundation/data | `loc` yêu cầu |

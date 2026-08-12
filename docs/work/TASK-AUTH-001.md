@@ -4,8 +4,8 @@
 
 - Owner/contributor: `loc` (confirmed 2026-08-12; TEAM match `CONFIRMED`).
 - Branch: `feature/TASK-AUTH-001`.
-- Base/shared plan revision: `PLAN-0031`; claim commit on `develop`.
-- Status: `IN_PROGRESS`.
+- Base/shared plan revision: `PLAN-0032`; claim commit on `develop`.
+- Status: `DONE` (MergedAt: 2026-08-12; PR `#12`; merge `8e76271`; Merge Memory Sync `PASS`).
 - `PRE_CODE_PLAN_SYNC: PASS` — local branch created from updated `develop`, published scopes isolated to auth modules (`services/api/src/routes/auth.ts`, `packages/contracts/src/auth/**`, `apps/web/src/auth/**`, `packages/ui/src/auth/**`, `infra/compose.yaml`, `docs/work/TASK-AUTH-001.md`).
 
 ## Objective and write scope
