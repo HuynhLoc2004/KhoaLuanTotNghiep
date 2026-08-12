@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-export const SearchContentTypeSchema = z.enum([
-  "artifact",
-  "exhibition",
-  "news",
-  "tour",
-]);
+export const SearchContentTypeSchema = z.enum(["artifact", "exhibition", "news", "tour"]);
 export type SearchContentType = z.infer<typeof SearchContentTypeSchema>;
 
 export const SearchQueryRequestSchema = z.object({
