@@ -100,7 +100,7 @@ searchRouter.get("/api/v1/search", (req: Request, res: Response) => {
   if (!parseResult.success) {
     return res.status(400).json({
       error: "INVALID_QUERY_PARAMS",
-      details: parseResult.error.format(),
+      details: parseResult.error.issues,
     });
   }
 
@@ -108,7 +108,7 @@ searchRouter.get("/api/v1/search", (req: Request, res: Response) => {
   const normalizedQuery = removeVietnameseTones(q.trim());
 
   // Filter by query and content types
-  let filtered = SAMPLE_SEARCH_CATALOG.filter((item) => {
+  const filtered = SAMPLE_SEARCH_CATALOG.filter((item) => {
     if (types && types.length > 0) {
       if (!types.includes(item.type)) return false;
     }
@@ -117,8 +117,8 @@ searchRouter.get("/api/v1/search", (req: Request, res: Response) => {
 
     const normTitle = removeVietnameseTones(item.title);
     const normSummary = removeVietnameseTones(item.summary);
-    const normCode = removeVietnameseTones(item.code || "");
-    const normSubtitle = removeVietnameseTones(item.subtitle || "");
+    const normCode = removeVietnameseTones(item.code ?? "");
+    const normSubtitle = removeVietnameseTones(item.subtitle ?? "");
 
     return (
       normTitle.includes(normalizedQuery) ||

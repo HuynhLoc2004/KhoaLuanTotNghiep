@@ -4,7 +4,7 @@ import { createApp } from "../src/index.js";
 import { removeVietnameseTones } from "../src/routes/search.js";
 import type { SearchResponse, SearchSuggestResponse } from "@hcmc-museum/contracts";
 
-test("removeVietnameseTones strips diacritics and converts to lowercase", () => {
+void test("removeVietnameseTones strips diacritics and converts to lowercase", () => {
   assert.equal(removeVietnameseTones("Đông Sơn"), "dong son");
   assert.equal(removeVietnameseTones("Tượng Thần Óc Eo"), "tuong than oc eo");
   assert.equal(removeVietnameseTones("Áo dài"), "ao dai");
