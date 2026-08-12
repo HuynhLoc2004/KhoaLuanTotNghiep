@@ -58,6 +58,23 @@ services:
       start_period: 5s
     restart: unless-stopped
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.0
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-hcm_museum}
+      KC_DB_USERNAME: ${POSTGRES_USER:-museum_admin}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-museum_secret}
+    command: ["start-dev", "--http-port=8080"]
+    ports:
+      - "127.0.0.1:${KEYCLOAK_HOST_PORT:-18080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   mongo_data:

@@ -7,3 +7,4 @@ export * from "./common/error.js";
 export * from "./common/health.js";
 export * from "./timeline/schemas.js";
 export * from "./search/schemas.js";
+export * from "./auth/schemas.js";
