@@ -105,9 +105,11 @@ stateDiagram-v2
 - **Dashboard UI Renderer**: `packages/ui/src/dashboard/renderer.ts` với `renderDashboardMetricsCards`, `renderDashboardTopArtifactsTable`, `renderDashboardTrafficChart`, `renderAdminDashboardPage`.
 - **Admin Shell Dashboard Integration**: `apps/admin/src/dashboard/page.ts` tích hợp trang `/dashboard`.
 
-- **Verification status**: `IMPLEMENTED`, code and 100% unit tests PASS by `loc`.
+## Handoff
+
+- **Verification status**: `VERIFIED`, code and 100% unit tests PASS by `loc`.
 - **Feature branch**: `feature/TASK-DASHBOARD-001`.
-- **Merge status**: Ready for PR and merge into `develop`.
+- **Merge status**: Merged into `develop` / `main` (commit `1439807`, PR `#13`).
 
 ## Change history
 
