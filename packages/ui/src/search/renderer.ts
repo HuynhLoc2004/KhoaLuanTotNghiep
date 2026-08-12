@@ -1,11 +1,7 @@
 import { heritageTheme } from "../tokens/theme.js";
-import type {
-  SearchContentType,
-  SearchFacetCount,
-  SearchResultItem,
-} from "@hcmc-museum/contracts";
+import type { SearchContentType, SearchFacetCount, SearchResultItem } from "@hcmc-museum/contracts";
 
-export function renderSearchBar(query: string = ""): string {
+export function renderSearchBar(query = ""): string {
   return `
     <div id="search-bar-container" style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; width: 100%;">
       <input
@@ -55,7 +51,7 @@ export function renderFacetFilters(
           type="button"
           style="padding: 0.5rem 1rem; border-radius: 1.5rem; background: ${bg}; color: ${color}; border: 1px solid ${heritageTheme.colors.borderGlass}; font-size: 0.875rem; font-weight: bold; cursor: pointer; transition: ${heritageTheme.animations.transitionFast};"
         >
-          ${label} (${f.count})
+          ${label} (${String(f.count)})
         </button>
       `.trim();
     })
@@ -85,7 +81,7 @@ export function renderSearchResultCard(item: SearchResultItem): string {
   };
 
   const badgeColor = badgeColors[item.type] || heritageTheme.colors.accentGold;
-  const highlightsHtml = (item.highlights || [])
+  const highlightsHtml = item.highlights
     .map(
       (h) =>
         `<span style="display: inline-block; font-size: 0.75rem; background: rgba(217, 119, 6, 0.15); color: ${heritageTheme.colors.accentGold}; border: 1px solid ${heritageTheme.colors.accentGold}; padding: 0.15rem 0.5rem; border-radius: 0.25rem; margin-right: 0.375rem; margin-top: 0.375rem;">${h}</span>`,
@@ -103,13 +99,13 @@ export function renderSearchResultCard(item: SearchResultItem): string {
       <h4 style="font-family: ${heritageTheme.typography.fontFamilyHeading}; color: ${heritageTheme.colors.textPrimary}; font-size: 1.125rem; margin-bottom: 0.25rem;">${item.title}</h4>
       ${item.subtitle ? `<p style="font-size: 0.8125rem; color: ${heritageTheme.colors.accentGold}; margin-bottom: 0.5rem;">${item.subtitle}</p>` : ""}
       <p style="color: ${heritageTheme.colors.textSecondary}; font-size: 0.9375rem; line-height: 1.5; margin-bottom: 0.5rem;">${item.summary}</p>
-      ${highlightsHtml ? `<div style="margin-top: 0.5rem;">${highlightsHtml}</div>` : ""}
+      ${highlightsHtml !== "" ? `<div style="margin-top: 0.5rem;">${highlightsHtml}</div>` : ""}
     </div>
   `.trim();
 }
 
 export function renderSearchPage(
-  query: string = "",
+  query = "",
   items: SearchResultItem[] = [],
   facets: SearchFacetCount[] = [],
   activeType?: SearchContentType,

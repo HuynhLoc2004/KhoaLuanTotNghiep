@@ -28,7 +28,8 @@ export const SAMPLE_SEARCH_CATALOG: SearchResultItem[] = [
     type: "artifact",
     title: "Trống Đồng Đông Sơn",
     subtitle: "Báu vật nghệ thuật đúc đồng cổ đại",
-    summary: "Biểu tượng văn hóa đặc sắc của thời kỳ Đông Sơn rực rỡ với hoa văn mặt trời và chim lạc.",
+    summary:
+      "Biểu tượng văn hóa đặc sắc của thời kỳ Đông Sơn rực rỡ với hoa văn mặt trời và chim lạc.",
     thumbnailUrl: "/assets/images/dong-son-drum.jpg",
     score: 0.98,
     highlights: [],
@@ -39,7 +40,8 @@ export const SAMPLE_SEARCH_CATALOG: SearchResultItem[] = [
     type: "artifact",
     title: "Tượng Thần Vishnu Óc Eo",
     subtitle: "Điêu khắc đá Phù Nam",
-    summary: "Kiệt tác tạc tượng đá mịn màu xám đen thể hiện nét thẩm mỹ tinh xảo của nền văn minh Óc Eo.",
+    summary:
+      "Kiệt tác tạc tượng đá mịn màu xám đen thể hiện nét thẩm mỹ tinh xảo của nền văn minh Óc Eo.",
     thumbnailUrl: "/assets/images/vishnu.jpg",
     score: 0.91,
     highlights: [],
@@ -63,7 +65,7 @@ export const SAMPLE_SEARCH_CATALOG: SearchResultItem[] = [
     subtitle: "Tin tức sự kiện",
     summary: "Lễ tiếp nhận và bảo tồn di vật khảo cổ quý hiếm triều Nguyễn.",
     thumbnailUrl: "/assets/images/news-01.jpg",
-    score: 0.80,
+    score: 0.8,
     highlights: [],
   },
   {
@@ -87,8 +89,8 @@ searchRouter.get("/api/v1/search", (req: Request, res: Response) => {
       ? Array.isArray(req.query.types)
         ? req.query.types
         : typeof req.query.types === "string"
-        ? req.query.types.split(",")
-        : undefined
+          ? req.query.types.split(",")
+          : undefined
       : undefined,
     locale: req.query.locale,
     cursor: req.query.cursor,
@@ -98,7 +100,7 @@ searchRouter.get("/api/v1/search", (req: Request, res: Response) => {
   if (!parseResult.success) {
     return res.status(400).json({
       error: "INVALID_QUERY_PARAMS",
-      details: parseResult.error.format(),
+      details: parseResult.error.issues,
     });
   }
 
@@ -106,7 +108,7 @@ searchRouter.get("/api/v1/search", (req: Request, res: Response) => {
   const normalizedQuery = removeVietnameseTones(q.trim());
 
   // Filter by query and content types
-  let filtered = SAMPLE_SEARCH_CATALOG.filter((item) => {
+  const filtered = SAMPLE_SEARCH_CATALOG.filter((item) => {
     if (types && types.length > 0) {
       if (!types.includes(item.type)) return false;
     }
@@ -115,8 +117,8 @@ searchRouter.get("/api/v1/search", (req: Request, res: Response) => {
 
     const normTitle = removeVietnameseTones(item.title);
     const normSummary = removeVietnameseTones(item.summary);
-    const normCode = removeVietnameseTones(item.code || "");
-    const normSubtitle = removeVietnameseTones(item.subtitle || "");
+    const normCode = removeVietnameseTones(item.code ?? "");
+    const normSubtitle = removeVietnameseTones(item.subtitle ?? "");
 
     return (
       normTitle.includes(normalizedQuery) ||
@@ -160,8 +162,7 @@ searchRouter.get("/api/v1/search", (req: Request, res: Response) => {
     items: itemsWithHighlights,
     total: filtered.length,
     facets,
-    querySuggestion:
-      filtered.length === 0 && q.trim().length > 0 ? "Đông Sơn" : undefined,
+    querySuggestion: filtered.length === 0 && q.trim().length > 0 ? "Đông Sơn" : undefined,
   };
 
   return res.json(response);

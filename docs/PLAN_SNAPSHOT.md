@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0030`
-- Updated: 2026-08-04
+- Revision: `PLAN-0031`
+- Updated: 2026-08-12
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Hoàn tất Merge Memory Sync cho `TASK-DOC-QUALITY-001` và `FIX-DOC-QUALITY-CI-001` sau PR `#10` / merge `7c63cbb` cùng hai hosted runs PASS.
+- Scope: Hoàn tất Merge Memory Sync cho `TASK-SEARCH-001` (Search Contract, Express API Search Router với unaccent Vietnamese matching, UI Search components & Web search page) sau PR `#11` / merge `400d328`.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: không có; `TASK-DOC-QUALITY-001` và `FIX-DOC-QUALITY-CI-001` đã `DONE`, integration turn đã mở; `TASK-SEARCH-001` vẫn `READY`.
+- Task đang chạy: không có; `TASK-SEARCH-001` đã `DONE`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -23,6 +23,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 | Revision | Date | Change | Affected owners/tasks | Required action | Confirmed by |
 |---|---|---|---|---|---|
+| PLAN-0031 | 2026-08-12 | Hoàn tất Merge Memory Sync cho TASK-SEARCH-001 (PR #11 / merge 400d328) | TASK-SEARCH-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0001 | 2026-07-29 | Tạo baseline toàn bộ plan và quy trình AI/cộng tác | Tất cả; TASK-FOUND-001 | Nhóm review, commit và push develop | Chờ nhóm |
 | PLAN-0002 | 2026-07-29 | Cho phép đề xuất runtime ngoài baseline và thêm Search/Discovery | Architecture; FEAT-SEARCH-001; TASK-SEARCH-001 | Review; chưa triển khai trước foundation/data | `loc` yêu cầu |
 | PLAN-0003 | 2026-07-29 | Thêm xác định vị trí bằng QR hoặc chụp ảnh không gian | FEAT-LOCATION-001; Web 3D/Map; Tour Guide | Thu thập QR/reference dataset; chưa triển khai trước map/AI foundation | `loc` yêu cầu |

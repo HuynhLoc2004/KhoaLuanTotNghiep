@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { healthRouter } from "./routes/health.js";
 import { timelineRouter } from "./routes/timeline.js";
 import { searchRouter } from "./routes/search.js";
+import { authRouter } from "./routes/auth.js";
 
 export function createApp(): Express {
   const app = express();
@@ -19,6 +20,7 @@ export function createApp(): Express {
   app.use(healthRouter);
   app.use(timelineRouter);
   app.use(searchRouter);
+  app.use("/api/v1/auth", authRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

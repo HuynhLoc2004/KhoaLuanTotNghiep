@@ -8,3 +8,4 @@ export * from "./cms/types.js";
 export * from "./cms/renderer.js";
 export * from "./timeline/renderer.js";
 export * from "./search/renderer.js";
+export * from "./auth/renderer.js";

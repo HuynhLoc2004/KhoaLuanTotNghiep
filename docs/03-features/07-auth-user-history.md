@@ -46,22 +46,24 @@ HttpOnly Secure SameSite cookie nếu cùng site; CSRF protection; password hash
 | Ngày | Quyết định | Lý do/Hệ quả |
 |---|---|---|
 | 2026-07-29 | OIDC Authorization Code + PKCE, backend kiểm tra RBAC | Giảm rủi ro token và không tin quyền từ client |
+| 2026-08-12 | Keycloak IAM Server via Docker Compose (`DEC-AUTH-KEYCLOAK-DOCKER-001`) | IdP độc lập chuẩn OIDC/JWT, port 18080, tích hợp với PostgreSQL DB |
 
 ## Feature lifecycle và Contribution ledger
 
-Áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`. Chưa có implementation session; không suy diễn contributor/timestamp từ plan.
+Áp dụng `docs/07-delivery/09-work-session-contribution-ledger.md`.
 
 | Mốc | Timestamp | Member/Actor | Evidence |
 |---|---|---|---|
 | Planned | Baseline docs | Nhóm | Feature plan |
-| Claimed/Started/IMPLEMENTED/VERIFIED/Merged/Completed | Chưa có | — | — |
+| Claimed | 2026-08-12T16:42:00+07:00 | `loc` | `feature/TASK-AUTH-001` |
 
 | Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Chưa có | — | — | — | — | — | — | PLANNED | — | NOT RUN | Chờ task READY |
+| `WS-TASK-AUTH-001-20260812-01` | `loc` | Owner | `feature/TASK-AUTH-001` | 2026-08-12T16:42:00+07:00 | 2026-08-12T16:42:00+07:00 | Active | IN_PROGRESS | Keycloak Docker config, Auth contracts, API, UI & Web profile | In execution | Hoàn thành implementation |
 
 ## Change history
 
 | Ngày | Loại | Thay đổi | Test/Bằng chứng |
 |---|---|---|---|
 | 2026-07-29 | ADDED | Tạo baseline auth, phân quyền và history | Review tài liệu, chưa có code |
+| 2026-08-12 | MODIFIED | Tích hợp Keycloak IAM Docker Server & JWT Auth MVP (`TASK-AUTH-001`) | Implementation in progress |

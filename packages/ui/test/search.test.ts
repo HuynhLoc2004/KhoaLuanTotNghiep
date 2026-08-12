@@ -7,14 +7,14 @@ import {
   renderSearchResultCard,
 } from "../src/search/renderer.js";
 
-test("renderSearchBar renders search input and search button", () => {
+void test("renderSearchBar renders search input and search button", () => {
   const html = renderSearchBar("Đông Sơn");
   assert.ok(html.includes('id="search-input"'));
   assert.ok(html.includes('value="Đông Sơn"'));
   assert.ok(html.includes("🔍 Tìm kiếm"));
 });
 
-test("renderFacetFilters renders content type facet pills", () => {
+void test("renderFacetFilters renders content type facet pills", () => {
   const html = renderFacetFilters(
     [
       { type: "artifact", count: 5 },
@@ -28,7 +28,7 @@ test("renderFacetFilters renders content type facet pills", () => {
   assert.ok(html.includes("🖼️ Triển lãm (2)"));
 });
 
-test("renderSearchResultCard renders result item details and highlights", () => {
+void test("renderSearchResultCard renders result item details and highlights", () => {
   const html = renderSearchResultCard({
     id: "art-1",
     code: "ART-001",
@@ -45,7 +45,7 @@ test("renderSearchResultCard renders result item details and highlights", () => 
   assert.ok(html.includes("Khớp tiêu đề: Trống Đồng"));
 });
 
-test("renderSearchPage renders full search discovery layout", () => {
+void test("renderSearchPage renders full search discovery layout", () => {
   const html = renderSearchPage("Đông Sơn", [
     {
       id: "art-1",
