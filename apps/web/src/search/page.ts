@@ -1,10 +1,6 @@
 import { heritageTheme, renderSearchPage } from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "../shell/layout.js";
-import type {
-  SearchContentType,
-  SearchFacetCount,
-  SearchResultItem,
-} from "@hcmc-museum/contracts";
+import type { SearchContentType, SearchFacetCount, SearchResultItem } from "@hcmc-museum/contracts";
 
 export interface SearchPageOptions {
   query?: string;
@@ -22,7 +18,8 @@ export function renderPublicSearchPage(options: SearchPageOptions = {}): string 
       type: "artifact",
       title: "Trống Đồng Đông Sơn",
       subtitle: "Báu vật nghệ thuật đúc đồng cổ đại",
-      summary: "Biểu tượng văn hóa đặc sắc của thời kỳ Đông Sơn rực rỡ với hoa văn mặt trời và chim lạc.",
+      summary:
+        "Biểu tượng văn hóa đặc sắc của thời kỳ Đông Sơn rực rỡ với hoa văn mặt trời và chim lạc.",
       score: 0.98,
       highlights: ["Khớp tiêu đề: Trống Đồng Đông Sơn"],
     },
