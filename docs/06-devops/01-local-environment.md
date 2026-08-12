@@ -1,0 +1,159 @@
+# Docker, môi trường và CI/CD
+
+## Cấu trúc repository dự kiến
+
+```text
+apps/web
+apps/admin
+services/api
+services/ai
+workers/media
+packages/ui
+packages/contracts
+infra/nginx
+infra/docker
+docs
+```
+
+Monorepo dùng pnpm workspace/Turborepo cho TypeScript; Python quản lý riêng bằng uv/Poetry. Không buộc mọi ngôn ngữ vào cùng package manager.
+
+## Container local
+
+- `web`, `admin`, `api`, `ai-worker`, `media-worker`.
+- `postgres`, `mongo`, `redis`, `nginx`.
+- Tùy chọn `minio` để mô phỏng object storage khi không muốn dùng Cloudinary local.
+- Healthcheck và named volume; migration chạy bằng job riêng, không chạy đồng thời ở mọi API replica.
+
+### Local service contract — BRANCH-LOCAL PLAN_LOCKED
+
+Compose project dùng tên `hcm-museum`. Port trong container giữ port chuẩn; port publish lên host dùng dải riêng để giảm xung đột với dịch vụ đã cài trên máy phát triển.
+
+| Service | Compose name | Host port | Container port | Trạng thái |
+|---|---|---:|---:|---|
+| PostgreSQL | `postgres` | `15432` | `5432` | TASK-INFRA-001 |
+| MongoDB | `mongo` | `27018` | `27017` | TASK-INFRA-001 |
+| Redis | `redis` | `16379` | `6379` | TASK-INFRA-001 |
+| API | `api` | `3000` | `3000` | Reserved |
+| AI worker/service | `ai-worker` | `8000` | `8000` | Reserved |
+| Media worker | `media-worker` | `8001` | `8001` | Reserved |
+| Public Web | `web` | `5173` | `5173` | Reserved |
+| Admin | `admin` | `5174` | `5174` | Reserved |
+| Nginx | `nginx` | `8080` | `80` | Reserved |
+| MinIO API | `minio` | `19000` | `9000` | Optional/reserved |
+| MinIO Console | `minio` | `19001` | `9001` | Optional/reserved |
+
+Container-to-container connection dùng Compose DNS và container port (`postgres:5432`, `mongo:27017`, `redis:6379`). Process chạy trực tiếp trên host dùng `localhost` và host port tương ứng. Reserved port chưa cho phép TASK-INFRA-001 tạo app container ngoài write scope.
+
+Named volume baseline: `postgres_data`, `mongo_data`, `redis_data`. Database local mặc định là `museum`, PostgreSQL role ứng dụng là `museum_app`; credential thật phải đến từ ignored local environment hoặc Docker secret.
+
+## Biến môi trường
+
+```dotenv
+NODE_ENV=
+DATABASE_URL=
+MONGODB_URI=
+REDIS_URL=
+JWT_PRIVATE_KEY=
+JWT_PUBLIC_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+AI_PROVIDER_API_KEY=
+PUBLIC_API_ORIGIN=
+MEDIA_ORIGIN=
+```
+
+File thật là `.env.local`/Docker secret và bị ignore. `.env.example` chỉ để tên và mô tả.
+
+Ví dụ endpoint local không chứa secret thật:
+
+```dotenv
+# Dùng từ container trong Compose network
+DATABASE_URL=postgresql://museum_app:<local-password>@postgres:5432/museum
+MONGODB_URI=mongodb://mongo:27017/museum
+REDIS_URL=redis://redis:6379
+
+# Dùng khi runtime chạy trực tiếp trên host
+DATABASE_URL_HOST=postgresql://museum_app:<local-password>@localhost:15432/museum
+MONGODB_URI_HOST=mongodb://localhost:27018/museum
+REDIS_URL_HOST=redis://localhost:16379
+```
+
+Tên có hậu tố `_HOST` là tài liệu phân biệt ngữ cảnh, không mặc định yêu cầu runtime hỗ trợ hai bộ biến cùng lúc. Mỗi runtime vẫn nhận đúng một `DATABASE_URL`, `MONGODB_URI` và `REDIS_URL` đã được typed validation.
+
+Mỗi runtime dùng một config module typed/schema-validated và fail fast khi biến bắt buộc thiếu hoặc sai. Business logic không đọc `process.env` trực tiếp. Chỉ biến có nhãn public mới được expose vào frontend; server secret không được dùng prefix/public injection. External origin, callback, provider endpoint, timeout và quota phụ thuộc môi trường không được hard-code trong runtime source. Internal API route/event vẫn thuộc shared contract, không biến thành environment variable.
+
+## Thiết lập theo pha
+
+1. Cài Docker Desktop, Git, Node LTS, pnpm, Python phù hợp.
+2. Copy `.env.example`, tạo key local.
+3. `docker compose up` hạ tầng.
+4. Chạy migration và seed demo qua command có kiểm soát.
+5. Chạy web/admin/api/worker hoặc toàn bộ bằng Compose.
+
+## CI
+
+Lint -> typecheck -> unit -> integration -> build -> image scan -> E2E smoke. Migration kiểm tra trên database rỗng và bản snapshot gần production. Deploy staging trước production; production cần approval và rollback image.
+
+### Foundation quality gate — IMPLEMENTED / VERIFIED
+
+- Workflow: `.github/workflows/quality.yml`; merge `be2a18e` / PR `#4`.
+- Trigger: push vào `develop`/`main`, pull request hướng tới `develop`, hoặc manual dispatch; run cũ cùng ref bị hủy bằng concurrency group.
+- Flow: checkout read-only không persist credential -> cài Node/pnpm/uv/Python đã pin -> `pnpm install --frozen-lockfile` -> chạy root `pnpm check`.
+- Security: workflow chỉ có `contents: read`, không dùng project secret, không khởi động Compose, không deploy và không truy cập dữ liệu production.
+- Evidence: GitHub Actions run `30832872900` `SUCCESS` trên exact merge commit `be2a18e`; `thanh` xác nhận `VERIFIED` ngày 2026-08-03.
+- Limitation/fallback: một job tuần tự, không dependency cache và chưa gồm image scan/E2E/deploy. Khi GitHub outage có thể chạy cùng root gate local để chẩn đoán, nhưng local evidence không thay hosted status.
+
+### Hosted OSV extension startup fix — IMPLEMENTED / VERIFIED
+
+- `TASK-DOC-QUALITY-001` đã merge tại `e0c4139`, nhưng runs `30838513724` và `30838613737` không tạo job vì reusable OSV workflow yêu cầu `actions: read` và `security-events: write` vượt quyền caller.
+- `FIX-DOC-QUALITY-CI-001` dùng normal job với direct OSV action tại immutable SHA, checkout read-only và chỉ `contents: read`; không upload SARIF.
+- Ba lockfile vẫn được quét và scanner vẫn fail closed. Root deterministic job không đổi.
+- Commit `fd49df3` merge qua PR `#10` tại `7c63cbb`. PR run `30841432956` và develop push run `30841444661` đều tạo đủ Node/Python + OSV jobs và PASS; `thanh` xác nhận evidence, PLAN-0030 Merge Memory Sync PASS.
+
+## Lưu ý Windows
+
+Dùng LF qua `.gitattributes`, tránh mount quá nhiều file gây chậm, ưu tiên named volume cho database và chạy command thống nhất qua package scripts.
+
+## Delivery estimate
+
+- Optimistic: 1 person-day.
+- Expected: 2 person-days.
+- Pessimistic: 3 person-days.
+- Confidence: MEDIUM.
+- Bao gồm: Compose cho PostgreSQL/MongoDB/Redis, health checks, named volumes, `.env.example` liên quan và smoke verification.
+- Không bao gồm: app container, migration nghiệp vụ, production deployment, Nginx và MinIO implementation.
+- Dependency/risk: cấu trúc root/Compose entrypoint từ `TASK-FOUND-001`; xung đột port trên máy; Docker Desktop/Windows filesystem.
+
+## Implementation status
+
+- `TASK-INFRA-001`: `DONE`; owner `loc`, `VERIFIED` tại 2026-08-03T12:00:24+07:00, merge vào `develop` tại `847251c`; Merge Memory Sync PASS.
+- Implemented baseline: PostgreSQL + pgvector, MongoDB, Redis, named volumes, authenticated health checks, ignored local environment và runbook trong `infra/`.
+- Evidence: Compose config validation và runtime smoke/health PASS theo `docs/work/TASK-INFRA-001.md`.
+- Limitation: chỉ là local development infrastructure; chưa có production secret manager, backup/restore automation, TLS, monitoring hoặc schema/migration nghiệp vụ.
+- Local service/port contract: branch-local `PLAN_LOCKED` bởi `loc` ngày 2026-08-03 và đã được hai thành viên đồng thuận; chưa là shared plan cho đến khi xuất hiện trên remote `develop`.
+- Compose, health checks và smoke test: `PLANNED`.
+- `TASK-CI-001`: `DONE`; owner `loc`, merge `be2a18e`, hosted run `30832872900` PASS, Merge Memory Sync PASS.
+- `TASK-DOC-QUALITY-001`: `DONE`; owner `thanh`, merge `e0c4139` / PR `#9`, verified by integrated run `30841444661`, Merge Memory Sync PASS.
+- `FIX-DOC-QUALITY-CI-001`: `DONE`; owner `thanh`, commit `fd49df3`, merge `7c63cbb` / PR `#10`, runs `30841432956` and `30841444661` PASS, Merge Memory Sync PASS.
+
+## Decision log
+
+| Ngày | ID | Trạng thái | Quyết định | Lý do và phương án không chọn |
+|---|---|---|---|---|
+| 2026-08-03 | `DEC-INFRA-LOCAL-PORTS-001` | IMPLEMENTED; VERIFIED | Giữ port chuẩn trong container, dùng host ports `15432`, `27018`, `16379`; Compose DNS dùng `postgres`, `mongo`, `redis`; reserve dải app/proxy theo bảng trên. | Giảm va chạm với dịch vụ local nhưng vẫn giữ kết nối nội bộ theo convention. Không chọn publish trực tiếp toàn bộ port chuẩn vì dễ collision trên máy phát triển. |
+| 2026-08-03 | `OPTION-CI-001/A` | IMPLEMENTED; VERIFIED | Dùng một deterministic cross-runtime GitHub Actions job gọi root `pnpm check`, pin tool/action, frozen install, least privilege và không cache. | Giữ một nguồn orchestration và bề mặt bảo trì nhỏ. Chưa chọn parallel/reusable workflows vì chưa có evidence về thời gian hay nhiều consumer. |
+| 2026-08-04 | `DEC-DOC-QUALITY-OSV-STARTUP-FIX-001` | IMPLEMENTED; VERIFIED | Dùng normal hosted job gọi direct OSV action tại immutable SHA, giữ ba lockfile và chỉ `contents: read`; không upload SARIF. | Reusable workflow bị GitHub từ chối vì yêu cầu quyền vượt caller. Không chọn cấp write permission không phục vụ output hiện tại. |
+
+## Change history
+
+| Ngày | Loại | Thay đổi | Evidence |
+|---|---|---|---|
+| 2026-08-03 | ADDED | Chuẩn bị đề xuất service naming, host/container ports, volume/database naming và estimate cho `TASK-INFRA-001` trên feature branch. | User `loc` chọn Phương án B; chờ nhóm thống nhất; implementation/test chưa chạy. |
+| 2026-08-03 | IMPLEMENTED | Thêm Compose cho PostgreSQL+pgvector, MongoDB, Redis, health checks, volumes, env template và runbook. | Runtime smoke/health PASS; `loc` xác nhận `VERIFIED`. |
+| 2026-08-03 | MERGED | Tích hợp `TASK-INFRA-001` vào `develop` và promote shared implementation memory. | Merge `847251c`; Merge Memory Sync PASS. |
+| 2026-08-03 | MERGED / VERIFIED | Tích hợp `TASK-CI-001` và promote Foundation hosted quality gate. | Merge `be2a18e`; hosted run `30832872900` SUCCESS; Merge Memory Sync PASS. |
+| 2026-08-04 | PLAN_REVISION | Claim `FIX-DOC-QUALITY-CI-001` và khóa direct pinned OSV action để sửa caller/reusable permission mismatch. | `thanh` chọn phương án B; PLAN-0029; hosted runs `30838513724`, `30838613737` startup failure. |
+| 2026-08-04 | VERIFIED / MERGED | Repository quality extension và direct OSV fix được xác minh trên PR và exact develop merge commit; Merge Memory Sync hoàn tất. | `e0c4139` / PR `#9`; `7c63cbb` / PR `#10`; runs `30841432956`, `30841444661`; PLAN-0030. |
