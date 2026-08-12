@@ -9,3 +9,4 @@ export * from "./cms/renderer.js";
 export * from "./timeline/renderer.js";
 export * from "./search/renderer.js";
 export * from "./auth/renderer.js";
+export * from "./dashboard/renderer.js";
