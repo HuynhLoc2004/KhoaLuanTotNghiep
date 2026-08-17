@@ -33,10 +33,10 @@ export function renderPublicAiGuidePage(): string {
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
   ${headerHtml}
   
-  <main class="ai-guide-container">
-    <div style="text-align: center; margin-bottom: 2rem;">
-      <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #ffffff, #d4af37); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Trợ Lý Thuyết Minh Viên AI</h1>
-      <p style="color: #a1a1aa; font-size: 1rem; max-width: 600px; margin: 0 auto;">Giải đáp thắc mắc lịch sử hiện vật realtime với bằng chứng kiểm định từ Bảo tàng Lịch sử TP.HCM</p>
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 pb-20 md:pb-8">
+    <div class="text-center mb-6">
+      <h1 class="text-2xl sm:text-4xl font-bold font-heading gradient-title-cyber mb-2">Trợ Lý Thuyết Minh Viên AI</h1>
+      <p class="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">Giải đáp thắc mắc lịch sử hiện vật realtime với bằng chứng kiểm định từ Bảo tàng Lịch sử TP.HCM</p>
     </div>
 
     ${chatWidgetHtml}

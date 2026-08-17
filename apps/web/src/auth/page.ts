@@ -61,7 +61,7 @@ export function renderPublicProfilePage(props: PublicProfilePageProps = {}): str
     </head>
     <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
       ${headerHtml}
-      <main id="profile-main-content" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+      <main id="profile-main-content" class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 pb-20 md:pb-8">
         <div class="flex justify-between items-center mb-6 bg-slate-900/60 p-6 rounded-xl border border-amber-500/20 backdrop-blur-md">
           <div>
             <h1 class="text-2xl font-bold font-heading text-amber-400 mb-1">Hồ Sơ Khách Tham Quan & Lịch Sử Di Sản</h1>

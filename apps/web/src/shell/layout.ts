@@ -1,13 +1,15 @@
 export function renderHeader(): string {
   return `
-    <header id="main-header" class="glass-nav-cyber sticky top-0 z-50 px-6 py-4 transition-all">
+    <header id="main-header" class="glass-nav-cyber sticky top-0 z-50 px-4 sm:px-6 py-3.5 transition-all">
       <div class="max-w-7xl mx-auto flex justify-between items-center">
-        <a id="nav-brand" href="/" class="flex items-center gap-3 group text-slate-100 hover:text-amber-400 transition-colors">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-rose-600 p-[1px] shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform animate-float-3d">
-            <div class="w-full h-full rounded-full bg-slate-950 flex items-center justify-center font-bold text-amber-400 text-sm">BT</div>
+        <a id="nav-brand" href="/" class="flex items-center gap-2.5 group text-slate-100 hover:text-amber-400 transition-colors">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-amber-400 to-rose-600 p-[1px] shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform animate-float-3d">
+            <div class="w-full h-full rounded-full bg-slate-950 flex items-center justify-center font-bold text-amber-400 text-xs sm:text-sm">BT</div>
           </div>
-          <span class="font-heading font-black text-lg tracking-wider text-slate-100 group-hover:text-amber-300">BẢO TÀNG LỊCH SỬ TP.HCM</span>
+          <span class="font-heading font-black text-base sm:text-lg tracking-wider text-slate-100 group-hover:text-amber-300">BẢO TÀNG LỊCH SỬ TP.HCM</span>
         </a>
+
+        <!-- Desktop Nav -->
         <nav id="main-nav" class="hidden md:flex gap-4 items-center font-medium text-sm">
           <a id="nav-home" href="/" class="text-amber-400 hover:text-amber-300 font-semibold transition-colors px-3 py-1.5 rounded-lg hover:bg-amber-500/10">Trang chủ</a>
           <a id="nav-artifacts" href="/search" class="text-slate-200 hover:text-amber-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-amber-500/10">Hiện vật</a>
@@ -23,13 +25,37 @@ export function renderHeader(): string {
           <a id="nav-profile" href="/profile" class="text-slate-200 hover:text-amber-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-amber-500/10">Trang cá nhân</a>
         </nav>
       </div>
+
+      <!-- Mobile Bottom Navigation Bar -->
+      <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-2xl border-t border-amber-500/30 px-2 py-2 flex justify-around items-center text-[10px] font-mono shadow-2xl">
+        <a href="/" class="flex flex-col items-center gap-1 text-amber-400 hover:text-amber-300 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span>Trang chủ</span>
+        </a>
+        <a href="/3d-experience" class="flex flex-col items-center gap-1 text-slate-300 hover:text-amber-400 p-1">
+          <svg class="w-5 h-5 text-cyan-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          <span class="text-cyan-300">Tham quan 3D</span>
+        </a>
+        <a href="/search" class="flex flex-col items-center gap-1 text-slate-300 hover:text-amber-400 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <span>Tra cứu</span>
+        </a>
+        <a href="/ai-guide" class="flex flex-col items-center gap-1 text-slate-300 hover:text-amber-400 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+          <span>AI Guide</span>
+        </a>
+        <a href="/profile" class="flex flex-col items-center gap-1 text-slate-300 hover:text-amber-400 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <span>Cá nhân</span>
+        </a>
+      </nav>
     </header>
   `.trim();
 }
 
 export function renderFooter(): string {
   return `
-    <footer id="main-footer" class="bg-slate-950 border-t border-amber-500/20 text-slate-400 py-12 px-6 mt-auto">
+    <footer id="main-footer" class="bg-slate-950 border-t border-amber-500/20 text-slate-400 py-10 px-4 sm:px-6 mt-auto mb-16 md:mb-0">
       <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
         <div>
           <h3 class="font-heading text-lg font-bold text-slate-100 mb-3">Bảo tàng Lịch sử TP. Hồ Chí Minh</h3>

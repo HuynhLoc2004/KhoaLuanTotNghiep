@@ -29,7 +29,7 @@ export function renderWebShellPage(pagePayload: CmsPagePayload): RenderedWebPage
     </head>
     <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
       ${headerHtml}
-      <main id="app-content" class="flex-1">
+      <main id="app-content" class="flex-1 pb-16 md:pb-0">
         ${blocksHtml}
       </main>
       ${footerHtml}

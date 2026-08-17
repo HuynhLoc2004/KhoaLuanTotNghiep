@@ -23,7 +23,7 @@ export function renderPublic3DExperiencePage(
 <body class="bg-slate-950 text-slate-100 antialiased font-sans flex flex-col min-h-screen">
   ${headerHtml}
 
-  <main class="min-h-screen container mx-auto px-4 py-8">
+  <main class="min-h-screen container mx-auto px-4 py-6 sm:py-8 pb-20 md:pb-8">
     <div class="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-amber-500/20 pb-4">
       <div>
         <h1 class="text-3xl font-bold text-amber-400 tracking-wide font-serif">${config.title}</h1>

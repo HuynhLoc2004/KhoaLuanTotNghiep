@@ -57,7 +57,7 @@ export function renderPublicSearchPage(options: SearchPageOptions = {}): string 
     </head>
     <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
       ${headerHtml}
-      <main id="search-main-content" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+      <main id="search-main-content" class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 pb-20 md:pb-8">
         ${searchContentHtml}
       </main>
       ${footerHtml}
