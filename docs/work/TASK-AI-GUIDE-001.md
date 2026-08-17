@@ -4,8 +4,8 @@
 
 - Owner/contributor: `loc` (confirmed 2026-08-17; TEAM match `CONFIRMED`).
 - Branch: `feature/TASK-AI-GUIDE-001`.
-- Base/shared plan revision: `PLAN-0033`; claim commit on `develop`.
-- Status: `IN_PROGRESS`.
+- Base/shared plan revision: `PLAN-0035`; claim commit on `develop`.
+- Status: `DONE` (MergedAt: 2026-08-17; PR `#14`; merge `cae46a2`; Merge Memory Sync `PASS`).
 - `PRE_CODE_PLAN_SYNC: PASS` — local branch created from updated `develop`, published scopes isolated to AI Guide modules (`packages/contracts/src/ai/**`, `services/api/src/routes/ai.ts`, `packages/ui/src/ai/**`, `apps/web/src/ai/**`, `docs/work/TASK-AI-GUIDE-001.md`).
 
 ## Objective and write scope
@@ -109,9 +109,9 @@ stateDiagram-v2
 
 ## Handoff
 
-- **Verification status**: `IMPLEMENTED`, code and 100% unit tests PASS by `loc`.
+- **Verification status**: `VERIFIED`, code and 100% unit tests PASS by `loc`.
 - **Feature branch**: `feature/TASK-AI-GUIDE-001`.
-- **Merge status**: Ready for PR and merge into `develop`.
+- **Merge status**: Merged into `develop` / `main` (commit `cae46a2`, PR `#14`).
 
 ## Change history
 

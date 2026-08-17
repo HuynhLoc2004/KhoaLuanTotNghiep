@@ -31,7 +31,7 @@
 |---|---|---|---|---|---|---|
 | CMS/Admin | Admin Shell layout (Sidebar, Header), CMS Block Form Editor và Live Preview panel đã merge | PostgreSQL cms_pages & cms_sections DDL tables, seed data & DatabaseRepository đã merge | CMS Block types | CODE_CONFIRMED | Chưa nối REST API endpoints lưu trực tiếp vào DB | `03-features/01-admin-cms.md` |
 | Web 3D/Map | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/02-web-3d-navigation.md` |
-| AI Tour Guide | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/03-ai-tour-guide.md` |
+| AI Tour Guide | Chat Widget /ai-guide, RAG Hybrid Router /api/v1/ai/guide/query & /speak TTS | In-memory Museum Knowledge Base & Citation Gating | AiGuideQueryRequestSchema, AiGuideQueryResponseSchema, AiGuideAudioSpeakRequestSchema | CODE_CONFIRMED | Full Vector Store (pgvector/Pinecone) & Live TTS Stream là extension ở pha sau | `03-features/03-ai-tour-guide.md` |
 | Recognition | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/04-artifact-recognition.md` |
 | Digital Twin | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/05-digital-twin.md` |
 | Voice/i18n | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/06-multilingual-voice.md` |
@@ -45,6 +45,7 @@
 
 | Date | Merge/PR/Commit | Task/Feature | Added/Changed | Docs synchronized | Verified by |
 |---|---|---|---|---|---|
+| 2026-08-17 | `cae46a2` / PR `#14` | `TASK-AI-GUIDE-001` | AI Guide Zod Contracts, Express RAG & TTS API Router, UI Chat Widget components & Web /ai-guide page | YES | `loc` |
 | 2026-08-12 | `1439807` / PR `#13` | `TASK-DASHBOARD-001` | Dashboard Zod Contracts, Express Analytics API Router, UI Dashboard components & Admin Dashboard page | YES | `loc` |
 | 2026-08-12 | `8e76271` / PR `#12` | `TASK-AUTH-001` | Keycloak IAM Docker Service, Auth Zod Contracts, Express Auth Router, UI Auth components & Web Profile page | YES | `loc` |
 | 2026-08-12 | `400d328` / PR `#11` | `TASK-SEARCH-001` | Search Zod contracts, Express API search router, unaccent Vietnamese matching, UI Search components & Web search page | YES | `loc` |
