@@ -16,11 +16,11 @@
 
 ## PLAN_LOCKED
 
-- Selected Option: Three.js Orbit View + Google `@google/model-viewer` PBR Engine + AI Single-Photo 3D Reconstruction Pipeline (`TripoSR` / `CSM` / `Gaussian Splatting`) + Layered Depth Parallax Mesh + A* Graph Indoor Route Calculation (`DEC-UX-SPATIAL-3D-SINGLE-IMAGE-001`).
+- Selected Option: Three.js Orbit View + Google `@google/model-viewer` PBR Engine + 3D Gaussian Splatting + AI Single-Photo 3D Reconstruction Pipeline (`TripoSR` / `CSM` / `Gaussian Splatting`) + Layered Depth Parallax Mesh + A* Graph Indoor Route Calculation (`DEC-UX-SPATIAL-3D-SINGLE-IMAGE-001` & `DEC-UX-SPATIAL-3D-QUALITY-TIERS-001`).
 - Key Capabilities:
-  - **Hiện vật trong Lồng kính (Single-Photo 3D AI Engine)**: Tự động tái tạo mô hình 3D (.glb) và Depth Map hoàn chỉnh 360° từ 1 ảnh chụp duy nhất mặt trước.
-  - **Tối ưu Hiệu năng & Chân thực (No Lag, 60 FPS)**: Sử dụng Google `@google/model-viewer` PBR lighting, HDR environment map (`museum_gallery.hdr`), phản chiếu lồng kính Glassmorphism và nạp mượt mà <1.5s.
-  - **2.5D Layered Depth Mesh Fallback**: Khi chưa sinh xong GLB 3D, chiếu Depth Map lên lưới 2.5D Parallax Mesh giúp di sản có chiều sâu 3D nghiêng 360° chân thực từ đúng 1 bức ảnh gốc.
+  - **Quy tắc Chống Mô hình Giả/Đơ (Anti-Dummy Block Policy)**: Nghiêm cấm hiển thị mô hình khối đơ/méo. Tích hợp 4 tầng chất lượng 3D (Photogrammetry GLB, 3D Gaussian Splatting, PBR Material Shaders kim loại/đá/gỗ, 2.5D Layered Depth Parallax Mesh).
+  - **Admin Quality Gate**: Admin/Curator có quyền xem trước mô hình 3D trong Admin Portal, bấm "Tái tạo AI Depth cao cấp" hoặc chuyển chế độ trước khi xuất bản ra Public Web.
+  - **Tối ưu Hiệu năng & Chân thực (No Lag, 60 FPS)**: Google `@google/model-viewer` PBR lighting, HDR environment map (`museum_gallery.hdr`), phản chiếu lồng kính Glassmorphism và nạp mượt mà <1.5s.
   - Hotspots đính kèm lên bề mặt di sản để đọc thông tin chi tiết.
   - Sơ đồ tầng 3D & Dẫn đường A* Graph giữa các phòng trưng bày.
 

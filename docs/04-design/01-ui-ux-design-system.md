@@ -127,11 +127,13 @@ Mục tiêu “sống động” được đo bằng chất lượng chuyển c�
 | 2026-07-30 | `DEC-UX-QUALITY-001`: Cho phép nhiều công nghệ có trách nhiệm; áp dụng Quality Gate Markdown ngay và automation sau foundation | PLAN_LOCKED | Giữ tự do sáng tạo nhưng kiểm soát hiệu năng đa thiết bị và bảo đảm hồ sơ báo cáo |
 | 2026-08-17 | `DEC-UX-SPATIAL-3D-001`: Quy hoạch nâng cấp UI/UX chiều sâu 3D, Glassmorphism & Motion Grammar đồng nhất trên toàn hệ thống | PROPOSED | Lộc phản hồi giao diện MVP còn khô sơ; nâng cấp 3D Depth, hiệu ứng vi tương tác mượt mà và đồng nhất visual giữa Public Web, Living Timeline, Profile và Admin Portal |
 | 2026-08-17 | `DEC-UX-SPATIAL-3D-SINGLE-IMAGE-001`: Giải pháp Tái tạo Mô hình 3D xoay 360° chân thực từ 1 ảnh chụp mặt trước (Lồng kính Bảo tàng) | PLAN_LOCKED | Lộc lo lắng hiện vật trong lồng kính chỉ chụp được 1 mặt làm 3D bị xấu/giả; áp dụng AI Single-Photo 3D Reconstruction (TripoSR/CSM/Gaussian Splatting) kết hợp Layered Depth Parallax Mesh và Google `@google/model-viewer` PBR lighting để xoay 360° mượt 60FPS không bị rỗng hay lag |
+| 2026-08-17 | `DEC-UX-SPATIAL-3D-QUALITY-TIERS-001`: Tiêu chuẩn Chống Mô hình Giả/Đơ (Anti-Dummy Block Policy) & 3D Gaussian Splatting + PBR Lighting Shaders | PLAN_LOCKED | Lộc phản đối việc tạo mô hình 3D giống "khúc gỗ đơ/méo"; quy hoạch 4 tầng chất lượng 3D (Photogrammetry GLB, 3D Gaussian Splatting .splat, PBR Shaders kim loại/đá/gỗ cổ, 2.5D Parallax High-Res) kèm Live Curator Quality Gate trong Admin trước khi công bố ra Public |
 
 ## Change history
 
 | Ngày | Loại | Thay đổi |
 |---|---|---|
+| 2026-08-17 | ADDED | Thêm DEC-UX-SPATIAL-3D-QUALITY-TIERS-001 quy định Anti-Dummy Block Policy & PBR Shaders |
 | 2026-08-17 | ADDED | Thêm DEC-UX-SPATIAL-3D-SINGLE-IMAGE-001 giải pháp AI Single-Photo 3D cho hiện vật trong lồng kính |
 | 2026-08-17 | ADDED | Đề xuất DEC-UX-SPATIAL-3D-001 nâng cấp 3D Depth UI/UX và đồng nhất Motion Grammar |
 | 2026-07-30 | ADDED | Liên kết Quality Gate, dependency inventory và performance evidence cho desktop/mobile |

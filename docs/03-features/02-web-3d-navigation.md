@@ -29,9 +29,13 @@ Hiển thị Digital Twin/sơ đồ 3D, cho phép chọn điểm đến và nh�
 
 ## 3D rendering & Single-Photo Glass Case Reconstruction
 
-- **Giải pháp Hiện vật Lồng kính (Single-Photo 3D)**: Do hiện vật ở trong lồng kính bảo tàng chỉ chụp được 1 góc mặt trước, hệ thống sử dụng AI Pipeline (`TripoSR` / `CSM` / `Gaussian Splatting` worker) để tự động sinh Lưới 3D 360° (.glb) & Depth Map hoàn chỉnh, suy luận mặt sau và cạnh bên dựa trên đặc trưng hình học của di sản.
-- **Tối ưu Hiệu năng & Chân thực (No Lag)**: Tích hợp thư viện Google `@google/model-viewer` và Three.js PBR Engine (Physically Based Rendering) với HDR Environment Map (`museum_gallery.hdr`), ánh sáng phản chiếu lồng kính Glassmorphism và Draco Compression, giúp mô hình nạp cực nhanh (<1.5s) và xoay 360° mượt mà 60 FPS trên mobile.
-- **2.5D Layered Depth Mesh Fallback**: Khi mô hình GLB chưa tạo xong, hệ thống tự động chiếu Depth Map lên Lưới 2.5D Parallax Mesh, tạo hiệu ứng chuyển động chiều sâu 3D sống động từ đúng 1 bức ảnh chụp gốc mà không bị méo hay vỡ ảnh.
+- **Quy tắc Chống Mô hình Giả/Đơ (Anti-Dummy Block Policy - DEC-UX-SPATIAL-3D-QUALITY-TIERS-001)**: Nghiêm cấm tuyệt đối việc hiển thị mô hình 3D thô sơ dạng "khúc gỗ đơ/méo" làm giảm giá trị thẩm mỹ của di sản. Hệ thống cung cấp 4 tầng chất lượng 3D linh hoạt:
+  1. *Tier 1 (Curator High-Fidelity Photogrammetry GLB)*: Tải file `.glb` quét 3D chuyên nghiệp (Meshroom/Polycam/Luma AI) dành cho di sản cấp quốc gia.
+  2. *Tier 2 (AI 3D Gaussian Splatting .splat)*: Tái tạo chùm tia sáng và phản chiếu thực tế từ ảnh chụp, giữ nguyên 100% chi tiết bề mặt từ mọi góc nhìn mà không tạo ra hình khối giả.
+  3. *Tier 3 (PBR Material Shaders & HDR Environment)*: Áp dụng PBR Metalness/Roughness Shaders riêng cho từng chất liệu (Đồng gỉ cổ, Vàng hoàng gia, Đá ngọc Bích, Gỗ chạm khắc) kết hợp HDR environment map `museum_gallery.hdr` tạo độ bóng thật của kim loại và lồng kính.
+  4. *Tier 4 (2.5D Layered Depth Parallax Mesh Fallback)*: Khi chưa có mô hình GLB, chiếu Depth Map lên lưới 2.5D Parallax Mesh giúp di sản có chiều sâu 3D nghiêng 360° chân thực từ đúng 1 bức ảnh chụp gốc mà không bao giờ bị méo ảnh hay lộ mặt sau rỗng.
+- **Admin Live Quality Gate**: Trong Admin Portal, Admin/Curator xem trước mô hình 3D trực tiếp. Nếu chưa vừa ý, Admin có thể đổi chế độ hiển thị hoặc bấm "Tái tạo lại bằng AI Depth cao cấp" trước khi xuất bản ra Public Web.
+- **Tối ưu Hiệu năng & Chân thực (No Lag, 60 FPS)**: Tích hợp thư viện Google `@google/model-viewer` và Three.js PBR Engine với Draco Compression, giúp mô hình nạp cực nhanh (<1.5s) và xoay 360° mượt mà 60 FPS trên mobile.
 - glTF/GLB + Draco/Meshopt, texture KTX2/WebP.
 - LOD, frustum culling, lazy loading theo tầng, instancing vật thể lặp.
 - Giới hạn pixel ratio và shadow trên thiết bị yếu.
