@@ -4,6 +4,7 @@ import {
   renderAuthModal,
   renderUserProfileDrawer,
   injectHeritageGlobalStyles,
+  renderQrScannerModal,
 } from "@hcmc-museum/ui";
 import type { UserBookmarkItem, UserHistoryItem, UserProfile } from "@hcmc-museum/contracts";
 
@@ -74,6 +75,7 @@ export function renderPublicProfilePage(props: PublicProfilePageProps = {}): str
         ${authModal}
       </main>
       ${footerHtml}
+      ${renderQrScannerModal()}
     </body>
     </html>
   `.trim();

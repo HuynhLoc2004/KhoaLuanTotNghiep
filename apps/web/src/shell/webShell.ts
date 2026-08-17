@@ -1,4 +1,10 @@
-import { heritageTheme, renderCmsBlock, injectHeritageGlobalStyles, type CmsPagePayload } from "@hcmc-museum/ui";
+import {
+  heritageTheme,
+  renderCmsBlock,
+  injectHeritageGlobalStyles,
+  renderQrScannerModal,
+  type CmsPagePayload,
+} from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "./layout.js";
 
 export interface RenderedWebPage {
@@ -33,6 +39,7 @@ export function renderWebShellPage(pagePayload: CmsPagePayload): RenderedWebPage
         ${blocksHtml}
       </main>
       ${footerHtml}
+      ${renderQrScannerModal()}
     </body>
     </html>
   `.trim();

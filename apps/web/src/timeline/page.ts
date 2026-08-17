@@ -1,4 +1,4 @@
-import { renderLivingTimeline2D, injectHeritageGlobalStyles } from "@hcmc-museum/ui";
+import { renderLivingTimeline2D, injectHeritageGlobalStyles, renderQrScannerModal } from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "../shell/layout.js";
 import type { NarrativeJourney, ExplorationMode, RelatedArtifact } from "@hcmc-museum/contracts";
 
@@ -67,6 +67,7 @@ export function renderLivingTimelinePage(options: TimelinePageOptions = {}): str
         ${timelineHtml}
       </main>
       ${footerHtml}
+      ${renderQrScannerModal()}
     </body>
     </html>
   `.trim();

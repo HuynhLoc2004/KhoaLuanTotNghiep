@@ -1,4 +1,4 @@
-import { renderSearchPage, injectHeritageGlobalStyles } from "@hcmc-museum/ui";
+import { renderSearchPage, injectHeritageGlobalStyles, renderQrScannerModal } from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "../shell/layout.js";
 import type { SearchContentType, SearchFacetCount, SearchResultItem } from "@hcmc-museum/contracts";
 
@@ -61,6 +61,7 @@ export function renderPublicSearchPage(options: SearchPageOptions = {}): string 
         ${searchContentHtml}
       </main>
       ${footerHtml}
+      ${renderQrScannerModal()}
     </body>
     </html>
   `.trim();
