@@ -31,11 +31,12 @@ export function render3DHotspotOverlay(hotspots: ThreeDHotspot[]): string {
 export function render3DOrbitControlsBar(): string {
   return `
     <div class="spatial-3d-controls-bar-glass flex flex-wrap items-center justify-center gap-3 p-3 rounded-2xl glass-futuristic border-amber-500/30 shadow-2xl">
+      <button class="btn-trigger-qr-scanner px-4 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950 font-bold text-xs shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse hover:scale-105 transition-transform" title="Quét mã QR di sản">📷 Quét Mã QR</button>
       <button class="px-4 py-2 rounded-lg bg-slate-900/90 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-mono font-bold transition-all" data-action="rotate-left" title="Xoay trái 45°">↺ Xoay Trái</button>
       <button class="px-4 py-2 rounded-lg bg-slate-900/90 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-mono font-bold transition-all" data-action="rotate-right" title="Xoay phải 45°">↻ Xoay Phải</button>
       <button class="px-3 py-2 rounded-lg bg-slate-900/90 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 text-sm font-bold transition-all" data-action="zoom-in" title="Thu phóng vào">+</button>
       <button class="px-3 py-2 rounded-lg bg-slate-900/90 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 text-sm font-bold transition-all" data-action="zoom-out" title="Thu nhỏ">-</button>
-      <button class="px-4 py-2 rounded-lg btn-cyber-gold text-xs font-bold transition-all" data-action="reset-camera" title="Góc nhìn chuẩn">📷 Reset Camera</button>
+      <button class="px-4 py-2 rounded-lg btn-cyber-gold text-xs font-bold transition-all" data-action="reset-camera" title="Góc nhìn chuẩn">🎯 Reset Camera</button>
       <button class="px-4 py-2 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-900/80 text-xs font-mono font-bold transition-all" data-action="toggle-fallback" title="Chuyển chế độ 2D/360°">🔄 Chế độ 2D / 360°</button>
     </div>
   `;
