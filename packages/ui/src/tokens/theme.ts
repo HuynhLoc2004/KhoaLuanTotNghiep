@@ -15,17 +15,18 @@ export const heritageTheme = Object.freeze({
     textMuted: "#757575",
   }),
   typography: Object.freeze({
-    fontFamilyHeading: "'Outfit', 'Cinzel', 'Roboto', sans-serif",
-    fontFamilyBody: "'Inter', 'Roboto', sans-serif",
+    fontFamilyHeading: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamilyBody: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamilyMono: "'Space Grotesk', monospace",
     sizes: Object.freeze({
       xs: "0.75rem",
       sm: "0.875rem",
       base: "1rem",
       lg: "1.125rem",
       xl: "1.25rem",
-      h3: "1.75rem",
-      h2: "2.25rem",
-      h1: "3rem",
+      h3: "1.5rem",
+      h2: "2rem",
+      h1: "2.75rem",
     }),
   }),
   glassmorphism: Object.freeze({
@@ -48,22 +49,22 @@ export const heritageTheme = Object.freeze({
   }),
 } as const);
 
+export type HeritageTheme = typeof heritageTheme;
+
 export function injectHeritageGlobalStyles(): string {
   return `
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              syne: ['Syne', 'sans-serif'],
-              heading: ['Outfit', 'Syne', 'sans-serif'],
-              cinzel: ['Cinzel Decorative', 'serif'],
+              heading: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+              sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
               mono: ['Space Grotesk', 'monospace'],
-              sans: ['Plus Jakarta Sans', 'sans-serif'],
             },
             colors: {
               cyber: {
@@ -82,9 +83,16 @@ export function injectHeritageGlobalStyles(): string {
     </script>
     <style>
       :root {
-        --font-heading: 'Outfit', 'Syne', sans-serif;
-        --font-body: 'Plus Jakarta Sans', sans-serif;
+        --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: 'Space Grotesk', monospace;
       }
+      
+      * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
       body {
         font-family: var(--font-body);
         background-color: #030712;
@@ -97,9 +105,23 @@ export function injectHeritageGlobalStyles(): string {
         overflow-x: hidden;
       }
 
+      /* Unified Typography Classes */
+      h1, h2, h3, h4, h5, h6, .font-heading {
+        font-family: var(--font-heading) !important;
+        letter-spacing: -0.02em;
+      }
+
+      p, span, div, a, button, input, select, textarea {
+        font-family: var(--font-body);
+      }
+
+      code, pre, .font-mono {
+        font-family: var(--font-mono) !important;
+      }
+
       /* Animated Gradient Text */
       .gradient-title-cyber {
-        background: linear-gradient(135deg, #fff 0%, #fef08a 30%, #f59e0b 70%, #f43f5e 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #fef08a 35%, #f59e0b 70%, #f43f5e 100%);
         background-size: 200% auto;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -128,11 +150,6 @@ export function injectHeritageGlobalStyles(): string {
         50% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.5), 0 0 70px rgba(6, 182, 212, 0.3); }
       }
 
-      @keyframes scanline {
-        0% { transform: translateY(-100%); }
-        100% { transform: translateY(1000%); }
-      }
-
       .animate-float-3d {
         animation: float3D 5s ease-in-out infinite;
       }
@@ -143,7 +160,7 @@ export function injectHeritageGlobalStyles(): string {
 
       /* Ultra Futuristic Glassmorphism Card */
       .glass-futuristic {
-        background: rgba(15, 23, 42, 0.7);
+        background: rgba(15, 23, 42, 0.75);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(245, 158, 11, 0.25);
@@ -184,7 +201,7 @@ export function injectHeritageGlobalStyles(): string {
       }
 
       .glass-nav-cyber {
-        background: rgba(3, 7, 18, 0.85);
+        background: rgba(3, 7, 18, 0.88);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
         border-bottom: 1px solid rgba(245, 158, 11, 0.25);
@@ -194,6 +211,7 @@ export function injectHeritageGlobalStyles(): string {
       .btn-cyber-gold {
         background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
         color: #030712;
+        font-family: var(--font-heading);
         font-weight: 700;
         letter-spacing: 0.5px;
         box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
