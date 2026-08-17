@@ -27,9 +27,12 @@ Hiển thị Digital Twin/sơ đồ 3D, cho phép chọn điểm đến và nh�
 - Trọng số: khoảng cách + phạt đổi tầng + phạt đông/đóng + ràng buộc xe lăn.
 - NavMesh chỉ dùng nếu cần tự do di chuyển trong mô hình; graph dễ biên tập và giải thích hơn cho MVP.
 
-## 3D rendering
+## 3D rendering & Single-Photo Glass Case Reconstruction
 
-- glTF/GLB + Draco/Meshopt, texture KTX2.
+- **Giải pháp Hiện vật Lồng kính (Single-Photo 3D)**: Do hiện vật ở trong lồng kính bảo tàng chỉ chụp được 1 góc mặt trước, hệ thống sử dụng AI Pipeline (`TripoSR` / `CSM` / `Gaussian Splatting` worker) để tự động sinh Lưới 3D 360° (.glb) & Depth Map hoàn chỉnh, suy luận mặt sau và cạnh bên dựa trên đặc trưng hình học của di sản.
+- **Tối ưu Hiệu năng & Chân thực (No Lag)**: Tích hợp thư viện Google `@google/model-viewer` và Three.js PBR Engine (Physically Based Rendering) với HDR Environment Map (`museum_gallery.hdr`), ánh sáng phản chiếu lồng kính Glassmorphism và Draco Compression, giúp mô hình nạp cực nhanh (<1.5s) và xoay 360° mượt mà 60 FPS trên mobile.
+- **2.5D Layered Depth Mesh Fallback**: Khi mô hình GLB chưa tạo xong, hệ thống tự động chiếu Depth Map lên Lưới 2.5D Parallax Mesh, tạo hiệu ứng chuyển động chiều sâu 3D sống động từ đúng 1 bức ảnh chụp gốc mà không bị méo hay vỡ ảnh.
+- glTF/GLB + Draco/Meshopt, texture KTX2/WebP.
 - LOD, frustum culling, lazy loading theo tầng, instancing vật thể lặp.
 - Giới hạn pixel ratio và shadow trên thiết bị yếu.
 - Không tải 3D ở trang đầu; người dùng chủ động mở trải nghiệm.

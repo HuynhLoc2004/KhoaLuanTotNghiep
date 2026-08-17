@@ -10,3 +10,4 @@ export * from "./search/schemas.js";
 export * from "./auth/schemas.js";
 export * from "./dashboard/schemas.js";
 export * from "./ai/schemas.js";
+export * from "./three/schemas.js";

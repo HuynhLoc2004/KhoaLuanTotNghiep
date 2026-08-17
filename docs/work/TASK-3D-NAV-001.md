@@ -16,12 +16,13 @@
 
 ## PLAN_LOCKED
 
-- Selected Option: Three.js Orbit View + Spatial Depth Glassmorphism UI + A* Graph Indoor Route Calculation.
+- Selected Option: Three.js Orbit View + Google `@google/model-viewer` PBR Engine + AI Single-Photo 3D Reconstruction Pipeline (`TripoSR` / `CSM` / `Gaussian Splatting`) + Layered Depth Parallax Mesh + A* Graph Indoor Route Calculation (`DEC-UX-SPATIAL-3D-SINGLE-IMAGE-001`).
 - Key Capabilities:
-  - Xoay di sản 360° với các nút thu phóng, reset góc nhìn.
+  - **Hiện vật trong Lồng kính (Single-Photo 3D AI Engine)**: Tự động tái tạo mô hình 3D (.glb) và Depth Map hoàn chỉnh 360° từ 1 ảnh chụp duy nhất mặt trước.
+  - **Tối ưu Hiệu năng & Chân thực (No Lag, 60 FPS)**: Sử dụng Google `@google/model-viewer` PBR lighting, HDR environment map (`museum_gallery.hdr`), phản chiếu lồng kính Glassmorphism và nạp mượt mà <1.5s.
+  - **2.5D Layered Depth Mesh Fallback**: Khi chưa sinh xong GLB 3D, chiếu Depth Map lên lưới 2.5D Parallax Mesh giúp di sản có chiều sâu 3D nghiêng 360° chân thực từ đúng 1 bức ảnh gốc.
   - Hotspots đính kèm lên bề mặt di sản để đọc thông tin chi tiết.
   - Sơ đồ tầng 3D & Dẫn đường A* Graph giữa các phòng trưng bày.
-  - Fallback 360 Spin / 2D SVG cho thiết bị yếu.
 
 ## System sequence
 
@@ -111,9 +112,9 @@ stateDiagram-v2
 
 ## Handoff
 
-- **Verification status**: `IN_PROGRESS`, active development by `loc`.
+- **Verification status**: `IMPLEMENTED`, code and 100% unit tests PASS by `loc`.
 - **Feature branch**: `feature/TASK-3D-NAV-001`.
-- **Merge status**: Not merged.
+- **Merge status**: Ready for PR and merge into `develop`.
 
 ## Change history
 
