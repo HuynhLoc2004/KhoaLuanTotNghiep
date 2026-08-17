@@ -11,6 +11,15 @@
 
 Tạo, quản lý phiên bản và trình bày bản sao số của không gian/hiện vật, giữ rõ nguồn dữ liệu và mức độ chính xác.
 
+## Admin Management & Content Invariant
+
+- **Quyền Quản Lý Tuyệt Đối Của Admin (Admin Content Management Invariant)**: Toàn bộ hình ảnh, thông tin chi tiết, miêu tả lịch sử và ảnh chụp lồng kính mặt trước của hiện vật **DO ADMIN TỰ THÊM VÀ TẢI LÊN** thông qua Admin Portal. Frontend và Public Web không bao giờ hard-code dữ liệu hiện vật.
+- **Quy trình Admin thêm di sản & sinh 3D**:
+  1. Admin mở Admin Portal (`/admin`), chọn "Thêm Di Sản Mới".
+  2. Admin nhập Thông tin, Niên đại, Miêu tả và Tải lên Ảnh Chụp Lồng Kính Mặt Trước.
+  3. Hệ thống lưu Media Asset và tự động gọi AI 3D Reconstruction Worker tạo mô hình 3D (.glb / Depth Map).
+  4. Admin xem trước 3D Live Preview trong Admin Portal, duyệt chất lượng (Chống mô hình đơ/méo) trước khi bấm "Xuất Bản" ra cho Người Dùng Public xem.
+
 ## Pipeline photogrammetry
 
 ```mermaid
