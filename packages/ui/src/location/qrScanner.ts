@@ -22,7 +22,7 @@ export function renderQrScannerModal(): string {
 
         <!-- Camera Scanner Viewport -->
         <div class="relative w-full h-64 rounded-2xl overflow-hidden bg-slate-900 border border-amber-500/30 flex items-center justify-center">
-          <div class="absolute inset-0 flex items-center justify-center">
+          <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
             <div class="w-48 h-48 border-2 border-amber-400 rounded-2xl relative animate-pulse shadow-[0_0_30px_rgba(245,158,11,0.5)]">
               <!-- Corner Brackets -->
               <div class="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-amber-300"></div>
@@ -34,10 +34,10 @@ export function renderQrScannerModal(): string {
             </div>
           </div>
           
-          <video id="qr-video-viewport" class="w-full h-full object-cover hidden" playsinline></video>
+          <video id="qr-video-viewport" class="w-full h-full object-cover hidden z-10" playsinline autoplay muted></video>
           <p id="qr-camera-placeholder" class="text-xs text-slate-400 font-mono text-center px-6 relative z-10">
-            📸 Đang kết nối camera điện thoại...<br>
-            <span class="text-[10px] text-amber-400/80">Cho phép trình duyệt truy cập camera để quét QR mã hiện vật</span>
+            📸 Đang khởi động camera điện thoại...<br>
+            <span class="text-[10px] text-amber-400/80">Vui lòng bấm Cho Phép (Allow) truy cập Camera trên điện thoại</span>
           </p>
         </div>
 
@@ -84,29 +84,74 @@ export function renderQrScannerModal(): string {
       </div>
     </div>
 
-    <!-- Client-side Interactive Modal Script -->
+    <!-- Client-side Interactive Modal & Web Camera Stream Script -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const qrModal = document.getElementById('qr-scanner-modal');
         const openBtns = document.querySelectorAll('.btn-trigger-qr-scanner');
         const closeBtn = document.getElementById('btn-close-qr-modal');
         const demoScanBtns = document.querySelectorAll('.btn-demo-qr-scan');
+        const videoElement = document.getElementById('qr-video-viewport');
+        const placeholderText = document.getElementById('qr-camera-placeholder');
+        let activeStream = null;
+
+        async function startCameraStream() {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            if (placeholderText) {
+              placeholderText.innerHTML = '📷 Camera không hỗ trợ trên trình duyệt này.<br><span class="text-[10px] text-amber-400">Vui lòng dùng mã QR mẫu bên dưới để thử nghiệm!</span>';
+            }
+            return;
+          }
+
+          try {
+            activeStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: 'environment' } }
+            });
+            if (videoElement) {
+              videoElement.srcObject = activeStream;
+              videoElement.classList.remove('hidden');
+              if (placeholderText) placeholderText.classList.add('hidden');
+            }
+          } catch (err) {
+            console.warn('Camera access error:', err);
+            if (placeholderText) {
+              placeholderText.innerHTML = '📷 Chưa thể kết nối camera.<br><span class="text-[10px] text-amber-400">Vui lòng chọn 1 mã QR mẫu bên dưới để xem mô hình 3D!</span>';
+            }
+          }
+        }
+
+        function stopCameraStream() {
+          if (activeStream) {
+            activeStream.getTracks().forEach(track => track.stop());
+            activeStream = null;
+          }
+          if (videoElement) {
+            videoElement.classList.add('hidden');
+            videoElement.srcObject = null;
+          }
+          if (placeholderText) placeholderText.classList.remove('hidden');
+        }
 
         openBtns.forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.preventDefault();
-            if (qrModal) qrModal.classList.remove('hidden');
+            if (qrModal) {
+              qrModal.classList.remove('hidden');
+              startCameraStream();
+            }
           });
         });
 
         if (closeBtn && qrModal) {
           closeBtn.addEventListener('click', () => {
             qrModal.classList.add('hidden');
+            stopCameraStream();
           });
         }
 
         demoScanBtns.forEach(btn => {
           btn.addEventListener('click', () => {
+            stopCameraStream();
             const target = btn.getAttribute('data-target') || '/3d-experience';
             const code = btn.getAttribute('data-code') || '';
             window.location.href = target + '?qrCode=' + encodeURIComponent(code);
