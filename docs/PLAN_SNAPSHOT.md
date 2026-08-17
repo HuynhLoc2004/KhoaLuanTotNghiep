@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0033`
-- Updated: 2026-08-12
+- Revision: `PLAN-0034`
+- Updated: 2026-08-17
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Hoàn tất Merge Memory Sync cho `TASK-DASHBOARD-001` (Dashboard Zod contracts, Express Analytics API Router `/api/v1/dashboard/*`, UI Dashboard components & Admin Dashboard page) sau PR `#13` / merge `1439807`.
+- Scope: Pre-Code Plan Sync cho `TASK-AI-GUIDE-001` (Trợ Lý Thuyết Minh Viên AI & Hỏi Đáp Di Sản MVP) bởi `loc` trên nhánh `feature/TASK-AI-GUIDE-001`.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: không có; `TASK-DASHBOARD-001`, `TASK-AUTH-001` và `TASK-SEARCH-001` đã `DONE`.
+- Task đang chạy: `TASK-AI-GUIDE-001` (`loc` / `feature/TASK-AI-GUIDE-001`).
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -23,6 +23,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 | Revision | Date | Change | Affected owners/tasks | Required action | Confirmed by |
 |---|---|---|---|---|---|
+| PLAN-0034 | 2026-08-17 | Pre-Code Plan Sync cho TASK-AI-GUIDE-001 (AI Guide RAG + Citation + TTS) | TASK-AI-GUIDE-001 (IN_PROGRESS) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0033 | 2026-08-12 | Hoàn tất Merge Memory Sync cho TASK-DASHBOARD-001 (PR #13 / merge 1439807) | TASK-DASHBOARD-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0032 | 2026-08-12 | Hoàn tất Merge Memory Sync cho TASK-AUTH-001 (PR #12 / merge 8e76271) | TASK-AUTH-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0031 | 2026-08-12 | Hoàn tất Merge Memory Sync cho TASK-SEARCH-001 (PR #11 / merge 400d328) | TASK-SEARCH-001 (DONE) | Cập nhật local develop sau pull | `loc` |
