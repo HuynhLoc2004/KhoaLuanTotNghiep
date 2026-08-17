@@ -16,7 +16,8 @@ export const heritageTheme = Object.freeze({
   }),
   typography: Object.freeze({
     fontFamilyHeading: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontFamilyBody: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamilyBody:
+      "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontFamilyMono: "'Space Grotesk', monospace",
     sizes: Object.freeze({
       xs: "0.75rem",

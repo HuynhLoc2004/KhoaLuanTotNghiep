@@ -51,9 +51,7 @@ export function renderAiMessageBubble(message: AiChatMessage): string {
 }
 
 export function renderAiGuideChatWidget(messages: AiChatMessage[]): string {
-  const messagesListHtml = messages
-    .map((msg) => renderAiMessageBubble(msg))
-    .join("");
+  const messagesListHtml = messages.map((msg) => renderAiMessageBubble(msg)).join("");
 
   return `<section class="ai-chat-widget glass-futuristic rounded-3xl max-w-4xl mx-auto overflow-hidden border-2 border-amber-500/30 shadow-2xl flex flex-col h-[650px]">
     <header class="p-4 bg-slate-900/90 border-b border-amber-500/20 flex items-center justify-between">

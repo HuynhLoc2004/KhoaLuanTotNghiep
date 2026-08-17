@@ -188,12 +188,12 @@ export function renderBannerBlock(block: CmsBannerBlock): CmsRenderedBlock {
 export function renderCmsBlock(block: CmsBlock): CmsRenderedBlock {
   switch (block.type) {
     case "hero":
-      return renderHeroBlock(block as CmsHeroBlock);
+      return renderHeroBlock(block);
     case "artifact_grid":
-      return renderArtifactGridBlock(block as CmsArtifactGridBlock);
+      return renderArtifactGridBlock(block);
     case "timeline_preview":
-      return renderTimelinePreviewBlock(block as CmsTimelinePreviewBlock);
+      return renderTimelinePreviewBlock(block);
     case "banner":
-      return renderBannerBlock(block as CmsBannerBlock);
+      return renderBannerBlock(block);
   }
 }

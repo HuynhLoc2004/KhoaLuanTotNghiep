@@ -56,6 +56,13 @@ importers:
       '@hcmc-museum/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1(supports-color@10.2.2)
+    devDependencies:
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
 
   packages/contracts:
     dependencies:

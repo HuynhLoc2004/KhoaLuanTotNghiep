@@ -1,5 +1,9 @@
 import { renderHeader, renderFooter } from "../shell/layout.js";
-import { render3DModelViewer, injectHeritageGlobalStyles, renderQrScannerModal } from "@hcmc-museum/ui";
+import {
+  render3DModelViewer,
+  injectHeritageGlobalStyles,
+  renderQrScannerModal,
+} from "@hcmc-museum/ui";
 import type { ThreeDModelConfig, ThreeDFloorPoi } from "@hcmc-museum/contracts";
 
 export function renderPublic3DExperiencePage(

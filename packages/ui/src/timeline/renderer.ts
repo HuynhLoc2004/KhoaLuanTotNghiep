@@ -5,9 +5,7 @@ import type {
   RelatedArtifact,
 } from "@hcmc-museum/contracts";
 
-export function renderModeSwitcher(
-  currentMode: ExplorationMode = "FREE_EXPLORE",
-): string {
+export function renderModeSwitcher(currentMode: ExplorationMode = "FREE_EXPLORE"): string {
   const isFree = currentMode === "FREE_EXPLORE";
   const isGuided = currentMode === "GUIDED_JOURNEY";
 
@@ -57,12 +55,8 @@ export function renderLivingTimeline2D(
 
   const nodesHtml = journey.nodes
     .map((node: NarrativeNode, index: number) => {
-      const relatedList = node.artifactCode
-        ? relatedArtifactsMap[node.artifactCode] ?? []
-        : [];
-      const relatedCardsHtml = relatedList
-        .map(renderRelatedArtifactCard)
-        .join("\n");
+      const relatedList = node.artifactCode ? (relatedArtifactsMap[node.artifactCode] ?? []) : [];
+      const relatedCardsHtml = relatedList.map(renderRelatedArtifactCard).join("\n");
 
       return `
         <div class="relative pl-8 pb-12 border-l-2 border-amber-500/40 last:border-l-0 group">

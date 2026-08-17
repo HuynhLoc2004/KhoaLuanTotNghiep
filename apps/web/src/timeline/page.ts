@@ -1,4 +1,8 @@
-import { renderLivingTimeline2D, injectHeritageGlobalStyles, renderQrScannerModal } from "@hcmc-museum/ui";
+import {
+  renderLivingTimeline2D,
+  injectHeritageGlobalStyles,
+  renderQrScannerModal,
+} from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "../shell/layout.js";
 import type { NarrativeJourney, ExplorationMode, RelatedArtifact } from "@hcmc-museum/contracts";
 

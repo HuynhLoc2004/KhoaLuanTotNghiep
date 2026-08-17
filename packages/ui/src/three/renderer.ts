@@ -1,8 +1,4 @@
-import type {
-  ThreeDModelConfig,
-  ThreeDHotspot,
-  ThreeDFloorPoi,
-} from "@hcmc-museum/contracts";
+import type { ThreeDModelConfig, ThreeDHotspot, ThreeDFloorPoi } from "@hcmc-museum/contracts";
 
 export function render3DHotspotOverlay(hotspots: ThreeDHotspot[]): string {
   if (hotspots.length === 0) {
@@ -91,10 +87,7 @@ export function render3DFloorNavPanel(pois: ThreeDFloorPoi[]): string {
   `;
 }
 
-export function render3DModelViewer(
-  config: ThreeDModelConfig,
-  pois: ThreeDFloorPoi[],
-): string {
+export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloorPoi[]): string {
   const hotspotsHtml = render3DHotspotOverlay(config.hotspots);
   const controlsBarHtml = render3DOrbitControlsBar();
   const floorNavHtml = render3DFloorNavPanel(pois);

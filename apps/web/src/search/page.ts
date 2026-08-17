@@ -1,4 +1,8 @@
-import { renderSearchPage, injectHeritageGlobalStyles, renderQrScannerModal } from "@hcmc-museum/ui";
+import {
+  renderSearchPage,
+  injectHeritageGlobalStyles,
+  renderQrScannerModal,
+} from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "../shell/layout.js";
 import type { SearchContentType, SearchFacetCount, SearchResultItem } from "@hcmc-museum/contracts";
 

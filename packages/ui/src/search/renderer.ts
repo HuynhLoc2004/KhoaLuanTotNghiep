@@ -1,8 +1,4 @@
-import type {
-  SearchContentType,
-  SearchFacetCount,
-  SearchResultItem,
-} from "@hcmc-museum/contracts";
+import type { SearchContentType, SearchFacetCount, SearchResultItem } from "@hcmc-museum/contracts";
 
 export function renderSearchBar(query = ""): string {
   return `

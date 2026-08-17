@@ -1,5 +1,4 @@
 import {
-  heritageTheme,
   renderCmsBlock,
   injectHeritageGlobalStyles,
   renderQrScannerModal,

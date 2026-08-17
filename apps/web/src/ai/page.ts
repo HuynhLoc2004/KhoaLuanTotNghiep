@@ -1,4 +1,8 @@
-import { renderAiGuideChatWidget, injectHeritageGlobalStyles, renderQrScannerModal } from "@hcmc-museum/ui";
+import {
+  renderAiGuideChatWidget,
+  injectHeritageGlobalStyles,
+  renderQrScannerModal,
+} from "@hcmc-museum/ui";
 import { renderFooter, renderHeader } from "../shell/layout.js";
 
 export function renderPublicAiGuidePage(): string {
