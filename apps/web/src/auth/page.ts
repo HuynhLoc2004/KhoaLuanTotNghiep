@@ -55,7 +55,7 @@ export function renderPublicProfilePage(props: PublicProfilePageProps = {}): str
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Trang cá nhân & Lịch sử di sản | Bảo tàng Lịch sử TP.HCM</title>
+      <title>Hồ Sơ Khách Tham Quan | Bảo tàng Lịch sử TP.HCM</title>
       <meta name="description" content="Trang cá nhân người dùng tích hợp Keycloak IAM, quản lý bookmarks và lịch sử truy cập di sản.">
       ${injectHeritageGlobalStyles()}
     </head>

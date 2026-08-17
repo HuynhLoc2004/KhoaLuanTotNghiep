@@ -51,7 +51,7 @@ export function renderPublicSearchPage(options: SearchPageOptions = {}): string 
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Tìm kiếm di sản | Bảo tàng Lịch sử TP.HCM</title>
+      <title>Tìm Kiếm Di Sản | Bảo tàng Lịch sử TP.HCM</title>
       <meta name="description" content="Khám phá và tìm kiếm di sản lịch sử văn hóa Việt Nam">
       ${injectHeritageGlobalStyles()}
     </head>

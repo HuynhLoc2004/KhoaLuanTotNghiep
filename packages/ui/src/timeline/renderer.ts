@@ -1,4 +1,3 @@
-import { heritageTheme } from "../tokens/theme.js";
 import type {
   ExplorationMode,
   NarrativeJourney,
@@ -6,53 +5,44 @@ import type {
   RelatedArtifact,
 } from "@hcmc-museum/contracts";
 
-export function renderModeSwitcher(currentMode: ExplorationMode = "FREE_EXPLORE"): string {
+export function renderModeSwitcher(
+  currentMode: ExplorationMode = "FREE_EXPLORE",
+): string {
   const isFree = currentMode === "FREE_EXPLORE";
   const isGuided = currentMode === "GUIDED_JOURNEY";
 
-  const freeBtnBg = isFree ? heritageTheme.colors.primaryRed : "transparent";
-  const freeBtnColor = isFree
-    ? heritageTheme.colors.accentGold
-    : heritageTheme.colors.textSecondary;
+  const freeBtnBg = isFree
+    ? "bg-amber-400 text-slate-950 font-bold shadow-lg shadow-amber-500/20"
+    : "bg-slate-900/80 text-slate-300 border border-slate-800 hover:border-amber-500/40";
 
-  const guidedBtnBg = isGuided ? heritageTheme.colors.primaryRed : "transparent";
-  const guidedBtnColor = isGuided
-    ? heritageTheme.colors.accentGold
-    : heritageTheme.colors.textSecondary;
+  const guidedBtnBg = isGuided
+    ? "bg-amber-400 text-slate-950 font-bold shadow-lg shadow-amber-500/20"
+    : "bg-slate-900/80 text-slate-300 border border-slate-800 hover:border-amber-500/40";
 
   return `
-    <div id="timeline-mode-switcher" style="display: inline-flex; background: ${heritageTheme.colors.bgCard}; border: 1px solid ${heritageTheme.colors.borderGlass}; border-radius: 2rem; padding: 0.25rem; margin-bottom: 1.5rem;">
-      <button id="btn-mode-free" type="button" style="padding: 0.5rem 1.25rem; border-radius: 1.5rem; background: ${freeBtnBg}; color: ${freeBtnColor}; border: none; font-weight: bold; cursor: pointer; transition: ${heritageTheme.animations.transitionFast};">
-        🌐 Khám Phá Tự Do 2D (FREE_EXPLORE)
+    <div id="timeline-mode-switcher" class="inline-flex bg-slate-900/80 p-1.5 rounded-2xl border border-amber-500/30 shadow-xl mb-8">
+      <button id="btn-mode-free" type="button" class="px-6 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all ${freeBtnBg}">
+        🌐 Khám Phá Tự Do 2D
       </button>
-      <button id="btn-mode-guided" type="button" style="padding: 0.5rem 1.25rem; border-radius: 1.5rem; background: ${guidedBtnBg}; color: ${guidedBtnColor}; border: none; font-weight: bold; cursor: pointer; transition: ${heritageTheme.animations.transitionFast};">
-        🧭 Hành Trình Tường Thuật (GUIDED_JOURNEY)
+      <button id="btn-mode-guided" type="button" class="px-6 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all ${guidedBtnBg}">
+        🧭 Hành Trình Tường Thuật
       </button>
     </div>
   `.trim();
 }
 
 export function renderRelatedArtifactCard(related: RelatedArtifact): string {
-  const badgeColors: Record<string, string> = {
-    SAME_PERIOD: "#3B82F6",
-    SAME_CULTURE: "#10B981",
-    SAME_DYNASTY: "#8B5CF6",
-    RELATED_THEME: heritageTheme.colors.accentGold,
-  };
-
-  const badgeColor = badgeColors[related.relationType] ?? heritageTheme.colors.accentGold;
-
   return `
-    <div class="related-artifact-card" style="background: ${heritageTheme.colors.bgCard}; border: 1px solid ${heritageTheme.colors.borderGlass}; border-radius: 0.5rem; padding: 1rem; margin-top: 0.75rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-        <span style="font-size: 0.75rem; font-weight: bold; padding: 0.2rem 0.5rem; border-radius: 0.25rem; background: rgba(255,255,255,0.05); color: ${badgeColor}; border: 1px solid ${badgeColor};">
+    <div class="related-artifact-card mt-4 p-4 rounded-xl bg-slate-900/90 border border-amber-500/30 space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20">
           🔗 ${related.relationType}
         </span>
-        <span style="font-size: 0.75rem; color: ${heritageTheme.colors.textMuted};">${related.code}</span>
+        <span class="text-xs font-mono text-slate-500">${related.code}</span>
       </div>
-      <h5 style="font-family: ${heritageTheme.typography.fontFamilyHeading}; color: ${heritageTheme.colors.textPrimary}; margin-bottom: 0.375rem;">${related.title}</h5>
-      <p style="font-size: 0.8125rem; color: ${heritageTheme.colors.textSecondary}; line-height: 1.4; margin: 0;">
-        <strong>Lý do kết nối:</strong> ${related.reason}
+      <h5 class="font-heading font-bold text-slate-100 text-base">${related.title}</h5>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        <strong class="text-amber-400 font-medium">Kết nối di sản:</strong> ${related.reason}
       </p>
     </div>
   `.trim();
@@ -67,21 +57,28 @@ export function renderLivingTimeline2D(
 
   const nodesHtml = journey.nodes
     .map((node: NarrativeNode, index: number) => {
-      const relatedList = node.artifactCode ? (relatedArtifactsMap[node.artifactCode] ?? []) : [];
-      const relatedCardsHtml = relatedList.map(renderRelatedArtifactCard).join("\n");
+      const relatedList = node.artifactCode
+        ? relatedArtifactsMap[node.artifactCode] ?? []
+        : [];
+      const relatedCardsHtml = relatedList
+        .map(renderRelatedArtifactCard)
+        .join("\n");
 
       return `
-        <div class="timeline-node" style="position: relative; padding-left: 2rem; padding-bottom: 2rem; border-left: 2px solid ${heritageTheme.colors.accentGold};">
-          <div style="position: absolute; left: -9px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: ${heritageTheme.colors.primaryRed}; border: 2px solid ${heritageTheme.colors.accentGold};"></div>
-          <div style="background: ${heritageTheme.colors.bgCard}; border: 1px solid ${heritageTheme.colors.borderGlass}; border-radius: 0.5rem; padding: 1.25rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span style="background: rgba(158, 27, 27, 0.3); color: ${heritageTheme.colors.accentGold}; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.75rem; font-weight: bold; border: 1px solid ${heritageTheme.colors.accentGold};">
+        <div class="relative pl-8 pb-12 border-l-2 border-amber-500/40 last:border-l-0 group">
+          <!-- Animated Pulsing Spine Node Dot -->
+          <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-amber-400 border-2 border-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.8)] animate-pulse"></div>
+
+          <div class="glass-futuristic rounded-2xl p-6 transition-all duration-300">
+            <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+              <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
                 Mốc #${String(index + 1)} — ${node.period}
               </span>
-              ${node.artifactCode ? `<span style="font-size:0.75rem; color:${heritageTheme.colors.textSecondary};">Artifact Code: ${node.artifactCode}</span>` : ""}
+              ${node.artifactCode ? `<span class="text-xs font-mono text-slate-500">Mã di sản: ${node.artifactCode}</span>` : ""}
             </div>
-            <h4 style="font-family: ${heritageTheme.typography.fontFamilyHeading}; color: ${heritageTheme.colors.textPrimary}; font-size: 1.125rem; margin-bottom: 0.5rem;">${node.title}</h4>
-            <p style="color: ${heritageTheme.colors.textSecondary}; font-size: 0.9375rem; line-height: 1.5; margin-bottom: 0.75rem;">${node.description}</p>
+
+            <h4 class="font-heading font-bold text-2xl text-slate-100 group-hover:text-amber-300 transition-colors mb-2">${node.title}</h4>
+            <p class="text-slate-300 text-sm leading-relaxed mb-4">${node.description}</p>
             ${relatedCardsHtml}
           </div>
         </div>
@@ -90,16 +87,18 @@ export function renderLivingTimeline2D(
     .join("\n");
 
   return `
-    <section id="living-timeline-section" style="background: ${heritageTheme.colors.bgDark}; border: 1px solid ${heritageTheme.colors.borderGlass}; border-radius: 0.75rem; padding: 2rem; margin: 1.5rem 0;">
-      <div style="margin-bottom: 1.5rem; border-bottom: 1px solid ${heritageTheme.colors.borderGlass}; padding-bottom: 1rem;">
-        <span style="color: ${heritageTheme.colors.accentGold}; font-size: 0.875rem; font-weight: bold; letter-spacing: 0.05em;">LIVING TIMELINE — DÒNG THỜI GIAN SỐNG</span>
-        <h2 style="font-family: ${heritageTheme.typography.fontFamilyHeading}; color: ${heritageTheme.colors.textPrimary}; font-size: 1.5rem; margin-top: 0.25rem;">${journey.title}</h2>
-        <p style="color: ${heritageTheme.colors.textSecondary}; font-size: 0.9375rem; margin: 0.25rem 0 0 0;">Chủ đề: ${journey.theme}</p>
+    <section id="living-timeline-section" class="max-w-5xl mx-auto space-y-8">
+      <div class="border-b border-amber-500/20 pb-6 text-center">
+        <span class="text-xs font-mono font-bold tracking-widest text-amber-400 uppercase">LIVING TIMELINE — DÒNG THỜI GIAN SỐNG</span>
+        <h2 class="font-heading font-black text-3xl sm:text-5xl gradient-title-cyber mt-2">${journey.title}</h2>
+        <p class="text-slate-400 text-base mt-2">Chủ đề tham quan: <span class="text-amber-300 font-medium">${journey.theme}</span></p>
       </div>
 
-      ${modeSwitcherHtml}
+      <div class="text-center">
+        ${modeSwitcherHtml}
+      </div>
 
-      <div id="timeline-nodes-container" style="margin-top: 1rem;">
+      <div id="timeline-nodes-container" class="pt-4">
         ${nodesHtml}
       </div>
     </section>

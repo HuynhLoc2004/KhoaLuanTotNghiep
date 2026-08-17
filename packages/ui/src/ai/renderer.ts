@@ -16,7 +16,7 @@ export function renderAiSourceBadge(source: {
   author: string;
   sourceUrl: string;
 }): string {
-  return `<a href="${source.sourceUrl}" target="_blank" rel="noopener noreferrer" class="ai-source-badge" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; background: rgba(212, 175, 55, 0.15); border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 6px; color: #d4af37; font-size: 0.75rem; text-decoration: none; transition: all 0.2s ease;">
+  return `<a href="${source.sourceUrl}" target="_blank" rel="noopener noreferrer" class="ai-source-badge inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-xs font-mono hover:bg-amber-500/20 hover:border-amber-400 transition-all">
     <span>📜 ${source.title} (${source.author})</span>
   </a>`;
 }
@@ -24,57 +24,71 @@ export function renderAiSourceBadge(source: {
 export function renderAiMessageBubble(message: AiChatMessage): string {
   const isUser = message.sender === "user";
   const bubbleStyle = isUser
-    ? "align-self: flex-end; background: linear-gradient(135deg, #d4af37, #aa7c11); color: #0d0d0d; border-bottom-right-radius: 4px;"
-    : "align-self: flex-start; background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.12); color: #f5f5f7; border-bottom-left-radius: 4px;";
+    ? "ml-auto bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-medium rounded-2xl rounded-br-none shadow-lg shadow-amber-500/20"
+    : "mr-auto glass-futuristic border-amber-500/30 text-slate-100 rounded-2xl rounded-bl-none shadow-xl";
 
   const sourcesHtml =
     message.sources && message.sources.length > 0
-      ? `<div class="ai-sources-list" style="margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+      ? `<div class="mt-3 flex flex-wrap gap-2 pt-2 border-t border-slate-800/80">
           ${message.sources.map((src) => renderAiSourceBadge(src)).join("")}
         </div>`
       : "";
 
   const audioHtml = message.audioUrl
-    ? `<div class="ai-audio-player" style="margin-top: 0.5rem;">
-        <button type="button" class="btn-play-audio" data-audio-url="${message.audioUrl}" style="padding: 0.25rem 0.6rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.75rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;">
-          🔊 Nghe thuyết minh
+    ? `<div class="mt-3">
+        <button type="button" class="btn-play-audio px-3 py-1.5 bg-cyan-500/20 border border-cyan-500/40 rounded-lg text-cyan-300 text-xs font-mono font-bold hover:bg-cyan-500/30 transition-all flex items-center gap-2" data-audio-url="${message.audioUrl}">
+          <span>🔊 Nghe Thuyết Minh AI</span>
         </button>
       </div>`
     : "";
 
-  return `<div class="ai-message-bubble" style="max-width: 85%; padding: 0.85rem 1.1rem; border-radius: 16px; margin-bottom: 0.8rem; font-size: 0.95rem; line-height: 1.5; ${bubbleStyle}">
+  return `<div class="ai-message-bubble max-w-[85%] p-4 rounded-2xl mb-4 text-sm leading-relaxed ${bubbleStyle}">
     <div>${message.text}</div>
     ${sourcesHtml}
     ${audioHtml}
-    <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 0.4rem; text-align: right;">${message.timestamp}</div>
+    <div class="text-[10px] opacity-60 mt-2 text-right font-mono">${message.timestamp}</div>
   </div>`;
 }
 
 export function renderAiGuideChatWidget(messages: AiChatMessage[]): string {
-  const messagesListHtml = messages.map((msg) => renderAiMessageBubble(msg)).join("");
+  const messagesListHtml = messages
+    .map((msg) => renderAiMessageBubble(msg))
+    .join("");
 
-  return `<section class="ai-chat-widget" style="display: flex; flex-direction: column; height: 580px; max-width: 800px; margin: 0 auto; background: rgba(20, 20, 25, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-    <header style="padding: 1rem 1.25rem; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #d4af37, #8a640f); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🤖</div>
+  return `<section class="ai-chat-widget glass-futuristic rounded-3xl max-w-4xl mx-auto overflow-hidden border-2 border-amber-500/30 shadow-2xl flex flex-col h-[650px]">
+    <header class="p-4 bg-slate-900/90 border-b border-amber-500/20 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-rose-600 p-[1px] shadow-lg shadow-amber-500/30 animate-float-3d">
+          <div class="w-full h-full rounded-full bg-slate-950 flex items-center justify-center text-xl">🤖</div>
+        </div>
         <div>
-          <h3 style="margin: 0; color: #fff; font-size: 1.05rem; font-weight: 600;">Trợ Lý AI Thuyết Minh Bảo Tàng</h3>
-          <span style="font-size: 0.75rem; color: #d4af37; display: flex; align-items: center; gap: 0.3rem;">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></span> Sẵn sàng giải đáp
-          </span>
+          <h3 class="font-heading font-bold text-slate-100 text-base">Trợ Lý AI Thuyết Minh Bảo Tàng</h3>
+          <p class="text-xs text-amber-400 font-mono flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>RAG Heritage Intelligence System</span>
+          </p>
         </div>
       </div>
-      <span style="font-size: 0.75rem; color: #888; background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: 4px;">RAG Heritage AI</span>
+      <div class="flex items-center gap-2">
+        <span class="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">Cấp Độ Kiểm Định 100%</span>
+      </div>
     </header>
 
-    <div class="ai-messages-container" style="flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column;">
+    <div id="ai-chat-messages-scroll" class="flex-1 p-6 overflow-y-auto space-y-4">
       ${messagesListHtml}
     </div>
 
-    <footer style="padding: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0,0,0,0.2);">
-      <form id="ai-chat-form" style="display: flex; gap: 0.6rem;">
-        <input type="text" id="ai-input-text" placeholder="Đặt câu hỏi về di sản, hiện vật hoặc lịch sử bảo tàng..." style="flex: 1; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff; font-size: 0.9rem; outline: none; transition: border-color 0.2s ease;" required />
-        <button type="submit" style="padding: 0.75rem 1.4rem; background: linear-gradient(135deg, #d4af37, #aa7c11); border: none; border-radius: 12px; color: #0d0d0d; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: transform 0.15s ease;">Gửi 🚀</button>
+    <footer class="p-4 bg-slate-900/90 border-t border-amber-500/20 space-y-3">
+      <div id="ai-suggested-questions" class="flex flex-wrap gap-2">
+        <button class="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 hover:border-amber-400/60 hover:text-amber-300 text-xs transition-all">✨ Trống Đồng Đông Sơn được đúc khi nào?</button>
+        <button class="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 hover:border-amber-400/60 hover:text-amber-300 text-xs transition-all">✨ Ý nghĩa Ấn Vàng Sắc Mệnh Chi Bảo?</button>
+      </div>
+      <form id="ai-chat-form" class="flex gap-3">
+        <input type="text" id="ai-chat-input" class="ai-input-text flex-1 bg-slate-950 border border-amber-500/30 rounded-xl px-4 py-3 text-slate-100 text-sm focus:outline-none focus:border-amber-400" placeholder="Hỏi AI về bất kỳ di sản hoặc triều đại lịch sử..." />
+        <button type="submit" class="btn-cyber-gold px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
+          <span>Gửi</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
       </form>
     </footer>
   </section>`;

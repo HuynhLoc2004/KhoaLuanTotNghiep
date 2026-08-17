@@ -52,21 +52,28 @@ export function injectHeritageGlobalStyles(): string {
   return `
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              syne: ['Syne', 'sans-serif'],
+              heading: ['Outfit', 'Syne', 'sans-serif'],
+              cinzel: ['Cinzel Decorative', 'serif'],
+              mono: ['Space Grotesk', 'monospace'],
+              sans: ['Plus Jakarta Sans', 'sans-serif'],
+            },
             colors: {
-              museum: {
-                dark: '#080c14',
-                card: '#0f172a',
-                gold: '#e5c158',
-                goldLight: '#fef08a',
-                crimson: '#7e0e1b',
-                bronze: '#92400e',
-                jade: '#059669',
+              cyber: {
+                dark: '#030712',
+                card: 'rgba(15, 23, 42, 0.75)',
+                gold: '#fbbf24',
+                amber: '#f59e0b',
+                crimson: '#9f1239',
+                cyan: '#06b6d4',
+                emerald: '#10b981',
               }
             }
           }
@@ -75,64 +82,133 @@ export function injectHeritageGlobalStyles(): string {
     </script>
     <style>
       :root {
-        --font-heading: 'Outfit', 'Cinzel', sans-serif;
+        --font-heading: 'Outfit', 'Syne', sans-serif;
         --font-body: 'Plus Jakarta Sans', sans-serif;
       }
       body {
         font-family: var(--font-body);
-        background-color: #080c14;
+        background-color: #030712;
         color: #f8fafc;
         background-image: 
-          radial-gradient(at 15% 15%, rgba(126, 14, 27, 0.15) 0px, transparent 50%),
-          radial-gradient(at 85% 85%, rgba(229, 193, 88, 0.1) 0px, transparent 50%);
+          radial-gradient(ellipse at 20% 10%, rgba(245, 158, 11, 0.15) 0%, transparent 50%),
+          radial-gradient(ellipse at 80% 60%, rgba(159, 18, 57, 0.18) 0%, transparent 50%),
+          radial-gradient(ellipse at 50% 90%, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
         background-attachment: fixed;
+        overflow-x: hidden;
       }
-      h1, h2, h3, h4, .font-heading {
-        font-family: var(--font-heading);
-      }
-      @keyframes floatSlow {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-8px); }
-      }
-      @keyframes pulseGlow {
-        0%, 100% { box-shadow: 0 0 15px rgba(229, 193, 88, 0.2), 0 0 30px rgba(126, 14, 27, 0.1); }
-        50% { box-shadow: 0 0 25px rgba(229, 193, 88, 0.4), 0 0 50px rgba(126, 14, 27, 0.25); }
-      }
-      @keyframes shimmerGold {
-        0% { background-position: -200% 0; }
-        100% { background-position: 200% 0; }
-      }
-      .animate-float {
-        animation: floatSlow 4s ease-in-out infinite;
-      }
-      .animate-pulse-glow {
-        animation: pulseGlow 3s ease-in-out infinite;
-      }
-      .shimmer-gold-text {
-        background: linear-gradient(90deg, #e5c158 0%, #fef08a 50%, #e5c158 100%);
+
+      /* Animated Gradient Text */
+      .gradient-title-cyber {
+        background: linear-gradient(135deg, #fff 0%, #fef08a 30%, #f59e0b 70%, #f43f5e 100%);
         background-size: 200% auto;
-        color: transparent;
         -webkit-background-clip: text;
-        animation: shimmerGold 4s linear infinite;
+        -webkit-text-fill-color: transparent;
+        animation: gradientShift 6s ease infinite;
       }
-      .glass-card {
-        background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(229, 193, 88, 0.2);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      .gradient-cyan-emerald {
+        background: linear-gradient(135deg, #a5f3fc 0%, #06b6d4 50%, #10b981 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
-      .glass-card:hover {
-        border-color: rgba(229, 193, 88, 0.6);
-        box-shadow: 0 12px 40px 0 rgba(229, 193, 88, 0.15);
-        transform: translateY(-4px);
+
+      @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
-      .glass-nav {
-        background: rgba(8, 12, 20, 0.85);
+
+      @keyframes float3D {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-12px) rotate(1deg); }
+      }
+
+      @keyframes pulseAura {
+        0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.25), 0 0 40px rgba(159, 18, 57, 0.15); }
+        50% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.5), 0 0 70px rgba(6, 182, 212, 0.3); }
+      }
+
+      @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(1000%); }
+      }
+
+      .animate-float-3d {
+        animation: float3D 5s ease-in-out infinite;
+      }
+
+      .animate-aura-pulse {
+        animation: pulseAura 4s ease-in-out infinite;
+      }
+
+      /* Ultra Futuristic Glassmorphism Card */
+      .glass-futuristic {
+        background: rgba(15, 23, 42, 0.7);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(229, 193, 88, 0.2);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .glass-futuristic::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+          45deg,
+          transparent 45%,
+          rgba(255, 255, 255, 0.08) 50%,
+          transparent 55%
+        );
+        transform: rotate(30deg);
+        transition: all 0.7s ease;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .glass-futuristic:hover::before {
+        opacity: 1;
+        transform: rotate(30deg) translate(30%, 30%);
+      }
+
+      .glass-futuristic:hover {
+        border-color: rgba(245, 158, 11, 0.8);
+        box-shadow: 0 0 35px rgba(245, 158, 11, 0.25), 0 25px 60px rgba(0, 0, 0, 0.8);
+        transform: translateY(-8px) scale(1.015);
+      }
+
+      .glass-nav-cyber {
+        background: rgba(3, 7, 18, 0.85);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      }
+
+      .btn-cyber-gold {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+        color: #030712;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-cyber-gold:hover {
+        box-shadow: 0 0 35px rgba(245, 158, 11, 0.7), 0 0 60px rgba(245, 158, 11, 0.4);
+        transform: translateY(-3px) scale(1.03);
+      }
+
+      .btn-cyber-gold:active {
+        transform: translateY(0px) scale(0.98);
       }
     </style>
   `.trim();
