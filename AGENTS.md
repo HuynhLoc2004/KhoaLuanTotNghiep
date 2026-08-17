@@ -43,7 +43,7 @@ Rules:
 
 1. Check and report the current Git branch before editing.
 2. Never rebase, push or merge implementation branches on the user's behalf. For accepted shared plan/task coordination, Codex is authorized and required to commit/push Markdown-only coordination changes directly to remote `develop`, verify success, and leave the active feature branch unchanged. For other Git actions, obtain explicit user authorization and explain the expected result.
-3. Feature code belongs on a `feature/*` branch created from `develop`; fixes use `fix/*`; documentation that governs the whole project may be updated on `develop` when the user approves.
+3. Feature code belongs on a `feature/*` branch created from `develop`; fixes use `fix/*`. All Pull Requests and feature merges by team members (`loc`, `thanh`) MUST strictly target `develop` as the base branch. Documentation that governs the whole project may be updated on `develop` when approved.
 4. Do not hard-code public content, menus, banners, tours, artifacts or translations in React components. Public content must come from the CMS/API.
 5. Every feature change must update its Markdown specification: flow, data, API/events, algorithm, alternatives, advantages, disadvantages, suitability, scalability, security, fallback, testing and acceptance criteria.
 6. Preserve the chosen service boundaries and database responsibilities unless an ADR explicitly changes them.
