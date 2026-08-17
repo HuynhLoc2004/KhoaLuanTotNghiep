@@ -10,6 +10,7 @@ import { searchRouter } from "./routes/search.js";
 import { authRouter } from "./routes/auth.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { aiRouter } from "./routes/ai.js";
+import { threeRouter } from "./routes/three.js";
 
 export function createApp(): Express {
   const app = express();
@@ -25,6 +26,7 @@ export function createApp(): Express {
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/dashboard", dashboardRouter);
   app.use("/api/v1/ai", aiRouter);
+  app.use("/api/v1/3d", threeRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
