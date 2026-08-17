@@ -1,4 +1,4 @@
-import { heritageTheme, renderSearchPage } from "@hcmc-museum/ui";
+import { renderSearchPage, injectHeritageGlobalStyles } from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "../shell/layout.js";
 import type { SearchContentType, SearchFacetCount, SearchResultItem } from "@hcmc-museum/contracts";
 
@@ -23,17 +23,27 @@ export function renderPublicSearchPage(options: SearchPageOptions = {}): string 
       score: 0.98,
       highlights: ["Khớp tiêu đề: Trống Đồng Đông Sơn"],
     },
+    {
+      id: "art-av-02",
+      code: "ART-AV-002",
+      type: "artifact",
+      title: "Ấn Vàng Sắc Mệnh Chi Bảo",
+      subtitle: "Biểu trưng quyền lực triều Nguyễn",
+      summary: "Ấn vàng đúc năm 1827 dưới triều vua Minh Mạng bằng vàng ròng.",
+      score: 0.94,
+      highlights: ["Khớp chất liệu: Vàng ròng"],
+    },
   ];
+
   const facets = options.facets ?? [
-    { type: "artifact", count: 1 },
-    { type: "exhibition", count: 1 },
-    { type: "news", count: 1 },
-    { type: "tour", count: 1 },
+    { type: "artifact", count: 12 },
+    { type: "exhibition", count: 4 },
+    { type: "news", count: 2 },
   ];
 
   const headerHtml = renderHeader();
-  const searchContentHtml = renderSearchPage(query, items, facets, options.activeType);
   const footerHtml = renderFooter();
+  const searchContentHtml = renderSearchPage(query, items, facets, options.activeType);
 
   return `
     <!DOCTYPE html>
@@ -41,24 +51,13 @@ export function renderPublicSearchPage(options: SearchPageOptions = {}): string 
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Tìm Kiếm Di Sản | Bảo tàng Lịch sử TP.HCM</title>
-      <meta name="description" content="Tìm kiếm hiện vật, triển lãm, tin tức và tour tham quan di sản Bảo tàng Lịch sử Thành phố Hồ Chí Minh.">
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          background-color: ${heritageTheme.colors.bgDark};
-          color: ${heritageTheme.colors.textPrimary};
-          font-family: ${heritageTheme.typography.fontFamilyBody};
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-        main { flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 2rem 1.5rem; }
-      </style>
+      <title>Tìm kiếm di sản | Bảo tàng Lịch sử TP.HCM</title>
+      <meta name="description" content="Khám phá và tìm kiếm di sản lịch sử văn hóa Việt Nam">
+      ${injectHeritageGlobalStyles()}
     </head>
-    <body>
+    <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
       ${headerHtml}
-      <main id="search-main-content">
+      <main id="search-main-content" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         ${searchContentHtml}
       </main>
       ${footerHtml}

@@ -1,9 +1,9 @@
 import { renderFooter, renderHeader } from "../shell/layout.js";
 import {
-  heritageTheme,
   renderAuthHeaderBadge,
   renderAuthModal,
   renderUserProfileDrawer,
+  injectHeritageGlobalStyles,
 } from "@hcmc-museum/ui";
 import type { UserBookmarkItem, UserHistoryItem, UserProfile } from "@hcmc-museum/contracts";
 
@@ -23,15 +23,31 @@ export function renderPublicProfilePage(props: PublicProfilePageProps = {}): str
     provider: "keycloak",
   };
 
+  const defaultBookmarks: UserBookmarkItem[] = props.bookmarks ?? [
+    {
+      id: "bm-01",
+      artifactId: "art-ds-01",
+      title: "Trống Đồng Đông Sơn",
+      type: "artifact",
+      createdAt: "2026-08-12T10:00:00Z",
+    },
+  ];
+
+  const defaultHistory: UserHistoryItem[] = props.history ?? [
+    {
+      id: "hist-01",
+      action: "VIEW_3D",
+      targetId: "ART-DS-001",
+      title: "Trải Nghiệm Không Gian 3D Trống Đồng",
+      timestamp: "2026-08-17T09:00:00Z",
+    },
+  ];
+
   const headerHtml = renderHeader();
-  const headerBadge = renderAuthHeaderBadge(defaultUser);
-  const profileDrawer = renderUserProfileDrawer(
-    defaultUser,
-    props.bookmarks ?? [],
-    props.history ?? [],
-  );
-  const authModal = renderAuthModal();
   const footerHtml = renderFooter();
+  const headerBadge = renderAuthHeaderBadge(defaultUser);
+  const profileDrawer = renderUserProfileDrawer(defaultUser, defaultBookmarks, defaultHistory);
+  const authModal = renderAuthModal();
 
   return `
     <!DOCTYPE html>
@@ -39,28 +55,17 @@ export function renderPublicProfilePage(props: PublicProfilePageProps = {}): str
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Hồ Sơ Khách Tham Quan | Bảo tàng Lịch sử TP.HCM</title>
-      <meta name="description" content="Quản lý hồ sơ cá nhân, hiện vật đã lưu trữ và nhật ký tham quan Bảo tàng Lịch sử TP.HCM qua Keycloak IAM.">
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          background-color: ${heritageTheme.colors.bgDark};
-          color: ${heritageTheme.colors.textPrimary};
-          font-family: ${heritageTheme.typography.fontFamilyBody};
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-        main { flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 2rem 1.5rem; }
-      </style>
+      <title>Trang cá nhân & Lịch sử di sản | Bảo tàng Lịch sử TP.HCM</title>
+      <meta name="description" content="Trang cá nhân người dùng tích hợp Keycloak IAM, quản lý bookmarks và lịch sử truy cập di sản.">
+      ${injectHeritageGlobalStyles()}
     </head>
-    <body>
+    <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
       ${headerHtml}
-      <main id="profile-main-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.03); padding: 1rem 1.5rem; border-radius: 0.5rem; border: 1px solid rgba(212,175,55,0.2);">
+      <main id="profile-main-content" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+        <div class="flex justify-between items-center mb-6 bg-slate-900/60 p-6 rounded-xl border border-amber-500/20 backdrop-blur-md">
           <div>
-            <h1 style="font-size: 1.5rem; color: ${heritageTheme.colors.accentGold}; margin-bottom: 0.25rem;">Hồ Sơ Khách Tham Quan & Lịch Sử Di Sản</h1>
-            <p style="color: ${heritageTheme.colors.textSecondary}; font-size: 0.875rem;">Xác thực tập trung qua <strong>Keycloak IAM Server (Port 18080)</strong></p>
+            <h1 class="text-2xl font-bold font-heading text-amber-400 mb-1">Hồ Sơ Khách Tham Quan & Lịch Sử Di Sản</h1>
+            <p class="text-slate-400 text-sm">Xác thực tập trung qua <strong class="text-amber-300">Keycloak IAM Server (Port 18080)</strong></p>
           </div>
           ${headerBadge}
         </div>

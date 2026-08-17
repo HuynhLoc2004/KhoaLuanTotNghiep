@@ -1,4 +1,4 @@
-import { renderAiGuideChatWidget } from "@hcmc-museum/ui";
+import { renderAiGuideChatWidget, injectHeritageGlobalStyles } from "@hcmc-museum/ui";
 import { renderFooter, renderHeader } from "../shell/layout.js";
 
 export function renderPublicAiGuidePage(): string {
@@ -12,7 +12,7 @@ export function renderPublicAiGuidePage(): string {
       text: "Xin chào quý khách! Tôi là Trợ Lý Thuyết Minh Viên AI Bảo Tàng. Quý khách có thể hỏi tôi về bất kỳ di sản, hiện vật, triều đại lịch sử hoặc thông tin tham quan bảo tàng.",
       timestamp: "Hệ thống",
       suggestedQuestions: [
-        "Giới thiệu về Bống bống dầu?",
+        "Giới thiệu về Trống Đồng Đông Sơn?",
         "Trang phục Hoàng cung Triều Nguyễn?",
         "Bảo tàng mở cửa vào những giờ nào?",
       ],
@@ -28,23 +28,9 @@ export function renderPublicAiGuidePage(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trợ Lý Thuyết Minh Viên AI & Hỏi Đáp Di Sản — Bảo tàng Lịch sử TP.HCM</title>
   <meta name="description" content="Trợ lý AI thuyết minh bảo tàng thông minh giải đáp thắc mắc lịch sử hiện vật có trích dẫn nguồn kiểm định." />
-  <link rel="stylesheet" href="/assets/style.css" />
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #0b0b0e;
-      color: #f5f5f7;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    .ai-guide-container {
-      padding: 3rem 1.5rem 5rem 1.5rem;
-      background: radial-gradient(circle at 50% 20%, rgba(212, 175, 55, 0.08) 0%, transparent 70%);
-      min-height: calc(100vh - 200px);
-    }
-  </style>
+  ${injectHeritageGlobalStyles()}
 </head>
-<body>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
   ${headerHtml}
   
   <main class="ai-guide-container">

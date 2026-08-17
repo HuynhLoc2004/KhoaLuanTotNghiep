@@ -1,4 +1,4 @@
-import { heritageTheme, renderLivingTimeline2D } from "@hcmc-museum/ui";
+import { renderLivingTimeline2D, injectHeritageGlobalStyles } from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "../shell/layout.js";
 import type { NarrativeJourney, ExplorationMode, RelatedArtifact } from "@hcmc-museum/contracts";
 
@@ -26,19 +26,19 @@ export function renderLivingTimelinePage(options: TimelinePageOptions = {}): str
       },
       {
         id: "node-oe-02",
-        title: "Thương Cảng Cổ & Văn Hóa Óc Eo",
-        period: "Thế kỷ II - VII",
-        description: "Nền văn minh sông nước Phù Nam với nghệ thuật tạc tượng đá tinh xảo.",
-        artifactId: "art-oc-eo-01",
+        title: "Nền Văn Minh Phù Nam - Óc Eo Sông Cửu Long",
+        period: "Thế kỷ I - VII",
+        description: "Văn hóa thương cảng cổ phát triển rực rỡ ở Nam Bộ.",
+        artifactId: "art-oc-eo-02",
         artifactCode: "ART-OE-002",
       },
     ],
   };
 
-  const relatedMap: Record<string, RelatedArtifact[]> = options.relatedArtifactsMap ?? {
+  const relatedArtifactsMap = options.relatedArtifactsMap ?? {
     "ART-DS-001": [
       {
-        artifactId: "art-oc-eo-01",
+        artifactId: "art-oc-eo-02",
         code: "ART-OE-002",
         title: "Tượng Thần Vishnu Óc Eo",
         relationType: "RELATED_THEME",
@@ -48,8 +48,8 @@ export function renderLivingTimelinePage(options: TimelinePageOptions = {}): str
   };
 
   const headerHtml = renderHeader();
-  const timelineHtml = renderLivingTimeline2D(journey, mode, relatedMap);
   const footerHtml = renderFooter();
+  const timelineHtml = renderLivingTimeline2D(journey, mode, relatedArtifactsMap);
 
   return `
     <!DOCTYPE html>
@@ -59,22 +59,11 @@ export function renderLivingTimelinePage(options: TimelinePageOptions = {}): str
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Dòng Thời Gian Sống | Bảo tàng Lịch sử TP.HCM</title>
       <meta name="description" content="Khám phá di sản bảo tàng theo dòng thời gian tương tác 2D và hành trình tường thuật lịch sử.">
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          background-color: ${heritageTheme.colors.bgDark};
-          color: ${heritageTheme.colors.textPrimary};
-          font-family: ${heritageTheme.typography.fontFamilyBody};
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-        main { flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 2rem 1.5rem; }
-      </style>
+      ${injectHeritageGlobalStyles()}
     </head>
-    <body>
+    <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
       ${headerHtml}
-      <main id="timeline-main-content">
+      <main id="timeline-main-content" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         ${timelineHtml}
       </main>
       ${footerHtml}

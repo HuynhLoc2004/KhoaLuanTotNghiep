@@ -1,4 +1,4 @@
-import { heritageTheme, renderCmsBlock, type CmsPagePayload } from "@hcmc-museum/ui";
+import { heritageTheme, renderCmsBlock, injectHeritageGlobalStyles, type CmsPagePayload } from "@hcmc-museum/ui";
 import { renderHeader, renderFooter } from "./layout.js";
 
 export interface RenderedWebPage {
@@ -25,21 +25,11 @@ export function renderWebShellPage(pagePayload: CmsPagePayload): RenderedWebPage
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${pagePayload.title} | Bảo tàng Lịch sử TP.HCM</title>
       <meta name="description" content="${metaDescription}">
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          background-color: ${heritageTheme.colors.bgDark};
-          color: ${heritageTheme.colors.textPrimary};
-          font-family: ${heritageTheme.typography.fontFamilyBody};
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-      </style>
+      ${injectHeritageGlobalStyles()}
     </head>
-    <body>
+    <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
       ${headerHtml}
-      <main id="app-content" style="flex: 1;">
+      <main id="app-content" class="flex-1">
         ${blocksHtml}
       </main>
       ${footerHtml}

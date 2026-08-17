@@ -1,5 +1,5 @@
 import { renderHeader, renderFooter } from "../shell/layout.js";
-import { render3DModelViewer } from "@hcmc-museum/ui";
+import { render3DModelViewer, injectHeritageGlobalStyles } from "@hcmc-museum/ui";
 import type { ThreeDModelConfig, ThreeDFloorPoi } from "@hcmc-museum/contracts";
 
 export function renderPublic3DExperiencePage(
@@ -18,8 +18,9 @@ export function renderPublic3DExperiencePage(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${config.title} — Trải Nghiệm Không Gian 3D Bảo Tàng Lịch Sử TP.HCM</title>
   <meta name="description" content="Khám phá mô hình 3D Digital Twin di sản bảo tàng, xoay 360 độ và dẫn đường 3D A* trong bảo tàng." />
+  ${injectHeritageGlobalStyles()}
 </head>
-<body class="bg-museum-dark text-slate-100 antialiased font-sans">
+<body class="bg-slate-950 text-slate-100 antialiased font-sans flex flex-col min-h-screen">
   ${headerHtml}
 
   <main class="min-h-screen container mx-auto px-4 py-8">
