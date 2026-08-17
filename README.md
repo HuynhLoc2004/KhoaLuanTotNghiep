@@ -10,7 +10,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0036` — Pre-Code Plan Sync khởi tạo TASK-3D-NAV-001 (Mô Phỏng Không Gian 3D & Xoay Hiện Vật 360° MVP) bởi `loc` trên nhánh `feature/TASK-3D-NAV-001`.
+- Shared plan revision: `PLAN-0037` — Merge Memory Sync hoàn tất cho TASK-3D-NAV-001 (3D Zod contracts, Express A* Indoor Route API Router `/api/v1/3d/*`, UI 3D Model Viewer & Web `/3d-experience` page) qua PR `#15` / merge `7a4264d`.
 - `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - `TASK-WEB-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `03dfcd4`, Merge Memory Sync đã công bố Public Web shell & Design Tokens baseline.
@@ -22,7 +22,7 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 - `TASK-AUTH-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `8e76271` qua PR `#12`, Merge Memory Sync đã công bố Keycloak IAM & User History MVP baseline.
 - `TASK-DASHBOARD-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `1439807` qua PR `#13`, Merge Memory Sync đã công bố Dashboard Analytics MVP baseline.
 - `TASK-AI-GUIDE-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `cae46a2` qua PR `#14`, Merge Memory Sync đã công bố Mobile AI Tour Guide MVP baseline.
-- `TASK-3D-NAV-001`: `IN_PROGRESS`, owner `loc`; nhánh `feature/TASK-3D-NAV-001`; Pre-Code Plan Sync PASS.
+- `TASK-3D-NAV-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `7a4264d` qua PR `#15`, Merge Memory Sync đã công bố 3D Digital Twin & Indoor Navigation MVP baseline.
 - `FIX-LINT-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `cc1c600`, Merge Memory Sync đã công bố workspace ESLint quality gate 100% PASS.
 - `FIX-FORMAT-001`: `DONE`, owner `thanh`; PR `#6` merge tại `8d199db`, actual six-path scope deviation đã được review, hosted run `30832872900` PASS và Merge Memory Sync PASS.
 - `TASK-CI-001`: `DONE`, owner `loc`; PR `#4` merge tại `be2a18e`, hosted run `30832872900` PASS và Merge Memory Sync PASS; verified by `thanh`.

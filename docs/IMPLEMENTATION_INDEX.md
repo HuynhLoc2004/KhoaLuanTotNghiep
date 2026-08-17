@@ -30,10 +30,10 @@
 | Feature | Behavior đã merge | Backend/Data | Contract | Status | Limitations | Owner doc |
 |---|---|---|---|---|---|---|
 | CMS/Admin | Admin Shell layout (Sidebar, Header), CMS Block Form Editor và Live Preview panel đã merge | PostgreSQL cms_pages & cms_sections DDL tables, seed data & DatabaseRepository đã merge | CMS Block types | CODE_CONFIRMED | Chưa nối REST API endpoints lưu trực tiếp vào DB | `03-features/01-admin-cms.md` |
-| Web 3D/Map | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/02-web-3d-navigation.md` |
+| Web 3D/Map | 3D Experience Viewer /3d-experience, Orbit Controls, Hotspots & `A*` Graph Router /api/v1/3d/* | In-memory Museum Floor Map Graph & Sample 3D GLB configs | ThreeDModelConfigSchema, ThreeDHotspotSchema, ThreeDFloorPoiSchema, ThreeDRouteRequestSchema | CODE_CONFIRMED | Full WebGL Model Viewer / Three.js Canvas | `03-features/02-web-3d-navigation.md` |
 | AI Tour Guide | Chat Widget /ai-guide, RAG Hybrid Router /api/v1/ai/guide/query & /speak TTS | In-memory Museum Knowledge Base & Citation Gating | AiGuideQueryRequestSchema, AiGuideQueryResponseSchema, AiGuideAudioSpeakRequestSchema | CODE_CONFIRMED | Full Vector Store (pgvector/Pinecone) & Live TTS Stream là extension ở pha sau | `03-features/03-ai-tour-guide.md` |
 | Recognition | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/04-artifact-recognition.md` |
-| Digital Twin | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/05-digital-twin.md` |
+| Digital Twin | 3D Digital Twin Viewer, Single-Photo AI Reconstruction Pipeline & PBR Shaders | AI Depth Map Estimation & Gaussian Splatting Worker Specs | ThreeDModelConfigSchema, ThreeDHotspotSchema | CODE_CONFIRMED | Production AI Worker Cloud Pipeline là extension ở pha sau | `03-features/05-digital-twin.md` |
 | Voice/i18n | Chưa có code | Chưa có | Chưa có | DOCS_ONLY | Baseline plan | `03-features/06-multilingual-voice.md` |
 | Auth/History | Keycloak IAM Container (Port 18080), AuthHeaderBadge, AuthModal, UserProfileDrawer, /profile Web page và REST API /api/v1/auth/* | Keycloak OIDC/JWT Auth Verifier, PostgreSQL auth_users & In-memory bookmarks/history | AuthTokenRequestSchema, UserProfileSchema, UserBookmarkItemSchema, UserHistoryItemSchema | CODE_CONFIRMED | Full Keycloak Realm Export json là extension ở pha sản xuất | `03-features/07-auth-user-history.md` |
 | Dashboard | Admin Dashboard Page /dashboard, MetricCards, TopArtifactsTable, TrafficChart và REST API /api/v1/dashboard/* | Pre-aggregated summary metrics & 7-day traffic series | DashboardOverviewMetricSchema, DashboardPopularArtifactSchema, DashboardSummaryResponseSchema | CODE_CONFIRMED | Real-time HyperLogLog & MongoDB raw event aggregation là extension sau MVP | `03-features/08-dashboard-analytics.md` |
@@ -45,6 +45,7 @@
 
 | Date | Merge/PR/Commit | Task/Feature | Added/Changed | Docs synchronized | Verified by |
 |---|---|---|---|---|---|
+| 2026-08-17 | `7a4264d` / PR `#15` | `TASK-3D-NAV-001` | 3D Zod Contracts, Express A* Indoor Route API Router, UI 3D Model Viewer & Web /3d-experience page | YES | `loc` |
 | 2026-08-17 | `cae46a2` / PR `#14` | `TASK-AI-GUIDE-001` | AI Guide Zod Contracts, Express RAG & TTS API Router, UI Chat Widget components & Web /ai-guide page | YES | `loc` |
 | 2026-08-12 | `1439807` / PR `#13` | `TASK-DASHBOARD-001` | Dashboard Zod Contracts, Express Analytics API Router, UI Dashboard components & Admin Dashboard page | YES | `loc` |
 | 2026-08-12 | `8e76271` / PR `#12` | `TASK-AUTH-001` | Keycloak IAM Docker Service, Auth Zod Contracts, Express Auth Router, UI Auth components & Web Profile page | YES | `loc` |

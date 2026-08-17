@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0036`
+- Revision: `PLAN-0037`
 - Updated: 2026-08-17
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Pre-Code Plan Sync khởi tạo `TASK-3D-NAV-001` (Mô Phỏng Không Gian 3D & Xoay Hiện Vật 360° MVP) bởi `loc` trên nhánh `feature/TASK-3D-NAV-001`.
+- Scope: Hoàn tất Merge Memory Sync cho `TASK-3D-NAV-001` (3D Zod contracts, Express A* Indoor Route Router `/api/v1/3d/*`, UI 3D Model Viewer & Web `/3d-experience` page) sau PR `#15` / merge `7a4264d`.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: `TASK-3D-NAV-001` (`loc` / `feature/TASK-3D-NAV-001`).
+- Task đang chạy: không có; `TASK-3D-NAV-001`, `TASK-AI-GUIDE-001`, `TASK-DASHBOARD-001`, `TASK-AUTH-001` và `TASK-SEARCH-001` đã `DONE`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
@@ -23,6 +23,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 | Revision | Date | Change | Affected owners/tasks | Required action | Confirmed by |
 |---|---|---|---|---|---|
+| PLAN-0037 | 2026-08-17 | Hoàn tất Merge Memory Sync cho TASK-3D-NAV-001 (PR #15 / merge 7a4264d) | TASK-3D-NAV-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0036 | 2026-08-17 | Pre-Code Plan Sync cho TASK-3D-NAV-001 (Digital Twin 3D Orbit View & A* Graph Navigation) | TASK-3D-NAV-001 (IN_PROGRESS) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0035 | 2026-08-17 | Hoàn tất Merge Memory Sync cho TASK-AI-GUIDE-001 (PR #14 / merge cae46a2) | TASK-AI-GUIDE-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0034 | 2026-08-17 | Pre-Code Plan Sync cho TASK-AI-GUIDE-001 (AI Guide RAG + Citation + TTS) | TASK-AI-GUIDE-001 (IN_PROGRESS) | Cập nhật local develop sau pull | `loc` |

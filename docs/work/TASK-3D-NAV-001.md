@@ -4,8 +4,8 @@
 
 - Owner/contributor: `loc` (confirmed 2026-08-17; TEAM match `CONFIRMED`).
 - Branch: `feature/TASK-3D-NAV-001`.
-- Base/shared plan revision: `PLAN-0035`; claim commit on `develop`.
-- Status: `IN_PROGRESS`.
+- Base/shared plan revision: `PLAN-0037`; claim commit on `develop`.
+- Status: `DONE` (MergedAt: 2026-08-17; PR `#15`; merge `7a4264d`; Merge Memory Sync `PASS`).
 - `PRE_CODE_PLAN_SYNC: PASS` — local branch created from updated `develop`, published scopes isolated to 3D Navigation modules (`packages/contracts/src/three/**`, `services/api/src/routes/three.ts`, `packages/ui/src/three/**`, `apps/web/src/three/**`, `docs/work/TASK-3D-NAV-001.md`).
 
 ## Objective and write scope
@@ -112,9 +112,9 @@ stateDiagram-v2
 
 ## Handoff
 
-- **Verification status**: `IMPLEMENTED`, code and 100% unit tests PASS by `loc`.
+- **Verification status**: `VERIFIED`, code and 100% unit tests PASS by `loc`.
 - **Feature branch**: `feature/TASK-3D-NAV-001`.
-- **Merge status**: Ready for PR and merge into `develop`.
+- **Merge status**: Merged into `develop` (commit `7a4264d`, PR `#15`).
 
 ## Change history
 
