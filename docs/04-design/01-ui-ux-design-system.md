@@ -125,9 +125,11 @@ Mục tiêu “sống động” được đo bằng chất lượng chuyển c�
 | Ngày | Decision | Trạng thái | Lý do |
 |---|---|---|---|
 | 2026-07-30 | `DEC-UX-QUALITY-001`: Cho phép nhiều công nghệ có trách nhiệm; áp dụng Quality Gate Markdown ngay và automation sau foundation | PLAN_LOCKED | Giữ tự do sáng tạo nhưng kiểm soát hiệu năng đa thiết bị và bảo đảm hồ sơ báo cáo |
+| 2026-08-17 | `DEC-UX-SPATIAL-3D-001`: Quy hoạch nâng cấp UI/UX chiều sâu 3D, Glassmorphism & Motion Grammar đồng nhất trên toàn hệ thống | PROPOSED | Lộc phản hồi giao diện MVP còn khô sơ; nâng cấp 3D Depth, hiệu ứng vi tương tác mượt mà và đồng nhất visual giữa Public Web, Living Timeline, Profile và Admin Portal |
 
 ## Change history
 
 | Ngày | Loại | Thay đổi |
 |---|---|---|
+| 2026-08-17 | ADDED | Đề xuất DEC-UX-SPATIAL-3D-001 nâng cấp 3D Depth UI/UX và đồng nhất Motion Grammar |
 | 2026-07-30 | ADDED | Liên kết Quality Gate, dependency inventory và performance evidence cho desktop/mobile |
