@@ -4,7 +4,7 @@ import {
   renderQrScannerModal,
   type CmsPagePayload,
 } from "@hcmc-museum/ui";
-import { renderHeader, renderFooter } from "./layout.js";
+import { renderHeader, renderFooter, renderMobileBottomNav } from "./layout.js";
 
 export interface RenderedWebPage {
   title: string;
@@ -19,6 +19,7 @@ export function renderWebShellPage(pagePayload: CmsPagePayload): RenderedWebPage
 
   const headerHtml = renderHeader();
   const footerHtml = renderFooter();
+  const mobileNavHtml = renderMobileBottomNav();
 
   const blocksHtml = pagePayload.blocks.map((block) => renderCmsBlock(block).html).join("\n");
 
@@ -32,12 +33,13 @@ export function renderWebShellPage(pagePayload: CmsPagePayload): RenderedWebPage
       <meta name="description" content="${metaDescription}">
       ${injectHeritageGlobalStyles()}
     </head>
-    <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
+    <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased relative">
       ${headerHtml}
       <main id="app-content" class="flex-1 pb-16 md:pb-0">
         ${blocksHtml}
       </main>
       ${footerHtml}
+      ${mobileNavHtml}
       ${renderQrScannerModal()}
     </body>
     </html>
