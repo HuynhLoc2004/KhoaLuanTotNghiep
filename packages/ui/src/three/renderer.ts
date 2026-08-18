@@ -279,27 +279,45 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           let roomMesh = new THREE.Mesh(roomGeometry, roomMaterial);
           scene.add(roomMesh);
 
+          const loadedImgs = new Array(numImages);
+          let loadedCount = 0;
+
           imageList.forEach((url, i) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
-              const xPos = i * sliceWidth;
-              
-              // Draw base image slice
-              ctx.drawImage(img, xPos, 0, sliceWidth + 10, canvas.height);
-
-              // Apply Soft Edge Gradient Feathering (Smooth Seam Blending)
-              if (i > 0) {
-                const grad = ctx.createLinearGradient(xPos - 20, 0, xPos + 20, 0);
-                grad.addColorStop(0, 'rgba(17, 24, 39, 0)');
-                grad.addColorStop(0.5, 'rgba(17, 24, 39, 0.4)');
-                grad.addColorStop(1, 'rgba(17, 24, 39, 0)');
-                ctx.fillStyle = grad;
-                ctx.fillRect(xPos - 20, 0, 40, canvas.height);
-              }
-
+              loadedImgs[i] = img;
               loadedCount++;
+              
               if (loadedCount === numImages) {
+                // Stitch all images with 150px Multi-Band Alpha Gradient Cross-Blending
+                const overlap = 140;
+                const effectiveWidth = (canvas.width + (numImages - 1) * overlap) / numImages;
+
+                loadedImgs.forEach((image, idx) => {
+                  const xPos = idx * (effectiveWidth - overlap);
+
+                  // Create offscreen alpha-blended canvas slice
+                  const sliceCanvas = document.createElement('canvas');
+                  sliceCanvas.width = effectiveWidth;
+                  sliceCanvas.height = canvas.height;
+                  const sctx = sliceCanvas.getContext('2d');
+
+                  sctx.drawImage(image, 0, 0, effectiveWidth, canvas.height);
+
+                  // Feather left edge if not first image
+                  if (idx > 0) {
+                    const leftGrad = sctx.createLinearGradient(0, 0, overlap, 0);
+                    leftGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                    leftGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
+                    sctx.globalCompositeOperation = 'destination-in';
+                    sctx.fillStyle = leftGrad;
+                    sctx.fillRect(0, 0, overlap, canvas.height);
+                  }
+
+                  ctx.drawImage(sliceCanvas, xPos, 0);
+                });
+
                 canvasTexture.needsUpdate = true;
               }
             };
