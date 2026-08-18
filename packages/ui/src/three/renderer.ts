@@ -168,9 +168,15 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
   const slidesHtml = roomNode.angleViews
     .map(
       (angle, idx) => `
-      <div class="room-angle-slide relative w-full h-full flex-shrink-0 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 transition-opacity duration-300" data-slide-index="${String(idx)}">
-        <img src="${angle.imageUrl}" alt="${angle.angleLabel}" class="max-w-full max-h-full object-contain drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)] rounded-2xl select-none pointer-events-none" />
-        <div class="absolute bottom-16 left-6 px-4 py-2 rounded-xl bg-slate-950/90 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold shadow-2xl backdrop-blur-md">
+      <div class="room-angle-slide relative w-full h-full flex-shrink-0 flex items-center justify-center p-2 sm:p-4 bg-slate-950 overflow-hidden transition-opacity duration-300" data-slide-index="${String(idx)}">
+        <!-- Dual-Layer Ambient Blurred Background (Fills All Side Bars Naturally) -->
+        <img src="${angle.imageUrl}" alt="" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110 select-none pointer-events-none" />
+        
+        <!-- Main Crisp Image Layer -->
+        <img src="${angle.imageUrl}" alt="${angle.angleLabel}" class="relative z-10 max-w-full max-h-full object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.95)] rounded-2xl select-none pointer-events-none border border-amber-500/20" />
+        
+        <!-- Bottom Viewpoint Badge -->
+        <div class="absolute bottom-16 left-6 z-20 px-4 py-2 rounded-xl bg-slate-950/90 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold shadow-2xl backdrop-blur-md">
           📍 ${angle.angleLabel}
         </div>
       </div>
