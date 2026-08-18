@@ -264,23 +264,6 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           let sphere = new THREE.Mesh(geometry, material);
           scene.add(sphere);
 
-          // Ambient Floating Gold Particle Dust
-          let particlesGeo = new THREE.BufferGeometry();
-          let count = 300;
-          let posArray = new Float32Array(count * 3);
-          for (let i = 0; i < count * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 450;
-          }
-          particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-          let particlesMat = new THREE.PointsMaterial({
-            size: 2.2,
-            color: 0xf59e0b,
-            transparent: true,
-            opacity: 0.6
-          });
-          let particlesMesh = new THREE.Points(particlesGeo, particlesMat);
-          scene.add(particlesMesh);
-
           // Camera Viewport Angles
           let isUserInteracting = false;
           let onMouseDownLon = 0, onMouseDownLat = 0;
@@ -304,7 +287,6 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
             let targetZ = 500 * Math.sin(phi) * Math.sin(theta);
 
             camera.lookAt(targetX, targetY, targetZ);
-            particlesMesh.rotation.y += 0.0008;
 
             renderer.render(scene, camera);
           }
