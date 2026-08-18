@@ -9,7 +9,7 @@ import type {
 
 export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
   const bgStyle = block.backgroundImageUrl
-    ? `background-image: linear-gradient(180deg, rgba(3, 7, 18, 0.65) 0%, rgba(3, 7, 18, 0.98) 100%), url('${block.backgroundImageUrl}');`
+    ? `background-image: linear-gradient(180deg, rgba(3, 7, 18, 0.7) 0%, rgba(3, 7, 18, 0.98) 100%), url('${block.backgroundImageUrl}');`
     : `background: linear-gradient(135deg, rgba(159, 18, 57, 0.35) 0%, rgba(3, 7, 18, 0.98) 100%);`;
 
   const ctaHtml = block.ctaText
@@ -20,16 +20,27 @@ export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
     : "";
 
   const html = `
-    <section id="hero-${block.id}" class="cms-hero-section cinematic-scene relative overflow-hidden min-h-[85vh] flex flex-col justify-center items-center py-20 px-6 text-center border-b border-amber-500/20" style="${bgStyle} background-size: cover; background-position: center;">
+    <section id="hero-${block.id}" class="cms-hero-section cinematic-scene relative overflow-hidden min-h-[90vh] flex flex-col justify-center items-center py-24 px-6 text-center border-b border-amber-500/20" style="${bgStyle} background-size: cover; background-position: center;">
+      <!-- Dong Son Bronze Drum Rotating Motif Backdrop -->
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] sm:w-[750px] sm:h-[750px] opacity-15 pointer-events-none animate-spin-slow" data-scroll-speed="0.1">
+        <svg viewBox="0 0 200 200" class="w-full h-full text-amber-400 stroke-current fill-none stroke-[0.8]">
+          <circle cx="100" cy="100" r="95" stroke-dasharray="4 2"/>
+          <circle cx="100" cy="100" r="80"/>
+          <circle cx="100" cy="100" r="65" stroke-dasharray="8 4"/>
+          <circle cx="100" cy="100" r="45"/>
+          <polygon points="100,10 115,85 190,100 115,115 100,190 85,115 10,100 85,85" fill="rgba(245,158,11,0.15)"/>
+        </svg>
+      </div>
+
       <!-- Glowing Orbs & Background Parallax Layer -->
-      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.3"></div>
-      <div class="absolute -bottom-24 left-1/4 w-80 h-80 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.15"></div>
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/25 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.3"></div>
+      <div class="absolute -bottom-24 left-1/4 w-80 h-80 bg-rose-600/25 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.15"></div>
 
       <div class="max-w-5xl mx-auto relative z-10 space-y-6">
-        <!-- Floating Cyber Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-400/40 backdrop-blur-md animate-float-3d" data-scroll-stagger="1">
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-          <span class="text-xs font-mono font-bold text-amber-300 tracking-widest uppercase">Nền Tảng Bảo Tàng Số 3D Thế Hệ Mới</span>
+        <!-- Floating Cyber Royal Badge -->
+        <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-amber-500/10 border border-amber-400/50 backdrop-blur-md animate-float-3d shadow-lg shadow-amber-500/10" data-scroll-stagger="1">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+          <span class="text-xs font-serif font-bold text-amber-300 tracking-widest uppercase">Bảo Tàng Lịch Sử TP. Hồ Chí Minh — 3D Cyber Heritage</span>
         </div>
 
         <!-- Animated Hero Title -->
@@ -49,6 +60,22 @@ export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
             <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
             <span>Khám phá Digital Twin 3D</span>
           </a>
+        </div>
+
+        <!-- Heritage Metrics Badges Row -->
+        <div class="pt-8 flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-xs font-mono" data-scroll-stagger="5">
+          <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-amber-500/30 text-amber-300 shadow-md">
+            <span>🏛️ 10,000+ Bảo Vật</span>
+          </div>
+          <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-cyan-500/30 text-cyan-300 shadow-md">
+            <span>🌐 Digital Twin 3D</span>
+          </div>
+          <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-emerald-500/30 text-emerald-300 shadow-md">
+            <span>🤖 AI Guide Multilingual</span>
+          </div>
+          <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-rose-500/30 text-rose-300 shadow-md">
+            <span>⏳ 4000 Năm Di Sản</span>
+          </div>
         </div>
       </div>
     </section>

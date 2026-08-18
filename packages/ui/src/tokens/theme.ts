@@ -6,16 +6,18 @@ export const heritageTheme = Object.freeze({
     accentGold: "#D4AF37",
     accentGoldLight: "#F3E5AB",
     bronze: "#8C6D46",
-    bgDark: "#121212",
-    bgCard: "#1E1E1E",
+    bgDark: "#030712",
+    bgCard: "rgba(15, 23, 42, 0.78)",
     bgGlass: "rgba(255, 255, 255, 0.06)",
-    borderGlass: "rgba(212, 175, 55, 0.2)",
+    borderGlass: "rgba(245, 158, 11, 0.35)",
     textPrimary: "#FAFAFA",
-    textSecondary: "#B0B0B0",
-    textMuted: "#757575",
+    textSecondary: "#CBD5E1",
+    textMuted: "#94A3B8",
   }),
   typography: Object.freeze({
-    fontFamilyHeading: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamilyHeading:
+      "'Syne', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamilySerif: "'Cinzel', Georgia, serif",
     fontFamilyBody:
       "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontFamilyMono: "'Space Grotesk', monospace",
@@ -26,21 +28,21 @@ export const heritageTheme = Object.freeze({
       lg: "1.125rem",
       xl: "1.25rem",
       h3: "1.5rem",
-      h2: "2rem",
-      h1: "2.75rem",
+      h2: "2.25rem",
+      h1: "3.25rem",
     }),
   }),
   glassmorphism: Object.freeze({
-    backdropFilter: "blur(12px)",
-    background: "rgba(30, 30, 30, 0.75)",
-    border: "1px solid rgba(212, 175, 55, 0.25)",
-    boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+    backdropFilter: "blur(20px)",
+    background: "rgba(15, 23, 42, 0.78)",
+    border: "1px solid rgba(245, 158, 11, 0.35)",
+    boxShadow: "0 20px 50px rgba(0, 0, 0, 0.7)",
   }),
   animations: Object.freeze({
     transitionFast: "all 0.15s ease-in-out",
-    transitionNormal: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    transitionSlow: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-    pulseGlow: "pulse 2s infinite ease-in-out",
+    transitionNormal: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    transitionSlow: "all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    pulseGlow: "pulseAura 4s ease-in-out infinite",
   }),
   breakpoints: Object.freeze({
     sm: "640px",
@@ -56,7 +58,7 @@ export function injectHeritageGlobalStyles(): string {
   return `
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Syne:wght@700;800;900&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     
     <!-- Lenis Smooth Scroll Library -->
     <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
@@ -71,16 +73,18 @@ export function injectHeritageGlobalStyles(): string {
         theme: {
           extend: {
             fontFamily: {
-              heading: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-              sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+              heading: ['Syne', 'Outfit', '-apple-system', 'sans-serif'],
+              serif: ['Cinzel', 'Georgia', 'serif'],
+              sans: ['Plus Jakarta Sans', '-apple-system', 'sans-serif'],
               mono: ['Space Grotesk', 'monospace'],
             },
             colors: {
               cyber: {
                 dark: '#030712',
-                card: 'rgba(15, 23, 42, 0.75)',
+                card: 'rgba(15, 23, 42, 0.8)',
                 gold: '#fbbf24',
                 amber: '#f59e0b',
+                bronze: '#d4af37',
                 crimson: '#9f1239',
                 cyan: '#06b6d4',
                 emerald: '#10b981',
@@ -92,8 +96,9 @@ export function injectHeritageGlobalStyles(): string {
     </script>
     <style>
       :root {
-        --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-        --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-heading: 'Syne', 'Outfit', sans-serif;
+        --font-serif: 'Cinzel', Georgia, serif;
+        --font-body: 'Plus Jakarta Sans', sans-serif;
         --font-mono: 'Space Grotesk', monospace;
       }
       
@@ -103,26 +108,37 @@ export function injectHeritageGlobalStyles(): string {
       }
 
       html {
-        scroll-behavior: auto !important; /* Lenis handles smooth scrolling */
+        scroll-behavior: auto !important;
       }
 
+      /* Authentic Vietnamese Cyber-Heritage Background Pattern */
       body {
         font-family: var(--font-body);
         background-color: #030712;
         color: #f8fafc;
         background-image: 
-          radial-gradient(ellipse at 20% 10%, rgba(245, 158, 11, 0.15) 0%, transparent 50%),
-          radial-gradient(ellipse at 80% 60%, rgba(159, 18, 57, 0.18) 0%, transparent 50%),
-          radial-gradient(ellipse at 50% 90%, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
+          /* Bronze Drum Starburst Radial Rays */
+          radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.18) 0%, rgba(159, 18, 57, 0.12) 35%, transparent 70%),
+          radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.14) 0%, transparent 65%),
+          radial-gradient(circle at 10% 70%, rgba(212, 175, 55, 0.12) 0%, transparent 60%),
+          /* Cybernetic Heritage Grid Lines */
+          linear-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(245, 158, 11, 0.04) 1px, transparent 1px);
+        background-size: 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px;
         background-attachment: fixed;
         overflow-x: hidden;
         perspective: 1200px;
       }
 
-      /* Unified Typography Classes */
-      h1, h2, h3, h4, h5, h6, .font-heading {
+      /* Typography Enhancements */
+      h1, h2, h3, .font-heading {
         font-family: var(--font-heading) !important;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
+      }
+
+      .font-serif, .heritage-title-serif {
+        font-family: var(--font-serif) !important;
+        letter-spacing: 0.04em;
       }
 
       p, span, div, a, button, input, select, textarea {
@@ -133,28 +149,18 @@ export function injectHeritageGlobalStyles(): string {
         font-family: var(--font-mono) !important;
       }
 
-      /* Motion Sites Cinematic Scroll & Masking Styles */
-      .cinematic-scene {
-        transform-style: preserve-3d;
-        will-change: transform, opacity, clip-path;
-        backface-visibility: hidden;
-      }
-
-      .clip-curtain-vault {
-        clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
-      }
-
-      /* Animated Gradient Text */
+      /* Royal Cyber Gradient Text */
       .gradient-title-cyber {
-        background: linear-gradient(135deg, #ffffff 0%, #fef08a 35%, #f59e0b 70%, #f43f5e 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #fef08a 25%, #f59e0b 60%, #e11d48 100%);
         background-size: 200% auto;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         animation: gradientShift 6s ease infinite;
+        filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.4));
       }
 
       .gradient-cyan-emerald {
-        background: linear-gradient(135deg, #a5f3fc 0%, #06b6d4 50%, #10b981 100%);
+        background: linear-gradient(135deg, #e0f2fe 0%, #38bdf8 40%, #10b981 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
       }
@@ -167,29 +173,38 @@ export function injectHeritageGlobalStyles(): string {
 
       @keyframes float3D {
         0%, 100% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-12px) rotate(1deg); }
+        50% { transform: translateY(-14px) rotate(1.2deg); }
+      }
+
+      @keyframes spinSlow {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
 
       @keyframes pulseAura {
-        0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.25), 0 0 40px rgba(159, 18, 57, 0.15); }
-        50% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.5), 0 0 70px rgba(6, 182, 212, 0.3); }
+        0%, 100% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.3), 0 0 50px rgba(159, 18, 57, 0.2); }
+        50% { box-shadow: 0 0 45px rgba(245, 158, 11, 0.65), 0 0 80px rgba(6, 182, 212, 0.35); }
       }
 
       .animate-float-3d {
         animation: float3D 5s ease-in-out infinite;
       }
 
+      .animate-spin-slow {
+        animation: spinSlow 40s linear infinite;
+      }
+
       .animate-aura-pulse {
         animation: pulseAura 4s ease-in-out infinite;
       }
 
-      /* Ultra Futuristic Glassmorphism Card */
+      /* High-Detail Cyber Glassmorphism Cards */
       .glass-futuristic {
-        background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(245, 158, 11, 0.25);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        background: rgba(15, 23, 42, 0.82);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
         transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.4s ease, box-shadow 0.4s ease;
         position: relative;
         overflow: hidden;
@@ -205,48 +220,48 @@ export function injectHeritageGlobalStyles(): string {
         background: linear-gradient(
           45deg,
           transparent 45%,
-          rgba(255, 255, 255, 0.08) 50%,
+          rgba(254, 240, 138, 0.12) 50%,
           transparent 55%
         );
         transform: rotate(30deg);
-        transition: all 0.7s ease;
+        transition: all 0.8s ease;
         opacity: 0;
         pointer-events: none;
       }
 
       .glass-futuristic:hover::before {
         opacity: 1;
-        transform: rotate(30deg) translate(30%, 30%);
+        transform: rotate(30deg) translate(35%, 35%);
       }
 
       .glass-futuristic:hover {
-        border-color: rgba(245, 158, 11, 0.8);
-        box-shadow: 0 0 35px rgba(245, 158, 11, 0.25), 0 25px 60px rgba(0, 0, 0, 0.8);
-        transform: translateY(-8px) scale(1.015);
+        border-color: rgba(245, 158, 11, 0.85);
+        box-shadow: 0 0 40px rgba(245, 158, 11, 0.35), 0 30px 70px rgba(0, 0, 0, 0.85);
+        transform: translateY(-8px) scale(1.018);
       }
 
       .glass-nav-cyber {
-        background: rgba(3, 7, 18, 0.88);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border-bottom: 1px solid rgba(245, 158, 11, 0.25);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        background: rgba(3, 7, 18, 0.92);
+        backdrop-filter: blur(28px);
+        -webkit-backdrop-filter: blur(28px);
+        border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
       }
 
       .btn-cyber-gold {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #b45309 100%);
         color: #030712;
         font-family: var(--font-heading);
-        font-weight: 700;
+        font-weight: 800;
         letter-spacing: 0.5px;
-        box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+        box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);
         transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         position: relative;
         overflow: hidden;
       }
 
       .btn-cyber-gold:hover {
-        box-shadow: 0 0 35px rgba(245, 158, 11, 0.7), 0 0 60px rgba(245, 158, 11, 0.4);
+        box-shadow: 0 0 45px rgba(245, 158, 11, 0.8), 0 0 75px rgba(245, 158, 11, 0.5);
         transform: translateY(-3px) scale(1.03);
       }
 
@@ -306,7 +321,6 @@ export function injectHeritageGlobalStyles(): string {
 
             section.classList.add('cinematic-scene');
 
-            // Staggered entry elements inside each scene
             const headings = section.querySelectorAll('h1, h2, .gradient-title-cyber');
             const paragraphs = section.querySelectorAll('p, .text-slate-300, .text-slate-400');
             const cards = section.querySelectorAll('.glass-futuristic, .spatial-3d-experience-container, form');
@@ -317,7 +331,7 @@ export function injectHeritageGlobalStyles(): string {
                 trigger: section,
                 start: 'top 85%',
                 end: 'top 30%',
-                scrub: 1, // Reversible smooth scrub
+                scrub: 1,
               },
             });
 
@@ -334,7 +348,6 @@ export function injectHeritageGlobalStyles(): string {
               timeline.fromTo(buttons, { y: 30, opacity: 0, scale: 0.9 }, { y: 0, opacity: 1, scale: 1, duration: 0.8, stagger: 0.1, ease: 'back.out(1.5)' }, 0.35);
             }
 
-            // Scene Exit 3D Depth Recede Effect as user scrolls past
             if (index < sections.length - 1) {
               gsap.to(section, {
                 scale: 0.92,
@@ -352,7 +365,7 @@ export function injectHeritageGlobalStyles(): string {
             }
           });
 
-          // 3. Parallax Foreground & Background Speed Offset
+          // 3. Parallax Layers for Background / Foreground Elements
           const parallaxElements = document.querySelectorAll('[data-scroll-speed]');
           parallaxElements.forEach((el) => {
             const speed = parseFloat(el.getAttribute('data-scroll-speed') || '0.25');
