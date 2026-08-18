@@ -82,6 +82,14 @@ export function renderSearchResultCard(item: SearchResultItem): string {
     )
     .join("");
 
+  const imgUrl = item.thumbnailUrl;
+  const imgFrame = imgUrl
+    ? `<div class="img-container-heritage w-full h-48 mb-4 rounded-xl overflow-hidden relative bg-slate-950/90 border border-amber-500/20 group-hover:border-amber-400/50 transition-all">
+        <img src="${imgUrl}" alt="${item.title}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-40 scale-110 pointer-events-none" />
+        <img src="${imgUrl}" alt="${item.title}" class="relative z-10 img-fit-contain p-2 group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+       </div>`
+    : "";
+
   return `
     <article class="glass-futuristic rounded-2xl p-6 group">
       <div class="flex items-center justify-between mb-3">
@@ -91,6 +99,8 @@ export function renderSearchResultCard(item: SearchResultItem): string {
         ${item.code ? `<span class="text-xs font-mono text-slate-500">${item.code}</span>` : ""}
       </div>
       
+      ${imgFrame}
+
       <h4 class="font-heading font-bold text-2xl text-slate-100 group-hover:text-amber-300 transition-colors mb-1">${item.title}</h4>
       ${item.subtitle ? `<p class="text-sm font-medium text-amber-400/90 mb-3">${item.subtitle}</p>` : ""}
       <p class="text-slate-300 text-sm leading-relaxed mb-4">${item.summary}</p>

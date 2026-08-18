@@ -110,6 +110,13 @@ export function renderArtifactGridBlock(block: CmsArtifactGridBlock): CmsRendere
            </span>`
         : `<span class="px-3 py-1 rounded-full text-xs font-mono text-slate-400 bg-slate-800/60 border border-slate-700">2D Media</span>`;
 
+      const imgFrame = art.imageUrl
+        ? `<div class="img-container-heritage w-full h-48 sm:h-52 mb-4 rounded-xl overflow-hidden relative bg-slate-950/90 border border-amber-500/20 group-hover:border-amber-400/50 transition-all">
+            <img src="${art.imageUrl}" alt="${art.name}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-40 scale-110 pointer-events-none" />
+            <img src="${art.imageUrl}" alt="${art.name}" class="relative z-10 img-fit-contain p-2 group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+           </div>`
+        : "";
+
       return `
         <article id="artifact-card-${art.id}" class="glass-futuristic rounded-2xl p-6 flex flex-col justify-between group" data-scroll-stagger="${String(idx + 1)}">
           <div>
@@ -118,6 +125,8 @@ export function renderArtifactGridBlock(block: CmsArtifactGridBlock): CmsRendere
               ${badge3d}
             </div>
             
+            ${imgFrame}
+
             <h3 class="font-heading font-bold text-2xl text-slate-100 group-hover:text-amber-300 transition-colors mb-2">${art.name}</h3>
             <p class="text-amber-400/90 text-sm font-medium mb-3">Niên đại: ${art.period}</p>
           </div>

@@ -249,6 +249,32 @@ export function injectHeritageGlobalStyles(): string {
         pointer-events: auto !important;
       }
 
+      /* Universal Heritage Image Responsive Fitting Utilities */
+      .img-container-heritage {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(3, 7, 18, 0.95);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        border-radius: 1rem;
+      }
+
+      .img-fit-contain {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
+      }
+
+      .img-fit-cover {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+      }
+
       .btn-cyber-gold {
         background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #b45309 100%);
         color: #030712;
