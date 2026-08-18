@@ -82,7 +82,7 @@ app.get("/timeline", (_req, res) => {
   res.send(renderLivingTimelinePage());
 });
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`[WEB] HCMC Museum Public Web App running at http://localhost:${portStr}`);
   console.log(`[WEB] Trang chủ: http://localhost:${portStr}/`);
   console.log(`[WEB] Trải nghiệm 3D Digital Twin: http://localhost:${portStr}/3d-experience`);
@@ -90,4 +90,21 @@ app.listen(PORT, HOST, () => {
   console.log(`[WEB] AI Thuyết minh viên: http://localhost:${portStr}/ai-guide`);
   console.log(`[WEB] Trang cá nhân: http://localhost:${portStr}/profile`);
   console.log(`[WEB] Dòng thời gian sống: http://localhost:${portStr}/timeline`);
+});
+
+const handleShutdown = (signal: string): void => {
+  console.log(`\n[WEB] Received ${signal}. Shutting down Web server gracefully...`);
+  server.close(() => {
+    process.exit(0);
+  });
+  setTimeout(() => {
+    process.exit(0);
+  }, 300).unref();
+};
+
+process.on("SIGINT", () => {
+  handleShutdown("SIGINT");
+});
+process.on("SIGTERM", () => {
+  handleShutdown("SIGTERM");
 });
