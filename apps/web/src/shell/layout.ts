@@ -4,44 +4,44 @@ export function renderHeader(): string {
       <div class="max-w-7xl mx-auto glass-nav-cyber rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 flex justify-between items-center border border-amber-500/30 shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
         <!-- Brand Logo & Title -->
         <a id="nav-brand" href="/" class="flex items-center gap-2.5 sm:gap-3 group text-slate-100 hover:text-amber-300 transition-colors">
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-rose-600 p-[1px] shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-rose-600 p-[1px] shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform flex items-center justify-center flex-shrink-0">
             <div class="w-full h-full rounded-[11px] bg-slate-950 flex items-center justify-center font-heading font-black text-amber-400 text-xs sm:text-sm">BT</div>
           </div>
           <div class="flex flex-col text-left">
-            <span class="font-heading font-black text-sm sm:text-lg tracking-tight text-slate-100 group-hover:text-amber-300 transition-colors">BẢO TÀNG LỊCH SỬ TP.HCM</span>
-            <span class="text-[9px] sm:text-[10px] font-mono text-amber-400/90 tracking-widest uppercase">3D Digital Twin Platform</span>
+            <span class="font-heading font-black text-xs sm:text-base xl:text-lg tracking-tight text-slate-100 group-hover:text-amber-300 transition-colors whitespace-nowrap">BẢO TÀNG LỊCH SỬ TP.HCM</span>
+            <span class="text-[8px] sm:text-[10px] font-mono text-amber-400/90 tracking-widest uppercase">3D Digital Twin Platform</span>
           </div>
         </a>
 
-        <!-- Desktop Nav Items -->
-        <nav id="main-nav" class="hidden md:flex gap-1.5 items-center font-sans font-semibold text-sm">
-          <a id="nav-home" href="/" class="text-amber-400 hover:text-amber-300 transition-all px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30">Trang chủ</a>
-          <a id="nav-artifacts" href="/search" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3.5 py-2 rounded-xl">Hiện vật</a>
-          <a id="nav-3d" href="/3d-experience" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3.5 py-2 rounded-xl flex items-center gap-2">
+        <!-- Desktop Nav Items (Visible on XL screens >= 1200px) -->
+        <nav id="main-nav" class="hidden xl:flex gap-1 xl:gap-1.5 items-center font-sans font-semibold text-xs xl:text-sm">
+          <a id="nav-home" href="/" class="text-amber-400 hover:text-amber-300 transition-all px-3 py-1.5 xl:px-3.5 xl:py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 whitespace-nowrap">Trang chủ</a>
+          <a id="nav-artifacts" href="/search" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3 py-1.5 xl:px-3.5 xl:py-2 rounded-xl whitespace-nowrap">Hiện vật</a>
+          <a id="nav-3d" href="/3d-experience" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3 py-1.5 xl:px-3.5 xl:py-2 rounded-xl flex items-center gap-1.5 whitespace-nowrap">
             <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
             Trải nghiệm 3D
           </a>
           <a id="nav-map-3d" href="/3d-experience" class="hidden">Bản đồ 3D</a>
-          <a id="nav-search" href="/search" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3.5 py-2 rounded-xl">Tìm kiếm</a>
-          <a id="nav-ai-guide" href="/ai-guide" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3.5 py-2 rounded-xl">AI Guide</a>
+          <a id="nav-search" href="/search" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3 py-1.5 xl:px-3.5 xl:py-2 rounded-xl whitespace-nowrap">Tìm kiếm</a>
+          <a id="nav-ai-guide" href="/ai-guide" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3 py-1.5 xl:px-3.5 xl:py-2 rounded-xl whitespace-nowrap">AI Guide</a>
           <a id="nav-guide" href="/ai-guide" class="hidden">AI Guide</a>
-          <a id="nav-timeline" href="/timeline" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3.5 py-2 rounded-xl">Dòng thời gian</a>
-          <a id="nav-profile" href="/profile" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3.5 py-2 rounded-xl">Trang cá nhân</a>
+          <a id="nav-timeline" href="/timeline" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3 py-1.5 xl:px-3.5 xl:py-2 rounded-xl whitespace-nowrap">Dòng thời gian</a>
+          <a id="nav-profile" href="/profile" class="text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition-all px-3 py-1.5 xl:px-3.5 xl:py-2 rounded-xl whitespace-nowrap">Trang cá nhân</a>
           
-          <button class="btn-trigger-qr-scanner btn-cyber-gold ml-2 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-500/20">
+          <button class="btn-trigger-qr-scanner btn-cyber-gold ml-2 px-3.5 py-1.5 xl:px-4 xl:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap shadow-lg shadow-amber-500/20">
             <svg class="w-4 h-4 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
             <span>Quét QR</span>
           </button>
         </nav>
 
-        <!-- Mobile Hamburger Toggle Button -->
-        <button id="btn-mobile-hamburger" aria-label="Open Mobile Menu" class="md:hidden p-2 rounded-xl bg-slate-900/80 border border-amber-500/30 text-amber-400 hover:text-amber-300 focus:outline-none flex items-center justify-center">
+        <!-- Mobile & Tablet Hamburger Toggle Button (Visible on screens < 1200px) -->
+        <button id="btn-mobile-hamburger" aria-label="Open Mobile Menu" class="xl:hidden p-2 rounded-xl bg-slate-900/80 border border-amber-500/30 text-amber-400 hover:text-amber-300 focus:outline-none flex items-center justify-center">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
       </div>
 
-      <!-- Full-Screen Slide-In Mobile Hamburger Overlay Drawer -->
-      <div id="mobile-hamburger-overlay" class="md:hidden fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-3xl p-6 flex flex-col justify-between transition-all duration-500 translate-x-full opacity-0 pointer-events-none">
+      <!-- Full-Screen Slide-In Mobile & Tablet Hamburger Overlay Drawer -->
+      <div id="mobile-hamburger-overlay" class="xl:hidden fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-3xl p-6 flex flex-col justify-between transition-all duration-500 translate-x-full opacity-0 pointer-events-none">
         <!-- Top Bar inside Hamburger Drawer -->
         <div class="flex justify-between items-center border-b border-amber-500/20 pb-4">
           <div class="flex items-center gap-3">
@@ -134,8 +134,8 @@ export function renderHeader(): string {
 
 export function renderMobileBottomNav(): string {
   return `
-    <!-- Mobile Bottom Floating Glass Capsule Nav -->
-    <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-4 left-4 right-4 z-50 bg-slate-950/92 backdrop-blur-2xl border border-amber-500/35 rounded-2xl px-3 py-2 flex justify-around items-center text-[10px] font-mono shadow-[0_15px_40px_rgba(0,0,0,0.85)]">
+    <!-- Mobile & Tablet Bottom Floating Glass Capsule Nav -->
+    <nav id="mobile-bottom-nav" class="xl:hidden fixed bottom-4 left-4 right-4 z-50 bg-slate-950/92 backdrop-blur-2xl border border-amber-500/35 rounded-2xl px-3 py-2 flex justify-around items-center text-[10px] font-mono shadow-[0_15px_40px_rgba(0,0,0,0.85)]">
       <a href="/" class="flex flex-col items-center gap-1 text-amber-400 hover:text-amber-300 px-2 py-1">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         <span>Trang chủ</span>
@@ -164,7 +164,7 @@ export function renderMobileBottomNav(): string {
 
 export function renderFooter(): string {
   return `
-    <footer id="main-footer" class="bg-slate-950/90 border-t border-amber-500/20 text-slate-400 py-12 px-4 sm:px-6 mt-auto mb-20 md:mb-0">
+    <footer id="main-footer" class="bg-slate-950/90 border-t border-amber-500/20 text-slate-400 py-12 px-4 sm:px-6 mt-auto mb-20 xl:mb-0">
       <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
         <div>
           <h3 class="font-heading text-lg font-bold text-slate-100 mb-3 flex items-center gap-2">

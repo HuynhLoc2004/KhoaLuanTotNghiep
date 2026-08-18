@@ -34,51 +34,51 @@ export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
       : "";
 
   const html = `
-    <section id="hero-${block.id}" class="cms-hero-section cinematic-scene relative overflow-hidden min-h-[90vh] flex flex-col justify-center items-center py-24 px-6 text-center border-b border-amber-500/20" style="${bgStyle} background-size: cover; background-position: center;">
+    <section id="hero-${block.id}" class="cms-hero-section cinematic-scene relative overflow-hidden min-h-[85vh] sm:min-h-[90vh] flex flex-col justify-center items-center py-12 sm:py-20 md:py-24 px-4 sm:px-6 text-center border-b border-amber-500/20" style="${bgStyle} background-size: cover; background-position: center;">
       ${motifHtml}
 
       <!-- Glowing Orbs & Background Parallax Layer -->
-      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/25 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.3"></div>
-      <div class="absolute -bottom-24 left-1/4 w-80 h-80 bg-rose-600/25 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.15"></div>
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 sm:w-96 sm:h-96 bg-amber-500/25 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.3"></div>
+      <div class="absolute -bottom-24 left-1/4 w-60 h-60 sm:w-80 sm:h-80 bg-rose-600/25 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.15"></div>
 
-      <div class="max-w-5xl mx-auto relative z-10 space-y-6">
+      <div class="max-w-5xl mx-auto relative z-10 space-y-4 sm:space-y-6">
         <!-- Floating Cyber Royal Badge -->
-        <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-amber-500/10 border border-amber-400/50 backdrop-blur-md animate-float-3d shadow-lg shadow-amber-500/10" data-scroll-stagger="1">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-          <span class="text-xs font-serif font-bold text-amber-300 tracking-widest uppercase">Bảo Tàng Lịch Sử TP. Hồ Chí Minh — 3D Cyber Heritage</span>
+        <div class="inline-flex items-center gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full bg-amber-500/10 border border-amber-400/50 backdrop-blur-md animate-float-3d shadow-lg shadow-amber-500/10 max-w-full" data-scroll-stagger="1">
+          <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 animate-ping flex-shrink-0"></span>
+          <span class="text-[10px] sm:text-xs font-serif font-bold text-amber-300 tracking-wider sm:tracking-widest uppercase truncate sm:whitespace-normal">Bảo Tàng Lịch Sử TP. Hồ Chí Minh — 3D Cyber Heritage</span>
         </div>
 
         <!-- Animated Hero Title -->
-        <h1 class="font-heading font-black text-4xl sm:text-6xl md:text-7xl leading-tight gradient-title-cyber tracking-tight drop-shadow-2xl" data-scroll-stagger="2">
+        <h1 class="font-heading font-black text-3xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight sm:leading-tight gradient-title-cyber tracking-tight drop-shadow-2xl px-2 break-words" data-scroll-stagger="2">
           ${block.title}
         </h1>
 
         <!-- Subtitle -->
-        <p class="font-sans text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed" data-scroll-stagger="3">
+        <p class="font-sans text-sm sm:text-lg md:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed px-2" data-scroll-stagger="3">
           ${block.subtitle}
         </p>
 
         <!-- CTA Buttons Row -->
-        <div class="pt-4 flex flex-wrap justify-center items-center gap-4" data-scroll-stagger="4">
+        <div class="pt-4 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 px-4" data-scroll-stagger="4">
           ${ctaHtml}
-          <a href="/3d-experience" class="px-6 py-4 rounded-xl text-base font-semibold text-slate-200 border border-slate-700 bg-slate-900/80 hover:bg-slate-800 hover:border-amber-400/60 transition-all flex items-center gap-2">
+          <a href="/3d-experience" class="w-full sm:w-auto justify-center px-6 py-3.5 sm:py-4 rounded-xl text-sm sm:text-base font-semibold text-slate-200 border border-slate-700 bg-slate-900/80 hover:bg-slate-800 hover:border-amber-400/60 transition-all flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
             <span>Khám phá Digital Twin 3D</span>
           </a>
         </div>
 
         <!-- Heritage Metrics Badges Row -->
-        <div class="pt-8 flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-xs font-mono" data-scroll-stagger="5">
-          <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-amber-500/30 text-amber-300 shadow-md">
+        <div class="pt-6 sm:pt-8 flex flex-wrap justify-center items-center gap-2 sm:gap-4 text-[11px] sm:text-xs font-mono" data-scroll-stagger="5">
+          <div class="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-900/80 border border-amber-500/30 text-amber-300 shadow-md">
             <span>🏛️ 10,000+ Bảo Vật</span>
           </div>
-          <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-cyan-500/30 text-cyan-300 shadow-md">
+          <div class="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-900/80 border border-cyan-500/30 text-cyan-300 shadow-md">
             <span>🌐 Digital Twin 3D</span>
           </div>
-          <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-emerald-500/30 text-emerald-300 shadow-md">
+          <div class="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-900/80 border border-emerald-500/30 text-emerald-300 shadow-md">
             <span>🤖 AI Guide Multilingual</span>
           </div>
-          <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-rose-500/30 text-rose-300 shadow-md">
+          <div class="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-900/80 border border-rose-500/30 text-rose-300 shadow-md">
             <span>⏳ 4000 Năm Di Sản</span>
           </div>
         </div>
