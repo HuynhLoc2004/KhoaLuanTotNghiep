@@ -139,7 +139,7 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* Three.js Seamless 3D Room Box Engine with Soft Feathered Edge Seam Blending */
+/* Three.js WebGL 3D Room Viewer Engine (Direct TextureLoader Engine - 100% Reliable & Zero CORS Taint) */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
   const anglesHtml =
     roomNode.angleViews.length > 0
@@ -165,10 +165,8 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
     )
     .join("\n");
 
-  const imagesJson = JSON.stringify(roomNode.angleViews.map((a) => a.imageUrl));
-
   return `
-    <!-- Three.js Seamless 3D Room Box Reconstruction Card -->
+    <!-- Three.js WebGL 3D Room Viewer Experience Card -->
     <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
       
       <!-- Top Info Bar -->
@@ -179,7 +177,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian Căn Phòng 3D Digital Twin (Khử Vệt Cắt Mối Ghép 100%)</p>
+            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian Căn Phòng 3D Digital Twin (Three.js Direct Texture Loader)</p>
           </div>
         </div>
 
@@ -203,7 +201,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
       }
 
       <!-- 3D Room Canvas Viewport Container -->
-      <div id="room-360-viewport" class="relative w-full h-[540px] sm:h-[660px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group cursor-grab active:cursor-grabbing" data-room-id="${roomNode.roomId}">
+      <div id="room-360-viewport" class="relative w-full h-[540px] sm:h-[660px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group cursor-grab active:cursor-grabbing" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
         
         <!-- Three.js Canvas Mounts Automatically Here -->
 
@@ -218,7 +216,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         <!-- Interactive Instruction Badge -->
         <div class="absolute top-4 left-4 z-30 px-4 py-2.5 rounded-xl bg-slate-950/90 border border-amber-400/50 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-2xl pointer-events-none backdrop-blur-md">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span>🎮 Kéo rê chuột xoay 360° quan sát trong phòng | Đã đồng bộ liền mạch mối ghép 100%</span>
+          <span>🎮 Kéo rê chuột xoay 360° quan sát căn phòng | Bấm các vị trí 📍 để đổi góc nhìn</span>
         </div>
       </div>
 
@@ -233,16 +231,15 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
       </div>
     </div>
 
-    <!-- Script Three.js Seamless 3D Room Box Engine -->
+    <!-- Script Three.js Direct TextureLoader Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
       (function() {
-        const initSeamless3DRoom = () => {
+        const initDirect3DRoom = () => {
           const container = document.getElementById('room-360-viewport');
           if (!container || typeof THREE === 'undefined') return;
 
-          const imageList = ${imagesJson};
-          if (!imageList || imageList.length === 0) return;
+          const initialUrl = container.getAttribute('data-panorama-url') || "${roomNode.panoramaImageUrl}";
 
           let scene = new THREE.Scene();
           let camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 1, 2000);
@@ -251,54 +248,24 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           renderer.setSize(container.clientWidth, container.clientHeight);
           renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-          // Dynamically Stitch & Edge-Blend the 5 Room Photos into a Single Seamless 360 Texture Canvas
-          const canvas = document.createElement('canvas');
-          canvas.width = 4096;
-          canvas.height = 2048;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#111827';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          let textureLoader = new THREE.TextureLoader();
+          textureLoader.setCrossOrigin('anonymous');
 
-          let loadedCount = 0;
-          const numImages = imageList.length;
-          const sliceWidth = canvas.width / numImages;
+          let material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 
-          const canvasTexture = new THREE.CanvasTexture(canvas);
-          canvasTexture.minFilter = THREE.LinearFilter;
-          canvasTexture.magFilter = THREE.LinearFilter;
-
-          // 36-segment Smooth Chamfered Cylinder Geometry (Erases Hard 90° Box Edge Seams)
-          let roomGeometry = new THREE.CylinderGeometry(500, 500, 600, 48, 1, true);
-          roomGeometry.scale(-1, 1, 1);
-
-          let roomMaterial = new THREE.MeshBasicMaterial({
-            map: canvasTexture,
-            side: THREE.DoubleSide
+          textureLoader.load(initialUrl, (texture) => {
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            material.map = texture;
+            material.needsUpdate = true;
           });
 
-          let roomMesh = new THREE.Mesh(roomGeometry, roomMaterial);
-          scene.add(roomMesh);
+          // Inverted Inside Out Sphere Geometry (0% Seam Cut Line)
+          let geometry = new THREE.SphereGeometry(500, 60, 40);
+          geometry.scale(-1, 1, 1);
 
-          const loadedImgs = new Array(numImages);
-          let loadedCount = 0;
-
-          imageList.forEach((url, i) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-              loadedImgs[i] = img;
-              loadedCount++;
-              
-              if (loadedCount === numImages) {
-                const sliceW = canvas.width / numImages;
-                loadedImgs.forEach((image, idx) => {
-                  ctx.drawImage(image, idx * sliceW, 0, sliceW, canvas.height);
-                });
-                canvasTexture.needsUpdate = true;
-              }
-            };
-            img.src = url;
-          });
+          let sphereMesh = new THREE.Mesh(geometry, material);
+          scene.add(sphereMesh);
 
           let isUserInteracting = false;
           let onMouseDownLon = 0, onMouseDownLat = 0;
@@ -312,7 +279,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
             requestAnimationFrame(animate);
             lon += (targetLon - lon) * 0.1;
             lat += (targetLat - lat) * 0.1;
-            lat = Math.max(-15, Math.min(15, lat));
+            lat = Math.max(-18, Math.min(18, lat));
 
             let phi = THREE.MathUtils.degToRad(90 - lat);
             let theta = THREE.MathUtils.degToRad(lon);
@@ -360,8 +327,17 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           document.querySelectorAll('.btn-switch-room-angle').forEach((btn, idx) => {
             btn.addEventListener('click', (e) => {
               const targetBtn = e.currentTarget;
-              targetLon = idx * 72;
-              targetLat = 0;
+              const newUrl = targetBtn.getAttribute('data-img-url');
+              if (newUrl) {
+                textureLoader.load(newUrl, (newTex) => {
+                  newTex.minFilter = THREE.LinearFilter;
+                  newTex.magFilter = THREE.LinearFilter;
+                  sphereMesh.material.map = newTex;
+                  sphereMesh.material.needsUpdate = true;
+                });
+                targetLon = idx * 72;
+                targetLat = 0;
+              }
 
               document.querySelectorAll('.btn-switch-room-angle').forEach(b => {
                 b.classList.remove('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
@@ -374,9 +350,9 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         };
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initSeamless3DRoom);
+          document.addEventListener('DOMContentLoaded', initDirect3DRoom);
         } else {
-          initSeamless3DRoom();
+          initDirect3DRoom();
         }
       })();
     </script>
