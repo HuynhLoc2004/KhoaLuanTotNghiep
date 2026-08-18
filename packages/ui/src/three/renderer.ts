@@ -290,34 +290,10 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
               loadedCount++;
               
               if (loadedCount === numImages) {
-                // Stitch all images with 150px Multi-Band Alpha Gradient Cross-Blending
-                const overlap = 140;
-                const effectiveWidth = (canvas.width + (numImages - 1) * overlap) / numImages;
-
+                const sliceW = canvas.width / numImages;
                 loadedImgs.forEach((image, idx) => {
-                  const xPos = idx * (effectiveWidth - overlap);
-
-                  // Create offscreen alpha-blended canvas slice
-                  const sliceCanvas = document.createElement('canvas');
-                  sliceCanvas.width = effectiveWidth;
-                  sliceCanvas.height = canvas.height;
-                  const sctx = sliceCanvas.getContext('2d');
-
-                  sctx.drawImage(image, 0, 0, effectiveWidth, canvas.height);
-
-                  // Feather left edge if not first image
-                  if (idx > 0) {
-                    const leftGrad = sctx.createLinearGradient(0, 0, overlap, 0);
-                    leftGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-                    leftGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
-                    sctx.globalCompositeOperation = 'destination-in';
-                    sctx.fillStyle = leftGrad;
-                    sctx.fillRect(0, 0, overlap, canvas.height);
-                  }
-
-                  ctx.drawImage(sliceCanvas, xPos, 0);
+                  ctx.drawImage(image, idx * sliceW, 0, sliceW, canvas.height);
                 });
-
                 canvasTexture.needsUpdate = true;
               }
             };
