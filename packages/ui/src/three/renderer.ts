@@ -139,7 +139,7 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* 360° Spherical Panoramic Room Viewer Engine with Seamless Alpha Feathering Blend */
+/* Three.js WebGL 3D Room Simulator Engine (Zero Seam Cut Spherical Mesh + Gold Dust Ambient Particles) */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
   const anglesHtml =
     roomNode.angleViews.length > 0
@@ -166,7 +166,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
     .join("\n");
 
   return `
-    <!-- 360° Spherical Panoramic Room Viewer Component (Seamless Alpha Feathered Projection) -->
+    <!-- Three.js WebGL 3D Room Virtual Experience Simulator (Zero Seam Line Spherical Mesh) -->
     <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
       
       <!-- Top Info Bar -->
@@ -177,7 +177,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Mô Phỏng Căn Phòng 360° Xoay Xung Quanh Chân Thực Kín Khít (Tầng ${String(roomNode.floorLevel)})</p>
+            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian 3D Virtual Room Explorer (Tầng ${String(roomNode.floorLevel)})</p>
           </div>
         </div>
 
@@ -200,15 +200,9 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           : ""
       }
 
-      <!-- 360 Panorama Spherical Canvas Viewport Stage -->
+      <!-- 360 WebGL 3D Room Viewport Stage -->
       <div id="room-360-viewport" class="relative w-full h-[480px] sm:h-[580px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
         
-        <!-- Interactive 360 Equirectangular Projection Canvas -->
-        <canvas id="room-360-canvas" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 block"></canvas>
-
-        <!-- Fallback Image Backdrop -->
-        <img id="room-360-active-img" src="${roomNode.panoramaImageUrl}" alt="${roomNode.roomName}" class="hidden" />
-
         <!-- Ambient Vignette & Lighting Mask -->
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/30 pointer-events-none z-20"></div>
 
@@ -220,7 +214,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         <!-- Interactive 360 Controls Hint Overlay -->
         <div class="absolute top-4 left-4 z-30 px-3.5 py-2 rounded-xl bg-slate-950/90 border border-amber-500/40 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-xl pointer-events-none">
           <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-          <span>🖱️ Kéo rê chuột / Tay vuốt để xoay 360° toàn căn phòng kín khít | 🔍 Cuộn chuột để zoom HD</span>
+          <span>🖱️ Kéo rê chuột / Tay vuốt để di chuyển góc nhìn 360° | 🔍 Cuộn chuột để zoom HD</span>
         </div>
       </div>
 
@@ -235,159 +229,136 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
       </div>
     </div>
 
-    <!-- Script Renderer Chuyên Dụng Cho 360° Spherical Panoramic Canvas Với Khử Vết Gắn -->
+    <!-- Script WebGL Three.js 3D Room Simulator Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
       (function() {
-        const init360Viewer = () => {
-          const canvas = document.getElementById('room-360-canvas');
-          if (!canvas) return;
-          const ctx = canvas.getContext('2d');
+        const initThreeDViewer = () => {
+          const container = document.getElementById('room-360-viewport');
+          if (!container || typeof THREE === 'undefined') return;
+
+          let scene = new THREE.Scene();
+          let camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 1, 1100);
           
-          let img = new Image();
-          img.crossOrigin = "Anonymous";
+          let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          renderer.setSize(container.clientWidth, container.clientHeight);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-          let bufferCanvas = document.createElement('canvas');
-          let bufferCtx = bufferCanvas.getContext('2d');
-          let bufferReady = false;
+          // 3D Sphere Geometry Inverted Inside Out (Zero Seam Cut Line)
+          let geometry = new THREE.SphereGeometry(500, 60, 40);
+          geometry.scale(-1, 1, 1);
+
+          let textureLoader = new THREE.TextureLoader();
+          textureLoader.setCrossOrigin('anonymous');
           
-          let isDragging = false;
-          let startX = 0, startY = 0;
-          let yaw = 0;
-          let pitch = 0;
-          let zoom = 1.0;
+          let initialUrl = "${roomNode.panoramaImageUrl}";
+          let material = new THREE.MeshBasicMaterial();
+          
+          textureLoader.load(initialUrl, (texture) => {
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            material.map = texture;
+            material.needsUpdate = true;
+          });
 
-          function prepareSeamlessBuffer() {
-            if (!img.complete || img.naturalWidth === 0 || !bufferCtx) return;
-            const imgW = img.naturalWidth;
-            const imgH = img.naturalHeight;
-            bufferCanvas.width = imgW;
-            bufferCanvas.height = imgH;
-            
-            bufferCtx.drawImage(img, 0, 0);
+          let sphere = new THREE.Mesh(geometry, material);
+          scene.add(sphere);
 
-            // Blend 6% right edge with 6% left edge for 100% invisible seam line
-            const blendW = Math.floor(imgW * 0.06);
-            let tempCanvas = document.createElement('canvas');
-            tempCanvas.width = blendW;
-            tempCanvas.height = imgH;
-            let tempCtx = tempCanvas.getContext('2d');
-            if (tempCtx) {
-              tempCtx.drawImage(img, 0, 0, blendW, imgH, 0, 0, blendW, imgH);
-              bufferCtx.save();
-              bufferCtx.globalAlpha = 0.5;
-              bufferCtx.drawImage(tempCanvas, 0, 0, blendW, imgH, imgW - blendW, 0, blendW, imgH);
-              bufferCtx.restore();
-            }
-            bufferReady = true;
+          // Ambient Floating Gold Particle Dust
+          let particlesGeo = new THREE.BufferGeometry();
+          let count = 300;
+          let posArray = new Float32Array(count * 3);
+          for (let i = 0; i < count * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 450;
           }
-          
-          function resizeCanvas() {
-            if (!canvas.parentElement) return;
-            canvas.width = canvas.parentElement.clientWidth || 800;
-            canvas.height = canvas.parentElement.clientHeight || 500;
-            draw();
+          particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+          let particlesMat = new THREE.PointsMaterial({
+            size: 2.2,
+            color: 0xf59e0b,
+            transparent: true,
+            opacity: 0.6
+          });
+          let particlesMesh = new THREE.Points(particlesGeo, particlesMat);
+          scene.add(particlesMesh);
+
+          // Camera Viewport Angles
+          let isUserInteracting = false;
+          let onMouseDownLon = 0, onMouseDownLat = 0;
+          let lon = 0, lat = 0;
+          let targetLon = 0, targetLat = 0;
+
+          renderer.domElement.className = "absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 block";
+          container.appendChild(renderer.domElement);
+
+          function animate() {
+            requestAnimationFrame(animate);
+            lon += (targetLon - lon) * 0.1;
+            lat += (targetLat - lat) * 0.1;
+            lat = Math.max(-85, Math.min(85, lat));
+
+            let phi = THREE.MathUtils.degToRad(90 - lat);
+            let theta = THREE.MathUtils.degToRad(lon);
+
+            let targetX = 500 * Math.sin(phi) * Math.cos(theta);
+            let targetY = 500 * Math.cos(phi);
+            let targetZ = 500 * Math.sin(phi) * Math.sin(theta);
+
+            camera.lookAt(targetX, targetY, targetZ);
+            particlesMesh.rotation.y += 0.0008;
+
+            renderer.render(scene, camera);
           }
-          
-          function draw() {
-            if (!ctx || !img.complete || img.naturalWidth === 0) return;
-            const w = canvas.width;
-            const h = canvas.height;
-            ctx.clearRect(0, 0, w, h);
-            
-            const activeSource = bufferReady ? bufferCanvas : img;
-            const imgW = activeSource.width || img.naturalWidth;
-            const imgH = activeSource.height || img.naturalHeight;
-            
-            let visibleW = (imgW / 2.2) / zoom;
-            let visibleH = (imgH / 1.6) / zoom;
-            let sourceX = ((yaw % 360 + 360) % 360) / 360 * imgW;
-            let sourceY = Math.max(0, Math.min(imgH - visibleH, (imgH / 2 - visibleH / 2) - (pitch / 90) * (imgH / 3)));
-            
-            try {
-              if (sourceX + visibleW <= imgW) {
-                ctx.drawImage(activeSource, sourceX, sourceY, visibleW, visibleH, 0, 0, w, h);
-              } else {
-                let firstW = imgW - sourceX;
-                let drawnFirstW = (firstW / visibleW) * w;
-                ctx.drawImage(activeSource, sourceX, sourceY, firstW, visibleH, 0, 0, drawnFirstW + 1, h);
-                let secondW = visibleW - firstW;
-                ctx.drawImage(activeSource, 0, sourceY, secondW, visibleH, drawnFirstW, 0, w - drawnFirstW + 1, h);
-              }
-            } catch (err) {
-              console.error(err);
-            }
+          animate();
+
+          function onResize() {
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
           }
-          
-          img.onload = () => {
-            prepareSeamlessBuffer();
-            draw();
-          };
-          img.src = "${roomNode.panoramaImageUrl}";
-          
-          window.addEventListener('resize', resizeCanvas);
-          setTimeout(resizeCanvas, 100);
-          
-          canvas.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-          });
-          
-          window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            let dx = e.clientX - startX;
-            let dy = e.clientY - startY;
-            startX = e.clientX;
-            startY = e.clientY;
-            
-            yaw -= dx * 0.25;
-            pitch += dy * 0.15;
-            pitch = Math.max(-45, Math.min(45, pitch));
-            draw();
-          });
-          
-          window.addEventListener('mouseup', () => { isDragging = false; });
+          window.addEventListener('resize', onResize);
 
-          canvas.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-              isDragging = true;
-              startX = e.touches[0].clientX;
-              startY = e.touches[0].clientY;
-            }
+          container.addEventListener('pointerdown', (e) => {
+            isUserInteracting = true;
+            onMouseDownLon = e.clientX;
+            onMouseDownLat = e.clientY;
           });
 
-          window.addEventListener('touchmove', (e) => {
-            if (!isDragging || e.touches.length !== 1) return;
-            let dx = e.touches[0].clientX - startX;
-            let dy = e.touches[0].clientY - startY;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            
-            yaw -= dx * 0.3;
-            pitch += dy * 0.2;
-            pitch = Math.max(-45, Math.min(45, pitch));
-            draw();
+          window.addEventListener('pointermove', (e) => {
+            if (!isUserInteracting) return;
+            targetLon = (onMouseDownLon - e.clientX) * 0.25 + lon;
+            targetLat = (e.clientY - onMouseDownLat) * 0.2 + lat;
+            onMouseDownLon = e.clientX;
+            onMouseDownLat = e.clientY;
           });
 
-          window.addEventListener('touchend', () => { isDragging = false; });
-          
-          canvas.addEventListener('wheel', (e) => {
+          window.addEventListener('pointerup', () => {
+            isUserInteracting = false;
+          });
+
+          container.addEventListener('wheel', (e) => {
             e.preventDefault();
-            zoom += e.deltaY * -0.0015;
-            zoom = Math.max(0.8, Math.min(2.8, zoom));
-            draw();
+            camera.fov += e.deltaY * 0.05;
+            camera.fov = Math.max(30, Math.min(95, camera.fov));
+            camera.updateProjectionMatrix();
           }, { passive: false });
-          
-          document.querySelectorAll('.btn-switch-room-angle').forEach(btn => {
+
+          // Smooth Walkthrough Camera Angle Switch
+          document.querySelectorAll('.btn-switch-room-angle').forEach((btn, idx) => {
             btn.addEventListener('click', (e) => {
               const targetBtn = e.currentTarget;
               const newUrl = targetBtn.getAttribute('data-img-url');
               if (newUrl) {
-                bufferReady = false;
-                img.src = newUrl;
-                yaw = 0;
-                pitch = 0;
+                textureLoader.load(newUrl, (newTex) => {
+                  newTex.minFilter = THREE.LinearFilter;
+                  newTex.magFilter = THREE.LinearFilter;
+                  sphere.material.map = newTex;
+                  sphere.material.needsUpdate = true;
+                });
+                targetLon = idx * 120;
+                targetLat = 0;
               }
+
               document.querySelectorAll('.btn-switch-room-angle').forEach(b => {
                 b.classList.remove('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
                 b.classList.add('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
@@ -399,9 +370,9 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         };
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', init360Viewer);
+          document.addEventListener('DOMContentLoaded', initThreeDViewer);
         } else {
-          init360Viewer();
+          initThreeDViewer();
         }
       })();
     </script>
