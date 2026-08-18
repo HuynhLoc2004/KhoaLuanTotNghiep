@@ -9,8 +9,8 @@ import type {
 
 export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
   const bgStyle = block.backgroundImageUrl
-    ? `background-image: linear-gradient(180deg, rgba(3, 7, 18, 0.6) 0%, rgba(3, 7, 18, 0.95) 100%), url('${block.backgroundImageUrl}');`
-    : `background: linear-gradient(135deg, rgba(159, 18, 57, 0.3) 0%, rgba(3, 7, 18, 0.95) 100%);`;
+    ? `background-image: linear-gradient(180deg, rgba(3, 7, 18, 0.65) 0%, rgba(3, 7, 18, 0.98) 100%), url('${block.backgroundImageUrl}');`
+    : `background: linear-gradient(135deg, rgba(159, 18, 57, 0.35) 0%, rgba(3, 7, 18, 0.98) 100%);`;
 
   const ctaHtml = block.ctaText
     ? `<a id="hero-cta-btn" href="${block.ctaLink ?? "/3d-experience"}" class="btn-cyber-gold px-8 py-4 rounded-xl text-base inline-flex items-center gap-3 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/50">
@@ -20,30 +20,30 @@ export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
     : "";
 
   const html = `
-    <section id="hero-${block.id}" class="cms-hero-section relative overflow-hidden py-24 px-6 text-center border-b border-amber-500/20" style="${bgStyle} background-size: cover; background-position: center;">
-      <!-- Glowing Orbs Background -->
-      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -bottom-24 left-1/4 w-80 h-80 bg-rose-600/15 rounded-full blur-3xl pointer-events-none"></div>
+    <section id="hero-${block.id}" class="cms-hero-section cinematic-scene relative overflow-hidden min-h-[85vh] flex flex-col justify-center items-center py-20 px-6 text-center border-b border-amber-500/20" style="${bgStyle} background-size: cover; background-position: center;">
+      <!-- Glowing Orbs & Background Parallax Layer -->
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.3"></div>
+      <div class="absolute -bottom-24 left-1/4 w-80 h-80 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.15"></div>
 
       <div class="max-w-5xl mx-auto relative z-10 space-y-6">
         <!-- Floating Cyber Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-400/40 backdrop-blur-md animate-float-3d">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-400/40 backdrop-blur-md animate-float-3d" data-scroll-stagger="1">
           <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
           <span class="text-xs font-mono font-bold text-amber-300 tracking-widest uppercase">Nền Tảng Bảo Tàng Số 3D Thế Hệ Mới</span>
         </div>
 
         <!-- Animated Hero Title -->
-        <h1 class="font-heading font-black text-4xl sm:text-6xl md:text-7xl leading-tight gradient-title-cyber tracking-tight drop-shadow-2xl">
+        <h1 class="font-heading font-black text-4xl sm:text-6xl md:text-7xl leading-tight gradient-title-cyber tracking-tight drop-shadow-2xl" data-scroll-stagger="2">
           ${block.title}
         </h1>
 
         <!-- Subtitle -->
-        <p class="font-sans text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+        <p class="font-sans text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed" data-scroll-stagger="3">
           ${block.subtitle}
         </p>
 
         <!-- CTA Buttons Row -->
-        <div class="pt-4 flex flex-wrap justify-center items-center gap-4">
+        <div class="pt-4 flex flex-wrap justify-center items-center gap-4" data-scroll-stagger="4">
           ${ctaHtml}
           <a href="/3d-experience" class="px-6 py-4 rounded-xl text-base font-semibold text-slate-200 border border-slate-700 bg-slate-900/80 hover:bg-slate-800 hover:border-amber-400/60 transition-all flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -67,11 +67,11 @@ export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
 
 export function renderArtifactGridBlock(block: CmsArtifactGridBlock): CmsRenderedBlock {
   const subtitleHtml = block.subtitle
-    ? `<p class="text-slate-400 text-center max-w-2xl mx-auto mb-12 text-base">${block.subtitle}</p>`
+    ? `<p class="text-slate-400 text-center max-w-2xl mx-auto mb-12 text-base" data-scroll-stagger="2">${block.subtitle}</p>`
     : "";
 
   const cardsHtml = block.artifacts
-    .map((art) => {
+    .map((art, idx) => {
       const badge3d = art.is3dAvailable
         ? `<span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center gap-1.5 animate-pulse">
             <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> 3D Ready
@@ -79,7 +79,7 @@ export function renderArtifactGridBlock(block: CmsArtifactGridBlock): CmsRendere
         : `<span class="px-3 py-1 rounded-full text-xs font-mono text-slate-400 bg-slate-800/60 border border-slate-700">2D Media</span>`;
 
       return `
-        <article id="artifact-card-${art.id}" class="glass-futuristic rounded-2xl p-6 flex flex-col justify-between group">
+        <article id="artifact-card-${art.id}" class="glass-futuristic rounded-2xl p-6 flex flex-col justify-between group" data-scroll-stagger="${String(idx + 1)}">
           <div>
             <div class="flex justify-between items-center mb-4">
               <span class="text-xs font-mono font-semibold tracking-wider text-amber-400 uppercase bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">${art.category}</span>
@@ -103,9 +103,9 @@ export function renderArtifactGridBlock(block: CmsArtifactGridBlock): CmsRendere
     .join("\n");
 
   const html = `
-    <section id="artifact-grid-${block.id}" class="py-16 px-6 max-w-7xl mx-auto">
+    <section id="artifact-grid-${block.id}" class="cinematic-scene py-20 px-6 max-w-7xl mx-auto">
       <div class="text-center mb-10">
-        <h2 class="font-heading font-black text-3xl sm:text-4xl text-slate-100 mb-3">${block.title}</h2>
+        <h2 class="font-heading font-black text-3xl sm:text-4xl text-slate-100 mb-3" data-scroll-stagger="1">${block.title}</h2>
         ${subtitleHtml}
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -128,8 +128,8 @@ export function renderArtifactGridBlock(block: CmsArtifactGridBlock): CmsRendere
 export function renderTimelinePreviewBlock(block: CmsTimelinePreviewBlock): CmsRenderedBlock {
   const eventsHtml = block.events
     .map(
-      (ev) => `
-      <div class="glass-futuristic rounded-xl p-5 border-amber-500/20 flex flex-col justify-between">
+      (ev, idx) => `
+      <div class="glass-futuristic rounded-xl p-5 border-amber-500/20 flex flex-col justify-between" data-scroll-stagger="${String(idx + 1)}">
         <div>
           <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">${ev.year}</span>
           <h4 class="font-heading font-bold text-lg text-slate-100 mt-3 mb-1">${ev.title}</h4>
@@ -141,10 +141,10 @@ export function renderTimelinePreviewBlock(block: CmsTimelinePreviewBlock): CmsR
     .join("\n");
 
   const html = `
-    <section id="timeline-preview-${block.id}" class="py-16 px-6 max-w-7xl mx-auto space-y-8">
+    <section id="timeline-preview-${block.id}" class="cinematic-scene py-20 px-6 max-w-7xl mx-auto space-y-8">
       <div class="text-center border-b border-amber-500/20 pb-6">
-        <span class="text-xs font-mono font-bold tracking-widest text-amber-400 uppercase">Dòng Thời Gian Tương Tác</span>
-        <h2 class="font-heading font-black text-3xl sm:text-4xl text-slate-100 mt-2">${block.title}</h2>
+        <span class="text-xs font-mono font-bold tracking-widest text-amber-400 uppercase" data-scroll-stagger="1">Dòng Thời Gian Tương Tác</span>
+        <h2 class="font-heading font-black text-3xl sm:text-4xl text-slate-100 mt-2" data-scroll-stagger="2">${block.title}</h2>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         ${eventsHtml}
@@ -165,7 +165,7 @@ export function renderTimelinePreviewBlock(block: CmsTimelinePreviewBlock): CmsR
 
 export function renderBannerBlock(block: CmsBannerBlock): CmsRenderedBlock {
   const html = `
-    <div id="banner-${block.id}" class="py-4 px-6 bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-cyan-500/20 border-y border-amber-500/30 text-center font-sans backdrop-blur-md">
+    <div id="banner-${block.id}" class="cinematic-scene py-5 px-6 bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-cyan-500/20 border-y border-amber-500/30 text-center font-sans backdrop-blur-md">
       <div class="max-w-5xl mx-auto flex items-center justify-center gap-3">
         <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
         <span class="font-heading font-bold text-amber-300 text-sm">${block.title}:</span>
