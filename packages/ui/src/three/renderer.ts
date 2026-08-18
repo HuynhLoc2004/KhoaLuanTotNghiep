@@ -139,14 +139,14 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* Zero-Distortion High-Definition Interactive Room Experience Stage Engine */
+/* Continuous Cylindrical 360° Room Walkthrough Engine (Zero Vertical Distortion, 100% Upright Straight Walls) */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
   const anglesHtml =
     roomNode.angleViews.length > 0
       ? roomNode.angleViews
           .map(
             (angle, idx) => `
-          <button class="btn-switch-room-angle px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${idx === 0 ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-img-url="${angle.imageUrl}" data-angle-id="${angle.angleId}">
+          <button class="btn-switch-room-angle px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${idx === 0 ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-img-url="${angle.imageUrl}" data-angle-id="${angle.angleId}" data-angle-index="${String(idx)}">
             📍 ${angle.angleLabel}
           </button>
         `,
@@ -166,7 +166,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
     .join("\n");
 
   return `
-    <!-- High-Definition Zero-Distortion Interactive Room Viewer Stage -->
+    <!-- High-Definition Continuous Cylindrical Room Walkthrough Card -->
     <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
       
       <!-- Top Info Bar -->
@@ -177,7 +177,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian Phòng Trưng Bày Thực Tế Sắc Nét HD (Tầng ${String(roomNode.floorLevel)})</p>
+            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian Trực Quan Tham Quan Căn Phòng (Tầng ${String(roomNode.floorLevel)})</p>
           </div>
         </div>
 
@@ -188,38 +188,35 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         </div>
       </div>
 
-      <!-- Admin Multi-Angle Viewpoint Selector Bar -->
+      <!-- Viewpoint Selector Bar -->
       ${
         anglesHtml
           ? `<div class="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30">
         <span class="text-xs font-mono font-bold text-amber-400 mr-2 flex items-center gap-1.5">
-          <span>📷</span> Vị trí điểm đứng trong phòng (Admin cung cấp):
+          <span>📷</span> Vị trí điểm đứng trong phòng:
         </span>
         ${anglesHtml}
       </div>`
           : ""
       }
 
-      <!-- Zero-Distortion Viewport Stage Stage -->
-      <div id="room-360-viewport" class="relative w-full h-[500px] sm:h-[620px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
+      <!-- Cylindrical WebGL 3D Room Viewport -->
+      <div id="room-360-viewport" class="relative w-full h-[520px] sm:h-[640px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
         
-        <!-- Interactive Distortion-Free Image Stage -->
-        <div id="room-flat-stage" class="relative w-full h-full flex items-center justify-center overflow-hidden bg-slate-950 cursor-grab active:cursor-grabbing">
-          <img id="room-flat-img" src="${roomNode.panoramaImageUrl}" alt="${roomNode.roomName}" class="w-full h-full object-cover sm:object-contain transition-transform duration-200 select-none pointer-events-none drop-shadow-2xl" style="transform: scale(1) translate(0px, 0px);" />
-        </div>
+        <!-- WebGL Cylinder Canvas Mounting Point -->
 
-        <!-- Ambient Vignette & Lighting Mask -->
+        <!-- Ambient Vignette Overlay -->
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20 pointer-events-none z-20"></div>
 
-        <!-- Directional Floor Navigation Arrows (Google Maps Street View style) -->
+        <!-- Directional Navigation Arrows -->
         <div class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-wrap justify-center items-center gap-3 z-30 max-w-full px-4">
           ${navArrowsHtml}
         </div>
 
-        <!-- Interactive Controls Hint Overlay -->
+        <!-- Hint Overlay -->
         <div class="absolute top-4 left-4 z-30 px-3.5 py-2 rounded-xl bg-slate-950/90 border border-amber-500/40 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-xl pointer-events-none">
-          <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-          <span>🖱️ Kéo rê chuột để di chuyển góc nhìn thẳng | 🔍 Cuộn chuột để phóng to cận cảnh HD</span>
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+          <span>🖱️ Kéo rê chuột xoay 360° toàn cảnh phòng | 🔍 Cuộn chuột thu phóng HD</span>
         </div>
       </div>
 
@@ -234,75 +231,111 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
       </div>
     </div>
 
-    <!-- Script Interactive Pan/Zoom Cho Khung Nhìn Thẳng Sắc Nét -->
+    <!-- Script WebGL Cylinder 360° Room Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
       (function() {
-        const initStageViewer = () => {
-          const stage = document.getElementById('room-flat-stage');
-          const img = document.getElementById('room-flat-img');
-          if (!stage || !img) return;
+        const initCylinderViewer = () => {
+          const container = document.getElementById('room-360-viewport');
+          if (!container || typeof THREE === 'undefined') return;
 
-          let isDragging = false;
-          let startX = 0, startY = 0;
-          let posX = 0, posY = 0;
-          let scale = 1.0;
+          let scene = new THREE.Scene();
+          let camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 1, 1100);
+          
+          let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          renderer.setSize(container.clientWidth, container.clientHeight);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-          function updateTransform() {
-            img.style.transform = "scale(" + scale + ") translate(" + posX + "px, " + posY + "px)";
+          // 3D Cylinder Geometry Inverted Inside Out (Vertical Walls 100% Upright & Straight)
+          let geometry = new THREE.CylinderGeometry(500, 500, 600, 60, 1, true);
+          geometry.scale(-1, 1, 1);
+
+          let textureLoader = new THREE.TextureLoader();
+          textureLoader.setCrossOrigin('anonymous');
+          
+          let initialUrl = "${roomNode.panoramaImageUrl}";
+          let material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+          
+          textureLoader.load(initialUrl, (texture) => {
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            material.map = texture;
+            material.needsUpdate = true;
+          });
+
+          let cylinder = new THREE.Mesh(geometry, material);
+          scene.add(cylinder);
+
+          let isUserInteracting = false;
+          let onMouseDownLon = 0, onMouseDownLat = 0;
+          let lon = 0, lat = 0;
+          let targetLon = 0, targetLat = 0;
+
+          renderer.domElement.className = "absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 block";
+          container.appendChild(renderer.domElement);
+
+          function animate() {
+            requestAnimationFrame(animate);
+            lon += (targetLon - lon) * 0.1;
+            lat += (targetLat - lat) * 0.1;
+            lat = Math.max(-10, Math.min(10, lat));
+
+            let phi = THREE.MathUtils.degToRad(90 - lat);
+            let theta = THREE.MathUtils.degToRad(lon);
+
+            let targetX = 500 * Math.sin(phi) * Math.cos(theta);
+            let targetY = 500 * Math.cos(phi);
+            let targetZ = 500 * Math.sin(phi) * Math.sin(theta);
+
+            camera.lookAt(targetX, targetY, targetZ);
+            renderer.render(scene, camera);
           }
+          animate();
 
-          stage.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX - posX;
-            startY = e.clientY - posY;
+          function onResize() {
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+          }
+          window.addEventListener('resize', onResize);
+
+          container.addEventListener('pointerdown', (e) => {
+            isUserInteracting = true;
+            onMouseDownLon = e.clientX;
+            onMouseDownLat = e.clientY;
           });
 
-          window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            posX = e.clientX - startX;
-            posY = e.clientY - startY;
-            updateTransform();
+          window.addEventListener('pointermove', (e) => {
+            if (!isUserInteracting) return;
+            targetLon = (onMouseDownLon - e.clientX) * 0.2 + lon;
+            targetLat = (e.clientY - onMouseDownLat) * 0.15 + lat;
+            onMouseDownLon = e.clientX;
+            onMouseDownLat = e.clientY;
           });
 
-          window.addEventListener('mouseup', () => { isDragging = false; });
+          window.addEventListener('pointerup', () => { isUserInteracting = false; });
 
-          stage.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-              isDragging = true;
-              startX = e.touches[0].clientX - posX;
-              startY = e.touches[0].clientY - posY;
-            }
-          });
-
-          window.addEventListener('touchmove', (e) => {
-            if (!isDragging || e.touches.length !== 1) return;
-            posX = e.touches[0].clientX - startX;
-            posY = e.touches[0].clientY - startY;
-            updateTransform();
-          });
-
-          window.addEventListener('touchend', () => { isDragging = false; });
-
-          stage.addEventListener('wheel', (e) => {
+          container.addEventListener('wheel', (e) => {
             e.preventDefault();
-            scale += e.deltaY * -0.002;
-            scale = Math.max(1.0, Math.min(3.5, scale));
-            if (scale === 1.0) { posX = 0; posY = 0; }
-            updateTransform();
+            camera.fov += e.deltaY * 0.05;
+            camera.fov = Math.max(35, Math.min(80, camera.fov));
+            camera.updateProjectionMatrix();
           }, { passive: false });
 
-          document.querySelectorAll('.btn-switch-room-angle').forEach(btn => {
+          document.querySelectorAll('.btn-switch-room-angle').forEach((btn, idx) => {
             btn.addEventListener('click', (e) => {
               const targetBtn = e.currentTarget;
               const newUrl = targetBtn.getAttribute('data-img-url');
               if (newUrl) {
-                img.style.opacity = '0.3';
-                setTimeout(() => {
-                  img.src = newUrl;
-                  posX = 0; posY = 0; scale = 1.0;
-                  updateTransform();
-                  img.style.opacity = '1';
-                }, 150);
+                textureLoader.load(newUrl, (newTex) => {
+                  newTex.minFilter = THREE.LinearFilter;
+                  newTex.magFilter = THREE.LinearFilter;
+                  cylinder.material.map = newTex;
+                  cylinder.material.needsUpdate = true;
+                });
+                targetLon = idx * 72;
+                targetLat = 0;
               }
 
               document.querySelectorAll('.btn-switch-room-angle').forEach(b => {
@@ -316,9 +349,9 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         };
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initStageViewer);
+          document.addEventListener('DOMContentLoaded', initCylinderViewer);
         } else {
-          initStageViewer();
+          initCylinderViewer();
         }
       })();
     </script>
