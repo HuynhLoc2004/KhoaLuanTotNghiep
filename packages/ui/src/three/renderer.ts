@@ -238,13 +238,13 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           if (!container || typeof THREE === 'undefined') return;
 
           let scene = new THREE.Scene();
-          let camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 1, 1100);
+          let camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 1, 1100);
           
           let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
           renderer.setSize(container.clientWidth, container.clientHeight);
           renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-          // 3D Sphere Geometry Inverted Inside Out (Zero Seam Cut Line)
+          // 3D Sphere Geometry Inverted Inside Out (Zero Seam Cut Line & Eye-Level Projection)
           let geometry = new THREE.SphereGeometry(500, 60, 40);
           geometry.scale(-1, 1, 1);
 
@@ -277,7 +277,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
             requestAnimationFrame(animate);
             lon += (targetLon - lon) * 0.1;
             lat += (targetLat - lat) * 0.1;
-            lat = Math.max(-85, Math.min(85, lat));
+            lat = Math.max(-15, Math.min(15, lat));
 
             let phi = THREE.MathUtils.degToRad(90 - lat);
             let theta = THREE.MathUtils.degToRad(lon);
