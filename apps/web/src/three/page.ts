@@ -22,7 +22,7 @@ export function renderPublic3DExperiencePage(
     roomName: "Phòng Trưng Bày Văn Hóa Đông Sơn & Trống Đồng Linh Thiêng",
     floorLevel: 1,
     panoramaImageUrl:
-      "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=2000&q=80",
     qrCodeToken: "QR_ROOM_DONGSON_01",
     navArrows: [
       {

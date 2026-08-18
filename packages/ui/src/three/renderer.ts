@@ -144,8 +144,9 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
   const navArrowsHtml = roomNode.navArrows
     .map(
       (arrow) => `
-      <button class="btn-room-nav-arrow absolute z-30 px-4 py-2.5 rounded-full bg-amber-400/90 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(245,158,11,0.8)] border-2 border-amber-300 flex items-center gap-2 transition-all hover:scale-110" data-target-room="${arrow.targetRoomId}">
-        <span>⬆ ${arrow.label}</span>
+      <button class="btn-room-nav-arrow px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.8)] border-2 border-amber-300 inline-flex items-center gap-2 whitespace-nowrap transition-transform hover:scale-105 active:scale-95 cursor-pointer" data-target-room="${arrow.targetRoomId}">
+        <svg class="w-4 h-4 text-slate-950 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+        <span>${arrow.label}</span>
       </button>
     `,
     )
@@ -183,7 +184,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/40 pointer-events-none"></div>
 
         <!-- Directional Floor Navigation Arrows (Google Maps Street View style) -->
-        <div class="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
+        <div class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-wrap justify-center items-center gap-3 z-30 max-w-full px-4">
           ${navArrowsHtml}
         </div>
 
