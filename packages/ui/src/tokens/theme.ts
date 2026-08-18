@@ -242,6 +242,13 @@ export function injectHeritageGlobalStyles(): string {
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.15);
       }
 
+      /* Full-Screen Mobile Hamburger Overlay Drawer Slide-In */
+      #mobile-hamburger-overlay.open {
+        transform: translateX(0) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+
       .btn-cyber-gold {
         background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #b45309 100%);
         color: #030712;

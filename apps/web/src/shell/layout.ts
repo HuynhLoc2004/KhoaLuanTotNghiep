@@ -1,15 +1,15 @@
 export function renderHeader(): string {
   return `
-    <header id="main-header" class="sticky top-0 z-50 px-4 sm:px-6 py-3 transition-all pointer-events-auto">
-      <div class="max-w-7xl mx-auto glass-nav-cyber rounded-2xl px-5 py-3 flex justify-between items-center border border-amber-500/30 shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
+    <header id="main-header" class="sticky top-0 z-50 px-3 sm:px-6 py-3 transition-all pointer-events-auto">
+      <div class="max-w-7xl mx-auto glass-nav-cyber rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 flex justify-between items-center border border-amber-500/30 shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
         <!-- Brand Logo & Title -->
-        <a id="nav-brand" href="/" class="flex items-center gap-3 group text-slate-100 hover:text-amber-300 transition-colors">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-rose-600 p-[1px] shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform flex items-center justify-center">
-            <div class="w-full h-full rounded-[11px] bg-slate-950 flex items-center justify-center font-heading font-black text-amber-400 text-sm">BT</div>
+        <a id="nav-brand" href="/" class="flex items-center gap-2.5 sm:gap-3 group text-slate-100 hover:text-amber-300 transition-colors">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-rose-600 p-[1px] shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform flex items-center justify-center">
+            <div class="w-full h-full rounded-[11px] bg-slate-950 flex items-center justify-center font-heading font-black text-amber-400 text-xs sm:text-sm">BT</div>
           </div>
           <div class="flex flex-col text-left">
-            <span class="font-heading font-black text-base sm:text-lg tracking-tight text-slate-100 group-hover:text-amber-300 transition-colors">BẢO TÀNG LỊCH SỬ TP.HCM</span>
-            <span class="text-[10px] font-mono text-amber-400/90 tracking-widest uppercase">3D Digital Twin Platform</span>
+            <span class="font-heading font-black text-sm sm:text-lg tracking-tight text-slate-100 group-hover:text-amber-300 transition-colors">BẢO TÀNG LỊCH SỬ TP.HCM</span>
+            <span class="text-[9px] sm:text-[10px] font-mono text-amber-400/90 tracking-widest uppercase">3D Digital Twin Platform</span>
           </div>
         </a>
 
@@ -33,8 +33,102 @@ export function renderHeader(): string {
             <span>Quét QR</span>
           </button>
         </nav>
+
+        <!-- Mobile Hamburger Toggle Button -->
+        <button id="btn-mobile-hamburger" aria-label="Open Mobile Menu" class="md:hidden p-2 rounded-xl bg-slate-900/80 border border-amber-500/30 text-amber-400 hover:text-amber-300 focus:outline-none flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+
+      <!-- Full-Screen Slide-In Mobile Hamburger Overlay Drawer -->
+      <div id="mobile-hamburger-overlay" class="md:hidden fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-3xl p-6 flex flex-col justify-between transition-all duration-500 translate-x-full opacity-0 pointer-events-none">
+        <!-- Top Bar inside Hamburger Drawer -->
+        <div class="flex justify-between items-center border-b border-amber-500/20 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-rose-600 p-[1px] shadow-md flex items-center justify-center">
+              <div class="w-full h-full rounded-[11px] bg-slate-950 flex items-center justify-center font-heading font-black text-amber-400 text-sm">BT</div>
+            </div>
+            <span class="font-heading font-black text-base text-slate-100">DANH MỤC DI SẢN</span>
+          </div>
+
+          <button id="btn-close-hamburger" aria-label="Close Mobile Menu" class="p-2.5 rounded-full bg-amber-500/10 border border-amber-400/40 text-amber-400 hover:bg-amber-500/20">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Fullscreen Mobile Navigation Menu Links -->
+        <div class="py-8 space-y-4 overflow-y-auto">
+          <a href="/" class="flex items-center justify-between p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-heading font-bold text-lg">
+            <span class="flex items-center gap-3">🏛️ Trang chủ</span>
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+          <a href="/search" class="flex items-center justify-between p-4 rounded-2xl glass-futuristic text-slate-100 font-heading font-bold text-lg hover:border-amber-400/60">
+            <span class="flex items-center gap-3">🏺 Triển lãm & Tra cứu</span>
+            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+          <a href="/3d-experience" class="flex items-center justify-between p-4 rounded-2xl glass-futuristic text-slate-100 font-heading font-bold text-lg hover:border-amber-400/60">
+            <span class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              🌐 Tham quan 3D Twin
+            </span>
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+          <a href="/ai-guide" class="flex items-center justify-between p-4 rounded-2xl glass-futuristic text-slate-100 font-heading font-bold text-lg hover:border-amber-400/60">
+            <span class="flex items-center gap-3">🤖 AI Guide Thuyết minh</span>
+            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+          <a href="/timeline" class="flex items-center justify-between p-4 rounded-2xl glass-futuristic text-slate-100 font-heading font-bold text-lg hover:border-amber-400/60">
+            <span class="flex items-center gap-3">⏳ Dòng thời gian sống</span>
+            <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+          <a href="/profile" class="flex items-center justify-between p-4 rounded-2xl glass-futuristic text-slate-100 font-heading font-bold text-lg hover:border-amber-400/60">
+            <span class="flex items-center gap-3">👤 Trang cá nhân người dùng</span>
+            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+        <!-- Bottom Action CTA inside Hamburger -->
+        <div class="space-y-3 pt-4 border-t border-slate-800">
+          <button class="btn-trigger-qr-scanner btn-cyber-gold w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25">
+            <svg class="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+            <span>📷 Quét Mã QR Di Sản Trực Tiếp</span>
+          </button>
+          <p class="text-center text-xs font-mono text-slate-500">© 2026 Bảo tàng Lịch sử TP. Hồ Chí Minh</p>
+        </div>
       </div>
     </header>
+
+    <!-- Interactive Hamburger Drawer Toggle Script -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const btnToggle = document.getElementById('btn-mobile-hamburger');
+        const btnClose = document.getElementById('btn-close-hamburger');
+        const overlay = document.getElementById('mobile-hamburger-overlay');
+        
+        if (btnToggle && overlay) {
+          btnToggle.addEventListener('click', () => {
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+          });
+        }
+        if (btnClose && overlay) {
+          btnClose.addEventListener('click', () => {
+            overlay.classList.remove('open');
+            document.body.style.overflow = '';
+          });
+        }
+
+        // Close drawer when clicking any nav link
+        if (overlay) {
+          overlay.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+              overlay.classList.remove('open');
+              document.body.style.overflow = '';
+            });
+          });
+        }
+      });
+    </script>
   `.trim();
 }
 
