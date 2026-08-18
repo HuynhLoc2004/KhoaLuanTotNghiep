@@ -1,4 +1,9 @@
-import type { ThreeDModelConfig, ThreeDHotspot, ThreeDFloorPoi } from "@hcmc-museum/contracts";
+import type {
+  ThreeDModelConfig,
+  ThreeDHotspot,
+  ThreeDFloorPoi,
+  RoomPanoramaNode,
+} from "@hcmc-museum/contracts";
 
 export function render3DHotspotOverlay(hotspots: ThreeDHotspot[]): string {
   if (hotspots.length === 0) {
@@ -132,4 +137,72 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
       </div>
     </div>
   `;
+}
+
+/* 360° Museum Room Panorama StreetView Renderer */
+export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
+  const navArrowsHtml = roomNode.navArrows
+    .map(
+      (arrow) => `
+      <button class="btn-room-nav-arrow absolute z-30 px-4 py-2.5 rounded-full bg-amber-400/90 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(245,158,11,0.8)] border-2 border-amber-300 flex items-center gap-2 transition-all hover:scale-110" data-target-room="${arrow.targetRoomId}">
+        <span>⬆ ${arrow.label}</span>
+      </button>
+    `,
+    )
+    .join("\n");
+
+  return `
+    <!-- 360° Room Virtual Panorama Viewer Component (Google Street View Style) -->
+    <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
+      
+      <!-- Top Info Bar -->
+      <div class="flex flex-wrap justify-between items-center mb-4 gap-3 z-20 relative">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/50 text-amber-400">
+            🌐
+          </div>
+          <div>
+            <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
+            <p class="text-xs font-mono text-amber-400">Không Gian Mô Phỏng 360° Virtual Street View (Tầng ${String(roomNode.floorLevel)})</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+            🔑 Mã QR: ${roomNode.qrCodeToken}
+          </span>
+        </div>
+      </div>
+
+      <!-- 360 Panorama Interactive Viewport Stage -->
+      <div id="room-360-viewport" class="relative w-full h-[450px] sm:h-[550px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
+        <!-- Panoramic 360 Equirectangular Room Background -->
+        <img src="${roomNode.panoramaImageUrl}" alt="${roomNode.roomName}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+
+        <!-- Ambient Vignette & Lighting Mask -->
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/40 pointer-events-none"></div>
+
+        <!-- Directional Floor Navigation Arrows (Google Maps Street View style) -->
+        <div class="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
+          ${navArrowsHtml}
+        </div>
+
+        <!-- Interactive 360 Controls Hint Overlay -->
+        <div class="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-amber-500/30 text-[11px] font-mono text-slate-300 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+          <span>Kéo rê chuột để xoay 360° | Cuộn chuột để phóng to cận cảnh</span>
+        </div>
+      </div>
+
+      <!-- Bottom Interactive Toolbar -->
+      <div class="mt-4 flex flex-wrap justify-between items-center gap-3">
+        <button class="btn-trigger-qr-scanner btn-cyber-gold px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
+          <svg class="w-4 h-4 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+          <span>📷 Quét Mã QR Căn Phòng Khác</span>
+        </button>
+
+        <p class="text-xs font-mono text-slate-400">© Mô phỏng không gian thực tế Bảo tàng Lịch sử TP. Hồ Chí Minh</p>
+      </div>
+    </div>
+  `.trim();
 }

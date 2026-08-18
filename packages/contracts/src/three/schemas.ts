@@ -51,3 +51,24 @@ export const ThreeDRouteResponseSchema = z.object({
 });
 
 export type ThreeDRouteResponse = z.infer<typeof ThreeDRouteResponseSchema>;
+
+/* 360° Museum Room Panorama Street View Schema (Google Street View style room navigation) */
+export const RoomNavArrowSchema = z.object({
+  targetRoomId: z.string().min(1),
+  label: z.string().min(1),
+  directionAngleDegrees: z.number().default(0),
+});
+
+export type RoomNavArrow = z.infer<typeof RoomNavArrowSchema>;
+
+export const RoomPanoramaNodeSchema = z.object({
+  roomId: z.string().min(1),
+  roomName: z.string().min(1),
+  floorLevel: z.number().int().default(1),
+  panoramaImageUrl: z.string().min(1),
+  qrCodeToken: z.string().min(1),
+  navArrows: z.array(RoomNavArrowSchema).default([]),
+  hotspots: z.array(ThreeDHotspotSchema).default([]),
+});
+
+export type RoomPanoramaNode = z.infer<typeof RoomPanoramaNodeSchema>;
