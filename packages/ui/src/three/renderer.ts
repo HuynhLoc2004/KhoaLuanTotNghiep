@@ -139,14 +139,14 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* Continuous Cylindrical 360° Room Walkthrough Engine (Zero Vertical Distortion, 100% Upright Straight Walls) */
+/* High-Definition Zero-Distortion Interactive Room Walkthrough Engine (100% Sharp Real Proportions, 0% Stretch, 0% Dizziness) */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
   const anglesHtml =
     roomNode.angleViews.length > 0
       ? roomNode.angleViews
           .map(
             (angle, idx) => `
-          <button class="btn-switch-room-angle px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${idx === 0 ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-img-url="${angle.imageUrl}" data-angle-id="${angle.angleId}" data-angle-index="${String(idx)}">
+          <button class="btn-switch-room-angle px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${idx === 0 ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-angle-index="${String(idx)}">
             📍 ${angle.angleLabel}
           </button>
         `,
@@ -165,19 +165,40 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
     )
     .join("\n");
 
+  const slidesHtml = roomNode.angleViews
+    .map(
+      (angle, idx) => `
+      <div class="room-angle-slide relative w-full h-full flex-shrink-0 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 transition-opacity duration-300" data-slide-index="${String(idx)}">
+        <img src="${angle.imageUrl}" alt="${angle.angleLabel}" class="max-w-full max-h-full object-contain drop-shadow-[0_15px_35px_rgba(0,0,0,0.9)] rounded-2xl select-none pointer-events-none" />
+        <div class="absolute bottom-16 left-6 px-4 py-2 rounded-xl bg-slate-950/90 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold shadow-2xl backdrop-blur-md">
+          📍 ${angle.angleLabel}
+        </div>
+      </div>
+    `,
+    )
+    .join("\n");
+
+  const dotsHtml = roomNode.angleViews
+    .map(
+      (_, idx) => `
+      <span class="room-angle-dot w-3 h-3 rounded-full transition-all cursor-pointer ${idx === 0 ? "bg-amber-400 scale-125 shadow-[0_0_12px_rgba(245,158,11,0.9)]" : "bg-slate-700 hover:bg-slate-500"}" data-dot-index="${String(idx)}"></span>
+    `,
+    )
+    .join("\n");
+
   return `
-    <!-- High-Definition Continuous Cylindrical Room Walkthrough Card -->
+    <!-- High-Definition Zero-Distortion Interactive Room Walkthrough Card -->
     <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
       
       <!-- Top Info Bar -->
       <div class="flex flex-wrap justify-between items-center mb-4 gap-3 z-20 relative">
         <div class="flex items-center gap-3">
           <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/50 text-amber-400">
-            🌐
+            🏛️
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian Trực Quan Tham Quan Căn Phòng (Tầng ${String(roomNode.floorLevel)})</p>
+            <p class="text-xs font-mono text-amber-400">Không Gian Trực Quan Thật 100% — Tỉ Lệ Chuẩn Sắc Nét (Tầng ${String(roomNode.floorLevel)})</p>
           </div>
         </div>
 
@@ -188,35 +209,48 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         </div>
       </div>
 
-      <!-- Viewpoint Selector Bar -->
+      <!-- Viewpoint Selector Buttons Bar -->
       ${
         anglesHtml
-          ? `<div class="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30">
+          ? `<div class="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl bg-slate-900/90 border border-amber-500/30 z-20 relative">
         <span class="text-xs font-mono font-bold text-amber-400 mr-2 flex items-center gap-1.5">
-          <span>📷</span> Vị trí điểm đứng trong phòng:
+          <span>📷</span> Các điểm tham quan trong phòng:
         </span>
         ${anglesHtml}
       </div>`
           : ""
       }
 
-      <!-- Cylindrical WebGL 3D Room Viewport -->
-      <div id="room-360-viewport" class="relative w-full h-[520px] sm:h-[640px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
+      <!-- Interactive Room Stage Area (0% Stretch, 0% Dizziness) -->
+      <div id="room-360-viewport" class="relative w-full h-[520px] sm:h-[640px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}">
         
-        <!-- WebGL Cylinder Canvas Mounting Point -->
+        <!-- Smooth Room Track Stage -->
+        <div id="room-filmstrip-track" class="relative w-full h-full flex transition-transform duration-500 ease-out" style="transform: translateX(0%); width: 100%;">
+          ${slidesHtml}
+        </div>
 
-        <!-- Ambient Vignette Overlay -->
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20 pointer-events-none z-20"></div>
+        <!-- Left / Right Navigation Stepping Arrows -->
+        <button id="btn-prev-room-angle" class="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-slate-950/85 border border-amber-400/50 text-amber-400 hover:bg-amber-400 hover:text-slate-950 flex items-center justify-center text-xl font-bold shadow-2xl transition-all hover:scale-110 cursor-pointer" title="Góc phòng trước">
+          ❮
+        </button>
+        <button id="btn-next-room-angle" class="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-slate-950/85 border border-amber-400/50 text-amber-400 hover:bg-amber-400 hover:text-slate-950 flex items-center justify-center text-xl font-bold shadow-2xl transition-all hover:scale-110 cursor-pointer" title="Góc phòng tiếp theo">
+          ❯
+        </button>
 
-        <!-- Directional Navigation Arrows -->
+        <!-- Dots Indicator Bar -->
+        <div class="absolute top-4 right-4 z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-slate-950/85 border border-amber-500/30 backdrop-blur-md">
+          ${dotsHtml}
+        </div>
+
+        <!-- Directional Floor Navigation Arrows -->
         <div class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-wrap justify-center items-center gap-3 z-30 max-w-full px-4">
           ${navArrowsHtml}
         </div>
 
         <!-- Hint Overlay -->
         <div class="absolute top-4 left-4 z-30 px-3.5 py-2 rounded-xl bg-slate-950/90 border border-amber-500/40 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-xl pointer-events-none">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-          <span>🖱️ Kéo rê chuột xoay 360° toàn cảnh phòng | 🔍 Cuộn chuột thu phóng HD</span>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>👈 Vuốt/Kéo rê hoặc bấm mũi tên ❮ ❯ để bước chuyển góc phòng | 100% Sắc Nét Chuẩn Tỉ Lệ</span>
         </div>
       </div>
 
@@ -231,127 +265,86 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
       </div>
     </div>
 
-    <!-- Script WebGL Cylinder 360° Room Engine -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Script Room Interactive Walkthrough Engine -->
     <script>
       (function() {
-        const initCylinderViewer = () => {
-          const container = document.getElementById('room-360-viewport');
-          if (!container || typeof THREE === 'undefined') return;
-
-          let scene = new THREE.Scene();
-          let camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 1, 1100);
+        const initWalkthroughViewer = () => {
+          const track = document.getElementById('room-filmstrip-track');
+          const prevBtn = document.getElementById('btn-prev-room-angle');
+          const nextBtn = document.getElementById('btn-next-room-angle');
+          const angleBtns = document.querySelectorAll('.btn-switch-room-angle');
+          const dots = document.querySelectorAll('.room-angle-dot');
+          const totalSlides = ${String(roomNode.angleViews.length)};
           
-          let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-          renderer.setSize(container.clientWidth, container.clientHeight);
-          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          if (!track || totalSlides === 0) return;
 
-          // 3D Cylinder Geometry Inverted Inside Out (Vertical Walls 100% Upright & Straight)
-          let geometry = new THREE.CylinderGeometry(500, 500, 600, 60, 1, true);
-          geometry.scale(-1, 1, 1);
+          let currentIndex = 0;
 
-          let textureLoader = new THREE.TextureLoader();
-          textureLoader.setCrossOrigin('anonymous');
-          
-          let initialUrl = "${roomNode.panoramaImageUrl}";
-          let material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
-          
-          textureLoader.load(initialUrl, (texture) => {
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
-            material.map = texture;
-            material.needsUpdate = true;
-          });
+          function goToSlide(idx) {
+            if (idx < 0) idx = totalSlides - 1;
+            if (idx >= totalSlides) idx = 0;
+            currentIndex = idx;
 
-          let cylinder = new THREE.Mesh(geometry, material);
-          scene.add(cylinder);
+            track.style.transform = "translateX(" + (-currentIndex * 100) + "%)";
 
-          let isUserInteracting = false;
-          let onMouseDownLon = 0, onMouseDownLat = 0;
-          let lon = 0, lat = 0;
-          let targetLon = 0, targetLat = 0;
-
-          renderer.domElement.className = "absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 block";
-          container.appendChild(renderer.domElement);
-
-          function animate() {
-            requestAnimationFrame(animate);
-            lon += (targetLon - lon) * 0.1;
-            lat += (targetLat - lat) * 0.1;
-            lat = Math.max(-10, Math.min(10, lat));
-
-            let phi = THREE.MathUtils.degToRad(90 - lat);
-            let theta = THREE.MathUtils.degToRad(lon);
-
-            let targetX = 500 * Math.sin(phi) * Math.cos(theta);
-            let targetY = 500 * Math.cos(phi);
-            let targetZ = 500 * Math.sin(phi) * Math.sin(theta);
-
-            camera.lookAt(targetX, targetY, targetZ);
-            renderer.render(scene, camera);
-          }
-          animate();
-
-          function onResize() {
-            if (!container) return;
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-          }
-          window.addEventListener('resize', onResize);
-
-          container.addEventListener('pointerdown', (e) => {
-            isUserInteracting = true;
-            onMouseDownLon = e.clientX;
-            onMouseDownLat = e.clientY;
-          });
-
-          window.addEventListener('pointermove', (e) => {
-            if (!isUserInteracting) return;
-            targetLon = (onMouseDownLon - e.clientX) * 0.2 + lon;
-            targetLat = (e.clientY - onMouseDownLat) * 0.15 + lat;
-            onMouseDownLon = e.clientX;
-            onMouseDownLat = e.clientY;
-          });
-
-          window.addEventListener('pointerup', () => { isUserInteracting = false; });
-
-          container.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            camera.fov += e.deltaY * 0.05;
-            camera.fov = Math.max(35, Math.min(80, camera.fov));
-            camera.updateProjectionMatrix();
-          }, { passive: false });
-
-          document.querySelectorAll('.btn-switch-room-angle').forEach((btn, idx) => {
-            btn.addEventListener('click', (e) => {
-              const targetBtn = e.currentTarget;
-              const newUrl = targetBtn.getAttribute('data-img-url');
-              if (newUrl) {
-                textureLoader.load(newUrl, (newTex) => {
-                  newTex.minFilter = THREE.LinearFilter;
-                  newTex.magFilter = THREE.LinearFilter;
-                  cylinder.material.map = newTex;
-                  cylinder.material.needsUpdate = true;
-                });
-                targetLon = idx * 72;
-                targetLat = 0;
-              }
-
-              document.querySelectorAll('.btn-switch-room-angle').forEach(b => {
+            angleBtns.forEach((b, i) => {
+              if (i === currentIndex) {
+                b.classList.remove('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
+                b.classList.add('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
+              } else {
                 b.classList.remove('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
                 b.classList.add('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
-              });
-              targetBtn.classList.remove('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
-              targetBtn.classList.add('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
+              }
+            });
+
+            dots.forEach((d, i) => {
+              if (i === currentIndex) {
+                d.classList.remove('bg-slate-700');
+                d.classList.add('bg-amber-400', 'scale-125', 'shadow-[0_0_12px_rgba(245,158,11,0.9)]');
+              } else {
+                d.classList.remove('bg-amber-400', 'scale-125', 'shadow-[0_0_12px_rgba(245,158,11,0.9)]');
+                d.classList.add('bg-slate-700');
+              }
+            });
+          }
+
+          if (prevBtn) prevBtn.addEventListener('click', () => goToSlide(currentIndex - 1));
+          if (nextBtn) nextBtn.addEventListener('click', () => goToSlide(currentIndex + 1));
+
+          angleBtns.forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+              const idxStr = e.currentTarget.getAttribute('data-angle-index');
+              if (idxStr !== null) goToSlide(parseInt(idxStr, 10));
             });
           });
+
+          dots.forEach((dot) => {
+            dot.addEventListener('click', (e) => {
+              const idxStr = e.currentTarget.getAttribute('data-dot-index');
+              if (idxStr !== null) goToSlide(parseInt(idxStr, 10));
+            });
+          });
+
+          // Swipe Touch Support
+          let touchStartX = 0;
+          track.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
+          }, { passive: true });
+
+          track.addEventListener('touchend', (e) => {
+            if (e.changedTouches.length === 1) {
+              const touchEndX = e.changedTouches[0].clientX;
+              const diff = touchStartX - touchEndX;
+              if (diff > 40) goToSlide(currentIndex + 1);
+              else if (diff < -40) goToSlide(currentIndex - 1);
+            }
+          }, { passive: true });
         };
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initCylinderViewer);
+          document.addEventListener('DOMContentLoaded', initWalkthroughViewer);
         } else {
-          initCylinderViewer();
+          initWalkthroughViewer();
         }
       })();
     </script>
