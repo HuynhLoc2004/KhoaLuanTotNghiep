@@ -139,7 +139,7 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* 360° Spherical Panoramic Room Viewer Engine (Equirectangular Projection Canvas) */
+/* 360° Spherical Panoramic Room Viewer Engine with Seamless Alpha Feathering Blend */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
   const anglesHtml =
     roomNode.angleViews.length > 0
@@ -166,7 +166,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
     .join("\n");
 
   return `
-    <!-- 360° Spherical Panoramic Room Viewer Component (Google Maps Street View Canvas Engine) -->
+    <!-- 360° Spherical Panoramic Room Viewer Component (Seamless Alpha Feathered Projection) -->
     <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
       
       <!-- Top Info Bar -->
@@ -177,7 +177,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Mô Phỏng Căn Phòng 360° Xoay Xung Quanh Google Street View (Tầng ${String(roomNode.floorLevel)})</p>
+            <p class="text-xs font-mono text-amber-400">Mô Phỏng Căn Phòng 360° Xoay Xung Quanh Chân Thực Kín Khít (Tầng ${String(roomNode.floorLevel)})</p>
           </div>
         </div>
 
@@ -206,7 +206,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         <!-- Interactive 360 Equirectangular Projection Canvas -->
         <canvas id="room-360-canvas" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 block"></canvas>
 
-        <!-- Fallback Image Backdrop (Loaded when JS initializes) -->
+        <!-- Fallback Image Backdrop -->
         <img id="room-360-active-img" src="${roomNode.panoramaImageUrl}" alt="${roomNode.roomName}" class="hidden" />
 
         <!-- Ambient Vignette & Lighting Mask -->
@@ -220,7 +220,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         <!-- Interactive 360 Controls Hint Overlay -->
         <div class="absolute top-4 left-4 z-30 px-3.5 py-2 rounded-xl bg-slate-950/90 border border-amber-500/40 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-xl pointer-events-none">
           <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-          <span>🖱️ Kéo rê chuột / Tay vuốt để xoay 360° toàn căn phòng | 🔍 Cuộn chuột để zoom HD</span>
+          <span>🖱️ Kéo rê chuột / Tay vuốt để xoay 360° toàn căn phòng kín khít | 🔍 Cuộn chuột để zoom HD</span>
         </div>
       </div>
 
@@ -235,7 +235,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
       </div>
     </div>
 
-    <!-- Script Renderer Chuyên Dụng Cho 360° Spherical Panoramic Canvas -->
+    <!-- Script Renderer Chuyên Dụng Cho 360° Spherical Panoramic Canvas Với Khử Vết Gắn -->
     <script>
       (function() {
         const init360Viewer = () => {
@@ -245,12 +245,41 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           
           let img = new Image();
           img.crossOrigin = "Anonymous";
+
+          let bufferCanvas = document.createElement('canvas');
+          let bufferCtx = bufferCanvas.getContext('2d');
+          let bufferReady = false;
           
           let isDragging = false;
           let startX = 0, startY = 0;
           let yaw = 0;
           let pitch = 0;
           let zoom = 1.0;
+
+          function prepareSeamlessBuffer() {
+            if (!img.complete || img.naturalWidth === 0 || !bufferCtx) return;
+            const imgW = img.naturalWidth;
+            const imgH = img.naturalHeight;
+            bufferCanvas.width = imgW;
+            bufferCanvas.height = imgH;
+            
+            bufferCtx.drawImage(img, 0, 0);
+
+            // Blend 6% right edge with 6% left edge for 100% invisible seam line
+            const blendW = Math.floor(imgW * 0.06);
+            let tempCanvas = document.createElement('canvas');
+            tempCanvas.width = blendW;
+            tempCanvas.height = imgH;
+            let tempCtx = tempCanvas.getContext('2d');
+            if (tempCtx) {
+              tempCtx.drawImage(img, 0, 0, blendW, imgH, 0, 0, blendW, imgH);
+              bufferCtx.save();
+              bufferCtx.globalAlpha = 0.5;
+              bufferCtx.drawImage(tempCanvas, 0, 0, blendW, imgH, imgW - blendW, 0, blendW, imgH);
+              bufferCtx.restore();
+            }
+            bufferReady = true;
+          }
           
           function resizeCanvas() {
             if (!canvas.parentElement) return;
@@ -265,8 +294,9 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
             const h = canvas.height;
             ctx.clearRect(0, 0, w, h);
             
-            const imgW = img.naturalWidth;
-            const imgH = img.naturalHeight;
+            const activeSource = bufferReady ? bufferCanvas : img;
+            const imgW = activeSource.width || img.naturalWidth;
+            const imgH = activeSource.height || img.naturalHeight;
             
             let visibleW = (imgW / 2.2) / zoom;
             let visibleH = (imgH / 1.6) / zoom;
@@ -275,20 +305,23 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
             
             try {
               if (sourceX + visibleW <= imgW) {
-                ctx.drawImage(img, sourceX, sourceY, visibleW, visibleH, 0, 0, w, h);
+                ctx.drawImage(activeSource, sourceX, sourceY, visibleW, visibleH, 0, 0, w, h);
               } else {
                 let firstW = imgW - sourceX;
                 let drawnFirstW = (firstW / visibleW) * w;
-                ctx.drawImage(img, sourceX, sourceY, firstW, visibleH, 0, 0, drawnFirstW, h);
+                ctx.drawImage(activeSource, sourceX, sourceY, firstW, visibleH, 0, 0, drawnFirstW + 1, h);
                 let secondW = visibleW - firstW;
-                ctx.drawImage(img, 0, sourceY, secondW, visibleH, drawnFirstW, 0, w - drawnFirstW, h);
+                ctx.drawImage(activeSource, 0, sourceY, secondW, visibleH, drawnFirstW, 0, w - drawnFirstW + 1, h);
               }
             } catch (err) {
               console.error(err);
             }
           }
           
-          img.onload = () => { draw(); };
+          img.onload = () => {
+            prepareSeamlessBuffer();
+            draw();
+          };
           img.src = "${roomNode.panoramaImageUrl}";
           
           window.addEventListener('resize', resizeCanvas);
@@ -350,6 +383,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
               const targetBtn = e.currentTarget;
               const newUrl = targetBtn.getAttribute('data-img-url');
               if (newUrl) {
+                bufferReady = false;
                 img.src = newUrl;
                 yaw = 0;
                 pitch = 0;
