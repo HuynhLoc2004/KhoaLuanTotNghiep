@@ -139,15 +139,15 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* 360° Museum Room Panorama StreetView Renderer (3 Admin Viewpoint Angles per Room) */
+/* 360° Spherical Panoramic Room Viewer Engine (Equirectangular Projection Canvas) */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
   const anglesHtml =
     roomNode.angleViews.length > 0
       ? roomNode.angleViews
           .map(
             (angle, idx) => `
-          <button class="btn-switch-room-angle px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${idx === 0 ? "bg-amber-400 text-slate-950 shadow-md shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-img-url="${angle.imageUrl}" data-angle-id="${angle.angleId}">
-            ${angle.angleLabel}
+          <button class="btn-switch-room-angle px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${idx === 0 ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-img-url="${angle.imageUrl}" data-angle-id="${angle.angleId}">
+            📍 ${angle.angleLabel}
           </button>
         `,
           )
@@ -166,7 +166,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
     .join("\n");
 
   return `
-    <!-- 360° Room Virtual Panorama Viewer Component (Google Street View Style) -->
+    <!-- 360° Spherical Panoramic Room Viewer Component (Google Maps Street View Canvas Engine) -->
     <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
       
       <!-- Top Info Bar -->
@@ -177,7 +177,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian 360° Đa Góc Nhìn Google Street View (Tầng ${String(roomNode.floorLevel)})</p>
+            <p class="text-xs font-mono text-amber-400">Mô Phỏng Căn Phòng 360° Xoay Xung Quanh Google Street View (Tầng ${String(roomNode.floorLevel)})</p>
           </div>
         </div>
 
@@ -193,20 +193,24 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         anglesHtml
           ? `<div class="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30">
         <span class="text-xs font-mono font-bold text-amber-400 mr-2 flex items-center gap-1.5">
-          <span>📷</span> Các góc chụp căn phòng (Admin cung cấp):
+          <span>📷</span> Vị trí điểm đứng trong phòng (Admin cung cấp):
         </span>
         ${anglesHtml}
       </div>`
           : ""
       }
 
-      <!-- 360 Panorama Interactive Viewport Stage (HD Sharp Image Scaling) -->
-      <div id="room-360-viewport" class="relative w-full h-[450px] sm:h-[550px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
-        <!-- Panoramic 360 Equirectangular Room Background -->
-        <img id="room-360-active-img" src="${roomNode.panoramaImageUrl}" alt="${roomNode.roomName}" class="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-105" loading="eager" />
+      <!-- 360 Panorama Spherical Canvas Viewport Stage -->
+      <div id="room-360-viewport" class="relative w-full h-[480px] sm:h-[580px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
+        
+        <!-- Interactive 360 Equirectangular Projection Canvas -->
+        <canvas id="room-360-canvas" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 block"></canvas>
+
+        <!-- Fallback Image Backdrop (Loaded when JS initializes) -->
+        <img id="room-360-active-img" src="${roomNode.panoramaImageUrl}" alt="${roomNode.roomName}" class="hidden" />
 
         <!-- Ambient Vignette & Lighting Mask -->
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/40 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/30 pointer-events-none z-20"></div>
 
         <!-- Directional Floor Navigation Arrows (Google Maps Street View style) -->
         <div class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-wrap justify-center items-center gap-3 z-30 max-w-full px-4">
@@ -214,9 +218,9 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         </div>
 
         <!-- Interactive 360 Controls Hint Overlay -->
-        <div class="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-amber-500/30 text-[11px] font-mono text-slate-300 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-          <span>Kéo rê chuột / Tay vuốt để xoay 360° | Cuộn chuột để phóng to cận cảnh HD</span>
+        <div class="absolute top-4 left-4 z-30 px-3.5 py-2 rounded-xl bg-slate-950/90 border border-amber-500/40 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-xl pointer-events-none">
+          <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+          <span>🖱️ Kéo rê chuột / Tay vuốt để xoay 360° toàn căn phòng | 🔍 Cuộn chuột để zoom HD</span>
         </div>
       </div>
 
@@ -231,33 +235,141 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
       </div>
     </div>
 
-    <!-- Script Chuyển Đổi Các Góc Nhìn Trong Phòng -->
+    <!-- Script Renderer Chuyên Dụng Cho 360° Spherical Panoramic Canvas -->
     <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const activeImg = document.getElementById('room-360-active-img');
-        const angleBtns = document.querySelectorAll('.btn-switch-room-angle');
-        
-        angleBtns.forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const targetBtn = e.currentTarget;
-            const newUrl = targetBtn.getAttribute('data-img-url');
-            if (activeImg && newUrl) {
-              activeImg.style.opacity = '0.3';
-              setTimeout(() => {
-                activeImg.src = newUrl;
-                activeImg.style.opacity = '1';
-              }, 200);
-            }
+      (function() {
+        const init360Viewer = () => {
+          const canvas = document.getElementById('room-360-canvas');
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          
+          let img = new Image();
+          img.crossOrigin = "Anonymous";
+          
+          let isDragging = false;
+          let startX = 0, startY = 0;
+          let yaw = 0;
+          let pitch = 0;
+          let zoom = 1.0;
+          
+          function resizeCanvas() {
+            if (!canvas.parentElement) return;
+            canvas.width = canvas.parentElement.clientWidth || 800;
+            canvas.height = canvas.parentElement.clientHeight || 500;
+            draw();
+          }
+          
+          function draw() {
+            if (!ctx || !img.complete || img.naturalWidth === 0) return;
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
             
-            angleBtns.forEach(b => {
-              b.classList.remove('bg-amber-400', 'text-slate-950', 'shadow-md');
-              b.classList.add('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
-            });
-            targetBtn.classList.remove('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
-            targetBtn.classList.add('bg-amber-400', 'text-slate-950', 'shadow-md');
+            const imgW = img.naturalWidth;
+            const imgH = img.naturalHeight;
+            
+            let visibleW = (imgW / 2.2) / zoom;
+            let visibleH = (imgH / 1.6) / zoom;
+            let sourceX = ((yaw % 360 + 360) % 360) / 360 * imgW;
+            let sourceY = Math.max(0, Math.min(imgH - visibleH, (imgH / 2 - visibleH / 2) - (pitch / 90) * (imgH / 3)));
+            
+            try {
+              if (sourceX + visibleW <= imgW) {
+                ctx.drawImage(img, sourceX, sourceY, visibleW, visibleH, 0, 0, w, h);
+              } else {
+                let firstW = imgW - sourceX;
+                let drawnFirstW = (firstW / visibleW) * w;
+                ctx.drawImage(img, sourceX, sourceY, firstW, visibleH, 0, 0, drawnFirstW, h);
+                let secondW = visibleW - firstW;
+                ctx.drawImage(img, 0, sourceY, secondW, visibleH, drawnFirstW, 0, w - drawnFirstW, h);
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }
+          
+          img.onload = () => { draw(); };
+          img.src = "${roomNode.panoramaImageUrl}";
+          
+          window.addEventListener('resize', resizeCanvas);
+          setTimeout(resizeCanvas, 100);
+          
+          canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
           });
-        });
-      });
+          
+          window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            let dx = e.clientX - startX;
+            let dy = e.clientY - startY;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            yaw -= dx * 0.25;
+            pitch += dy * 0.15;
+            pitch = Math.max(-45, Math.min(45, pitch));
+            draw();
+          });
+          
+          window.addEventListener('mouseup', () => { isDragging = false; });
+
+          canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+              isDragging = true;
+              startX = e.touches[0].clientX;
+              startY = e.touches[0].clientY;
+            }
+          });
+
+          window.addEventListener('touchmove', (e) => {
+            if (!isDragging || e.touches.length !== 1) return;
+            let dx = e.touches[0].clientX - startX;
+            let dy = e.touches[0].clientY - startY;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            
+            yaw -= dx * 0.3;
+            pitch += dy * 0.2;
+            pitch = Math.max(-45, Math.min(45, pitch));
+            draw();
+          });
+
+          window.addEventListener('touchend', () => { isDragging = false; });
+          
+          canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            zoom += e.deltaY * -0.0015;
+            zoom = Math.max(0.8, Math.min(2.8, zoom));
+            draw();
+          }, { passive: false });
+          
+          document.querySelectorAll('.btn-switch-room-angle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const targetBtn = e.currentTarget;
+              const newUrl = targetBtn.getAttribute('data-img-url');
+              if (newUrl) {
+                img.src = newUrl;
+                yaw = 0;
+                pitch = 0;
+              }
+              document.querySelectorAll('.btn-switch-room-angle').forEach(b => {
+                b.classList.remove('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
+                b.classList.add('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
+              });
+              targetBtn.classList.remove('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
+              targetBtn.classList.add('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
+            });
+          });
+        };
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', init360Viewer);
+        } else {
+          init360Viewer();
+        }
+      })();
     </script>
   `.trim();
 }

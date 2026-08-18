@@ -22,26 +22,26 @@ export function renderPublic3DExperiencePage(
     roomName: "Phòng Trưng Bày Văn Hóa Đông Sơn & Trống Đồng Linh Thiêng",
     floorLevel: 1,
     panoramaImageUrl:
-      "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1566127444979-b3d2b654e3d7?auto=format&fit=crop&w=2400&q=80",
     qrCodeToken: "QR_ROOM_DONGSON_01",
     angleViews: [
       {
         angleId: "ANG_01",
-        angleLabel: "Góc 1: Cổng Vào Phòng Đông Sơn",
+        angleLabel: "Vị trí 1: Cổng Vào Phòng Trưng Bày",
         imageUrl:
-          "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=2000&q=80",
+          "https://images.unsplash.com/photo-1566127444979-b3d2b654e3d7?auto=format&fit=crop&w=2400&q=80",
       },
       {
         angleId: "ANG_02",
-        angleLabel: "Góc 2: Tủ Kính Bảo Vật Trống Đồng",
+        angleLabel: "Vị trí 2: Trung Tâm Tủ Bảo Vật Trống Đồng",
         imageUrl:
-          "https://images.unsplash.com/photo-1572953109213-3be62398eb95?auto=format&fit=crop&w=2000&q=80",
+          "https://images.unsplash.com/photo-1572953109213-3be62398eb95?auto=format&fit=crop&w=2400&q=80",
       },
       {
         angleId: "ANG_03",
-        angleLabel: "Góc 3: Vách Tường Di Sản Cổ Đại",
+        angleLabel: "Vị trí 3: Vách Tường Tư Liệu Cổ Đại",
         imageUrl:
-          "https://images.unsplash.com/photo-1544413647-7959955c7861?auto=format&fit=crop&w=2000&q=80",
+          "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=2400&q=80",
       },
     ],
     navArrows: [
