@@ -4,10 +4,10 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0037`
-- Updated: 2026-08-17
+- Revision: `PLAN-0038`
+- Updated: 2026-08-18
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Hoàn tất Merge Memory Sync cho `TASK-3D-NAV-001` (3D Zod contracts, Express A* Indoor Route Router `/api/v1/3d/*`, UI 3D Model Viewer & Web `/3d-experience` page) sau PR `#15` / merge `7a4264d`.
+- Scope: Khóa 100% Nguyên tắc Admin Invariant: Tất cả dữ liệu các trang (Hiện vật, 3D Digital Twin, RAG AI Guide, Living Timeline, Search Catalog, Navigation & Media Assets) do Admin Curator quản lý và xuất bản từ Admin Portal (`/admin` / `@hcmc-museum/admin`); Public Web (`@hcmc-museum/web`) và API (`@hcmc-museum/api`) tiêu thụ động qua CMS Payloads & API endpoints, không bao giờ hardcode dữ liệu di sản.
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
@@ -16,6 +16,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 - Task đang chạy: không có; `TASK-3D-NAV-001`, `TASK-AI-GUIDE-001`, `TASK-DASHBOARD-001`, `TASK-AUTH-001` và `TASK-SEARCH-001` đã `DONE`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
+- Admin Invariant: 100% thông tin di sản, mô hình 3D, bài viết, banner và navigation được quản lý động qua Admin Portal (`/admin`), không hardcode trong React/HTML components.
 - Narrative experience: free/guided modes dùng chung QR resolver; related artifacts chỉ từ typed/versioned relation đã curator duyệt, có lý do/nguồn và deterministic ranking; QR không tạo 3D theo request mà mở model đã duyệt/fallback.
 - Collaboration: branch isolation, contract alignment, progressive context, plan lock, AI-managed task startup, single-writer integration turn và merge memory sync.
 
@@ -23,6 +24,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 | Revision | Date | Change | Affected owners/tasks | Required action | Confirmed by |
 |---|---|---|---|---|---|
+| PLAN-0038 | 2026-08-18 | Khóa 100% Admin Invariant: Tất cả dữ liệu trang (Hiện vật, 3D Twin, AI Knowledge, Timeline, Search, Media, Nav) do Admin quản lý tại `/admin` | Tất cả tasks / CMS / Web / Admin | Tuân thủ Admin CMS endpoints; không hardcode museum content | `loc` xác nhận |
 | PLAN-0037 | 2026-08-17 | Hoàn tất Merge Memory Sync cho TASK-3D-NAV-001 (PR #15 / merge 7a4264d) | TASK-3D-NAV-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0036 | 2026-08-17 | Pre-Code Plan Sync cho TASK-3D-NAV-001 (Digital Twin 3D Orbit View & A* Graph Navigation) | TASK-3D-NAV-001 (IN_PROGRESS) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0035 | 2026-08-17 | Hoàn tất Merge Memory Sync cho TASK-AI-GUIDE-001 (PR #14 / merge cae46a2) | TASK-AI-GUIDE-001 (DONE) | Cập nhật local develop sau pull | `loc` |
