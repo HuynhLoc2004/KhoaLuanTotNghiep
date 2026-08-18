@@ -57,6 +57,11 @@ export function injectHeritageGlobalStyles(): string {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- GSAP & ScrollTrigger Animation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -94,6 +99,10 @@ export function injectHeritageGlobalStyles(): string {
         -moz-osx-font-smoothing: grayscale;
       }
 
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
         font-family: var(--font-body);
         background-color: #030712;
@@ -104,6 +113,7 @@ export function injectHeritageGlobalStyles(): string {
           radial-gradient(ellipse at 50% 90%, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
         background-attachment: fixed;
         overflow-x: hidden;
+        perspective: 1200px;
       }
 
       /* Unified Typography Classes */
@@ -118,6 +128,18 @@ export function injectHeritageGlobalStyles(): string {
 
       code, pre, .font-mono {
         font-family: var(--font-mono) !important;
+      }
+
+      /* Cinematic Scene Scroll System */
+      .cinematic-scene-container {
+        perspective: 1200px;
+        perspective-origin: 50% 50%;
+      }
+
+      .cinematic-scene {
+        transform-style: preserve-3d;
+        will-change: transform, opacity, clip-path;
+        backface-visibility: hidden;
       }
 
       /* Animated Gradient Text */
@@ -166,7 +188,7 @@ export function injectHeritageGlobalStyles(): string {
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(245, 158, 11, 0.25);
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.4s ease, box-shadow 0.4s ease;
         position: relative;
         overflow: hidden;
       }
@@ -229,6 +251,106 @@ export function injectHeritageGlobalStyles(): string {
       .btn-cyber-gold:active {
         transform: translateY(0px) scale(0.98);
       }
+
+      /* Respect prefers-reduced-motion */
+      @media (prefers-reduced-motion: reduce) {
+        .cinematic-scene, [data-scroll-speed], [data-scroll-stagger] {
+          transform: none !important;
+          opacity: 1 !important;
+          animation: none !important;
+        }
+      }
     </style>
+
+    <!-- GSAP Scrub-Based Cinematic Scroll Engine -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        function initCinematicScroll() {
+          if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+            setTimeout(initCinematicScroll, 100);
+            return;
+          }
+
+          gsap.registerPlugin(ScrollTrigger);
+
+          // 1. Cinematic Scene Transitions (3D Perspective, Scale, Rotation & Staggered Reveal)
+          const sections = document.querySelectorAll('section, main > div, .cinematic-scene');
+          sections.forEach((section, index) => {
+            if (section.offsetHeight < 120) return;
+
+            section.classList.add('cinematic-scene');
+
+            // Staggered entry for elements inside each section scene
+            const elementsToAnimate = section.querySelectorAll(
+              '[data-scroll-stagger], h1, h2, h3, .glass-futuristic, .btn-cyber-gold, form, .spatial-3d-experience-container'
+            );
+
+            if (elementsToAnimate.length > 0) {
+              gsap.fromTo(
+                elementsToAnimate,
+                {
+                  y: 50,
+                  opacity: 0,
+                  scale: 0.96,
+                  rotateX: 8,
+                },
+                {
+                  y: 0,
+                  opacity: 1,
+                  scale: 1,
+                  rotateX: 0,
+                  duration: 1.2,
+                  stagger: 0.12,
+                  ease: 'power3.out',
+                  scrollTrigger: {
+                    trigger: section,
+                    start: 'top 85%',
+                    end: 'top 35%',
+                    scrub: 0.8,
+                  },
+                }
+              );
+            }
+
+            // SceneExit 3D Transition (Recedes into depth as next section emerges from below)
+            if (index < sections.length - 1) {
+              gsap.to(section, {
+                scale: 0.93,
+                opacity: 0.25,
+                rotateX: -6,
+                y: -30,
+                ease: 'none',
+                scrollTrigger: {
+                  trigger: section,
+                  start: 'bottom 70%',
+                  end: 'bottom top',
+                  scrub: true,
+                },
+              });
+            }
+          });
+
+          // 2. Parallax Layers for Background / Foreground Elements
+          const parallaxElements = document.querySelectorAll('[data-scroll-speed]');
+          parallaxElements.forEach((el) => {
+            const speed = parseFloat(el.getAttribute('data-scroll-speed') || '0.2');
+            gsap.to(el, {
+              y: -100 * speed,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: el,
+                start: 'top bottom',
+                end: 'bottom top',
+                scrub: true,
+              },
+            });
+          });
+        }
+
+        initCinematicScroll();
+      });
+    </script>
   `.trim();
 }
