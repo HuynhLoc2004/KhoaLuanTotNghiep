@@ -18,36 +18,42 @@ export function renderPublic3DExperiencePage(
   const viewerHtml = render3DModelViewer(config, pois);
 
   const defaultRoomNode: RoomPanoramaNode = roomNode ?? {
-    roomId: "ROOM_DONGSON_01",
-    roomName: "Phòng Trưng Bày Văn Hóa Đông Sơn & Trống Đồng Linh Thiêng",
+    roomId: "ROOM_LY_DYNASTY_01",
+    roomName: "Phòng Trưng Bày Văn Hóa Đại Việt Thời Lý (1009 - 1225)",
     floorLevel: 1,
-    panoramaImageUrl:
-      "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/2294472375_24a3b8ef46_o.jpg",
-    qrCodeToken: "QR_ROOM_DONGSON_01",
+    panoramaImageUrl: "/images/rooms/ly-dynasty/angle-1.jpg",
+    qrCodeToken: "QR_ROOM_LY_DYNASTY_01",
     angleViews: [
       {
         angleId: "ANG_01",
-        angleLabel: "Vị trí 1: Sảnh Chính Căn Phòng Trưng Bày",
-        imageUrl:
-          "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/2294472375_24a3b8ef46_o.jpg",
+        angleLabel: "Vị trí 1: Toàn Cảnh Phòng Thời Lý (1009-1225)",
+        imageUrl: "/images/rooms/ly-dynasty/angle-1.jpg",
       },
       {
         angleId: "ANG_02",
-        angleLabel: "Vị trí 2: Trung Tâm Tủ Kính Trống Đồng",
-        imageUrl:
-          "https://images.unsplash.com/photo-1544413647-7959955c7861?auto=format&fit=crop&w=2500&q=80",
+        angleLabel: "Vị trí 2: Bảng Tư Liệu & Tủ Kính Di Sản",
+        imageUrl: "/images/rooms/ly-dynasty/angle-2.jpg",
       },
       {
         angleId: "ANG_03",
-        angleLabel: "Vị trí 3: Vách Tường Di Sản Cổ Đại",
-        imageUrl:
-          "https://images.unsplash.com/photo-1572953109213-3be62398eb95?auto=format&fit=crop&w=2500&q=80",
+        angleLabel: "Vị trí 3: Trung Tâm Tượng Phật Thời Lý",
+        imageUrl: "/images/rooms/ly-dynasty/angle-3.jpg",
+      },
+      {
+        angleId: "ANG_04",
+        angleLabel: "Vị trí 4: Bảng Chiến Thắng Quân Tống (1076-1077)",
+        imageUrl: "/images/rooms/ly-dynasty/angle-4.jpg",
+      },
+      {
+        angleId: "ANG_05",
+        angleLabel: "Vị trí 5: Lối Đi Chuyển Sang Phòng Thời Trần",
+        imageUrl: "/images/rooms/ly-dynasty/angle-5.jpg",
       },
     ],
     navArrows: [
       {
-        targetRoomId: "ROOM_OCEO_02",
-        label: "Đi tiếp sang Phòng Văn Hóa Óc Eo",
+        targetRoomId: "ROOM_TRAN_DYNASTY_02",
+        label: "Đi tiếp sang Phòng Văn Hóa Thời Trần - Hồ",
         directionAngleDegrees: 0,
       },
       {

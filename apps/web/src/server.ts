@@ -11,6 +11,7 @@ import {
 } from "./index.js";
 
 const app = express();
+app.use(express.static("public"));
 const PORT = process.env.WEB_PORT ? parseInt(process.env.WEB_PORT, 10) : 3001;
 const HOST = process.env.HOST ?? "0.0.0.0";
 const portStr = String(PORT);
