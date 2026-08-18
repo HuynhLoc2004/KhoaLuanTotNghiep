@@ -8,6 +8,7 @@ export interface CmsHeroBlock {
   ctaText?: string | undefined;
   ctaLink?: string | undefined;
   backgroundImageUrl?: string | undefined;
+  showMotifBackdrop?: boolean | undefined;
 }
 
 export interface ArtifactSummary {
@@ -51,17 +52,17 @@ export interface CmsBannerBlock {
 export type CmsBlock =
   CmsHeroBlock | CmsArtifactGridBlock | CmsTimelinePreviewBlock | CmsBannerBlock;
 
+export interface CmsRenderedBlock {
+  blockId: string;
+  type: CmsBlockType;
+  html: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface CmsPagePayload {
   pageId: string;
   slug: string;
   title: string;
   metaDescription?: string | undefined;
   blocks: CmsBlock[];
-}
-
-export interface CmsRenderedBlock {
-  blockId: string;
-  type: CmsBlockType;
-  html: string;
-  metadata: Record<string, unknown>;
 }

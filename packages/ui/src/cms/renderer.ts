@@ -19,9 +19,9 @@ export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
       </a>`
     : "";
 
-  const html = `
-    <section id="hero-${block.id}" class="cms-hero-section cinematic-scene relative overflow-hidden min-h-[90vh] flex flex-col justify-center items-center py-24 px-6 text-center border-b border-amber-500/20" style="${bgStyle} background-size: cover; background-position: center;">
-      <!-- Dong Son Bronze Drum Rotating Motif Backdrop -->
+  const motifHtml =
+    block.showMotifBackdrop !== false
+      ? `<!-- Dong Son Bronze Drum Rotating Motif Backdrop -->
       <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] sm:w-[750px] sm:h-[750px] opacity-15 pointer-events-none animate-spin-slow" data-scroll-speed="0.1">
         <svg viewBox="0 0 200 200" class="w-full h-full text-amber-400 stroke-current fill-none stroke-[0.8]">
           <circle cx="100" cy="100" r="95" stroke-dasharray="4 2"/>
@@ -30,7 +30,12 @@ export function renderHeroBlock(block: CmsHeroBlock): CmsRenderedBlock {
           <circle cx="100" cy="100" r="45"/>
           <polygon points="100,10 115,85 190,100 115,115 100,190 85,115 10,100 85,85" fill="rgba(245,158,11,0.15)"/>
         </svg>
-      </div>
+      </div>`
+      : "";
+
+  const html = `
+    <section id="hero-${block.id}" class="cms-hero-section cinematic-scene relative overflow-hidden min-h-[90vh] flex flex-col justify-center items-center py-24 px-6 text-center border-b border-amber-500/20" style="${bgStyle} background-size: cover; background-position: center;">
+      ${motifHtml}
 
       <!-- Glowing Orbs & Background Parallax Layer -->
       <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/25 rounded-full blur-3xl pointer-events-none" data-scroll-speed="0.3"></div>

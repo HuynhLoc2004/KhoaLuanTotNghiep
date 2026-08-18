@@ -125,6 +125,10 @@ export function renderCmsBlockFormEditor(
             <input id="input-hero-cta-link" type="text" value="${heroData.ctaLink ?? ""}" style="width:100%; padding:0.5rem; background:${heritageTheme.colors.bgDark}; color:${heritageTheme.colors.textPrimary}; border:1px solid rgba(255,255,255,0.1); border-radius:0.25rem;" />
           </div>
         </div>
+        <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <input id="input-hero-motif" type="checkbox" ${heroData.showMotifBackdrop !== false ? "checked" : ""} style="accent-color: ${heritageTheme.colors.accentGold}; cursor: pointer;" />
+          <label for="input-hero-motif" style="font-size:0.875rem; color:${heritageTheme.colors.accentGold}; cursor: pointer;">Hiệu ứng Trống Đồng Đông Sơn Back-end (Quay 360° Nền)</label>
+        </div>
       </div>
     `.trim();
   } else {
