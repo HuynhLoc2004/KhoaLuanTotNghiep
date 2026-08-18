@@ -139,14 +139,14 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* High-Definition Zero-Distortion Interactive Room Walkthrough Engine (100% Sharp Real Proportions, 0% Stretch, 0% Dizziness) */
+/* Three.js 3D Room Box Reconstruction Engine (Photogrammetry 3D Cube Canvas Room Model) */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
   const anglesHtml =
     roomNode.angleViews.length > 0
       ? roomNode.angleViews
           .map(
             (angle, idx) => `
-          <button class="btn-switch-room-angle px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${idx === 0 ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-angle-index="${String(idx)}">
+          <button class="btn-switch-room-angle px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${idx === 0 ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-angle-index="${String(idx)}" data-img-url="${angle.imageUrl}">
             📍 ${angle.angleLabel}
           </button>
         `,
@@ -165,35 +165,10 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
     )
     .join("\n");
 
-  const slidesHtml = roomNode.angleViews
-    .map(
-      (angle, idx) => `
-      <div class="room-angle-slide relative w-full h-full flex-shrink-0 flex items-center justify-center p-2 sm:p-4 bg-slate-950 overflow-hidden transition-opacity duration-300" data-slide-index="${String(idx)}">
-        <!-- Dual-Layer Ambient Blurred Background (Fills All Side Bars Naturally) -->
-        <img src="${angle.imageUrl}" alt="" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110 select-none pointer-events-none" />
-        
-        <!-- Main Crisp Image Layer -->
-        <img src="${angle.imageUrl}" alt="${angle.angleLabel}" class="relative z-10 max-w-full max-h-full object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.95)] rounded-2xl select-none pointer-events-none border border-amber-500/20" />
-        
-        <!-- Bottom Viewpoint Badge -->
-        <div class="absolute bottom-16 left-6 z-20 px-4 py-2 rounded-xl bg-slate-950/90 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold shadow-2xl backdrop-blur-md">
-          📍 ${angle.angleLabel}
-        </div>
-      </div>
-    `,
-    )
-    .join("\n");
-
-  const dotsHtml = roomNode.angleViews
-    .map(
-      (_, idx) => `
-      <span class="room-angle-dot w-3 h-3 rounded-full transition-all cursor-pointer ${idx === 0 ? "bg-amber-400 scale-125 shadow-[0_0_12px_rgba(245,158,11,0.9)]" : "bg-slate-700 hover:bg-slate-500"}" data-dot-index="${String(idx)}"></span>
-    `,
-    )
-    .join("\n");
+  const imagesJson = JSON.stringify(roomNode.angleViews.map((a) => a.imageUrl));
 
   return `
-    <!-- High-Definition Zero-Distortion Interactive Room Walkthrough Card -->
+    <!-- Three.js 3D Room Box Reconstruction Card -->
     <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
       
       <!-- Top Info Bar -->
@@ -204,7 +179,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Không Gian Trực Quan Thật 100% — Tỉ Lệ Chuẩn Sắc Nét (Tầng ${String(roomNode.floorLevel)})</p>
+            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian Căn Phòng 3D Digital Twin (Three.js WebGL 3D Room Box)</p>
           </div>
         </div>
 
@@ -220,137 +195,191 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         anglesHtml
           ? `<div class="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl bg-slate-900/90 border border-amber-500/30 z-20 relative">
         <span class="text-xs font-mono font-bold text-amber-400 mr-2 flex items-center gap-1.5">
-          <span>📷</span> Các điểm tham quan trong phòng:
+          <span>📷</span> Hướng quan sát trong căn phòng 3D:
         </span>
         ${anglesHtml}
       </div>`
           : ""
       }
 
-      <!-- Interactive Room Stage Area (0% Stretch, 0% Dizziness) -->
-      <div id="room-360-viewport" class="relative w-full h-[520px] sm:h-[640px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}">
+      <!-- 3D Room Canvas Viewport Container -->
+      <div id="room-360-viewport" class="relative w-full h-[540px] sm:h-[660px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group cursor-grab active:cursor-grabbing" data-room-id="${roomNode.roomId}">
         
-        <!-- Smooth Room Track Stage -->
-        <div id="room-filmstrip-track" class="relative w-full h-full flex transition-transform duration-500 ease-out" style="transform: translateX(0%); width: 100%;">
-          ${slidesHtml}
-        </div>
+        <!-- Three.js Canvas Mounts Automatically Here -->
 
-        <!-- Left / Right Navigation Stepping Arrows -->
-        <button id="btn-prev-room-angle" class="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-slate-950/85 border border-amber-400/50 text-amber-400 hover:bg-amber-400 hover:text-slate-950 flex items-center justify-center text-xl font-bold shadow-2xl transition-all hover:scale-110 cursor-pointer" title="Góc phòng trước">
-          ❮
-        </button>
-        <button id="btn-next-room-angle" class="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-slate-950/85 border border-amber-400/50 text-amber-400 hover:bg-amber-400 hover:text-slate-950 flex items-center justify-center text-xl font-bold shadow-2xl transition-all hover:scale-110 cursor-pointer" title="Góc phòng tiếp theo">
-          ❯
-        </button>
-
-        <!-- Dots Indicator Bar -->
-        <div class="absolute top-4 right-4 z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-slate-950/85 border border-amber-500/30 backdrop-blur-md">
-          ${dotsHtml}
-        </div>
+        <!-- Ambient Lighting Overlay -->
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/20 pointer-events-none z-20"></div>
 
         <!-- Directional Floor Navigation Arrows -->
         <div class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-wrap justify-center items-center gap-3 z-30 max-w-full px-4">
           ${navArrowsHtml}
         </div>
 
-        <!-- Hint Overlay -->
-        <div class="absolute top-4 left-4 z-30 px-3.5 py-2 rounded-xl bg-slate-950/90 border border-amber-500/40 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-xl pointer-events-none">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span>👈 Vuốt/Kéo rê hoặc bấm mũi tên ❮ ❯ để bước chuyển góc phòng | 100% Sắc Nét Chuẩn Tỉ Lệ</span>
+        <!-- Interactive Instruction Badge -->
+        <div class="absolute top-4 left-4 z-30 px-4 py-2.5 rounded-xl bg-slate-950/90 border border-amber-400/50 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-2xl pointer-events-none backdrop-blur-md">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+          <span>🎮 Bạn đang đứng TRONG CĂN PHÒNG 3D: Kéo rê chuột xoay 360° quan sát 4 bức tường | Cuộn chuột tiến/lùi</span>
         </div>
       </div>
 
-      <!-- Bottom Interactive Toolbar -->
+      <!-- Bottom Toolbar -->
       <div class="mt-4 flex flex-wrap justify-between items-center gap-3">
         <button class="btn-trigger-qr-scanner btn-cyber-gold px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
           <svg class="w-4 h-4 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
           <span>📷 Quét Mã QR Căn Phòng Khác</span>
         </button>
 
-        <p class="text-xs font-mono text-slate-400">© Mô phỏng không gian thực tế Bảo tàng Lịch sử TP. Hồ Chí Minh</p>
+        <p class="text-xs font-mono text-slate-400">© Mô phỏng không gian 3D Digital Twin Bảo tàng Lịch sử TP. Hồ Chí Minh</p>
       </div>
     </div>
 
-    <!-- Script Room Interactive Walkthrough Engine -->
+    <!-- Script Three.js 3D Room Box Reconstruction Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
       (function() {
-        const initWalkthroughViewer = () => {
-          const track = document.getElementById('room-filmstrip-track');
-          const prevBtn = document.getElementById('btn-prev-room-angle');
-          const nextBtn = document.getElementById('btn-next-room-angle');
-          const angleBtns = document.querySelectorAll('.btn-switch-room-angle');
-          const dots = document.querySelectorAll('.room-angle-dot');
-          const totalSlides = ${String(roomNode.angleViews.length)};
+        const init3DRoomBox = () => {
+          const container = document.getElementById('room-360-viewport');
+          if (!container || typeof THREE === 'undefined') return;
+
+          const imageList = ${imagesJson};
+          if (!imageList || imageList.length === 0) return;
+
+          let scene = new THREE.Scene();
+          let camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 1, 2000);
           
-          if (!track || totalSlides === 0) return;
+          let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          renderer.setSize(container.clientWidth, container.clientHeight);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-          let currentIndex = 0;
+          // Create Inside-Out 3D Room Box (Tường Đứng Thẳng 100%, 0% Cong Méo)
+          let roomGeometry = new THREE.BoxGeometry(1000, 680, 1000);
+          roomGeometry.scale(-1, 1, 1); // Flip faces to point inward
 
-          function goToSlide(idx) {
-            if (idx < 0) idx = totalSlides - 1;
-            if (idx >= totalSlides) idx = 0;
-            currentIndex = idx;
+          let textureLoader = new THREE.TextureLoader();
+          textureLoader.setCrossOrigin('anonymous');
 
-            track.style.transform = "translateX(" + (-currentIndex * 100) + "%)";
+          const getTex = (url) => {
+            const t = textureLoader.load(url);
+            t.minFilter = THREE.LinearFilter;
+            t.magFilter = THREE.LinearFilter;
+            return t;
+          };
 
-            angleBtns.forEach((b, i) => {
-              if (i === currentIndex) {
-                b.classList.remove('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
-                b.classList.add('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
-              } else {
+          // Map 6 Inside Faces of the 3D Museum Room:
+          // 0: Right Wall (Bảng Chiến Thắng Quân Tống)
+          // 1: Left Wall (Bảng Tư Liệu & Tủ Kính)
+          // 2: Ceiling (Trần nhà bảo tàng)
+          // 3: Floor (Sàn gỗ bảo tàng)
+          // 4: Front Wall (Tượng Phật Thời Lý)
+          // 5: Back Wall (Lối đi phòng tiếp theo)
+          const img0 = imageList[3] || imageList[0];
+          const img1 = imageList[1] || imageList[0];
+          const img2 = imageList[0];
+          const img3 = imageList[0];
+          const img4 = imageList[2] || imageList[0];
+          const img5 = imageList[4] || imageList[0];
+
+          let materials = [
+            new THREE.MeshBasicMaterial({ map: getTex(img0) }), // Right
+            new THREE.MeshBasicMaterial({ map: getTex(img1) }), // Left
+            new THREE.MeshBasicMaterial({ map: getTex(img2) }), // Ceiling
+            new THREE.MeshBasicMaterial({ map: getTex(img3) }), // Floor
+            new THREE.MeshBasicMaterial({ map: getTex(img4) }), // Front
+            new THREE.MeshBasicMaterial({ map: getTex(img5) })  // Back
+          ];
+
+          let roomBox = new THREE.Mesh(roomGeometry, materials);
+          scene.add(roomBox);
+
+          let isUserInteracting = false;
+          let onMouseDownLon = 0, onMouseDownLat = 0;
+          let lon = 0, lat = 0;
+          let targetLon = 0, targetLat = 0;
+
+          renderer.domElement.className = "absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 block";
+          container.appendChild(renderer.domElement);
+
+          function animate() {
+            requestAnimationFrame(animate);
+            lon += (targetLon - lon) * 0.1;
+            lat += (targetLat - lat) * 0.1;
+            lat = Math.max(-25, Math.min(25, lat));
+
+            let phi = THREE.MathUtils.degToRad(90 - lat);
+            let theta = THREE.MathUtils.degToRad(lon);
+
+            let targetX = 500 * Math.sin(phi) * Math.cos(theta);
+            let targetY = 500 * Math.cos(phi);
+            let targetZ = 500 * Math.sin(phi) * Math.sin(theta);
+
+            camera.lookAt(targetX, targetY, targetZ);
+            renderer.render(scene, camera);
+          }
+          animate();
+
+          function onResize() {
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+          }
+          window.addEventListener('resize', onResize);
+
+          container.addEventListener('pointerdown', (e) => {
+            isUserInteracting = true;
+            onMouseDownLon = e.clientX;
+            onMouseDownLat = e.clientY;
+          });
+
+          window.addEventListener('pointermove', (e) => {
+            if (!isUserInteracting) return;
+            targetLon = (onMouseDownLon - e.clientX) * 0.22 + lon;
+            targetLat = (e.clientY - onMouseDownLat) * 0.18 + lat;
+            onMouseDownLon = e.clientX;
+            onMouseDownLat = e.clientY;
+          });
+
+          window.addEventListener('pointerup', () => { isUserInteracting = false; });
+
+          container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            camera.fov += e.deltaY * 0.05;
+            camera.fov = Math.max(35, Math.min(85, camera.fov));
+            camera.updateProjectionMatrix();
+          }, { passive: false });
+
+          // Dynamic Look Target Angles:
+          // Index 0: Overview (Front) -> lon 0
+          // Index 1: Left Wall -> lon 90
+          // Index 2: Front Buddha -> lon 0
+          // Index 3: Right Song Aggressor -> lon -90
+          // Index 4: Back Corridor -> lon 180
+          const angleLons = [0, 90, 0, -90, 180];
+
+          document.querySelectorAll('.btn-switch-room-angle').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+              const targetBtn = e.currentTarget;
+              const idxStr = targetBtn.getAttribute('data-angle-index');
+              if (idxStr !== null) {
+                const idx = parseInt(idxStr, 10);
+                targetLon = angleLons[idx] !== undefined ? angleLons[idx] : idx * 72;
+                targetLat = 0;
+              }
+
+              document.querySelectorAll('.btn-switch-room-angle').forEach(b => {
                 b.classList.remove('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
                 b.classList.add('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
-              }
-            });
-
-            dots.forEach((d, i) => {
-              if (i === currentIndex) {
-                d.classList.remove('bg-slate-700');
-                d.classList.add('bg-amber-400', 'scale-125', 'shadow-[0_0_12px_rgba(245,158,11,0.9)]');
-              } else {
-                d.classList.remove('bg-amber-400', 'scale-125', 'shadow-[0_0_12px_rgba(245,158,11,0.9)]');
-                d.classList.add('bg-slate-700');
-              }
-            });
-          }
-
-          if (prevBtn) prevBtn.addEventListener('click', () => goToSlide(currentIndex - 1));
-          if (nextBtn) nextBtn.addEventListener('click', () => goToSlide(currentIndex + 1));
-
-          angleBtns.forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-              const idxStr = e.currentTarget.getAttribute('data-angle-index');
-              if (idxStr !== null) goToSlide(parseInt(idxStr, 10));
+              });
+              targetBtn.classList.remove('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
+              targetBtn.classList.add('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
             });
           });
-
-          dots.forEach((dot) => {
-            dot.addEventListener('click', (e) => {
-              const idxStr = e.currentTarget.getAttribute('data-dot-index');
-              if (idxStr !== null) goToSlide(parseInt(idxStr, 10));
-            });
-          });
-
-          // Swipe Touch Support
-          let touchStartX = 0;
-          track.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
-          }, { passive: true });
-
-          track.addEventListener('touchend', (e) => {
-            if (e.changedTouches.length === 1) {
-              const touchEndX = e.changedTouches[0].clientX;
-              const diff = touchStartX - touchEndX;
-              if (diff > 40) goToSlide(currentIndex + 1);
-              else if (diff < -40) goToSlide(currentIndex - 1);
-            }
-          }, { passive: true });
         };
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initWalkthroughViewer);
+          document.addEventListener('DOMContentLoaded', init3DRoomBox);
         } else {
-          initWalkthroughViewer();
+          init3DRoomBox();
         }
       })();
     </script>
