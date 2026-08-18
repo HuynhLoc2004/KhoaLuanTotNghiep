@@ -58,6 +58,9 @@ export function injectHeritageGlobalStyles(): string {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     
+    <!-- Lenis Smooth Scroll Library -->
+    <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+
     <!-- GSAP & ScrollTrigger Animation Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
@@ -100,7 +103,7 @@ export function injectHeritageGlobalStyles(): string {
       }
 
       html {
-        scroll-behavior: smooth;
+        scroll-behavior: auto !important; /* Lenis handles smooth scrolling */
       }
 
       body {
@@ -130,16 +133,15 @@ export function injectHeritageGlobalStyles(): string {
         font-family: var(--font-mono) !important;
       }
 
-      /* Cinematic Scene Scroll System */
-      .cinematic-scene-container {
-        perspective: 1200px;
-        perspective-origin: 50% 50%;
-      }
-
+      /* Motion Sites Cinematic Scroll & Masking Styles */
       .cinematic-scene {
         transform-style: preserve-3d;
         will-change: transform, opacity, clip-path;
         backface-visibility: hidden;
+      }
+
+      .clip-curtain-vault {
+        clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
       }
 
       /* Animated Gradient Text */
@@ -262,94 +264,112 @@ export function injectHeritageGlobalStyles(): string {
       }
     </style>
 
-    <!-- GSAP Scrub-Based Cinematic Scroll Engine -->
+    <!-- Lenis & GSAP ScrollTrigger Motion Engine Script -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-        function initCinematicScroll() {
+        function initMotionEngine() {
           if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
-            setTimeout(initCinematicScroll, 100);
+            setTimeout(initMotionEngine, 100);
             return;
           }
 
           gsap.registerPlugin(ScrollTrigger);
 
-          // 1. Cinematic Scene Transitions (3D Perspective, Scale, Rotation & Staggered Reveal)
+          // 1. Initialize Lenis Smooth Inertia Scroll
+          if (typeof Lenis !== 'undefined') {
+            const lenis = new Lenis({
+              duration: 1.2,
+              easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+              smoothWheel: true,
+              touchMultiplier: 1.5,
+            });
+
+            function raf(time) {
+              lenis.raf(time);
+              requestAnimationFrame(raf);
+            }
+            requestAnimationFrame(raf);
+
+            lenis.on('scroll', ScrollTrigger.update);
+            gsap.ticker.add((time) => {
+              lenis.raf(time * 1000);
+            });
+            gsap.ticker.lagSmoothing(0);
+          }
+
+          // 2. Cinematic Section-to-Section Scene Transitions (Reversible 1:1 Scrub)
           const sections = document.querySelectorAll('section, main > div, .cinematic-scene');
           sections.forEach((section, index) => {
             if (section.offsetHeight < 120) return;
 
             section.classList.add('cinematic-scene');
 
-            // Staggered entry for elements inside each section scene
-            const elementsToAnimate = section.querySelectorAll(
-              '[data-scroll-stagger], h1, h2, h3, .glass-futuristic, .btn-cyber-gold, form, .spatial-3d-experience-container'
-            );
+            // Staggered entry elements inside each scene
+            const headings = section.querySelectorAll('h1, h2, .gradient-title-cyber');
+            const paragraphs = section.querySelectorAll('p, .text-slate-300, .text-slate-400');
+            const cards = section.querySelectorAll('.glass-futuristic, .spatial-3d-experience-container, form');
+            const buttons = section.querySelectorAll('.btn-cyber-gold, button, a.btn-cyber-gold');
 
-            if (elementsToAnimate.length > 0) {
-              gsap.fromTo(
-                elementsToAnimate,
-                {
-                  y: 50,
-                  opacity: 0,
-                  scale: 0.96,
-                  rotateX: 8,
-                },
-                {
-                  y: 0,
-                  opacity: 1,
-                  scale: 1,
-                  rotateX: 0,
-                  duration: 1.2,
-                  stagger: 0.12,
-                  ease: 'power3.out',
-                  scrollTrigger: {
-                    trigger: section,
-                    start: 'top 85%',
-                    end: 'top 35%',
-                    scrub: 0.8,
-                  },
-                }
-              );
+            const timeline = gsap.timeline({
+              scrollTrigger: {
+                trigger: section,
+                start: 'top 85%',
+                end: 'top 30%',
+                scrub: 1, // Reversible smooth scrub
+              },
+            });
+
+            if (headings.length) {
+              timeline.fromTo(headings, { y: 60, opacity: 0, scale: 0.95, rotateX: 6 }, { y: 0, opacity: 1, scale: 1, rotateX: 0, duration: 1, ease: 'power3.out' }, 0);
+            }
+            if (paragraphs.length) {
+              timeline.fromTo(paragraphs, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, ease: 'power2.out' }, 0.15);
+            }
+            if (cards.length) {
+              timeline.fromTo(cards, { y: 50, opacity: 0, scale: 0.96, rotateX: 8 }, { y: 0, opacity: 1, scale: 1, rotateX: 0, duration: 1.1, stagger: 0.15, ease: 'power3.out' }, 0.25);
+            }
+            if (buttons.length) {
+              timeline.fromTo(buttons, { y: 30, opacity: 0, scale: 0.9 }, { y: 0, opacity: 1, scale: 1, duration: 0.8, stagger: 0.1, ease: 'back.out(1.5)' }, 0.35);
             }
 
-            // SceneExit 3D Transition (Recedes into depth as next section emerges from below)
+            // Scene Exit 3D Depth Recede Effect as user scrolls past
             if (index < sections.length - 1) {
               gsap.to(section, {
-                scale: 0.93,
-                opacity: 0.25,
-                rotateX: -6,
-                y: -30,
+                scale: 0.92,
+                opacity: 0.2,
+                rotateX: -7,
+                y: -40,
                 ease: 'none',
                 scrollTrigger: {
                   trigger: section,
                   start: 'bottom 70%',
                   end: 'bottom top',
-                  scrub: true,
+                  scrub: 1,
                 },
               });
             }
           });
 
-          // 2. Parallax Layers for Background / Foreground Elements
+          // 3. Parallax Foreground & Background Speed Offset
           const parallaxElements = document.querySelectorAll('[data-scroll-speed]');
           parallaxElements.forEach((el) => {
-            const speed = parseFloat(el.getAttribute('data-scroll-speed') || '0.2');
+            const speed = parseFloat(el.getAttribute('data-scroll-speed') || '0.25');
             gsap.to(el, {
-              y: -100 * speed,
+              y: -120 * speed,
               ease: 'none',
               scrollTrigger: {
                 trigger: el,
                 start: 'top bottom',
                 end: 'bottom top',
-                scrub: true,
+                scrub: 1,
               },
             });
           });
         }
 
-        initCinematicScroll();
+        initMotionEngine();
       });
     </script>
   `.trim();
