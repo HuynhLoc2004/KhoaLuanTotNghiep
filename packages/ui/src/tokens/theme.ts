@@ -7,7 +7,7 @@ export const heritageTheme = Object.freeze({
     accentGoldLight: "#F3E5AB",
     bronze: "#8C6D46",
     bgDark: "#030712",
-    bgCard: "rgba(15, 23, 42, 0.78)",
+    bgCard: "rgba(15, 23, 42, 0.8)",
     bgGlass: "rgba(255, 255, 255, 0.06)",
     borderGlass: "rgba(245, 158, 11, 0.35)",
     textPrimary: "#FAFAFA",
@@ -15,8 +15,7 @@ export const heritageTheme = Object.freeze({
     textMuted: "#94A3B8",
   }),
   typography: Object.freeze({
-    fontFamilyHeading:
-      "'Syne', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamilyHeading: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontFamilySerif: "'Cinzel', Georgia, serif",
     fontFamilyBody:
       "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -58,7 +57,7 @@ export function injectHeritageGlobalStyles(): string {
   return `
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Syne:wght@700;800;900&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     
     <!-- Lenis Smooth Scroll Library -->
     <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
@@ -73,8 +72,7 @@ export function injectHeritageGlobalStyles(): string {
         theme: {
           extend: {
             fontFamily: {
-              heading: ['Syne', 'Outfit', '-apple-system', 'sans-serif'],
-              serif: ['Cinzel', 'Georgia', 'serif'],
+              heading: ['Montserrat', '-apple-system', 'sans-serif'],
               sans: ['Plus Jakarta Sans', '-apple-system', 'sans-serif'],
               mono: ['Space Grotesk', 'monospace'],
             },
@@ -96,9 +94,8 @@ export function injectHeritageGlobalStyles(): string {
     </script>
     <style>
       :root {
-        --font-heading: 'Syne', 'Outfit', sans-serif;
-        --font-serif: 'Cinzel', Georgia, serif;
-        --font-body: 'Plus Jakarta Sans', sans-serif;
+        --font-heading: 'Montserrat', -apple-system, sans-serif;
+        --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
         --font-mono: 'Space Grotesk', monospace;
       }
       
@@ -118,31 +115,28 @@ export function injectHeritageGlobalStyles(): string {
         color: #f8fafc;
         background-image: 
           /* Bronze Drum Starburst Radial Rays */
-          radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.18) 0%, rgba(159, 18, 57, 0.12) 35%, transparent 70%),
-          radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.14) 0%, transparent 65%),
-          radial-gradient(circle at 10% 70%, rgba(212, 175, 55, 0.12) 0%, transparent 60%),
+          radial-gradient(circle at 50% 25%, rgba(245, 158, 11, 0.16) 0%, rgba(159, 18, 57, 0.1) 35%, transparent 70%),
+          radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.12) 0%, transparent 65%),
+          radial-gradient(circle at 15% 75%, rgba(212, 175, 55, 0.1) 0%, transparent 60%),
           /* Cybernetic Heritage Grid Lines */
-          linear-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(245, 158, 11, 0.04) 1px, transparent 1px);
+          linear-gradient(rgba(245, 158, 11, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(245, 158, 11, 0.035) 1px, transparent 1px);
         background-size: 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px;
         background-attachment: fixed;
         overflow-x: hidden;
         perspective: 1200px;
       }
 
-      /* Typography Enhancements */
-      h1, h2, h3, .font-heading {
+      /* Hyper Legible & Beautiful Typography Classes */
+      h1, h2, h3, h4, h5, h6, .font-heading {
         font-family: var(--font-heading) !important;
-        letter-spacing: -0.03em;
-      }
-
-      .font-serif, .heritage-title-serif {
-        font-family: var(--font-serif) !important;
-        letter-spacing: 0.04em;
+        letter-spacing: -0.02em;
+        font-weight: 800;
       }
 
       p, span, div, a, button, input, select, textarea {
         font-family: var(--font-body);
+        line-height: 1.6;
       }
 
       code, pre, .font-mono {
@@ -151,12 +145,12 @@ export function injectHeritageGlobalStyles(): string {
 
       /* Royal Cyber Gradient Text */
       .gradient-title-cyber {
-        background: linear-gradient(135deg, #ffffff 0%, #fef08a 25%, #f59e0b 60%, #e11d48 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #fef08a 25%, #f59e0b 65%, #f43f5e 100%);
         background-size: 200% auto;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         animation: gradientShift 6s ease infinite;
-        filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.4));
+        filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.35));
       }
 
       .gradient-cyan-emerald {
@@ -173,7 +167,7 @@ export function injectHeritageGlobalStyles(): string {
 
       @keyframes float3D {
         0%, 100% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-14px) rotate(1.2deg); }
+        50% { transform: translateY(-10px) rotate(1deg); }
       }
 
       @keyframes spinSlow {
@@ -241,11 +235,11 @@ export function injectHeritageGlobalStyles(): string {
       }
 
       .glass-nav-cyber {
-        background: rgba(3, 7, 18, 0.92);
+        background: rgba(3, 7, 18, 0.85);
         backdrop-filter: blur(28px);
         -webkit-backdrop-filter: blur(28px);
-        border-bottom: 1px solid rgba(245, 158, 11, 0.3);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.15);
       }
 
       .btn-cyber-gold {
