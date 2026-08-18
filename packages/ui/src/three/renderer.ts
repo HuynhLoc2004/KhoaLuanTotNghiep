@@ -139,8 +139,21 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* 360° Museum Room Panorama StreetView Renderer */
+/* 360° Museum Room Panorama StreetView Renderer (3 Admin Viewpoint Angles per Room) */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
+  const anglesHtml =
+    roomNode.angleViews.length > 0
+      ? roomNode.angleViews
+          .map(
+            (angle, idx) => `
+          <button class="btn-switch-room-angle px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${idx === 0 ? "bg-amber-400 text-slate-950 shadow-md shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-img-url="${angle.imageUrl}" data-angle-id="${angle.angleId}">
+            ${angle.angleLabel}
+          </button>
+        `,
+          )
+          .join("\n")
+      : "";
+
   const navArrowsHtml = roomNode.navArrows
     .map(
       (arrow) => `
@@ -164,21 +177,33 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Không Gian Mô Phỏng 360° Virtual Street View (Tầng ${String(roomNode.floorLevel)})</p>
+            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian 360° Đa Góc Nhìn Google Street View (Tầng ${String(roomNode.floorLevel)})</p>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
           <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
-            🔑 Mã QR: ${roomNode.qrCodeToken}
+            🔑 Mã QR Căn Phòng: ${roomNode.qrCodeToken}
           </span>
         </div>
       </div>
 
-      <!-- 360 Panorama Interactive Viewport Stage -->
+      <!-- Admin Multi-Angle Viewpoint Selector Bar -->
+      ${
+        anglesHtml
+          ? `<div class="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30">
+        <span class="text-xs font-mono font-bold text-amber-400 mr-2 flex items-center gap-1.5">
+          <span>📷</span> Các góc chụp căn phòng (Admin cung cấp):
+        </span>
+        ${anglesHtml}
+      </div>`
+          : ""
+      }
+
+      <!-- 360 Panorama Interactive Viewport Stage (HD Sharp Image Scaling) -->
       <div id="room-360-viewport" class="relative w-full h-[450px] sm:h-[550px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
         <!-- Panoramic 360 Equirectangular Room Background -->
-        <img src="${roomNode.panoramaImageUrl}" alt="${roomNode.roomName}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+        <img id="room-360-active-img" src="${roomNode.panoramaImageUrl}" alt="${roomNode.roomName}" class="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-105" loading="eager" />
 
         <!-- Ambient Vignette & Lighting Mask -->
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/40 pointer-events-none"></div>
@@ -191,7 +216,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         <!-- Interactive 360 Controls Hint Overlay -->
         <div class="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-amber-500/30 text-[11px] font-mono text-slate-300 flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-          <span>Kéo rê chuột để xoay 360° | Cuộn chuột để phóng to cận cảnh</span>
+          <span>Kéo rê chuột / Tay vuốt để xoay 360° | Cuộn chuột để phóng to cận cảnh HD</span>
         </div>
       </div>
 
@@ -205,5 +230,34 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         <p class="text-xs font-mono text-slate-400">© Mô phỏng không gian thực tế Bảo tàng Lịch sử TP. Hồ Chí Minh</p>
       </div>
     </div>
+
+    <!-- Script Chuyển Đổi Các Góc Nhìn Trong Phòng -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const activeImg = document.getElementById('room-360-active-img');
+        const angleBtns = document.querySelectorAll('.btn-switch-room-angle');
+        
+        angleBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const targetBtn = e.currentTarget;
+            const newUrl = targetBtn.getAttribute('data-img-url');
+            if (activeImg && newUrl) {
+              activeImg.style.opacity = '0.3';
+              setTimeout(() => {
+                activeImg.src = newUrl;
+                activeImg.style.opacity = '1';
+              }, 200);
+            }
+            
+            angleBtns.forEach(b => {
+              b.classList.remove('bg-amber-400', 'text-slate-950', 'shadow-md');
+              b.classList.add('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
+            });
+            targetBtn.classList.remove('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
+            targetBtn.classList.add('bg-amber-400', 'text-slate-950', 'shadow-md');
+          });
+        });
+      });
+    </script>
   `.trim();
 }
