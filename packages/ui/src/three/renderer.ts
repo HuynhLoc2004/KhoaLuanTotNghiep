@@ -139,21 +139,8 @@ export function render3DModelViewer(config: ThreeDModelConfig, pois: ThreeDFloor
   `;
 }
 
-/* Three.js Dynamic Architectural 3D Room Reconstruction Engine */
+/* Three.js Google Street View Museum Engine with Interactive Viewing Radar Mini-Map */
 export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string {
-  const anglesHtml =
-    roomNode.angleViews.length > 0
-      ? roomNode.angleViews
-          .map(
-            (angle, idx) => `
-          <button class="btn-switch-room-angle px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${idx === 0 ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-900/90 text-slate-300 border border-slate-700 hover:border-amber-400/60"}" data-angle-index="${String(idx)}" data-img-url="${angle.imageUrl}">
-            📍 ${angle.angleLabel}
-          </button>
-        `,
-          )
-          .join("\n")
-      : "";
-
   const navArrowsHtml = roomNode.navArrows
     .map(
       (arrow) => `
@@ -165,10 +152,11 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
     )
     .join("\n");
 
-  const imagesJson = JSON.stringify(roomNode.angleViews.map((a) => a.imageUrl));
+  const mapX = roomNode.mapCoordinates?.xPercent ?? 50;
+  const mapY = roomNode.mapCoordinates?.yPercent ?? 50;
 
   return `
-    <!-- Three.js Dynamic Architectural 3D Room Reconstruction Experience -->
+    <!-- Three.js Google Street View Museum Experience Card -->
     <div id="room-360-streetview-card" class="glass-futuristic rounded-3xl p-6 relative overflow-hidden border-2 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] my-8">
       
       <!-- Top Info Bar -->
@@ -179,7 +167,7 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           </div>
           <div>
             <h3 class="font-heading font-black text-lg sm:text-xl text-slate-100">${roomNode.roomName}</h3>
-            <p class="text-xs font-mono text-amber-400">Mô Phỏng Không Gian Căn Phòng 3D Digital Twin (Dynamic Architectural WebGL Wall Engine)</p>
+            <p class="text-xs font-mono text-amber-400">Mô Phỏng 3D Bảo Tàng Chuẩn Google Street View (360° Equirectangular Spherical Engine)</p>
           </div>
         </div>
 
@@ -190,35 +178,58 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
         </div>
       </div>
 
-      <!-- Viewpoint Selector Buttons Bar -->
-      ${
-        anglesHtml
-          ? `<div class="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl bg-slate-900/90 border border-amber-500/30 z-20 relative">
-        <span class="text-xs font-mono font-bold text-amber-400 mr-2 flex items-center gap-1.5">
-          <span>📷</span> Các vị trí tường trong phòng 3D:
-        </span>
-        ${anglesHtml}
-      </div>`
-          : ""
-      }
-
-      <!-- 3D Room WebGL Viewport Container -->
-      <div id="room-360-viewport" class="relative w-full h-[540px] sm:h-[660px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group cursor-grab active:cursor-grabbing" data-room-id="${roomNode.roomId}">
+      <!-- 3D Room WebGL Viewport Container (Google Street View) -->
+      <div id="room-360-viewport" class="relative w-full h-[560px] sm:h-[680px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center group cursor-grab active:cursor-grabbing" data-room-id="${roomNode.roomId}" data-panorama-url="${roomNode.panoramaImageUrl}">
         
         <!-- Three.js Canvas Mounts Automatically Here -->
 
         <!-- Ambient Vignette Overlay -->
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/30 pointer-events-none z-20"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20 pointer-events-none z-20"></div>
 
-        <!-- Directional Floor Navigation Arrows -->
+        <!-- Directional Floor Navigation Arrows (Google Street View Ground Arrows) -->
         <div class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-wrap justify-center items-center gap-3 z-30 max-w-full px-4">
           ${navArrowsHtml}
         </div>
 
-        <!-- Interactive Instruction Badge -->
+        <!-- Interactive Street View Instruction Badge -->
         <div class="absolute top-4 left-4 z-30 px-4 py-2.5 rounded-xl bg-slate-950/90 border border-amber-400/50 text-xs font-mono text-slate-200 flex items-center gap-2.5 shadow-2xl pointer-events-none backdrop-blur-md">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span>🎮 Kéo rê chuột xoay 360° quan sát căn phòng 3D | Bấm các vị trí 📍 để xoay mặt nhìn tường phòng</span>
+          <span>🧭 Google Street View 360°: Kéo rê chuột xoay 360° quan sát | Bấm mũi tên mặt sàn để bước đi</span>
+        </div>
+
+        <!-- Interactive 2D Museum Mini-Map Overlay with Real-time Viewing Radar Cone -->
+        <div id="museum-mini-map-overlay" class="absolute bottom-6 right-6 z-30 w-52 sm:w-64 h-40 sm:h-48 rounded-2xl glass-futuristic border-2 border-amber-500/40 p-3 shadow-2xl backdrop-blur-xl overflow-hidden group/minimap">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+              <span>🗺️</span> Sơ đồ mặt bằng bảo tàng
+            </span>
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          </div>
+
+          <!-- 2D Floor Plan Canvas Stage -->
+          <div class="relative w-full h-[calc(100%-24px)] rounded-xl border border-slate-800 bg-slate-950/80 overflow-hidden">
+            <!-- Floor Plan Graphic Overlay -->
+            <div class="absolute inset-0 opacity-40 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:12px_12px]"></div>
+
+            <!-- Rooms Layout Outline Representation -->
+            <div class="absolute inset-2 border border-slate-700/60 rounded-lg flex items-center justify-center">
+              <div class="w-1/2 h-full border-r border-slate-700/60 p-1 flex items-center justify-center text-[9px] font-mono text-slate-400">Phòng Thời Lý</div>
+              <div class="w-1/2 h-full p-1 flex items-center justify-center text-[9px] font-mono text-slate-400">Phòng Thời Trần</div>
+            </div>
+
+            <!-- Active User Location Pin & Real-time Rotating Viewing Radar Cone -->
+            <div id="radar-user-pin" class="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-300" style="left: ${String(mapX)}%; top: ${String(mapY)}%;">
+              <!-- Real-time Rotating Radar Frustum Cone -->
+              <div id="radar-view-cone" class="absolute -top-12 -left-12 w-24 h-24 pointer-events-none origin-center transition-transform duration-75">
+                <svg viewBox="0 0 100 100" class="w-full h-full">
+                  <path d="M 50 50 L 20 0 A 50 50 0 0 1 80 0 Z" fill="rgba(245, 158, 11, 0.45)" stroke="rgba(245, 158, 11, 0.8)" stroke-width="1.5" />
+                </svg>
+              </div>
+              
+              <!-- User Position Pulsing Pin -->
+              <div class="w-4 h-4 rounded-full bg-amber-400 border-2 border-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.9)] relative z-10 animate-pulse"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -229,25 +240,22 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           <span>📷 Quét Mã QR Căn Phòng Khác</span>
         </button>
 
-        <p class="text-xs font-mono text-slate-400">© Mô phỏng không gian 3D Digital Twin Bảo tàng Lịch sử TP. Hồ Chí Minh</p>
+        <p class="text-xs font-mono text-slate-400">© Mô phỏng không gian 3D Digital Twin Bảo tàng Lịch sử TP. Hồ Chí Minh (Google Street View Technology)</p>
       </div>
     </div>
 
-    <!-- Script Three.js Dynamic Architectural 3D Room Reconstruction Engine -->
+    <!-- Script Three.js Google Street View Museum Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
       (function() {
-        const initDynamicArchitectural3DRoom = () => {
+        const initGoogleStreetViewMuseum = () => {
           const container = document.getElementById('room-360-viewport');
           if (!container || typeof THREE === 'undefined') return;
 
-          const imageList = ${imagesJson};
-          if (!imageList || imageList.length === 0) return;
+          const initialUrl = container.getAttribute('data-panorama-url') || "${roomNode.panoramaImageUrl}";
 
           let scene = new THREE.Scene();
-          scene.background = new THREE.Color(0x0a0f1d);
-
-          let camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 1, 2000);
+          let camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 1, 2000);
           
           let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
           renderer.setSize(container.clientWidth, container.clientHeight);
@@ -256,58 +264,22 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           let textureLoader = new THREE.TextureLoader();
           textureLoader.setCrossOrigin('anonymous');
 
-          const numImages = imageList.length;
-          const roomRadius = 550;
-          const roomHeight = 720;
-          const angleSegment = (2 * Math.PI) / numImages;
+          let material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 
-          // Build Dynamic Curved Architectural Wall Segments for Each Uploaded Image
-          imageList.forEach((url, idx) => {
-            const startAngle = idx * angleSegment - (Math.PI / 2);
-
-            // 3D Architectural Wall Segment Mesh
-            let wallGeometry = new THREE.CylinderGeometry(
-              roomRadius, roomRadius, roomHeight, 32, 1, true, startAngle, angleSegment
-            );
-            wallGeometry.scale(-1, 1, 1); // Flip normal to face inside the 3D room
-
-            let wallMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
-
-            textureLoader.load(url, (texture) => {
-              texture.minFilter = THREE.LinearFilter;
-              texture.magFilter = THREE.LinearFilter;
-              wallMaterial.map = texture;
-              wallMaterial.needsUpdate = true;
-            });
-
-            let wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
-            scene.add(wallMesh);
-
-            // Architectural Corner Transition Pillar Between Wall Segments
-            let pillarAngle = startAngle;
-            let pillarGeometry = new THREE.CylinderGeometry(14, 14, roomHeight + 20, 16);
-            let pillarMaterial = new THREE.MeshBasicMaterial({ color: 0x1e293b });
-            let pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
-            pillar.position.x = (roomRadius - 5) * Math.cos(pillarAngle);
-            pillar.position.z = (roomRadius - 5) * Math.sin(pillarAngle);
-            scene.add(pillar);
+          // Load 360° Equirectangular Panorama Texture (100% Seamless, 0% Seam Lines)
+          textureLoader.load(initialUrl, (texture) => {
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            material.map = texture;
+            material.needsUpdate = true;
           });
 
-          // Museum Floor 3D Plane
-          let floorGeometry = new THREE.CircleGeometry(roomRadius + 10, 48);
-          let floorMaterial = new THREE.MeshBasicMaterial({ color: 0x0f172a, side: THREE.DoubleSide });
-          let floor = new THREE.Mesh(floorGeometry, floorMaterial);
-          floor.rotation.x = Math.PI / 2;
-          floor.position.y = - (roomHeight / 2);
-          scene.add(floor);
+          // Inverted 360° Sphere Geometry (Inward normals scale -1, 1, 1)
+          let geometry = new THREE.SphereGeometry(500, 60, 40);
+          geometry.scale(-1, 1, 1);
 
-          // Museum Ceiling 3D Plane
-          let ceilingGeometry = new THREE.CircleGeometry(roomRadius + 10, 48);
-          let ceilingMaterial = new THREE.MeshBasicMaterial({ color: 0x020617, side: THREE.DoubleSide });
-          let ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-          ceiling.rotation.x = Math.PI / 2;
-          ceiling.position.y = (roomHeight / 2);
-          scene.add(ceiling);
+          let sphereMesh = new THREE.Mesh(geometry, material);
+          scene.add(sphereMesh);
 
           let isUserInteracting = false;
           let onMouseDownLon = 0, onMouseDownLat = 0;
@@ -317,11 +289,13 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           renderer.domElement.className = "absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 block";
           container.appendChild(renderer.domElement);
 
+          const radarCone = document.getElementById('radar-view-cone');
+
           function animate() {
             requestAnimationFrame(animate);
             lon += (targetLon - lon) * 0.1;
             lat += (targetLat - lat) * 0.1;
-            lat = Math.max(-20, Math.min(20, lat));
+            lat = Math.max(-85, Math.min(85, lat));
 
             let phi = THREE.MathUtils.degToRad(90 - lat);
             let theta = THREE.MathUtils.degToRad(lon);
@@ -332,6 +306,12 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
 
             camera.lookAt(targetX, targetY, targetZ);
             renderer.render(scene, camera);
+
+            // Update Real-time Viewing Radar Cone Rotation on 2D Mini-Map
+            if (radarCone) {
+              const degrees = (lon % 360);
+              radarCone.style.transform = 'rotate(' + degrees + 'deg)';
+            }
           }
           animate();
 
@@ -362,35 +342,15 @@ export function render360RoomPanoramaViewer(roomNode: RoomPanoramaNode): string 
           container.addEventListener('wheel', (e) => {
             e.preventDefault();
             camera.fov += e.deltaY * 0.05;
-            camera.fov = Math.max(35, Math.min(80, camera.fov));
+            camera.fov = Math.max(35, Math.min(85, camera.fov));
             camera.updateProjectionMatrix();
           }, { passive: false });
-
-          document.querySelectorAll('.btn-switch-room-angle').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-              const targetBtn = e.currentTarget;
-              const idxStr = targetBtn.getAttribute('data-angle-index');
-              if (idxStr !== null) {
-                const idx = parseInt(idxStr, 10);
-                const angleDeg = (idx / numImages) * 360;
-                targetLon = angleDeg;
-                targetLat = 0;
-
-                document.querySelectorAll('.btn-switch-room-angle').forEach(b => {
-                  b.classList.remove('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
-                  b.classList.add('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
-                });
-                targetBtn.classList.remove('bg-slate-900/90', 'text-slate-300', 'border', 'border-slate-700');
-                targetBtn.classList.add('bg-gradient-to-r', 'from-amber-400', 'to-amber-500', 'text-slate-950', 'shadow-lg');
-              }
-            });
-          });
         };
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initDynamicArchitectural3DRoom);
+          document.addEventListener('DOMContentLoaded', initGoogleStreetViewMuseum);
         } else {
-          initDynamicArchitectural3DRoom();
+          initGoogleStreetViewMuseum();
         }
       })();
     </script>

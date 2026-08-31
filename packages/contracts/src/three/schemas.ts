@@ -69,6 +69,13 @@ export const RoomAngleViewSchema = z.object({
 
 export type RoomAngleView = z.infer<typeof RoomAngleViewSchema>;
 
+export const MapCoordinatesSchema = z.object({
+  xPercent: z.number().default(50),
+  yPercent: z.number().default(50),
+});
+
+export type MapCoordinates = z.infer<typeof MapCoordinatesSchema>;
+
 export const RoomPanoramaNodeSchema = z.object({
   roomId: z.string().min(1),
   roomName: z.string().min(1),
@@ -78,6 +85,7 @@ export const RoomPanoramaNodeSchema = z.object({
   angleViews: z.array(RoomAngleViewSchema).default([]),
   navArrows: z.array(RoomNavArrowSchema).default([]),
   hotspots: z.array(ThreeDHotspotSchema).default([]),
+  mapCoordinates: MapCoordinatesSchema.optional(),
 });
 
 export type RoomPanoramaNode = z.infer<typeof RoomPanoramaNodeSchema>;
