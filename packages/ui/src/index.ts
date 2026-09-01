@@ -13,3 +13,4 @@ export * from "./dashboard/renderer.js";
 export * from "./ai/renderer.js";
 export * from "./three/renderer.js";
 export * from "./location/qrScanner.js";
+export * from "./voice/renderer.js";
