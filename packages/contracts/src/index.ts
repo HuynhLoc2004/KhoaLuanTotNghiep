@@ -12,3 +12,4 @@ export * from "./dashboard/schemas.js";
 export * from "./ai/schemas.js";
 export * from "./three/schemas.js";
 export * from "./voice/schemas.js";
+export * from "./recognition/schemas.js";

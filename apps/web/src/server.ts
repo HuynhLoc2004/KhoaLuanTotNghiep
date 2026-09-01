@@ -9,6 +9,7 @@ import {
   renderPublicProfilePage,
   renderLivingTimelinePage,
   renderPublicVoicePage,
+  renderPublicRecognitionPage,
 } from "./index.js";
 
 const app = express();
@@ -89,6 +90,11 @@ app.get("/voice", (_req, res) => {
   res.send(renderPublicVoicePage());
 });
 
+app.get("/recognize", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(renderPublicRecognitionPage());
+});
+
 const server = app.listen(PORT, HOST, () => {
   console.log(`[WEB] HCMC Museum Public Web App running at http://localhost:${portStr}`);
   console.log(`[WEB] Trang chủ: http://localhost:${portStr}/`);
@@ -97,6 +103,7 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`[WEB] AI Thuyết minh viên: http://localhost:${portStr}/ai-guide`);
   console.log(`[WEB] Trang cá nhân: http://localhost:${portStr}/profile`);
   console.log(`[WEB] Dòng thời gian sống: http://localhost:${portStr}/timeline`);
+  console.log(`[WEB] Nhận diện hiện vật bằng ảnh: http://localhost:${portStr}/recognize`);
 });
 
 const handleShutdown = (signal: string): void => {

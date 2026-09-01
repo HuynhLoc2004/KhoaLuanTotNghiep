@@ -11,3 +11,4 @@ export { renderPublicProfilePage } from "./auth/page.js";
 export { renderPublicAiGuidePage } from "./ai/page.js";
 export { renderPublic3DExperiencePage } from "./three/page.js";
 export { renderPublicVoicePage } from "./voice/page.js";
+export { renderPublicRecognitionPage } from "./recognition/page.js";

@@ -13,7 +13,7 @@
     "build": "tsc -p tsconfig.json",
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\"",
     "lint": "eslint src test",
-    "test": "node --test dist/test/component.test.js dist/test/timeline.test.js dist/test/search.test.js dist/test/auth.test.js dist/test/dashboard.test.js dist/test/ai.test.js dist/test/three.test.js dist/test/voice.test.js",
+    "test": "node --test dist/test/component.test.js dist/test/timeline.test.js dist/test/search.test.js dist/test/auth.test.js dist/test/dashboard.test.js dist/test/ai.test.js dist/test/three.test.js dist/test/voice.test.js dist/test/recognition.test.js",
     "typecheck": "tsc -p tsconfig.json --noEmit --incremental false"
   },
   "dependencies": {
