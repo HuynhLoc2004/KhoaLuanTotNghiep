@@ -5,7 +5,7 @@
 | Hạng mục | Trạng thái | Ghi chú |
 |---|---|---|
 | Đặc tả | IN_PROGRESS | Baseline v0.1, chờ nhóm review |
-| Translation/TTS/Player/Tests | IMPLEMENTED | `TASK-VOICE-001` (`thanh`, `feature/TASK-VOICE-001`); chưa `VERIFIED`/merge — xem `docs/work/TASK-VOICE-001.md` |
+| Translation/TTS/Player/Tests | VERIFIED | `TASK-VOICE-001` (`thanh`); merge `1bbbe07` qua PR `#20`; `thanh` tự test `/voice` trên trình duyệt thật (audio + mic) trước merge — xem `docs/work/TASK-VOICE-001.md` |
 
 ## Phạm vi
 
@@ -54,7 +54,9 @@ API key TTS chỉ ở backend; quota theo vai trò; admin xem ước tính chi p
 | Planned | 2026-07-29 | Nhóm | Feature plan baseline |
 | Claimed | 2026-09-02T02:30:17+07:00 | `thanh` | Commit `5a742b5` trên `origin/develop` (`PLAN-0039`) |
 | IMPLEMENTED | 2026-09-02 | `thanh` | `docs/work/TASK-VOICE-001.md`; 133/133 test PASS trên 4 package |
-| VERIFIED/Merged/Completed | Chưa có | — | Chờ xác nhận/merge |
+| VERIFIED | 2026-09-02 | `thanh` | Tự test `/voice` trên trình duyệt thật (audio + mic hoạt động đúng) |
+| Merged | 2026-09-02 | `thanh` | Commit `1bbbe07`, PR `#20` vào `develop` |
+| Completed | 2026-09-02 | `thanh` | Merge Memory Sync PASS (`PLAN-0040`) |
 
 | Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
 |---|---|---|---|---|---|---|---|---|---|---|

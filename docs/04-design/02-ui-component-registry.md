@@ -25,7 +25,7 @@ Nguồn đọc nhanh để hai người xây một sản phẩm thống nhất. 
 | App shell | Public navigation/layout | CODE_CONFIRMED | `apps/web/src/shell/layout.ts`, `apps/web/src/shell/webShell.ts` | Responsive Mobile/Desktop Header & Footer | Public Web | Có |
 | Admin shell | CMS layout | CODE_CONFIRMED | `apps/admin/src/shell/layout.ts`, `apps/admin/src/shell/adminShell.ts`, `apps/admin/src/forms/cmsFormBuilder.ts` | Sidebar, Header, semantic `cms-block-form`, validation/save controls, integrated Live Preview with stable container | Admin | Có |
 | Content block renderer | CMS sections | CODE_CONFIRMED | `packages/ui/src/cms/renderer.ts` | Hero, ArtifactGrid, TimelinePreview, Banner | Public Web, Admin | Có |
-| Audio player | Tour/voice | DOCS_ONLY | — | Compact/Full | Tour/Artifact | Có |
+| Audio player | Tour/voice | CODE_CONFIRMED | `packages/ui/src/voice/renderer.ts` (`renderVoiceScriptCard`, `renderVoicePlayerWidget`) | Script card + Play/Pause/Repeat/Speed/Mic widget; transcript luôn hiển thị song song audio; mic tự disable khi trình duyệt thiếu `SpeechRecognition` | Tour/Artifact (`apps/web/src/voice/page.ts` — `/voice`) | Có |
 | 3D viewer shell | Scene/model/fallback | DOCS_ONLY | — | Quality tiers | Artifact/Map | Có |
 
 ## Motion and 3D patterns

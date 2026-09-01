@@ -5,7 +5,7 @@
 - Owner/contributor: `thanh` (Trịnh Vĩ Thành; confirmed trong conversation hiện tại, khớp `docs/TEAM.md`, khớp Git author `trinhvithanh147`).
 - Branch: `feature/TASK-VOICE-001`.
 - Base/shared plan revision: `PLAN-0039` (claim commit `5a742b5`, đã push lên `origin/develop`; branch hiện tại trùng chính xác commit này — 0 ahead/0 behind).
-- Status: `IMPLEMENTED` (code + tests hoàn tất; chưa `VERIFIED` — chờ `thanh`/nhóm xác nhận theo Rule 80).
+- Status: `DONE` (`VERIFIED` bởi `thanh` — tự test `/voice` trên trình duyệt thật, audio + mic hoạt động đúng; `MergedAt`: 2026-09-02; merge `1bbbe07` qua PR `#20`; Merge Memory Sync `PASS` tại `PLAN-0040`).
 - `PRE_CODE_PLAN_SYNC: PASS` — `feature/TASK-VOICE-001` được tạo đúng từ `origin/develop` tại commit claim `5a742b5`; write scope không overlap task khác đang `IN_PROGRESS`.
 
 ## Objective and write scope
@@ -109,9 +109,9 @@ stateDiagram-v2
 | Claimed | 2026-09-02T02:30:17+07:00 | `thanh` | Commit `5a742b5` trên `origin/develop` (`PLAN-0039`) |
 | Implementation started | 2026-09-02 (thời điểm chính xác không xác định) | `thanh` | Phiên 1 — xem session ledger |
 | First IMPLEMENTED | 2026-09-02T03:17+07:00 (ước lượng) | `thanh` | Phiên 2 — lint/typecheck/test/prettier gate PASS toàn bộ 4 package |
-| VERIFIED | Chưa có | — | Chờ `thanh`/nhóm xác nhận |
-| Merged to develop | Chưa có | — | Chờ PR/merge |
-| Completed | Chưa có | — | Chờ Merge Memory Sync PASS |
+| VERIFIED | 2026-09-02 | `thanh` | Tự test `/voice` trên trình duyệt thật (audio + mic hoạt động đúng) |
+| Merged to develop | 2026-09-02T03:29:39+07:00 | `thanh` | Commit `dc49f00` → PR `#20` → merge `1bbbe07` vào `origin/develop` |
+| Completed | 2026-09-02 | `thanh` | Merge Memory Sync `PASS` (`PLAN-0040`): registry/Implementation Index/UI Registry/traceability/README đồng bộ |
 
 | Session ID | Contributor | Role | Task/Branch | StartedAt | LastActiveAt | EndedAt | Status | Scope/Output | Tests/Evidence | Handoff/Next |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -141,26 +141,15 @@ Chưa chạy: browser E2E thật (SpeechSynthesis/SpeechRecognition cần môi t
 
 ## Handoff
 
-- **Verification status**: `IMPLEMENTED`, chưa `VERIFIED` — cần `thanh`/nhóm chạy thử `/voice` trên trình duyệt thật (Chrome/Edge có hỗ trợ `SpeechRecognition`) để xác nhận audio/mic hoạt động đúng, vì `node --test` không cover Web Speech API thật.
+- **Verification status**: `VERIFIED` bởi `thanh` — tự test `/voice` trên trình duyệt thật (Chrome/Edge), xác nhận audio (`speechSynthesis`) và mic (`SpeechRecognition`) hoạt động đúng; `node --test` không cover Web Speech API thật nên browser test là evidence bắt buộc, không phải tùy chọn.
 - **Known limitations**: (1) Chưa có Admin CMS UI để curator sửa script/glossary — hiện chỉ có REST endpoint `admin/scripts`, `admin/config`; (2) `VoiceScriptStore`/`VoiceAdminConfigStore`/`VoiceTtsCache` là in-memory, mất state khi restart server — chấp nhận được cho MVP theo baseline pattern (giống AI Guide/Search); (3) `SpeechRecognition` chỉ có prefix hỗ trợ tốt trên Chromium, Firefox/Safari có thể không hỗ trợ — UI đã disable mic an toàn khi thiếu API.
-- **Feature branch**: `feature/TASK-VOICE-001`, chưa có commit implementation nào (toàn bộ đang ở working tree).
-- **Đề xuất lệnh Git (USER ACTION — Codex không tự chạy theo Rule 26/87)**:
-
-  ```bash
-  git add apps/web/src/voice apps/web/src/index.ts apps/web/src/server.ts apps/web/test/voice.test.ts apps/web/package.json \
-    packages/contracts/src/voice packages/contracts/src/index.ts packages/contracts/test/voice.test.ts packages/contracts/package.json \
-    packages/ui/src/voice packages/ui/src/index.ts packages/ui/test/voice.test.ts packages/ui/package.json \
-    services/api/src/voice services/api/src/routes/voice.ts services/api/src/app.ts services/api/src/server.ts services/api/test/voice.test.ts services/api/package.json \
-    docs/work/TASK-VOICE-001.md docs/03-features/06-multilingual-voice.md
-  git commit -m "feat(voice): implement TASK-VOICE-001 Multilingual Audio Guide & Voice Command MVP"
-  git push -u origin feature/TASK-VOICE-001
-  ```
-
-  Sau đó mở PR nhắm `develop`, xin review, và chỉ merge sau khi `thanh`/nhóm đặt `VERIFIED`.
-- **Merge status**: Chưa merge.
+- **Feature branch**: `feature/TASK-VOICE-001` — implementation commit `dc49f00`, pushed và merge qua PR `#20`.
+- **Merge status**: Merged vào `develop` tại `1bbbe07` (2026-09-02T03:29:39+07:00), base `5a742b5`.
+- **Merge Memory Sync**: `PASS` — xem `PLAN-0040` trong `docs/PLAN_SNAPSHOT.md` cho danh sách đầy đủ owner document đã đồng bộ (`docs/NEXT_WORK.md`, `docs/PROJECT_STATUS.md`, `docs/IMPLEMENTATION_INDEX.md`, `docs/04-design/02-ui-component-registry.md`, `docs/07-delivery/05-traceability-matrix.md`, `README.md`, `docs/03-features/06-multilingual-voice.md`).
 
 ## Change history
 
 | Ngày | Loại | Thay đổi | Test/Bằng chứng |
 |---|---|---|---|
 | 2026-09-02 | ADDED | Khởi tạo `docs/work/TASK-VOICE-001.md`; ghi nhận phiên trước (`INTERRUPTED`) và hoàn thiện implementation: sửa lỗi type `exactOptionalPropertyTypes`, bổ sung test còn thiếu cho `apps/web`, format lại 2 file lệch Prettier | 16/16 turbo task PASS (force); 133/133 test PASS (26 contracts + 33 ui + 61 api + 13 web) |
+| 2026-09-02 | CHANGED | `thanh` xác nhận `VERIFIED` (browser test), commit `dc49f00`, PR `#20` merge `1bbbe07` vào `develop`; Merge Memory Sync `PASS` (`PLAN-0040`) | `docs/PLAN_SNAPSHOT.md` PLAN-0040; `docs/NEXT_WORK.md`, `docs/IMPLEMENTATION_INDEX.md`, UI Registry, traceability, README đồng bộ |
