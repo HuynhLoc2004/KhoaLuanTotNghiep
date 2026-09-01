@@ -14,6 +14,7 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`[API] Search API: http://localhost:${portStr}/api/v1/search`);
   console.log(`[API] Auth Config API: http://localhost:${portStr}/api/v1/auth/config`);
   console.log(`[API] AI Guide API: http://localhost:${portStr}/api/v1/ai/guide/query`);
+  console.log(`[API] Voice Guide API: http://localhost:${portStr}/api/v1/voice/scripts`);
 });
 
 const handleShutdown = (signal: string): void => {

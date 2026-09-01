@@ -8,6 +8,7 @@ import {
   renderPublicAiGuidePage,
   renderPublicProfilePage,
   renderLivingTimelinePage,
+  renderPublicVoicePage,
 } from "./index.js";
 
 const app = express();
@@ -81,6 +82,11 @@ app.get("/profile", (_req, res) => {
 app.get("/timeline", (_req, res) => {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(renderLivingTimelinePage());
+});
+
+app.get("/voice", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(renderPublicVoicePage());
 });
 
 const server = app.listen(PORT, HOST, () => {
