@@ -10,7 +10,8 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0040` — Merge Memory Sync cho `TASK-VOICE-001` (merge `1bbbe07`, PR `#20`); `DEC-VOICE-001` khóa Option Web Speech API trình duyệt (SpeechSynthesis/SpeechRecognition) làm engine mặc định cho Multilingual Audio Guide & Voice Command MVP.
+- Shared plan revision: `PLAN-0041` — Claim `TASK-RECOGNITION-001` cho `thanh` trên `feature/TASK-RECOGNITION-001`; `DEC-RECOGNITION-001` sẽ khóa phương án kỹ thuật MVP cho Artifact Photo Recognition (embedding retrieval + top-k/confidence).
+- `TASK-RECOGNITION-001`: `IN_PROGRESS`, owner `thanh`; claimed 2026-09-02T03:39:02+07:00 trên `feature/TASK-RECOGNITION-001`; xem `docs/NEXT_WORK.md`.
 - `TASK-VOICE-001`: `DONE`, owner `thanh`; `VERIFIED` (test `/voice` trên trình duyệt thật) và merge vào `develop` tại `1bbbe07` qua PR `#20`, Merge Memory Sync đã công bố Multilingual Audio Guide & Voice Command MVP baseline.
 - `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
