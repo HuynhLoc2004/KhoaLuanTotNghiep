@@ -4,16 +4,16 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 ## Current revision
 
-- Revision: `PLAN-0038`
-- Updated: 2026-08-18
+- Revision: `PLAN-0039`
+- Updated: 2026-09-02
 - Status: TEAM_CONFIRMED_PUBLISHED
-- Scope: Khóa 100% Nguyên tắc Admin Invariant: Tất cả dữ liệu các trang (Hiện vật, 3D Digital Twin, RAG AI Guide, Living Timeline, Search Catalog, Navigation & Media Assets) do Admin Curator quản lý và xuất bản từ Admin Portal (`/admin` / `@hcmc-museum/admin`); Public Web (`@hcmc-museum/web`) và API (`@hcmc-museum/api`) tiêu thụ động qua CMS Payloads & API endpoints, không bao giờ hardcode dữ liệu di sản.
+- Scope: Claim `TASK-VOICE-001` cho `thanh`; khóa `DEC-VOICE-001` Option Web Speech API trình duyệt (SpeechSynthesis + SpeechRecognition) làm engine mặc định cho Multilingual Audio Guide & Voice Command MVP, không tích hợp cloud TTS/STT thật (chưa có credential kiểm chứng được trong môi trường triển khai hiện tại).
 - Remote visibility: chỉ có hiệu lực cho thành viên khác sau khi commit/push lên `origin/develop`.
 
 ## Current direction
 
 - Pha hiện tại: foundation implementation.
-- Task đang chạy: không có; `TASK-3D-NAV-001`, `TASK-AI-GUIDE-001`, `TASK-DASHBOARD-001`, `TASK-AUTH-001` và `TASK-SEARCH-001` đã `DONE`.
+- Task đang chạy: `TASK-VOICE-001` (`thanh`, `feature/TASK-VOICE-001`); `TASK-3D-NAV-001`, `TASK-AI-GUIDE-001`, `TASK-DASHBOARD-001`, `TASK-AUTH-001` và `TASK-SEARCH-001` đã `DONE`.
 - Architecture: React/Express/Python workers/PostgreSQL/MongoDB/Redis/Cloudinary/Nginx.
 - Product: CMS-driven, immersive 3D/animation, AI Guide, recognition, Digital Twin.
 - Admin Invariant: 100% thông tin di sản, mô hình 3D, bài viết, banner và navigation được quản lý động qua Admin Portal (`/admin`), không hardcode trong React/HTML components.
@@ -24,6 +24,7 @@ Change feed ngắn của plan đã được công bố trên `develop`. Chi ti�
 
 | Revision | Date | Change | Affected owners/tasks | Required action | Confirmed by |
 |---|---|---|---|---|---|
+| PLAN-0039 | 2026-09-02 | Claim `TASK-VOICE-001` cho `thanh` trên `feature/TASK-VOICE-001`; dependency WEB-001/API-001 đều DONE. Khóa `DEC-VOICE-001`: Option Web Speech API trình duyệt (`SpeechSynthesis` đọc, `SpeechRecognition` voice command) làm engine mặc định — âm thanh thật, miễn phí, không cần credential; backend giữ script/bản dịch/cache-key hash theo đúng spec và thiết kế sẵn interface để cắm cloud TTS/STT thật sau này. Tuân thủ Admin Invariant (PLAN-0038): script/bản dịch do Admin quản lý, không hardcode trong Web/UI | TASK-VOICE-001; FEAT-VOICE-001; Admin Invariant | Tạo `feature/TASK-VOICE-001` từ `develop` tại commit này; mở `docs/work/TASK-VOICE-001.md` theo 11-heading AGENTS.md Rule 100.a với `PRE_CODE_PLAN_SYNC: PASS`/`PLAN_LOCKED`; implement đúng write scope | `thanh` xác nhận Option Web Speech API |
 | PLAN-0038 | 2026-08-18 | Khóa 100% Admin Invariant: Tất cả dữ liệu trang (Hiện vật, 3D Twin, AI Knowledge, Timeline, Search, Media, Nav) do Admin quản lý tại `/admin` | Tất cả tasks / CMS / Web / Admin | Tuân thủ Admin CMS endpoints; không hardcode museum content | `loc` xác nhận |
 | PLAN-0037 | 2026-08-17 | Hoàn tất Merge Memory Sync cho TASK-3D-NAV-001 (PR #15 / merge 7a4264d) | TASK-3D-NAV-001 (DONE) | Cập nhật local develop sau pull | `loc` |
 | PLAN-0036 | 2026-08-17 | Pre-Code Plan Sync cho TASK-3D-NAV-001 (Digital Twin 3D Orbit View & A* Graph Navigation) | TASK-3D-NAV-001 (IN_PROGRESS) | Cập nhật local develop sau pull | `loc` |

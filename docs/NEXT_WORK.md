@@ -49,7 +49,7 @@ Chỉ chuyển task sang `DONE` sau khi merge vào `develop` và Merge Memory Sy
 | TASK-AI-GUIDE-001 | Trợ Lý Thuyết Minh Viên AI & Hỏi Đáp Di Sản MVP | DONE | `loc` / `feature/TASK-AI-GUIDE-001` | VerifiedAt: 2026-08-17; MergedAt: 2026-08-17; merge `cae46a2`; PR `#14` | TASK-FOUND-001 (DONE), TASK-API-001 (DONE), TASK-AUTH-001 (DONE) | 5–8 person-days, MEDIUM | AI modules/contracts/API/UI/Web, `docs/work/TASK-AI-GUIDE-001.md` | `docs/work/TASK-AI-GUIDE-001.md`; Merge Memory Sync PASS |
 | TASK-3D-NAV-001 | Mô Phỏng Không Gian 3D & Xoay Hiện Vật 360° MVP (Digital Twin) | DONE | `loc` / `feature/TASK-3D-NAV-001` | VerifiedAt: 2026-08-17; MergedAt: 2026-08-17; merge `7a4264d`; PR `#15` | TASK-WEB-001 (DONE), TASK-TIMELINE-001 (DONE) | 6–9 person-days, MEDIUM | 3D modules/contracts/API/UI/Web, `docs/work/TASK-3D-NAV-001.md` | `docs/work/TASK-3D-NAV-001.md`; Merge Memory Sync PASS |
 | TASK-LOCATION-001 | QR location và visual place recognition | READY | Đề xuất `loc` | — | TASK-3D-NAV-001 (DONE), TASK-API-001 (DONE) | 6–10 person-days, MEDIUM | Location contracts/API/vision/UI, `docs/work/TASK-LOCATION-001.md` | `docs/03-features/10-indoor-location-detection.md` |
-| TASK-VOICE-001 | Multilingual Audio Guide & Voice Command MVP | READY | Đề xuất `thanh` | — | TASK-WEB-001 (DONE), TASK-API-001 (DONE) | 4–7 person-days, MEDIUM | Voice contracts/API/UI/Web, `docs/work/TASK-VOICE-001.md` | `docs/03-features/06-multilingual-voice.md` |
+| TASK-VOICE-001 | Multilingual Audio Guide & Voice Command MVP | IN_PROGRESS | `thanh` / `feature/TASK-VOICE-001` | ClaimedAt: 2026-09-02T02:30:17+07:00 | TASK-WEB-001 (DONE), TASK-API-001 (DONE) | 4–7 person-days, MEDIUM | `packages/contracts/src/voice/**`, `services/api/src/voice/**`, `services/api/src/routes/voice.ts`, `services/api/test/voice*.ts`, `packages/ui/src/voice/**`, `apps/web/src/voice/**`, `docs/work/TASK-VOICE-001.md`; không sửa shared status/index/catalog files hoặc root tooling trên feature branch | `docs/work/TASK-VOICE-001.md`; `DEC-VOICE-001`; PLAN-0039 |
 | TASK-RECOGNITION-001 | Artifact Photo Recognition AI Pipeline MVP | READY | Đề xuất `thanh` | — | TASK-API-001 (DONE), TASK-DATA-001 (DONE) | 5–8 person-days, MEDIUM | Recognition worker/API/contracts, `docs/work/TASK-RECOGNITION-001.md` | `docs/03-features/04-artifact-recognition.md` |
 | TASK-CMS-MEDIA-001 | CMS Multi-Media Asset Manager & Cloudinary Integration MVP | READY | Đề xuất `loc` | — | TASK-ADMIN-001 (DONE), TASK-DATA-001 (DONE) | 4–6 person-days, MEDIUM | Media contracts/Admin/API, `docs/work/TASK-CMS-MEDIA-001.md` | `docs/03-features/01-admin-cms.md` |
 | TASK-DOC-QUALITY-001 | Documentation, code/config, secret và data-access Quality Gate trong CI | DONE | `thanh` / `feature/TASK-DOC-QUALITY-001` | ClaimedAt: 2026-08-04T00:10:24+07:00; MergedAt: `e0c4139` / PR `#9`; VerifiedAt: 2026-08-04T01:31:35+07:00 by `thanh`; integrated run `30841444661` PASS; Merge Memory Sync PASS | TASK-FOUND-001 (DONE), TASK-API-001 (DONE), TASK-DATA-001 (DONE), TASK-CI-001 (DONE), FIX-DOC-QUALITY-CI-001 (DONE) | O/E/P: 3/4.5/6 person-days, MEDIUM; actual effort chưa được team cung cấp | `scripts/quality/**`, root quality config, API regression tests, hosted OSV integration và task report; implementation đã merge | `docs/work/TASK-DOC-QUALITY-001.md`; `DEC-DOC-QUALITY-AUTOMATION-001`; PLAN-0030 |
@@ -59,10 +59,10 @@ Estimate trên chỉ phục vụ chọn việc và phải được rà soát l�
 
 ## Đề xuất hiện tại
 
-`TASK-DOC-QUALITY-001` và `FIX-DOC-QUALITY-CI-001` đều `DONE`; integration turn đã mở lại sau Merge Memory Sync.
+`TASK-VOICE-001` đã được `thanh` claim trên `feature/TASK-VOICE-001`; `DEC-VOICE-001` khóa Option Web Speech API trình duyệt (SpeechSynthesis/SpeechRecognition) cho MVP, không tích hợp cloud TTS/STT thật vì chưa có credential kiểm chứng được.
 
-- `TASK-SEARCH-001` là task implementation lớn đang `READY`; cần claim owner/branch/write scope và khóa contract/index/UI trước code.
-- Không còn startup blocker cho hosted quality gate; PR và develop runs đều tạo đủ Node/Python cùng OSV jobs và PASS.
+- Còn 3 task `READY` khác: `TASK-RECOGNITION-001` (đề xuất `thanh`, làm sau khi Voice xong), `TASK-LOCATION-001` và `TASK-CMS-MEDIA-001` (đề xuất `loc`).
+- Không còn task `IN_PROGRESS` nào khác của `thanh` tại thời điểm claim.
 
 Chỉ claim một task mới sau khi xác nhận owner, branch, write scope và publish coordination change trên remote `develop`.
 

@@ -10,7 +10,8 @@ Trạng thái triển khai hiện tại được theo dõi tại [docs/PROJECT_S
 
 ## Trạng thái phối hợp hiện tại
 
-- Shared plan revision: `PLAN-0038` — Khóa 100% Nguyên tắc Admin Invariant: Tất cả dữ liệu các trang (Hiện vật, 3D Digital Twin, RAG AI Knowledge Base, Living Timeline, Search Catalog, Navigation & Media Assets) do Admin Curator quản lý và xuất bản từ Admin Portal (`/admin` / `@hcmc-museum/admin`).
+- Shared plan revision: `PLAN-0039` — Claim `TASK-VOICE-001` cho `thanh` trên `feature/TASK-VOICE-001`; `DEC-VOICE-001` khóa Option Web Speech API trình duyệt (SpeechSynthesis/SpeechRecognition) làm engine mặc định cho Multilingual Audio Guide & Voice Command MVP.
+- `TASK-VOICE-001`: `IN_PROGRESS`, owner `thanh`; claimed 2026-09-02T02:30:17+07:00 trên `feature/TASK-VOICE-001`; xem `docs/NEXT_WORK.md`.
 - `TASK-FOUND-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `3d8b971`, Merge Memory Sync đã công bố foundation/tooling baseline.
 - `TASK-INFRA-001`: `DONE`, owner `loc`; `VERIFIED` và merge vào `develop` tại `847251c`, Merge Memory Sync đã công bố local database infrastructure baseline.
 - `TASK-WEB-001`: `DONE`, owner `thanh`; `VERIFIED` và merge vào `develop` tại `03dfcd4`, Merge Memory Sync đã công bố Public Web shell & Design Tokens baseline.
