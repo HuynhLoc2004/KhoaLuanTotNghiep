@@ -587,23 +587,57 @@ def run_3dgs_pipeline(
         })
 
     # ------------------------------------------------------------------------
-    # STAGE 6: Compile Final Metadata for Three.js Web Viewer
+    # STAGE 6: Cloud Storage Upload (R2 / Cloudinary) & Final Metadata Compilation
     # ------------------------------------------------------------------------
     if progress_callback:
-        progress_callback("COMPLETED", 100, "Hoàn tất! File 3D Gaussian Splatting chất lượng cao đã sẵn sàng.")
+        progress_callback("UPLOADING_CLOUD", 94, "Đang đồng bộ và lưu trữ tệp 3D lên Cloud Storage (R2/Cloudinary)...")
+
+    # Import storage manager
+    try:
+        from cloud_storage import storage_manager
+    except ImportError:
+        storage_manager = None
+
+    splat_web_url = f"/models/tours/{tour_id}/scene.splat"
+    ply_web_url = f"/models/tours/{tour_id}/point_cloud.ply"
+
+    if storage_manager:
+        try:
+            cloud_bundle = storage_manager.upload_tour_bundle(
+                tour_id=tour_id,
+                local_models_dir=models_dir,
+                high_res_photos=high_res_photos
+            )
+            if "splatUrl" in cloud_bundle:
+                splat_web_url = cloud_bundle["splatUrl"]
+                logger.info(f"[Cloud Upload] Splat asset URL: {splat_web_url}")
+            if "plyUrl" in cloud_bundle:
+                ply_web_url = cloud_bundle["plyUrl"]
+                logger.info(f"[Cloud Upload] PLY asset URL: {ply_web_url}")
+
+            # Update hotspots photo URLs with cloud CDN URLs
+            for idx, uploaded_photo in enumerate(cloud_bundle.get("photos", [])):
+                if idx < len(aligned_hotspots) and "cloudUrl" in uploaded_photo:
+                    aligned_hotspots[idx]["highResPhotoUrl"] = uploaded_photo["cloudUrl"]
+        except Exception as cloud_err:
+            logger.warning(f"[Cloud Storage] Upload error, falling back to local paths: {cloud_err}")
+
+    if progress_callback:
+        progress_callback("COMPLETED", 100, "Hoàn tất! File 3D Gaussian Splatting chất lượng cao đã sẵn sàng trên Cloud.")
 
     tour_metadata = {
         "tourId": tour_id,
         "roomName": room_name,
-        "splatUrl": f"/models/tours/{tour_id}/scene.splat",
-        "plyUrl": f"/models/tours/{tour_id}/point_cloud.ply",
+        "splatUrl": splat_web_url,
+        "plyUrl": ply_web_url,
         "stats": {
             "totalFramesProcessed": frame_count,
             "motionBlurFiltered": True,
             "iterations": iterations,
             "colmapCameraModel": "OPENCV",
             "loopClosureEnabled": True,
-            "floatersPruned": True
+            "floatersPruned": True,
+            "cloudStorageSynchronized": bool(storage_manager and (storage_manager.r2_client or storage_manager.has_cloudinary))
         },
         "cameraPreset": {
             "position": [0, 1.6, 2.8],
@@ -618,5 +652,12 @@ def run_3dgs_pipeline(
     with open(meta_json_path, "w", encoding="utf-8") as f:
         json.dump(tour_metadata, f, ensure_ascii=False, indent=2)
 
-    logger.info(f"Tour metadata successfully written to {meta_json_path}")
+    # If cloud storage is available, upload final metadata JSON as well
+    if storage_manager:
+        try:
+            storage_manager.upload_file(meta_json_path, f"tours/{tour_id}/tour_metadata.json", "application/json")
+        except Exception as e:
+            logger.warning(f"[Cloud Storage] Could not upload metadata JSON: {e}")
+
+    logger.info(f"Tour metadata successfully written and synced: {meta_json_path}")
     return tour_metadata
