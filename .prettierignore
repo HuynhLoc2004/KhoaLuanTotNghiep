@@ -1,9 +1,0 @@
-**/*.md
-**/dist
-**/node_modules
-**/.turbo
-**/.venv
-**/.pytest_cache
-**/.ruff_cache
-pnpm-lock.yaml
-**/uv.lock

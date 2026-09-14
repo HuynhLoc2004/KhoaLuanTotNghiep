@@ -1,7 +1,0 @@
-packages:
-  - "apps/*"
-  - "packages/*"
-  - "services/api"
-
-disallowWorkspaceCycles: true
-engineStrict: true

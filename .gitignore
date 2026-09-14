@@ -1,64 +1,29 @@
-# JavaScript and package-manager artifacts
+# Dependencies
 node_modules/
 .pnpm-store/
-.turbo/
-.vite/
-.eslintcache
-*.tsbuildinfo
 
-# Python environments and caches
-.venv/
-.direnv/
-__pycache__/
-*.py[cod]
-*.pyd
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.pyright/
-.coverage
-.coverage.*
-htmlcov/
-*.egg-info/
-.eggs/
-__pypackages__/
-.uv-cache/
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# Build and test output
+# Build artifacts
 dist/
 build/
-out/
-coverage/
-.nyc_output/
-test-results/
-playwright-report/
+*.pyc
+__pycache__/
+.venv/
+env/
+venv/
 
-# Logs and process files
-logs/
-*.log
-*.log.*
-*.pid
-*.pid.lock
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Docker volumes and workspace data
+workspace_3dgs/
+uploads/
+models/
 
-# Local environment files and secrets
-.env*
-!.env.example
-!**/.env.example
-
-# Tool and operating-system files
-.cache/
-.tmp/
-tmp/
-temp/
-.idea/
-.vscode/
+# OS and IDE files
 .DS_Store
 Thumbs.db
-Desktop.ini
-*.swp
-*.swo
-*~
+.idea/
+.vscode/
+*.log
