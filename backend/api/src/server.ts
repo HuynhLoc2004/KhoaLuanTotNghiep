@@ -7,6 +7,8 @@ import { artifactsRouter } from "./routes/artifacts.js";
 import { roomsRouter } from "./routes/rooms.js";
 import { buildingsRouter } from "./routes/buildings.js";
 import { adminRouter } from "./routes/admin.js";
+import { authRouter } from "./routes/auth.js";
+import { timelineRouter } from "./routes/timeline.js";
 import { initRabbitMQ } from "./queue/rabbitmq.js";
 
 dotenv.config();
@@ -34,11 +36,13 @@ app.get("/health", (req, res) => {
 });
 
 // API Routes
+app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/tour", tourRouter);
 app.use("/api/v1/artifacts", artifactsRouter);
 app.use("/api/v1/rooms", roomsRouter);
 app.use("/api/v1/buildings", buildingsRouter);
 app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/timeline", timelineRouter);
 
 
 // Start server

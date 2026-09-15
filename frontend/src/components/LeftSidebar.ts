@@ -3,14 +3,13 @@ import { MuseumConfigStore, PendingApprovalStore } from "../data/museumConfig";
 import { AuthState } from "../data/auth";
 import { showToast } from "./Toast";
 
-
 export function renderLeftSidebar(activeTab: string = "home", isAdminMode = false): string {
   const branding = MuseumConfigStore.branding;
   const features = MuseumConfigStore.features;
   const currentTheme = localStorage.getItem("museum_theme") || "light";
   const lang = MuseumConfigStore.currentLanguage;
 
-  // Dedicated Admin Studio Sidebar
+  // DEDICATED ADMIN STUDIO SIDEBAR (CHỈ HIỂN THỊ NHỮNG TRANG MÀ USER ĐƯỢC PHÂN CÔNG)
   if (isAdminMode) {
     const isScan = activeTab === "admin-scan" || activeTab === "admin";
     const isArtifacts = activeTab === "admin-artifacts";
@@ -25,11 +24,30 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
     const isApprovals = activeTab === "admin-approvals";
     const pendingCount = PendingApprovalStore.pendingCount();
 
+    // Permissions check for every individual page
+    const canScan = AuthState.canAccessPage("admin-scan");
+    const canArtifacts = AuthState.canAccessPage("admin-artifacts");
+    const canRooms = AuthState.canAccessPage("admin-rooms");
+    const canTour = AuthState.canAccessPage("admin-tour360");
+    const canNodes = AuthState.canAccessPage("admin-nodes");
+    const canBuildings = AuthState.canAccessPage("admin-buildings");
+    const canMap = AuthState.canAccessPage("admin-map");
+    const canAnalytics = AuthState.canAccessPage("admin-analytics");
+    const canSettings = AuthState.canAccessPage("admin-settings");
+    const canRoles = AuthState.canAccessPage("admin-roles");
+    const canApprovals = AuthState.canAccessPage("admin-approvals");
+
+    // Staff identity info
+    const currentUser = AuthState.currentUser;
+    const isSuper = currentUser?.role === "super_admin" || AuthState.admin.role === "super_admin";
+    const staffName = currentUser ? currentUser.name : AuthState.admin.name;
+    const staffEmail = currentUser ? currentUser.email : AuthState.admin.email;
+    const allowedCount = isSuper ? 11 : (currentUser?.allowedPages?.length || 1);
 
     return `
       <aside class="app-sidebar admin-sidebar" id="main-sidebar">
         <!-- Admin Brand Header -->
-        <a href="#admin-scan" class="brand">
+        <a href="#admin" class="brand">
           <div class="brand-icon" style="background: linear-gradient(135deg, #1e3a8a, #0284c7); color: white;">
             ${Icons.shield}
           </div>
@@ -41,95 +59,124 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
 
         <!-- Admin Identity Card -->
         <div style="margin: 0.75rem 0.5rem; padding: 0.75rem 0.9rem; background: var(--color-surface); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
-          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); font-weight: 700; margin-bottom: 0.2rem;">
-            Tài Khoản Cán Bộ
+          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); font-weight: 700; margin-bottom: 0.2rem; display: flex; justify-content: space-between;">
+            <span>Tài Khoản Cán Bộ</span>
+            <span style="color: #d4af37;">${isSuper ? 'TOÀN QUYỀN' : `${allowedCount} TRANG`}</span>
           </div>
-          <div style="font-size: 0.9rem; font-weight: 800; color: var(--color-primary);">${AuthState.admin.name}</div>
-          <div style="font-size: 0.76rem; color: var(--color-secondary); font-weight: 600;">${AuthState.admin.roleTitle}</div>
+          <div style="font-size: 0.9rem; font-weight: 800; color: var(--color-primary);">${staffName}</div>
+          <div style="font-size: 0.74rem; color: var(--color-text-muted); margin-top: 0.1rem;">${staffEmail}</div>
         </div>
 
-        <!-- Admin Workspaces Navigation (Categorized for RBAC Scoping) -->
+        <!-- Admin Workspaces Navigation (CHỈ RENDER NHỮNG TRANG MÀ USER ĐƯỢC PHÂN CÔNG) -->
         <nav class="sidebar-nav">
           <!-- Section 1: Gate & Visitor Operations -->
-          <div class="nav-section-title">
-            <span>Vận Hành Cổng</span>
-            <span class="nav-section-badge">GATE_OPS</span>
-          </div>
-          <a href="#admin-scan" class="nav-item ${isScan ? 'active' : ''}">
-            ${Icons.qr}
-            <span>Soát Vé Cổng (&lt;100ms)</span>
-          </a>
+          ${canScan ? `
+            <div class="nav-section-title">
+              <span>Vận Hành Cổng</span>
+              <span class="nav-section-badge">GATE_OPS</span>
+            </div>
+            <a href="#admin-scan" class="nav-item ${isScan ? 'active' : ''}">
+              ${Icons.qr}
+              <span>Soát Vé Cổng (&lt;100ms)</span>
+            </a>
+          ` : ''}
 
           <!-- Section 2: Heritage & Digital Catalog -->
-          <div class="nav-section-title">
-            <span>Kho Hiện Vật & Di Sản</span>
-            <span class="nav-section-badge">CMS</span>
-          </div>
-          <a href="#admin-artifacts" class="nav-item ${isArtifacts ? 'active' : ''}">
-            ${Icons.cube}
-            <span>Quản Lý Kho Hiện Vật</span>
-          </a>
+          ${canArtifacts ? `
+            <div class="nav-section-title">
+              <span>Kho Hiện Vật & Di Sản</span>
+              <span class="nav-section-badge">CMS</span>
+            </div>
+            <a href="#admin-artifacts" class="nav-item ${isArtifacts ? 'active' : ''}">
+              ${Icons.cube}
+              <span>Quản Lý Kho Hiện Vật</span>
+            </a>
+          ` : ''}
 
           <!-- Section 3: 3DGS & Virtual Tour Spaces -->
-          <div class="nav-section-title">
-            <span>Không Gian 3DGS & Tour</span>
-            <span class="nav-section-badge">3DGS_TOUR</span>
-          </div>
-          <a href="#admin-rooms" class="nav-item ${isRooms ? 'active' : ''}">
-            ${Icons.museum}
-            <span>Quản Lý Gian Sảnh 360°</span>
-          </a>
-          <a href="#admin-tour360" class="nav-item ${isTour ? 'active' : ''}">
-            ${Icons.compass}
-            <span>Ghim Cổ Vật Tour 360°</span>
-          </a>
-          <a href="#admin-nodes" class="nav-item ${isNodes ? 'active' : ''}">
-            ${Icons.filter}
-            <span>Quản Lý Walk Nodes 360°</span>
-          </a>
+          ${(canRooms || canTour || canNodes) ? `
+            <div class="nav-section-title">
+              <span>Không Gian 3DGS & Tour</span>
+              <span class="nav-section-badge">3DGS_TOUR</span>
+            </div>
+            ${canRooms ? `
+              <a href="#admin-rooms" class="nav-item ${isRooms ? 'active' : ''}">
+                ${Icons.museum}
+                <span>Quản Lý Gian Sảnh 360°</span>
+              </a>
+            ` : ''}
+            ${canTour ? `
+              <a href="#admin-tour360" class="nav-item ${isTour ? 'active' : ''}">
+                ${Icons.compass}
+                <span>Ghim Cổ Vật Tour 360°</span>
+              </a>
+            ` : ''}
+            ${canNodes ? `
+              <a href="#admin-nodes" class="nav-item ${isNodes ? 'active' : ''}">
+                ${Icons.filter}
+                <span>Quản Lý Walk Nodes 360°</span>
+              </a>
+            ` : ''}
+          ` : ''}
 
           <!-- Section 4: Architectural Map & Navigation -->
-          <div class="nav-section-title">
-            <span>Bản Đồ & Kiến Trúc</span>
-            <span class="nav-section-badge">MAP_NAV</span>
-          </div>
-          <a href="#admin-buildings" class="nav-item ${isBuildings ? 'active' : ''}">
-            ${Icons.filter}
-            <span>Quản Lý Tòa Nhà Kiến Trúc</span>
-          </a>
-          <a href="#admin-map" class="nav-item ${isMap ? 'active' : ''}">
-            ${Icons.map}
-            <span>Sơ Đồ Mặt Bằng & Dẫn Đường</span>
-          </a>
+          ${(canBuildings || canMap) ? `
+            <div class="nav-section-title">
+              <span>Bản Đồ & Kiến Trúc</span>
+              <span class="nav-section-badge">MAP_NAV</span>
+            </div>
+            ${canBuildings ? `
+              <a href="#admin-buildings" class="nav-item ${isBuildings ? 'active' : ''}">
+                ${Icons.filter}
+                <span>Quản Lý Tòa Nhà Kiến Trúc</span>
+              </a>
+            ` : ''}
+            ${canMap ? `
+              <a href="#admin-map" class="nav-item ${isMap ? 'active' : ''}">
+                ${Icons.map}
+                <span>Sơ Đồ Mặt Bằng & Dẫn Đường</span>
+              </a>
+            ` : ''}
+          ` : ''}
 
           <!-- Section 5: Analytics, System & Security RBAC -->
-          <div class="nav-section-title">
-            <span>Quản Trị & System</span>
-            <span class="nav-section-badge">SYS_ADMIN</span>
-          </div>
-          <a href="#admin-analytics" class="nav-item ${isAnalytics ? 'active' : ''}">
-            ${Icons.ticket}
-            <span>Thống Kê Toàn Diện</span>
-          </a>
-          <a href="#admin-settings" class="nav-item ${isSettings ? 'active' : ''}">
-            ${Icons.filter}
-            <span>Cấu Hình & Tắt/Bật Tính Năng</span>
-          </a>
-          <a href="#admin-roles" class="nav-item ${isRoles ? 'active' : ''}">
-            ${Icons.user}
-            <span>Phân Quyền Quản Trị (RBAC)</span>
-          </a>
+          ${(canAnalytics || canSettings || canRoles) ? `
+            <div class="nav-section-title">
+              <span>Quản Trị & System</span>
+              <span class="nav-section-badge">SYS_ADMIN</span>
+            </div>
+            ${canAnalytics ? `
+              <a href="#admin-analytics" class="nav-item ${isAnalytics ? 'active' : ''}">
+                ${Icons.ticket}
+                <span>Thống Kê Toàn Diện</span>
+              </a>
+            ` : ''}
+            ${canSettings ? `
+              <a href="#admin-settings" class="nav-item ${isSettings ? 'active' : ''}">
+                ${Icons.filter}
+                <span>Cấu Hình & Bật/Tắt Tính Năng</span>
+              </a>
+            ` : ''}
+            ${canRoles ? `
+              <a href="#admin-roles" class="nav-item ${isRoles ? 'active' : ''}">
+                ${Icons.user}
+                <span>Phân Quyền Vai Trò (RBAC)</span>
+              </a>
+            ` : ''}
+          ` : ''}
 
           <!-- Section 6: Approval Workflow -->
-          <div class="nav-section-title">
-            <span>Phê Duyệt</span>
-            <span class="nav-section-badge">APPROVAL</span>
-          </div>
-          <a href="#admin-approvals" class="nav-item ${isApprovals ? 'active' : ''}" style="position:relative;">
-            ${Icons.shield}
-            <span>Duyệt Yêu Cầu Thêm Mới</span>
-            ${pendingCount > 0 ? `<span style="margin-left:auto;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#d97706;color:white;font-size:0.68rem;font-weight:900;padding:0 5px;">${pendingCount}</span>` : ""}
-          </a>
+          ${canApprovals ? `
+            <div class="nav-section-title">
+              <span>Phê Duyệt</span>
+              <span class="nav-section-badge">APPROVAL</span>
+            </div>
+            <a href="#admin-approvals" class="nav-item ${isApprovals ? 'active' : ''}" style="position:relative;">
+              ${Icons.shield}
+              <span>Duyệt Yêu Cầu Thêm Mới</span>
+              ${pendingCount > 0 ? `<span style="margin-left:auto;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#d97706;color:white;font-size:0.68rem;font-weight:900;padding:0 5px;">${pendingCount}</span>` : ""}
+            </a>
+          ` : ''}
         </nav>
 
         <!-- Admin Footer Action -->
@@ -149,7 +196,10 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
     `;
   }
 
-  // Public Client Visitor Sidebar (Dynamically adapts to Feature Toggles & Branding)
+  // PUBLIC VISITOR SIDEBAR
+  const canEnterAdmin = AuthState.canAccessAdmin();
+  const firstAdminPage = AuthState.getFirstAllowedPage();
+
   return `
     <aside class="app-sidebar" id="main-sidebar">
       <a href="#home" class="brand">
@@ -179,6 +229,11 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
           <span>Sơ Đồ Tầng & Dẫn Đường</span>
         </a>
 
+        <a href="#timeline" class="nav-item ${activeTab === 'timeline' ? 'active' : ''}">
+          ${Icons.clock}
+          <span>Dòng Thời Gian Lịch Sử</span>
+        </a>
+
         ${(features.enable3D || features.enableVoiceAI) ? `
           <a href="#artifact" class="nav-item ${activeTab === 'artifact' ? 'active' : ''}">
             ${Icons.cube}
@@ -205,6 +260,22 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
           <span>Hồ Sơ & Vé Điện Tử</span>
         </a>
       </nav>
+
+      <!-- Admin Shortcut Banner for Staff / Admin Accounts -->
+      ${canEnterAdmin ? `
+        <div style="margin: 0.8rem 0.5rem; padding: 0.8rem 0.9rem; background: linear-gradient(135deg, rgba(30, 58, 138, 0.25), rgba(2, 132, 199, 0.2)); border: 1px solid #0284c7; border-radius: var(--radius-sm);">
+          <div style="font-size: 0.7rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 0.2rem;">
+            QUYỀN QUẢN TRỊ NỘI BỘ
+          </div>
+          <div style="font-size: 0.78rem; color: var(--color-text-main); margin-bottom: 0.5rem; line-height: 1.4;">
+            Tài khoản của bạn đã được cấp quyền quản lý Dashboard.
+          </div>
+          <a href="#${firstAdminPage}" class="btn btn-primary" style="width: 100%; padding: 0.5rem; font-size: 0.78rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; background: #0284c7;">
+            ${Icons.shield}
+            <span>Vào Admin Studio →</span>
+          </a>
+        </div>
+      ` : ''}
 
       <!-- Live Broadcast Speaker Marquee (Conditioned on Feature Toggles) -->
       ${features.enableBroadcast ? `

@@ -1,321 +1,414 @@
-import { MuseumConfigStore, SYSTEM_PAGES, PermissionLevel } from "../../data/museumConfig";
 import { Icons } from "../../components/Icons";
 import { showToast } from "../../components/Toast";
+import { AuthState } from "../../data/auth";
+
+export interface PageRoleItem {
+  id: string;
+  pageId: string;
+  name: string;
+  description: string;
+  category: "GATE_OPS" | "CMS" | "3DGS_TOUR" | "MAP_NAV" | "ANALYTICS" | "SYSTEM" | "APPROVAL";
+  permissions: {
+    view: boolean;
+    create: boolean;
+    edit: boolean;
+    delete: boolean;
+    approve?: boolean;
+  };
+  assignedUsers: string[];
+}
+
+// 11 PAGE ROLES — 1 PAGE LÀ 1 ROLE RIÊNG
+export const DEFAULT_PAGE_ROLES: PageRoleItem[] = [
+  {
+    id: "ROLE_SCAN",
+    pageId: "admin-scan",
+    name: "Quản Lý Soát Vé Cổng",
+    description: "Soát vé quang học bằng camera/máy quét dưới 100ms, xem lịch sử quét thẻ",
+    category: "GATE_OPS",
+    permissions: { view: true, create: true, edit: false, delete: false, approve: false },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_ARTIFACTS",
+    pageId: "admin-artifacts",
+    name: "Quản Lý Kho Hiện Vật",
+    description: "Biên soạn bảng chú thích, cập nhật niên đại, tải ảnh 8K và mô hình 3D cổ vật",
+    category: "CMS",
+    permissions: { view: true, create: true, edit: true, delete: true, approve: true },
+    assignedUsers: ["admin@museum.hcmc.vn", "long.curator@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_ROOMS",
+    pageId: "admin-rooms",
+    name: "Quản Lý Gian Sảnh 360°",
+    description: "Cấu hình ảnh photosphere 360, độ cao trần và ánh sáng sảnh trưng bày",
+    category: "3DGS_TOUR",
+    permissions: { view: true, create: true, edit: true, delete: false, approve: false },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_TOUR360",
+    pageId: "admin-tour360",
+    name: "Quản Lý Ghim Cổ Vật Tour 360°",
+    description: "Định vị điểm ghim tương tác 3D trên tủ kính hiện vật trong không gian 360",
+    category: "3DGS_TOUR",
+    permissions: { view: true, create: true, edit: true, delete: true, approve: false },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_NODES",
+    pageId: "admin-nodes",
+    name: "Quản Lý Walk Nodes 360°",
+    description: "Thiết lập các vòng tròn bước chân di chuyển lướt mượt mà trên sàn nhà",
+    category: "3DGS_TOUR",
+    permissions: { view: true, create: true, edit: true, delete: true, approve: false },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_BUILDINGS",
+    pageId: "admin-buildings",
+    name: "Quản Lý Tòa Nhà Kiến Trúc",
+    description: "Quản lý danh mục tòa nhà kiến trúc bảo tàng và phân khu sảnh",
+    category: "MAP_NAV",
+    permissions: { view: true, create: true, edit: true, delete: false, approve: false },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_MAP",
+    pageId: "admin-map",
+    name: "Sơ Đồ Mặt Bằng & Dẫn Đường",
+    description: "Chỉnh sửa tọa độ phòng và các điểm POI trên bản đồ sơ đồ tầng",
+    category: "MAP_NAV",
+    permissions: { view: true, create: true, edit: true, delete: false, approve: false },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_ANALYTICS",
+    pageId: "admin-analytics",
+    name: "Báo Cáo Thống Kê Toàn Diện",
+    description: "Xem biểu đồ lưu lượng khách, số lượt quét vé, tương tác 3D và xuất báo cáo",
+    category: "ANALYTICS",
+    permissions: { view: true, create: false, edit: false, delete: false, approve: false },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_SETTINGS",
+    pageId: "admin-settings",
+    name: "Cấu Hình Hệ Thống & Toggles",
+    description: "Tùy biến thương hiệu bảo tàng, khẩu hiệu, và bật/tắt Feature Toggles",
+    category: "SYSTEM",
+    permissions: { view: true, create: false, edit: true, delete: false, approve: false },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_ROLES",
+    pageId: "admin-roles",
+    name: "Phân Quyền Vai Trò (RBAC)",
+    description: "Thiết lập quyền hạn 1 Page = 1 Role và phân bổ cán bộ đảm nhiệm",
+    category: "SYSTEM",
+    permissions: { view: true, create: true, edit: true, delete: true, approve: true },
+    assignedUsers: ["admin@museum.hcmc.vn"]
+  },
+  {
+    id: "ROLE_APPROVALS",
+    pageId: "admin-approvals",
+    name: "Duyệt Yêu Cầu Thêm Mới",
+    description: "Thẩm định và phê duyệt các yêu cầu thêm sảnh, hiện vật, tòa nhà từ cán bộ",
+    category: "APPROVAL",
+    permissions: { view: true, create: false, edit: false, delete: false, approve: true },
+    assignedUsers: ["admin@museum.hcmc.vn", "long.curator@museum.hcmc.vn"]
+  }
+];
+
+// Local store for roles in UI
+function getLocalRoles(): PageRoleItem[] {
+  try {
+    const saved = localStorage.getItem("museum_page_roles");
+    if (saved) return JSON.parse(saved);
+  } catch (_) {}
+  return DEFAULT_PAGE_ROLES;
+}
+
+function saveLocalRoles(roles: PageRoleItem[]) {
+  localStorage.setItem("museum_page_roles", JSON.stringify(roles));
+}
 
 export function renderAdminRolesPage(): string {
-  const allRoles = MuseumConfigStore.roles;
-  const allStaff = MuseumConfigStore.staff;
+  const roles = getLocalRoles();
 
   return `
-    <div class="page-viewport" style="max-width: 1400px; padding: 1.5rem 2rem;">
+    <div class="page-viewport animate-fade-in" style="max-width: 1400px; padding: 1.5rem 2rem;">
       <!-- Breadcrumb & Header -->
-      <div style="margin-bottom: 1.75rem;">
+      <div style="margin-bottom: 2rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-          <span style="font-size: 0.72rem; font-weight: 700; color: var(--color-primary); letter-spacing: 0.05em; text-transform: uppercase;">
-            CỔNG QUẢN TRỊ ADMIN / MA TRẬN PHÂN QUYỀN RBAC
+          <span style="font-size: 0.74rem; font-weight: 800; color: #d4af37; letter-spacing: 0.08em; text-transform: uppercase;">
+            CỔNG QUẢN TRỊ ADMIN / PHÂN QUYỀN ĐỘNG
           </span>
           <span style="font-size: 0.75rem; color: var(--color-text-muted);">•</span>
-          <span class="badge-pill" style="font-size: 0.7rem; padding: 1px 8px; background: rgba(34, 197, 94, 0.15); color: #16A34A; border-color: #22C55E;">
-            Role-Based Access Control
+          <span class="badge-pill" style="font-size: 0.72rem; padding: 2px 10px; background: rgba(212,175,55,0.15); color: #d4af37; border-color: #d4af37;">
+            1 PAGE = 1 ROLE RIÊNG
           </span>
         </div>
-        <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--color-text-main); margin: 0 0 0.25rem 0;">
-          Phân Quyền Vai Trò & Ma Trận Phân Quyền Quản Trị
+        <h1 style="font-family: 'Cinzel', serif; font-size: 2rem; font-weight: 800; color: var(--color-primary); margin: 0 0 0.4rem 0;">
+          Phân Quyền Vai Trò Từng Trang (Granular RBAC)
         </h1>
-        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin: 0;">
-          Chỉ định quyền hạn truy cập theo từng trang nghiệp vụ cụ thể cho từng vai trò và nhân sự bảo tàng qua các danh sách Select chuẩn hóa.
+        <p style="font-size: 0.92rem; color: var(--color-text-muted); margin: 0; line-height: 1.6; max-width: 1000px;">
+          Chức vụ ở Dashboard <strong>không fix cứng</strong>: Mỗi trang nghiệp vụ là 1 Role độc lập. Bạn có thể tích chọn các quyền chi tiết (<strong>Xem, Thêm, Sửa, Xóa, Duyệt</strong>) và gán Email cán bộ. Khi đăng nhập vào Dashboard, cán bộ <strong>chỉ nhìn thấy đúng các trang mà họ được phân công</strong>!
         </p>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 2rem; margin-bottom: 2rem; align-items: start;">
-        <!-- Select-Based RBAC Assignment Form -->
-        <div class="card" style="border-top: 4px solid var(--color-primary);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <h3 style="font-size: 1.1rem; color: var(--color-primary); margin: 0;">
-              Thiết Lập Phân Quyền Vai Trò (Dạng Select)
-            </h3>
-            <span class="badge-pill" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(34,197,94,0.15); color: #16A34A; border-color: #22C55E;">
-              RBAC Engine
-            </span>
-          </div>
-          <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
-            Admin chọn Vai Trò, Trang Nghiệp Vụ, Mức Quyền Thao Tác và Gán Cán Bộ phụ trách hoàn toàn qua Dropdown Select, không cần gõ phím tự do.
-          </p>
-
-          <form id="rbac-assignment-form">
-            <!-- 1. Select Role -->
-            <div style="margin-bottom: 0.85rem;">
-              <label style="font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted); display: block; margin-bottom: 0.3rem;">
-                1. Chọn Vai Trò Cần Phân Quyền (Role):
-              </label>
-              <select id="rbac-role-select" class="lang-select" style="width: 100%; padding: 0.65rem;">
-                ${allRoles.map(r => `
-                  <option value="${r.id}">${r.name}</option>
-                `).join('')}
-              </select>
-            </div>
-
-            <!-- 2. Select System Page -->
-            <div style="margin-bottom: 0.85rem;">
-              <label style="font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted); display: block; margin-bottom: 0.3rem;">
-                2. Chọn Trang / Nghiệp Vụ Quản Lý (System Page):
-              </label>
-              <select id="rbac-page-select" class="lang-select" style="width: 100%; padding: 0.65rem;">
-                ${SYSTEM_PAGES.map(p => `
-                  <option value="${p.id}">[${p.category.toUpperCase()}] ${p.name}</option>
-                `).join('')}
-              </select>
-            </div>
-
-            <!-- 3. Select Permission Level -->
-            <div style="margin-bottom: 0.85rem;">
-              <label style="font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted); display: block; margin-bottom: 0.3rem;">
-                3. Chọn Mức Quyền Thao Tác (Permission Level):
-              </label>
-              <select id="rbac-permission-select" class="lang-select" style="width: 100%; padding: 0.65rem;">
-                <option value="FULL_ACCESS">Toàn Quyền Quản Trị (FULL_ACCESS - Thêm, Sửa, Xóa, Duyệt)</option>
-                <option value="EDITOR">Biên Tập Viên (EDITOR - Thêm mới và Chỉnh sửa nội dung)</option>
-                <option value="REVIEWER">Kiểm Duyệt Viên (REVIEWER - Thẩm định, Duyệt hồ sơ)</option>
-                <option value="READ_ONLY">Chỉ Xem Dữ Liệu (READ_ONLY - Xem báo cáo, Không sửa)</option>
-                <option value="NONE">Không Cho Phép Truy Cập (NONE - Khóa trang này)</option>
-              </select>
-            </div>
-
-            <!-- 4. Select Staff Member -->
-            <div style="margin-bottom: 1.25rem;">
-              <label style="font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted); display: block; margin-bottom: 0.3rem;">
-                4. Gán Thêm Cán Bộ Đảm Nhiệm Vai Trò Này (Staff Member):
-              </label>
-              <select id="rbac-staff-select" class="lang-select" style="width: 100%; padding: 0.65rem;">
-                ${allStaff.map(s => `
-                  <option value="${s.id}">${s.name} (${s.email}) - ${s.roleTitle}</option>
-                `).join('')}
-              </select>
-            </div>
-
-            <button type="button" class="btn btn-primary" id="btn-save-rbac-assignment" style="width: 100%; padding: 0.75rem; justify-content: center;">
-              ${Icons.check}
-              <span>Lưu Phân Quyền & Cập Nhật Ma Trận RBAC</span>
-            </button>
-          </form>
+      <!-- Instruction Highlight Box -->
+      <div style="background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(15,14,14,0.3)); border: 1px solid rgba(212,175,55,0.35); border-radius: var(--radius-md); padding: 1.2rem 1.6rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: #d4af37; color: #0f0e0e; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+          🛡️
         </div>
-
-        <!-- Create New Role Box -->
-        <div class="card" style="border-top: 4px solid var(--color-secondary);">
-          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 0.5rem;">
-            Tạo Vai Trò Quản Trị Mới
-          </h3>
-          <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
-            Thêm vai trò chức danh mới vào hệ thống mà không cần lập trình viên can thiệp.
-          </p>
-
-          <form id="create-new-role-form">
-            <div style="margin-bottom: 0.85rem;">
-              <label style="font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted); display: block; margin-bottom: 0.3rem;">
-                Tên Vai Trò Mới:
-              </label>
-              <input type="text" id="new-custom-role-name" class="lang-select" style="width: 100%; padding: 0.65rem;" placeholder="VD: Trưởng Phòng Khảo Cổ Số" />
-            </div>
-
-            <div style="margin-bottom: 1.25rem;">
-              <label style="font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted); display: block; margin-bottom: 0.3rem;">
-                Mô Tả Nhiệm Vụ:
-              </label>
-              <input type="text" id="new-custom-role-desc" class="lang-select" style="width: 100%; padding: 0.65rem;" placeholder="VD: Giám sát hiện vật và duyệt nội dung 360" />
-            </div>
-
-            <button type="button" class="btn btn-secondary" id="btn-create-custom-role" style="width: 100%; padding: 0.75rem; justify-content: center;">
-              + Tạo Thêm Vai Trò Mới
-            </button>
-          </form>
+        <div style="font-size: 0.88rem; color: var(--color-text-main); line-height: 1.5;">
+          <strong style="color: #d4af37;">Quy Tắc Vận Hành:</strong> Mọi tài khoản du khách khi đăng nhập bằng OTP Email đều là <strong>User bình thường</strong>. Chỉ khi bạn (Admin) gán họ vào Role của trang nào bên dưới, họ mới được cấp quyền truy cập Dashboard và <strong>chỉ xuất hiện các tab được phân công trên Sidebar</strong>.
         </div>
       </div>
 
-      <!-- Comprehensive RBAC Matrix Table -->
-      <div class="card" style="margin-bottom: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-          <div>
-            <h3 style="font-size: 1.1rem; color: var(--color-primary); margin: 0;">
-              Bảng Tổng Hợp Ma Trận Phân Quyền (Role × Page × Permission)
-            </h3>
-            <p style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0.2rem 0 0 0;">
-              Admin nhìn vào là thấy rõ từng vai trò được phép vào trang nào và mức độ quyền hạn là gì.
-            </p>
+      <!-- 11 PAGE ROLES GRID -->
+      <div class="page-roles-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        ${roles.map((role, idx) => `
+          <div class="card role-card" data-role-id="${role.id}" style="border: 1px solid var(--color-border); border-left: 5px solid ${getCategoryColor(role.category)}; border-radius: var(--radius-md); padding: 1.6rem; background: var(--color-surface); box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.2rem;">
+              <!-- Left: Title & Page ID -->
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.3rem;">
+                  <span style="font-size: 0.72rem; font-weight: 800; background: rgba(0,0,0,0.25); padding: 0.2rem 0.6rem; border-radius: 4px; color: ${getCategoryColor(role.category)}; border: 1px solid var(--color-border);">
+                    ${role.category}
+                  </span>
+                  <span style="font-size: 0.78rem; font-weight: 700; color: var(--color-text-muted);">
+                    Mã Role: <strong style="color: #d4af37;">${role.id}</strong>
+                  </span>
+                  <span style="font-size: 0.78rem; font-weight: 700; color: var(--color-text-muted);">
+                    Trang: <code style="color: var(--color-primary); background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">#${role.pageId}</code>
+                  </span>
+                </div>
+                <h3 style="font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 800; color: var(--color-primary); margin: 0 0 0.3rem 0;">
+                  ${idx + 1}. ${role.name}
+                </h3>
+                <p style="font-size: 0.86rem; color: var(--color-text-muted); margin: 0;">
+                  ${role.description}
+                </p>
+              </div>
+
+              <!-- Right: Quick Status Badge -->
+              <div>
+                <span class="badge-pill" style="font-size: 0.78rem; padding: 4px 12px; background: rgba(212,175,55,0.12); color: #d4af37; border-color: rgba(212,175,55,0.3); font-weight: 700;">
+                  ${role.assignedUsers.length} Cán Bộ Được Cấp
+                </span>
+              </div>
+            </div>
+
+            <!-- PERMISSION CHECKBOXES (XEM, THÊM, SỬA, XÓA, DUYỆT) -->
+            <div style="background: rgba(0,0,0,0.12); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 1rem 1.4rem; margin-bottom: 1.4rem;">
+              <div style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+                <span>✦ Các Quyền Hạn Cho Phép Trong Trang Này:</span>
+                <span style="font-size: 0.72rem; color: #d4af37;">(Tích chọn để bật/tắt quyền)</span>
+              </div>
+
+              <div style="display: flex; gap: 1.8rem; flex-wrap: wrap;" class="perms-checkbox-group" data-role-id="${role.id}">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-weight: 700; color: var(--color-text-main); cursor: pointer;">
+                  <input type="checkbox" class="chk-perm" data-perm="view" ${role.permissions.view ? 'checked' : ''} style="width: 17px; height: 17px; accent-color: #d4af37;" />
+                  <span>👁️ Xem Trang (View)</span>
+                </label>
+
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-weight: 700; color: var(--color-text-main); cursor: pointer;">
+                  <input type="checkbox" class="chk-perm" data-perm="create" ${role.permissions.create ? 'checked' : ''} style="width: 17px; height: 17px; accent-color: #d4af37;" />
+                  <span>➕ Thêm Mới (Create)</span>
+                </label>
+
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-weight: 700; color: var(--color-text-main); cursor: pointer;">
+                  <input type="checkbox" class="chk-perm" data-perm="edit" ${role.permissions.edit ? 'checked' : ''} style="width: 17px; height: 17px; accent-color: #d4af37;" />
+                  <span>✏️ Chỉnh Sửa (Edit)</span>
+                </label>
+
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-weight: 700; color: var(--color-text-main); cursor: pointer;">
+                  <input type="checkbox" class="chk-perm" data-perm="delete" ${role.permissions.delete ? 'checked' : ''} style="width: 17px; height: 17px; accent-color: #dc2626;" />
+                  <span>🗑️ Xóa Bỏ (Delete)</span>
+                </label>
+
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-weight: 700; color: var(--color-text-main); cursor: pointer;">
+                  <input type="checkbox" class="chk-perm" data-perm="approve" ${role.permissions.approve ? 'checked' : ''} style="width: 17px; height: 17px; accent-color: #059669;" />
+                  <span>🛡️ Thẩm Định / Phê Duyệt (Approve)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- ASSIGNED USERS & ADD USER FORM -->
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; align-items: start;">
+              <!-- Assigned Users List -->
+              <div>
+                <div style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 0.5rem;">
+                  Danh Sách Cán Bộ Được Cấp Trang Này (${role.assignedUsers.length}):
+                </div>
+                ${role.assignedUsers.length === 0 ? `
+                  <div style="font-size: 0.82rem; color: var(--color-text-muted); font-style: italic;">
+                    Chưa có cán bộ nào được gán vào trang này.
+                  </div>
+                ` : `
+                  <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    ${role.assignedUsers.map(uEmail => `
+                      <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; background: rgba(0,0,0,0.25); border: 1px solid var(--color-border); border-radius: 999px; font-size: 0.82rem; color: var(--color-text-main);">
+                        <span>👤 ${uEmail}</span>
+                        ${uEmail !== "admin@museum.hcmc.vn" ? `
+                          <button class="btn-remove-user-role" data-role-id="${role.id}" data-email="${uEmail}" title="Gỡ quyền trang này" style="background: none; border: none; color: #ef4444; font-size: 0.9rem; cursor: pointer; padding: 0; line-height: 1;">
+                            &times;
+                          </button>
+                        ` : ''}
+                      </span>
+                    `).join("")}
+                  </div>
+                `}
+              </div>
+
+              <!-- Assign New User Form -->
+              <div style="background: rgba(0,0,0,0.08); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.9rem;">
+                <div style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; color: var(--color-primary); margin-bottom: 0.4rem;">
+                  + Cấp Quyền Trang Này Cho User:
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <input type="email" class="lang-select input-assign-email" data-role-id="${role.id}" placeholder="nhap.email@museum.vn" style="flex: 1; padding: 0.55rem 0.7rem; font-size: 0.85rem;" />
+                  <button class="btn btn-primary btn-assign-role-user" data-role-id="${role.id}" style="padding: 0.55rem 1rem; font-size: 0.84rem; font-weight: 800; flex-shrink: 0;">
+                    ${Icons.plus}
+                    <span>Gán Quyền</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <span class="badge-pill" style="font-size: 0.75rem; padding: 2px 10px;">
-            Tổng: ${allRoles.length} Vai Trò
-          </span>
-        </div>
-
-        <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
-            <thead>
-              <tr style="border-bottom: 2px solid var(--color-card-border); color: var(--color-text-muted);">
-                <th style="padding: 0.75rem;">Vai Trò (Role)</th>
-                <th style="padding: 0.75rem;">Mô Tả Nhiệm Vụ</th>
-                <th style="padding: 0.75rem;">Trang Được Phép & Mức Quyền</th>
-                <th style="padding: 0.75rem;">Cán Bộ Đảm Nhiệm</th>
-                <th style="padding: 0.75rem; text-align: center;">Hành Động</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${allRoles.map(role => {
-                const assignedStaff = allStaff.filter(s => role.assignedStaffIds?.includes(s.id));
-                return `
-                  <tr style="border-bottom: 1px solid var(--color-card-border);">
-                    <td style="padding: 0.75rem; font-weight: 800; color: var(--color-primary); vertical-align: top;">
-                      ${role.name}
-                      <div style="font-size: 0.72rem; color: var(--color-text-muted); font-family: monospace; font-weight: normal;">ID: ${role.id}</div>
-                    </td>
-                    <td style="padding: 0.75rem; color: var(--color-text-muted); font-size: 0.8rem; max-width: 220px; vertical-align: top;">
-                      ${role.description}
-                    </td>
-                    <td style="padding: 0.75rem; vertical-align: top;">
-                      <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
-                        ${Object.entries(role.pagePermissions || {}).map(([pageId, perm]) => {
-                          const pageDef = SYSTEM_PAGES.find(p => p.id === pageId);
-                          const pageName = pageDef ? pageDef.name : pageId;
-                          let permColor = "#16A34A";
-                          let permBg = "rgba(34, 197, 94, 0.15)";
-                          if (perm === 'EDITOR') { permColor = "#0284c7"; permBg = "rgba(56, 189, 248, 0.15)"; }
-                          if (perm === 'REVIEWER') { permColor = "#d97706"; permBg = "rgba(217, 119, 6, 0.15)"; }
-                          if (perm === 'READ_ONLY') { permColor = "#64748b"; permBg = "rgba(100, 116, 139, 0.15)"; }
-
-                          return `
-                            <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: ${permBg}; color: ${permColor}; border: 1px solid ${permColor}; font-weight: 600;">
-                              ${pageName}: <b>${perm}</b>
-                            </span>
-                          `;
-                        }).join('')}
-                      </div>
-                    </td>
-                    <td style="padding: 0.75rem; vertical-align: top;">
-                      <div style="display: flex; flex-direction: column; gap: 0.2rem;">
-                        ${assignedStaff.length > 0 ? assignedStaff.map(s => `
-                          <span style="font-size: 0.78rem; font-weight: 700; color: var(--color-text-main);">
-                            • ${s.name} <span style="font-size: 0.7rem; color: var(--color-text-muted);">(${s.email})</span>
-                          </span>
-                        `).join('') : '<span style="font-size: 0.75rem; color: var(--color-text-muted); font-style: italic;">Chưa gán cán bộ</span>'}
-                      </div>
-                    </td>
-                    <td style="padding: 0.75rem; text-align: center; vertical-align: top;">
-                      <button class="btn btn-secondary quick-edit-role-btn" data-role-id="${role.id}" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;">
-                        Sửa Quyền
-                      </button>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Staff Roster Table -->
-      <div class="card">
-        <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 1rem;">
-          Danh Sách Cán Bộ & Nhân Sự Bảo Tàng
-        </h3>
-        <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
-            <thead>
-              <tr style="border-bottom: 1px solid var(--color-card-border); color: var(--color-text-muted);">
-                <th style="padding: 0.75rem;">Mã Nhân Viên</th>
-                <th style="padding: 0.75rem;">Họ Và Tên Cán Bộ</th>
-                <th style="padding: 0.75rem;">Email Công Vụ</th>
-                <th style="padding: 0.75rem;">Chức Danh Bổ Nhiệm</th>
-                <th style="padding: 0.75rem;">Trạng Thái Làm Việc</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${allStaff.map(s => `
-                <tr style="border-bottom: 1px solid var(--color-card-border);">
-                  <td style="padding: 0.75rem; font-family: monospace;">${s.id}</td>
-                  <td style="padding: 0.75rem; font-weight: 700; color: var(--color-primary);">${s.name}</td>
-                  <td style="padding: 0.75rem;">${s.email}</td>
-                  <td style="padding: 0.75rem;">${s.roleTitle}</td>
-                  <td style="padding: 0.75rem;">
-                    <span class="badge-pill" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(34,197,94,0.12); color: #16A34A; border-color: #22C55E;">
-                      Đang làm việc
-                    </span>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
+        `).join("")}
       </div>
     </div>
   `;
 }
 
-export function initAdminRolesPage() {
-  const saveRbacBtn = document.getElementById("btn-save-rbac-assignment");
-  const roleSelect = document.getElementById("rbac-role-select") as HTMLSelectElement;
-  const pageSelect = document.getElementById("rbac-page-select") as HTMLSelectElement;
-  const permSelect = document.getElementById("rbac-permission-select") as HTMLSelectElement;
-  const staffSelect = document.getElementById("rbac-staff-select") as HTMLSelectElement;
+function getCategoryColor(cat: string): string {
+  switch (cat) {
+    case "GATE_OPS": return "#0284c7";
+    case "CMS": return "#d97706";
+    case "3DGS_TOUR": return "#7c3aed";
+    case "MAP_NAV": return "#059669";
+    case "ANALYTICS": return "#0891b2";
+    case "APPROVAL": return "#dc2626";
+    case "SYSTEM": return "#b45309";
+    default: return "#d4af37";
+  }
+}
 
-  if (saveRbacBtn && roleSelect && pageSelect && permSelect && staffSelect) {
-    saveRbacBtn.addEventListener("click", () => {
-      const roleId = roleSelect.value;
-      const pageId = pageSelect.value;
-      const perm = permSelect.value as PermissionLevel;
-      const staffId = staffSelect.value;
+// Listeners and Interactive Logic
+export function initAdminRolesPageLogic() {
+  const roles = getLocalRoles();
 
-      const role = MuseumConfigStore.roles.find(r => r.id === roleId);
+  // 1. Handle Checkbox Permission Change
+  document.querySelectorAll(".chk-perm").forEach(chk => {
+    chk.addEventListener("change", async (e) => {
+      const target = e.target as HTMLInputElement;
+      const permKey = target.getAttribute("data-perm") as "view" | "create" | "edit" | "delete" | "approve";
+      const group = target.closest(".perms-checkbox-group");
+      const roleId = group?.getAttribute("data-role-id");
+
+      if (!roleId || !permKey) return;
+
+      const role = roles.find(r => r.id === roleId);
       if (role) {
-        if (!role.pagePermissions) role.pagePermissions = {};
-        if ((perm as string) === "NONE") {
-          delete role.pagePermissions[pageId];
-          role.allowedPages = role.allowedPages.filter(p => p !== pageId);
-        } else {
-          role.pagePermissions[pageId] = perm;
-          if (!role.allowedPages.includes(pageId)) role.allowedPages.push(pageId);
-        }
+        role.permissions[permKey] = target.checked;
+        saveLocalRoles(roles);
 
-        if (staffId && !role.assignedStaffIds?.includes(staffId)) {
-          if (!role.assignedStaffIds) role.assignedStaffIds = [];
-          role.assignedStaffIds.push(staffId);
-        }
+        // Sync to backend if available
+        try {
+          await fetch("http://localhost:3000/api/v1/auth/roles/update-permissions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roleId, permissions: role.permissions })
+          });
+        } catch (_) {}
 
-        localStorage.setItem("museum_config_roles", JSON.stringify(MuseumConfigStore.roles));
-        window.dispatchEvent(new CustomEvent("museum:config-updated"));
-        showToast(`Đã cập nhật phân quyền: Vai trò [${role.name}] -> Trang [${pageId}] thành [${perm}]!`, "success");
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
-      }
-    });
-  }
-
-  const createRoleBtn = document.getElementById("btn-create-custom-role");
-  const newRoleNameInput = document.getElementById("new-custom-role-name") as HTMLInputElement;
-  const newRoleDescInput = document.getElementById("new-custom-role-desc") as HTMLInputElement;
-
-  if (createRoleBtn && newRoleNameInput && newRoleDescInput) {
-    createRoleBtn.addEventListener("click", () => {
-      const name = newRoleNameInput.value.trim();
-      const desc = newRoleDescInput.value.trim();
-      if (!name) {
-        showToast("Vui lòng nhập tên vai trò!", "warning");
-        return;
-      }
-
-      MuseumConfigStore.addRole(name, desc, ["home", "artifact", "tour360"], { tour360: "FULL_ACCESS", artifact: "EDITOR" }, []);
-      newRoleNameInput.value = "";
-      newRoleDescInput.value = "";
-      showToast(`Đã tạo vai trò mới: [${name}] thành công! Bạn có thể gán quyền chi tiết ngay bây giờ.`, "success");
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
-    });
-  }
-
-  const quickEditBtns = document.querySelectorAll(".quick-edit-role-btn");
-  quickEditBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const rId = btn.getAttribute("data-role-id");
-      if (rId && roleSelect) {
-        roleSelect.value = rId;
-        roleSelect.scrollIntoView({ behavior: "smooth", block: "center" });
+        showToast(`Đã cập nhật quyền [${permKey.toUpperCase()}] cho trang ${role.name}!`, "success");
       }
     });
   });
+
+  // 2. Handle Assign User to Role
+  document.querySelectorAll(".btn-assign-role-user").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const roleId = btn.getAttribute("data-role-id");
+      if (!roleId) return;
+
+      const input = document.querySelector(`.input-assign-email[data-role-id="${roleId}"]`) as HTMLInputElement;
+      const email = input?.value.trim().toLowerCase();
+
+      if (!email || !email.includes("@")) {
+        showToast("Vui lòng nhập địa chỉ email hợp lệ để gán quyền!", "warning");
+        input?.focus();
+        return;
+      }
+
+      const role = roles.find(r => r.id === roleId);
+      if (!role) return;
+
+      if (role.assignedUsers.map(e => e.toLowerCase()).includes(email)) {
+        showToast(`Email ${email} đã có quyền quản lý trang này!`, "info");
+        return;
+      }
+
+      role.assignedUsers.push(email);
+      saveLocalRoles(roles);
+
+      // Sync to backend
+      try {
+        await fetch("http://localhost:3000/api/v1/auth/roles/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userEmail: email, roleId, action: "assign" })
+        });
+      } catch (_) {}
+
+      showToast(`Đã cấp quyền ${role.name} (#${role.pageId}) cho ${email}! Khi đăng nhập vào Dashboard, cán bộ chỉ thấy trang này.`, "success");
+
+      // Re-render UI
+      renderAdminRolesPageContainer();
+    });
+  });
+
+  // 3. Handle Remove User from Role
+  document.querySelectorAll(".btn-remove-user-role").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const roleId = btn.getAttribute("data-role-id");
+      const email = btn.getAttribute("data-email");
+
+      if (!roleId || !email) return;
+
+      const role = roles.find(r => r.id === roleId);
+      if (!role) return;
+
+      role.assignedUsers = role.assignedUsers.filter(e => e.toLowerCase() !== email.toLowerCase());
+      saveLocalRoles(roles);
+
+      // Sync to backend
+      try {
+        await fetch("http://localhost:3000/api/v1/auth/roles/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userEmail: email, roleId, action: "unassign" })
+        });
+      } catch (_) {}
+
+      showToast(`Đã gỡ quyền ${role.name} của cán bộ ${email}!`, "info");
+
+      renderAdminRolesPageContainer();
+    });
+  });
 }
+
+function renderAdminRolesPageContainer() {
+  const mainContent = document.getElementById("main-content");
+  if (mainContent) {
+    mainContent.innerHTML = renderAdminRolesPage();
+    initAdminRolesPageLogic();
+  }
+}
+
+export const initAdminRolesPage = initAdminRolesPageLogic;
