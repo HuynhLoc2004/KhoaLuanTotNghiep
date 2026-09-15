@@ -12,7 +12,9 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
   if (isAdminMode) {
     const isScan = activeTab === "admin-scan" || activeTab === "admin";
     const isArtifacts = activeTab === "admin-artifacts";
+    const isRooms = activeTab === "admin-rooms";
     const isTour = activeTab === "admin-tour360";
+    const isBuildings = activeTab === "admin-buildings";
     const isMap = activeTab === "admin-map";
     const isAnalytics = activeTab === "admin-analytics";
     const isSettings = activeTab === "admin-settings";
@@ -49,12 +51,22 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
           
           <a href="#admin-artifacts" class="nav-item ${isArtifacts ? 'active' : ''}">
             ${Icons.cube}
-            <span>Quản Lý Hiện Vật</span>
+            <span>Quản Lý Kho Hiện Vật</span>
+          </a>
+
+          <a href="#admin-rooms" class="nav-item ${isRooms ? 'active' : ''}">
+            ${Icons.museum}
+            <span>Quản Lý Gian Sảnh 360°</span>
           </a>
 
           <a href="#admin-tour360" class="nav-item ${isTour ? 'active' : ''}">
             ${Icons.compass}
-            <span>Quản Lý Tour Ảo 360°</span>
+            <span>Ghim Cổ Vật Tour 360°</span>
+          </a>
+
+          <a href="#admin-buildings" class="nav-item ${isBuildings ? 'active' : ''}">
+            ${Icons.filter}
+            <span>Quản Lý Tòa Nhà Kiến Trúc</span>
           </a>
 
           <a href="#admin-map" class="nav-item ${isMap ? 'active' : ''}">

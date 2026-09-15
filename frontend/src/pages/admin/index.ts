@@ -1,6 +1,8 @@
 export { renderAdminScanPage, initAdminScanPage } from "./AdminScanPage";
 export { renderAdminArtifactsPage, initAdminArtifactsPage } from "./AdminArtifactsPage";
+export { renderAdminRoomsPage, initAdminRoomsPage } from "./AdminRoomsPage";
 export { renderAdminTour360Page, initAdminTour360Page } from "./AdminTour360Page";
+export { renderAdminBuildingsPage, initAdminBuildingsPage } from "./AdminBuildingsPage";
 export { renderAdminMapPage, initAdminMapPage } from "./AdminMapPage";
 export { renderAdminAnalyticsPage, initAdminAnalyticsPage } from "./AdminAnalyticsPage";
 export { renderAdminSettingsPage, initAdminSettingsPage } from "./AdminSettingsPage";

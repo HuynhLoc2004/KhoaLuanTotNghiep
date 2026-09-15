@@ -16,7 +16,9 @@ import { renderAdminLoginPage, initAdminLoginListeners } from "./pages/AdminLogi
 import {
   renderAdminScanPage, initAdminScanPage,
   renderAdminArtifactsPage, initAdminArtifactsPage,
+  renderAdminRoomsPage, initAdminRoomsPage,
   renderAdminTour360Page, initAdminTour360Page,
+  renderAdminBuildingsPage, initAdminBuildingsPage,
   renderAdminMapPage, initAdminMapPage,
   renderAdminAnalyticsPage, initAdminAnalyticsPage,
   renderAdminSettingsPage, initAdminSettingsPage,
@@ -35,8 +37,8 @@ if (localStorage.getItem("museum_admin_auth") === "true") {
 
 const VALID_TABS = [
   "home", "tour360", "map", "artifact", "quiz", "booking", "profile",
-  "admin-login", "admin", "admin-scan", "admin-artifacts", "admin-tour360",
-  "admin-map", "admin-analytics", "admin-settings", "admin-roles"
+  "admin-login", "admin", "admin-scan", "admin-artifacts", "admin-rooms", "admin-tour360",
+  "admin-buildings", "admin-map", "admin-analytics", "admin-settings", "admin-roles"
 ];
 
 function getActiveTab(): string {
@@ -77,9 +79,15 @@ function renderApp() {
     } else if (tab === "admin-artifacts") {
       pageContent = renderAdminArtifactsPage();
       initFn = initAdminArtifactsPage;
+    } else if (tab === "admin-rooms") {
+      pageContent = renderAdminRoomsPage();
+      initFn = initAdminRoomsPage;
     } else if (tab === "admin-tour360") {
       pageContent = renderAdminTour360Page();
       initFn = initAdminTour360Page;
+    } else if (tab === "admin-buildings") {
+      pageContent = renderAdminBuildingsPage();
+      initFn = initAdminBuildingsPage;
     } else if (tab === "admin-map") {
       pageContent = renderAdminMapPage();
       initFn = initAdminMapPage;
