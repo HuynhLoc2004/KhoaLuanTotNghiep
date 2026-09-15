@@ -422,6 +422,18 @@ export const MuseumConfigStore = {
     return null;
   },
 
+  deleteWalkNode(roomId: string, nodeId: string): boolean {
+    const room = this.rooms360.find(r => r.id === roomId);
+    if (room) {
+      room.nodes = room.nodes.filter(n => n.id !== nodeId);
+      localStorage.setItem("museum_config_rooms360", JSON.stringify(this.rooms360));
+      window.dispatchEvent(new CustomEvent("museum:config-updated"));
+      return true;
+    }
+    return false;
+  },
+
+
   getAnalytics(period: "today" | "week" | "month" | "quarter" | "year"): AnalyticsPeriodData {
     const multipliers: Record<string, number> = {
       today: 1,

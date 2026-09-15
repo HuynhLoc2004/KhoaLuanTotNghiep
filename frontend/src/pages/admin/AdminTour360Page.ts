@@ -96,9 +96,14 @@ export function renderAdminTour360Page(): string {
 
               <!-- 3. Select Walk Node Anchor -->
               <div style="margin-bottom: 1.25rem;">
-                <label style="font-size: 0.82rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.3rem;">
-                  3. Chọn Điểm Quan Sát Gần Nhất (Walk Node Anchor):
-                </label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                  <label style="font-size: 0.82rem; font-weight: 700; color: var(--color-text-main);">
+                    3. Chọn Điểm Quan Sát Gần Nhất (Walk Node Anchor):
+                  </label>
+                  <a href="#admin-nodes" style="font-size: 0.78rem; font-weight: 700; color: var(--color-primary); text-decoration: none;">
+                    Quản Lý Walk Nodes 360° →
+                  </a>
+                </div>
                 <select id="admin-pin-node-select" class="lang-select" style="width: 100%; padding: 0.65rem; font-weight: 600;">
                   ${activeRoom.nodes.map((n) => `<option value="${n.id}">${n.name} (Tọa độ X:${n.position.x}, Z:${n.position.z})</option>`).join("")}
                 </select>

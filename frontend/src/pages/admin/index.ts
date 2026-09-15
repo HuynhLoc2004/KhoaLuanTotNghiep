@@ -2,6 +2,7 @@ export { renderAdminScanPage, initAdminScanPage } from "./AdminScanPage";
 export { renderAdminArtifactsPage, initAdminArtifactsPage } from "./AdminArtifactsPage";
 export { renderAdminRoomsPage, initAdminRoomsPage } from "./AdminRoomsPage";
 export { renderAdminTour360Page, initAdminTour360Page } from "./AdminTour360Page";
+export { renderAdminNodesPage, initAdminNodesListeners } from "./AdminNodesPage";
 export { renderAdminBuildingsPage, initAdminBuildingsPage } from "./AdminBuildingsPage";
 export { renderAdminMapPage, initAdminMapPage } from "./AdminMapPage";
 export { renderAdminAnalyticsPage, initAdminAnalyticsPage } from "./AdminAnalyticsPage";

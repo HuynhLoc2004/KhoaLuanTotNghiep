@@ -14,6 +14,7 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
     const isArtifacts = activeTab === "admin-artifacts";
     const isRooms = activeTab === "admin-rooms";
     const isTour = activeTab === "admin-tour360";
+    const isNodes = activeTab === "admin-nodes";
     const isBuildings = activeTab === "admin-buildings";
     const isMap = activeTab === "admin-map";
     const isAnalytics = activeTab === "admin-analytics";
@@ -76,6 +77,10 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
           <a href="#admin-tour360" class="nav-item ${isTour ? 'active' : ''}">
             ${Icons.compass}
             <span>Ghim Cổ Vật Tour 360°</span>
+          </a>
+          <a href="#admin-nodes" class="nav-item ${isNodes ? 'active' : ''}">
+            ${Icons.filter}
+            <span>Quản Lý Walk Nodes 360°</span>
           </a>
 
           <!-- Section 4: Architectural Map & Navigation -->
