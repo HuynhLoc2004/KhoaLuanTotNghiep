@@ -16,17 +16,18 @@ export function renderAdminMapPage(): string {
           </span>
           <span style="font-size: 0.75rem; color: var(--color-text-muted);">•</span>
           <span class="badge-pill" style="font-size: 0.7rem; padding: 1px 8px; background: rgba(56, 189, 248, 0.15); color: #0284c7; border-color: #38bdf8;">
-            Dynamic Map CMS
+            2.5D Wayfinding CMS
           </span>
         </div>
         <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--color-text-main); margin: 0 0 0.25rem 0;">
-          Quản Lý Sơ Đồ Kiến Trúc & Cầu Nối Phân Luồng 2.5D
+          Quản Lý Sơ Đồ Kiến Trúc Tòa Nhà & Cầu Nối 2.5D
         </h1>
         <p style="font-size: 0.85rem; color: var(--color-text-muted); margin: 0;">
-          Tải lên bản vẽ mặt bằng CAD/ảnh chụp, quét AI bóc tách ranh giới phòng triển lãm và gán liên kết bước chân bay vào sảnh 360°.
+          Tải lên bản vẽ mặt bằng CAD/ảnh chụp, tạo tòa nhà mới, bóc tách phân vùng triển lãm và gán cầu nối bay vào sảnh 360°.
         </p>
       </div>
 
+      <!-- Top Row: Blueprint Scanner + Room Bridge Form -->
       <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
         <!-- Left: Blueprint Upload & AI Scan Simulation -->
         <div class="card" style="border-top: 4px solid var(--color-primary);">
@@ -85,23 +86,17 @@ export function renderAdminMapPage(): string {
             </span>
           </div>
           <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
-            Dữ liệu Tòa nhà, Tầng và Cầu nối Sảnh 360° được nạp động từ CMS. Bạn có thể tạo thêm Tòa nhà mới hoặc Sảnh 360° mới bất cứ lúc nào.
+            Dữ liệu Tòa nhà, Tầng và Cầu nối Sảnh 360° được nạp động từ CMS.
           </p>
 
           <form id="map-room-config-form">
             <!-- 1. Select Building -->
             <div style="margin-bottom: 0.85rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                <label style="font-size: 0.82rem; font-weight: 700; color: var(--color-text-main);">
-                  1. Chọn Tòa Nhà Kiến Trúc (Building):
-                </label>
-                <button type="button" id="btn-quick-add-bldg" style="background: none; border: none; font-size: 0.78rem; font-weight: 700; color: var(--color-primary); cursor: pointer;">
-                  + Thêm Tòa Nhà Mới
-                </button>
-              </div>
+              <label style="font-size: 0.82rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.3rem;">
+                1. Chọn Tòa Nhà Kiến Trúc (Building):
+              </label>
               <select id="admin-map-bldg-select" class="lang-select" style="width: 100%; padding: 0.65rem; font-weight: 600;">
                 ${buildings.map((b) => `<option value="${b.id}">${b.code} - ${b.name}</option>`).join("")}
-                <option value="__ADD_NEW_BLDG__" style="color: var(--color-primary); font-weight: 700;">➕ [Thêm Tòa Nhà Kiến Trúc Mới Từ CMS...]</option>
               </select>
             </div>
 
@@ -133,13 +128,12 @@ export function renderAdminMapPage(): string {
                   4. Cầu Nối Bay Vào Sảnh Tour 360° (CMS Dynamic):
                 </label>
                 <a href="#admin-tour360" style="font-size: 0.78rem; font-weight: 700; color: var(--color-primary); text-decoration: none;">
-                  + Thêm Sảnh Tour 360°
+                  Quản Lý Tour 360° →
                 </a>
               </div>
               <select id="admin-map-tour-select" class="lang-select" style="width: 100%; padding: 0.65rem; font-weight: 600;">
                 ${rooms360.map((r) => `<option value="${r.id}">✓ Bay sang: ${r.name} (${r.eraTitle})</option>`).join("")}
                 <option value="none">Chưa liên kết 360°</option>
-                <option value="__ADD_NEW_360_ROOM__" style="color: var(--color-primary); font-weight: 700;">➕ [Tạo Sảnh Tour 360° Mới Để Liên Kết...]</option>
               </select>
             </div>
 
@@ -157,6 +151,43 @@ export function renderAdminMapPage(): string {
             </button>
           </form>
         </div>
+      </div>
+
+      <!-- Dedicated Building Management Section -->
+      <div class="card" style="border-top: 4px solid var(--color-secondary); margin-bottom: 2rem;">
+        <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 0.4rem;">
+          🏢 Quản Lý & Khởi Tạo Tòa Nhà Kiến Trúc Mới (Building CMS Manager)
+        </h3>
+        <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
+          Thêm tòa nhà mới vào hệ thống bản đồ 2.5D. Sau khi tạo, tòa nhà sẽ lập tức hiển thị trên danh sách chọn Tòa Nhà ở bảng cấu hình phía trên.
+        </p>
+
+        <form id="create-building-form" style="display: grid; grid-template-columns: 1fr 1fr 2fr 1.2fr; gap: 1rem; align-items: flex-end;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+              Mã / Ký Hiệu Tòa Nhà:
+            </label>
+            <input type="text" id="new-bldg-code-input" class="lang-select" style="width: 100%; padding: 0.6rem;" placeholder="VD: TÒA D" required />
+          </div>
+
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+              Tên Tòa Nhà Mới:
+            </label>
+            <input type="text" id="new-bldg-name-input" class="lang-select" style="width: 100%; padding: 0.6rem;" placeholder="VD: Tòa D - Triển Lãm Đương Đại" required />
+          </div>
+
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+              Mô Tả Công Trình Kiến Trúc:
+            </label>
+            <input type="text" id="new-bldg-desc-input" class="lang-select" style="width: 100%; padding: 0.6rem;" placeholder="Khối nhà triển lãm 2 tầng di sản..." />
+          </div>
+
+          <button type="submit" class="btn btn-secondary" style="padding: 0.65rem; font-weight: 700; justify-content: center;">
+            <span>➕</span> Thêm Tòa Nhà Mới
+          </button>
+        </form>
       </div>
 
       <!-- Mapped Rooms Table -->
@@ -251,53 +282,28 @@ export function initAdminMapPage() {
   const mapTourSelect = document.getElementById("admin-map-tour-select") as HTMLSelectElement;
   const mapCapInput = document.getElementById("admin-map-capacity") as HTMLInputElement;
 
-  const quickAddBldgBtn = document.getElementById("btn-quick-add-bldg");
+  // Handle Form 1: Add new Building
+  const createBldgForm = document.getElementById("create-building-form");
+  if (createBldgForm) {
+    createBldgForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const codeInput = document.getElementById("new-bldg-code-input") as HTMLInputElement;
+      const nameInput = document.getElementById("new-bldg-name-input") as HTMLInputElement;
+      const descInput = document.getElementById("new-bldg-desc-input") as HTMLInputElement;
 
-  // Prompt: Add a new Building dynamically
-  const handleAddNewBuilding = () => {
-    const bldgName = prompt("Nhập Tên Tòa Nhà Kiến Trúc Mới (Ví dụ: Tòa D - Khu Triển Lãm Đương Đại):");
-    if (bldgName && bldgName.trim()) {
-      const code = prompt("Nhập Ký Hiệu Tòa Nhà (Ví dụ: TÒA D):") || "TÒA D";
-      const newBldg = MapConfigStore.addBuilding(bldgName.trim(), code, "Tòa nhà mới bổ sung từ CMS.");
-      alert(`🎉 Đã thêm thành công Tòa nhà mới: [${code} - ${bldgName.trim()}]!`);
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
-    } else {
-      mapBldgSelect.selectedIndex = 0;
-    }
-  };
-
-  // Prompt: Add a new 360 Tour Room dynamically
-  const handleAddNew360Room = () => {
-    const roomName = prompt("Nhập Tên Sảnh Tour 360° Mới Để Cầu Nối Bay Vào:");
-    if (roomName && roomName.trim()) {
-      const newRoom = MuseumConfigStore.addRoom360(roomName.trim(), "Thời Kỳ Lịch Sử", "Sảnh 360° mới khởi tạo từ Map CMS.");
-      alert(`🎉 Đã tạo thành công Sảnh Tour 360° mới: [${roomName.trim()}]!`);
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
-    } else {
-      mapTourSelect.selectedIndex = 0;
-    }
-  };
-
-  if (quickAddBldgBtn) quickAddBldgBtn.addEventListener("click", handleAddNewBuilding);
-
-  if (mapBldgSelect) {
-    mapBldgSelect.addEventListener("change", (e) => {
-      const val = (e.target as HTMLSelectElement).value;
-      if (val === "__ADD_NEW_BLDG__") {
-        handleAddNewBuilding();
+      if (nameInput && nameInput.value.trim()) {
+        const newBldg = MapConfigStore.addBuilding(
+          nameInput.value.trim(),
+          codeInput?.value.trim().toUpperCase() || "TÒA MỚI",
+          descInput?.value.trim() || "Tòa nhà mới bổ sung từ CMS."
+        );
+        alert(`🎉 Đã thêm thành công Tòa nhà mới: [${newBldg.code} - ${newBldg.name}]!`);
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });
   }
 
-  if (mapTourSelect) {
-    mapTourSelect.addEventListener("change", (e) => {
-      const val = (e.target as HTMLSelectElement).value;
-      if (val === "__ADD_NEW_360_ROOM__") {
-        handleAddNew360Room();
-      }
-    });
-  }
-
+  // Handle Form 2: Add Room & 360 Bridge Mapping
   if (saveMapRoomBtn && mapBldgSelect && mapFloorSelect && mapRoomNameInput && mapTourSelect) {
     saveMapRoomBtn.addEventListener("click", () => {
       const bldgId = mapBldgSelect.value;
@@ -305,11 +311,6 @@ export function initAdminMapPage() {
       const roomName = mapRoomNameInput.value.trim();
       const tourId = mapTourSelect.value === "none" ? "" : mapTourSelect.value;
       const cap = parseInt(mapCapInput?.value || "60", 10);
-
-      if (bldgId === "__ADD_NEW_BLDG__" || tourId === "__ADD_NEW_360_ROOM__") {
-        alert("Vui lòng chọn hoặc thêm Tòa nhà và Sảnh 360° hợp lệ!");
-        return;
-      }
 
       if (!roomName) {
         alert("Vui lòng nhập tên gian phòng!");

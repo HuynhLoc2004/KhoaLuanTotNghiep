@@ -12,6 +12,7 @@ export function renderAdminTour360Page(): string {
 
   return `
     <div class="page-viewport" style="max-width: 1400px; padding: 1.5rem 2rem;">
+      <!-- Header Bar -->
       <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
         <div>
           <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
@@ -20,22 +21,23 @@ export function renderAdminTour360Page(): string {
             </span>
             <span style="font-size: 0.75rem; color: var(--color-text-muted);">•</span>
             <span class="badge-pill" style="font-size: 0.7rem; padding: 1px 8px; background: rgba(56, 189, 248, 0.15); color: #0284c7; border-color: #38bdf8;">
-              CMS Dynamic Engine
+              3DGS CMS Engine
             </span>
           </div>
           <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--color-text-main); margin: 0 0 0.25rem 0;">
-            Quản Lý Sảnh Tour Ảo 360° & Tái Tạo Không Gian 3DGS
+            Quản Lý Sảnh Tour Ảo 360° & Ghim Cổ Vật
           </h1>
           <p style="font-size: 0.85rem; color: var(--color-text-muted); margin: 0;">
-            Quay video gian phòng trực tiếp bằng camera, tải lên ảnh chi tiết 8K và tự động chạy pipeline 3DGS lên server.
+            Quản lý gian phòng 360°, điểm bước chân (Walk Nodes) và ghim biển chú thích cổ vật từ Kho Dữ Liệu CMS.
           </p>
         </div>
 
-        <button id="btn-open-3dgs-studio" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-weight: 800; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">
+        <button id="btn-open-3dgs-studio" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-weight: 800; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(51, 104, 160, 0.3);">
           <span>📹</span> Bật Camera Quay Video & Tải Lên 3DGS Studio
         </button>
       </div>
 
+      <!-- Top Row: Pin Artifact Form + Active Room Details -->
       <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
         <!-- Left: Add Showcase Pin Form via Dynamic Selects -->
         <div class="card" style="border-top: 4px solid var(--color-primary);">
@@ -48,23 +50,17 @@ export function renderAdminTour360Page(): string {
             </span>
           </div>
           <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
-            Dữ liệu gian phòng, cổ vật và điểm bước chân được nạp động từ Kho Dữ Liệu CMS Bảo Tàng. Admin có thể thêm mới bất kỳ lúc nào.
+            Admin chọn sảnh, chọn cổ vật từ Kho dữ liệu CMS bên dưới và chọn điểm đứng bước chân để ghim biển chú thích vào không gian 360°.
           </p>
 
           <form id="add-tour-pin-form">
             <!-- 1. Select Room -->
             <div style="margin-bottom: 0.85rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                <label style="font-size: 0.82rem; font-weight: 700; color: var(--color-text-main);">
-                  1. Chọn Gian Sảnh Trưng Bày:
-                </label>
-                <button type="button" id="btn-quick-add-room" style="background: none; border: none; font-size: 0.78rem; font-weight: 700; color: var(--color-primary); cursor: pointer;">
-                  + Thêm Sảnh Mới
-                </button>
-              </div>
+              <label style="font-size: 0.82rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.3rem;">
+                1. Chọn Gian Sảnh Trưng Bày 360°:
+              </label>
               <select id="admin-pin-room-select" class="lang-select" style="width: 100%; padding: 0.65rem; font-weight: 600;">
                 ${rooms.map((r) => `<option value="${r.id}" ${r.id === activeRoom.id ? "selected" : ""}>${r.name} (${r.eraTitle})</option>`).join("")}
-                <option value="__ADD_NEW_ROOM__" style="color: var(--color-primary); font-weight: 700;">➕ [Thêm Gian Sảnh 360° Mới Từ CMS...]</option>
               </select>
             </div>
 
@@ -75,28 +71,21 @@ export function renderAdminTour360Page(): string {
                   2. Chọn Hiện Vật Cần Ghim (Tải Động Từ Kho Dữ Liệu CMS):
                 </label>
                 <a href="#admin-artifacts" style="font-size: 0.78rem; font-weight: 700; color: var(--color-primary); text-decoration: none;">
-                  + Thêm Hiện Vật Vào Kho
+                  Quản Lý Kho Hiện Vật CMS →
                 </a>
               </div>
               <select id="admin-pin-artifact-select" class="lang-select" style="width: 100%; padding: 0.65rem; font-weight: 600;">
                 ${allArtifacts.map((a) => `<option value="${a.id}" data-name="${a.name}" data-era="${a.era}">${a.name} • ${a.era} [${a.code}]</option>`).join("")}
-                <option value="__ADD_NEW_ARTIFACT__" style="color: var(--color-primary); font-weight: 700;">➕ [Tạo Hiện Vật Mới & Ghim Ngay...]</option>
               </select>
             </div>
 
             <!-- 3. Select Walk Node Anchor -->
             <div style="margin-bottom: 1.25rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                <label style="font-size: 0.82rem; font-weight: 700; color: var(--color-text-main);">
-                  3. Chọn Điểm Quan Sát Gần Nhất (Walk Node Anchor):
-                </label>
-                <button type="button" id="btn-quick-add-node" style="background: none; border: none; font-size: 0.78rem; font-weight: 700; color: var(--color-primary); cursor: pointer;">
-                  + Thêm Điểm Đứng
-                </button>
-              </div>
+              <label style="font-size: 0.82rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.3rem;">
+                3. Chọn Điểm Quan Sát Gần Nhất (Walk Node Anchor):
+              </label>
               <select id="admin-pin-node-select" class="lang-select" style="width: 100%; padding: 0.65rem; font-weight: 600;">
                 ${activeRoom.nodes.map((n) => `<option value="${n.id}">${n.name} (Tọa độ X:${n.position.x}, Z:${n.position.z})</option>`).join("")}
-                <option value="__ADD_NEW_NODE__" style="color: var(--color-primary); font-weight: 700;">➕ [Thêm Điểm Bước Chân Walk Node Mới...]</option>
               </select>
             </div>
 
@@ -107,7 +96,7 @@ export function renderAdminTour360Page(): string {
           </form>
         </div>
 
-        <!-- Right: Room Status & Walk Nodes -->
+        <!-- Right: Active Room Details & Walk Nodes -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
             <h3 style="font-size: 1.1rem; color: var(--color-primary); margin: 0;">
@@ -142,6 +131,90 @@ export function renderAdminTour360Page(): string {
             ${Icons.compass}
             <span>Xem Trực Tiếp Trải Nghiệm 360° Phía Du Khách →</span>
           </a>
+        </div>
+      </div>
+
+      <!-- Dedicated Management Section 1: Create New 360 Room Form -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        <!-- Form to add new 360 room -->
+        <div class="card" style="border-top: 4px solid var(--color-secondary);">
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 0.4rem;">
+            ➕ Khởi Tạo Gian Sảnh Tour 360° Mới Vào CMS
+          </h3>
+          <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+            Tạo sảnh 360° mới trên hệ thống. Sau khi tạo, sảnh sẽ tự động xuất hiện ở các danh sách chọn Select trên toàn bộ Dashboard.
+          </p>
+
+          <form id="create-new-room-form">
+            <div style="margin-bottom: 0.75rem;">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+                Tên Gian Sảnh Trưng Bày Mới:
+              </label>
+              <input type="text" id="new-room-name-input" class="lang-select" style="width: 100%; padding: 0.6rem;" placeholder="VD: Sảnh Cổ Vật Hoàng Cung Triều Nguyễn" required />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+              <div>
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+                  Niên Đại / Thời Kỳ:
+                </label>
+                <input type="text" id="new-room-era-input" class="lang-select" style="width: 100%; padding: 0.6rem;" placeholder="VD: Thế kỷ 19" required />
+              </div>
+              <div>
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+                  Chủ Đề Không Gian:
+                </label>
+                <select id="new-room-theme-input" class="lang-select" style="width: 100%; padding: 0.6rem;">
+                  <option value="champa">Văn hóa Champa</option>
+                  <option value="oc-eo">Văn hóa Óc Eo - Phù Nam</option>
+                  <option value="dong-son">Văn hóa Đông Sơn</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+                Mô Tả Gian Phòng:
+              </label>
+              <input type="text" id="new-room-desc-input" class="lang-select" style="width: 100%; padding: 0.6rem;" placeholder="Mô tả sảnh trưng bày di sản số..." />
+            </div>
+
+            <button type="submit" class="btn btn-secondary" style="width: 100%; padding: 0.65rem; justify-content: center; font-weight: 700;">
+              <span>➕</span> Tạo Gian Sảnh 360° Mới Vào CMS
+            </button>
+          </form>
+        </div>
+
+        <!-- Dedicated Management Section 2: Add Walk Node to Active Room Form -->
+        <div class="card" style="border-top: 4px solid var(--color-secondary);">
+          <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 0.4rem;">
+            📍 Thêm Điểm Bước Chân (Walk Node) Vào Sảnh
+          </h3>
+          <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+            Đang thêm điểm bước chân mới vào gian sảnh: <b>${activeRoom.name}</b>.
+          </p>
+
+          <form id="create-new-node-form">
+            <div style="margin-bottom: 0.85rem;">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+                Tên Điểm Bước Chân Mới Trên Sàn:
+              </label>
+              <input type="text" id="new-node-name-input" class="lang-select" style="width: 100%; padding: 0.6rem;" placeholder="VD: Vị trí Tủ Kính Phía Đông" required />
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.25rem;">
+                Sảnh Trưng Bày Áp Dụng:
+              </label>
+              <select id="node-target-room-select" class="lang-select" style="width: 100%; padding: 0.6rem;" disabled>
+                <option value="${activeRoom.id}">${activeRoom.name}</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-secondary" style="width: 100%; padding: 0.65rem; justify-content: center; font-weight: 700;">
+              <span>📍</span> Thêm Điểm Bước Chân Mới
+            </button>
+          </form>
         </div>
       </div>
 
@@ -213,91 +286,19 @@ export function initAdminTour360Page() {
   const pinArtifactSelect = document.getElementById("admin-pin-artifact-select") as HTMLSelectElement;
   const pinNodeSelect = document.getElementById("admin-pin-node-select") as HTMLSelectElement;
 
-  const quickAddRoomBtn = document.getElementById("btn-quick-add-room");
-  const quickAddNodeBtn = document.getElementById("btn-quick-add-node");
-
-  // Helper: Prompt to add a new 360 Room dynamically
-  const handleAddNewRoom = () => {
-    const roomName = prompt("Nhập Tên Gian Sảnh 360° Mới (Ví dụ: Sảnh Cổ Vật Hoàng Cung Triều Nguyễn):");
-    if (roomName && roomName.trim()) {
-      const eraTitle = prompt("Nhập Niên Đại / Thời Kỳ (Ví dụ: Thế kỷ 19):") || "Thời Kỳ Lịch Sử";
-      const newRoom = MuseumConfigStore.addRoom360(roomName.trim(), eraTitle, "Gian sảnh mới được khởi tạo từ CMS.");
-      selectedTourRoomId = newRoom.id;
-      alert(`🎉 Đã thêm thành công gian sảnh 360° mới: [${roomName.trim()}]!`);
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
-    } else {
-      pinRoomSelect.value = selectedTourRoomId;
-    }
-  };
-
-  // Helper: Prompt to add a new Walk Node dynamically
-  const handleAddNewNode = () => {
-    const nodeName = prompt("Nhập Tên Điểm Đứng Bước Chân Mới (Ví dụ: Vị trí Tủ Kính Phía Đông):");
-    if (nodeName && nodeName.trim()) {
-      MuseumConfigStore.addWalkNode(selectedTourRoomId, nodeName.trim());
-      alert(`🎉 Đã thêm thành công điểm bước chân mới: [${nodeName.trim()}]!`);
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
-    } else {
-      pinNodeSelect.selectedIndex = 0;
-    }
-  };
-
-  // Helper: Prompt to add a new Artifact dynamically
-  const handleAddNewArtifact = () => {
-    const artName = prompt("Nhập Tên Hiện Vật Mới Để Ghim (Ví dụ: Kiếm Cổ Triều Nguyễn):");
-    if (artName && artName.trim()) {
-      const era = prompt("Nhập Niên Đại Hiện Vật (Ví dụ: Thế kỷ 19):") || "Cổ đại";
-      const newArt = ArtifactsStore.addArtifact({ name: artName.trim(), era });
-      alert(`🎉 Đã thêm hiện vật mới [${artName.trim()}] vào Kho CMS thành công!`);
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
-    } else {
-      pinArtifactSelect.selectedIndex = 0;
-    }
-  };
-
-  if (quickAddRoomBtn) quickAddRoomBtn.addEventListener("click", handleAddNewRoom);
-  if (quickAddNodeBtn) quickAddNodeBtn.addEventListener("click", handleAddNewNode);
-
   if (pinRoomSelect) {
     pinRoomSelect.addEventListener("change", (e) => {
-      const val = (e.target as HTMLSelectElement).value;
-      if (val === "__ADD_NEW_ROOM__") {
-        handleAddNewRoom();
-      } else {
-        selectedTourRoomId = val;
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
-      }
+      selectedTourRoomId = (e.target as HTMLSelectElement).value;
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }
 
-  if (pinArtifactSelect) {
-    pinArtifactSelect.addEventListener("change", (e) => {
-      const val = (e.target as HTMLSelectElement).value;
-      if (val === "__ADD_NEW_ARTIFACT__") {
-        handleAddNewArtifact();
-      }
-    });
-  }
-
-  if (pinNodeSelect) {
-    pinNodeSelect.addEventListener("change", (e) => {
-      const val = (e.target as HTMLSelectElement).value;
-      if (val === "__ADD_NEW_NODE__") {
-        handleAddNewNode();
-      }
-    });
-  }
-
+  // Handle Form 1: Add Showcase Pin
   if (addPinBtn && pinRoomSelect && pinArtifactSelect && pinNodeSelect) {
     addPinBtn.addEventListener("click", () => {
       const roomId = pinRoomSelect.value;
       const artifactId = pinArtifactSelect.value;
       const opt = pinArtifactSelect.options[pinArtifactSelect.selectedIndex];
-
-      if (artifactId === "__ADD_NEW_ARTIFACT__" || roomId === "__ADD_NEW_ROOM__" || pinNodeSelect.value === "__ADD_NEW_NODE__") {
-        alert("Vui lòng chọn một hiện vật và gian sảnh hợp lệ!");
-        return;
-      }
 
       const title = opt.getAttribute("data-name") || "Hiện vật mới";
       const era = opt.getAttribute("data-era") || "Niên đại cổ";
@@ -306,6 +307,43 @@ export function initAdminTour360Page() {
       MuseumConfigStore.addShowcasePin(roomId, artifactId, title, era, nodeId);
       alert(`🎉 Đã ghim thành công [${title}] vào không gian 360°!`);
       window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+  }
+
+  // Handle Form 2: Dedicated Create New 360 Room Form
+  const createRoomForm = document.getElementById("create-new-room-form");
+  if (createRoomForm) {
+    createRoomForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nameInput = document.getElementById("new-room-name-input") as HTMLInputElement;
+      const eraInput = document.getElementById("new-room-era-input") as HTMLInputElement;
+      const descInput = document.getElementById("new-room-desc-input") as HTMLInputElement;
+
+      if (nameInput && nameInput.value.trim()) {
+        const newRoom = MuseumConfigStore.addRoom360(
+          nameInput.value.trim(),
+          eraInput?.value.trim() || "Thời Kỳ Lịch Sử",
+          descInput?.value.trim() || "Gian sảnh mới được khởi tạo từ CMS."
+        );
+        selectedTourRoomId = newRoom.id;
+        alert(`🎉 Đã tạo thành công gian sảnh 360° mới: [${nameInput.value.trim()}] vào CMS!`);
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      }
+    });
+  }
+
+  // Handle Form 3: Dedicated Add Walk Node Form
+  const createNodeForm = document.getElementById("create-new-node-form");
+  if (createNodeForm) {
+    createNodeForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nodeInput = document.getElementById("new-node-name-input") as HTMLInputElement;
+
+      if (nodeInput && nodeInput.value.trim()) {
+        MuseumConfigStore.addWalkNode(selectedTourRoomId, nodeInput.value.trim());
+        alert(`🎉 Đã thêm điểm bước chân mới: [${nodeInput.value.trim()}] vào gian sảnh!`);
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      }
     });
   }
 }

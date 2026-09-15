@@ -416,7 +416,16 @@ export function initAdminArtifactsPage() {
   const addBtn = document.getElementById("btn-add-artifact");
   if (addBtn) {
     addBtn.addEventListener("click", () => {
-      alert("Mở Form thêm hiện vật mới: Hỗ trợ tải tệp .glb 3D, bảng chú thích song ngữ và âm thanh thuyết minh AI.");
+      const code = prompt("Nhập Mã Số Hiện Vật (Ví dụ: BTLS-AR-100):", "BTLS-AR-" + Math.floor(Math.random() * 900 + 100));
+      if (!code) return;
+      const name = prompt("Nhập Tên Hiện Vật Mới:");
+      if (!name) return;
+      const era = prompt("Nhập Niên Đại (Ví dụ: Thế kỷ 18):", "Cổ đại");
+      const material = prompt("Nhập Chất Liệu (Ví dụ: Gốm men xanh / Đồng cổ):", "Hợp kim đồng cổ");
+
+      ArtifactsStore.addArtifact({ code, name, era, material });
+      alert(`🎉 Đã thêm thành công hiện vật [${name}] vào Kho Dữ Liệu CMS!`);
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }
 
