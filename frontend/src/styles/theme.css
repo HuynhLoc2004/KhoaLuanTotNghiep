@@ -161,13 +161,46 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.08em;
 }
 
-/* Sidebar Nav Items */
+/* Sidebar Nav Items & Categorized Sections */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   flex: 1;
 }
+
+.nav-section-title {
+  font-size: 0.67rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-primary);
+  margin-top: 0.9rem;
+  margin-bottom: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 3px solid var(--color-secondary);
+  background: rgba(var(--color-primary-rgb), 0.04);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.sidebar-nav > .nav-section-title:first-child {
+  margin-top: 0.2rem;
+}
+
+.nav-section-badge {
+  font-size: 0.6rem;
+  background: var(--color-surface);
+  color: var(--color-secondary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0;
+  border: 1px solid var(--color-border);
+}
+
 
 .nav-item {
   display: flex;

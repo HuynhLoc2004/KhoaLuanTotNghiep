@@ -42,48 +42,69 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
           <div style="font-size: 0.76rem; color: var(--color-secondary); font-weight: 600;">${AuthState.admin.roleTitle}</div>
         </div>
 
-        <!-- Admin Workspaces Navigation (Dedicated Pages) -->
+        <!-- Admin Workspaces Navigation (Categorized for RBAC Scoping) -->
         <nav class="sidebar-nav">
+          <!-- Section 1: Gate & Visitor Operations -->
+          <div class="nav-section-title">
+            <span>Vận Hành Cổng</span>
+            <span class="nav-section-badge">GATE_OPS</span>
+          </div>
           <a href="#admin-scan" class="nav-item ${isScan ? 'active' : ''}">
             ${Icons.qr}
             <span>Soát Vé Cổng (&lt;100ms)</span>
           </a>
-          
+
+          <!-- Section 2: Heritage & Digital Catalog -->
+          <div class="nav-section-title">
+            <span>Kho Hiện Vật & Di Sản</span>
+            <span class="nav-section-badge">CMS</span>
+          </div>
           <a href="#admin-artifacts" class="nav-item ${isArtifacts ? 'active' : ''}">
             ${Icons.cube}
             <span>Quản Lý Kho Hiện Vật</span>
           </a>
 
+          <!-- Section 3: 3DGS & Virtual Tour Spaces -->
+          <div class="nav-section-title">
+            <span>Không Gian 3DGS & Tour</span>
+            <span class="nav-section-badge">3DGS_TOUR</span>
+          </div>
           <a href="#admin-rooms" class="nav-item ${isRooms ? 'active' : ''}">
             ${Icons.museum}
             <span>Quản Lý Gian Sảnh 360°</span>
           </a>
-
           <a href="#admin-tour360" class="nav-item ${isTour ? 'active' : ''}">
             ${Icons.compass}
             <span>Ghim Cổ Vật Tour 360°</span>
           </a>
 
+          <!-- Section 4: Architectural Map & Navigation -->
+          <div class="nav-section-title">
+            <span>Bản Đồ & Kiến Trúc</span>
+            <span class="nav-section-badge">MAP_NAV</span>
+          </div>
           <a href="#admin-buildings" class="nav-item ${isBuildings ? 'active' : ''}">
             ${Icons.filter}
             <span>Quản Lý Tòa Nhà Kiến Trúc</span>
           </a>
-
           <a href="#admin-map" class="nav-item ${isMap ? 'active' : ''}">
             ${Icons.map}
             <span>Sơ Đồ Mặt Bằng & Dẫn Đường</span>
           </a>
 
+          <!-- Section 5: Analytics, System & Security RBAC -->
+          <div class="nav-section-title">
+            <span>Quản Trị & System</span>
+            <span class="nav-section-badge">SYS_ADMIN</span>
+          </div>
           <a href="#admin-analytics" class="nav-item ${isAnalytics ? 'active' : ''}">
             ${Icons.ticket}
             <span>Thống Kê Toàn Diện</span>
           </a>
-
           <a href="#admin-settings" class="nav-item ${isSettings ? 'active' : ''}">
             ${Icons.filter}
             <span>Cấu Hình & Tắt/Bật Tính Năng</span>
           </a>
-
           <a href="#admin-roles" class="nav-item ${isRoles ? 'active' : ''}">
             ${Icons.user}
             <span>Phân Quyền Quản Trị (RBAC)</span>
