@@ -9,6 +9,7 @@ import { renderVisitorAuthModal, initVisitorAuthListeners } from "./components/V
 import { renderHomePage, initHomePage3D } from "./pages/HomePage";
 import { renderTour360Page, initTour360Page } from "./pages/Tour360Page";
 import { renderMapPage, initMapPageLogic } from "./pages/MapPage";
+import { renderTimelinePage, initTimelinePageLogic } from "./pages/TimelinePage";
 import { renderArtifactPage, initArtifactPageLogic } from "./pages/ArtifactPage";
 import { renderQuizPage, initQuizListeners } from "./pages/QuizPage";
 import { renderBookingPage, initBookingListeners } from "./pages/BookingPage";
@@ -27,29 +28,21 @@ import {
   renderAdminRolesPage, initAdminRolesPage,
   renderAdminApprovalsPage, initAdminApprovalsPage
 } from "./pages/admin";
-import { initToastContainer } from "./components/Toast";
-
+import { initToastContainer, showToast } from "./components/Toast";
 
 const app = document.getElementById("app") as HTMLElement;
 
 // Initialize global toast notification container
 initToastContainer();
 
-
-// Check saved auth state
-if (localStorage.getItem("museum_visitor_auth") === "true") {
-  AuthState.isVisitorLoggedIn = true;
-}
-if (localStorage.getItem("museum_admin_auth") === "true") {
-  AuthState.isAdminLoggedIn = true;
-}
+// Initialize user session from localStorage
+AuthState.init();
 
 const VALID_TABS = [
-  "home", "tour360", "map", "artifact", "quiz", "booking", "profile",
+  "home", "tour360", "map", "timeline", "artifact", "quiz", "booking", "profile",
   "admin-login", "admin", "admin-scan", "admin-artifacts", "admin-rooms", "admin-tour360", "admin-nodes",
   "admin-buildings", "admin-map", "admin-analytics", "admin-settings", "admin-roles", "admin-approvals"
 ];
-
 
 function getActiveTab(): string {
   const hash = window.location.hash.replace("#", "") || "home";
@@ -71,49 +64,66 @@ function renderApp() {
     return;
   }
 
-  // Dedicated Admin Studio Routes (Protected by Admin Auth)
+  // Dedicated Admin Studio Routes (Protected by Granular Dynamic RBAC: 1 Page = 1 Role)
   if (tab.startsWith("admin")) {
-    if (!AuthState.isAdminLoggedIn) {
+    if (!AuthState.canAccessAdmin()) {
+      showToast("Bạn không có quyền truy cập Cổng Quản Trị. Vui lòng đăng nhập tài khoản cán bộ!", "warning");
       window.location.hash = "#admin-login";
       return;
     }
 
+    // Default #admin entry point -> redirects to first allowed page
+    let activeAdminTab = tab;
+    if (tab === "admin") {
+      activeAdminTab = AuthState.getFirstAllowedPage();
+      if (activeAdminTab === "home") {
+        window.location.hash = "#home";
+        return;
+      }
+    } else {
+      // Check if user has permission to access this specific page
+      if (!AuthState.canAccessPage(tab)) {
+        const fallback = AuthState.getFirstAllowedPage();
+        showToast(`Bạn không có quyền truy cập trang này. Đang chuyển về trang được phân công...`, "warning");
+        window.location.hash = `#${fallback}`;
+        return;
+      }
+    }
+
     let pageContent = "";
     let initFn = () => { };
-    let activeAdminTab = tab;
 
-    if (tab === "admin" || tab === "admin-scan") {
-      activeAdminTab = "admin-scan";
+    if (activeAdminTab === "admin-scan") {
       pageContent = renderAdminScanPage();
       initFn = initAdminScanPage;
-    } else if (tab === "admin-artifacts") {
+    } else if (activeAdminTab === "admin-artifacts") {
       pageContent = renderAdminArtifactsPage();
       initFn = initAdminArtifactsPage;
-    } else if (tab === "admin-rooms") {
+    } else if (activeAdminTab === "admin-rooms") {
       pageContent = renderAdminRoomsPage();
       initFn = initAdminRoomsPage;
-    } else if (tab === "admin-tour360") {
+    } else if (activeAdminTab === "admin-tour360") {
       pageContent = renderAdminTour360Page();
       initFn = initAdminTour360Page;
-    } else if (tab === "admin-nodes") {
+    } else if (activeAdminTab === "admin-nodes") {
       pageContent = renderAdminNodesPage();
       initFn = initAdminNodesListeners;
-    } else if (tab === "admin-buildings") {
+    } else if (activeAdminTab === "admin-buildings") {
       pageContent = renderAdminBuildingsPage();
       initFn = initAdminBuildingsPage;
-    } else if (tab === "admin-map") {
+    } else if (activeAdminTab === "admin-map") {
       pageContent = renderAdminMapPage();
       initFn = initAdminMapPage;
-    } else if (tab === "admin-analytics") {
+    } else if (activeAdminTab === "admin-analytics") {
       pageContent = renderAdminAnalyticsPage();
       initFn = initAdminAnalyticsPage;
-    } else if (tab === "admin-settings") {
+    } else if (activeAdminTab === "admin-settings") {
       pageContent = renderAdminSettingsPage();
       initFn = initAdminSettingsPage;
-    } else if (tab === "admin-roles") {
+    } else if (activeAdminTab === "admin-roles") {
       pageContent = renderAdminRolesPage();
       initFn = initAdminRolesPage;
-    } else if (tab === "admin-approvals") {
+    } else if (activeAdminTab === "admin-approvals") {
       pageContent = renderAdminApprovalsPage();
       initFn = initAdminApprovalsPage;
     }
@@ -137,7 +147,7 @@ function renderApp() {
     return;
   }
 
-  // Public Client Routes (Home, Artifact, Quiz, Booking, Profile)
+  // Public Client Routes (Home, Tour360, Map, Timeline, Artifact, Quiz, Booking, Profile)
   const features = MuseumConfigStore.features;
   if (tab === "tour360" && features.enableTour360 === false) {
     window.location.hash = "#home";
@@ -159,6 +169,8 @@ function renderApp() {
     pageContent = renderTour360Page();
   } else if (tab === "map") {
     pageContent = renderMapPage();
+  } else if (tab === "timeline") {
+    pageContent = renderTimelinePage();
   } else if (tab === "artifact") {
     pageContent = renderArtifactPage();
   } else if (tab === "quiz") {
@@ -194,6 +206,8 @@ function renderApp() {
     setTimeout(() => initTour360Page(), 50);
   } else if (tab === "map") {
     setTimeout(() => initMapPageLogic(), 50);
+  } else if (tab === "timeline") {
+    setTimeout(() => initTimelinePageLogic(), 50);
   } else if (tab === "artifact") {
     setTimeout(() => initArtifactPageLogic(), 50);
   } else if (tab === "quiz") {
@@ -213,9 +227,8 @@ function renderApp() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+// Router Event Listeners
 window.addEventListener("hashchange", renderApp);
-window.addEventListener("museum:config-updated", renderApp);
-window.addEventListener("museum:language-changed", renderApp);
 window.addEventListener("DOMContentLoaded", renderApp);
 
 renderApp();
