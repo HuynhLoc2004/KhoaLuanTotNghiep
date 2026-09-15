@@ -2,11 +2,12 @@ import { ARTIFACTS_DATA } from "../data/artifacts";
 import { MuseumConfigStore } from "../data/museumConfig";
 import { Icons } from "../components/Icons";
 import { showToast } from "../components/Toast";
+import { i18n, t, ARTIFACT_TRANSLATIONS } from "../data/i18n";
+import { VoiceAI } from "../data/voiceAI";
 import * as THREE from "three";
 
 let currentArtifactIndex = 0;
 let isSpeaking = false;
-let speechUtterance: SpeechSynthesisUtterance | null = null;
 let currentFilter: string = "all";
 let currentPage: number = 1;
 const ITEMS_PER_PAGE = 4;
@@ -14,32 +15,6 @@ const ITEMS_PER_PAGE = 4;
 let threeAnimId: number | null = null;
 let threeGroup: THREE.Group | null = null;
 let isWireframe = false;
-
-// Multi-language translation map for placards and voice AI
-const TRANSLATIONS: Record<string, Record<string, string>> = {
-  "buddha-dong-duong": {
-    vi: "Bảo vật quốc gia. Pho tượng Phật đứng bằng đồng thau, phong cách nghệ thuật Amaravati tiêu biểu với nếp gấp áo cà sa vắt qua vai trái. Di vật minh chứng cho giao lưu hàng hải văn hóa rực rỡ phương Nam.",
-    en: "National Treasure. Standing bronze Buddha statue representing the distinctive Amaravati art style with monastic robe draped over the left shoulder, illustrating vibrant maritime cultural exchanges.",
-    ja: "国宝。左肩に法衣をまとったアマラヴァティ様式のブロンズ製立仏像。古代東南アジアにおける海上交易と仏教文化の繁栄を証明する貴重な遺物です。",
-    ko: "국보. 왼쪽 어깨에 가사를 걸친 독특한 아마라바티 양식의 청동 불상으로 고대 해양 문화 교류를 보여주는 유물입니다.",
-    fr: "Trésor National. Statue de Bouddha debout en bronze de style Amaravati, drapée sur l'épaule gauche, témoignant des échanges maritimes historiques."
-  },
-  "trong-dong-dong-son": {
-    vi: "Bảo vật thời kỳ đồ đồng rực rỡ của nền văn minh lúa nước sông Hồng. Mặt trống khắc họa mặt trời 12 tia, chim Lạc bay và cảnh người giã gạo, múa vũ trang.",
-    en: "Dong Son Bronze Drum. Masterpiece of the Red River civilization featuring a 12-pointed sun, flying Lac birds, and warrior dancers.",
-    ja: "ドンソン銅鼓。紅河文明の傑作であり、中央に12光線の太陽、周囲にラック鳥や舞踏の戦士が刻まれています。",
-    ko: "동손 청동북. 12갈래 태양 광선과 락 새, 춤추는 전사들이 새겨진 홍강 문명의 대표 유물입니다.",
-    fr: "Tambour de bronze de Dong Son. Chef-d'œuvre gravé d'un soleil à 12 rayons et d'oiseaux Lac sacrés."
-  }
-};
-
-const SPEECH_LANG_CODES: Record<string, string> = {
-  vi: "vi-VN",
-  en: "en-US",
-  ja: "ja-JP",
-  ko: "ko-KR",
-  fr: "fr-FR"
-};
 
 export function renderArtifactPage(): string {
   // Parse QR scan URL query param (?id=...)
@@ -60,10 +35,12 @@ export function renderArtifactPage(): string {
   const lang = MuseumConfigStore.currentLanguage;
   const features = MuseumConfigStore.features;
 
-  // Localized placard
-  const localizedPlacard = (TRANSLATIONS[artifact.id] && TRANSLATIONS[artifact.id][lang])
-    ? TRANSLATIONS[artifact.id][lang]
-    : artifact.placardText;
+  // Localized placard & metadata
+  const localizedPlacard = i18n.getArtifactPlacard(artifact.id, artifact.placardText);
+  const localizedInfo = ARTIFACT_TRANSLATIONS[artifact.id]?.[lang];
+  const artifactDisplayName = localizedInfo?.name || artifact.name;
+  const artifactDisplayEra = localizedInfo?.era || artifact.era;
+  const artifactDisplayMaterial = localizedInfo?.material || artifact.material;
 
   // Filtered artifacts
   const filtered = currentFilter === "all"
@@ -81,18 +58,18 @@ export function renderArtifactPage(): string {
       <!-- Breadcrumb & Title -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <div class="brand-subtitle">PHÒNG TRƯNG BÀY SỐ HÓA • ${lang.toUpperCase()}</div>
-          <h1 style="font-size: 2rem; color: var(--color-primary); margin-top: 0.2rem;">${artifact.name}</h1>
+          <div class="brand-subtitle">${t("artifact.title").toUpperCase()} • ${lang.toUpperCase()}</div>
+          <h1 style="font-size: 2rem; color: var(--color-primary); margin-top: 0.2rem;">${artifactDisplayName}</h1>
           <div style="display: flex; gap: 0.6rem; margin-top: 0.4rem; flex-wrap: wrap;">
-            <span class="badge-pill">${artifact.era}</span>
-            <span class="badge-pill" style="background: rgba(var(--color-surface-rgb), 0.5);">${artifact.material}</span>
+            <span class="badge-pill">${artifactDisplayEra}</span>
+            <span class="badge-pill" style="background: rgba(var(--color-surface-rgb), 0.5);">${artifactDisplayMaterial}</span>
             <span class="badge-pill" style="background: rgba(51,104,160,0.1);">${artifact.location}</span>
           </div>
         </div>
 
         <!-- Quick Selector Dropdown -->
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <label style="font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);">Chọn nhanh:</label>
+          <label style="font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);">${t("artifact.quickSelect")}</label>
           <select id="artifact-select" class="lang-select" style="padding: 0.55rem 1rem; font-size: 0.88rem;">
             ${ARTIFACTS_DATA.map((art, idx) => `
               <option value="${idx}" ${idx === currentArtifactIndex ? 'selected' : ''}>
@@ -171,8 +148,8 @@ export function renderArtifactPage(): string {
                     ${Icons.volume}
                   </div>
                   <div>
-                    <div style="font-size: 0.92rem; font-weight: 700; color: var(--color-primary);">Voice AI Thuyết Minh Đa Ngữ</div>
-                    <div style="font-size: 0.76rem; color: var(--color-text-muted);">Ngôn ngữ phát âm: <b>${SPEECH_LANG_CODES[lang] || 'vi-VN'}</b></div>
+                    <div style="font-size: 0.92rem; font-weight: 700; color: var(--color-primary);">${t("artifact.playVoice")}</div>
+                    <div style="font-size: 0.76rem; color: var(--color-text-muted);">Voice AI BCP 47: <b>${VoiceAI.getSpeechCode(lang)}</b></div>
                   </div>
                 </div>
 
@@ -189,12 +166,12 @@ export function renderArtifactPage(): string {
               <div style="display: flex; gap: 0.75rem; align-items: center;">
                 <button class="btn btn-primary" id="play-voice-btn" style="flex: 1;">
                   ${Icons.play}
-                  <span id="voice-btn-label">Phát Giọng Đọc AI (${lang.toUpperCase()})</span>
+                  <span id="voice-btn-label">${t("artifact.playVoice")} (${lang.toUpperCase()})</span>
                 </button>
 
                 <button class="btn btn-outline" id="stop-voice-btn" style="padding: 0.65rem 0.9rem;">
                   ${Icons.pause}
-                  <span>Dừng</span>
+                  <span>${t("artifact.stopVoice")}</span>
                 </button>
               </div>
             </div>
@@ -389,18 +366,16 @@ export function initArtifactPageLogic() {
   }
 
   function stopSpeech() {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      isSpeaking = false;
-      const lang = MuseumConfigStore.currentLanguage;
-      if (voiceLabel) voiceLabel.textContent = `Phát Giọng Đọc AI (${lang.toUpperCase()})`;
-      setSoundwaveActive(false);
-    }
+    VoiceAI.stop();
+    isSpeaking = false;
+    const lang = MuseumConfigStore.currentLanguage;
+    if (voiceLabel) voiceLabel.textContent = `${t("artifact.playVoice")} (${lang.toUpperCase()})`;
+    setSoundwaveActive(false);
   }
 
   if (playBtn) {
     playBtn.addEventListener("click", () => {
-      if (!window.speechSynthesis) {
+      if (!VoiceAI.isSupported()) {
         showToast("Trình duyệt không hỗ trợ Web Speech API!", "warning");
         return;
       }
@@ -412,29 +387,21 @@ export function initArtifactPageLogic() {
 
       const lang = MuseumConfigStore.currentLanguage;
       const artifact = ARTIFACTS_DATA[currentArtifactIndex];
-      const text = (TRANSLATIONS[artifact.id] && TRANSLATIONS[artifact.id][lang])
-        ? TRANSLATIONS[artifact.id][lang]
-        : artifact.placardText;
+      const text = i18n.getArtifactPlacard(artifact.id, artifact.placardText);
 
-      speechUtterance = new SpeechSynthesisUtterance(text);
-      speechUtterance.lang = SPEECH_LANG_CODES[lang] || "vi-VN";
-      speechUtterance.rate = 0.95;
-
-      speechUtterance.onstart = () => {
-        isSpeaking = true;
-        if (voiceLabel) voiceLabel.textContent = "Tạm Dừng Giọng Đọc";
-        setSoundwaveActive(true);
-      };
-
-      speechUtterance.onend = () => {
-        stopSpeech();
-      };
-
-      speechUtterance.onerror = () => {
-        stopSpeech();
-      };
-
-      window.speechSynthesis.speak(speechUtterance);
+      VoiceAI.speak(text, lang, {
+        onStart: () => {
+          isSpeaking = true;
+          if (voiceLabel) voiceLabel.textContent = t("artifact.stopVoice");
+          setSoundwaveActive(true);
+        },
+        onEnd: () => {
+          stopSpeech();
+        },
+        onError: () => {
+          stopSpeech();
+        }
+      });
     });
   }
 

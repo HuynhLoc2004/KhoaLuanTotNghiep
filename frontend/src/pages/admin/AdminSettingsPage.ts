@@ -1,6 +1,7 @@
-import { MuseumConfigStore, FeatureToggles } from "../../data/museumConfig";
+import { MuseumConfigStore, FeatureToggles, LanguagePackage } from "../../data/museumConfig";
 import { Icons } from "../../components/Icons";
 import { showToast } from "../../components/Toast";
+import { WORLD_LANGUAGES_CATALOG, WorldLanguageItem } from "../../data/worldLanguages";
 
 export function renderAdminSettingsPage(): string {
   const branding = MuseumConfigStore.branding;
@@ -119,21 +120,66 @@ export function renderAdminSettingsPage(): string {
             </div>
           </div>
 
-          <!-- Language Packages -->
+          <!-- Language Packages Management -->
           <div class="card" style="border-top: 4px solid #0284c7;">
-            <h3 style="font-size: 1.1rem; color: var(--color-primary); margin-bottom: 0.4rem;">
-              3. Quản Lý Gói Ngôn Ngữ Hệ Thống
-            </h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <h3 style="font-size: 1.1rem; color: var(--color-primary); margin: 0;">
+                3. Quản Lý Gói Ngôn Ngữ Hệ Thống (Toàn Cầu)
+              </h3>
+              <span class="badge-pill" style="font-size: 0.72rem; background: #e0f2fe; color: #0369a1;">
+                ISO 639-1 / BCP 47
+              </span>
+            </div>
             <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1rem;">
-              Bật/tắt các gói ngôn ngữ quốc tế. Danh sách chọn ngôn ngữ của Du khách sẽ tự cập nhật đồng bộ ngay tức khắc.
+              Admin có thể thêm bất kỳ ngôn ngữ nào trên thế giới và bật/tắt kích hoạt. Chỉ các ngôn ngữ được tích chọn mới hiển thị ở giao diện Du khách (Client).
             </p>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+            <!-- Search & Add World Language (like Google Translate) -->
+            <div style="position: relative; margin-bottom: 1.25rem;">
+              <div style="display: flex; gap: 0.5rem;">
+                <div style="flex: 1; position: relative;">
+                  <input 
+                    type="text" 
+                    id="admin-lang-search-input" 
+                    class="lang-select" 
+                    style="width: 100%; padding: 0.65rem 0.85rem; font-size: 0.85rem;" 
+                    placeholder="Tìm theo mã (th, ru, it, zh-TW...) hoặc tên (Tiếng Thái, Russian, French...)" 
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
+
+              <!-- Search Results Dropdown -->
+              <div id="admin-lang-search-results" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--color-surface); border: 1px solid var(--color-card-border); border-radius: var(--radius-sm); max-height: 220px; overflow-y: auto; z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+                <!-- Populated dynamically via JS -->
+              </div>
+            </div>
+
+            <!-- List of Configured Languages -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 320px; overflow-y: auto; padding-right: 4px;">
               ${allLanguages.map(l => `
-                <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: rgba(var(--color-surface-rgb), 0.3); border: 1px solid var(--color-card-border); border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600; cursor: pointer;">
-                  <span>${l.label}</span>
-                  <input type="checkbox" class="lang-toggle-cb" data-lang="${l.code}" ${l.active ? 'checked' : ''} />
-                </label>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; background: rgba(var(--color-surface-rgb), 0.35); border: 1px solid var(--color-card-border); border-radius: var(--radius-sm); font-size: 0.82rem;">
+                  <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span style="font-size: 1.2rem;">${l.flag || '🌐'}</span>
+                    <div>
+                      <span style="font-weight: 700; color: var(--color-text-main);">${l.label}</span>
+                      <div style="font-size: 0.72rem; color: var(--color-text-muted);">Voice: <code>${l.speechCode}</code> ${l.customAdded ? '• <span style="color:#0284c7;">Tự thêm</span>' : ''}</div>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.76rem; font-weight: 600; color: ${l.active ? 'var(--color-primary)' : 'var(--color-text-muted)'};">
+                      <span>${l.active ? 'Đang Bật' : 'Đã Tắt'}</span>
+                      <input type="checkbox" class="lang-toggle-cb" data-lang="${l.code}" ${l.active ? 'checked' : ''} />
+                    </label>
+
+                    ${l.customAdded ? `
+                      <button class="btn-delete-lang" data-lang="${l.code}" title="Xóa ngôn ngữ này" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px 6px; font-size: 0.85rem;">
+                        ✕
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
               `).join('')}
             </div>
           </div>
@@ -188,6 +234,7 @@ export function initAdminSettingsPage() {
     });
   });
 
+  // Toggle active/inactive for languages
   const langCheckboxes = document.querySelectorAll(".lang-toggle-cb");
   langCheckboxes.forEach(cb => {
     cb.addEventListener("change", (e) => {
@@ -195,7 +242,135 @@ export function initAdminSettingsPage() {
       const langCode = target.getAttribute("data-lang");
       if (langCode) {
         MuseumConfigStore.toggleLanguageActive(langCode, target.checked);
+        showToast(
+          target.checked 
+            ? `Đã kích hoạt ngôn ngữ [${langCode.toUpperCase()}]. Du khách có thể chọn ngôn ngữ này.` 
+            : `Đã vô hiệu hóa [${langCode.toUpperCase()}]. Ngôn ngữ này đã bị ẩn khỏi thanh chọn của Du khách.`,
+          "info"
+        );
       }
+    });
+  });
+
+  // Search & Add World Languages (like Google Translate search)
+  const langSearchInput = document.getElementById("admin-lang-search-input") as HTMLInputElement;
+  const langSearchResults = document.getElementById("admin-lang-search-results");
+
+  if (langSearchInput && langSearchResults) {
+    langSearchInput.addEventListener("input", () => {
+      const q = langSearchInput.value.trim().toLowerCase();
+      if (!q) {
+        langSearchResults.style.display = "none";
+        langSearchResults.innerHTML = "";
+        return;
+      }
+
+      const existingCodes = MuseumConfigStore.languages.map(l => l.code.toLowerCase());
+      const matches = WORLD_LANGUAGES_CATALOG.filter(w => 
+        w.code.toLowerCase().includes(q) ||
+        w.name.toLowerCase().includes(q) ||
+        w.nativeName.toLowerCase().includes(q)
+      );
+
+      if (matches.length === 0) {
+        langSearchResults.innerHTML = `
+          <div style="padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--color-text-muted);">
+            Không tìm thấy ngôn ngữ phù hợp với "${q}".
+          </div>
+        `;
+        langSearchResults.style.display = "block";
+        return;
+      }
+
+      langSearchResults.innerHTML = matches.slice(0, 10).map(m => {
+        const isAdded = existingCodes.includes(m.code.toLowerCase());
+        return `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--color-card-border); font-size: 0.82rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>${m.flag}</span>
+              <div>
+                <span style="font-weight: 700;">${m.name}</span> (${m.nativeName})
+                <span class="badge-pill" style="padding: 1px 6px; font-size: 0.7rem;">${m.code.toUpperCase()}</span>
+              </div>
+            </div>
+            ${isAdded ? `
+              <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">Đã có trong hệ thống</span>
+            ` : `
+              <button class="btn btn-primary btn-add-world-lang" data-code="${m.code}" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">
+                + Thêm Ngôn Ngữ
+              </button>
+            `}
+          </div>
+        `;
+      }).join("");
+
+      langSearchResults.style.display = "block";
+
+      // Add click listeners to Add buttons
+      langSearchResults.querySelectorAll(".btn-add-world-lang").forEach(btn => {
+        btn.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+          const code = btn.getAttribute("data-code");
+          if (!code) return;
+
+          const langItem = WORLD_LANGUAGES_CATALOG.find(w => w.code === code);
+          if (!langItem) return;
+
+          // Dispatch to server API
+          try {
+            await fetch("http://localhost:3000/api/v1/languages", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: langItem.code })
+            });
+          } catch (_) {}
+
+          // Add to frontend store
+          const newPkg: LanguagePackage = {
+            code: langItem.code,
+            label: `${langItem.code.toUpperCase()} - ${langItem.nativeName}`,
+            speechCode: langItem.speechCode,
+            active: true,
+            name: langItem.name,
+            nativeName: langItem.nativeName,
+            flag: langItem.flag,
+            customAdded: true
+          };
+
+          MuseumConfigStore.addLanguagePackage(newPkg);
+          showToast(`Đã thêm ngôn ngữ [${langItem.name} - ${langItem.nativeName}] vào hệ thống thành công!`, "success");
+          
+          langSearchInput.value = "";
+          langSearchResults.style.display = "none";
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        });
+      });
+    });
+
+    // Close dropdown on outer click
+    document.addEventListener("click", (e) => {
+      if (!langSearchInput.contains(e.target as Node) && !langSearchResults.contains(e.target as Node)) {
+        langSearchResults.style.display = "none";
+      }
+    });
+  }
+
+  // Delete custom language buttons
+  const deleteLangBtns = document.querySelectorAll(".btn-delete-lang");
+  deleteLangBtns.forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const code = btn.getAttribute("data-lang");
+      if (!code) return;
+
+      try {
+        await fetch(`http://localhost:3000/api/v1/languages/${code}`, {
+          method: "DELETE"
+        });
+      } catch (_) {}
+
+      MuseumConfigStore.removeLanguagePackage(code);
+      showToast(`Đã gỡ bỏ ngôn ngữ [${code.toUpperCase()}] khỏi hệ thống.`, "info");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   });
 

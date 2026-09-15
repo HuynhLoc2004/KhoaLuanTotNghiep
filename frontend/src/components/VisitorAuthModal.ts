@@ -1,6 +1,7 @@
 import { AuthState } from "../data/auth";
 import { Icons } from "./Icons";
 import { showToast } from "./Toast";
+import { t } from "../data/i18n";
 
 let pendingEmail = "";
 
@@ -15,7 +16,7 @@ export function renderVisitorAuthModal(): string {
             </div>
             <div>
               <h3 style="font-family: 'Cinzel', serif; font-size: 1.25rem; font-weight: 800; color: var(--color-primary); margin: 0;">
-                Đăng Nhập OTP Qua Email
+                ${t("auth.modalTitle")}
               </h3>
               <div style="font-size: 0.74rem; color: var(--color-text-muted); font-weight: 600;">
                 BẢO MẬT KHÔNG MẬT KHẨU (PASSWORDLESS)
@@ -26,14 +27,14 @@ export function renderVisitorAuthModal(): string {
         </div>
 
         <p style="font-size: 0.86rem; color: var(--color-text-muted); margin-bottom: 1.5rem; line-height: 1.6;">
-          Máy chủ sẽ xử lý và gửi mã xác thực 6 số trực tiếp đến địa chỉ Email của bạn để đồng bộ hồ sơ, thẻ vé và quyền hạn phân công.
+          ${t("auth.step1Desc")}
         </p>
 
         <!-- STEP 1: INPUT EMAIL -->
         <div id="otp-step-1">
           <div style="margin-bottom: 1.25rem;">
             <label style="font-size: 0.84rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.4rem;">
-              Địa chỉ Email của bạn:
+              ${t("auth.step1Title")}
             </label>
             <input type="email" id="visitor-email-input" class="lang-select" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; border-radius: var(--radius-sm);" placeholder="vidu: khachthamquan@gmail.com" value="" required />
             <div style="font-size: 0.76rem; color: var(--color-text-muted); margin-top: 0.35rem;">
@@ -42,7 +43,7 @@ export function renderVisitorAuthModal(): string {
           </div>
 
           <button class="btn btn-primary" id="send-otp-btn" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-            <span>Gửi Mã OTP 6 Số Qua Email</span>
+            <span>${t("auth.btnSendOtp")}</span>
             ${Icons.arrowRight}
           </button>
         </div>
@@ -58,18 +59,18 @@ export function renderVisitorAuthModal(): string {
 
           <div style="margin-bottom: 1.25rem;">
             <label style="font-size: 0.84rem; font-weight: 700; color: var(--color-text-main); display: block; margin-bottom: 0.5rem;">
-              Nhập mã xác thực 6 số:
+              ${t("auth.step2Title")}
             </label>
             <input type="text" id="otp-code-input" maxlength="6" class="lang-select mono" style="width: 100%; padding: 0.8rem; font-size: 1.4rem; font-weight: 800; text-align: center; letter-spacing: 6px; border: 2px solid var(--color-primary); border-radius: var(--radius-sm);" placeholder="------" />
           </div>
 
           <div style="display: flex; gap: 0.8rem;">
             <button class="btn btn-secondary" id="btn-back-to-step-1" style="flex: 1; padding: 0.8rem; font-size: 0.88rem; font-weight: 700;">
-              <span>← Đổi Email</span>
+              <span>← ${t("common.back")}</span>
             </button>
             <button class="btn btn-primary" id="verify-otp-btn" style="flex: 2; padding: 0.8rem; font-size: 0.92rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
               ${Icons.check}
-              <span>Xác Nhận & Đăng Nhập</span>
+              <span>${t("auth.btnVerify")}</span>
             </button>
           </div>
         </div>

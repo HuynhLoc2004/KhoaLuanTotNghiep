@@ -2,6 +2,7 @@ import { Icons } from "./Icons";
 import { MuseumConfigStore, PendingApprovalStore } from "../data/museumConfig";
 import { AuthState } from "../data/auth";
 import { showToast } from "./Toast";
+import { t } from "../data/i18n";
 
 export function renderLeftSidebar(activeTab: string = "home", isAdminMode = false): string {
   const branding = MuseumConfigStore.branding;
@@ -216,48 +217,48 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
       <nav class="sidebar-nav">
         <a href="#home" class="nav-item ${activeTab === 'home' ? 'active' : ''}">
           ${Icons.museum}
-          <span>Trang Chủ</span>
+          <span>${t("nav.home")}</span>
         </a>
 
         <a href="#tour360" class="nav-item ${activeTab === 'tour360' ? 'active' : ''}">
           ${Icons.compass}
-          <span>Tour Ảo 360° Bước Đi</span>
+          <span>${t("nav.tour360")}</span>
         </a>
 
         <a href="#map" class="nav-item ${activeTab === 'map' ? 'active' : ''}">
           ${Icons.map}
-          <span>Sơ Đồ Tầng & Dẫn Đường</span>
+          <span>${t("nav.map")}</span>
         </a>
 
         <a href="#timeline" class="nav-item ${activeTab === 'timeline' ? 'active' : ''}">
           ${Icons.clock}
-          <span>Dòng Thời Gian Lịch Sử</span>
+          <span>${t("nav.timeline")}</span>
         </a>
 
         ${(features.enable3D || features.enableVoiceAI) ? `
           <a href="#artifact" class="nav-item ${activeTab === 'artifact' ? 'active' : ''}">
             ${Icons.cube}
-            <span>Hiện Vật 3D & Giọng Đọc</span>
+            <span>${t("nav.artifact")}</span>
           </a>
         ` : ''}
 
         ${features.enableQuiz ? `
           <a href="#quiz" class="nav-item ${activeTab === 'quiz' ? 'active' : ''}">
             ${Icons.quiz}
-            <span>Đố Vui & Sưu Tập Tem</span>
+            <span>${t("nav.quiz")}</span>
           </a>
         ` : ''}
 
         ${features.enableTourBooking ? `
           <a href="#booking" class="nav-item ${activeTab === 'booking' ? 'active' : ''}">
             ${Icons.ticket}
-            <span>Đặt Lịch Tour Đoàn</span>
+            <span>${t("nav.booking")}</span>
           </a>
         ` : ''}
 
         <a href="#profile" class="nav-item ${activeTab === 'profile' ? 'active' : ''}">
           ${Icons.user}
-          <span>Hồ Sơ & Vé Điện Tử</span>
+          <span>${t("nav.profile")}</span>
         </a>
       </nav>
 
@@ -272,7 +273,7 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
           </div>
           <a href="#${firstAdminPage}" class="btn btn-primary" style="width: 100%; padding: 0.5rem; font-size: 0.78rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; background: #0284c7;">
             ${Icons.shield}
-            <span>Vào Admin Studio →</span>
+            <span>${t("nav.adminShortcut")} →</span>
           </a>
         </div>
       ` : ''}
@@ -305,7 +306,7 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
         </div>
 
         <div style="font-size: 0.78rem; color: var(--color-text-muted); display: flex; align-items: center; justify-content: space-between;">
-          <a href="#profile" style="color: inherit; text-decoration: none;">Hộ chiếu: <b>2/6 Tem</b></a>
+          <a href="#profile" style="color: inherit; text-decoration: none;">${t("nav.passportRank")}: <b>2/6 Tem</b></a>
           <span class="badge-pill" style="padding: 2px 8px; font-size: 0.72rem;">Cấp 2</span>
         </div>
       </div>

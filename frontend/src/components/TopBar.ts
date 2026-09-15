@@ -1,6 +1,7 @@
 import { AuthState } from "../data/auth";
 import { Icons } from "./Icons";
 import { ARTIFACTS_DATA } from "../data/artifacts";
+import { t } from "../data/i18n";
 
 export function renderTopBar(isAdminMode = false): string {
   if (isAdminMode) {
@@ -38,7 +39,7 @@ export function renderTopBar(isAdminMode = false): string {
         <div class="search-box-wrapper">
           <div class="search-pill">
             <span style="color: var(--color-text-muted); display: flex; align-items: center;">${Icons.search}</span>
-            <input type="text" id="global-search" placeholder="Tìm hiện vật: Đông Dương, Trống Đồng, Sa Huỳnh..." autocomplete="off" />
+            <input type="text" id="global-search" placeholder="${t("topbar.searchPlaceholder")}" autocomplete="off" />
           </div>
           <div class="search-suggestions-dropdown" id="search-dropdown">
             <!-- Dynamically populated suggestions -->
@@ -61,7 +62,7 @@ export function renderTopBar(isAdminMode = false): string {
         ` : `
           <button id="open-visitor-auth-btn" class="btn btn-primary" style="padding: 0.45rem 1rem; font-size: 0.82rem;">
             ${Icons.user}
-            <span>Đăng Nhập Du Khách</span>
+            <span>${t("nav.login")}</span>
           </button>
         `}
 
