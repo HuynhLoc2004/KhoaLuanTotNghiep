@@ -238,3 +238,44 @@ export const TOUR_SLOTS_DATA: TourSlot[] = [
   { id: "slot-3", time: "14:00 - 15:30 (Ca Chiều 1)", totalSeats: 35, bookedSeats: 12, guide: "ThS. Lê Quang Long", language: "Tiếng Việt" },
   { id: "slot-4", time: "15:45 - 17:15 (Ca Chiều 2)", totalSeats: 35, bookedSeats: 0, guide: "Hướng dẫn viên trực ca", language: "Tiếng Việt" }
 ];
+
+export const ArtifactsStore = {
+  items: [...ARTIFACTS_DATA],
+
+  init() {
+    try {
+      const saved = localStorage.getItem("museum_config_artifacts");
+      if (saved) {
+        this.items = JSON.parse(saved);
+      }
+    } catch (_) {}
+  },
+
+  getAll(): Artifact[] {
+    return this.items;
+  },
+
+  addArtifact(newArt: Partial<Artifact>): Artifact {
+    const item: Artifact = {
+      id: newArt.id || "art-" + Date.now(),
+      code: newArt.code || "BTLS-NEW-" + Math.floor(Math.random() * 900 + 100),
+      name: newArt.name || "Hiện vật mới số hóa",
+      era: newArt.era || "Cổ đại",
+      periodGroup: newArt.periodGroup || "champa",
+      material: newArt.material || "Đá ngọc cổ",
+      location: newArt.location || "Phòng Trưng Bày 1",
+      room: newArt.room || "Sảnh Trưng Bày",
+      thumbnail: newArt.thumbnail || "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80",
+      placardText: newArt.placardText || "Bảng chú thích hiện vật mới được thêm vào từ CMS.",
+      audioDuration: "01:30",
+      hotspots: [],
+      quiz: []
+    };
+    this.items.unshift(item);
+    localStorage.setItem("museum_config_artifacts", JSON.stringify(this.items));
+    window.dispatchEvent(new CustomEvent("museum:artifacts-updated"));
+    return item;
+  }
+};
+
+ArtifactsStore.init();

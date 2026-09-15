@@ -386,6 +386,42 @@ export const MuseumConfigStore = {
     }
   },
 
+  addRoom360(name: string, eraTitle: string, description: string): Tour360Room {
+    const newRoom: Tour360Room = {
+      id: "room-" + Date.now(),
+      name,
+      eraTitle: eraTitle || "Triều đại lịch sử",
+      description: description || "Sảnh trưng bày không gian 3DGS mới được khởi tạo.",
+      panoramaTheme: "champa",
+      nodes: [
+        { id: "node-" + Date.now() + "-1", name: "Vị trí Cửa Vào Sảnh", position: { x: 0, y: 0, z: 0 }, connectedNodeIds: [] },
+        { id: "node-" + Date.now() + "-2", name: "Vị trí Gian Trung Tâm", position: { x: 0, y: 0, z: -150 }, connectedNodeIds: [] }
+      ],
+      showcases: []
+    };
+    this.rooms360.push(newRoom);
+    localStorage.setItem("museum_config_rooms360", JSON.stringify(this.rooms360));
+    window.dispatchEvent(new CustomEvent("museum:config-updated"));
+    return newRoom;
+  },
+
+  addWalkNode(roomId: string, name: string): WalkNode360 | null {
+    const room = this.rooms360.find(r => r.id === roomId);
+    if (room) {
+      const newNode: WalkNode360 = {
+        id: "node-" + Date.now(),
+        name,
+        position: { x: Math.round((Math.random() - 0.5) * 200), y: 0, z: Math.round(-100 - Math.random() * 150) },
+        connectedNodeIds: room.nodes.length > 0 ? [room.nodes[0].id] : []
+      };
+      room.nodes.push(newNode);
+      localStorage.setItem("museum_config_rooms360", JSON.stringify(this.rooms360));
+      window.dispatchEvent(new CustomEvent("museum:config-updated"));
+      return newNode;
+    }
+    return null;
+  },
+
   getAnalytics(period: "today" | "week" | "month" | "quarter" | "year"): AnalyticsPeriodData {
     const multipliers: Record<string, number> = {
       today: 1,
