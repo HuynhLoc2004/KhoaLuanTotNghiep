@@ -3,6 +3,10 @@ import cors from "cors";
 import path from "path";
 import dotenv from "dotenv";
 import { tourRouter } from "./routes/tour.js";
+import { artifactsRouter } from "./routes/artifacts.js";
+import { roomsRouter } from "./routes/rooms.js";
+import { buildingsRouter } from "./routes/buildings.js";
+import { adminRouter } from "./routes/admin.js";
 import { initRabbitMQ } from "./queue/rabbitmq.js";
 
 dotenv.config();
@@ -31,6 +35,11 @@ app.get("/health", (req, res) => {
 
 // API Routes
 app.use("/api/v1/tour", tourRouter);
+app.use("/api/v1/artifacts", artifactsRouter);
+app.use("/api/v1/rooms", roomsRouter);
+app.use("/api/v1/buildings", buildingsRouter);
+app.use("/api/v1/admin", adminRouter);
+
 
 // Start server
 async function bootstrap() {
