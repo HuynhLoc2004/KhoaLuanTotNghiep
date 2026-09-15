@@ -1,4 +1,5 @@
 import { ARTIFACTS_DATA } from "../../data/artifacts";
+import { showToast } from "../../components/Toast";
 
 export interface AdminArtifactItem {
   id: string;
@@ -344,7 +345,7 @@ export function renderAdminArtifactsPage(): string {
                     </a>
                   </td>
                   <td style="padding: 0.65rem 1rem; text-align: center;">
-                    <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="alert('Đã mở form chỉnh sửa metadata hiện vật ${art.code}');">
+                    <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="showToast('Đã mở form chỉnh sửa metadata hiện vật ${art.code}', 'info');">
                       Sửa
                     </button>
                   </td>
@@ -424,7 +425,7 @@ export function initAdminArtifactsPage() {
       const material = prompt("Nhập Chất Liệu (Ví dụ: Gốm men xanh / Đồng cổ):", "Hợp kim đồng cổ");
 
       ArtifactsStore.addArtifact({ code, name, era, material });
-      alert(`🎉 Đã thêm thành công hiện vật [${name}] vào Kho Dữ Liệu CMS!`);
+      showToast(`🎉 Đã thêm thành công hiện vật [${name}] vào Kho Dữ Liệu CMS!`, "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }

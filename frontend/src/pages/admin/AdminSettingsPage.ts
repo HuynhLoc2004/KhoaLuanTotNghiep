@@ -1,5 +1,6 @@
 import { MuseumConfigStore, FeatureToggles } from "../../data/museumConfig";
 import { Icons } from "../../components/Icons";
+import { showToast } from "../../components/Toast";
 
 export function renderAdminSettingsPage(): string {
   const branding = MuseumConfigStore.branding;
@@ -170,7 +171,7 @@ export function initAdminSettingsPage() {
       const hotline = (document.getElementById("setting-museum-hotline") as HTMLInputElement)?.value;
 
       MuseumConfigStore.updateBranding({ name, subName, unit, address, hotline });
-      alert("Đã lưu và cập nhật thông tin thương hiệu bảo tàng thành công!");
+      showToast("Đã lưu và cập nhật thông tin thương hiệu bảo tàng thành công!", "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }
@@ -204,12 +205,12 @@ export function initAdminSettingsPage() {
     publishAnnBtn.addEventListener("click", () => {
       const val = annInput.value.trim();
       if (!val) {
-        alert("Vui lòng nhập nội dung thông báo phát thanh!");
+        showToast("Vui lòng nhập nội dung thông báo phát thanh!", "warning");
         return;
       }
       MuseumConfigStore.addAnnouncement(val);
       annInput.value = "";
-      alert("Đã phát loa thông báo thành công đến toàn thể du khách!");
+      showToast("Đã phát loa thông báo thành công đến toàn thể du khách!", "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }

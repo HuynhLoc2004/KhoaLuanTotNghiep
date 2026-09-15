@@ -1,5 +1,6 @@
 import { MuseumConfigStore, SYSTEM_PAGES, PermissionLevel } from "../../data/museumConfig";
 import { Icons } from "../../components/Icons";
+import { showToast } from "../../components/Toast";
 
 export function renderAdminRolesPage(): string {
   const allRoles = MuseumConfigStore.roles;
@@ -280,7 +281,7 @@ export function initAdminRolesPage() {
 
         localStorage.setItem("museum_config_roles", JSON.stringify(MuseumConfigStore.roles));
         window.dispatchEvent(new CustomEvent("museum:config-updated"));
-        alert(`Đã cập nhật phân quyền: Vai trò [${role.name}] -> Trang [${pageId}] thành [${perm}]!`);
+        showToast(`Đã cập nhật phân quyền: Vai trò [${role.name}] -> Trang [${pageId}] thành [${perm}]!`, "success");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });
@@ -295,14 +296,14 @@ export function initAdminRolesPage() {
       const name = newRoleNameInput.value.trim();
       const desc = newRoleDescInput.value.trim();
       if (!name) {
-        alert("Vui lòng nhập tên vai trò!");
+        showToast("Vui lòng nhập tên vai trò!", "warning");
         return;
       }
 
       MuseumConfigStore.addRole(name, desc, ["home", "artifact", "tour360"], { tour360: "FULL_ACCESS", artifact: "EDITOR" }, []);
       newRoleNameInput.value = "";
       newRoleDescInput.value = "";
-      alert(`Đã tạo vai trò mới: [${name}] thành công! Bạn có thể gán quyền chi tiết ngay bây giờ.`);
+      showToast(`Đã tạo vai trò mới: [${name}] thành công! Bạn có thể gán quyền chi tiết ngay bây giờ.`, "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }

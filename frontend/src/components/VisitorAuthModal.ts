@@ -1,5 +1,6 @@
 import { AuthState } from "../data/auth";
 import { Icons } from "./Icons";
+import { showToast } from "./Toast";
 
 export function renderVisitorAuthModal(): string {
   return `
@@ -93,7 +94,7 @@ export function initVisitorAuthModalLogic() {
       const phone = phoneInput ? phoneInput.value : "0908 123 456";
       AuthState.loginVisitor(phone, "Nguyễn Văn An");
       modal.style.display = "none";
-      alert("Đăng nhập thành công! Chào mừng Nguyễn Văn An.");
+      showToast("Đăng nhập thành công! Chào mừng Nguyễn Văn An.", "success");
       window.location.hash = "#profile";
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });

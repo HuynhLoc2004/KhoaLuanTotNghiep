@@ -1,5 +1,6 @@
 import { AuthState } from "../data/auth";
 import { Icons } from "../components/Icons";
+import { showToast } from "../components/Toast";
 
 export function renderAdminLoginPage(): string {
   return `
@@ -70,7 +71,7 @@ export function initAdminLoginPageLogic() {
     form.addEventListener("submit", () => {
       const selectedRole = (roleSelect?.value as any) || "curator";
       AuthState.loginAdmin(selectedRole);
-      alert(`Đăng nhập thành công với vai trò: ${AuthState.admin.roleTitle}`);
+      showToast(`Đăng nhập thành công với vai trò: ${AuthState.admin.roleTitle}`, "success");
       window.location.hash = "#admin";
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });

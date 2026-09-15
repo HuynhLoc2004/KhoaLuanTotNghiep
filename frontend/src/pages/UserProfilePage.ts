@@ -1,5 +1,6 @@
 import { AuthState } from "../data/auth";
 import { Icons } from "../components/Icons";
+import { showToast } from "../components/Toast";
 
 export function renderUserProfilePage(): string {
   const visitor = AuthState.visitor;
@@ -134,7 +135,7 @@ export function initUserProfilePageLogic() {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       AuthState.logoutVisitor();
-      alert("Đã đăng xuất tài khoản du khách.");
+      showToast("Đã đăng xuất tài khoản du khách.", "info");
       window.location.hash = "#home";
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });

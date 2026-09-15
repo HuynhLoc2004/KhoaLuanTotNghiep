@@ -1,5 +1,6 @@
 import { MapConfigStore } from "../../data/mapData";
 import { Icons } from "../../components/Icons";
+import { showToast } from "../../components/Toast";
 
 export function renderAdminBuildingsPage(): string {
   const buildings = MapConfigStore.buildings;
@@ -130,7 +131,7 @@ export function initAdminBuildingsPage() {
           codeInput?.value.trim().toUpperCase() || "TÒA MỚI",
           descInput?.value.trim() || "Tòa nhà mới bổ sung từ CMS."
         );
-        alert(`🎉 Đã thêm thành công Tòa nhà mới: [${newBldg.code} - ${newBldg.name}] vào Kho CMS!`);
+        showToast(`🎉 Đã thêm thành công Tòa nhà mới: [${newBldg.code} - ${newBldg.name}] vào Kho CMS!`, "success");
         window.location.hash = "#admin-map"; // Jump to map page immediately
       }
     });

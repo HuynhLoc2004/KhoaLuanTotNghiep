@@ -685,3 +685,125 @@ h1, h2, h3, h4, h5, h6 {
 .map-room-group:hover rect {
   filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
 }
+
+/* -------------------------------------------------------------
+   MODERN DYNAMIC TOAST NOTIFICATION SYSTEM (Top-Right Slide-in)
+   ------------------------------------------------------------- */
+#toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+  max-width: 420px;
+  width: calc(100vw - 2.5rem);
+}
+
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-card-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-item.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast-item.hide {
+  transform: translateX(120%);
+  opacity: 0;
+}
+
+.toast-item.toast-success {
+  border-left: 5px solid #10B981;
+}
+
+.toast-item.toast-error {
+  border-left: 5px solid #EF4444;
+}
+
+.toast-item.toast-warning {
+  border-left: 5px solid #F59E0B;
+}
+
+.toast-item.toast-info {
+  border-left: 5px solid #3B82F6;
+}
+
+.toast-icon-wrapper {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.toast-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.toast-content {
+  flex: 1;
+}
+
+.toast-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 0.15rem;
+  line-height: 1.2;
+}
+
+.toast-message {
+  font-size: 0.82rem;
+  color: var(--color-text-main);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.4rem;
+  transition: color 0.15s ease;
+}
+
+.toast-close:hover {
+  color: var(--color-primary);
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--color-secondary);
+  animation: toastProgress linear forwards;
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+

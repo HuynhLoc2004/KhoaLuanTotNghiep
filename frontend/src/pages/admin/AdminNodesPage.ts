@@ -1,5 +1,6 @@
 import { Icons } from "../../components/Icons";
 import { MuseumConfigStore } from "../../data/museumConfig";
+import { showToast } from "../../components/Toast";
 
 export function renderAdminNodesPage(): string {
   const rooms = MuseumConfigStore.rooms360;
@@ -156,7 +157,7 @@ export function initAdminNodesListeners() {
 
       const created = MuseumConfigStore.addWalkNode(roomId, name);
       if (created) {
-        alert(`Đã thêm điểm bước chân "${name}" thành công!`);
+        showToast(`Đã thêm điểm bước chân "${name}" thành công!`, "success");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });
@@ -170,7 +171,7 @@ export function initAdminNodesListeners() {
 
       if (roomId && nodeId && confirm("Bạn có chắc chắn muốn xóa điểm Walk Node này không?")) {
         MuseumConfigStore.deleteWalkNode(roomId, nodeId);
-        alert("Đã xóa điểm Walk Node thành công!");
+        showToast("Đã xóa điểm Walk Node thành công!", "success");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });

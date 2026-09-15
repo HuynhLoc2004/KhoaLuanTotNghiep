@@ -1,5 +1,6 @@
 import { MuseumConfigStore } from "../../data/museumConfig";
 import { Icons } from "../../components/Icons";
+import { showToast } from "../../components/Toast";
 
 export interface AnalyticsTransaction {
   id: string;
@@ -398,14 +399,14 @@ function exportAnalyticsExcel() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  alert("✓ Đã trích xuất thành công tập tin Excel (.csv UTF-8)! Mở bằng Excel sẽ hiển thị tiếng Việt hoàn chỉnh.");
+  showToast("✓ Đã trích xuất thành công tập tin Excel (.csv UTF-8)!", "success");
 }
 
 // Export / Print PDF Report Modal
 function exportAnalyticsPDF() {
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
-    alert("Vui lòng cho phép mở cửa sổ popup để in hoặc xuất file PDF.");
+    showToast("Vui lòng cho phép mở cửa sổ popup để in hoặc xuất file PDF.", "warning");
     return;
   }
 

@@ -1,5 +1,6 @@
 import { MuseumConfigStore } from "../../data/museumConfig";
 import { Icons } from "../../components/Icons";
+import { showToast } from "../../components/Toast";
 
 export function renderAdminRoomsPage(): string {
   const rooms = MuseumConfigStore.rooms360;
@@ -180,7 +181,7 @@ export function initAdminRoomsPage() {
           eraInput?.value.trim() || "Thời Kỳ Lịch Sử",
           descInput?.value.trim() || "Gian sảnh mới được khởi tạo từ CMS."
         );
-        alert(`🎉 Đã thêm thành công gian sảnh 360° mới: [${newRoom.name}] vào Kho CMS!`);
+        showToast(`🎉 Đã thêm thành công gian sảnh 360° mới: [${newRoom.name}] vào Kho CMS!`, "success");
         window.location.hash = "#admin-tour360"; // Jump to pin page immediately
       }
     });
@@ -196,7 +197,7 @@ export function initAdminRoomsPage() {
 
       if (nodeInput && nodeInput.value.trim() && targetRoomId) {
         MuseumConfigStore.addWalkNode(targetRoomId, nodeInput.value.trim());
-        alert(`🎉 Đã thêm thành công điểm bước chân [${nodeInput.value.trim()}]!`);
+        showToast(`🎉 Đã thêm thành công điểm bước chân [${nodeInput.value.trim()}]!`, "success");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });

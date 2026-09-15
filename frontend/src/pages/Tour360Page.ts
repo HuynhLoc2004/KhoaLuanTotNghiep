@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { MuseumConfigStore, Tour360Room, WalkNode360, ShowcasePin360 } from "../data/museumConfig";
 import { ARTIFACTS_DATA } from "../data/artifacts";
 import { Icons } from "../components/Icons";
+import { showToast } from "../components/Toast";
 
 export function renderTour360Page(): string {
   const rooms = MuseumConfigStore.rooms360;
@@ -454,7 +455,7 @@ export function initTour360Page() {
           window.speechSynthesis.speak(utt);
           currentSpeakingUtterance = utt;
         } else {
-          alert("Trình duyệt không hỗ trợ Web Speech API.");
+          showToast("Trình duyệt không hỗ trợ Web Speech API.", "warning");
         }
       };
     }

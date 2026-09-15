@@ -1,6 +1,7 @@
 import { ARTIFACTS_DATA } from "../data/artifacts";
 import { MuseumConfigStore } from "../data/museumConfig";
 import { Icons } from "../components/Icons";
+import { showToast } from "../components/Toast";
 import * as THREE from "three";
 
 let currentArtifactIndex = 0;
@@ -386,7 +387,7 @@ export function initArtifactPageLogic() {
   if (playBtn) {
     playBtn.addEventListener("click", () => {
       if (!window.speechSynthesis) {
-        alert("Trình duyệt không hỗ trợ Web Speech API!");
+        showToast("Trình duyệt không hỗ trợ Web Speech API!", "warning");
         return;
       }
 
@@ -454,7 +455,7 @@ export function initArtifactPageLogic() {
     btn.addEventListener("click", () => {
       const hIndex = parseInt(btn.getAttribute("data-index") || "0", 10);
       const hs = ARTIFACTS_DATA[currentArtifactIndex].hotspots[hIndex];
-      alert(`[Điểm chạm: ${hs.title}]\n\n${hs.description}`);
+      showToast(`[${hs.title}] - ${hs.description}`, "info", 5000);
     });
   });
 

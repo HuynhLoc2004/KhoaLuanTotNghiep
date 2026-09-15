@@ -24,9 +24,13 @@ import {
   renderAdminAnalyticsPage, initAdminAnalyticsPage,
   renderAdminSettingsPage, initAdminSettingsPage,
   renderAdminRolesPage, initAdminRolesPage
-} from "./pages/admin";
+import { initToastContainer } from "./components/Toast";
 
 const app = document.getElementById("app") as HTMLElement;
+
+// Initialize global toast notification container
+initToastContainer();
+
 
 // Check saved auth state
 if (localStorage.getItem("museum_visitor_auth") === "true") {

@@ -2,6 +2,7 @@ import { ARTIFACTS_DATA } from "../data/artifacts";
 import { MapConfigStore } from "../data/mapData";
 import { MuseumConfigStore, FeatureToggles, SYSTEM_PAGES, PermissionLevel } from "../data/museumConfig";
 import { Icons } from "../components/Icons";
+import { showToast } from "../components/Toast";
 
 let currentSection: "scan" | "artifacts" | "tour360" | "map" | "analytics" | "settings" | "roles" = "scan";
 let currentAnalyticsPeriod: "today" | "week" | "month" | "quarter" | "year" = "today";
@@ -1144,7 +1145,7 @@ export function initAdminPageLogic() {
       const nodeId = pinNodeSelect.value;
 
       MuseumConfigStore.addShowcasePin(roomId, artifactId, title, era, nodeId);
-      alert(`Đã thêm thành công điểm ghim cho [${title}] vào sảnh 360°!`);
+      showToast(`Đã thêm thành công điểm ghim cho [${title}] vào sảnh 360°!`, "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }
@@ -1180,12 +1181,12 @@ export function initAdminPageLogic() {
       const cap = parseInt(mapCapInput?.value || "60", 10);
 
       if (!roomName) {
-        alert("Vui lòng nhập tên gian phòng!");
+        showToast("Vui lòng nhập tên gian phòng!", "warning");
         return;
       }
 
       MapConfigStore.addRoom(bldgId, floorLvl, roomName, "Không gian khảo cổ học & di sản số", tourId, cap);
-      alert(`Đã thêm gian phòng: [${roomName}] vào sơ đồ Tầng ${floorLvl} thành công!`);
+      showToast(`Đã thêm gian phòng: [${roomName}] vào sơ đồ Tầng ${floorLvl} thành công!`, "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }
@@ -1226,7 +1227,7 @@ export function initAdminPageLogic() {
       const hotline = (document.getElementById("setting-museum-hotline") as HTMLInputElement)?.value;
 
       MuseumConfigStore.updateBranding({ name, subName, unit, address, hotline });
-      alert("Đã lưu và cập nhật thông tin thương hiệu bảo tàng thành công!");
+      showToast("Đã lưu và cập nhật thông tin thương hiệu bảo tàng thành công!", "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }
@@ -1263,12 +1264,12 @@ export function initAdminPageLogic() {
     publishAnnBtn.addEventListener("click", () => {
       const val = annInput.value.trim();
       if (!val) {
-        alert("Vui lòng nhập nội dung thông báo phát thanh!");
+        showToast("Vui lòng nhập nội dung thông báo phát thanh!", "warning");
         return;
       }
       MuseumConfigStore.addAnnouncement(val);
       annInput.value = "";
-      alert("Đã phát loa thông báo thành công đến toàn thể du khách!");
+      showToast("Đã phát loa thông báo thành công đến toàn thể du khách!", "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }
@@ -1305,7 +1306,7 @@ export function initAdminPageLogic() {
 
         localStorage.setItem("museum_config_roles", JSON.stringify(MuseumConfigStore.roles));
         window.dispatchEvent(new CustomEvent("museum:config-updated"));
-        alert(`Đã cập nhật phân quyền: Vai trò [${role.name}] -> Trang [${pageId}] thành [${perm}]!`);
+        showToast(`Đã cập nhật phân quyền: Vai trò [${role.name}] -> Trang [${pageId}] thành [${perm}]!`, "success");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });
@@ -1321,14 +1322,14 @@ export function initAdminPageLogic() {
       const name = newRoleNameInput.value.trim();
       const desc = newRoleDescInput.value.trim();
       if (!name) {
-        alert("Vui lòng nhập tên vai trò!");
+        showToast("Vui lòng nhập tên vai trò!", "warning");
         return;
       }
 
       MuseumConfigStore.addRole(name, desc, ["home", "artifact", "tour360"], { tour360: "FULL_ACCESS", artifact: "EDITOR" }, []);
       newRoleNameInput.value = "";
       newRoleDescInput.value = "";
-      alert(`Đã tạo vai trò mới: [${name}] thành công! Bạn có thể gán quyền chi tiết ngay bây giờ.`);
+      showToast(`Đã tạo vai trò mới: [${name}] thành công! Bạn có thể gán quyền chi tiết ngay bây giờ.`, "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }

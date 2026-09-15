@@ -1,6 +1,7 @@
 import { MapConfigStore } from "../../data/mapData";
 import { MuseumConfigStore } from "../../data/museumConfig";
 import { Icons } from "../../components/Icons";
+import { showToast } from "../../components/Toast";
 
 let activeMapTab: "bridge" | "manage-buildings" = "bridge";
 
@@ -368,7 +369,7 @@ export function initAdminMapPage() {
           descInput?.value.trim() || "Tòa nhà mới bổ sung từ CMS."
         );
         activeMapTab = "bridge"; // Switch to bridge tab to immediately select the new building!
-        alert(`🎉 Đã thêm thành công Tòa nhà mới: [${newBldg.code} - ${newBldg.name}]! Chuyển sang Tab Thiết Lập Phòng.`);
+        showToast(`🎉 Đã thêm thành công Tòa nhà mới: [${newBldg.code} - ${newBldg.name}]!`, "success");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });
@@ -384,12 +385,12 @@ export function initAdminMapPage() {
       const cap = parseInt(mapCapInput?.value || "60", 10);
 
       if (!roomName) {
-        alert("Vui lòng nhập tên gian phòng!");
+        showToast("Vui lòng nhập tên gian phòng!", "warning");
         return;
       }
 
       MapConfigStore.addRoom(bldgId, floorLvl, roomName, "Không gian khảo cổ học & di sản số", tourId, cap);
-      alert(`🎉 Đã thêm gian phòng: [${roomName}] vào sơ đồ Tầng ${floorLvl} thành công!`);
+      showToast(`🎉 Đã thêm gian phòng: [${roomName}] vào sơ đồ Tầng ${floorLvl} thành công!`, "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }

@@ -1,6 +1,7 @@
 import { Icons } from "./Icons";
 import { MuseumConfigStore } from "../data/museumConfig";
 import { AuthState } from "../data/auth";
+import { showToast } from "./Toast";
 
 export function renderLeftSidebar(activeTab: string = "home", isAdminMode = false): string {
   const branding = MuseumConfigStore.branding;
@@ -252,7 +253,7 @@ export function initSidebarListeners(isAdminMode = false) {
   if (adminLogoutBtn) {
     adminLogoutBtn.addEventListener("click", () => {
       AuthState.logoutAdmin();
-      alert("Đã đăng xuất khỏi cổng Quản trị Admin.");
+      showToast("Đã đăng xuất khỏi cổng Quản trị Admin.", "info");
       window.location.hash = "#home";
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });

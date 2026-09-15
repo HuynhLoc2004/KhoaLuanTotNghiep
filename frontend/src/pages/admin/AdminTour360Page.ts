@@ -2,6 +2,7 @@ import { MuseumConfigStore } from "../../data/museumConfig";
 import { ArtifactsStore } from "../../data/artifacts";
 import { Icons } from "../../components/Icons";
 import { AdminCaptureModal } from "../../components/virtual-tour/AdminCaptureModal";
+import { showToast } from "../../components/Toast";
 
 let selectedTourRoomId: string = "room-champa";
 let activeTourTab: "pin" | "manage-rooms" | "manage-nodes" = "pin";
@@ -423,7 +424,7 @@ export function initAdminTour360Page() {
       const nodeId = pinNodeSelect.value;
 
       MuseumConfigStore.addShowcasePin(roomId, artifactId, title, era, nodeId);
-      alert(`🎉 Đã ghim thành công [${title}] vào không gian 360°!`);
+      showToast(`🎉 Đã ghim thành công [${title}] vào không gian 360°!`, "success");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
   }
@@ -445,7 +446,7 @@ export function initAdminTour360Page() {
         );
         selectedTourRoomId = newRoom.id;
         activeTourTab = "pin"; // Switch to pin tab to immediately use the new room!
-        alert(`🎉 Đã tạo thành công gian sảnh 360° mới: [${nameInput.value.trim()}]! Chuyển sang Tab Ghim Cổ Vật.`);
+        showToast(`🎉 Đã tạo thành công gian sảnh 360° mới: [${nameInput.value.trim()}]!`, "success");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });
@@ -462,7 +463,7 @@ export function initAdminTour360Page() {
 
       if (nodeInput && nodeInput.value.trim()) {
         MuseumConfigStore.addWalkNode(targetRoomId, nodeInput.value.trim());
-        alert(`🎉 Đã thêm điểm bước chân mới: [${nodeInput.value.trim()}] vào sảnh!`);
+        showToast(`🎉 Đã thêm điểm bước chân mới: [${nodeInput.value.trim()}] vào sảnh!`, "success");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       }
     });

@@ -4,6 +4,8 @@
  * Đã đồng bộ 100% với Design System (Theme Variables & Tactile Buttons)
  */
 
+import { showToast } from "../Toast";
+
 export class AdminCaptureModal {
   private mediaStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
@@ -211,7 +213,7 @@ export class AdminCaptureModal {
           recordBtn.style.opacity = "1";
           recordBtn.style.cursor = "pointer";
         } catch (err) {
-          alert("Không thể truy cập Camera: " + (err as Error).message);
+          showToast("Không thể truy cập Camera: " + (err as Error).message, "error");
         }
       } else {
         this.stopCamera();
@@ -334,7 +336,7 @@ export class AdminCaptureModal {
       const videoFile = new File([this.recordedVideoBlob], "room_scan.webm", { type: "video/webm" });
       formData.append("video", videoFile);
     } else {
-      alert("Vui lòng quay video hoặc chọn file video trước!");
+      showToast("Vui lòng quay video hoặc chọn file video trước!", "warning");
       progressBox.style.display = "none";
       submitBtn.disabled = false;
       submitBtn.style.opacity = "1";
@@ -376,7 +378,7 @@ export class AdminCaptureModal {
 
             if (data.status === "COMPLETED" || data.progress >= 100) {
               clearInterval(pollInterval);
-              alert("🎉 Hoàn tất! Không gian 3D Gaussian Splatting đã được tạo thành công.");
+              showToast("🎉 Hoàn tất! Không gian 3D Gaussian Splatting đã được tạo thành công.", "success");
               modal.remove();
             }
           }
@@ -385,7 +387,7 @@ export class AdminCaptureModal {
         }
       }, 2000);
     } catch (err: any) {
-      alert("Lỗi: " + err.message + "\n(Vui lòng đảm bảo Backend API trên Port 3000 đang mở)");
+      showToast("Lỗi: " + err.message + " (Vui lòng đảm bảo Backend API trên Port 3000 đang mở)", "error");
       progressBox.style.display = "none";
       submitBtn.disabled = false;
       submitBtn.style.opacity = "1";
