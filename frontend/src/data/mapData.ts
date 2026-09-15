@@ -350,30 +350,50 @@ export const MapConfigStore = {
     }
   },
 
+  addBuilding(name: string, code: string, description: string): Building {
+    const newBldg: Building = {
+      id: "bldg-" + Date.now(),
+      name,
+      code: code || "TÒA " + String.fromCharCode(65 + this.buildings.length),
+      description: description || "Tòa nhà trưng bày bảo tàng mới được khởi tạo từ CMS.",
+      floors: [
+        { level: 1, name: "Tầng 1 - Sảnh Trưng Bày Chính", subName: "Khu vực trưng bày mới", rooms: [] },
+        { level: 2, name: "Tầng 2 - Triển Lãm Chuyên Đề", subName: "Các phòng triển lãm chuyên đề", rooms: [] }
+      ]
+    };
+    this.buildings.push(newBldg);
+    localStorage.setItem("museum_map_buildings", JSON.stringify(this.buildings));
+    window.dispatchEvent(new CustomEvent("museum:map-updated"));
+    return newBldg;
+  },
+
   addRoom(buildingId: string, floorLevel: number, name: string, theme: string, tour360RoomId: string, maxCap: number) {
-    const b = this.buildings.find(x => x.id === buildingId);
+    let b = this.buildings.find(x => x.id === buildingId);
+    if (!b && this.buildings.length > 0) b = this.buildings[0];
     if (b) {
-      const f = b.floors.find(fl => fl.level === floorLevel);
-      if (f) {
-        const newRoom: MapRoom = {
-          id: "room-" + Date.now(),
-          name,
-          buildingId,
-          floorLevel,
-          areaM2: 200,
-          theme,
-          color: "#38bdf8",
-          rect: { x: 100 + Math.random() * 200, y: 100 + Math.random() * 150, w: 220, h: 160 },
-          tour360RoomId,
-          currentVisitors: Math.round(Math.random() * 25) + 5,
-          maxCapacity: maxCap || 60,
-          density: "low",
-          featuredArtifactIds: []
-        };
-        f.rooms.push(newRoom);
-        localStorage.setItem("museum_map_buildings", JSON.stringify(this.buildings));
-        window.dispatchEvent(new CustomEvent("museum:map-updated"));
+      let f = b.floors.find(fl => fl.level === floorLevel);
+      if (!f) {
+        f = { level: floorLevel, name: `Tầng ${floorLevel} - Sảnh Triển Lãm Mới`, subName: "Khu vực trưng bày", rooms: [] };
+        b.floors.push(f);
       }
+      const newRoom: MapRoom = {
+        id: "room-" + Date.now(),
+        name,
+        buildingId: b.id,
+        floorLevel,
+        areaM2: 200,
+        theme,
+        color: "#38bdf8",
+        rect: { x: 100 + Math.random() * 200, y: 100 + Math.random() * 150, w: 220, h: 160 },
+        tour360RoomId,
+        currentVisitors: Math.round(Math.random() * 25) + 5,
+        maxCapacity: maxCap || 60,
+        density: "low",
+        featuredArtifactIds: []
+      };
+      f.rooms.push(newRoom);
+      localStorage.setItem("museum_map_buildings", JSON.stringify(this.buildings));
+      window.dispatchEvent(new CustomEvent("museum:map-updated"));
     }
   }
 };
