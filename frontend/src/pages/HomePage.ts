@@ -1,6 +1,7 @@
 import { ARTIFACTS_DATA } from "../data/artifacts";
 import { MuseumConfigStore } from "../data/museumConfig";
 import { Icons } from "../components/Icons";
+import { t } from "../data/i18n";
 import * as THREE from "three";
 
 let heroAnimId: number | null = null;
@@ -17,42 +18,46 @@ export function renderHomePage(): string {
         <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 2.5rem; align-items: center;">
           <div>
             <div class="badge-pill" style="margin-bottom: 1.25rem; display: inline-flex;">
-              ${branding.subName}
+              ${t("home.badge")}
             </div>
             
             <h1 style="font-size: 2.4rem; font-weight: 800; color: var(--color-primary); margin-bottom: 1rem; line-height: 1.2;">
-              Khám Phá Di Sản ${branding.name} Bằng Trải Nghiệm 3D & Giọng Đọc AI
+              ${t("home.heroTitle")}
             </h1>
             
             <p style="color: var(--color-text-muted); font-size: 1rem; margin-bottom: 1.75rem; line-height: 1.6;">
-              Dành cho khách tham quan và học sinh: Xoay ngắm hiện vật 3D 360 độ, nghe giọng đọc AI chuẩn bảng chú thích thực tế, sưu tập tem số và đặt lịch theo lớp học.
+              ${t("home.heroDesc")}
             </p>
 
             <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
               <a href="#artifact" class="btn btn-primary">
                 ${Icons.cube}
-                <span>Soi Hiện Vật 3D & Voice AI</span>
+                <span>${t("home.btnArtifacts")}</span>
               </a>
-              ${features.enableTourBooking ? `
-                <a href="#booking" class="btn btn-outline">
-                  ${Icons.calendar}
-                  <span>Đặt Lịch Tour Theo Đoàn</span>
+              ${features.enableTour360 ? `
+                <a href="#tour360" class="btn btn-outline">
+                  ${Icons.compass}
+                  <span>${t("home.btnTour360")}</span>
                 </a>
               ` : ''}
+              <a href="#timeline" class="btn btn-outline">
+                ${Icons.clock}
+                <span>${t("home.btnTimeline")}</span>
+              </a>
             </div>
 
             <div style="display: flex; gap: 2.5rem; border-top: 1px solid var(--color-card-border); padding-top: 1.25rem; flex-wrap: wrap;">
               <div>
                 <div style="font-size: 1.4rem; font-weight: 800; color: var(--color-primary);" class="mono">20,000+</div>
-                <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600;">Hiện vật lưu trữ</div>
+                <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600;">${t("home.statArtifacts")}</div>
               </div>
               <div>
-                <div style="font-size: 1.4rem; font-weight: 800; color: var(--color-secondary);" class="mono">100%</div>
-                <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600;">Bảng chú thích thật</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--color-secondary);" class="mono">12+</div>
+                <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600;">${t("home.statEras")}</div>
               </div>
               <div>
-                <div style="font-size: 1.4rem; font-weight: 800; color: var(--color-primary);" class="mono">&lt; 100ms</div>
-                <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600;">Tốc độ soát vé QR</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--color-primary);" class="mono">4K Ultra</div>
+                <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600;">${t("home.statResolution")}</div>
               </div>
             </div>
           </div>

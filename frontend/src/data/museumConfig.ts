@@ -1,3 +1,5 @@
+import { i18n } from "./i18n";
+
 export interface MuseumBranding {
   name: string;
   subName: string;
@@ -56,6 +58,10 @@ export interface LanguagePackage {
   label: string;
   speechCode: string;
   active: boolean;
+  name?: string;
+  nativeName?: string;
+  flag?: string;
+  customAdded?: boolean;
 }
 
 export interface PageDefinition {
@@ -461,7 +467,40 @@ export const MuseumConfigStore = {
 
       const savedRooms = localStorage.getItem("museum_config_rooms360");
       if (savedRooms) this.rooms360 = JSON.parse(savedRooms);
+
+      this.syncLanguagesWithServer();
     } catch (_) { }
+  },
+
+  async syncLanguagesWithServer() {
+    try {
+      const res = await fetch("http://localhost:3000/api/v1/languages");
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.configured && Array.isArray(data.configured)) {
+          data.configured.forEach((srvLang: any) => {
+            const idx = this.languages.findIndex(l => l.code === srvLang.code);
+            const pkg: LanguagePackage = {
+              code: srvLang.code,
+              label: `${srvLang.code.toUpperCase()} - ${srvLang.nativeName || srvLang.name}`,
+              speechCode: srvLang.speechCode,
+              active: srvLang.active,
+              name: srvLang.name,
+              nativeName: srvLang.nativeName,
+              flag: srvLang.flag,
+              customAdded: srvLang.customAdded
+            };
+            if (idx !== -1) {
+              this.languages[idx] = { ...this.languages[idx], ...pkg };
+            } else {
+              this.languages.push(pkg);
+            }
+          });
+          localStorage.setItem("museum_config_langs", JSON.stringify(this.languages));
+          window.dispatchEvent(new CustomEvent("museum:config-updated"));
+        }
+      }
+    } catch (_) {}
   },
 
   updateBranding(newBranding: Partial<MuseumBranding>) {
@@ -479,7 +518,25 @@ export const MuseumConfigStore = {
   setLanguage(langCode: string) {
     this.currentLanguage = langCode;
     localStorage.setItem("museum_config_lang", langCode);
+    i18n.setLanguage(langCode);
     window.dispatchEvent(new CustomEvent("museum:language-changed", { detail: { lang: langCode } }));
+  },
+
+  addLanguagePackage(langPkg: LanguagePackage) {
+    const existingIdx = this.languages.findIndex(l => l.code === langPkg.code);
+    if (existingIdx !== -1) {
+      this.languages[existingIdx] = { ...this.languages[existingIdx], ...langPkg, active: true };
+    } else {
+      this.languages.push(langPkg);
+    }
+    localStorage.setItem("museum_config_langs", JSON.stringify(this.languages));
+    window.dispatchEvent(new CustomEvent("museum:config-updated"));
+  },
+
+  removeLanguagePackage(code: string) {
+    this.languages = this.languages.filter(l => l.code !== code);
+    localStorage.setItem("museum_config_langs", JSON.stringify(this.languages));
+    window.dispatchEvent(new CustomEvent("museum:config-updated"));
   },
 
   toggleLanguageActive(langCode: string, active: boolean) {
@@ -487,6 +544,12 @@ export const MuseumConfigStore = {
     if (l) {
       l.active = active;
       localStorage.setItem("museum_config_langs", JSON.stringify(this.languages));
+      // Notify backend if available
+      fetch(`http://localhost:3000/api/v1/languages/${langCode}/toggle`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active })
+      }).catch(() => {});
       window.dispatchEvent(new CustomEvent("museum:config-updated"));
     }
   },

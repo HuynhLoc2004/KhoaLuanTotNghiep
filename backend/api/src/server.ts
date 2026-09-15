@@ -9,6 +9,7 @@ import { buildingsRouter } from "./routes/buildings.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { timelineRouter } from "./routes/timeline.js";
+import languagesRouter from "./routes/languages.js";
 import { initRabbitMQ } from "./queue/rabbitmq.js";
 
 dotenv.config();
@@ -43,6 +44,7 @@ app.use("/api/v1/rooms", roomsRouter);
 app.use("/api/v1/buildings", buildingsRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/timeline", timelineRouter);
+app.use("/api/v1/languages", languagesRouter);
 
 
 // Start server

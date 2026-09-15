@@ -3,6 +3,8 @@ import { MuseumConfigStore, Tour360Room, WalkNode360, ShowcasePin360 } from "../
 import { ARTIFACTS_DATA } from "../data/artifacts";
 import { Icons } from "../components/Icons";
 import { showToast } from "../components/Toast";
+import { VoiceAI } from "../data/voiceAI";
+import { i18n, t } from "../data/i18n";
 
 export function renderTour360Page(): string {
   const rooms = MuseumConfigStore.rooms360;
@@ -447,25 +449,17 @@ export function initTour360Page() {
 
     if (modalAudioBtn) {
       modalAudioBtn.onclick = () => {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const text = `${pin.title}. Niên đại: ${pin.era}. ${artifact ? artifact.placardText : ''}`;
-          const utt = new SpeechSynthesisUtterance(text);
-          utt.lang = "vi-VN";
-          window.speechSynthesis.speak(utt);
-          currentSpeakingUtterance = utt;
-        } else {
-          showToast("Trình duyệt không hỗ trợ Web Speech API.", "warning");
-        }
+        const lang = MuseumConfigStore.currentLanguage;
+        const localizedPlacard = artifact ? i18n.getArtifactPlacard(artifact.id, artifact.placardText) : '';
+        const text = `${pin.title}. ${pin.era}. ${localizedPlacard}`;
+        VoiceAI.speak(text, lang);
       };
     }
   }
 
   function closeModal() {
     if (modal) modal.style.display = "none";
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    VoiceAI.stop();
   }
 
   if (modalCloseBtn) modalCloseBtn.onclick = closeModal;
@@ -497,13 +491,9 @@ export function initTour360Page() {
   const roomVoiceBtn = document.getElementById("btn-room-voice");
   if (roomVoiceBtn) {
     roomVoiceBtn.onclick = () => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const text = `Chào mừng quý khách đến với ${activeRoom.name}. ${activeRoom.description}. Hiện tại sảnh trưng bày có ${activeRoom.showcases.length} hiện vật tiêu biểu. Quý khách có thể bấm vào các vòng tròn sáng trên sàn để di chuyển giữa các góc nhìn.`;
-        const utt = new SpeechSynthesisUtterance(text);
-        utt.lang = "vi-VN";
-        window.speechSynthesis.speak(utt);
-      }
+      const lang = MuseumConfigStore.currentLanguage;
+      const text = `Chào mừng quý khách đến với ${activeRoom.name}. ${activeRoom.description}. Hiện tại sảnh trưng bày có ${activeRoom.showcases.length} hiện vật tiêu biểu.`;
+      VoiceAI.speak(text, lang);
     };
   }
 

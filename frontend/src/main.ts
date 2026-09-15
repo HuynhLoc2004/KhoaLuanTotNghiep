@@ -227,8 +227,10 @@ function renderApp() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Router Event Listeners
+// Router & Language Event Listeners
 window.addEventListener("hashchange", renderApp);
 window.addEventListener("DOMContentLoaded", renderApp);
+window.addEventListener("museum:language-changed", () => renderApp());
+window.addEventListener("museum:config-updated", () => renderApp());
 
 renderApp();
