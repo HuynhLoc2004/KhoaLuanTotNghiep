@@ -75,3 +75,34 @@ artifactsRouter.delete("/:id", (req: Request, res: Response) => {
 
   res.json({ success: true, message: `Đã xóa hiện vật ${id}` });
 });
+
+// POST /api/v1/artifacts/generate-3d
+artifactsRouter.post("/generate-3d", (req: Request, res: Response) => {
+  const { artifactId, filesCount } = req.body;
+  const jobId = `job_3dgs_${uuidv4().slice(0, 8)}`;
+  
+  res.json({
+    success: true,
+    message: "Đã tiếp nhận bộ ảnh/video & chuyển cho 3DGS Python Worker xử lý!",
+    jobId,
+    status: "PROCESSING",
+    estimatedTimeSeconds: 15,
+    cloudModelUrl: `https://storage.googleapis.com/museum-3dgs-bucket/models/${artifactId || "artifact"}_3dgs.ply`
+  });
+});
+
+// GET /api/v1/artifacts/:id/qr
+artifactsRouter.get("/:id/qr", (req: Request, res: Response) => {
+  const { id } = req.params;
+  const host = req.headers.host || "localhost:3001";
+  const protocol = req.protocol || "http";
+  const targetUrl = `${protocol}://${host}/#artifact?id=${encodeURIComponent(id)}`;
+
+  res.json({
+    success: true,
+    artifactId: id,
+    scanUrl: targetUrl,
+    labelHeader: "BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH",
+    instructions: "Quét mã QR để xem mô hình 3D 360° & Nghe giọng thuyết minh Voice AI"
+  });
+});

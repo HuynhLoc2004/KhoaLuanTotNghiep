@@ -1,8 +1,10 @@
-import { MuseumConfigStore } from "../../data/museumConfig";
+import { MuseumConfigStore, PendingApprovalStore } from "../../data/museumConfig";
 import { ArtifactsStore } from "../../data/artifacts";
 import { Icons } from "../../components/Icons";
 import { AdminCaptureModal } from "../../components/virtual-tour/AdminCaptureModal";
 import { showToast } from "../../components/Toast";
+import { AuthState } from "../../data/auth";
+
 
 let selectedTourRoomId: string = "room-champa";
 let activeTourTab: "pin" | "manage-rooms" | "manage-nodes" = "pin";
@@ -439,15 +441,26 @@ export function initAdminTour360Page() {
       const descInput = document.getElementById("new-room-desc-input") as HTMLInputElement;
 
       if (nameInput && nameInput.value.trim()) {
-        const newRoom = MuseumConfigStore.addRoom360(
-          nameInput.value.trim(),
-          eraInput?.value.trim() || "Thời Kỳ Lịch Sử",
-          descInput?.value.trim() || "Gian sảnh mới được khởi tạo từ CMS."
-        );
-        selectedTourRoomId = newRoom.id;
-        activeTourTab = "pin"; // Switch to pin tab to immediately use the new room!
-        showToast(`🎉 Đã tạo thành công gian sảnh 360° mới: [${nameInput.value.trim()}]!`, "success");
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
+        const name = nameInput.value.trim();
+        const eraTitle = eraInput?.value.trim() || "Thời Kỳ Lịch Sử";
+        const description = descInput?.value.trim() || "Gian sảnh mới được khởi tạo từ CMS.";
+
+        if (AuthState.canApprove()) {
+          const newRoom = MuseumConfigStore.addRoom360(name, eraTitle, description);
+          selectedTourRoomId = newRoom.id;
+          activeTourTab = "pin";
+          showToast(`🎉 Đã tạo gian sảnh 360° mới: [${name}]!`, "success");
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        } else {
+          PendingApprovalStore.submit(
+            "ADD_ROOM360",
+            `Thêm gian sảnh: ${name} (${eraTitle})`,
+            AuthState.admin.name,
+            { name, eraTitle, description }
+          );
+          showToast(`⏳ Yêu cầu thêm gian sảnh "${name}" đã gửi — chờ Giám Đốc phê duyệt.`, "warning", 5000);
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        }
       }
     });
   }
@@ -462,9 +475,21 @@ export function initAdminTour360Page() {
       const targetRoomId = targetRoomSelect?.value || selectedTourRoomId;
 
       if (nodeInput && nodeInput.value.trim()) {
-        MuseumConfigStore.addWalkNode(targetRoomId, nodeInput.value.trim());
-        showToast(`🎉 Đã thêm điểm bước chân mới: [${nodeInput.value.trim()}] vào sảnh!`, "success");
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
+        const nodeName = nodeInput.value.trim();
+        if (AuthState.canApprove()) {
+          MuseumConfigStore.addWalkNode(targetRoomId, nodeName);
+          showToast(`🎉 Đã thêm điểm bước chân mới: [${nodeName}] vào sảnh!`, "success");
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        } else {
+          PendingApprovalStore.submit(
+            "ADD_WALK_NODE",
+            `Thêm walk node: ${nodeName}`,
+            AuthState.admin.name,
+            { roomId: targetRoomId, name: nodeName }
+          );
+          showToast(`⏳ Yêu cầu thêm Walk Node "${nodeName}" đã gửi — chờ Giám Đốc phê duyệt.`, "warning", 5000);
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        }
       }
     });
   }

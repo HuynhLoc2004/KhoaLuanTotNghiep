@@ -67,6 +67,158 @@ export interface PageDefinition {
 
 export type PermissionLevel = "FULL_ACCESS" | "EDITOR" | "REVIEWER" | "READ_ONLY";
 
+// ─── Pending Approval System ───────────────────────────────────────────────
+export type PendingActionType =
+  | "ADD_ROOM360"
+  | "ADD_WALK_NODE"
+  | "ADD_ARTIFACT"
+  | "ADD_SHOWCASE_PIN"
+  | "ADD_ANNOUNCEMENT"
+  | "ADD_ROLE"
+  | "ADD_BUILDING"
+  | "ADD_MAP_POINT";
+
+export interface PendingRequest {
+  id: string;
+  actionType: PendingActionType;
+  label: string;        // Human-readable summary
+  submittedBy: string;  // staff name
+  submittedAt: string;
+  payload: Record<string, unknown>;
+  status: "pending" | "approved" | "rejected";
+}
+
+export const PendingApprovalStore = {
+  requests: [] as PendingRequest[],
+
+  _save() {
+    localStorage.setItem("museum_pending_approvals", JSON.stringify(this.requests));
+  },
+
+  init() {
+    try {
+      const saved = localStorage.getItem("museum_pending_approvals");
+      if (saved) this.requests = JSON.parse(saved);
+    } catch (_) { }
+  },
+
+  submit(actionType: PendingActionType, label: string, submittedBy: string, payload: Record<string, unknown>): PendingRequest {
+    const req: PendingRequest = {
+      id: "pend-" + Date.now(),
+      actionType,
+      label,
+      submittedBy,
+      submittedAt: new Date().toLocaleString("vi-VN"),
+      payload,
+      status: "pending"
+    };
+    this.requests.unshift(req);
+    this._save();
+    window.dispatchEvent(new CustomEvent("museum:pending-updated"));
+    return req;
+  },
+
+  getPending(): PendingRequest[] {
+    return this.requests.filter(r => r.status === "pending");
+  },
+
+  getAll(): PendingRequest[] {
+    return this.requests;
+  },
+
+  approve(id: string): PendingRequest | null {
+    const req = this.requests.find(r => r.id === id);
+    if (!req || req.status !== "pending") return null;
+    req.status = "approved";
+    this._save();
+    return req;
+  },
+
+  reject(id: string): boolean {
+    const req = this.requests.find(r => r.id === id);
+    if (!req || req.status !== "pending") return false;
+    req.status = "rejected";
+    this._save();
+    return true;
+  },
+
+  pendingCount(): number {
+    return this.requests.filter(r => r.status === "pending").length;
+  }
+};
+
+// ─── Culture / Era Store ──────────────────────────────────────────────────────
+export interface CultureItem {
+  id: string;
+  name: string;        // Tên văn hóa (hiển thị trong select)
+  period: string;      // Niên đại tham khảo (VD: "Thế kỷ 3 TCN - 1 CN")
+  description: string; // Mô tả ngắn
+  color: string;       // Màu badge (hex)
+  order: number;       // Thứ tự hiển thị
+}
+
+export const CultureStore = {
+  items: [] as CultureItem[],
+
+  _save() {
+    localStorage.setItem("museum_cultures", JSON.stringify(this.items));
+  },
+
+  init() {
+    try {
+      const saved = localStorage.getItem("museum_cultures");
+      if (saved) {
+        this.items = JSON.parse(saved);
+        return;
+      }
+    } catch (_) {}
+    // Default seed data
+    this.items = [
+      { id: "culture-dongson", name: "Văn Hóa Đông Sơn", period: "Thế kỷ 7 TCN - 3 CN", description: "Nền văn hóa đồng thau rực rỡ của người Việt cổ, nổi bật với trống đồng.", color: "#b45309", order: 1 },
+      { id: "culture-sahuynh", name: "Văn Hóa Sa Huỳnh", period: "Thế kỷ 10 TCN - 2 CN", description: "Văn hóa sắt tiền sử miền Trung Việt Nam, đặc trưng bởi đồ trang sức thủy tinh.", color: "#0891b2", order: 2 },
+      { id: "culture-oceo", name: "Văn Hóa Óc Eo", period: "Thế kỷ 1 - 7 CN", description: "Trung tâm thương mại hàng hải của vương quốc Phù Nam ở đồng bằng sông Cửu Long.", color: "#059669", order: 3 },
+      { id: "culture-champa", name: "Nghệ Thuật Champa", period: "Thế kỷ 2 - 17 CN", description: "Di sản nghệ thuật Hindu-Phật giáo của vương quốc Chăm Pa.", color: "#dc2626", order: 4 },
+      { id: "culture-nguyen", name: "Triều Nguyễn", period: "1802 - 1945", description: "Triều đại phong kiến cuối cùng của Việt Nam với kinh đô Huế.", color: "#7c3aed", order: 5 },
+      { id: "culture-ancient", name: "Cổ Đại / Chưa Xác Định", period: "Không rõ", description: "Hiện vật chưa được phân loại hoặc thuộc các thời kỳ cổ xưa khác.", color: "#6b7280", order: 6 },
+    ];
+    this._save();
+  },
+
+  add(name: string, period: string, description: string, color: string): CultureItem {
+    const item: CultureItem = {
+      id: "culture-" + Date.now(),
+      name: name.trim(),
+      period: period.trim(),
+      description: description.trim(),
+      color,
+      order: this.items.length + 1,
+    };
+    this.items.push(item);
+    this._save();
+    return item;
+  },
+
+  delete(id: string): boolean {
+    const idx = this.items.findIndex(c => c.id === id);
+    if (idx === -1) return false;
+    this.items.splice(idx, 1);
+    this._save();
+    return true;
+  },
+
+  update(id: string, patch: Partial<Omit<CultureItem, "id">>): boolean {
+    const item = this.items.find(c => c.id === id);
+    if (!item) return false;
+    Object.assign(item, patch);
+    this._save();
+    return true;
+  },
+
+  getAll(): CultureItem[] {
+    return [...this.items].sort((a, b) => a.order - b.order);
+  }
+};
+
 export interface DynamicRole {
   id: string;
   name: string;
@@ -309,7 +461,7 @@ export const MuseumConfigStore = {
 
       const savedRooms = localStorage.getItem("museum_config_rooms360");
       if (savedRooms) this.rooms360 = JSON.parse(savedRooms);
-    } catch (_) {}
+    } catch (_) { }
   },
 
   updateBranding(newBranding: Partial<MuseumBranding>) {
@@ -470,3 +622,4 @@ export const MuseumConfigStore = {
 };
 
 MuseumConfigStore.init();
+PendingApprovalStore.init();

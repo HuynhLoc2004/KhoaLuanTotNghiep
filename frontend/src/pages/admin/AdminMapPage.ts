@@ -1,7 +1,9 @@
 import { MapConfigStore } from "../../data/mapData";
-import { MuseumConfigStore } from "../../data/museumConfig";
+import { MuseumConfigStore, PendingApprovalStore } from "../../data/museumConfig";
+import { AuthState } from "../../data/auth";
 import { Icons } from "../../components/Icons";
 import { showToast } from "../../components/Toast";
+
 
 let activeMapTab: "bridge" | "manage-buildings" = "bridge";
 
@@ -363,14 +365,25 @@ export function initAdminMapPage() {
       const descInput = document.getElementById("new-bldg-desc-input") as HTMLInputElement;
 
       if (nameInput && nameInput.value.trim()) {
-        const newBldg = MapConfigStore.addBuilding(
-          nameInput.value.trim(),
-          codeInput?.value.trim().toUpperCase() || "TÒA MỚI",
-          descInput?.value.trim() || "Tòa nhà mới bổ sung từ CMS."
-        );
-        activeMapTab = "bridge"; // Switch to bridge tab to immediately select the new building!
-        showToast(`🎉 Đã thêm thành công Tòa nhà mới: [${newBldg.code} - ${newBldg.name}]!`, "success");
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
+        const name = nameInput.value.trim();
+        const code = codeInput?.value.trim().toUpperCase() || "TÒA MỚI";
+        const description = descInput?.value.trim() || "Tòa nhà mới bổ sung từ CMS.";
+
+        if (AuthState.canApprove()) {
+          const newBldg = MapConfigStore.addBuilding(name, code, description);
+          activeMapTab = "bridge";
+          showToast(`🎉 Đã thêm Tòa nhà mới: [${newBldg.code} - ${newBldg.name}]!`, "success");
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        } else {
+          PendingApprovalStore.submit(
+            "ADD_BUILDING",
+            `Thêm tòa nhà: ${code} - ${name}`,
+            AuthState.admin.name,
+            { code, name, description }
+          );
+          showToast(`⏳ Yêu cầu thêm Tòa Nhà "${name}" đã gửi — chờ Giám Đốc phê duyệt.`, "warning", 5000);
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        }
       }
     });
   }
@@ -389,9 +402,20 @@ export function initAdminMapPage() {
         return;
       }
 
-      MapConfigStore.addRoom(bldgId, floorLvl, roomName, "Không gian khảo cổ học & di sản số", tourId, cap);
-      showToast(`🎉 Đã thêm gian phòng: [${roomName}] vào sơ đồ Tầng ${floorLvl} thành công!`, "success");
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
+      if (AuthState.canApprove()) {
+        MapConfigStore.addRoom(bldgId, floorLvl, roomName, "Không gian khảo cổ học & di sản số", tourId, cap);
+        showToast(`🎉 Đã thêm gian phòng: [${roomName}] vào sơ đồ Tầng ${floorLvl}!`, "success");
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      } else {
+        PendingApprovalStore.submit(
+          "ADD_MAP_POINT",
+          `Thêm gian phòng: ${roomName} (Tầng ${floorLvl})`,
+          AuthState.admin.name,
+          { bldgId, floorLvl, roomName, tourId, cap }
+        );
+        showToast(`⏳ Yêu cầu thêm gian phòng "${roomName}" đã gửi — chờ Giám Đốc phê duyệt.`, "warning", 5000);
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      }
     });
   }
 

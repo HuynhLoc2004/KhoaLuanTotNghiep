@@ -1,7 +1,8 @@
 import { Icons } from "./Icons";
-import { MuseumConfigStore } from "../data/museumConfig";
+import { MuseumConfigStore, PendingApprovalStore } from "../data/museumConfig";
 import { AuthState } from "../data/auth";
 import { showToast } from "./Toast";
+
 
 export function renderLeftSidebar(activeTab: string = "home", isAdminMode = false): string {
   const branding = MuseumConfigStore.branding;
@@ -21,6 +22,9 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
     const isAnalytics = activeTab === "admin-analytics";
     const isSettings = activeTab === "admin-settings";
     const isRoles = activeTab === "admin-roles";
+    const isApprovals = activeTab === "admin-approvals";
+    const pendingCount = PendingApprovalStore.pendingCount();
+
 
     return `
       <aside class="app-sidebar admin-sidebar" id="main-sidebar">
@@ -114,6 +118,17 @@ export function renderLeftSidebar(activeTab: string = "home", isAdminMode = fals
           <a href="#admin-roles" class="nav-item ${isRoles ? 'active' : ''}">
             ${Icons.user}
             <span>Phân Quyền Quản Trị (RBAC)</span>
+          </a>
+
+          <!-- Section 6: Approval Workflow -->
+          <div class="nav-section-title">
+            <span>Phê Duyệt</span>
+            <span class="nav-section-badge">APPROVAL</span>
+          </div>
+          <a href="#admin-approvals" class="nav-item ${isApprovals ? 'active' : ''}" style="position:relative;">
+            ${Icons.shield}
+            <span>Duyệt Yêu Cầu Thêm Mới</span>
+            ${pendingCount > 0 ? `<span style="margin-left:auto;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#d97706;color:white;font-size:0.68rem;font-weight:900;padding:0 5px;">${pendingCount}</span>` : ""}
           </a>
         </nav>
 

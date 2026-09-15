@@ -8,3 +8,5 @@ export { renderAdminMapPage, initAdminMapPage } from "./AdminMapPage";
 export { renderAdminAnalyticsPage, initAdminAnalyticsPage } from "./AdminAnalyticsPage";
 export { renderAdminSettingsPage, initAdminSettingsPage } from "./AdminSettingsPage";
 export { renderAdminRolesPage, initAdminRolesPage } from "./AdminRolesPage";
+export { renderAdminApprovalsPage, initAdminApprovalsPage } from "./AdminApprovalsPage";
+

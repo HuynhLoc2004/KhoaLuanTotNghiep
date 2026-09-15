@@ -1,4 +1,5 @@
 import "./styles/theme.css";
+
 import { AuthState } from "./data/auth";
 import { MuseumConfigStore } from "./data/museumConfig";
 import { Icons } from "./components/Icons";
@@ -23,8 +24,11 @@ import {
   renderAdminMapPage, initAdminMapPage,
   renderAdminAnalyticsPage, initAdminAnalyticsPage,
   renderAdminSettingsPage, initAdminSettingsPage,
-  renderAdminRolesPage, initAdminRolesPage
+  renderAdminRolesPage, initAdminRolesPage,
+  renderAdminApprovalsPage, initAdminApprovalsPage
+} from "./pages/admin";
 import { initToastContainer } from "./components/Toast";
+
 
 const app = document.getElementById("app") as HTMLElement;
 
@@ -43,8 +47,9 @@ if (localStorage.getItem("museum_admin_auth") === "true") {
 const VALID_TABS = [
   "home", "tour360", "map", "artifact", "quiz", "booking", "profile",
   "admin-login", "admin", "admin-scan", "admin-artifacts", "admin-rooms", "admin-tour360", "admin-nodes",
-  "admin-buildings", "admin-map", "admin-analytics", "admin-settings", "admin-roles"
+  "admin-buildings", "admin-map", "admin-analytics", "admin-settings", "admin-roles", "admin-approvals"
 ];
+
 
 function getActiveTab(): string {
   const hash = window.location.hash.replace("#", "") || "home";
@@ -74,7 +79,7 @@ function renderApp() {
     }
 
     let pageContent = "";
-    let initFn = () => {};
+    let initFn = () => { };
     let activeAdminTab = tab;
 
     if (tab === "admin" || tab === "admin-scan") {
@@ -108,6 +113,9 @@ function renderApp() {
     } else if (tab === "admin-roles") {
       pageContent = renderAdminRolesPage();
       initFn = initAdminRolesPage;
+    } else if (tab === "admin-approvals") {
+      pageContent = renderAdminApprovalsPage();
+      initFn = initAdminApprovalsPage;
     }
 
     app.innerHTML = `

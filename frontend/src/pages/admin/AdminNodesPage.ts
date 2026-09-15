@@ -1,6 +1,8 @@
 import { Icons } from "../../components/Icons";
 import { MuseumConfigStore } from "../../data/museumConfig";
 import { showToast } from "../../components/Toast";
+import { showConfirm } from "../../components/ConfirmModal";
+
 
 export function renderAdminNodesPage(): string {
   const rooms = MuseumConfigStore.rooms360;
@@ -168,11 +170,22 @@ export function initAdminNodesListeners() {
       const target = e.currentTarget as HTMLElement;
       const roomId = target.getAttribute("data-room-id");
       const nodeId = target.getAttribute("data-node-id");
+      const nodeName = target.closest("tr")?.querySelector("td:nth-child(3)")?.textContent?.trim() ?? nodeId;
 
-      if (roomId && nodeId && confirm("Bạn có chắc chắn muốn xóa điểm Walk Node này không?")) {
-        MuseumConfigStore.deleteWalkNode(roomId, nodeId);
-        showToast("Đã xóa điểm Walk Node thành công!", "success");
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      if (roomId && nodeId) {
+        showConfirm({
+          title: "Xóa Điểm Walk Node",
+          message: `Bạn có chắc chắn muốn xóa điểm quan sát <strong>"${nodeName}"</strong> khỏi gian sảnh này không? Thao tác này không thể hoàn tác.`,
+          confirmText: "Xóa Node",
+          cancelText: "Giữ Lại",
+          variant: "danger",
+        }).then((confirmed) => {
+          if (confirmed) {
+            MuseumConfigStore.deleteWalkNode(roomId, nodeId);
+            showToast("Đã xóa điểm Walk Node thành công!", "success");
+            window.dispatchEvent(new HashChangeEvent("hashchange"));
+          }
+        });
       }
     });
   });

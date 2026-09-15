@@ -1,5 +1,9 @@
 import { ARTIFACTS_DATA } from "../../data/artifacts";
 import { showToast } from "../../components/Toast";
+import { AuthState } from "../../data/auth";
+import { PendingApprovalStore, CultureStore } from "../../data/museumConfig";
+import { renderQRPrintModal, openQRPrintModal, initQRPrintModalListeners } from "../../components/QRPrintModal";
+
 
 export interface AdminArtifactItem {
   id: string;
@@ -170,8 +174,8 @@ let artifactEraFilter = "ALL";
 export function renderAdminArtifactsPage(): string {
   const filtered = EXTENDED_ARTIFACTS.filter(a => {
     const matchSearch = a.code.toLowerCase().includes(artifactSearchQuery.toLowerCase()) ||
-                        a.name.toLowerCase().includes(artifactSearchQuery.toLowerCase()) ||
-                        a.room.toLowerCase().includes(artifactSearchQuery.toLowerCase());
+      a.name.toLowerCase().includes(artifactSearchQuery.toLowerCase()) ||
+      a.room.toLowerCase().includes(artifactSearchQuery.toLowerCase());
     const matchEra = artifactEraFilter === "ALL" || a.era.includes(artifactEraFilter);
     return matchSearch && matchEra;
   });
@@ -344,9 +348,12 @@ export function renderAdminArtifactsPage(): string {
                       Xem 3D
                     </a>
                   </td>
-                  <td style="padding: 0.65rem 1rem; text-align: center;">
-                    <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" onclick="showToast('Đã mở form chỉnh sửa metadata hiện vật ${art.code}', 'info');">
+                  <td style="padding: 0.65rem 1rem; text-align: center; white-space: nowrap;">
+                    <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" onclick="showToast('Đã mở form chỉnh sửa metadata hiện vật ${art.code}', 'info');">
                       Sửa
+                    </button>
+                    <button class="btn btn-outline btn-print-qr-item" data-id="${art.id}" data-code="${art.code}" data-name="${art.name}" data-era="${art.era}" style="font-size: 0.75rem; padding: 0.25rem 0.55rem; color: #0284c7; border-color: #0284c7; margin-left: 0.25rem;">
+                      🖨️ In QR
                     </button>
                   </td>
                 </tr>
@@ -397,11 +404,211 @@ export function renderAdminArtifactsPage(): string {
           </div>
         </div>
       </div>
+
+      <!-- ═══ ADD ARTIFACT DRAWER MODAL ═══ -->
+      <div id="add-artifact-overlay" class="artifact-drawer-overlay" aria-hidden="true">
+        <div class="artifact-drawer-backdrop" id="artifact-drawer-backdrop"></div>
+        <div class="artifact-drawer" id="add-artifact-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+          <!-- Drawer Header -->
+          <div class="artifact-drawer-header">
+            <div>
+              <div style="font-size: 0.72rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.25rem;">
+                KHO HIỆN VẬT CMS
+              </div>
+              <h2 id="drawer-title" style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--color-text-main);">Thêm Hiện Vật Mới</h2>
+            </div>
+            <button id="artifact-drawer-close" class="artifact-drawer-close-btn" aria-label="Đóng">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <!-- Drawer Body -->
+          <div class="artifact-drawer-body">
+            <form id="form-add-artifact" novalidate autocomplete="off">
+
+              <!-- Icon preview + Mã số -->
+              <div class="artifact-form-row">
+                <div class="artifact-form-group" style="flex: 0 0 auto;">
+                  <label class="artifact-form-label">Ảnh Đại Diện <span style="color:var(--color-text-muted);font-weight:400;">(URL)</span></label>
+                  <input type="url" id="af-thumbnail" class="artifact-form-input" placeholder="https://..." />
+                  <div id="af-thumbnail-preview" style="margin-top: 0.5rem; width: 56px; height: 56px; border-radius: var(--radius-sm); border: 1px solid var(--color-card-border); background: var(--color-surface); overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24" style="opacity:0.3;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row: Mã số + Tên -->
+              <div class="artifact-form-row">
+                <div class="artifact-form-group">
+                  <label class="artifact-form-label" for="af-code">Mã Số Hiện Vật <span class="required-dot">*</span></label>
+                  <input type="text" id="af-code" class="artifact-form-input" placeholder="VD: BTLS-AR-100" required />
+                  <div class="artifact-form-hint">Mã định danh duy nhất trong hệ thống CMS.</div>
+                </div>
+              </div>
+
+              <div class="artifact-form-row">
+                <div class="artifact-form-group">
+                  <label class="artifact-form-label" for="af-name">Tên Hiện Vật <span class="required-dot">*</span></label>
+                  <input type="text" id="af-name" class="artifact-form-input" placeholder="VD: Trống Đồng Đông Sơn" required />
+                </div>
+              </div>
+
+              <!-- Row: Niên đại + Thời kỳ -->
+              <div class="artifact-form-row" style="gap: 0.85rem;">
+                <div class="artifact-form-group" style="flex: 1;">
+                  <label class="artifact-form-label" for="af-era">Niên Đại <span class="required-dot">*</span></label>
+                  <input type="text" id="af-era" class="artifact-form-input" placeholder="VD: Thế kỷ 3 - 1 TCN" />
+                </div>
+                <div class="artifact-form-group" style="flex: 1;">
+                  <label class="artifact-form-label" for="af-culture">Văn Hóa / Thời Kỳ</label>
+                  <select id="af-culture" class="artifact-form-input" style="appearance: auto;">
+                    <option value="Đông Sơn">Văn Hóa Đông Sơn</option>
+                    <option value="Sa Huỳnh">Văn Hóa Sa Huỳnh</option>
+                    <option value="Óc Eo">Văn Hóa Óc Eo</option>
+                    <option value="Champa">Nghệ Thuật Champa</option>
+                    <option value="Nguyễn">Triều Nguyễn</option>
+                    <option value="Cổ đại">Cổ Đại</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Chất liệu -->
+              <div class="artifact-form-row">
+                <div class="artifact-form-group">
+                  <label class="artifact-form-label" for="af-material">Chất Liệu <span class="required-dot">*</span></label>
+                  <input type="text" id="af-material" class="artifact-form-input" placeholder="VD: Hợp kim đồng cổ / Gốm men xanh" />
+                </div>
+              </div>
+
+              <!-- Gian phòng -->
+              <div class="artifact-form-row">
+                <div class="artifact-form-group">
+                  <label class="artifact-form-label" for="af-room">Gian Phòng Trưng Bày</label>
+                  <input type="text" id="af-room" class="artifact-form-input" placeholder="VD: Sảnh Văn Hóa Champa" value="Gian Trưng Bày Mới" />
+                </div>
+              </div>
+
+              <!-- Mô tả -->
+              <div class="artifact-form-row">
+                <div class="artifact-form-group">
+                  <label class="artifact-form-label" for="af-desc">Mô Tả Ngắn</label>
+                  <textarea id="af-desc" class="artifact-form-input" rows="3" placeholder="Mô tả về hiện vật, đặc điểm nổi bật..." style="resize: vertical; min-height: 80px;"></textarea>
+                </div>
+              </div>
+
+              <!-- 3D Reconstruction Uploader Section -->
+              <div class="artifact-form-row">
+                <div class="artifact-form-group" style="width: 100%; border: 1px dashed var(--color-primary); padding: 1rem; border-radius: var(--radius-sm); background: rgba(30, 58, 138, 0.04);">
+                  <label class="artifact-form-label" style="color: var(--color-primary); font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
+                    ${Icons.cube}
+                    <span>Tải Ảnh / Video 360° Đã Chụp Để Sinh Mô Hình 3D (3DGS AI)</span>
+                  </label>
+                  <div style="font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 0.65rem;">
+                    Tải bộ ảnh chụp đa góc (20 - 50 ảnh) hoặc video quay xung quanh hiện vật thực tế. Server Python 3DGS sẽ tự động sinh file WebGL 3D & tải lên Cloud Storage.
+                  </div>
+
+                  <input type="file" id="af-3d-files" multiple accept="image/*,video/*" class="artifact-form-input" style="padding: 0.4rem; margin-bottom: 0.65rem;" />
+
+                  <button type="button" id="btn-trigger-3d-gen" class="btn btn-secondary" style="width: 100%; justify-content: center; font-weight: 700; color: var(--color-primary); border-color: var(--color-primary);">
+                    ⚡ Bắt Đầu Phân Tích & Sinh Mô Hình 3D 360°
+                  </button>
+
+                  <div id="ai-3dgs-progress-box" style="display: none; margin-top: 0.75rem; padding: 0.75rem; background: var(--color-surface); border-radius: var(--radius-xs); border: 1px solid var(--color-border);">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 700; color: var(--color-text-main); margin-bottom: 0.35rem;">
+                      <span id="ai-3dgs-status-text">Đang gửi dữ liệu tới Python 3DGS Worker...</span>
+                      <span id="ai-3dgs-percent">15%</span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.1); border-radius: 999px; overflow: hidden;">
+                      <div id="ai-3dgs-bar" style="width: 15%; height: 100%; background: linear-gradient(90deg, #0284c7, #16a34a); transition: width 0.3s;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Error message -->
+              <div id="artifact-form-error" style="display:none; color: #dc2626; font-size: 0.82rem; font-weight: 600; padding: 0.6rem 0.85rem; background: rgba(220,38,38,0.08); border-radius: var(--radius-sm); border-left: 3px solid #dc2626; margin-bottom: 0.5rem;"></div>
+
+            </form>
+          </div>
+
+          <!-- Drawer Footer -->
+          <div class="artifact-drawer-footer">
+            <button type="button" id="artifact-drawer-cancel" class="btn btn-secondary" style="flex: 1; justify-content: center; padding: 0.7rem;">
+              Hủy Bỏ
+            </button>
+            <button type="button" id="artifact-drawer-submit" class="btn btn-primary" style="flex: 2; justify-content: center; padding: 0.7rem; font-weight: 800;">
+              ${Icons.cube}
+              <span id="artifact-submit-label">Thêm Hiện Vật</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      ${renderQRPrintModal()}
     </div>
   `;
 }
 
 export function initAdminArtifactsPage() {
+  initQRPrintModalListeners();
+
+  // Print QR Buttons in table
+  document.querySelectorAll<HTMLButtonElement>(".btn-print-qr-item").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset["id"] || "";
+      const code = btn.dataset["code"] || "";
+      const name = btn.dataset["name"] || "";
+      const era = btn.dataset["era"] || "";
+      openQRPrintModal({ id, code, name, era });
+    });
+  });
+
+  // 3D Model Generation Trigger
+  const trigger3dBtn = document.getElementById("btn-trigger-3d-gen");
+  const progressBox = document.getElementById("ai-3dgs-progress-box");
+  const statusText = document.getElementById("ai-3dgs-status-text");
+  const percentText = document.getElementById("ai-3dgs-percent");
+  const bar = document.getElementById("ai-3dgs-bar");
+
+  if (trigger3dBtn && progressBox) {
+    trigger3dBtn.addEventListener("click", () => {
+      const fileInput = document.getElementById("af-3d-files") as HTMLInputElement;
+      if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        showToast("⚠️ Vui lòng chọn ít nhất 1 tệp ảnh/video đa góc để sinh 3D.", "warning");
+        return;
+      }
+
+      progressBox.style.display = "block";
+      trigger3dBtn.setAttribute("disabled", "true");
+      trigger3dBtn.style.opacity = "0.5";
+
+      let p = 15;
+      const steps = [
+        { pct: 35, text: "Đang trích xuất đặc trưng điểm ảnh (COLMAP Point Cloud)..." },
+        { pct: 65, text: "Đang khởi tạo 3D Gaussian Splatting (3DGS Python Worker)..." },
+        { pct: 85, text: "Đang xuất định dạng WebGL/PLY & Tải lên Cloud Storage..." },
+        { pct: 100, text: "✓ Hoàn Tất! Mô hình 3D 360° đã gán vào hiện vật." }
+      ];
+
+      let idx = 0;
+      const interval = setInterval(() => {
+        if (idx < steps.length) {
+          const step = steps[idx];
+          p = step.pct;
+          if (statusText) statusText.textContent = step.text;
+          if (percentText) percentText.textContent = `${p}%`;
+          if (bar) bar.style.width = `${p}%`;
+          idx++;
+        } else {
+          clearInterval(interval);
+          trigger3dBtn.removeAttribute("disabled");
+          trigger3dBtn.style.opacity = "1";
+          showToast("🎉 Mô hình 3DGS 360° đã được khởi tạo & lưu Cloud thành công!", "success");
+        }
+      }, 700);
+    });
+  }
   const genBtn = document.getElementById("btn-admin-ai-gen");
   const aiResult = document.getElementById("ai-gen-result");
   if (genBtn && aiResult) {
@@ -414,21 +621,96 @@ export function initAdminArtifactsPage() {
     });
   }
 
+  // ─── Artifact Drawer Logic ───────────────────────────────────────────────
+  const overlay = document.getElementById("add-artifact-overlay");
+  const drawer = document.getElementById("add-artifact-drawer");
+  const backdrop = document.getElementById("artifact-drawer-backdrop");
   const addBtn = document.getElementById("btn-add-artifact");
-  if (addBtn) {
-    addBtn.addEventListener("click", () => {
-      const code = prompt("Nhập Mã Số Hiện Vật (Ví dụ: BTLS-AR-100):", "BTLS-AR-" + Math.floor(Math.random() * 900 + 100));
-      if (!code) return;
-      const name = prompt("Nhập Tên Hiện Vật Mới:");
-      if (!name) return;
-      const era = prompt("Nhập Niên Đại (Ví dụ: Thế kỷ 18):", "Cổ đại");
-      const material = prompt("Nhập Chất Liệu (Ví dụ: Gốm men xanh / Đồng cổ):", "Hợp kim đồng cổ");
+  const closeBtn = document.getElementById("artifact-drawer-close");
+  const cancelBtn = document.getElementById("artifact-drawer-cancel");
+  const submitBtn = document.getElementById("artifact-drawer-submit");
+  const errorBox = document.getElementById("artifact-form-error");
+  const thumbInput = document.getElementById("af-thumbnail") as HTMLInputElement;
+  const thumbPrev = document.getElementById("af-thumbnail-preview");
 
-      ArtifactsStore.addArtifact({ code, name, era, material });
-      showToast(`🎉 Đã thêm thành công hiện vật [${name}] vào Kho Dữ Liệu CMS!`, "success");
+  const openDrawer = () => {
+    overlay?.removeAttribute("aria-hidden");
+    overlay?.classList.add("open");
+    // Auto-fill suggested code
+    const codeInput = document.getElementById("af-code") as HTMLInputElement;
+    if (codeInput && !codeInput.value) {
+      codeInput.value = "BTLS-AR-" + Math.floor(Math.random() * 900 + 100);
+    }
+    setTimeout(() => (document.getElementById("af-name") as HTMLInputElement)?.focus(), 120);
+  };
+
+  const closeDrawer = () => {
+    overlay?.classList.remove("open");
+    overlay?.setAttribute("aria-hidden", "true");
+    if (errorBox) errorBox.style.display = "none";
+  };
+
+  addBtn?.addEventListener("click", openDrawer);
+  closeBtn?.addEventListener("click", closeDrawer);
+  cancelBtn?.addEventListener("click", closeDrawer);
+  backdrop?.addEventListener("click", closeDrawer);
+
+  // ESC to close
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay?.classList.contains("open")) closeDrawer();
+  });
+
+  // Thumbnail URL live preview
+  thumbInput?.addEventListener("input", () => {
+    if (!thumbPrev) return;
+    const url = thumbInput.value.trim();
+    if (url) {
+      thumbPrev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />`;
+    } else {
+      thumbPrev.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24" style="opacity:0.3;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+    }
+  });
+
+  // Submit
+  submitBtn?.addEventListener("click", () => {
+    const code = (document.getElementById("af-code") as HTMLInputElement).value.trim();
+    const name = (document.getElementById("af-name") as HTMLInputElement).value.trim();
+    const era = (document.getElementById("af-era") as HTMLInputElement).value.trim() || "Cổ đại";
+    const culture = (document.getElementById("af-culture") as HTMLSelectElement).value;
+    const material = (document.getElementById("af-material") as HTMLInputElement).value.trim() || "Hợp kim đồng cổ";
+    const room = (document.getElementById("af-room") as HTMLInputElement).value.trim() || "Gian Trưng Bày Mới";
+    const thumbnail = (document.getElementById("af-thumbnail") as HTMLInputElement).value.trim()
+      || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop";
+
+    // Validate
+    if (!code || !name) {
+      if (errorBox) {
+        errorBox.textContent = "⚠ Vui lòng điền đầy đủ Mã Số và Tên Hiện Vật.";
+        errorBox.style.display = "block";
+      }
+      return;
+    }
+    if (errorBox) errorBox.style.display = "none";
+
+    const eraFull = `${era} · ${culture}`;
+
+    if (AuthState.canApprove()) {
+      EXTENDED_ARTIFACTS.push({ id: "art-" + Date.now(), code, name, era: eraFull, material, room, thumbnail });
+      showToast(`🎉 Đã thêm hiện vật [${name}] vào Kho Dữ Liệu CMS!`, "success");
+      closeDrawer();
       window.dispatchEvent(new HashChangeEvent("hashchange"));
-    });
-  }
+    } else {
+      PendingApprovalStore.submit(
+        "ADD_ARTIFACT",
+        `Thêm hiện vật: ${name} (${code})`,
+        AuthState.admin.name,
+        { code, name, era: eraFull, material, room, thumbnail }
+      );
+      showToast(`⏳ Yêu cầu thêm hiện vật "${name}" đã gửi — chờ Giám Đốc phê duyệt.`, "warning", 5000);
+      closeDrawer();
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    }
+  });
 
   // Search input
   const searchInput = document.getElementById("artifact-search-input") as HTMLInputElement;

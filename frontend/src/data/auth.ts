@@ -67,6 +67,10 @@ export const AuthState = {
     localStorage.setItem("museum_admin_auth", "true");
   },
 
+  canApprove(): boolean {
+    return this.admin.role === "director" || this.admin.roleTitle.includes("Giám Đốc") || this.admin.roleTitle.includes("Quản Trị Viên Tối Cao");
+  },
+
   logoutAdmin() {
     this.isAdminLoggedIn = false;
     localStorage.removeItem("museum_admin_auth");

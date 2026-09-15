@@ -42,6 +42,20 @@ const SPEECH_LANG_CODES: Record<string, string> = {
 };
 
 export function renderArtifactPage(): string {
+  // Parse QR scan URL query param (?id=...)
+  const hash = window.location.hash;
+  if (hash.includes("?")) {
+    const queryStr = hash.split("?")[1];
+    const params = new URLSearchParams(queryStr);
+    const targetId = params.get("id");
+    if (targetId) {
+      const foundIdx = ARTIFACTS_DATA.findIndex(a => a.id === targetId || a.code === targetId || a.code.toLowerCase() === targetId.toLowerCase());
+      if (foundIdx !== -1) {
+        currentArtifactIndex = foundIdx;
+      }
+    }
+  }
+
   const artifact = ARTIFACTS_DATA[currentArtifactIndex] || ARTIFACTS_DATA[0];
   const lang = MuseumConfigStore.currentLanguage;
   const features = MuseumConfigStore.features;

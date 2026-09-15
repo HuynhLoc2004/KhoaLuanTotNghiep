@@ -1,6 +1,9 @@
 import { MapConfigStore } from "../../data/mapData";
+import { PendingApprovalStore } from "../../data/museumConfig";
+import { AuthState } from "../../data/auth";
 import { Icons } from "../../components/Icons";
 import { showToast } from "../../components/Toast";
+
 
 export function renderAdminBuildingsPage(): string {
   const buildings = MapConfigStore.buildings;
@@ -126,13 +129,24 @@ export function initAdminBuildingsPage() {
       const descInput = document.getElementById("pg-bldg-desc-input") as HTMLInputElement;
 
       if (nameInput && nameInput.value.trim()) {
-        const newBldg = MapConfigStore.addBuilding(
-          nameInput.value.trim(),
-          codeInput?.value.trim().toUpperCase() || "TÒA MỚI",
-          descInput?.value.trim() || "Tòa nhà mới bổ sung từ CMS."
-        );
-        showToast(`🎉 Đã thêm thành công Tòa nhà mới: [${newBldg.code} - ${newBldg.name}] vào Kho CMS!`, "success");
-        window.location.hash = "#admin-map"; // Jump to map page immediately
+        const name = nameInput.value.trim();
+        const code = codeInput?.value.trim().toUpperCase() || "TÒA MỚI";
+        const description = descInput?.value.trim() || "Tòa nhà mới bổ sung từ CMS.";
+
+        if (AuthState.canApprove()) {
+          const newBldg = MapConfigStore.addBuilding(name, code, description);
+          showToast(`🎉 Đã thêm Tòa nhà mới: [${newBldg.code} - ${newBldg.name}]!`, "success");
+          window.location.hash = "#admin-map";
+        } else {
+          PendingApprovalStore.submit(
+            "ADD_BUILDING",
+            `Thêm tòa nhà: ${code} - ${name}`,
+            AuthState.admin.name,
+            { code, name, description }
+          );
+          showToast(`⏳ Yêu cầu thêm Tòa Nhà "${name}" đã gửi — chờ Giám Đốc phê duyệt.`, "warning", 5000);
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        }
       }
     });
   }
