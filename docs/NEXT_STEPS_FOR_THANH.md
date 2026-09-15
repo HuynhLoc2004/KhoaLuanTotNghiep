@@ -53,22 +53,28 @@ CLOUDINARY_URL="cloudinary://api_key:api_secret@cloud_name"
 
 ---
 
-## 3. CÁCH KHỞI ĐỘNG DỰ ÁN CHO THÀNH
+## 3. CÁCH KHỞI ĐỘNG DỰ ÁN (DEVELOPMENT MODE - AUTO RELOAD HOT-RELOAD)
 
-Khi Thành pull code về:
+### Bước 1: Khởi động Hạ Tầng Docker Background (RabbitMQ, Redis, Worker)
 ```bash
-git fetch origin
-git checkout develop
-git pull origin develop
-
-# Khởi động toàn bộ 5 dịch vụ chỉ bằng 1 lệnh duy nhất:
-docker compose up -d
+docker compose up -d rabbitmq redis worker_3dgs
 ```
-- Mở Frontend Web: [http://localhost:3001](http://localhost:3001)
-- Mở Backend API: [http://localhost:3000](http://localhost:3000)
-- Mở RabbitMQ Manager: [http://localhost:15672](http://localhost:15672) (guest / guest)
 
-*(Nếu muốn tắt toàn bộ hệ thống để tiết kiệm RAM/pin khi không dùng: `docker compose down`)*
+### Bước 2: Chạy Backend API (Tự động Reload khi sửa code)
+Mở Terminal 1 (CMD / PowerShell):
+```cmd
+cd backend\api
+npm run dev
+```
+*(Backend API sẽ lắng nghe tại `http://localhost:3000` và tự động restart bằng `tsx watch` khi sửa code)*
+
+### Bước 3: Chạy Frontend Web (Tự động Reload HMR khi sửa code)
+Mở Terminal 2 (CMD / PowerShell):
+```cmd
+cd frontend
+npm run dev
+```
+*(Frontend Vite sẽ chạy tại `http://localhost:3001` và tự động cập nhật ngay trên trình duyệt)*
 
 ---
 
