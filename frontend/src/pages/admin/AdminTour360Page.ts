@@ -1,6 +1,7 @@
 import { MuseumConfigStore } from "../../data/museumConfig";
 import { ARTIFACTS_DATA } from "../../data/artifacts";
 import { Icons } from "../../components/Icons";
+import { AdminCaptureModal } from "../../components/virtual-tour/AdminCaptureModal";
 
 let selectedTourRoomId: string = "room-champa";
 
@@ -10,23 +11,28 @@ export function renderAdminTour360Page(): string {
 
   return `
     <div class="page-viewport" style="max-width: 1400px; padding: 1.5rem 2rem;">
-      <!-- Breadcrumb & Header -->
-      <div style="margin-bottom: 1.75rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-          <span style="font-size: 0.72rem; font-weight: 700; color: var(--color-primary); letter-spacing: 0.05em; text-transform: uppercase;">
-            CỔNG QUẢN TRỊ ADMIN / KHÔNG GIAN 360° PHOTOSPHERE
-          </span>
-          <span style="font-size: 0.75rem; color: var(--color-text-muted);">•</span>
-          <span class="badge-pill" style="font-size: 0.7rem; padding: 1px 8px; background: rgba(56, 189, 248, 0.15); color: #0284c7; border-color: #38bdf8;">
-            CMS Sảnh VR 360°
-          </span>
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+            <span style="font-size: 0.72rem; font-weight: 700; color: var(--color-primary); letter-spacing: 0.05em; text-transform: uppercase;">
+              CỔNG QUẢN TRỊ ADMIN / KHÔNG GIAN 3D GAUSSIAN SPLATTING & 360°
+            </span>
+            <span style="font-size: 0.75rem; color: var(--color-text-muted);">•</span>
+            <span class="badge-pill" style="font-size: 0.7rem; padding: 1px 8px; background: rgba(56, 189, 248, 0.15); color: #0284c7; border-color: #38bdf8;">
+              3DGS Studio Active
+            </span>
+          </div>
+          <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--color-text-main); margin: 0 0 0.25rem 0;">
+            Quản Lý Sảnh Tour Ảo 360° & Tái Tạo Không Gian 3DGS
+          </h1>
+          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin: 0;">
+            Quay video gian phòng trực tiếp bằng camera, tải lên ảnh chi tiết 8K và tự động chạy pipeline 3DGS lên server.
+          </p>
         </div>
-        <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--color-text-main); margin: 0 0 0.25rem 0;">
-          Quản Lý Sảnh Tour Ảo 360° & Ghim Hiện Vật
-        </h1>
-        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin: 0;">
-          Quản trị các gian phòng không gian 360°, điểm bước chân (Walk Nodes) và ghim biển chú thích cổ vật trực tiếp vào không gian thực tế ảo.
-        </p>
+
+        <button id="btn-open-3dgs-studio" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-weight: 800; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">
+          <span>📹</span> Bật Camera Quay Video & Tải Lên 3DGS Studio
+        </button>
       </div>
 
       <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
@@ -168,6 +174,14 @@ export function renderAdminTour360Page(): string {
 }
 
 export function initAdminTour360Page() {
+  const openStudioBtn = document.getElementById("btn-open-3dgs-studio");
+  if (openStudioBtn) {
+    openStudioBtn.addEventListener("click", () => {
+      const captureModal = new AdminCaptureModal();
+      captureModal.open();
+    });
+  }
+
   const addPinBtn = document.getElementById("btn-add-tour-pin");
   const pinRoomSelect = document.getElementById("admin-pin-room-select") as HTMLSelectElement;
   const pinArtifactSelect = document.getElementById("admin-pin-artifact-select") as HTMLSelectElement;
