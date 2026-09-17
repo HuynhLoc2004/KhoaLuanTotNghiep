@@ -22,6 +22,15 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
   const [capturedFrames, setCapturedFrames] = useState<{ url: string; blob: Blob; angle: number }[]>([]);
   const [capturedSectors, setCapturedSectors] = useState<number[]>([]);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth <= 640 : false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Cảm biến góc xoay và độ nghiêng
   const [currentHeading, setCurrentHeading] = useState<number>(0); // 0 - 360°
@@ -314,7 +323,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       {/* Header Bar */}
       <div
         style={{
-          padding: '12px 18px',
+          padding: isMobile ? '8px 12px' : '12px 18px',
           background: 'rgba(15, 23, 42, 0.95)',
           display: 'flex',
           alignItems: 'center',
@@ -323,27 +332,30 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
           color: '#FFFFFF'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10 }}>
           <div
             style={{
-              width: 32,
-              height: 32,
+              width: isMobile ? 28 : 32,
+              height: isMobile ? 28 : 32,
               borderRadius: 8,
               background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}
           >
-            <Compass size={18} />
+            <Compass size={isMobile ? 16 : 18} />
           </div>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 700 }}>
-              Không Gian 360° Studio (Quét Theo Cảm Biến Góc Xoay)
+            <div style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 700 }}>
+              {isMobile ? 'Quét Không Gian 360°' : 'Không Gian 360° Studio (Cảm Biến Góc Xoay)'}
             </div>
-            <div style={{ fontSize: '11px', color: '#94A3B8' }}>
-              Xoay người tự do trong phòng — Hệ thống tự động bắt cảnh khi đổi góc và dừng lại khi bạn thấy vừa ý
-            </div>
+            {!isMobile && (
+              <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                Xoay người tự do trong phòng — Hệ thống tự động bắt cảnh khi đổi góc và dừng lại khi bạn thấy vừa ý
+              </div>
+            )}
           </div>
         </div>
 
@@ -353,12 +365,13 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
             background: 'rgba(255, 255, 255, 0.1)',
             border: 'none',
             color: '#FFF',
-            padding: 8,
+            padding: isMobile ? 6 : 8,
             borderRadius: '50%',
             cursor: 'pointer'
           }}
+          aria-label="Đóng studio"
         >
-          <X size={20} />
+          <X size={isMobile ? 18 : 20} />
         </button>
       </div>
 
@@ -495,27 +508,30 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
             <div
               style={{
                 position: 'absolute',
-                top: 20,
-                right: 20,
-                width: 100,
-                height: 100,
+                top: isMobile ? 10 : 20,
+                right: isMobile ? 10 : 20,
+                width: isMobile ? 70 : 100,
+                height: isMobile ? 70 : 100,
                 borderRadius: '50%',
-                background: 'rgba(15, 23, 42, 0.85)',
-                border: '2px solid rgba(255, 255, 255, 0.2)',
+                background: 'rgba(15, 23, 42, 0.88)',
+                border: '1.5px solid rgba(255, 255, 255, 0.25)',
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                zIndex: 15
               }}
             >
               {/* Vòng các điểm sector 360° */}
               {Array.from({ length: TOTAL_SECTORS }).map((_, i) => {
                 const angle = (i * (360 / TOTAL_SECTORS)) - 90;
                 const rad = (angle * Math.PI) / 180;
-                const r = 38;
-                const x = 50 + r * Math.cos(rad);
-                const y = 50 + r * Math.sin(rad);
+                const center = isMobile ? 35 : 50;
+                const r = isMobile ? 26 : 38;
+                const dotSize = isMobile ? 6 : 8;
+                const x = center + r * Math.cos(rad);
+                const y = center + r * Math.sin(rad);
                 const isCaptured = capturedSectors.includes(i);
                 const isCurrent = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS === i;
 
@@ -534,10 +550,10 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                     key={i}
                     style={{
                       position: 'absolute',
-                      left: x - 4,
-                      top: y - 4,
-                      width: 8,
-                      height: 8,
+                      left: x - dotSize / 2,
+                      top: y - dotSize / 2,
+                      width: dotSize,
+                      height: dotSize,
                       borderRadius: '50%',
                       background: dotBg,
                       boxShadow: dotShadow,
@@ -552,7 +568,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 style={{
                   position: 'absolute',
                   width: 2,
-                  height: 36,
+                  height: isMobile ? 24 : 36,
                   background: 'linear-gradient(to top, transparent 50%, #EF4444 50%)',
                   transform: `rotate(${currentHeading}deg)`,
                   transformOrigin: '50% 50%',
@@ -563,8 +579,8 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
               {/* Tâm la bàn */}
               <div
                 style={{
-                  width: 10,
-                  height: 10,
+                  width: isMobile ? 6 : 10,
+                  height: isMobile ? 6 : 10,
                   borderRadius: '50%',
                   background: '#FFFFFF',
                   zIndex: 2
@@ -576,37 +592,38 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
             <div
               style={{
                 position: 'absolute',
-                top: 20,
+                top: isMobile ? 90 : 20,
                 left: '50%',
                 transform: 'translateX(-50%)',
+                width: isMobile ? 'calc(100% - 24px)' : 'auto',
                 maxWidth: '85%',
                 background: guidanceMessage.type === 'warning'
-                  ? 'rgba(245, 158, 11, 0.92)'
+                  ? 'rgba(245, 158, 11, 0.95)'
                   : guidanceMessage.type === 'success'
-                  ? 'rgba(16, 185, 129, 0.92)'
+                  ? 'rgba(16, 185, 129, 0.95)'
                   : 'rgba(15, 23, 42, 0.92)',
                 color: '#FFFFFF',
-                padding: '10px 20px',
+                padding: isMobile ? '7px 14px' : '10px 20px',
                 borderRadius: 30,
-                fontSize: 13,
+                fontSize: isMobile ? 12 : 13,
                 fontWeight: 700,
                 boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
                 border: '1.5px solid rgba(255, 255, 255, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
+                justifyContent: 'center',
+                gap: 8,
                 textAlign: 'center',
-                zIndex: 10,
-                backdropFilter: 'blur(10px)',
-                animation: 'pulse 2s infinite'
+                zIndex: 12,
+                backdropFilter: 'blur(10px)'
               }}
             >
               {guidanceMessage.type === 'warning' ? (
-                <AlertCircle size={18} />
+                <AlertCircle size={isMobile ? 15 : 18} style={{ flexShrink: 0 }} />
               ) : guidanceMessage.type === 'success' ? (
-                <CheckCircle2 size={18} />
+                <CheckCircle2 size={isMobile ? 15 : 18} style={{ flexShrink: 0 }} />
               ) : (
-                <Compass size={18} />
+                <Compass size={isMobile ? 15 : 18} style={{ flexShrink: 0 }} />
               )}
               <span>{guidanceMessage.text}</span>
             </div>
@@ -618,28 +635,28 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       <div
         style={{
           background: 'rgba(15, 23, 42, 0.98)',
-          padding: '14px 20px',
+          padding: isMobile ? '10px 14px' : '14px 20px',
           borderTop: '1px solid rgba(255, 255, 255, 0.12)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 12
+          gap: isMobile ? 8 : 12
         }}
       >
         {/* Thanh tiến độ phủ không gian */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#94A3B8' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: isMobile ? 11 : 12, color: '#94A3B8' }}>
           <div>
-            Độ phủ không gian 360°: <strong style={{ color: coveragePercent >= 70 ? '#10B981' : '#F59E0B' }}>{coveragePercent}%</strong> ({capturedFrames.length} khung hình)
+            Độ phủ 360°: <strong style={{ color: coveragePercent >= 70 ? '#10B981' : '#F59E0B' }}>{coveragePercent}%</strong> ({capturedFrames.length} góc)
           </div>
-          <div style={{ fontSize: 11, color: '#64748B' }}>
-            * Xoay đến khi bạn thấy đủ các góc phòng mong muốn rồi bấm "Hoàn tất"
+          <div style={{ fontSize: 10.5, color: '#64748B' }}>
+            {coveragePercent >= 70 ? '✓ Đủ góc nhìn' : 'Xoay quanh phòng để quét đủ góc'}
           </div>
         </div>
 
         {/* Thumbnail Filmstrip */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', minHeight: 65, padding: '2px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', minHeight: isMobile ? 50 : 65, padding: '2px 0' }}>
           {capturedFrames.length === 0 ? (
-            <div style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic', margin: 'auto' }}>
-              Chưa có khung hình nào. Hãy bấm "Bắt đầu quét không gian" và xoay người từ từ.
+            <div style={{ fontSize: 11.5, color: '#64748B', fontStyle: 'italic', margin: 'auto' }}>
+              Chưa có ảnh. Bấm "Bắt đầu quét" và xoay người từ từ.
             </div>
           ) : (
             capturedFrames.map((frame, i) => (
@@ -647,8 +664,8 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 key={i}
                 style={{
                   position: 'relative',
-                  width: 60,
-                  height: 60,
+                  width: isMobile ? 48 : 60,
+                  height: isMobile ? 48 : 60,
                   borderRadius: 6,
                   overflow: 'hidden',
                   flexShrink: 0,
@@ -663,7 +680,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                     right: 2,
                     background: 'rgba(0,0,0,0.75)',
                     color: '#FFF',
-                    fontSize: 9,
+                    fontSize: 8.5,
                     padding: '1px 3px',
                     borderRadius: 2
                   }}
@@ -675,92 +692,179 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-          <button
-            onClick={handleReset}
-            disabled={capturedFrames.length === 0}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: capturedFrames.length > 0 ? '#EF4444' : '#475569',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: capturedFrames.length > 0 ? 'pointer' : 'not-allowed'
-            }}
-          >
-            Xóa quét lại từ đầu
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Nút chụp góc thủ công nếu muốn */}
-            {isScanning && (
+        {/* Action Buttons: Responsive Layout */}
+        {isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
+            {/* Hàng nút hành động chính */}
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
               <button
-                onClick={() => {
-                  const sector = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
-                  snapFrame(currentHeading, sector);
-                }}
+                onClick={toggleScanning}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
+                  flex: 1,
+                  background: isScanning ? '#EF4444' : 'linear-gradient(135deg, #2563EB, #1D4ED8)',
                   color: '#FFF',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  padding: '10px 18px',
-                  borderRadius: 30,
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: 24,
                   fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer'
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
                 }}
               >
-                + Chụp góc này ({currentHeading}°)
+                {isScanning ? <Square size={14} /> : <Play size={14} />}
+                <span>{isScanning ? 'Tạm dừng' : 'Bắt đầu quét'}</span>
               </button>
-            )}
 
-            {/* Bắt đầu / Tạm dừng quét */}
-            <button
-              onClick={toggleScanning}
-              style={{
-                background: isScanning ? '#EF4444' : 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                color: '#FFF',
-                border: 'none',
-                padding: '10px 24px',
-                borderRadius: 30,
-                fontSize: 13.5,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                cursor: 'pointer',
-                boxShadow: isScanning ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)'
-              }}
-            >
-              {isScanning ? <Square size={16} /> : <Play size={16} />}
-              <span>{isScanning ? 'Tạm dừng quét' : 'Bắt đầu quét không gian'}</span>
-            </button>
+              {capturedFrames.length >= 3 && (
+                <button
+                  onClick={handleFinishAndStitch}
+                  style={{
+                    flex: 1,
+                    background: '#10B981',
+                    color: '#FFF',
+                    border: 'none',
+                    padding: '10px 14px',
+                    borderRadius: 24,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
+                  }}
+                >
+                  <Check size={14} />
+                  <span>Ghép 360° ({capturedFrames.length})</span>
+                </button>
+              )}
+            </div>
 
-            {/* Hoàn tất & Ghép 360 */}
-            <button
-              onClick={handleFinishAndStitch}
-              disabled={capturedFrames.length < 3}
-              style={{
-                background: capturedFrames.length >= 3 ? '#10B981' : '#334155',
-                color: '#FFF',
-                border: 'none',
-                padding: '10px 22px',
-                borderRadius: 30,
-                fontSize: 13.5,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                cursor: capturedFrames.length >= 3 ? 'pointer' : 'not-allowed',
-                boxShadow: capturedFrames.length >= 3 ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none'
-              }}
-            >
-              <Check size={16} />
-              <span>Hoàn tất & Ghép 360° ({capturedFrames.length} góc)</span>
-            </button>
+            {/* Hàng nút phụ */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <button
+                onClick={handleReset}
+                disabled={capturedFrames.length === 0}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: capturedFrames.length > 0 ? '#EF4444' : '#475569',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  padding: '4px 8px'
+                }}
+              >
+                Xóa quét lại
+              </button>
+
+              {isScanning && (
+                <button
+                  onClick={() => {
+                    const sector = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
+                    snapFrame(currentHeading, sector);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    color: '#FFF',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 600
+                  }}
+                >
+                  + Chụp góc {currentHeading}°
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+            <button
+              onClick={handleReset}
+              disabled={capturedFrames.length === 0}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: capturedFrames.length > 0 ? '#EF4444' : '#475569',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: capturedFrames.length > 0 ? 'pointer' : 'not-allowed'
+              }}
+            >
+              Xóa quét lại từ đầu
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {isScanning && (
+                <button
+                  onClick={() => {
+                    const sector = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
+                    snapFrame(currentHeading, sector);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    color: '#FFF',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    padding: '10px 18px',
+                    borderRadius: 30,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Chụp góc này ({currentHeading}°)
+                </button>
+              )}
+
+              <button
+                onClick={toggleScanning}
+                style={{
+                  background: isScanning ? '#EF4444' : 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                  color: '#FFF',
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: 30,
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: 'pointer',
+                  boxShadow: isScanning ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)'
+                }}
+              >
+                {isScanning ? <Square size={16} /> : <Play size={16} />}
+                <span>{isScanning ? 'Tạm dừng quét' : 'Bắt đầu quét không gian'}</span>
+              </button>
+
+              <button
+                onClick={handleFinishAndStitch}
+                disabled={capturedFrames.length < 3}
+                style={{
+                  background: capturedFrames.length >= 3 ? '#10B981' : '#334155',
+                  color: '#FFF',
+                  border: 'none',
+                  padding: '10px 22px',
+                  borderRadius: 30,
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: capturedFrames.length >= 3 ? 'pointer' : 'not-allowed',
+                  boxShadow: capturedFrames.length >= 3 ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none'
+                }}
+              >
+                <Check size={16} />
+                <span>Hoàn tất & Ghép 360° ({capturedFrames.length} góc)</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

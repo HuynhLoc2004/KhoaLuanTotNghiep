@@ -689,3 +689,202 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+/* ==============================================================================
+   RESPONSIVE DESIGN (MOBILES, TABLETS & SMALL SCREENS)
+   ============================================================================== */
+
+.mobile-hamburger-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+/* TABLET & MOBILE BREAKPOINT (<= 768px) */
+@media (max-width: 768px) {
+  .admin-app {
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Hamburger & Close Buttons */
+  .mobile-hamburger-btn {
+    display: flex;
+  }
+
+  .sidebar-close-btn {
+    display: flex;
+  }
+
+  /* Transform Sidebar into Slide-out Drawer */
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 280px;
+    max-width: 85vw;
+    z-index: 1050;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 12px 0 30px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Mobile Backdrop Overlay */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(3px);
+    z-index: 1040;
+    animation: fadeIn 0.2s ease;
+  }
+
+  /* Header Optimization */
+  .admin-header {
+    height: 56px;
+    padding: 0 14px;
+  }
+
+  .breadcrumb-brand {
+    display: none;
+  }
+
+  .breadcrumb-sep {
+    display: none;
+  }
+
+  .admin-role-badge {
+    display: none;
+  }
+
+  .status-badge-live {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  /* Content Padding & Cards */
+  .admin-content {
+    padding: 14px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .panel-header > div {
+    flex-direction: column;
+    align-items: stretch !important;
+    width: 100%;
+  }
+
+  .panel-header input {
+    width: 100% !important;
+  }
+
+  .panel-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .rooms-grid {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 14px;
+  }
+
+  /* Modal Responsiveness */
+  .modal-card {
+    max-width: calc(100vw - 20px) !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+    margin: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-body {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .modal-footer .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* SMALL MOBILE SCREENS (<= 480px) */
+@media (max-width: 480px) {
+  .admin-header {
+    padding: 0 10px;
+  }
+
+  .status-badge-text {
+    display: none;
+  }
+
+  .room-thumbnail-wrapper {
+    height: 150px;
+  }
+
+  .room-card-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .room-card-actions .btn {
+    width: 100%;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+

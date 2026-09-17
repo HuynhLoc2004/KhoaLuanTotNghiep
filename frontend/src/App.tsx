@@ -85,10 +85,22 @@ export const App: React.FC = () => {
     }
   };
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="admin-app">
+      {/* Mobile Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       <Sidebar
         currentTab={currentTab}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         onTabChange={(tab) => {
           setCurrentTab(tab);
           if (tab !== 'studio') setActiveRoom(null);
@@ -101,6 +113,7 @@ export const App: React.FC = () => {
           currentTab={currentTab}
           activeRoom={activeRoom}
           onBackToRooms={handleBackToRooms}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
         {loading ? (

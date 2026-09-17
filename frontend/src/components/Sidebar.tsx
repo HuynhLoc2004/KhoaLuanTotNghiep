@@ -1,28 +1,50 @@
 import React from 'react';
-import { Compass, Landmark, Box, Map, BarChart3, Settings, Eye, Sparkles } from 'lucide-react';
+import { Compass, Landmark, Box, BarChart3, Settings, Sparkles, X } from 'lucide-react';
 import { AdminTab } from '../types';
 
 interface SidebarProps {
   currentTab: AdminTab;
   onTabChange: (tab: AdminTab) => void;
   roomCount: number;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, roomCount }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentTab,
+  onTabChange,
+  roomCount,
+  isOpen = false,
+  onClose
+}) => {
+  const handleItemClick = (tab: AdminTab) => {
+    onTabChange(tab);
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className="admin-sidebar">
+    <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
         <div className="museum-emblem">BT</div>
-        <div className="sidebar-title">
+        <div className="sidebar-title" style={{ flex: 1 }}>
           <h1>Bảo tàng Lịch sử</h1>
           <p>TP. Hồ Chí Minh • Quản trị</p>
         </div>
+        {onClose && (
+          <button
+            className="sidebar-close-btn"
+            onClick={onClose}
+            aria-label="Đóng menu"
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       <nav className="sidebar-nav">
         <button
           className={`nav-item ${currentTab === 'rooms' || currentTab === 'studio' ? 'active' : ''}`}
-          onClick={() => onTabChange('rooms')}
+          onClick={() => handleItemClick('rooms')}
         >
           <Compass size={18} />
           <span>Gian trưng bày & Tour 360</span>
@@ -43,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, roomC
 
         <button
           className={`nav-item ${currentTab === 'poc_stitching' ? 'active' : ''}`}
-          onClick={() => onTabChange('poc_stitching')}
+          onClick={() => handleItemClick('poc_stitching')}
           style={{
             color: currentTab === 'poc_stitching' ? 'var(--primary)' : 'var(--text-main)',
             background: currentTab === 'poc_stitching' ? 'var(--primary-light)' : 'transparent',
@@ -69,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, roomC
 
         <button
           className={`nav-item ${currentTab === 'artifacts' ? 'active' : ''}`}
-          onClick={() => onTabChange('artifacts')}
+          onClick={() => handleItemClick('artifacts')}
         >
           <Box size={18} />
           <span>Hiện vật & Cổ vật di sản</span>
@@ -77,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, roomC
 
         <button
           className={`nav-item ${currentTab === 'analytics' ? 'active' : ''}`}
-          onClick={() => onTabChange('analytics')}
+          onClick={() => handleItemClick('analytics')}
         >
           <BarChart3 size={18} />
           <span>Báo cáo & Thống kê</span>
@@ -85,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, roomC
 
         <button
           className={`nav-item ${currentTab === 'settings' ? 'active' : ''}`}
-          onClick={() => onTabChange('settings')}
+          onClick={() => handleItemClick('settings')}
         >
           <Settings size={18} />
           <span>Cấu hình hệ thống</span>
