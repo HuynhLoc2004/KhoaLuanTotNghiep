@@ -12,6 +12,15 @@ services:
     environment:
       - MONGO_INITDB_DATABASE=museum
 
+  redis:
+    image: redis:7-alpine
+    container_name: museum_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   backend:
     build:
       context: .
@@ -20,14 +29,26 @@ services:
     restart: always
     depends_on:
       - mongodb
+      - redis
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
       - MONGO_URI=mongodb://mongodb:27017/museum
-      - CLOUDINARY_URL=cloudinary://525596288476341:zLtV43liy-USXPkPDMmscuXum0k@djkif9ubs
+      - REDIS_URI=redis://redis:6379
       - PUBLIC_API_URL=${PUBLIC_API_URL:-http://103.178.233.206}
+      - CLOUDINARY_URL=cloudinary://525596288476341:zLtV43liy-USXPkPDMmscuXum0k@djkif9ubs
+      - CLOUDINARY_CLOUD_NAME=djkif9ubs
+      - CLOUDINARY_API_KEY=525596288476341
+      - CLOUDINARY_API_SECRET=zLtV43liy-USXPkPDMmscuXum0k
+      - CLOUDINARY_ROOT_FOLDER=museum
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_SECURE=false
+      - SMTP_USER=huynhtanlocpp09@gmail.com
+      - SMTP_PASS=csvopdsnfnonsuxy
+      - SMTP_FROM="Bảo Tàng Lịch Sử TP.HCM <huynhtanlocpp09@gmail.com>"
     volumes:
       - uploads_data:/app/backend/public/uploads
 
@@ -46,4 +67,6 @@ volumes:
   mongo_data:
     driver: local
   uploads_data:
+    driver: local
+  redis_data:
     driver: local

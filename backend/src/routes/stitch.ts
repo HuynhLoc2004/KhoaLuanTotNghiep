@@ -3,6 +3,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { spawn } from 'child_process';
+import { uploadToCloudinary } from '../services/cloudinary.js';
+import { cacheDel } from '../services/redis.js';
 
 export const stitchRouter = Router();
 
@@ -108,7 +110,7 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
     console.log(`[OpenCV Worker Log]: ${data.toString().trim()}`);
   });
 
-  pyProcess.on('close', (code) => {
+  pyProcess.on('close', async (code) => {
     // Dọn dẹp các file ảnh gốc tạm thời sau khi xử lý xong
     try {
       if (imagePaths.length > 0) {
@@ -129,11 +131,28 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
         const host = req.get('host');
         const baseUrl = process.env.PUBLIC_API_URL ? process.env.PUBLIC_API_URL.replace(/\/$/, '') : `${protocol}://${host}`;
 
-        console.log(`[Stitch API] Ghép thành công! File xuất: ${outFilename}`);
+        let finalPanoramaUrl = `${baseUrl}/uploads/${outFilename}`;
+        
+        // Tự động đồng bộ ảnh 360 lên Cloudinary CDN
+        try {
+          console.log('[Stitch API] Đang đồng bộ ảnh 360 lên Cloudinary (folder: museum/panoramas_360)...');
+          const cldRes = await uploadToCloudinary(outputPath, 'museum/panoramas_360');
+          if (cldRes && cldRes.secure_url) {
+            finalPanoramaUrl = cldRes.secure_url;
+            console.log('[Stitch API] Đã đồng bộ thành công lên Cloudinary CDN:', finalPanoramaUrl);
+          }
+        } catch (cldErr: any) {
+          console.warn('[Stitch API Cloudinary Sync Warning]:', cldErr.message, '- Dùng fallback URL cục bộ.');
+        }
+
+        // Xóa cache danh sách phòng trong Redis
+        await cacheDel('rooms:all');
+
+        console.log(`[Stitch API] Ghép thành công! URL ảnh: ${finalPanoramaUrl}`);
         return res.json({
           success: true,
           data: {
-            panoramaUrl: `${baseUrl}/uploads/${outFilename}`,
+            panoramaUrl: finalPanoramaUrl,
             filename: outFilename,
             width: result.width,
             height: result.height,

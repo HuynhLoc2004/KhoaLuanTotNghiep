@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { RoomModel, IRoom, IHotspot } from '../models/Room.js';
+import { cacheGet, cacheSet, cacheDel } from '../services/redis.js';
 
 export const roomsRouter = Router();
 
@@ -8,10 +9,16 @@ const getId = (param: unknown): string => {
   return String(param || '');
 };
 
-// GET all rooms
+// GET all rooms (with Redis cache acceleration)
 roomsRouter.get('/', async (req: Request, res: Response) => {
   try {
+    const cachedRooms = await cacheGet<IRoom[]>('rooms:all');
+    if (cachedRooms) {
+      return res.json({ success: true, data: cachedRooms, fromCache: true });
+    }
+
     const rooms = await RoomModel.find({}).sort({ orderIndex: 1 }).lean();
+    await cacheSet('rooms:all', rooms, 300); // 5 minutes TTL
     res.json({ success: true, data: rooms });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -56,6 +63,7 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
       active: true
     });
 
+    await cacheDel('rooms:all');
     res.status(201).json({ success: true, data: newRoom });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -70,6 +78,7 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
+    await cacheDel('rooms:all');
     res.json({ success: true, data: updated });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -84,6 +93,7 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (result.deletedCount === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
+    await cacheDel('rooms:all');
     res.json({ success: true, message: 'Đã xóa gian phòng khỏi cơ sở dữ liệu' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

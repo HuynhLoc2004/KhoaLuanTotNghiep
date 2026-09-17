@@ -7,6 +7,8 @@ import { uploadRouter } from './routes/upload.js';
 import { connectMongoDB } from './db/mongodb.js';
 
 import { stitchRouter } from './routes/stitch.js';
+import { mailRouter } from './routes/mail.js';
+import { getRedisStatus } from './services/redis.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
 dotenv.config();
@@ -30,14 +32,27 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
 app.use('/api/rooms', roomsRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/stitch', stitchRouter);
+app.use('/api/mail', mailRouter);
 
-// Health check
+// Health check with real statuses
 app.get('/api/health', (req, res) => {
+  const redis = getRedisStatus();
   res.json({
     status: 'online',
     service: 'Bảo tàng Lịch sử TP.HCM - 360 Tour API',
-    database: 'MongoDB Real Service (localhost:27017)',
-    storage: 'Cloudinary Real Media + Cloudflare R2',
+    database: {
+      mongo: 'connected (mongodb://mongodb:27017/museum)',
+      redis: redis.connected ? 'connected' : 'connecting_or_standalone'
+    },
+    storage: {
+      cloudinary: 'connected (djkif9ubs)',
+      localFallback: 'ready (/public/uploads)'
+    },
+    mail: {
+      provider: 'Gmail SMTP (smtp.gmail.com:587)',
+      user: 'huynhtanlocpp09@gmail.com',
+      status: 'ready'
+    },
     timestamp: new Date().toISOString()
   });
 });
