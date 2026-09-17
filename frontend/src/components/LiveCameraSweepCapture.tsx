@@ -53,6 +53,13 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
   const startCamera = async () => {
     setCameraError(null);
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      setCameraError(
+        'Trình duyệt (Chrome/Safari) yêu cầu kết nối bảo mật HTTPS hoặc Localhost để cấp quyền quét video Camera trực tiếp. Khi truy cập qua IP HTTP, bạn hãy bấm nút "Chụp / Chọn ảnh từ Camera điện thoại" bên dưới để hệ thống chụp và nạp ảnh trực tiếp!'
+      );
+      return;
+    }
+
     try {
       const constraints: MediaStreamConstraints = {
         video: {
@@ -266,34 +273,29 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Lỗi truy cập Camera</div>
             <div style={{ fontSize: 13, color: '#CBD5E1', marginBottom: 20 }}>{cameraError}</div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button
-                onClick={startCamera}
-                className="btn btn-primary"
-              >
-                <RefreshCw size={16} />
-                <span>Thử lại Camera</span>
-              </button>
-
               <label
-                className="btn btn-secondary"
+                className="btn btn-primary"
                 style={{
                   cursor: 'pointer',
-                  background: 'rgba(255,255,255,0.12)',
+                  background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
                   color: '#FFF',
-                  border: '1px solid rgba(255,255,255,0.2)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '8px 16px',
-                  borderRadius: 6
+                  padding: '12px 24px',
+                  borderRadius: 30,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)'
                 }}
               >
-                <Upload size={16} />
-                <span>Chọn ảnh từ máy</span>
+                <Camera size={18} />
+                <span>Chụp / Chọn ảnh từ Camera điện thoại</span>
                 <input
                   type="file"
                   multiple
                   accept="image/*"
+                  capture="environment"
                   style={{ display: 'none' }}
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
@@ -304,6 +306,20 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                   }}
                 />
               </label>
+
+              <button
+                onClick={startCamera}
+                className="btn btn-secondary"
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  color: '#FFF',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 30
+                }}
+              >
+                <RefreshCw size={16} />
+                <span>Thử lại Camera Web</span>
+              </button>
             </div>
           </div>
         ) : (
