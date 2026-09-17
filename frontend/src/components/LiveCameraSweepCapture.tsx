@@ -84,23 +84,34 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       }
     };
 
-    // Xin quyền cảm biến trên iOS 13+ nếu cần
-    if (typeof (DeviceOrientationEvent as any)?.requestPermission === 'function') {
-      (DeviceOrientationEvent as any)
-        .requestPermission()
-        .then((permissionState: string) => {
-          if (permissionState === 'granted') {
-            window.addEventListener('deviceorientation', handleOrientation);
-          }
-        })
-        .catch(console.warn);
-    } else {
-      window.addEventListener('deviceorientation', handleOrientation);
+    // Xin quyền cảm biến trên iOS 13+ nếu có
+    try {
+      const DevOrient = typeof window !== 'undefined' ? (window as any).DeviceOrientationEvent : null;
+      if (DevOrient && typeof DevOrient.requestPermission === 'function') {
+        DevOrient.requestPermission()
+          .then((permissionState: string) => {
+            if (permissionState === 'granted' && typeof window !== 'undefined') {
+              window.addEventListener('deviceorientation', handleOrientation);
+            }
+          })
+          .catch((err: any) => {
+            console.warn('Sensor permission warning:', err);
+            if (typeof window !== 'undefined') {
+              window.addEventListener('deviceorientation', handleOrientation);
+            }
+          });
+      } else if (typeof window !== 'undefined') {
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    } catch (sensorErr) {
+      console.warn('Device orientation init error:', sensorErr);
     }
 
     return () => {
       stopCamera();
-      window.removeEventListener('deviceorientation', handleOrientation);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('deviceorientation', handleOrientation);
+      }
     };
   }, [isOpen]);
 
@@ -128,7 +139,11 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          console.warn('Video play interrupted:', playErr);
+        }
       }
     } catch (err: any) {
       console.error('[Camera Access Error]:', err);

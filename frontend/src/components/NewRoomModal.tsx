@@ -3,6 +3,7 @@ import { X, Upload, Image as ImageIcon, Loader2, Camera } from 'lucide-react';
 import { MuseumRoom } from '../types';
 import { api, API_BASE } from '../services/api';
 import { LiveCameraSweepCapture } from './LiveCameraSweepCapture';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface NewRoomModalProps {
   onClose: () => void;
@@ -348,11 +349,13 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated }
         </form>
       </div>
 
-      <LiveCameraSweepCapture
-        isOpen={isCameraOpen}
-        onClose={() => setIsCameraOpen(false)}
-        onFramesCaptured={handleCameraFramesCaptured}
-      />
+      <ErrorBoundary fallbackTitle="Không thể mở Studio Camera">
+        <LiveCameraSweepCapture
+          isOpen={isCameraOpen}
+          onClose={() => setIsCameraOpen(false)}
+          onFramesCaptured={handleCameraFramesCaptured}
+        />
+      </ErrorBoundary>
     </div>
   );
 };
