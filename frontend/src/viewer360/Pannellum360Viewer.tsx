@@ -36,9 +36,14 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const containerId = useRef(`pannellum-container-${Math.random().toString(36).substring(2, 9)}`);
-  
+  const hasIntroducedRef = useRef<string | null>(null);
+  const introTimerRef = useRef<any>(null);
+
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [isLittlePlanet, setIsLittlePlanet] = useState(false);
+
+  // Serialize hotspots để không bị re-render do tham chiếu mảng mới
+  const hotspotsHash = JSON.stringify(hotspots || []);
 
   useEffect(() => {
     if (!containerRef.current || !window.pannellum) return;
@@ -52,7 +57,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     }
 
     // Format hotspots for Pannellum
-    const formattedHotSpots = hotspots.map((hs) => ({
+    const formattedHotSpots = (hotspots || []).map((hs) => ({
       pitch: hs.pitch,
       yaw: hs.yaw,
       type: hs.type || 'info',
@@ -90,7 +95,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       viewerRef.current = viewer;
 
       viewer.on('load', () => {
-        if (autoStartLittlePlanet) {
+        if (autoStartLittlePlanet && hasIntroducedRef.current !== panoramaUrl) {
+          hasIntroducedRef.current = panoramaUrl;
           runLittlePlanetIntro();
         }
       });
@@ -99,6 +105,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     }
 
     return () => {
+      clearInterval(introTimerRef.current);
       if (viewerRef.current) {
         try {
           viewerRef.current.destroy();
@@ -106,9 +113,9 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         viewerRef.current = null;
       }
     };
-  }, [panoramaUrl, hotspots]);
+  }, [panoramaUrl, hotspotsHash]);
 
-  // Hoạt cảnh mở đầu Little Planet bung vào phòng mượt mà
+  // Hoạt cảnh mở đầu Little Planet bung vào phòng mượt mà (chỉ chạy 1 lần duy nhất)
   const runLittlePlanetIntro = () => {
     if (!viewerRef.current) return;
     try {
@@ -119,7 +126,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       setTimeout(() => {
         let fov = 140;
         let pitch = -90;
-        const interval = setInterval(() => {
+        clearInterval(introTimerRef.current);
+        introTimerRef.current = setInterval(() => {
           fov -= 1.8;
           pitch += 2.0;
 
@@ -132,7 +140,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           }
 
           if (fov === 100 && pitch === 0) {
-            clearInterval(interval);
+            clearInterval(introTimerRef.current);
             setIsLittlePlanet(false);
           }
         }, 25);
