@@ -12,6 +12,16 @@ if ! command -v docker &> /dev/null; then
     sudo systemctl start docker
 fi
 
+# Cài đặt docker compose plugin nếu thiếu
+if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
+    sudo apt-get install -y docker-compose-plugin || sudo apt-get install -y docker-compose || true
+fi
+
+COMPOSE_CMD="docker compose"
+if ! docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+fi
+
 echo ">>> [2/4] Mở tường lửa (Port 22, 80, 443)..."
 sudo ufw allow 22/tcp || true
 sudo ufw allow 80/tcp || true
@@ -19,11 +29,11 @@ sudo ufw allow 443/tcp || true
 sudo ufw --force enable || true
 
 echo ">>> [3/4] Build & Khởi động toàn bộ dịch vụ (MongoDB + Backend + Frontend)..."
-docker compose down || true
-docker compose up -d --build
+$COMPOSE_CMD down || true
+$COMPOSE_CMD up -d --build
 
 echo ">>> [4/4] Kiểm tra các container đang chạy..."
-docker compose ps
+$COMPOSE_CMD ps
 
 echo "=============================================================================="
 echo "🎉 HỆ THỐNG DOCKER ĐÃ KHỞI CHẠY THÀNH CÔNG!"
