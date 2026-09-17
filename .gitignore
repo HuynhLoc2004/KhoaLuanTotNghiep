@@ -1,0 +1,20 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+build/
+backend/dist/
+frontend/dist/
+.DS_Store
+Thumbs.db
+
+# Uploads & Temp files
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+thumb_*.jpg
+*.pyc
+__pycache__/
+.tempmediaStorage/
+temp_*/
+

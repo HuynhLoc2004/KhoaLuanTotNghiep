@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Hệ thống Ghép Ảnh 360° Tự Động & Nắn Chỉnh Equirectangular Unwarping
+Đồ Án Tốt Nghiệp: Ứng dụng Công nghệ 4.0 và AI trong Bảo tồn Di sản - Bảo tàng Lịch sử TP.HCM
+
+1. Chuẩn hóa EXIF Orientation (ImageOps.exif_transpose) giải quyết triệt để xoay dọc iPhone.
+2. Tự động sắp xếp thứ tự ảnh theo chuỗi xoay tự nhiên (Natural sort).
+3. Cấu hình Stitcher & Spherical/Cylindrical Warper chống méo xoắn ốc (vortex).
+4. Cắt viền đen rách mép (Border Shave) & Nắn ảnh về tỷ lệ chuẩn Equirectangular 2:1 (4096x2048).
+"""
+
+import sys
+import os
+import json
+import argparse
+import re
+import cv2
+import numpy as np
+from PIL import Image, ImageOps
+
+# Đảm bảo stdout/stderr luôn dùng UTF-8 trên Windows để không bị lỗi UnicodeEncodeError
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
+def natural_sort_key(s):
+    """Sắp xếp chuỗi có chứa số theo thứ tự tự nhiên (img1, img2, ..., img10)"""
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+
+def load_and_orient_image(image_path, max_dim=3000):
+    """
+    Sử dụng PIL ImageOps.exif_transpose để tự động nhận diện và xoay ảnh về đúng
+    hướng nhìn đứng (upright) của cảm biến máy ảnh iPhone/Android trước khi đưa vào OpenCV.
+    Khắc phục triệt để lỗi ảnh bị nghiêng 90 độ khiến bộ ghép bị xoắn hình phễu/vortex.
+    Giữ độ phân giải cao max_dim=3000px để bảo toàn độ sắc nét siêu chi tiết của camera gốc.
+    """
+    with Image.open(image_path) as pil_img:
+        # Chuẩn hóa EXIF orientation
+        pil_img = ImageOps.exif_transpose(pil_img)
+        if pil_img.mode != 'RGB':
+            pil_img = pil_img.convert('RGB')
+
+        # Resize giữ tỷ lệ nếu vượt quá max_dim để bảo tồn tối đa độ sắc nét
+        w, h = pil_img.size
+        if max(w, h) > max_dim:
+            scale = max_dim / float(max(w, h))
+            new_w = int(w * scale)
+            new_h = int(h * scale)
+            pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+        rgb_arr = np.array(pil_img)
+        bgr_arr = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2BGR)
+        return bgr_arr
+
+def crop_black_borders(img):
+    """
+    Thuật toán cắt viền thông minh kết hợp Content-Aware Inpainting (Tương tự Adobe Photoshop):
+    Khắc phục triệt để vấn đề "chụp bằng tay rung lắc, cao thấp không đều":
+    - Khi chụp bằng tay, mỗi bức ảnh có độ cao lệch nhau một chút khiến viền trên/dưới bị lượn sóng.
+    - Thuật toán cũ gọt cụt (shave) toàn bộ hàng pixel cho đến khi không còn hạt đen nào,
+      khiến 50%-60% chiều cao của căn phòng bị vứt bỏ oan uổng!
+    - Thuật toán mới:
+      1. Tìm khung hình chữ nhật chứa tối đa nội dung hợp lệ (ngưỡng diện tích 90%).
+      2. Cắt viền mép trái/phải gọn gàng.
+      3. Dùng cv2.inpaint (thuật toán Navier-Stokes / Telea) để tự động bù lấp các góc khuyết
+         nhỏ ở viền trần và viền sàn, giữ lại trọn vẹn 100% chiều cao của tường và cửa!
+    """
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    mask = (gray > 10).astype(np.uint8)
+
+    y_idx, x_idx = np.where(mask > 0)
+    if len(y_idx) == 0 or len(x_idx) == 0:
+        return img
+
+    top, bottom = np.min(y_idx), np.max(y_idx)
+    left, right = np.min(x_idx), np.max(x_idx)
+
+    cropped = img[top:bottom+1, left:right+1].copy()
+    mask_c = mask[top:bottom+1, left:right+1].copy()
+
+    # Gọt bớt các cạnh ngoài cùng có quá nhiều pixel đen (ngưỡng 90% thay vì 99.8%)
+    max_iters = 300
+    iters = 0
+    while iters < max_iters and cropped.shape[0] > 100 and cropped.shape[1] > 100:
+        iters += 1
+        changed = False
+        # Nếu hàng trên cùng có hơn 10% là pixel đen, mới gọt
+        if np.mean(mask_c[0, :]) < 0.90:
+            mask_c = mask_c[1:, :]
+            cropped = cropped[1:, :]
+            changed = True
+        # Nếu hàng dưới cùng có hơn 10% là pixel đen, mới gọt
+        if np.mean(mask_c[-1, :]) < 0.90:
+            mask_c = mask_c[:-1, :]
+            cropped = cropped[:-1, :]
+            changed = True
+        # Hai bên trái phải yêu cầu khắt khe hơn để ảnh nối 360 liền mạch
+        if np.mean(mask_c[:, 0]) < 0.95:
+            mask_c = mask_c[:, 1:]
+            cropped = cropped[:, 1:]
+            changed = True
+        if np.mean(mask_c[:, -1]) < 0.95:
+            mask_c = mask_c[:, :-1]
+            cropped = cropped[:, :-1]
+            changed = True
+
+        if not changed:
+            break
+
+    # Với các khoảng đen nhỏ còn sót lại ở mép gợn sóng (do tay rung lệch):
+    # Dùng Content-Aware Inpainting để tự động bù màu mượt mà theo hoa văn tường/trần kề bên
+    rem_black = (cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY) <= 10).astype(np.uint8) * 255
+    if np.sum(rem_black) > 0:
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        rem_black = cv2.dilate(rem_black, kernel, iterations=1)
+        cropped = cv2.inpaint(cropped, rem_black, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
+
+    return cropped
+
+def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
+    """
+    Nắn chỉnh và chuẩn hóa ảnh ghép thành tỷ lệ 2:1 Equirectangular chuẩn quốc tế.
+    - Mở rộng chiều cao ảnh lên 1500px - 1600px (chiếm 80% quả cầu 360°).
+    - Tự động phân tích và nội suy trần nhà (ceiling extrapolation) và nền sàn (floor extrapolation)
+      từ chính dữ liệu ảnh chụp của căn phòng, XÓA BỎ HOÀN TOÀN CÁC MẢNG XÁM TRÒN.
+    """
+    h, w = stitched_img.shape[:2]
+    target_height = target_width // 2 # 2048
+
+    # BẢO TỒN NGUYÊN BẢN TỶ LỆ HÌNH HỌC THỰC TẾ (1:1 Aspect Ratio):
+    # Chiều cao của đồ vật trong ảnh (tủ, cửa, bàn ghế) phải tuân theo đúng tiêu cự thật,
+    # tuyệt đối không ép kéo giãn chiều dọc làm đồ vật bị biến dạng cao ngoằng kỳ dị.
+    aspect_ratio = w / float(h)
+    new_w = target_width
+    new_h = int(target_width / aspect_ratio)
+    new_h = min(int(target_height * 0.85), max(700, new_h))
+
+    resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+
+    # Khâu mịn đường nối giữa cạnh trái và cạnh phải để 360° liền mạch
+    seam_blend_width = 45
+    for i in range(seam_blend_width):
+        alpha = i / float(seam_blend_width)
+        left_col = resized_pano[:, i].astype(np.float32)
+        right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
+        blended = (1 - alpha) * right_col + alpha * left_col
+        resized_pano[:, i] = blended.astype(np.uint8)
+
+    # Tạo canvas 2:1
+    canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
+    y_offset = (target_height - new_h) // 2 # ~274px từ đỉnh và đáy
+
+    # Đặt ảnh phòng vào giữa
+    canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
+
+    # 1. Nội suy mở rộng trần nhà lên đỉnh cực (+90°)
+    # Lấy mẫu màu và độ sáng của mép trên trần nhà
+    top_edge = resized_pano[0, :].astype(np.float32)
+    zenith_color = np.clip(np.median(top_edge, axis=0) * 1.05, 0, 255).astype(np.float32)
+    for y in range(y_offset):
+        t = y / float(y_offset) # 0 ở đỉnh cực, 1 ở mép ảnh
+        # Gradient mượt mà từ màu đỉnh cực tới mép ảnh thật
+        canvas[y, :] = ((1.0 - t) * zenith_color + t * top_edge).astype(np.uint8)
+
+    # 2. Nội suy mở rộng nền sàn xuống đáy cực (-90°)
+    bottom_edge = resized_pano[-1, :].astype(np.float32)
+    nadir_color = np.clip(np.median(bottom_edge, axis=0) * 0.95, 0, 255).astype(np.float32)
+    floor_start = y_offset + new_h
+    floor_height = target_height - floor_start
+    for y in range(floor_height):
+        t = y / float(floor_height) # 0 ở mép ảnh, 1 ở đáy cực
+        canvas[floor_start + y, :] = ((1.0 - t) * bottom_edge + t * nadir_color).astype(np.uint8)
+
+    # Làm mờ nhẹ vùng chuyển tiếp (feathering) 25px
+    feather = 25
+    for fi in range(feather):
+        alpha = fi / float(feather)
+        curr_top = y_offset + fi
+        canvas[curr_top, :] = ((1.0 - alpha) * canvas[y_offset - 1, :] + alpha * resized_pano[fi, :]).astype(np.uint8)
+        curr_bot = floor_start - 1 - fi
+        canvas[curr_bot, :] = ((1.0 - alpha) * canvas[floor_start, :] + alpha * resized_pano[new_h - 1 - fi, :]).astype(np.uint8)
+
+    return canvas
+
+def run_stitch(image_paths, output_path, target_width=4096):
+    """
+    Thực thi quy trình ghép ảnh:
+    - Nếu là 1 ảnh: Tự động nhận diện ảnh Pano từ điện thoại, cắt viền và nắn Equirectangular 2:1 chuẩn.
+    - Nếu là từ 2 ảnh trở lên: Ghép nối bằng OpenCV Stitcher_PANORAMA với chuẩn hóa EXIF và nắn 2:1.
+    """
+    if not image_paths or len(image_paths) < 1:
+        return {
+            "success": False,
+            "error": "ERR_TOO_FEW_IMAGES",
+            "detail": "Vui lòng chọn ít nhất 1 ảnh (ảnh PANO điện thoại) hoặc chùm ảnh rời."
+        }
+
+    # Trường hợp tải lên 1 ảnh toàn cảnh PANO trực tiếp từ iPhone / Android
+    if len(image_paths) == 1:
+        p = image_paths[0]
+        if not os.path.exists(p):
+            return {
+                "success": False,
+                "error": "ERR_FILE_NOT_FOUND",
+                "detail": f"Không tìm thấy file ảnh: {p}"
+            }
+        print(f"[*] Nhận diện 1 ảnh Panorama (chế độ PANO điện thoại). Đang nắn chuẩn Equirectangular 2:1...", file=sys.stderr)
+        try:
+            img = load_and_orient_image(p, max_dim=4096)
+            cropped = crop_black_borders(img)
+            equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width)
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+            h, w = equi_pano.shape[:2]
+            return {
+                "success": True,
+                "outputPath": output_path,
+                "width": w,
+                "height": h,
+                "aspectRatio": "2:1",
+                "message": "Đã chuẩn hóa ảnh Pano điện thoại thành toàn cảnh 360° Equirectangular 2:1 thành công."
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": "ERR_PROCESSING",
+                "detail": f"Lỗi xử lý ảnh PANO: {str(e)}"
+            }
+
+    # 1. Tự động sắp xếp thứ tự ảnh theo chuỗi xoay tự nhiên (từ trái qua phải)
+    sorted_paths = sorted(image_paths, key=lambda p: natural_sort_key(os.path.basename(p)))
+
+    print(f"[*] Đang nạp và chuẩn hóa EXIF cho {len(sorted_paths)} ảnh đầu vào...", file=sys.stderr)
+    images = []
+    for p in sorted_paths:
+        if not os.path.exists(p):
+            return {
+                "success": False,
+                "error": "ERR_FILE_NOT_FOUND",
+                "detail": f"Không tìm thấy file ảnh: {p}"
+            }
+        try:
+            img = load_and_orient_image(p, max_dim=3000)
+            images.append(img)
+        except Exception as e:
+            return {
+                "success": False,
+                "error": "ERR_CORRUPT_IMAGE",
+                "detail": f"Lỗi đọc và chuẩn hóa EXIF file ảnh {os.path.basename(p)}: {str(e)}"
+            }
+
+    print("[*] Đang khởi tạo bộ xử lý OpenCV Stitcher (Chế độ PANORAMA / Spherical)...", file=sys.stderr)
+    stitcher = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
+
+    # Cấu hình Wave Correction để cân bằng đường chân trời thẳng tắp (chống võng hình phễu)
+    try:
+        stitcher.setWaveCorrection(True)
+    except Exception:
+        pass
+
+    # Giảm ngưỡng tin cậy từ 1.0 mặc định xuống 0.35 để thuật toán thông minh, linh hoạt hơn:
+    # Chấp nhận ghép các bức ảnh chụp bằng tay bị lệch độ cao hoặc tường trắng ít hoa văn
+    try:
+        stitcher.setPanoConfidenceThresh(0.35)
+    except Exception:
+        pass
+
+    # Nâng cấp thuật toán nội suy điểm ảnh chất lượng cao LANCZOS4 chống răng cưa
+    try:
+        stitcher.setInterpolationFlags(cv2.INTER_LANCZOS4)
+    except Exception:
+        pass
+
+    status, stitched = stitcher.stitch(images)
+
+    STATUS_MAP = {
+        cv2.Stitcher_OK: "OK",
+        cv2.Stitcher_ERR_NEED_MORE_IMGS: "ERR_NEED_MORE_IMGS",
+        cv2.Stitcher_ERR_HOMOGRAPHY_EST_FAIL: "ERR_HOMOGRAPHY_EST_FAIL",
+        cv2.Stitcher_ERR_CAMERA_PARAMS_ADJUST_FAIL: "ERR_CAMERA_PARAMS_ADJUST_FAIL"
+    }
+
+    status_name = STATUS_MAP.get(status, f"UNKNOWN_ERROR_{status}")
+
+    if status != cv2.Stitcher_OK:
+        error_details = {
+            "ERR_NEED_MORE_IMGS": "Không đủ ảnh hoặc độ chồng lấp (overlap) giữa các ảnh quá ít. Khi chụp bằng điện thoại, hai ảnh kề nhau cần có ít nhất 30%-40% cảnh chung.",
+            "ERR_HOMOGRAPHY_EST_FAIL": "Không thể ước lượng ma trận tương đồng (Homography). Nguyên nhân thường do cảnh thiếu hoa văn nhận diện hoặc ảnh bị nhòe mờ khi lia máy nhanh.",
+            "ERR_CAMERA_PARAMS_ADJUST_FAIL": "Không thể hiệu chỉnh thông số thấu kính máy ảnh giữa các bức ảnh."
+        }
+        return {
+            "success": False,
+            "error": status_name,
+            "detail": error_details.get(status_name, "Lỗi không xác định trong quá trình ghép ảnh của OpenCV.")
+        }
+
+    print("[*] Ghép ảnh thành công! Đang cắt sạch viền đen và nắn chỉnh Equirectangular 2:1...", file=sys.stderr)
+    cropped = crop_black_borders(stitched)
+
+    # Chuẩn hóa về tỷ lệ Equirectangular 2:1
+    equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width)
+
+    # Lưu kết quả với chất lượng JPEG tối đa 98%
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 98])
+
+    h, w = equi_pano.shape[:2]
+    return {
+        "success": True,
+        "outputPath": output_path,
+        "width": w,
+        "height": h,
+        "aspectRatio": "2:1",
+        "message": "Đã tạo thành công ảnh toàn cảnh 360° Equirectangular chuẩn WebGL."
+    }
+
+def main():
+    parser = argparse.ArgumentParser(description="OpenCV 360 Panorama Stitching Worker")
+    parser.add_argument("--images", nargs="+", help="Danh sách đường dẫn các file ảnh cần ghép")
+    parser.add_argument("--input_json", help="File JSON chứa danh sách đường dẫn ảnh")
+    parser.add_argument("--output", required=True, help="Đường dẫn file ảnh đầu ra (.jpg)")
+    parser.add_argument("--width", type=int, default=4096, help="Chiều rộng ảnh đầu ra (mặc định: 4096)")
+
+    args = parser.parse_args()
+
+    image_paths = []
+    if args.images:
+        image_paths = args.images
+    elif args.input_json and os.path.exists(args.input_json):
+        with open(args.input_json, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            image_paths = data.get("images", [])
+
+    result = run_stitch(image_paths, args.output, target_width=args.width)
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+if __name__ == "__main__":
+    main()

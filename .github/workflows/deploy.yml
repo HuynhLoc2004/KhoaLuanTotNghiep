@@ -1,0 +1,58 @@
+name: CI/CD Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Build & Deploy via Docker Compose
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME || 'root' }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            echo ">>> [1/4] Di chuyển vào thư mục dự án..."
+            mkdir -p /root/KhoaluanTotNghiep
+            cd /root/KhoaluanTotNghiep
+
+            # Kiểm tra và cài đặt Docker nếu VPS chưa có
+            if ! command -v docker &> /dev/null; then
+              echo ">>> Đang cài đặt Docker Engine & Docker Compose..."
+              curl -fsSL https://get.docker.com | sh
+              systemctl enable docker
+              systemctl start docker
+            fi
+
+            echo ">>> [2/4] Kéo mã nguồn mới nhất từ GitHub..."
+            if [ -d ".git" ]; then
+              git fetch --all
+              git reset --hard origin/main || git reset --hard origin/master
+              git pull origin main || git pull origin master
+            fi
+
+            echo ">>> [3/4] Build & Khởi chạy các container Docker..."
+            docker compose down || true
+            docker compose up -d --build
+
+            echo ">>> [4/4] Dọn dẹp image cũ & Kiểm tra trạng thái..."
+            docker image prune -f || true
+            docker compose ps
+
+            echo "========================================================"
+            echo "🎉 CI/CD DEPLOY HOÀN TẤT THÀNH CÔNG RỰC RỠ!"
+            echo "========================================================"
