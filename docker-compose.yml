@@ -62,6 +62,10 @@ services:
       - backend
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - certbot_data:/var/www/certbot
+      - /etc/letsencrypt:/etc/letsencrypt:ro
 
 volumes:
   mongo_data:
@@ -69,4 +73,6 @@ volumes:
   uploads_data:
     driver: local
   redis_data:
+    driver: local
+  certbot_data:
     driver: local
