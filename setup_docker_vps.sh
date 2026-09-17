@@ -5,8 +5,8 @@
 set -e
 
 echo ">>> [1/4] Cập nhật Ubuntu & Cài đặt Docker Engine..."
+sudo apt-get update -y && sudo apt-get install -y curl
 if ! command -v docker &> /dev/null; then
-    sudo apt-get update -y
     curl -fsSL https://get.docker.com | sh
     sudo systemctl enable docker
     sudo systemctl start docker
