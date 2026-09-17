@@ -149,20 +149,66 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     setIsScanning(false);
   };
 
+  // Web Audio Synth Shutter Sound
+  const playShutterSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    } catch {}
+  };
+
+  const lastHeadingTimeRef = useRef<{ heading: number; time: number } | null>(null);
+
   // Hệ thống AI Hướng dẫn AR: Định vị góc sót, chỉ hướng lia cam & tự bắt ảnh khi đúng chỗ
   const analyzeGuidanceAndCapture = (heading: number, tilt: number) => {
     const currentSector = Math.floor(heading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
     const sectors = capturedSectorsRef.current;
     const isCurrentSectorCaptured = sectors.includes(currentSector);
 
-    // Kiểm tra độ cân bằng góc nhìn
+    // 1. Kiểm tra vận tốc xoay để CHỐNG NHÒE CHUYỂN ĐỘNG (Motion Blur Prevention)
+    const now = Date.now();
+    let isMovingTooFast = false;
+    if (lastHeadingTimeRef.current) {
+      const dt = (now - lastHeadingTimeRef.current.time) / 1000;
+      if (dt > 0.05 && dt < 0.5) {
+        let diff = Math.abs(heading - lastHeadingTimeRef.current.heading);
+        if (diff > 180) diff = 360 - diff;
+        const speed = diff / dt; // độ / giây
+        if (speed > 50) {
+          isMovingTooFast = true;
+        }
+      }
+    }
+    lastHeadingTimeRef.current = { heading, time: now };
+
+    if (isMovingTooFast) {
+      setGuidanceMessage({
+        text: '⚡ Đang lia máy hơi nhanh! Hãy xoay chậm lại để ảnh không bị nhòe điểm',
+        type: 'warning'
+      });
+      return; // Không chụp lúc đang lia quá nhanh để bảo toàn độ sắc nét tuyệt đối!
+    }
+
+    // 2. Kiểm tra độ cân bằng trục chân trời (Pitch balance)
     const isLevel = Math.abs(tilt) <= 6;
 
-    // 1. Tự động chụp nếu đi vào một góc chưa từng chụp hoặc xoay đủ bước góc
+    // 3. Tự động chụp nếu đi vào một góc chưa từng chụp hoặc xoay đủ bước góc
     if (!isCurrentSectorCaptured && isLevel) {
       snapFrame(heading, currentSector);
       setGuidanceMessage({
-        text: `Đã ghi nhận điểm ảnh góc ${heading}° ✓ Tiếp tục xoay từ từ...`,
+        text: `✓ Đã bắt nét điểm ảnh góc ${heading}°! Tiếp tục xoay từ từ...`,
         type: 'success',
         arrow: 'check'
       });
@@ -177,7 +223,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
     if (missingSectors.length === 0) {
       setGuidanceMessage({
-        text: '🎉 Đã bao phủ trọn vẹn 360° không gian! Bạn có thể bấm "Hoàn tất & Ghép 360°".',
+        text: '🎉 Đã bao phủ trọn vẹn 360° không gian! Bạn có thể bấm "Ghép 360°" ngay.',
         type: 'success',
         arrow: 'check'
       });
@@ -209,10 +255,10 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
     if (!isLevel) {
       setGuidanceMessage({
-        text: `⚠️ Máy đang bị nghiêng ${tilt > 0 ? '+' : ''}${tilt}°! Hãy giữ thẳng tay để bảo toàn phối cảnh góc nhìn`,
+        text: `⚠️ Máy đang bị nghiêng ${tilt > 0 ? '+' : ''}${tilt}°! Giữ thẳng máy để bảo toàn phối cảnh`,
         type: 'warning'
       });
-    } else if (minDistance > 30) {
+    } else if (minDistance > 25) {
       setGuidanceMessage({
         text: turnDirection === 'right'
           ? `👉 Xoay sang PHẢI về góc ~${targetHeading}° để bù điểm ảnh còn thiếu`
@@ -222,7 +268,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       });
     } else {
       setGuidanceMessage({
-        text: 'Giữ êm máy ở góc này để hệ thống thu nhận điểm ảnh...',
+        text: 'Đang ngắm góc cần bổ sung — Giữ êm máy để tự động chớp khung hình...',
         type: 'info'
       });
     }
@@ -253,9 +299,10 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
         });
         lastCapturedHeadingRef.current = angle;
 
-        // Rung nhẹ điện thoại để phản hồi xúc giác
+        // Phản hồi âm thanh chớp màn trập máy ảnh & rung xúc giác
+        playShutterSound();
         if ('vibrate' in navigator) {
-          navigator.vibrate(40);
+          navigator.vibrate([40, 30, 40]);
         }
       },
       'image/jpeg',
