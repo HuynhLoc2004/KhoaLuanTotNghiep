@@ -26,8 +26,19 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
   // Cảm biến góc xoay và độ nghiêng
   const [currentHeading, setCurrentHeading] = useState<number>(0); // 0 - 360°
   const [deviceTilt, setDeviceTilt] = useState<number>(0);         // -90 to +90°
+  const [guidanceMessage, setGuidanceMessage] = useState<{ text: string; type: 'info' | 'warning' | 'success'; arrow?: 'left' | 'right' | 'check' }>({
+    text: 'Bấm "Bắt đầu quét không gian" rồi hướng thẳng camera về phía trước',
+    type: 'info'
+  });
+
   const lastCapturedHeadingRef = useRef<number | null>(null);
   const isScanningRef = useRef<boolean>(false);
+  const capturedSectorsRef = useRef<number[]>([]);
+
+  // Giữ ref đồng bộ để event handler dùng giá trị mới nhất
+  useEffect(() => {
+    capturedSectorsRef.current = capturedSectors;
+  }, [capturedSectors]);
 
   // Khởi động Camera và cảm biến con quay hồi chuyển
   useEffect(() => {
@@ -52,14 +63,15 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       setCurrentHeading(heading);
 
       // 2. Góc nghiêng trước/sau (Pitch / Beta)
+      let tilt = 0;
       if (e.beta !== null) {
-        const tilt = Math.round(e.beta - 90);
+        tilt = Math.round(e.beta - 90);
         setDeviceTilt(tilt);
       }
 
-      // 3. Tự động bắt khung hình khi người dùng xoay đủ góc (~22.5° mỗi khung hình)
+      // 3. Phân tích hướng dẫn AR thông minh và phát hiện điểm thiếu
       if (isScanningRef.current) {
-        checkAndTriggerAngleCapture(heading);
+        analyzeGuidanceAndCapture(heading, tilt);
       }
     };
 
@@ -128,23 +140,82 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     setIsScanning(false);
   };
 
-  // Tự động kiểm tra và chụp khung hình dựa theo góc xoay thực tế của cơ thể
-  const checkAndTriggerAngleCapture = (heading: number) => {
-    const sectorIndex = Math.floor(heading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
+  // Hệ thống AI Hướng dẫn AR: Định vị góc sót, chỉ hướng lia cam & tự bắt ảnh khi đúng chỗ
+  const analyzeGuidanceAndCapture = (heading: number, tilt: number) => {
+    const currentSector = Math.floor(heading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
+    const sectors = capturedSectorsRef.current;
+    const isCurrentSectorCaptured = sectors.includes(currentSector);
 
-    if (lastCapturedHeadingRef.current === null) {
-      // Khung hình đầu tiên
-      snapFrame(heading, sectorIndex);
+    // Kiểm tra độ cân bằng góc nhìn
+    const isLevel = Math.abs(tilt) <= 6;
+
+    // 1. Tự động chụp nếu đi vào một góc chưa từng chụp hoặc xoay đủ bước góc
+    if (!isCurrentSectorCaptured && isLevel) {
+      snapFrame(heading, currentSector);
+      setGuidanceMessage({
+        text: `Đã ghi nhận điểm ảnh góc ${heading}° ✓ Tiếp tục xoay từ từ...`,
+        type: 'success',
+        arrow: 'check'
+      });
       return;
     }
 
-    // Tính khoảng cách góc quay so với tấm vừa chụp gần nhất
-    const diff = Math.abs(heading - lastCapturedHeadingRef.current);
-    const angleDistance = Math.min(diff, 360 - diff);
+    // Nếu góc hiện tại đã có, kiểm tra xem có góc nào bị bỏ sót không
+    const missingSectors: number[] = [];
+    for (let i = 0; i < TOTAL_SECTORS; i++) {
+      if (!sectors.includes(i)) missingSectors.push(i);
+    }
 
-    // Khi người dùng xoay người được ít nhất 20° - 25°
-    if (angleDistance >= 22) {
-      snapFrame(heading, sectorIndex);
+    if (missingSectors.length === 0) {
+      setGuidanceMessage({
+        text: '🎉 Đã bao phủ trọn vẹn 360° không gian! Bạn có thể bấm "Hoàn tất & Ghép 360°".',
+        type: 'success',
+        arrow: 'check'
+      });
+      return;
+    }
+
+    // Tìm góc thiếu gần nhất so với hướng nhìn hiện tại
+    let closestMissingSector = missingSectors[0];
+    let minDistance = 360;
+    let turnDirection: 'left' | 'right' = 'right';
+
+    missingSectors.forEach((sec) => {
+      const secHeading = sec * (360 / TOTAL_SECTORS) + (360 / TOTAL_SECTORS / 2);
+      let diff = (secHeading - heading + 360) % 360;
+      let dist = diff;
+      let dir: 'left' | 'right' = 'right';
+      if (diff > 180) {
+        dist = 360 - diff;
+        dir = 'left';
+      }
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestMissingSector = sec;
+        turnDirection = dir;
+      }
+    });
+
+    const targetHeading = Math.round(closestMissingSector * (360 / TOTAL_SECTORS) + (360 / TOTAL_SECTORS / 2));
+
+    if (!isLevel) {
+      setGuidanceMessage({
+        text: `⚠️ Máy đang bị nghiêng ${tilt > 0 ? '+' : ''}${tilt}°! Hãy giữ thẳng tay để bảo toàn phối cảnh góc nhìn`,
+        type: 'warning'
+      });
+    } else if (minDistance > 30) {
+      setGuidanceMessage({
+        text: turnDirection === 'right'
+          ? `👉 Xoay sang PHẢI về góc ~${targetHeading}° để bù điểm ảnh còn thiếu`
+          : `👈 Xoay sang TRÁI về góc ~${targetHeading}° để bù điểm ảnh còn thiếu`,
+        type: 'info',
+        arrow: turnDirection
+      });
+    } else {
+      setGuidanceMessage({
+        text: 'Giữ êm máy ở góc này để hệ thống thu nhận điểm ảnh...',
+        type: 'info'
+      });
     }
   };
 
@@ -166,7 +237,11 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
         if (!blob) return;
         const url = URL.createObjectURL(blob);
         setCapturedFrames((prev) => [...prev, { url, blob, angle }]);
-        setCapturedSectors((prev) => Array.from(new Set([...prev, sectorIndex])));
+        setCapturedSectors((prev) => {
+          const next = Array.from(new Set([...prev, sectorIndex]));
+          capturedSectorsRef.current = next;
+          return next;
+        });
         lastCapturedHeadingRef.current = angle;
 
         // Rung nhẹ điện thoại để phản hồi xúc giác
@@ -197,6 +272,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
   const handleReset = () => {
     setCapturedFrames([]);
     setCapturedSectors([]);
+    capturedSectorsRef.current = [];
     lastCapturedHeadingRef.current = null;
   };
 
@@ -441,6 +517,17 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 const x = 50 + r * Math.cos(rad);
                 const y = 50 + r * Math.sin(rad);
                 const isCaptured = capturedSectors.includes(i);
+                const isCurrent = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS === i;
+
+                let dotBg = 'rgba(255, 255, 255, 0.25)';
+                let dotShadow = 'none';
+                if (isCaptured) {
+                  dotBg = '#10B981';
+                  dotShadow = '0 0 6px #10B981';
+                } else if (isCurrent) {
+                  dotBg = '#3B82F6';
+                  dotShadow = '0 0 8px #3B82F6';
+                }
 
                 return (
                   <div
@@ -452,9 +539,9 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                       width: 8,
                       height: 8,
                       borderRadius: '50%',
-                      background: isCaptured ? '#10B981' : 'rgba(255, 255, 255, 0.25)',
-                      boxShadow: isCaptured ? '0 0 6px #10B981' : 'none',
-                      transition: 'background 0.2s ease'
+                      background: dotBg,
+                      boxShadow: dotShadow,
+                      transition: 'all 0.2s ease'
                     }}
                   />
                 );
@@ -485,30 +572,43 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
               />
             </div>
 
-            {/* 4. Banner hướng dẫn quét thông minh */}
+            {/* 4. AR Smart Guidance Overlay (Chỉ dẫn di chuyển camera thông minh) */}
             <div
               style={{
                 position: 'absolute',
                 top: 20,
-                left: 20,
-                background: 'rgba(15, 23, 42, 0.85)',
-                padding: '8px 16px',
-                borderRadius: 20,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                maxWidth: '85%',
+                background: guidanceMessage.type === 'warning'
+                  ? 'rgba(245, 158, 11, 0.92)'
+                  : guidanceMessage.type === 'success'
+                  ? 'rgba(16, 185, 129, 0.92)'
+                  : 'rgba(15, 23, 42, 0.92)',
                 color: '#FFFFFF',
-                fontSize: 12,
-                fontWeight: 600,
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                padding: '10px 20px',
+                borderRadius: 30,
+                fontSize: 13,
+                fontWeight: 700,
+                boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                border: '1.5px solid rgba(255, 255, 255, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8
+                gap: 10,
+                textAlign: 'center',
+                zIndex: 10,
+                backdropFilter: 'blur(10px)',
+                animation: 'pulse 2s infinite'
               }}
             >
-              <RotateCw size={14} className={isScanning ? 'spin' : ''} style={{ color: '#3B82F6' }} />
-              <span>
-                {isScanning
-                  ? `Đang quét: Xoay người từ từ — Đã bắt ${capturedFrames.length} khung hình (${coveragePercent}% vòng tròn)`
-                  : 'Bấm "Bắt đầu quét" rồi xoay người quanh phòng theo tốc độ của bạn'}
-              </span>
+              {guidanceMessage.type === 'warning' ? (
+                <AlertCircle size={18} />
+              ) : guidanceMessage.type === 'success' ? (
+                <CheckCircle2 size={18} />
+              ) : (
+                <Compass size={18} />
+              )}
+              <span>{guidanceMessage.text}</span>
             </div>
           </>
         )}
