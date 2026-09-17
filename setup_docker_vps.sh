@@ -5,16 +5,16 @@
 set -e
 
 echo ">>> [1/4] Cập nhật Ubuntu & Cài đặt Docker Engine..."
-sudo apt-get update -y && sudo apt-get install -y curl
 if ! command -v docker &> /dev/null; then
-    curl -fsSL https://get.docker.com | sh
-    sudo systemctl enable docker
-    sudo systemctl start docker
+    sudo apt-get update -y
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin || sudo apt-get install -y docker.io docker-compose
+    sudo systemctl enable docker || true
+    sudo systemctl start docker || true
 fi
 
-# Cài đặt docker compose plugin nếu thiếu
+# Kiểm tra docker compose
 if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
-    sudo apt-get install -y docker-compose-plugin || sudo apt-get install -y docker-compose || true
+    sudo apt-get install -y docker-compose || true
 fi
 
 COMPOSE_CMD="docker compose"
