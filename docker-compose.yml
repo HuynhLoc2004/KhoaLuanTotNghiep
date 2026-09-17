@@ -27,7 +27,7 @@ services:
       - PORT=3000
       - MONGO_URI=mongodb://mongodb:27017/museum
       - CLOUDINARY_URL=cloudinary://525596288476341:zLtV43liy-USXPkPDMmscuXum0k@djkif9ubs
-      - PUBLIC_API_URL=${PUBLIC_API_URL:-}
+      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://103.178.233.206}
     volumes:
       - uploads_data:/app/backend/public/uploads
 
