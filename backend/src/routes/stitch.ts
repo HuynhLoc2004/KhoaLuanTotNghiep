@@ -100,6 +100,27 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
 
   let stdoutData = '';
   let stderrData = '';
+  let isClosed = false;
+
+  // Giám sát Timeout 180 giây chống treo vô hạn cho tiến trình
+  const timeoutTimer = setTimeout(() => {
+    if (!isClosed) {
+      console.error('[Stitch API] Quá thời gian ghép ảnh (180s). Đang tự động kết thúc tiến trình...');
+      isClosed = true;
+      try {
+        pyProcess.kill('SIGKILL');
+      } catch (kErr) {
+        console.warn('Kill process warning:', kErr);
+      }
+      if (!res.headersSent) {
+        return res.status(504).json({
+          success: false,
+          error: 'ERR_TIMEOUT',
+          message: 'Quá trình xử lý vượt quá thời gian cho phép (180s). Vui lòng thử lại với chùm ảnh có độ chồng lấp rõ ràng hơn.'
+        });
+      }
+    }
+  }, 180000);
 
   pyProcess.stdout.on('data', (data) => {
     stdoutData += data.toString();
@@ -111,6 +132,10 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   });
 
   pyProcess.on('close', async (code) => {
+    clearTimeout(timeoutTimer);
+    if (isClosed || res.headersSent) return;
+    isClosed = true;
+
     // Dọn dẹp các file ảnh gốc tạm thời sau khi xử lý xong
     try {
       if (imagePaths.length > 0) {
@@ -124,6 +149,16 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
     }
 
     try {
+      if (!stdoutData.trim()) {
+        console.error('[Stitch API] Python worker trả về stdout rỗng. Stderr:', stderrData);
+        return res.status(500).json({
+          success: false,
+          error: 'ERR_WORKER_EMPTY_RESPONSE',
+          message: 'Không nhận được kết quả từ bộ xử lý thị giác máy tính OpenCV.',
+          rawStderr: stderrData
+        });
+      }
+
       const result = JSON.parse(stdoutData.trim());
 
       if (result.success) {

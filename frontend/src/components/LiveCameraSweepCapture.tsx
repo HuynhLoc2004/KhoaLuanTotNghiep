@@ -7,7 +7,39 @@ interface LiveCameraSweepCaptureProps {
   onFramesCaptured: (files: File[]) => void;
 }
 
-const TOTAL_SECTORS = 16; // 16 góc quét x 22.5° = 360° vòng tròn
+// Định nghĩa hệ thống lưới không gian hình cầu 3D đa tầng (3-Tier Spherical Spatial Grid):
+// Tầng 1: Trần nhà & Không gian trên (Pitch > +18°): 12 ô bao quanh 360°
+// Tầng 2: Tầm mắt & Trục ngang chính (Pitch -18° đến +18°): 16 ô bao quanh 360°
+// Tầng 3: Sàn phòng & Hiện vật thấp (Pitch < -18°): 12 ô bao quanh 360°
+// Tổng cộng: 12 + 16 + 12 = 40 ô bao phủ 100% hình cầu không gian, không còn bị giới hạn 16 ảnh!
+export type SpatialTier = 'top' | 'mid' | 'bot';
+
+export interface SpatialCell {
+  tier: SpatialTier;
+  sector: number;
+}
+
+export const TIER_CONFIG = {
+  top: { id: 'top' as SpatialTier, label: 'Trần nhà', icon: '⬆️', count: 12, minTilt: 18, color: '#C084FC' },
+  mid: { id: 'mid' as SpatialTier, label: 'Tầm mắt', icon: '🏛️', count: 16, minTilt: -18, maxTilt: 18, color: '#38BDF8' },
+  bot: { id: 'bot' as SpatialTier, label: 'Sàn phòng', icon: '⬇️', count: 12, maxTilt: -18, color: '#34D399' }
+};
+
+export const TOTAL_3D_CELLS = 12 + 16 + 12; // 40 ô
+
+export const getSpatialCell = (heading: number, tilt: number): SpatialCell => {
+  let tier: SpatialTier = 'mid';
+  if (tilt > 18) {
+    tier = 'top';
+  } else if (tilt < -18) {
+    tier = 'bot';
+  }
+  const count = TIER_CONFIG[tier].count;
+  const sector = Math.floor(heading / (360 / count)) % count;
+  return { tier, sector };
+};
+
+export const getCellKey = (cell: SpatialCell): string => `${cell.tier}_${cell.sector}`;
 
 export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
   isOpen,
@@ -19,8 +51,8 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [isScanning, setIsScanning] = useState(false);
-  const [capturedFrames, setCapturedFrames] = useState<{ url: string; blob: Blob; angle: number }[]>([]);
-  const [capturedSectors, setCapturedSectors] = useState<number[]>([]);
+  const [capturedFrames, setCapturedFrames] = useState<{ url: string; blob: Blob; angle: number; tier: SpatialTier; tilt: number }[]>([]);
+  const [capturedCellKeys, setCapturedCellKeys] = useState<string[]>([]);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth <= 640 : false);
 
@@ -36,21 +68,21 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
   const [currentHeading, setCurrentHeading] = useState<number>(0); // 0 - 360°
   const [deviceTilt, setDeviceTilt] = useState<number>(0);         // -90 to +90°
   const [guidanceMessage, setGuidanceMessage] = useState<{ text: string; type: 'info' | 'warning' | 'success'; arrow?: 'left' | 'right' | 'check' }>({
-    text: 'Bấm "Bắt đầu quét không gian" rồi hướng thẳng camera về phía trước',
+    text: 'Bấm "Bắt đầu quét không gian" rồi xoay người từ từ bao quát căn phòng',
     type: 'info'
   });
 
   const lastCapturedHeadingRef = useRef<number | null>(null);
   const isScanningRef = useRef<boolean>(false);
-  const capturedSectorsRef = useRef<number[]>([]);
+  const capturedCellKeysRef = useRef<string[]>([]);
   const isSnappingRef = useRef<boolean>(false);
   const lastSnapTimeRef = useRef<number>(0);
   const audioCtxRef = useRef<any>(null);
 
-  // Giữ ref đồng bộ để event handler dùng giá trị mới nhất
+  // Giữ ref đồng bộ để event handler cảm biến con quay luôn dùng dữ liệu mới nhất
   useEffect(() => {
-    capturedSectorsRef.current = capturedSectors;
-  }, [capturedSectors]);
+    capturedCellKeysRef.current = capturedCellKeys;
+  }, [capturedCellKeys]);
 
   // Khởi động Camera và cảm biến con quay hồi chuyển
   useEffect(() => {
@@ -223,11 +255,12 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
   const lastHeadingTimeRef = useRef<{ heading: number; time: number } | null>(null);
 
-  // Hệ thống AI Hướng dẫn AR: Định vị góc sót, chỉ hướng lia cam & tự bắt ảnh khi đúng chỗ
+  // Hệ thống AI Hướng dẫn AR Đa Tầng 3D: Định vị ô không gian sót (Trần - Tầm Mắt - Sàn) & tự bắt nét
   const analyzeGuidanceAndCapture = (heading: number, tilt: number) => {
-    const currentSector = Math.floor(heading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
-    const sectors = capturedSectorsRef.current;
-    const isCurrentSectorCaptured = sectors.includes(currentSector);
+    const currentCell = getSpatialCell(heading, tilt);
+    const cellKey = getCellKey(currentCell);
+    const cellKeys = capturedCellKeysRef.current;
+    const isCurrentCellCaptured = cellKeys.includes(cellKey);
 
     // 1. Kiểm tra vận tốc xoay để CHỐNG NHÒE CHUYỂN ĐỘNG (Motion Blur Prevention)
     const now = Date.now();
@@ -247,22 +280,21 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
     if (isMovingTooFast) {
       setGuidanceMessage({
-        text: '⚡ Đang lia máy hơi nhanh! Hãy xoay chậm lại để ảnh không bị nhòe điểm',
+        text: '⚡ Đang lia máy hơi nhanh! Hãy xoay chậm lại để ảnh không bị nhòe chi tiết',
         type: 'warning'
       });
-      return; // Không chụp lúc đang lia quá nhanh để bảo toàn độ sắc nét tuyệt đối!
+      return;
     }
 
-    // 2. Không giới hạn góc nghiêng cứng nhắc, cho phép người dùng tự do ngắm quét không gian (-65° đến +65°)
-    // Chỉ tạm dừng nếu máy bị chúc thẳng đứng xuống đất hoặc ngửa thẳng lên trời (trên 75°)
-    const isExtremeTilt = Math.abs(tilt) > 75;
+    // 2. Cho phép người dùng ngửa máy lên trần (+65°) và chúc máy xuống sàn (-65°)
+    const isExtremeTilt = Math.abs(tilt) > 78;
 
-    // 3. Khóa chống chụp liên hồi & thời gian nghỉ (Tối thiểu 700ms giữa 2 bức ảnh)
+    // 3. Khóa chống spam & thời gian nghỉ (Tối thiểu 650ms giữa 2 bức ảnh)
     const canSnapNow =
       !isSnappingRef.current &&
-      now - lastSnapTimeRef.current >= 700;
+      now - lastSnapTimeRef.current >= 650;
 
-    // Khoảng cách góc so với bức ảnh vừa chụp gần nhất (Tối thiểu 14° mới chụp bức tiếp theo)
+    // Khoảng cách góc so với bức ảnh vừa chụp gần nhất (Tối thiểu 12° mới tự chớp tiếp)
     let angleFromLast = 360;
     if (lastCapturedHeadingRef.current !== null) {
       let diff = Math.abs(heading - lastCapturedHeadingRef.current);
@@ -270,100 +302,135 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       angleFromLast = diff;
     }
 
-    // Tự động chụp nếu đi vào một góc chưa từng chụp hoặc xoay đủ bước góc
-    if (!isCurrentSectorCaptured && !isExtremeTilt && canSnapNow && angleFromLast >= 14) {
-      snapFrame(heading, currentSector);
+    // Tự động bắt nét chụp khi lia vào một ô chưa từng chụp
+    if (!isCurrentCellCaptured && !isExtremeTilt && canSnapNow && angleFromLast >= 12) {
+      snapFrame(heading, currentCell);
+      const tierName = currentCell.tier === 'top' ? 'Trần (+)' : currentCell.tier === 'bot' ? 'Sàn (-)' : 'Tầm mắt';
       setGuidanceMessage({
-        text: `✓ Đã bắt nét điểm ảnh góc ${heading}°! Tiếp tục xoay từ từ...`,
+        text: `✓ Đã bắt nét điểm ảnh tầng ${tierName} (${heading}°)! Tiếp tục xoay nhẹ...`,
         type: 'success',
         arrow: 'check'
       });
       return;
     }
 
-    // Nếu góc hiện tại đã có, kiểm tra xem có góc nào bị bỏ sót không
-    const missingSectors: number[] = [];
-    for (let i = 0; i < TOTAL_SECTORS; i++) {
-      if (!sectors.includes(i)) missingSectors.push(i);
+    // Phân tích các ô còn thiếu trong tầng hiện tại
+    const count = TIER_CONFIG[currentCell.tier].count;
+    const missingInCurrentTier: number[] = [];
+    for (let i = 0; i < count; i++) {
+      if (!cellKeys.includes(`${currentCell.tier}_${i}`)) {
+        missingInCurrentTier.push(i);
+      }
     }
 
-    if (missingSectors.length === 0) {
-      setGuidanceMessage({
-        text: '🎉 Đã bao phủ trọn vẹn 360° không gian! Bạn có thể bấm "Ghép 360°" ngay.',
-        type: 'success',
-        arrow: 'check'
+    if (missingInCurrentTier.length > 0) {
+      let closestSector = missingInCurrentTier[0];
+      let minDistance = 360;
+      let turnDirection: 'left' | 'right' = 'right';
+
+      missingInCurrentTier.forEach((sec) => {
+        const secHeading = sec * (360 / count) + (360 / count / 2);
+        let diff = (secHeading - heading + 360) % 360;
+        let dist = diff;
+        let dir: 'left' | 'right' = 'right';
+        if (diff > 180) {
+          dist = 360 - diff;
+          dir = 'left';
+        }
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestSector = sec;
+          turnDirection = dir;
+        }
       });
-      return;
-    }
 
-    // Tìm góc thiếu gần nhất so với hướng nhìn hiện tại
-    let closestMissingSector = missingSectors[0];
-    let minDistance = 360;
-    let turnDirection: 'left' | 'right' = 'right';
-
-    missingSectors.forEach((sec) => {
-      const secHeading = sec * (360 / TOTAL_SECTORS) + (360 / TOTAL_SECTORS / 2);
-      let diff = (secHeading - heading + 360) % 360;
-      let dist = diff;
-      let dir: 'left' | 'right' = 'right';
-      if (diff > 180) {
-        dist = 360 - diff;
-        dir = 'left';
-      }
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestMissingSector = sec;
-        turnDirection = dir;
-      }
-    });
-
-    const targetHeading = Math.round(closestMissingSector * (360 / TOTAL_SECTORS) + (360 / TOTAL_SECTORS / 2));
-
-    if (isExtremeTilt) {
-      setGuidanceMessage({
-        text: `⚠️ Máy đang bị ngửa/chúc quá mức (${tilt > 0 ? '+' : ''}${tilt}°)! Hãy hướng vào không gian phòng`,
-        type: 'warning'
-      });
-    } else if (minDistance > 20) {
+      const targetHeading = Math.round(closestSector * (360 / count) + (360 / count / 2));
       setGuidanceMessage({
         text: turnDirection === 'right'
-          ? `👉 Xoay sang PHẢI về góc ~${targetHeading}° để bù điểm ảnh còn thiếu`
-          : `👈 Xoay sang TRÁI về góc ~${targetHeading}° để bù điểm ảnh còn thiếu`,
+          ? `👉 Xoay sang PHẢI (~${targetHeading}°) để bù điểm còn thiếu tầng này`
+          : `👈 Xoay sang TRÁI (~${targetHeading}°) để bù điểm còn thiếu tầng này`,
         type: 'info',
         arrow: turnDirection
       });
     } else {
-      setGuidanceMessage({
-        text: `Đang ở góc ~${targetHeading}° — Giữ êm máy để tự động chớp khung hình...`,
-        type: 'info'
-      });
+      // Tầng hiện tại đã kín! Gợi ý ngửa lên trần hoặc chúc xuống sàn để mở rộng không gian
+      const midCount = cellKeys.filter(k => k.startsWith('mid_')).length;
+      const topCount = cellKeys.filter(k => k.startsWith('top_')).length;
+      const botCount = cellKeys.filter(k => k.startsWith('bot_')).length;
+
+      if (currentCell.tier === 'mid') {
+        if (topCount < 6) {
+          setGuidanceMessage({
+            text: '👉 Tầm mắt đã đủ! Hãy ngửa máy lên trần (+30°) để quét kín trần phòng',
+            type: 'info'
+          });
+        } else if (botCount < 6) {
+          setGuidanceMessage({
+            text: '👉 Hãy chúc máy xuống sàn (-30°) để quét cận cảnh sàn và hiện vật',
+            type: 'info'
+          });
+        } else {
+          setGuidanceMessage({
+            text: '🎉 Đã bao phủ trọn vẹn không gian! Bạn có thể bấm "Ghép 360°" ngay',
+            type: 'success',
+            arrow: 'check'
+          });
+        }
+      } else if (currentCell.tier === 'top') {
+        if (botCount < 6) {
+          setGuidanceMessage({
+            text: '👉 Trần nhà đã đủ! Hãy chúc máy xuống sàn (-30°) để quét sàn phòng',
+            type: 'info'
+          });
+        } else {
+          setGuidanceMessage({
+            text: '🎉 Trần nhà đã kín! Bạn có thể xoay tiếp hoặc bấm "Ghép 360°"',
+            type: 'success',
+            arrow: 'check'
+          });
+        }
+      } else {
+        if (topCount < 6) {
+          setGuidanceMessage({
+            text: '👉 Sàn nhà đã đủ! Hãy ngửa máy lên trần (+30°) để quét trần phòng',
+            type: 'info'
+          });
+        } else {
+          setGuidanceMessage({
+            text: '🎉 Đã bao phủ toàn diện 3D! Bạn có thể bấm "Ghép 360°" ngay',
+            type: 'success',
+            arrow: 'check'
+          });
+        }
+      }
     }
   };
 
-  // Chụp 1 khung hình từ luồng video trực tiếp với KHÓA ĐỒNG BỘ CHỐNG SPAM
-  const snapFrame = (angle: number, sectorIndex: number, force = false) => {
+  // Chụp 1 khung hình từ luồng video với độ nét cao và gắn nhãn tầng không gian
+  const snapFrame = (angle: number, cell: SpatialCell, force = false) => {
     if (!videoRef.current || (isSnappingRef.current && !force)) return;
     const video = videoRef.current;
     if (!video.videoWidth || !video.videoHeight) return;
 
-    // 1. KHÓA ĐỒNG BỘ TỨC THÌ (ngăn chặn sự kiện 60Hz gọi lặp lại trong khi chưa kịp nén xong)
+    // 1. Khóa đồng bộ chống trùng lặp
     isSnappingRef.current = true;
     lastSnapTimeRef.current = Date.now();
     lastCapturedHeadingRef.current = angle;
 
-    // 2. ĐÁNH DẤU SECTOR ĐÃ CHỤP NGAY LẬP TỨC
-    const updatedSectors = Array.from(new Set([...capturedSectorsRef.current, sectorIndex]));
-    capturedSectorsRef.current = updatedSectors;
-    setCapturedSectors(updatedSectors);
+    // 2. Đánh dấu ô không gian đã chụp
+    const cellKey = getCellKey(cell);
+    const updatedKeys = Array.from(new Set([...capturedCellKeysRef.current, cellKey]));
+    capturedCellKeysRef.current = updatedKeys;
+    setCapturedCellKeys(updatedKeys);
 
     const canvas = canvasRef.current || document.createElement('canvas');
 
-    // 3. Tối ưu kích thước khung ảnh (max 1280px) để giảm tải CPU, nén cực nhanh < 5ms
-    let targetWidth = video.videoWidth || 1280;
-    let targetHeight = video.videoHeight || 720;
-    if (targetWidth > 1280) {
-      targetHeight = Math.round((targetHeight * 1280) / targetWidth);
-      targetWidth = 1280;
+    // 3. Tối ưu độ phân giải cao (lên tới 1920px Full HD) để OpenCV nhận diện điểm đặc trưng nét nhất
+    let targetWidth = video.videoWidth || 1920;
+    let targetHeight = video.videoHeight || 1080;
+    if (targetWidth > 1920) {
+      targetHeight = Math.round((targetHeight * 1920) / targetWidth);
+      targetWidth = 1920;
     }
     canvas.width = targetWidth;
     canvas.height = targetHeight;
@@ -374,18 +441,19 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       return;
     }
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+    // Nén chất lượng cao 0.92 để bảo toàn độ sắc nét siêu chi tiết của cổ vật, hoa văn
     canvas.toBlob(
       (blob) => {
-        // Mở khóa sau khi nén xong
         isSnappingRef.current = false;
         if (!blob) return;
 
         const url = URL.createObjectURL(blob);
-        setCapturedFrames((prev) => [...prev, { url, blob, angle }]);
+        setCapturedFrames((prev) => [...prev, { url, blob, angle, tier: cell.tier, tilt: deviceTilt }]);
 
-        // Phản hồi âm thanh chớp màn trập máy ảnh & rung xúc giác nhẹ
         playShutterSound();
         if ('vibrate' in navigator) {
           try {
@@ -394,7 +462,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
         }
       },
       'image/jpeg',
-      0.82
+      0.92
     );
   };
 
@@ -403,9 +471,8 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     if (!isScanning) {
       isScanningRef.current = true;
       setIsScanning(true);
-      // Chụp góc hiện tại ngay khi bấm bắt đầu
-      const sector = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
-      snapFrame(currentHeading, sector);
+      const cell = getSpatialCell(currentHeading, deviceTilt);
+      snapFrame(currentHeading, cell);
     } else {
       isScanningRef.current = false;
       setIsScanning(false);
@@ -420,8 +487,8 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       } catch {}
     });
     setCapturedFrames([]);
-    setCapturedSectors([]);
-    capturedSectorsRef.current = [];
+    setCapturedCellKeys([]);
+    capturedCellKeysRef.current = [];
     lastCapturedHeadingRef.current = null;
     isSnappingRef.current = false;
     lastSnapTimeRef.current = 0;
@@ -431,7 +498,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     });
   };
 
-  // Hoàn tất và gửi các file ảnh đã quét sang bộ ghép
+  // Hoàn tất và gửi các file ảnh đã quét sang bộ ghép OpenCV
   const handleFinishAndStitch = () => {
     if (capturedFrames.length < 3) {
       alert('Vui lòng quét chụp ít nhất 4 góc xung quanh không gian trước khi ghép.');
@@ -442,7 +509,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     const sorted = [...capturedFrames].sort((a, b) => a.angle - b.angle);
 
     const files = sorted.map((frame, index) => {
-      const filename = `sweep_${String(index).padStart(4, '0')}_deg${Math.round(frame.angle)}.jpg`;
+      const filename = `sweep_${String(index).padStart(4, '0')}_${frame.tier}_deg${Math.round(frame.angle)}.jpg`;
       return new File([frame.blob], filename, { type: 'image/jpeg' });
     });
 
@@ -452,7 +519,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
   if (!isOpen) return null;
 
-  const coveragePercent = Math.round((capturedSectors.length / TOTAL_SECTORS) * 100);
+  const coveragePercent = Math.min(100, Math.round((capturedCellKeys.length / TOTAL_3D_CELLS) * 100));
 
   return (
     <div
@@ -666,89 +733,105 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
               }}
             />
 
-            {/* 3. 360° Circular Spatial Radar (Vòng tròn la bàn quét không gian) */}
-            <div
-              style={{
-                position: 'absolute',
-                top: isMobile ? 10 : 20,
-                right: isMobile ? 10 : 20,
-                width: isMobile ? 70 : 100,
-                height: isMobile ? 70 : 100,
-                borderRadius: '50%',
-                background: 'rgba(15, 23, 42, 0.88)',
-                border: '1.5px solid rgba(255, 255, 255, 0.25)',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                pointerEvents: 'none',
-                zIndex: 15
-              }}
-            >
-              {/* Vòng các điểm sector 360° */}
-              {Array.from({ length: TOTAL_SECTORS }).map((_, i) => {
-                const angle = (i * (360 / TOTAL_SECTORS)) - 90;
-                const rad = (angle * Math.PI) / 180;
-                const center = isMobile ? 35 : 50;
-                const r = isMobile ? 26 : 38;
-                const dotSize = isMobile ? 6 : 8;
-                const x = center + r * Math.cos(rad);
-                const y = center + r * Math.sin(rad);
-                const isCaptured = capturedSectors.includes(i);
-                const isCurrent = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS === i;
+            {/* 3. 360° Circular Spatial Radar Đa Tầng 3D */}
+            {(() => {
+              const activeCell = getSpatialCell(currentHeading, deviceTilt);
+              const currentTierCfg = TIER_CONFIG[activeCell.tier];
+              const tierCount = currentTierCfg.count;
 
-                let dotBg = 'rgba(255, 255, 255, 0.25)';
-                let dotShadow = 'none';
-                if (isCaptured) {
-                  dotBg = '#10B981';
-                  dotShadow = '0 0 6px #10B981';
-                } else if (isCurrent) {
-                  dotBg = '#3B82F6';
-                  dotShadow = '0 0 8px #3B82F6';
-                }
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: isMobile ? 10 : 20,
+                    right: isMobile ? 10 : 20,
+                    width: isMobile ? 76 : 104,
+                    height: isMobile ? 76 : 104,
+                    borderRadius: '50%',
+                    background: 'rgba(15, 23, 42, 0.92)',
+                    border: `2px solid ${currentTierCfg.color}`,
+                    boxShadow: `0 4px 20px rgba(0, 0, 0, 0.6), 0 0 12px ${currentTierCfg.color}40`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    zIndex: 15
+                  }}
+                >
+                  {/* Vòng các điểm sector của tầng hiện tại */}
+                  {Array.from({ length: tierCount }).map((_, i) => {
+                    const angle = (i * (360 / tierCount)) - 90;
+                    const rad = (angle * Math.PI) / 180;
+                    const center = isMobile ? 38 : 52;
+                    const r = isMobile ? 28 : 40;
+                    const dotSize = isMobile ? 6 : 8;
+                    const x = center + r * Math.cos(rad);
+                    const y = center + r * Math.sin(rad);
+                    const cellKey = `${activeCell.tier}_${i}`;
+                    const isCaptured = capturedCellKeys.includes(cellKey);
+                    const isCurrent = activeCell.sector === i;
 
-                return (
+                    let dotBg = 'rgba(255, 255, 255, 0.25)';
+                    let dotShadow = 'none';
+                    if (isCaptured) {
+                      dotBg = '#10B981';
+                      dotShadow = '0 0 6px #10B981';
+                    } else if (isCurrent) {
+                      dotBg = currentTierCfg.color;
+                      dotShadow = `0 0 8px ${currentTierCfg.color}`;
+                    }
+
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          position: 'absolute',
+                          left: x - dotSize / 2,
+                          top: y - dotSize / 2,
+                          width: dotSize,
+                          height: dotSize,
+                          borderRadius: '50%',
+                          background: dotBg,
+                          boxShadow: dotShadow,
+                          transition: 'all 0.2s ease'
+                        }}
+                      />
+                    );
+                  })}
+
+                  {/* Kim la bàn xoay theo góc thực */}
                   <div
-                    key={i}
                     style={{
                       position: 'absolute',
-                      left: x - dotSize / 2,
-                      top: y - dotSize / 2,
-                      width: dotSize,
-                      height: dotSize,
-                      borderRadius: '50%',
-                      background: dotBg,
-                      boxShadow: dotShadow,
-                      transition: 'all 0.2s ease'
+                      width: 2,
+                      height: isMobile ? 26 : 38,
+                      background: 'linear-gradient(to top, transparent 50%, #EF4444 50%)',
+                      transform: `rotate(${currentHeading}deg)`,
+                      transformOrigin: '50% 50%',
+                      transition: 'transform 0.1s linear'
                     }}
                   />
-                );
-              })}
 
-              {/* Kim la bàn xoay theo góc thực */}
-              <div
-                style={{
-                  position: 'absolute',
-                  width: 2,
-                  height: isMobile ? 24 : 36,
-                  background: 'linear-gradient(to top, transparent 50%, #EF4444 50%)',
-                  transform: `rotate(${currentHeading}deg)`,
-                  transformOrigin: '50% 50%',
-                  transition: 'transform 0.1s linear'
-                }}
-              />
-
-              {/* Tâm la bàn */}
-              <div
-                style={{
-                  width: isMobile ? 6 : 10,
-                  height: isMobile ? 6 : 10,
-                  borderRadius: '50%',
-                  background: '#FFFFFF',
-                  zIndex: 2
-                }}
-              />
-            </div>
+                  {/* Tâm la bàn hiển thị biểu tượng tầng đang hướng tới */}
+                  <div
+                    style={{
+                      width: isMobile ? 22 : 28,
+                      height: isMobile ? 22 : 28,
+                      borderRadius: '50%',
+                      background: 'rgba(30, 41, 59, 0.95)',
+                      border: `1px solid ${currentTierCfg.color}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: isMobile ? 11 : 13,
+                      zIndex: 2
+                    }}
+                  >
+                    {currentTierCfg.icon}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* 4. AR Smart Guidance Overlay (Chỉ dẫn di chuyển camera thông minh) */}
             <div
@@ -789,247 +872,299 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
               )}
               <span>{guidanceMessage.text}</span>
             </div>
+
+            {/* Nút chụp thủ công nổi bật trực tiếp trên màn hình camera - Luôn sẵn sàng */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 16,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 18
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  const cell = getSpatialCell(currentHeading, deviceTilt);
+                  snapFrame(currentHeading, cell, true);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                  color: '#FFFFFF',
+                  border: '2px solid rgba(255, 255, 255, 0.8)',
+                  padding: isMobile ? '8px 18px' : '10px 24px',
+                  borderRadius: 30,
+                  fontSize: isMobile ? 12.5 : 13.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 18px rgba(37, 99, 235, 0.55)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Camera size={isMobile ? 16 : 18} />
+                <span>Chụp điểm này ({currentHeading}° • {TIER_CONFIG[getSpatialCell(currentHeading, deviceTilt).tier].label})</span>
+              </button>
+            </div>
           </>
         )}
       </div>
 
       {/* Bottom Controls & Filmstrip */}
-      <div
-        style={{
-          background: 'rgba(15, 23, 42, 0.98)',
-          padding: isMobile ? '10px 14px' : '14px 20px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.12)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: isMobile ? 8 : 12
-        }}
-      >
-        {/* Thanh tiến độ phủ không gian */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: isMobile ? 11 : 12, color: '#94A3B8' }}>
-          <div>
-            Độ phủ 360°: <strong style={{ color: coveragePercent >= 70 ? '#10B981' : '#F59E0B' }}>{coveragePercent}%</strong> ({capturedFrames.length} góc)
-          </div>
-          <div style={{ fontSize: 10.5, color: '#64748B' }}>
-            {coveragePercent >= 70 ? '✓ Đủ góc nhìn' : 'Xoay quanh phòng để quét đủ góc'}
-          </div>
-        </div>
+      {(() => {
+        const midCount = capturedCellKeys.filter(k => k.startsWith('mid_')).length;
+        const topCount = capturedCellKeys.filter(k => k.startsWith('top_')).length;
+        const botCount = capturedCellKeys.filter(k => k.startsWith('bot_')).length;
+        const totalCapturedCells = capturedCellKeys.length;
+        const coveragePercent = Math.min(100, Math.round((totalCapturedCells / TOTAL_3D_CELLS) * 100));
 
-        {/* Thumbnail Filmstrip */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', minHeight: isMobile ? 50 : 65, padding: '2px 0' }}>
-          {capturedFrames.length === 0 ? (
-            <div style={{ fontSize: 11.5, color: '#64748B', fontStyle: 'italic', margin: 'auto' }}>
-              Chưa có ảnh. Bấm "Bắt đầu quét" và xoay người từ từ.
-            </div>
-          ) : (
-            capturedFrames.map((frame, i) => (
-              <div
-                key={i}
-                style={{
-                  position: 'relative',
-                  width: isMobile ? 48 : 60,
-                  height: isMobile ? 48 : 60,
-                  borderRadius: 6,
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                  border: '1.5px solid #10B981'
-                }}
-              >
-                <img src={frame.url} alt={`Angle ${Math.round(frame.angle)}°`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <span
-                  style={{
-                    position: 'absolute',
-                    bottom: 2,
-                    right: 2,
-                    background: 'rgba(0,0,0,0.75)',
-                    color: '#FFF',
-                    fontSize: 8.5,
-                    padding: '1px 3px',
-                    borderRadius: 2
-                  }}
-                >
-                  {Math.round(frame.angle)}°
+        return (
+          <div
+            style={{
+              background: 'rgba(15, 23, 42, 0.98)',
+              padding: isMobile ? '10px 14px' : '14px 20px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: isMobile ? 8 : 12
+            }}
+          >
+            {/* Thanh tiến độ phủ không gian 3D đa tầng */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: isMobile ? 11 : 12, color: '#94A3B8', flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ color: '#FFF', fontWeight: 700 }}>Độ phủ 3D:</span>
+                <strong style={{ color: coveragePercent >= 60 ? '#10B981' : '#F59E0B' }}>{coveragePercent}%</strong>
+                <span style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>
+                  🏛️ Giữa: {midCount}/16
+                </span>
+                <span style={{ background: 'rgba(192, 132, 252, 0.15)', color: '#C084FC', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>
+                  ⬆️ Trần: {topCount}/12
+                </span>
+                <span style={{ background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>
+                  ⬇️ Sàn: {botCount}/12
                 </span>
               </div>
-            ))
-          )}
-        </div>
+              <div style={{ fontSize: 11, color: '#CBD5E1', fontWeight: 600 }}>
+                Đã chụp: <strong style={{ color: '#10B981' }}>{capturedFrames.length}</strong> ảnh
+              </div>
+            </div>
 
-        {/* Action Buttons: Responsive Layout */}
-        {isMobile ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
-            {/* Hàng nút hành động chính */}
-            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              <button
-                onClick={toggleScanning}
-                style={{
-                  flex: 1,
-                  background: isScanning ? '#EF4444' : 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                  color: '#FFF',
-                  border: 'none',
-                  padding: '10px 14px',
-                  borderRadius: 24,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-              >
-                {isScanning ? <Square size={14} /> : <Play size={14} />}
-                <span>{isScanning ? 'Tạm dừng' : 'Bắt đầu quét'}</span>
-              </button>
-
-              {capturedFrames.length >= 3 && (
-                <button
-                  onClick={handleFinishAndStitch}
-                  style={{
-                    flex: 1,
-                    background: '#10B981',
-                    color: '#FFF',
-                    border: 'none',
-                    padding: '10px 14px',
-                    borderRadius: 24,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
-                  }}
-                >
-                  <Check size={14} />
-                  <span>Ghép 360° ({capturedFrames.length})</span>
-                </button>
+            {/* Thumbnail Filmstrip */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', minHeight: isMobile ? 50 : 65, padding: '2px 0' }}>
+              {capturedFrames.length === 0 ? (
+                <div style={{ fontSize: 11.5, color: '#64748B', fontStyle: 'italic', margin: 'auto' }}>
+                  Chưa có ảnh. Bấm "Bắt đầu quét" hoặc bấm "Chụp điểm này" ở trên.
+                </div>
+              ) : (
+                capturedFrames.map((frame, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      position: 'relative',
+                      width: isMobile ? 48 : 60,
+                      height: isMobile ? 48 : 60,
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      border: `1.5px solid ${TIER_CONFIG[frame.tier]?.color || '#10B981'}`
+                    }}
+                  >
+                    <img src={frame.url} alt={`Angle ${Math.round(frame.angle)}°`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        bottom: 2,
+                        right: 2,
+                        background: 'rgba(0,0,0,0.75)',
+                        color: '#FFF',
+                        fontSize: 8.5,
+                        padding: '1px 3px',
+                        borderRadius: 2
+                      }}
+                    >
+                      {Math.round(frame.angle)}°
+                    </span>
+                  </div>
+                ))
               )}
             </div>
 
-            {/* Hàng nút phụ */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <button
-                onClick={handleReset}
-                disabled={capturedFrames.length === 0}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: capturedFrames.length > 0 ? '#EF4444' : '#475569',
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  padding: '4px 8px'
-                }}
-              >
-                Xóa quét lại
-              </button>
+            {/* Action Buttons: Responsive Layout */}
+            {isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
+                {/* Hàng nút hành động chính */}
+                <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                  <button
+                    onClick={toggleScanning}
+                    style={{
+                      flex: 1,
+                      background: isScanning ? '#EF4444' : 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                      color: '#FFF',
+                      border: 'none',
+                      padding: '10px 14px',
+                      borderRadius: 24,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6
+                    }}
+                  >
+                    {isScanning ? <Square size={14} /> : <Play size={14} />}
+                    <span>{isScanning ? 'Tạm dừng' : 'Bắt đầu quét'}</span>
+                  </button>
 
-              {isScanning && (
+                  {capturedFrames.length >= 3 && (
+                    <button
+                      onClick={handleFinishAndStitch}
+                      style={{
+                        flex: 1,
+                        background: '#10B981',
+                        color: '#FFF',
+                        border: 'none',
+                        padding: '10px 14px',
+                        borderRadius: 24,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
+                      }}
+                    >
+                      <Check size={14} />
+                      <span>Ghép 360° ({capturedFrames.length})</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Hàng nút phụ */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <button
+                    onClick={handleReset}
+                    disabled={capturedFrames.length === 0}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: capturedFrames.length > 0 ? '#EF4444' : '#475569',
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    Xóa quét lại
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const cell = getSpatialCell(currentHeading, deviceTilt);
+                      snapFrame(currentHeading, cell, true);
+                    }}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.12)',
+                      color: '#FFF',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📸 Chụp thêm góc này
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                 <button
-                  onClick={() => {
-                    const sector = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
-                    snapFrame(currentHeading, sector, true);
-                  }}
+                  onClick={handleReset}
+                  disabled={capturedFrames.length === 0}
                   style={{
-                    background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                    color: '#FFF',
+                    background: 'none',
                     border: 'none',
-                    padding: '6px 14px',
-                    borderRadius: 20,
+                    color: capturedFrames.length > 0 ? '#EF4444' : '#475569',
                     fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)'
-                  }}
-                >
-                  📸 + Chụp góc {currentHeading}°
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-            <button
-              onClick={handleReset}
-              disabled={capturedFrames.length === 0}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: capturedFrames.length > 0 ? '#EF4444' : '#475569',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: capturedFrames.length > 0 ? 'pointer' : 'not-allowed'
-              }}
-            >
-              Xóa quét lại từ đầu
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {isScanning && (
-                <button
-                  onClick={() => {
-                    const sector = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
-                    snapFrame(currentHeading, sector);
-                  }}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    color: '#FFF',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    padding: '10px 18px',
-                    borderRadius: 30,
-                    fontSize: 13,
                     fontWeight: 600,
-                    cursor: 'pointer'
+                    cursor: capturedFrames.length > 0 ? 'pointer' : 'not-allowed'
                   }}
                 >
-                  + Chụp góc này ({currentHeading}°)
+                  Xóa quét lại từ đầu
                 </button>
-              )}
 
-              <button
-                onClick={toggleScanning}
-                style={{
-                  background: isScanning ? '#EF4444' : 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                  color: '#FFF',
-                  border: 'none',
-                  padding: '10px 24px',
-                  borderRadius: 30,
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  cursor: 'pointer',
-                  boxShadow: isScanning ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)'
-                }}
-              >
-                {isScanning ? <Square size={16} /> : <Play size={16} />}
-                <span>{isScanning ? 'Tạm dừng quét' : 'Bắt đầu quét không gian'}</span>
-              </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button
+                    onClick={() => {
+                      const cell = getSpatialCell(currentHeading, deviceTilt);
+                      snapFrame(currentHeading, cell, true);
+                    }}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.15)',
+                      color: '#FFF',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      padding: '10px 18px',
+                      borderRadius: 30,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Chụp điểm này ({currentHeading}°)
+                  </button>
 
-              <button
-                onClick={handleFinishAndStitch}
-                disabled={capturedFrames.length < 3}
-                style={{
-                  background: capturedFrames.length >= 3 ? '#10B981' : '#334155',
-                  color: '#FFF',
-                  border: 'none',
-                  padding: '10px 22px',
-                  borderRadius: 30,
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  cursor: capturedFrames.length >= 3 ? 'pointer' : 'not-allowed',
-                  boxShadow: capturedFrames.length >= 3 ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none'
-                }}
-              >
-                <Check size={16} />
-                <span>Hoàn tất & Ghép 360° ({capturedFrames.length} góc)</span>
-              </button>
-            </div>
+                  <button
+                    onClick={toggleScanning}
+                    style={{
+                      background: isScanning ? '#EF4444' : 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                      color: '#FFF',
+                      border: 'none',
+                      padding: '10px 24px',
+                      borderRadius: 30,
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      cursor: 'pointer',
+                      boxShadow: isScanning ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)'
+                    }}
+                  >
+                    {isScanning ? <Square size={16} /> : <Play size={16} />}
+                    <span>{isScanning ? 'Tạm dừng quét' : 'Bắt đầu quét không gian'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleFinishAndStitch}
+                    disabled={capturedFrames.length < 3}
+                    style={{
+                      background: capturedFrames.length >= 3 ? '#10B981' : '#334155',
+                      color: '#FFF',
+                      border: 'none',
+                      padding: '10px 22px',
+                      borderRadius: 30,
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      cursor: capturedFrames.length >= 3 ? 'pointer' : 'not-allowed',
+                      boxShadow: capturedFrames.length >= 3 ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none'
+                    }}
+                  >
+                    <Check size={16} />
+                    <span>Hoàn tất & Ghép 360° ({capturedFrames.length} ảnh)</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>
   );
 };

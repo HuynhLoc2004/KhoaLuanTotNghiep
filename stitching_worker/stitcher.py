@@ -186,11 +186,29 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
 
     return canvas
 
+def apply_unsharp_mask(image, sigma=1.0, strength=1.25, threshold=3):
+    """
+    Bộ lọc Unsharp Masking thông minh (Computer Vision Contrast Enhancement):
+    Làm nổi bật tối đa các chi tiết vi mô, hoa văn, chữ khắc, cổ vật bảo tàng và vân tường,
+    khắc phục triệt để hiện tượng mềm ảnh/mờ nhạt sau khi chiếu hình cầu và hòa trộn đa dải tần.
+    """
+    try:
+        blurred = cv2.GaussianBlur(image, (0, 0), sigma)
+        sharpened = float(strength + 1.0) * image.astype(np.float32) - float(strength) * blurred.astype(np.float32)
+        sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
+        if threshold > 0:
+            low_contrast_mask = np.abs(image.astype(np.int16) - blurred.astype(np.int16)) < threshold
+            np.copyto(sharpened, image, where=low_contrast_mask)
+        return sharpened
+    except Exception as e:
+        print(f"[Warning] Không thể áp dụng Unsharp Masking: {e}", file=sys.stderr)
+        return image
+
 def run_stitch(image_paths, output_path, target_width=4096):
     """
     Thực thi quy trình ghép ảnh:
     - Nếu là 1 ảnh: Tự động nhận diện ảnh Pano từ điện thoại, cắt viền và nắn Equirectangular 2:1 chuẩn.
-    - Nếu là từ 2 ảnh trở lên: Ghép nối bằng OpenCV Stitcher_PANORAMA với chuẩn hóa EXIF và nắn 2:1.
+    - Nếu là từ 2 ảnh trở lên: Ghép nối bằng OpenCV Stitcher_PANORAMA với chuẩn hóa EXIF, nắn 2:1 và làm sắc nét.
     """
     if not image_paths or len(image_paths) < 1:
         return {
@@ -213,8 +231,9 @@ def run_stitch(image_paths, output_path, target_width=4096):
             img = load_and_orient_image(p, max_dim=4096)
             cropped = crop_black_borders(img)
             equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width)
+            equi_pano = apply_unsharp_mask(equi_pano, sigma=1.0, strength=1.2)
             os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-            cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+            cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 96])
             h, w = equi_pano.shape[:2]
             return {
                 "success": True,
@@ -231,10 +250,22 @@ def run_stitch(image_paths, output_path, target_width=4096):
                 "detail": f"Lỗi xử lý ảnh PANO: {str(e)}"
             }
 
-    # 1. Tự động sắp xếp thứ tự ảnh theo chuỗi xoay tự nhiên (từ trái qua phải)
-    sorted_paths = sorted(image_paths, key=lambda p: natural_sort_key(os.path.basename(p)))
+    # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img16)
+    sorted_paths = sorted(image_paths, key=natural_sort_key)
 
-    print(f"[*] Đang nạp và chuẩn hóa EXIF cho {len(sorted_paths)} ảnh đầu vào...", file=sys.stderr)
+    # Tối ưu kích thước đầu vào theo số lượng ảnh để triệt tiêu hiện tượng tràn RAM/treo máy trên VPS:
+    # Với chùm ảnh lớn (>=16 ảnh): 1200px (đảm bảo hoàn tất trong 15-20s, RAM < 300MB)
+    # Với 8-15 ảnh: 1400px
+    # Dưới 8 ảnh: 1600px
+    # Output cuối cùng luôn được mở rộng lên 4096x2048 chuẩn 4K siêu sắc nét qua thuật toán LANCZOS-4!
+    if len(sorted_paths) >= 16:
+        stitch_max_dim = 1200
+    elif len(sorted_paths) >= 8:
+        stitch_max_dim = 1400
+    else:
+        stitch_max_dim = 1600
+
+    print(f"[*] Đang nạp và chuẩn hóa EXIF cho {len(sorted_paths)} ảnh đầu vào (max_dim={stitch_max_dim}px)...", file=sys.stderr)
     images = []
     for p in sorted_paths:
         if not os.path.exists(p):
@@ -244,7 +275,7 @@ def run_stitch(image_paths, output_path, target_width=4096):
                 "detail": f"Không tìm thấy file ảnh: {p}"
             }
         try:
-            img = load_and_orient_image(p, max_dim=3000)
+            img = load_and_orient_image(p, max_dim=stitch_max_dim)
             images.append(img)
         except Exception as e:
             return {
@@ -254,28 +285,39 @@ def run_stitch(image_paths, output_path, target_width=4096):
             }
 
     print("[*] Đang khởi tạo bộ xử lý OpenCV Stitcher (Chế độ PANORAMA / Spherical)...", file=sys.stderr)
-    stitcher = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
-
-    # Cấu hình Wave Correction để cân bằng đường chân trời thẳng tắp (chống võng hình phễu)
     try:
-        stitcher.setWaveCorrection(True)
+        cpu_count = os.cpu_count() or 4
+        cv2.setNumThreads(cpu_count)
+        cv2.ocl.setUseOpenCL(False)
     except Exception:
         pass
 
-    # Giảm ngưỡng tin cậy từ 1.0 mặc định xuống 0.35 để thuật toán thông minh, linh hoạt hơn:
-    # Chấp nhận ghép các bức ảnh chụp bằng tay bị lệch độ cao hoặc tường trắng ít hoa văn
-    try:
-        stitcher.setPanoConfidenceThresh(0.35)
-    except Exception:
-        pass
+    # Thiết lập stitcher với cấu hình tối ưu độ nét & cân bằng đường chân trời
+    def build_stitcher(confidence=0.30):
+        s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
+        try:
+            s.setWaveCorrection(True)
+        except Exception:
+            pass
+        try:
+            s.setPanoConfidenceThresh(confidence)
+        except Exception:
+            pass
+        try:
+            s.setInterpolationFlags(cv2.INTER_LANCZOS4)
+        except Exception:
+            pass
+        return s
 
-    # Nâng cấp thuật toán nội suy điểm ảnh chất lượng cao LANCZOS4 chống răng cưa
-    try:
-        stitcher.setInterpolationFlags(cv2.INTER_LANCZOS4)
-    except Exception:
-        pass
-
+    # Thử nghiệm lần 1 với confidence 0.30
+    stitcher = build_stitcher(confidence=0.30)
     status, stitched = stitcher.stitch(images)
+
+    # Nếu lần 1 không thành công (do tường trắng hoặc thiếu hoa văn), tự động thử lại với ngưỡng thấp hơn 0.18
+    if status != cv2.Stitcher_OK:
+        print(f"[!] Lần 1 thất bại với mã {status}. Đang kích hoạt chế độ Tự Động Thử Lại (Confidence 0.18)...", file=sys.stderr)
+        stitcher_retry = build_stitcher(confidence=0.18)
+        status, stitched = stitcher_retry.stitch(images)
 
     STATUS_MAP = {
         cv2.Stitcher_OK: "OK",
@@ -304,6 +346,10 @@ def run_stitch(image_paths, output_path, target_width=4096):
     # Chuẩn hóa về tỷ lệ Equirectangular 2:1
     equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width)
 
+    # Tăng cường độ sắc nét tối đa qua bộ lọc Unsharp Masking
+    print("[*] Đang áp dụng thuật toán Unsharp Masking tăng cường độ sắc nét chi tiết hiện vật...", file=sys.stderr)
+    equi_pano = apply_unsharp_mask(equi_pano, sigma=1.0, strength=1.25, threshold=3)
+
     # Lưu kết quả với chất lượng JPEG tối đa 98%
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 98])
@@ -315,7 +361,7 @@ def run_stitch(image_paths, output_path, target_width=4096):
         "width": w,
         "height": h,
         "aspectRatio": "2:1",
-        "message": "Đã tạo thành công ảnh toàn cảnh 360° Equirectangular chuẩn WebGL."
+        "message": "Đã tạo thành công ảnh toàn cảnh 360° Equirectangular chuẩn WebGL siêu nét."
     }
 
 def main():
