@@ -28,4 +28,28 @@ export interface MuseumRoom {
   updatedAt: string;
 }
 
+export interface MuseumArtifact {
+  id: string;
+  code: string;
+  name: string;
+  period: string;
+  roomId?: string;
+  material?: string;
+  dimensions?: string;
+  origin?: string;
+  description: string;
+  audioNarrationUrl?: string;
+  audioText?: string;
+  images360: string[];
+  model3dUrl?: string;
+  thumbnailUrl: string;
+  qrCodeDataUrl?: string;
+  qrTargetUrl?: string;
+  featured: boolean;
+  orderIndex: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'analytics' | 'settings';

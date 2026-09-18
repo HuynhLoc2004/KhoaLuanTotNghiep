@@ -5,6 +5,8 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { AdminRoomsPage } from './pages/admin/AdminRoomsPage';
 import { AdminPanoramaStudio } from './pages/admin/AdminPanoramaStudio';
+import { AdminArtifactsPage } from './pages/admin/AdminArtifactsPage';
+import { PublicArtifactView } from './pages/public/PublicArtifactView';
 import { MuseumRoom, AdminTab } from './types';
 import { api } from './services/api';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -17,6 +19,17 @@ export const App: React.FC = () => {
   const [activeRoom, setActiveRoom] = useState<MuseumRoom | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Nhận diện đường dẫn QR hoặc query param ?artifact=:id
+  const [publicArtifactId, setPublicArtifactId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const path = window.location.pathname;
+    if (path.startsWith('/artifact/')) {
+      return path.replace('/artifact/', '').split('/')[0];
+    }
+    const params = new URLSearchParams(window.location.search);
+    return params.get('artifact');
+  });
 
   // Fetch all rooms from API
   const fetchRooms = async () => {
@@ -89,6 +102,30 @@ export const App: React.FC = () => {
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Nếu người dùng quét QR Code hoặc đang xem trực tiếp hiện vật du khách
+  if (publicArtifactId) {
+    return (
+      <PublicArtifactView
+        artifactId={publicArtifactId}
+        onNavigateToRoom={(roomId) => {
+          setPublicArtifactId(null);
+          try { window.history.pushState({}, '', '/'); } catch {}
+          const target = rooms.find(r => r.id === roomId);
+          if (target) {
+            setActiveRoom(target);
+            setCurrentTab('studio');
+          } else {
+            setCurrentTab('rooms');
+          }
+        }}
+        onBackToAdmin={() => {
+          setPublicArtifactId(null);
+          try { window.history.pushState({}, '', '/'); } catch {}
+        }}
+      />
+    );
+  }
 
   return (
     <div className="admin-app">
@@ -167,6 +204,12 @@ export const App: React.FC = () => {
           />
         ) : currentTab === 'poc_stitching' ? (
           <PocStitchingPage />
+        ) : currentTab === 'artifacts' ? (
+          <AdminArtifactsPage
+            rooms={rooms}
+            onOpenStudio={handleOpenStudio}
+            onPreviewPublicArtifact={(id) => setPublicArtifactId(id)}
+          />
         ) : currentTab === 'rooms' ? (
           <AdminRoomsPage
             rooms={rooms}
@@ -178,7 +221,6 @@ export const App: React.FC = () => {
           <div className="admin-content">
             <div className="panel" style={{ padding: 40, textAlign: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--primary)' }}>
-                {currentTab === 'artifacts' && 'Quản lý Hiện vật & Cổ vật di sản'}
                 {currentTab === 'analytics' && 'Báo cáo & Thống kê lượt tham quan Tour 360'}
                 {currentTab === 'settings' && 'Cấu hình tham số Hệ thống Tour Di sản'}
               </h3>

@@ -8,6 +8,7 @@ import { connectMongoDB } from './db/mongodb.js';
 
 import { stitchRouter } from './routes/stitch.js';
 import { mailRouter } from './routes/mail.js';
+import { artifactsRouter } from './routes/artifacts.js';
 import { getRedisStatus } from './services/redis.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
@@ -37,6 +38,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
 // API routes
 app.use('/api/rooms', roomsRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/artifacts', artifactsRouter);
 app.use('/api/stitch', stitchRouter);
 app.use('/api/mail', mailRouter);
 
