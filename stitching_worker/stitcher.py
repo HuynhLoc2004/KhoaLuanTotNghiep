@@ -111,29 +111,13 @@ def crop_black_borders(img):
         if not changed:
             break
 
-    # Chỉ bù đắp các khoảng đen khuyết thực sự ở mép ngoài (Edge-connected boundary gaps):
-    # Tuyệt đối KHÔNG inpaint các vật thể đen/tối thật trong phòng (như cửa sổ sắt đen, bóng đổ, cánh cửa)
-    gray_c = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
-    ch, cw = gray_c.shape[:2]
-    black_cand = (gray_c <= 6).astype(np.uint8)
-
-    edge_black_mask = np.zeros((ch, cw), dtype=np.uint8)
-    for x in range(cw):
-        if black_cand[0, x] and not edge_black_mask[0, x]:
-            cv2.floodFill(edge_black_mask, None, (x, 0), 255)
-        if black_cand[ch - 1, x] and not edge_black_mask[ch - 1, x]:
-            cv2.floodFill(edge_black_mask, None, (x, ch - 1), 255)
-    for y in range(ch):
-        if black_cand[y, 0] and not edge_black_mask[y, 0]:
-            cv2.floodFill(edge_black_mask, None, (0, y), 255)
-        if black_cand[y, cw - 1] and not edge_black_mask[y, cw - 1]:
-            cv2.floodFill(edge_black_mask, None, (cw - 1, y), 255)
-
-    edge_black_count = int(np.sum(edge_black_mask > 0))
-    if 0 < edge_black_count < int(ch * cw * 0.015):
+    # Với các khoảng đen nhỏ còn sót lại ở mép gợn sóng (do tay rung lệch):
+    # Dùng Content-Aware Inpainting để tự động bù màu mượt mà theo hoa văn tường/trần kề bên
+    rem_black = (cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY) <= 10).astype(np.uint8) * 255
+    if np.sum(rem_black) > 0:
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        dilated_edge = cv2.dilate(edge_black_mask, kernel, iterations=1)
-        cropped = cv2.inpaint(cropped, dilated_edge, inpaintRadius=3, flags=cv2.INPAINT_TELEA)
+        rem_black = cv2.dilate(rem_black, kernel, iterations=1)
+        cropped = cv2.inpaint(cropped, rem_black, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
 
     return cropped
 
