@@ -89,7 +89,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
         description: description.trim(),
         panoramaUrl: panoramaUrl.trim(),
         thumbnailUrl: panoramaUrl.trim(),
-        initialView: { pitch: 0, yaw: 0, fov: 90 }
+        initialView: { pitch: 0, yaw: 0, fov: 100 }
       });
       onCreated(created);
     } catch (err: any) {

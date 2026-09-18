@@ -242,6 +242,22 @@ def enhance_museum_texture(image):
         print(f"[Warning] Không thể áp dụng enhance_museum_texture: {e}", file=sys.stderr)
         return image
 
+def balance_indoor_lighting(img):
+    """
+    Cân bằng ánh sáng đèn phòng và kéo sáng các góc tối thích ứng:
+    - Triệt tiêu quầng lóa từ bóng đèn trần trên gạch men và kính cửa sắt.
+    - Kéo sáng các góc tối (bàn ghế, góc cửa sổ ban đêm) giúp phát hiện đầy đủ điểm neo hoa văn.
+    """
+    try:
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        l_eq = clahe.apply(l)
+        l_balanced = cv2.addWeighted(l_eq, 0.55, l, 0.45, 0)
+        return cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
+    except Exception:
+        return img
+
 def run_stitch(image_paths, output_path, target_width=4096):
     """
     Thực thi quy trình ghép ảnh:
@@ -291,23 +307,20 @@ def run_stitch(image_paths, output_path, target_width=4096):
     # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img48)
     sorted_paths = sorted(image_paths, key=natural_sort_key)
 
-    # TỐI ƯU HÓA KHUNG HÌNH THÔNG MINH CHO CHÙM ẢNH LỚN:
-    # Khi chụp trên 18 ảnh quanh 360°, độ chồng lấp giữa 2 ảnh kề nhau lên tới 85%-90%.
-    # Số cặp đối chiếu bùng nổ cấp số nhân (38 ảnh = 703 cặp), gây nghẽn CPU và vượt quá thời gian timeout (180s).
-    # Thuật toán tự động chắt lọc 18 khung hình phân bổ đều đặn nhất quanh vòng 360°:
-    # - Vừa giữ trọn vẹn 100% các góc phòng (cả góc xa và góc gần).
-    # - Vừa giảm tải tính toán 5 lần, giúp tạo không gian 360 chỉ trong 15 - 25 giây siêu tốc!
-    if len(sorted_paths) > 18:
-        print(f"[*] Phát hiện {len(sorted_paths)} ảnh đầu vào. Đang chọn 18 khung hình phân bổ đều nhất quanh 360° để xử lý siêu tốc...", file=sys.stderr)
-        indices = np.linspace(0, len(sorted_paths) - 1, 18, dtype=int)
-        selected_paths = [sorted_paths[i] for i in indices]
-    else:
-        selected_paths = sorted_paths
-
+    # Tiếp nhận toàn bộ chùm ảnh để bảo đảm mắt xích chồng lấp liên tục
+    selected_paths = sorted_paths
     total_imgs = len(selected_paths)
-    stitch_max_dim = 1500 if total_imgs <= 12 else 1300
 
-    print(f"[*] Xử lý {total_imgs} ảnh đại diện tối ưu không gian (max_dim={stitch_max_dim}px)...", file=sys.stderr)
+    if total_imgs <= 16:
+        stitch_max_dim = 1400
+    elif total_imgs <= 24:
+        stitch_max_dim = 1200
+    elif total_imgs <= 36:
+        stitch_max_dim = 1050
+    else:
+        stitch_max_dim = 900
+
+    print(f"[*] Tiếp nhận trọn vẹn {total_imgs} ảnh đầu vào (max_dim={stitch_max_dim}px, cân bằng phơi sáng đèn đêm)...", file=sys.stderr)
     images = []
     for p in selected_paths:
         if not os.path.exists(p):
@@ -318,6 +331,8 @@ def run_stitch(image_paths, output_path, target_width=4096):
             }
         try:
             img = load_and_orient_image(p, max_dim=stitch_max_dim)
+            # Cân bằng phơi sáng đèn phòng và kéo sáng chi tiết góc tối
+            img = balance_indoor_lighting(img)
             images.append(img)
         except Exception as e:
             return {
@@ -335,7 +350,7 @@ def run_stitch(image_paths, output_path, target_width=4096):
         pass
 
     # Thiết lập stitcher với cấu hình tối ưu độ nét & cân bằng đường chân trời
-    def build_stitcher(confidence=0.30):
+    def build_stitcher(confidence=0.18):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
             s.setWaveCorrection(True)
@@ -350,24 +365,37 @@ def run_stitch(image_paths, output_path, target_width=4096):
         except Exception:
             pass
         try:
-            s.setRegistrationResol(0.7) # Tối ưu hóa tốc độ dò tìm đặc trưng siêu tốc
+            s.setRegistrationResol(0.6) # Chuẩn 0.6 Mpx tối ưu hóa phát hiện đặc trưng
         except Exception:
             pass
         try:
-            s.setSeamEstimationResol(0.2) # Tinh chỉnh đường nối đa dải tần
+            s.setSeamEstimationResol(0.1) # Tinh chỉnh đường nối đa dải tần
         except Exception:
             pass
         return s
 
-    # Thử nghiệm lần 1 với confidence 0.30
-    stitcher = build_stitcher(confidence=0.30)
-    status, stitched = stitcher.stitch(images)
+    def try_stitch_pass(conf):
+        s = build_stitcher(confidence=conf)
+        stat, pano = s.stitch(images)
+        used = s.component() if hasattr(s, 'component') else ()
+        return stat, pano, used
 
-    # Nếu lần 1 không thành công (do tường trắng hoặc thiếu hoa văn), tự động thử lại với ngưỡng thấp hơn 0.16
-    if status != cv2.Stitcher_OK:
-        print(f"[!] Lần 1 thất bại với mã {status}. Đang kích hoạt chế độ Tự Động Thử Lại (Confidence 0.16)...", file=sys.stderr)
-        stitcher_retry = build_stitcher(confidence=0.16)
-        status, stitched = stitcher_retry.stitch(images)
+    min_required_imgs = max(2, int(len(images) * 0.60))
+
+    # Lần 1: Confidence 0.18 (chuẩn đa dụng phòng trong nhà)
+    status, stitched, used_imgs = try_stitch_pass(0.18)
+
+    # Nếu thất bại hoặc chỉ ghép được quá ít ảnh (rớt mắt xích do ánh đèn chói lóa hoặc góc tối):
+    if status != cv2.Stitcher_OK or len(used_imgs) < min_required_imgs:
+        print(f"[!] Lần 1 chưa đủ vòng 360° (ghép được {len(used_imgs)}/{len(images)} ảnh). Kích hoạt Lần 2 (Confidence 0.10)...", file=sys.stderr)
+        status, stitched, used_imgs = try_stitch_pass(0.10)
+
+    # Nếu vẫn chưa đủ, kích hoạt Lần 3 siêu nhạy
+    if status != cv2.Stitcher_OK or len(used_imgs) < min_required_imgs:
+        print(f"[!] Lần 2 chưa đủ vòng 360° (ghép được {len(used_imgs)}/{len(images)} ảnh). Kích hoạt Lần 3 Nhạy Cao (Confidence 0.05)...", file=sys.stderr)
+        status, stitched, used_imgs = try_stitch_pass(0.05)
+
+    print(f"[*] Kết quả ghép OpenCV: Mã trạng thái={status}, Số ảnh thực tế kết nối: {len(used_imgs)}/{len(images)} ảnh.", file=sys.stderr)
 
     STATUS_MAP = {
         cv2.Stitcher_OK: "OK",
