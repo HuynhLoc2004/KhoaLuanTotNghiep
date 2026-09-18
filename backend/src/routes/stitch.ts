@@ -455,4 +455,25 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * DELETE /api/stitch/panoramas/:filename
+ * Xóa file ảnh 360 khỏi thư mục uploads
+ */
+stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) => {
+  try {
+    const filename = Array.isArray(req.params.filename) ? req.params.filename[0] : String(req.params.filename || '');
+    if (!filename.startsWith('stitched_360_') || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ success: false, message: 'Tên file không hợp lệ hoặc không có quyền xóa' });
+    }
+    const filePath = path.join(UPLOAD_ROOT, filename);
+    if (fs.existsSync(filePath)) {
+      await fs.promises.unlink(filePath);
+    }
+    return res.json({ success: true, message: 'Đã xóa file ảnh 360 thành công' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
 

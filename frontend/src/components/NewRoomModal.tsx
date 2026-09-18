@@ -8,14 +8,15 @@ import { ErrorBoundary } from './ErrorBoundary';
 interface NewRoomModalProps {
   onClose: () => void;
   onCreated: (room: MuseumRoom) => void;
+  initialPanoramaUrl?: string;
 }
 
-export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated }) => {
+export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, initialPanoramaUrl }) => {
   const [code, setCode] = useState(`P-${100 + Math.floor(Math.random() * 900)}`);
   const [name, setName] = useState('');
   const [period, setPeriod] = useState('');
   const [description, setDescription] = useState('');
-  const [panoramaUrl, setPanoramaUrl] = useState('');
+  const [panoramaUrl, setPanoramaUrl] = useState(initialPanoramaUrl || '');
   const [uploading, setUploading] = useState(false);
   const [stitchingCamera, setStitchingCamera] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
