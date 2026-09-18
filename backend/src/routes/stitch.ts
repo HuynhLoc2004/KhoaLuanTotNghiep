@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { spawn } from 'child_process';
 import { uploadToCloudinary } from '../services/cloudinary.js';
+import { uploadToR2 } from '../services/r2.js';
 import { cacheDel } from '../services/redis.js';
 
 export const stitchRouter = Router();
@@ -168,16 +169,34 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
 
         let finalPanoramaUrl = `${baseUrl}/uploads/${outFilename}`;
         
-        // Tự động đồng bộ ảnh 360 lên Cloudinary CDN
+        // 1. Tự động đồng bộ ảnh 360 lên Cloudflare R2 Storage (Lưu trữ vĩnh viễn, bảo toàn 100% độ nét 4K gốc)
+        let cloudR2Url: string | null = null;
         try {
-          console.log('[Stitch API] Đang đồng bộ ảnh 360 lên Cloudinary (folder: museum/panoramas_360)...');
+          if (fs.existsSync(outputPath)) {
+            console.log(`[Stitch API] Đang tải ảnh 360 lên Cloudflare R2 CDN (panoramas_360/${outFilename})...`);
+            const fileBuf = fs.readFileSync(outputPath);
+            cloudR2Url = await uploadToR2(`panoramas_360/${outFilename}`, fileBuf, 'image/jpeg');
+            if (cloudR2Url) {
+              finalPanoramaUrl = cloudR2Url;
+              console.log('[Stitch API] Đã lưu trữ thành công lên Cloudflare R2 CDN:', finalPanoramaUrl);
+            }
+          }
+        } catch (r2Err: any) {
+          console.warn('[Stitch API R2 Sync Warning]:', r2Err.message);
+        }
+
+        // 2. Đồng thời đồng bộ sao lưu lên Cloudinary CDN
+        try {
+          console.log('[Stitch API] Đang đồng bộ sao lưu ảnh 360 lên Cloudinary (folder: museum/panoramas_360)...');
           const cldRes = await uploadToCloudinary(outputPath, 'museum/panoramas_360');
           if (cldRes && cldRes.secure_url) {
-            finalPanoramaUrl = cldRes.secure_url;
-            console.log('[Stitch API] Đã đồng bộ thành công lên Cloudinary CDN:', finalPanoramaUrl);
+            if (!cloudR2Url) {
+              finalPanoramaUrl = cldRes.secure_url;
+            }
+            console.log('[Stitch API] Đã đồng bộ thành công lên Cloudinary CDN:', cldRes.secure_url);
           }
         } catch (cldErr: any) {
-          console.warn('[Stitch API Cloudinary Sync Warning]:', cldErr.message, '- Dùng fallback URL cục bộ.');
+          console.warn('[Stitch API Cloudinary Sync Warning]:', cldErr.message, '- Dùng fallback URL.');
         }
 
         // Xóa cache danh sách phòng trong Redis

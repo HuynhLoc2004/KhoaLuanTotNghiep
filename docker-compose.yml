@@ -49,6 +49,11 @@ services:
       - SMTP_USER=huynhtanlocpp09@gmail.com
       - SMTP_PASS=csvopdsnfnonsuxy
       - SMTP_FROM="Bảo Tàng Lịch Sử TP.HCM <huynhtanlocpp09@gmail.com>"
+      - R2_ACCOUNT_ID=58adca9a5a385f5db2618f638bfda563
+      - R2_ACCESS_KEY_ID=17ab384cadd165105b47172b7f45409b
+      - R2_SECRET_ACCESS_KEY=1a87ee4bd56e583f00e73408f1174bc26002053a233339867b166579fac3cb84
+      - R2_BUCKET_NAME=museum
+      - R2_PUBLIC_DOMAIN=https://pub-bb1eeff16fd349f2abb33e4e71fe1ae7.r2.dev
     volumes:
       - uploads_data:/app/backend/public/uploads
 
