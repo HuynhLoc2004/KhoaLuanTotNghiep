@@ -291,23 +291,23 @@ def run_stitch(image_paths, output_path, target_width=4096):
     # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img48)
     sorted_paths = sorted(image_paths, key=natural_sort_key)
 
-    # TỐI ƯU HÓA KHUNG HÌNH THÔNG MINH CHO CHÙM ẢNH LỚN:
-    # Khi chụp trên 18 ảnh quanh 360°, độ chồng lấp giữa 2 ảnh kề nhau lên tới 85%-90%.
-    # Số cặp đối chiếu bùng nổ cấp số nhân (38 ảnh = 703 cặp), gây nghẽn CPU và vượt quá thời gian timeout (180s).
-    # Thuật toán tự động chắt lọc 18 khung hình phân bổ đều đặn nhất quanh vòng 360°:
-    # - Vừa giữ trọn vẹn 100% các góc phòng (cả góc xa và góc gần).
-    # - Vừa giảm tải tính toán 5 lần, giúp tạo không gian 360 chỉ trong 15 - 25 giây siêu tốc!
-    if len(sorted_paths) > 18:
-        print(f"[*] Phát hiện {len(sorted_paths)} ảnh đầu vào. Đang chọn 18 khung hình phân bổ đều nhất quanh 360° để xử lý siêu tốc...", file=sys.stderr)
-        indices = np.linspace(0, len(sorted_paths) - 1, 18, dtype=int)
-        selected_paths = [sorted_paths[i] for i in indices]
-    else:
-        selected_paths = sorted_paths
-
+    # ƯU TIÊN GIỮ NGUYÊN TOÀN BỘ ẢNH (Không bỏ sót góc nào):
+    # Người chụp quét trọn vẹn không gian phòng quanh 360°.
+    # Ta giữ trọn vẹn 100% tất cả ảnh đầu vào, tự động điều chỉnh độ phân giải nạp (max_dim)
+    # để thuật toán ghép tận dụng tối đa dữ liệu mắt xích liên tục mà vẫn bảo đảm an toàn tuyệt đối cho RAM!
+    selected_paths = sorted_paths
     total_imgs = len(selected_paths)
-    stitch_max_dim = 1500 if total_imgs <= 12 else 1300
 
-    print(f"[*] Xử lý {total_imgs} ảnh đại diện tối ưu không gian (max_dim={stitch_max_dim}px)...", file=sys.stderr)
+    if total_imgs <= 16:
+        stitch_max_dim = 1400
+    elif total_imgs <= 24:
+        stitch_max_dim = 1200
+    elif total_imgs <= 36:
+        stitch_max_dim = 1050
+    else:
+        stitch_max_dim = 900
+
+    print(f"[*] Tiếp nhận toàn bộ {total_imgs} ảnh đầu vào (giữ trọn vẹn mọi góc nhìn, max_dim={stitch_max_dim}px)...", file=sys.stderr)
     images = []
     for p in selected_paths:
         if not os.path.exists(p):
