@@ -43,6 +43,9 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
   const lastCapturedHeadingRef = useRef<number | null>(null);
   const isScanningRef = useRef<boolean>(false);
   const capturedSectorsRef = useRef<number[]>([]);
+  const isSnappingRef = useRef<boolean>(false);
+  const lastSnapTimeRef = useRef<number>(0);
+  const audioCtxRef = useRef<any>(null);
 
   // Giữ ref đồng bộ để event handler dùng giá trị mới nhất
   useEffect(() => {
@@ -164,18 +167,24 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     setIsScanning(false);
   };
 
-  // Web Audio Synth Shutter Sound
+  // Web Audio Synth Shutter Sound (Tái sử dụng 1 AudioContext duy nhất, chống tràn tài nguyên)
   const playShutterSound = () => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(880, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -201,7 +210,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
         let diff = Math.abs(heading - lastHeadingTimeRef.current.heading);
         if (diff > 180) diff = 360 - diff;
         const speed = diff / dt; // độ / giây
-        if (speed > 50) {
+        if (speed > 45) {
           isMovingTooFast = true;
         }
       }
@@ -219,8 +228,21 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     // 2. Kiểm tra độ cân bằng trục chân trời (Pitch balance)
     const isLevel = Math.abs(tilt) <= 6;
 
-    // 3. Tự động chụp nếu đi vào một góc chưa từng chụp hoặc xoay đủ bước góc
-    if (!isCurrentSectorCaptured && isLevel) {
+    // 3. Khóa chống chụp liên hồi & thời gian nghỉ (Tối thiểu 750ms giữa 2 bức ảnh)
+    const canSnapNow =
+      !isSnappingRef.current &&
+      now - lastSnapTimeRef.current >= 750;
+
+    // Khoảng cách góc so với bức ảnh vừa chụp gần nhất (Tối thiểu 15° mới chụp bức tiếp theo)
+    let angleFromLast = 360;
+    if (lastCapturedHeadingRef.current !== null) {
+      let diff = Math.abs(heading - lastCapturedHeadingRef.current);
+      if (diff > 180) diff = 360 - diff;
+      angleFromLast = diff;
+    }
+
+    // Tự động chụp nếu đi vào một góc chưa từng chụp hoặc xoay đủ bước góc
+    if (!isCurrentSectorCaptured && isLevel && canSnapNow && angleFromLast >= 15) {
       snapFrame(heading, currentSector);
       setGuidanceMessage({
         text: `✓ Đã bắt nét điểm ảnh góc ${heading}°! Tiếp tục xoay từ từ...`,
@@ -289,39 +311,61 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     }
   };
 
-  // Chụp 1 khung hình từ luồng video trực tiếp
+  // Chụp 1 khung hình từ luồng video trực tiếp với KHÓA ĐỒNG BỘ CHỐNG SPAM
   const snapFrame = (angle: number, sectorIndex: number) => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || isSnappingRef.current) return;
     const video = videoRef.current;
+    if (!video.videoWidth || !video.videoHeight) return;
+
+    // 1. KHÓA ĐỒNG BỘ TỨC THÌ (ngăn chặn sự kiện 60Hz gọi lặp lại trong khi chưa kịp nén xong)
+    isSnappingRef.current = true;
+    lastSnapTimeRef.current = Date.now();
+    lastCapturedHeadingRef.current = angle;
+
+    // 2. ĐÁNH DẤU SECTOR ĐÃ CHỤP NGAY LẬP TỨC
+    const updatedSectors = Array.from(new Set([...capturedSectorsRef.current, sectorIndex]));
+    capturedSectorsRef.current = updatedSectors;
+    setCapturedSectors(updatedSectors);
+
     const canvas = canvasRef.current || document.createElement('canvas');
-    canvas.width = video.videoWidth || 1920;
-    canvas.height = video.videoHeight || 1080;
+
+    // 3. Tối ưu kích thước khung ảnh (max 1280px) để giảm tải CPU, nén cực nhanh < 5ms
+    let targetWidth = video.videoWidth || 1280;
+    let targetHeight = video.videoHeight || 720;
+    if (targetWidth > 1280) {
+      targetHeight = Math.round((targetHeight * 1280) / targetWidth);
+      targetWidth = 1280;
+    }
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      isSnappingRef.current = false;
+      return;
+    }
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob(
       (blob) => {
+        // Mở khóa sau khi nén xong
+        isSnappingRef.current = false;
         if (!blob) return;
+
         const url = URL.createObjectURL(blob);
         setCapturedFrames((prev) => [...prev, { url, blob, angle }]);
-        setCapturedSectors((prev) => {
-          const next = Array.from(new Set([...prev, sectorIndex]));
-          capturedSectorsRef.current = next;
-          return next;
-        });
-        lastCapturedHeadingRef.current = angle;
 
-        // Phản hồi âm thanh chớp màn trập máy ảnh & rung xúc giác
+        // Phản hồi âm thanh chớp màn trập máy ảnh & rung xúc giác nhẹ
         playShutterSound();
         if ('vibrate' in navigator) {
-          navigator.vibrate([40, 30, 40]);
+          try {
+            navigator.vibrate(35);
+          } catch {}
         }
       },
       'image/jpeg',
-      0.95
+      0.82
     );
   };
 
@@ -341,10 +385,21 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
   // Reset xóa tất cả để quét lại từ đầu
   const handleReset = () => {
+    capturedFrames.forEach((f) => {
+      try {
+        URL.revokeObjectURL(f.url);
+      } catch {}
+    });
     setCapturedFrames([]);
     setCapturedSectors([]);
     capturedSectorsRef.current = [];
     lastCapturedHeadingRef.current = null;
+    isSnappingRef.current = false;
+    lastSnapTimeRef.current = 0;
+    setGuidanceMessage({
+      text: 'Đã làm mới! Hãy bấm "Bắt đầu quét" và xoay người từ từ',
+      type: 'info'
+    });
   };
 
   // Hoàn tất và gửi các file ảnh đã quét sang bộ ghép
