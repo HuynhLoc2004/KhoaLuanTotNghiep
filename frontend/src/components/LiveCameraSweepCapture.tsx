@@ -204,14 +204,27 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
       streamRef.current = stream;
 
-      // Đảm bảo khi track sẵn sàng thì video tự động play
-      stream.getVideoTracks().forEach((track) => {
-        track.onunmute = () => {
+      // Tự động kích hoạt góc chụp siêu rộng (0.5x Ultra-Wide) nếu phần cứng điện thoại hỗ trợ
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        try {
+          const capabilities: any = typeof videoTrack.getCapabilities === 'function' ? videoTrack.getCapabilities() : {};
+          if (capabilities.zoom && capabilities.zoom.min !== undefined && capabilities.zoom.min < 1.0) {
+            await (videoTrack as any).applyConstraints({
+              advanced: [{ zoom: capabilities.zoom.min }]
+            });
+            console.log('[Camera] Đã tự động kích hoạt ống kính góc rộng 0.5x:', capabilities.zoom.min);
+          }
+        } catch (zoomErr) {
+          console.warn('[Camera Ultra-Wide Note]:', zoomErr);
+        }
+
+        videoTrack.onunmute = () => {
           if (videoRef.current) {
             videoRef.current.play().catch(() => {});
           }
         };
-      });
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
