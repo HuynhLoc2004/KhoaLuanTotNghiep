@@ -403,7 +403,10 @@ def verify_single_image(image_path, prev_image_path=None):
 
         # 4. Đo độ chồng lấp với ảnh trước (nếu có)
         overlap_info = None
+        position_info = None
         has_overlap = True
+        is_position_stable = True
+
         if prev_image_path and os.path.exists(prev_image_path):
             try:
                 prev_img = load_and_orient_image(prev_image_path, max_dim=1200)
@@ -419,46 +422,90 @@ def verify_single_image(image_path, prev_image_path=None):
                             good_matches.append(m_pair[0])
 
                     match_count = len(good_matches)
-                    has_overlap = match_count >= 18
+                    has_overlap = match_count >= 16
+
+                    # KIỂM TRA LỆCH TỌA ĐỘ ĐỨNG (Parallax / Camera Translation Detection):
+                    # - Nếu đứng yên 1 chỗ và xoay máy (Pure Rotation): Các điểm ảnh khớp hoàn hảo theo 1 ma trận Homography duy nhất (Inlier Ratio > 52%).
+                    # - Nếu người chụp bước chân di chuyển (Translation / Lệch tọa độ): Hiện tượng thị sai (Parallax) xảy ra do vật gần và cảnh xa
+                    #   trượt với vận tốc khác nhau, phá vỡ ma trận Homography hoặc làm giảm mạnh tỷ lệ điểm đồng phẳng.
+                    if match_count >= 12:
+                        src_pts = np.float32([kp[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+                        dst_pts = np.float32([prev_kp[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+                        H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 4.5)
+                        if H is not None and inlier_mask is not None:
+                            inlier_count = int(np.sum(inlier_mask))
+                            inlier_ratio = inlier_count / float(match_count)
+                            det = float(np.linalg.det(H[:2, :2]))
+                            # Điều kiện xác định đứng yên tại chỗ xoay máy (không bước chân)
+                            is_position_stable = (inlier_ratio >= 0.50) and (inlier_count >= 10) and (0.25 < det < 4.0)
+                            position_info = {
+                                "passed": is_position_stable,
+                                "inlier_ratio": round(inlier_ratio * 100, 1),
+                                "label": "Đứng chuẩn trục xoay (Không lệch vị trí)" if is_position_stable else "⚠️ Lệch tọa độ: Bạn vừa bước đi (thị sai Parallax)!"
+                            }
+                        else:
+                            is_position_stable = False
+                            position_info = {
+                                "passed": False,
+                                "inlier_ratio": 0.0,
+                                "label": "⚠️ Lệch tọa độ: Cảnh bị xáo trộn do thay đổi vị trí đứng!"
+                            }
+                    else:
+                        is_position_stable = has_overlap
+                        position_info = {
+                            "passed": has_overlap,
+                            "label": "Độ khớp tạm đủ" if has_overlap else "Chưa đủ điểm so khớp vị trí"
+                        }
+
                     overlap_info = {
                         "match_count": match_count,
                         "passed": has_overlap,
-                        "label": "Khớp nối tốt với ảnh trước" if match_count >= 30 else ("Độ gối đầu vừa đủ" if has_overlap else "Chưa đủ điểm chung với ảnh trước")
+                        "label": "Khớp nối tốt với ảnh trước" if match_count >= 28 else ("Độ gối đầu vừa đủ" if has_overlap else "Chưa đủ điểm chung với ảnh trước")
                     }
                 else:
                     has_overlap = False
+                    is_position_stable = False
                     overlap_info = {
                         "match_count": 0,
                         "passed": False,
                         "label": "Không tìm thấy điểm chung với ảnh trước"
                     }
+                    position_info = {
+                        "passed": False,
+                        "label": "Không thể so khớp tọa độ đứng"
+                    }
             except Exception as oErr:
-                print(f"[Warning] Overlap calculation note: {oErr}", file=sys.stderr)
+                print(f"[Warning] Overlap/Parallax calculation note: {oErr}", file=sys.stderr)
 
-        # Đánh giá tổng quát
-        passed = is_sharp and is_exposed and has_features and has_overlap
+        # Đánh giá tổng quát: Bắt buộc phải sắc nét, đủ sáng, đủ hoa văn, đủ độ phủ VÀ KHÔNG BỊ LỆCH TỌA ĐỘ ĐỨNG
+        passed = is_sharp and is_exposed and has_features and has_overlap and is_position_stable
         
         # Tính điểm chất lượng từ 0 - 100
         score = 0
         if is_sharp:
-            score += min(35, int(laplacian_var / 3.0))
+            score += min(25, int(laplacian_var / 3.0))
         if is_exposed:
             score += 25
         if has_features:
             score += min(20, int(feature_count / 25))
         if has_overlap:
-            score += 20
+            score += 15
+        if is_position_stable:
+            score += 15
         score = min(100, max(20, score))
 
-        message = "✓ Ảnh đạt chuẩn chất lượng không gian!" if passed else (
-            "⚠️ Ảnh chưa đạt: " + (
-                "Bị nhòe do rung tay, hãy giữ chắc máy chụp lại. " if not is_sharp else (
-                    "Ánh sáng không phù hợp. " if not is_exposed else (
-                        "Cảnh thiếu hoa văn chi tiết. " if not has_features else "Chưa đủ cảnh chung với ảnh trước, hãy nhích nhẹ lại gần góc trước."
-                    )
-                )
-            )
-        )
+        if passed:
+            message = "✓ Ảnh đạt chuẩn chất lượng không gian!"
+        elif not is_position_stable:
+            message = "⚠️ Phát hiện bạn vừa bước đi làm lệch tọa độ đứng (thị sai Parallax)! Cần đứng yên tại 1 vị trí ban đầu và chỉ xoay máy."
+        elif not is_sharp:
+            message = "⚠️ Ảnh bị nhòe do rung tay, hãy giữ chắc máy chụp lại."
+        elif not is_exposed:
+            message = "⚠️ Ánh sáng không phù hợp (quá tối hoặc cháy sáng)."
+        elif not has_features:
+            message = "⚠️ Cảnh thiếu hoa văn chi tiết để máy tính nhận diện."
+        else:
+            message = "⚠️ Chưa đủ cảnh chung với ảnh trước, hãy nhích nhẹ lại gần góc trước."
 
         return {
             "success": True,
@@ -468,7 +515,8 @@ def verify_single_image(image_path, prev_image_path=None):
                 "sharpness": { "passed": is_sharp, "value": round(laplacian_var, 1), "label": sharpness_label },
                 "brightness": { "passed": is_exposed, "value": round(mean_brightness, 1), "label": brightness_label },
                 "features": { "passed": has_features, "count": feature_count, "label": feature_label },
-                "overlap": overlap_info
+                "overlap": overlap_info,
+                "position_stability": position_info
             },
             "message": message
         }

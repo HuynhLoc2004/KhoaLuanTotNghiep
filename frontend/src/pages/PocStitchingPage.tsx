@@ -31,6 +31,7 @@ interface FrameEvaluation {
     brightness: { passed: boolean; value: number; label: string };
     features: { passed: boolean; count: number; label: string };
     overlap?: { passed: boolean; match_count: number; label: string } | null;
+    position_stability?: { passed: boolean; inlier_ratio?: number; label: string } | null;
   };
   message: string;
 }
@@ -537,23 +538,22 @@ export const PocStitchingPage: React.FC = () => {
             {/* HƯỚNG DẪN ADMIN QUAY QUÉT ĐỂ TẠO KHÔNG GIAN PHẲNG ĐẸP */}
             <div
               style={{
-                background: '#F8FAFC',
+                background: '#FFFBEB',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1.5px solid #FCD34D',
                 padding: '14px 16px',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 12
               }}
             >
-              <Info size={20} style={{ color: '#2563EB', flexShrink: 0, marginTop: 2 }} />
-              <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6 }}>
-                <strong style={{ color: '#0F172A', display: 'block', marginBottom: 3 }}>
-                  🚶 Quy tắc tạo không gian 3D/360 phẳng, thoáng mắt và không bị nhức đầu:
+              <Info size={20} style={{ color: '#D97706', flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
+                <strong style={{ color: '#78350F', display: 'block', fontSize: '13.5px', marginBottom: 4 }}>
+                  ⚠️ QUY TẮC BẮT BUỘC ĐỂ KHÔNG GIAN 360 PHẲNG & ĐẸP: ĐỨNG YÊN LÀM TRỤ – KHÔNG BƯỚC ĐI!
                 </strong>
-                1. Đứng yên tại <strong>tâm giữa phòng</strong>, cầm điện thoại thẳng đứng ngang tầm mắt.<br />
-                2. Chụp xong tấm này, bạn <strong>nhích nhẹ người sang phải khoảng 30°</strong> (sao cho góc mới vẫn nhìn thấy 1/3 cảnh cũ) rồi bấm chụp tấm tiếp theo.<br />
-                3. Xoay 1 vòng tròn 360° (tầm <strong>8 đến 12 góc</strong>). Máy tính Python sẽ kiểm tra từng tấm: Đủ nét + Đủ sáng + Khớp nối tốt là đạt chuẩn!
+                • <strong>Tại sao không được bước đi?</strong> Khi bạn di chuyển bước đi, vật thể ở gần và tường ở xa sẽ bị trượt lệch góc thị sai (<em>Parallax Error</em>). Thuật toán ghép sẽ bị méo mó, biến dạng hoặc hẹp không gian.<br />
+                • <strong>Cách chụp chuẩn:</strong> Đứng cố định 2 chân tại <strong>1 vị trí duy nhất ở giữa phòng</strong> $\rightarrow$ Cầm điện thoại ngang ngực $\rightarrow$ Xoay người tại chỗ từng góc ~30° để chụp (hoặc dùng chế độ PANO xoay 1 vòng tròn 360°). Máy tính sẽ tự động phát hiện và cảnh báo nếu bạn bước đi lệch tọa độ!
               </div>
             </div>
 
@@ -759,6 +759,19 @@ export const PocStitchingPage: React.FC = () => {
                                   }}
                                 >
                                   {frame.evaluation.checks.overlap.label}
+                                </span>
+                              )}
+                              {frame.evaluation.checks.position_stability && (
+                                <span
+                                  style={{
+                                    background: frame.evaluation.checks.position_stability.passed ? '#EFF6FF' : '#FEF2F2',
+                                    color: frame.evaluation.checks.position_stability.passed ? '#1D4ED8' : '#DC2626',
+                                    padding: '2px 6px',
+                                    borderRadius: 4,
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  {frame.evaluation.checks.position_stability.label}
                                 </span>
                               )}
                             </div>
