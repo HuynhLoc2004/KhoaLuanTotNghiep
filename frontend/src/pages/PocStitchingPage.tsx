@@ -18,7 +18,8 @@ import {
   Check,
   XCircle,
   RotateCw,
-  HelpCircle
+  HelpCircle,
+  Copy
 } from 'lucide-react';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../services/api';
@@ -67,6 +68,7 @@ export const PocStitchingPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [stitchResult, setStitchResult] = useState<StitchResult | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   const viewerSectionRef = useRef<HTMLDivElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
@@ -953,6 +955,33 @@ export const PocStitchingPage: React.FC = () => {
                 >
                   ✓ 4K ({stitchResult.width} x {stitchResult.height})
                 </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!stitchResult.panoramaUrl) return;
+                    navigator.clipboard.writeText(stitchResult.panoramaUrl);
+                    setCopiedUrl(true);
+                    setTimeout(() => setCopiedUrl(false), 2500);
+                  }}
+                  style={{
+                    background: copiedUrl ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.12)',
+                    color: copiedUrl ? '#34D399' : '#FFFFFF',
+                    border: copiedUrl ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.2)',
+                    padding: '6px 12px',
+                    borderRadius: 6,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 600
+                  }}
+                  title="Sao chép link ảnh 360 này để dán vào Quản lý Gian phòng"
+                >
+                  {copiedUrl ? <Check size={13} /> : <Copy size={13} />}
+                  <span>{copiedUrl ? 'Đã sao chép link!' : 'Sao chép link Cloud'}</span>
+                </button>
 
                 <a
                   href={stitchResult.panoramaUrl}
