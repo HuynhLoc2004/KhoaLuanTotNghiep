@@ -65,7 +65,14 @@ if (!fs.existsSync(VERIFY_DIR)) fs.mkdirSync(VERIFY_DIR, { recursive: true });
 
 const singleFrameStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, VERIFY_DIR);
+    try {
+      if (!fs.existsSync(VERIFY_DIR)) {
+        fs.mkdirSync(VERIFY_DIR, { recursive: true });
+      }
+      cb(null, VERIFY_DIR);
+    } catch (dirErr: any) {
+      cb(dirErr, VERIFY_DIR);
+    }
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
@@ -73,10 +80,21 @@ const singleFrameStorage = multer.diskStorage({
   }
 });
 
-const uploadSingleFrame = multer({
-  storage: singleFrameStorage,
-  limits: { fileSize: 35 * 1024 * 1024 }
-}).single('frame');
+const uploadSingleFrame = (req: Request, res: Response, next: NextFunction) => {
+  multer({
+    storage: singleFrameStorage,
+    limits: { fileSize: 35 * 1024 * 1024 }
+  }).single('frame')(req, res, (err: any) => {
+    if (err) {
+      console.warn('[Verify Frame Multer Warning]:', err.message);
+      return res.status(400).json({
+        success: false,
+        message: `Lỗi lưu trữ ảnh tạm: ${err.message}`
+      });
+    }
+    next();
+  });
+};
 
 // Đường dẫn Python (hỗ trợ cả Windows local và Linux/Docker)
 const PYTHON_PATH = process.env.PYTHON_PATH || (process.platform === 'win32'
@@ -239,12 +257,19 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
     if (isClosed || res.headersSent) return;
     isClosed = true;
 
-    // Dọn dẹp các file ảnh gốc tạm thời sau khi xử lý xong
+    // Dọn dẹp các file ảnh gốc tạm thời sau khi xử lý xong (chỉ xóa job folder riêng biệt, TUYỆT ĐỐI KHÔNG XÓA VERIFY_DIR)
     try {
       if (imagePaths.length > 0) {
         const jobFolder = path.dirname(imagePaths[0]);
-        if (fs.existsSync(jobFolder)) {
+        if (jobFolder !== VERIFY_DIR && jobFolder !== TEMP_DIR && fs.existsSync(jobFolder)) {
           fs.rmSync(jobFolder, { recursive: true, force: true });
+        } else {
+          // Nếu là các file trong VERIFY_DIR thì chỉ xóa từng file tạm đã ghép xong
+          for (const p of imagePaths) {
+            try {
+              if (fs.existsSync(p)) fs.unlinkSync(p);
+            } catch (_) {}
+          }
         }
       }
     } catch (cleanErr) {
