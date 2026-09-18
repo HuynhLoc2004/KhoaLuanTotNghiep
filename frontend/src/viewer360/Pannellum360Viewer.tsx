@@ -25,6 +25,13 @@ interface Pannellum360ViewerProps {
   hotspots?: PannellumHotSpot[];
   onHotspotClick?: (hotspot: PannellumHotSpot) => void;
   onSceneChange?: (sceneId: string) => void;
+  isPinMode?: boolean;
+  onTogglePinMode?: () => void;
+  onCanvasPinClick?: (coords: { pitch: number; yaw: number }) => void;
+  onCaptureInitialView?: (view: { pitch: number; yaw: number; fov: number }) => void;
+  initialPitch?: number;
+  initialYaw?: number;
+  initialHfov?: number;
 }
 
 export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
@@ -33,6 +40,13 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   autoStartLittlePlanet = true,
   hotspots = [],
   onHotspotClick,
+  isPinMode = false,
+  onTogglePinMode,
+  onCanvasPinClick,
+  onCaptureInitialView,
+  initialPitch = 0,
+  initialYaw = 0,
+  initialHfov = 100,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -110,11 +124,11 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         autoLoad: true,
         showControls: false,
         compass: false,
-        hfov: 100, // Góc nhìn chuẩn rộng thoáng đãng 100°, triệt tiêu hoàn toàn hiệu ứng ống hút (tunnel) và làm phẳng không gian
+        hfov: initialHfov || 100, // Góc nhìn chuẩn rộng thoáng đãng 100°, triệt tiêu hoàn toàn hiệu ứng ống hút (tunnel) và làm phẳng không gian
         minHfov: 45,
         maxHfov: 125, // Cho phép zoom rộng thoải mái để bao quát toàn phòng
-        pitch: 0,
-        yaw: 0,
+        pitch: initialPitch || 0,
+        yaw: initialYaw || 0,
         minPitch: -58, // Cho phép nhìn thấy toàn bộ sàn nhà và chân đồ vật, nhưng dừng lại tự nhiên trước khi nhìn thẳng vào chân người chụp
         maxPitch: 80,  // Góc ngước cao tự nhiên chiêm ngưỡng trần nhà
         friction: 0.15,
@@ -142,7 +156,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         viewerRef.current = null;
       }
     };
-  }, [panoramaUrl, hotspotsHash]);
+  }, [panoramaUrl, hotspotsHash, initialPitch, initialYaw, initialHfov]);
 
   // Hoạt cảnh mở đầu Little Planet bung vào phòng mượt mà (chỉ chạy 1 lần duy nhất)
   const runLittlePlanetIntro = () => {
@@ -155,20 +169,23 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       setTimeout(() => {
         let fov = 140;
         let pitch = -90;
+        const targetFov = initialHfov || 100;
+        const targetPitch = initialPitch || 0;
+
         clearInterval(introTimerRef.current);
         introTimerRef.current = setInterval(() => {
           fov -= 1.8;
           pitch += 2.0;
 
-          if (fov <= 100) fov = 100;
-          if (pitch >= 0) pitch = 0;
+          if (fov <= targetFov) fov = targetFov;
+          if (pitch >= targetPitch) pitch = targetPitch;
 
           if (viewerRef.current) {
             viewerRef.current.setHfov(fov);
             viewerRef.current.setPitch(pitch);
           }
 
-          if (fov === 100 && pitch === 0) {
+          if (fov <= targetFov && pitch >= targetPitch) {
             clearInterval(introTimerRef.current);
             setIsLittlePlanet(false);
           }
@@ -215,15 +232,55 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
 
   const handleResetHome = () => {
     if (!viewerRef.current) return;
-    viewerRef.current.setPitch(0);
-    viewerRef.current.setYaw(0);
-    viewerRef.current.setHfov(100);
+    viewerRef.current.setPitch(initialPitch || 0);
+    viewerRef.current.setYaw(initialYaw || 0);
+    viewerRef.current.setHfov(initialHfov || 100);
     setIsLittlePlanet(false);
   };
 
   const handleToggleFullscreen = () => {
     if (!viewerRef.current) return;
     viewerRef.current.toggleFullscreen();
+  };
+
+  // Studio: Lưu góc nhìn mặc định của phòng
+  const handleCaptureView = () => {
+    if (!viewerRef.current || !onCaptureInitialView) return;
+    try {
+      const pitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
+      const yaw = Math.round(viewerRef.current.getYaw() * 10) / 10;
+      const fov = Math.round(viewerRef.current.getHfov());
+      onCaptureInitialView({ pitch, yaw, fov });
+      alert(`Đã lưu góc nhìn mặc định khi vào phòng thành công!\nPitch: ${pitch}°, Yaw: ${yaw}°, FOV: ${fov}°`);
+    } catch (err) {
+      console.error('[Pannellum Capture View Error]:', err);
+    }
+  };
+
+  // Studio: Bắt sự kiện click lên ảnh để ghim tọa độ Hotspot
+  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPinMode || !viewerRef.current || !onCanvasPinClick) return;
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('.glass-toolbar') ||
+      target.closest('.custom-hotspot-badge') ||
+      target.closest('.studio-pin-banner') ||
+      target.closest('.top-title-banner')
+    ) {
+      return;
+    }
+    try {
+      const coords = viewerRef.current.mouseEventToCoords(e.nativeEvent);
+      if (coords && coords.length === 2) {
+        const [pitch, yaw] = coords;
+        onCanvasPinClick({
+          pitch: Math.round(pitch * 10) / 10,
+          yaw: Math.round(yaw * 10) / 10
+        });
+      }
+    } catch (err) {
+      console.error('[Pannellum Pin Click Error]:', err);
+    }
   };
 
   return (
@@ -398,11 +455,66 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       <div
         id={containerId.current}
         ref={containerRef}
-        style={{ width: '100%', height: '100%', background: '#0F172A' }}
+        onClick={handleContainerClick}
+        style={{
+          width: '100%',
+          height: '100%',
+          background: '#0F172A',
+          cursor: isPinMode ? 'crosshair' : 'default'
+        }}
       />
+
+      {/* Pin Mode Glowing Banner */}
+      {isPinMode && (
+        <div
+          className="studio-pin-banner"
+          style={{
+            position: 'absolute',
+            top: 14,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 30,
+            background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
+            border: '1.5px solid #FECACA',
+            color: '#FFFFFF',
+            padding: '8px 18px',
+            borderRadius: '30px',
+            fontSize: 13,
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            boxShadow: '0 8px 24px rgba(220, 38, 38, 0.5)',
+            pointerEvents: 'auto'
+          }}
+        >
+          <span style={{ fontSize: '15px' }}>📍</span>
+          <span>Chế độ ghim đang BẬT: Nhấp chuột lên vị trí cửa/lối đi để gắn Mũi tên</span>
+          {onTogglePinMode && (
+            <button
+              type="button"
+              onClick={onTogglePinMode}
+              style={{
+                background: 'rgba(255, 255, 255, 0.25)',
+                border: 'none',
+                color: '#FFF',
+                borderRadius: '12px',
+                padding: '3px 10px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '11.5px',
+                marginLeft: 6
+              }}
+            >
+              Hủy ghim
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Top Banner */}
       <div
+        className="top-title-banner"
         style={{
           position: 'absolute',
           top: 14,
@@ -438,6 +550,29 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         }}
       >
         <div className="glass-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px' }}>
+          {/* Ghim Hotspot Toggle (Studio) */}
+          {onTogglePinMode && (
+            <button
+              className={`glass-btn ${isPinMode ? 'active' : ''}`}
+              title={isPinMode ? 'Tắt chế độ ghim điểm' : 'Bật chế độ Ghim Điểm Liên Kết (Click để gắn)'}
+              onClick={onTogglePinMode}
+              style={isPinMode ? { background: '#DC2626', color: '#FFF' } : undefined}
+            >
+              <i className="fa-solid fa-location-dot"></i>
+            </button>
+          )}
+
+          {/* Lưu góc nhìn mặc định (Studio) */}
+          {onCaptureInitialView && (
+            <button
+              className="glass-btn"
+              title="Lưu góc nhìn hiện tại làm góc mở màn khi vào phòng"
+              onClick={handleCaptureView}
+            >
+              <i className="fa-solid fa-camera"></i>
+            </button>
+          )}
+
           {/* Home / Reset view */}
           <button
             className="glass-btn"

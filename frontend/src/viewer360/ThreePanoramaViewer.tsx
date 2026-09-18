@@ -74,7 +74,7 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
 
     let lon = room.initialView?.yaw || 0;
     let lat = room.initialView?.pitch || 0;
-    let fov = room.initialView?.fov || 115; // Góc nhìn siêu rộng 115° cho không gian thoáng đãng
+    let fov = room.initialView?.fov ? Math.min(room.initialView.fov, 80) : 75; // Góc nhìn chuẩn 75° sắc nét, không bị méo mó fish-eye
     let isAutoRotating = false;
 
     // Three.js Core
@@ -95,8 +95,8 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
     renderer.domElement.style.touchAction = 'none';
     container.insertBefore(renderer.domElement, container.firstChild);
 
-    // Inverted sphere for 360 indoor panorama
-    const geometry = new THREE.SphereGeometry(500, 64, 32);
+    // Inverted sphere for 360 indoor panorama (128x64 segments for smooth sphere)
+    const geometry = new THREE.SphereGeometry(500, 128, 64);
     geometry.scale(-1, 1, 1);
 
     const textureLoader = new THREE.TextureLoader();
@@ -104,8 +104,9 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
     const texture = textureLoader.load(room.panoramaUrl, () => {
       renderer.render(scene, camera);
     });
-    texture.minFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
 
     const material = new THREE.MeshBasicMaterial({ map: texture });
     const sphere = new THREE.Mesh(geometry, material);

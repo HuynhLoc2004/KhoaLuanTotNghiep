@@ -13,7 +13,7 @@ import {
   Info
 } from 'lucide-react';
 import { MuseumRoom, Hotspot } from '../../types';
-import { ThreePanoramaViewer } from '../../viewer360/ThreePanoramaViewer';
+import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
 import { HotspotModal } from '../../components/HotspotModal';
 import { api } from '../../services/api';
 
@@ -132,18 +132,33 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     }
   };
 
+  // Map museum room hotspots to Pannellum format (with 3D Walking Arrow for navigation)
+  const pannellumHotspots: PannellumHotSpot[] = (currentRoom.hotspots || []).map((h) => ({
+    pitch: h.pitch,
+    yaw: h.yaw,
+    type: h.type === 'navigation' ? 'scene' : 'info',
+    text: h.title,
+    roomId: h.targetRoomId,
+    onClick: () => handleHotspotClick(h)
+  }));
+
   return (
     <div className="studio-container">
-      {/* 360 Viewport Area */}
+      {/* 360 Viewport Area (4K Crisp Pannellum WebGL Engine) */}
       <div className="studio-viewport-area">
-        <ThreePanoramaViewer
-          room={currentRoom}
-          allRooms={allRooms}
+        <Pannellum360Viewer
+          key={currentRoom.id}
+          panoramaUrl={currentRoom.panoramaUrl}
+          title={`${currentRoom.name} (${currentRoom.code})`}
+          autoStartLittlePlanet={false}
+          hotspots={pannellumHotspots}
           isPinMode={isPinMode}
           onTogglePinMode={() => setIsPinMode((prev) => !prev)}
           onCanvasPinClick={handleCanvasPinClick}
-          onHotspotClick={handleHotspotClick}
           onCaptureInitialView={handleCaptureInitialView}
+          initialPitch={currentRoom.initialView?.pitch ?? 0}
+          initialYaw={currentRoom.initialView?.yaw ?? 0}
+          initialHfov={currentRoom.initialView?.fov ?? 100}
         />
       </div>
 
