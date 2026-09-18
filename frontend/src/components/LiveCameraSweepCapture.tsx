@@ -598,6 +598,9 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
               autoPlay
               playsInline
               muted
+              controls={false}
+              disablePictureInPicture
+              {...({ 'webkit-playsinline': 'true', 'x-webkit-airplay': 'deny' } as any)}
               onPause={() => {
                 if (videoRef.current && streamRef.current) {
                   videoRef.current.play().catch(() => {});
@@ -607,6 +610,8 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
+                pointerEvents: 'none',
+                userSelect: 'none',
                 transform: 'translateZ(0)',
                 WebkitTransform: 'translateZ(0)'
               }}
