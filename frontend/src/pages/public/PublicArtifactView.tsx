@@ -221,6 +221,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         <div style={{ marginBottom: 20 }}>
           <Turntable360Viewer
             images={artifact.images360 && artifact.images360.length > 0 ? artifact.images360 : [artifact.thumbnailUrl]}
+            model3dUrl={artifact.model3dUrl}
             title={artifact.name}
             height={420}
           />

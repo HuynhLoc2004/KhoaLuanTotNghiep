@@ -35,6 +35,7 @@ ENV PORT=3000
 ENV NODE_ENV=production
 ENV PYTHON_PATH=python3
 ENV STITCHER_SCRIPT=/app/stitching_worker/stitcher.py
+ENV DEPTH_MESH_SCRIPT=/app/stitching_worker/depth_mesh_generator.py
 
 EXPOSE 3000
 

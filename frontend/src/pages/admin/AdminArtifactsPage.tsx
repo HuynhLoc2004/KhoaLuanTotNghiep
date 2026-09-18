@@ -123,6 +123,67 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
     setEditModalOpen(true);
   };
 
+  const [generating3DId, setGenerating3DId] = useState<string | null>(null);
+  const [isGeneratingForm3D, setIsGeneratingForm3D] = useState(false);
+
+  // Sinh mô hình 3D từ ảnh cho một hiện vật bất kỳ
+  const handleGenerate3DMeshForArtifact = async (art: MuseumArtifact) => {
+    try {
+      setGenerating3DId(art.id);
+      const imgUrl = art.thumbnailUrl || (art.images360 && art.images360[0]);
+      if (!imgUrl) {
+        alert('Hiện vật cần có ít nhất một ảnh để tạo mô hình 3D');
+        return;
+      }
+      const res = await api.generate3DMesh({
+        imageUrl: imgUrl,
+        artifactId: art.id,
+        depthScale: 0.35,
+        resolution: 150
+      });
+      setArtifacts(prev => prev.map(a => a.id === art.id ? { ...a, model3dUrl: res.model3dUrl } : a));
+      alert(`Đã tạo thành công mô hình 3D thực thụ (.GLB) với ${res.vertices.toLocaleString()} đỉnh và ${res.faces.toLocaleString()} mặt đa giác! Bấm "Xem 3D" để chiêm ngưỡng.`);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi tạo mô hình 3D');
+    } finally {
+      setGenerating3DId(null);
+    }
+  };
+
+  // Sinh mô hình 3D từ form đang tạo/sửa
+  const handleGenerateForm3D = async () => {
+    try {
+      const imgUrl = form.thumbnailUrl || (form.images360 && form.images360[0]);
+      if (!imgUrl) {
+        alert('Vui lòng nhập ảnh đại diện hoặc tải ảnh mâm xoay trước khi tạo 3D');
+        return;
+      }
+      setIsGeneratingForm3D(true);
+      const res = await api.generate3DMesh({
+        imageUrl: imgUrl,
+        depthScale: 0.35,
+        resolution: 150
+      });
+      setForm(prev => ({ ...prev, model3dUrl: res.model3dUrl }));
+      alert(`Đã dựng xong khối 3D (.GLB) với ${res.vertices.toLocaleString()} đỉnh và ${res.faces.toLocaleString()} mặt đa giác!`);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi tạo mô hình 3D');
+    } finally {
+      setIsGeneratingForm3D(false);
+    }
+  };
+
+  const handleModelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await api.uploadArtifactModel(file);
+      setForm(prev => ({ ...prev, model3dUrl: res.url }));
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi tải file 3D');
+    }
+  };
+
   // Save Artifact
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -404,7 +465,7 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
                       gap: 8
                     }}
                   >
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <button
                         className="btn btn-secondary"
                         onClick={() => handleOpenView3D(art)}
@@ -424,6 +485,47 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
                         <QrCode size={14} color="var(--primary)" />
                         <span>Mã QR</span>
                       </button>
+
+                      {art.model3dUrl ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            background: 'rgba(217, 119, 6, 0.15)',
+                            color: '#d97706',
+                            border: '1px solid rgba(217, 119, 6, 0.3)'
+                          }}
+                          title="Hiện vật đã có mô hình 3D thực thể .GLB"
+                        >
+                          <Box size={13} />
+                          <span>3D GLB</span>
+                        </span>
+                      ) : (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => handleGenerate3DMeshForArtifact(art)}
+                          disabled={generating3DId === art.id}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: 11,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            color: '#d97706',
+                            borderColor: 'rgba(217, 119, 6, 0.4)',
+                            background: 'rgba(217, 119, 6, 0.08)'
+                          }}
+                          title="Tự động bóc tách độ sâu và tạo file 3D (.GLB) từ ảnh"
+                        >
+                          {generating3DId === art.id ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+                          <span>{generating3DId === art.id ? 'Đang dựng...' : 'Tạo 3D'}</span>
+                        </button>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', gap: 4 }}>
@@ -473,6 +575,7 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
 
             <Turntable360Viewer
               images={selectedArtifact.images360 && selectedArtifact.images360.length > 0 ? selectedArtifact.images360 : [selectedArtifact.thumbnailUrl]}
+              model3dUrl={selectedArtifact.model3dUrl}
               title={selectedArtifact.name}
               height={420}
             />
@@ -724,6 +827,64 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
                   onChange={e => setForm(f => ({ ...f, audioText: e.target.value }))}
                   placeholder="Nội dung AI sẽ đọc khi du khách nhấn nút Thuyết minh (mặc định lấy theo Mô tả)..."
                 />
+              </div>
+
+              {/* 3D Mesh GLB Section */}
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 12, border: '1px solid rgba(217, 119, 6, 0.35)', marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Box size={16} />
+                    <span>Mô hình 3D Thực thể (.GLB)</span>
+                  </div>
+                  {form.model3dUrl ? (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', padding: '2px 8px', borderRadius: 6 }}>
+                      ✓ Đã có file 3D
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Chưa có file 3D</span>
+                  )}
+                </div>
+
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                  Tạo mô hình 3D thực thể khối có chiều sâu đa giác từ 1 ảnh chụp qua tủ kính, hoặc tải lên file .glb sẵn có.
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleGenerateForm3D}
+                    disabled={isGeneratingForm3D}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      color: '#d97706',
+                      borderColor: 'rgba(217, 119, 6, 0.5)',
+                      background: 'rgba(217, 119, 6, 0.08)'
+                    }}
+                  >
+                    {isGeneratingForm3D ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />}
+                    <span>{isGeneratingForm3D ? 'Đang phân tích độ sâu & dựng khối 3D...' : 'Tự động tạo mô hình 3D (.GLB) từ ảnh'}</span>
+                  </button>
+
+                  <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                    <Upload size={14} />
+                    <span>Tải file .glb thủ công</span>
+                    <input
+                      type="file"
+                      accept=".glb,.gltf"
+                      onChange={handleModelUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+
+                {form.model3dUrl && (
+                  <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                    <strong>Đường dẫn 3D:</strong> {form.model3dUrl}
+                  </div>
+                )}
               </div>
 
               {/* Turntable 360 Frames Upload */}

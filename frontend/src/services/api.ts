@@ -171,5 +171,26 @@ export const api = {
       url: formatMediaUrl(json.data.url),
       filename: json.data.filename
     };
+  },
+
+  async generate3DMesh(params: { file?: File; imageUrl?: string; artifactId?: string; depthScale?: number; resolution?: number }): Promise<{ model3dUrl: string; vertices: number; faces: number }> {
+    const formData = new FormData();
+    if (params.file) formData.append('file', params.file);
+    if (params.imageUrl) formData.append('imageUrl', params.imageUrl);
+    if (params.artifactId) formData.append('artifactId', params.artifactId);
+    if (params.depthScale) formData.append('depthScale', String(params.depthScale));
+    if (params.resolution) formData.append('resolution', String(params.resolution));
+
+    const res = await fetch(`${API_BASE}/artifacts/generate-3d-mesh`, {
+      method: 'POST',
+      body: formData
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi sinh mô hình 3D từ ảnh');
+    return {
+      model3dUrl: formatMediaUrl(json.data.model3dUrl),
+      vertices: json.data.vertices,
+      faces: json.data.faces
+    };
   }
 };

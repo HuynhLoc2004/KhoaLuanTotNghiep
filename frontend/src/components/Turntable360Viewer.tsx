@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Box, Play, Pause, ZoomIn, ZoomOut, Maximize2, Minimize2, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react';
+import { formatMediaUrl } from '../services/api';
 
 interface Turntable360ViewerProps {
   images?: string[];
@@ -37,7 +38,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const turntableRef = useRef<THREE.Group | null>(null);
   const frameIdRef = useRef<number | null>(null);
 
-  const validImages = images && images.length > 0 ? images : [];
+  const validImages = (images && images.length > 0 ? images : []).map(formatMediaUrl);
   const mainImageUrl = validImages[0] || 'https://images.unsplash.com/photo-1544967082-d9d25d867d66?auto=format&fit=crop&w=800&q=80';
 
   // Xác định loại hiện vật để tạo mô hình 3D tương ứng
@@ -357,9 +358,10 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     // 7. DỰNG MÔ HÌNH HIỆN VẬT 3D ĐÍCH THỰC (TRUE 3D RELIC)
     if (model3dUrl) {
       // Nếu có file 3D .glb / .gltf
+      const resolvedUrl = formatMediaUrl(model3dUrl);
       const loader = new GLTFLoader();
       loader.load(
-        model3dUrl,
+        resolvedUrl,
         (gltf) => {
           const model = gltf.scene;
           model.traverse((child) => {
