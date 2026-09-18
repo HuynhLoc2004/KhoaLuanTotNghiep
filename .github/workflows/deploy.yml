@@ -77,6 +77,15 @@ jobs:
               git pull origin "$TARGET_BRANCH" || true
             fi
 
+            # Đảm bảo Docker daemon dùng DNS ổn định (Google DNS / Cloudflare) chống TLS handshake timeout
+            if [ ! -f /etc/docker/daemon.json ] || ! grep -q "8.8.8.8" /etc/docker/daemon.json 2>/dev/null; then
+              echo ">>> Tối ưu hóa DNS cho Docker daemon (8.8.8.8, 1.1.1.1)..."
+              mkdir -p /etc/docker
+              echo '{"dns": ["8.8.8.8", "1.1.1.1"]}' > /etc/docker/daemon.json
+              systemctl restart docker || true
+              sleep 3
+            fi
+
             echo ">>> [3/4] Build & Khởi chạy các container Docker..."
             if docker compose version &>/dev/null; then
               COMPOSE_CMD="docker compose"
@@ -85,7 +94,24 @@ jobs:
             fi
 
             echo ">>> Sử dụng lệnh Docker: $COMPOSE_CMD"
-            $COMPOSE_CMD up -d --build --remove-orphans
+            
+            # Thử build với cơ chế tự động thử lại 3 lần nếu mạng Docker Hub quốc tế chập chờn
+            DEPLOY_SUCCESS=false
+            for attempt in 1 2 3; do
+              echo ">>> Thực thi deploy (Lần $attempt/3)..."
+              if $COMPOSE_CMD up -d --build --remove-orphans; then
+                DEPLOY_SUCCESS=true
+                echo ">>> Deploy thành công ở lần thử $attempt!"
+                break
+              fi
+              echo "⚠️ Lần thử $attempt thất bại do mạng Docker Hub timeout, nghỉ 5s rồi thử lại..."
+              sleep 5
+            done
+
+            if [ "$DEPLOY_SUCCESS" != "true" ]; then
+              echo "❌ Deploy thất bại sau 3 lần thử!"
+              exit 1
+            fi
 
             # Đảm bảo Nginx nhận diện chứng chỉ SSL Let's Encrypt nếu có
             if [ -f "scripts/setup-ssl.sh" ]; then
