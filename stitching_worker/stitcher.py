@@ -129,17 +129,18 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
       đồng thời xóa bỏ cảm giác ống hút / phễu sâu (tunnel effect) và không gian hẹp.
     - Khâu liền mạch 360° ở kinh tuyến 0°-360° và nội suy mượt mà 2 cực Zenith & Nadir.
     """
-    h, w = stitched_img.shape[:2]
     target_height = target_width // 2 # 2048px cho canvas 4096px
     aspect_ratio = max(0.5, float(w) / float(h))
 
-    # TÍNH TOÁN KÍCH THƯỚC ĐẠI DIỆN CHUẨN KHÔNG GIAN (Optical Space Expansion):
-    # Chiều cao phòng chiếm từ 72% đến 85% quả cầu 360° (tương đương 130° - 153° góc nhìn dọc tự nhiên),
-    # giúp khách tham quan nhìn thấy trọn vẹn trần nhà, đèn trang trí, vách tường và bục hiện vật.
+    # BẢO TỒN NGUYÊN BẢN TỶ LỆ QUANG HỌC 1:1 (True Optical Aspect Ratio Preservation):
+    # Chiều cao được nạp chính xác theo tỷ lệ thật của ảnh chụp (sx = sy),
+    # Giữ nguyên bản 100% góc nhìn thực tế: cánh cửa, bàn ghế, hiện vật có kích thước và hình dáng
+    # y chang như ảnh gốc đầu vào mà bạn chụp, triệt tiêu hoàn toàn hiện tượng bóp méo hay kéo dẹt!
+    natural_h = int(round(target_width / aspect_ratio))
     new_w = target_width
-    new_h = min(int(target_height * 0.85), max(int(target_height * 0.72), int(target_width / aspect_ratio)))
+    new_h = min(int(target_height * 0.90), max(int(target_height * 0.35), natural_h))
 
-    # Co giãn chất lượng cao với bộ lọc Lanczos 4-tap chống gai & giữ độ sắc nét
+    # Co giãn chất lượng cao với bộ lọc Lanczos 4-tap giữ trọn độ nét chi tiết
     resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
 
     # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) để xoay vòng liền mạch
@@ -228,9 +229,9 @@ def enhance_museum_texture(image):
         l_balanced = cv2.addWeighted(l_clahe, 0.55, l, 0.45, 0)
         balanced_bgr = cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
 
-        # 2. Tăng cường độ nét vi mô (Unsharp Masking)
+        # 2. Tăng cường độ nét vi mô tự nhiên (Natural Micro-Sharpening)
         blurred = cv2.GaussianBlur(balanced_bgr, (0, 0), 1.0)
-        sharpened = float(2.25) * balanced_bgr.astype(np.float32) - float(1.25) * blurred.astype(np.float32)
+        sharpened = float(1.4) * balanced_bgr.astype(np.float32) - float(0.4) * blurred.astype(np.float32)
         sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
 
         # Chống nhiễu hạt ở các mảng màu phẳng
