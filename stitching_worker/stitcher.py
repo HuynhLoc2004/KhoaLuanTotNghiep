@@ -121,16 +121,46 @@ def crop_black_borders(img):
 
     return cropped
 
-def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
+def fit_to_equirectangular_2_to_1(stitched_img, target_width=None):
     """
     Nắn chỉnh và chuẩn hóa ảnh ghép thành tỷ lệ 2:1 Equirectangular chuẩn quốc tế:
-    - Mở rộng tỷ lệ bao phủ chiều cao phòng lên 72% - 85% (tương đương 1474px - 1740px trên canvas 2048px).
+    - TỰ ĐỘNG THÍCH ỨNG THEO ĐỘ PHÂN GIẢI THỰC TẾ (Adaptive Resolution):
+      Tuyệt đối không cưỡng ép phóng to (upscale) ảnh nhỏ lên 4K khiến các hạt ảnh bị kéo dãn và vỡ hạt (pixelation).
+      Tự động chọn kích thước chuẩn 2:1 tối ưu cho WebGL (4K: 4096x2048, 3K: 3072x1536, 2K: 2048x1024).
     - Bảo tồn độ phẳng kiến trúc (Rectilinear Flatness), triệt tiêu hoàn toàn hiện tượng kéo dẹt ngang làm méo vách tường,
       đồng thời xóa bỏ cảm giác ống hút / phễu sâu (tunnel effect) và không gian hẹp.
     - Khâu liền mạch 360° ở kinh tuyến 0°-360° và nội suy mượt mà 2 cực Zenith & Nadir.
     """
     h, w = stitched_img.shape[:2]
-    target_height = target_width // 2 # 2048px cho canvas 4096px
+
+    # Quyết định độ phân giải mục tiêu thích ứng:
+    # Nếu target_width không chỉ định (None/0) hoặc nếu target_width lớn hơn quá nhiều so với độ phân giải thực (>15%):
+    # Tự động chọn kích thước chuẩn tương thích thông tin thực của ảnh để tránh vỡ hạt.
+    if target_width is None or target_width <= 0:
+        if w >= 3600:
+            target_width = 4096
+        elif w >= 2600:
+            target_width = 3072
+        elif w >= 1600:
+            target_width = 2048
+        else:
+            target_width = max(1024, (w // 2) * 2)
+    else:
+        # Nếu truyền target_width cố định nhưng ảnh thực tế nhỏ hơn đáng kể:
+        # Hạ về chuẩn an toàn gần nhất để chống hiện tượng kéo vỡ hạt do nội suy Lanczos
+        if target_width > int(w * 1.15):
+            if w >= 3400:
+                target_width = 4096
+            elif w >= 2500:
+                target_width = 3072
+            elif w >= 1500:
+                target_width = 2048
+            else:
+                target_width = max(1024, (w // 2) * 2)
+        else:
+            target_width = (target_width // 2) * 2
+
+    target_height = target_width // 2
     aspect_ratio = max(0.5, float(w) / float(h))
 
     # BẢO TỒN NGUYÊN BẢN TỶ LỆ QUANG HỌC 1:1 (True Optical Aspect Ratio Preservation):
@@ -155,7 +185,7 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
 
     # Tạo canvas Equirectangular 2:1
     canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
-    y_offset = (target_height - new_h) // 2 # Khoảng cách cực đỉnh và cực đáy chỉ còn ~150px - 280px
+    y_offset = (target_height - new_h) // 2
 
     # Đặt không gian phòng vào trung tâm quả cầu
     canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
@@ -214,31 +244,43 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
 
 def enhance_museum_texture(image):
     """
-    Bộ lọc Tăng Cường Chi Tiết & Cân Bằng Ánh Sáng Bảo Tàng Chuyên Nghiệp:
-    1. Cân bằng tương phản cục bộ thích ứng (Adaptive CLAHE trên kênh Luminance của không gian màu LAB):
-       Giúp các cổ vật trong tủ kính, góc tối của gian phòng được kéo sáng rõ nét mà không bị cháy sáng ở các ngọn đèn.
-    2. Bộ lọc Unsharp Masking vi mô: Tăng cường độ nổi khối các đường nét chạm khắc, hoa văn cổ vật và phù điêu.
-    3. Giữ nguyên các vùng màu đồng nhất (trần nhà, nền gạch) để không bị sinh nhiễu hạt (noise).
+    Bộ lọc Tinh Chỉnh & Cân Bằng Thích Ứng (Adaptive Natural Quality Enhancement):
+    - ĐO ĐẠC ĐỘ NÉT THỰC TẾ: Dựa vào độ biến thiên Laplacian để biết ảnh đã sắc nét hay chưa.
+    - TRÁNH HOÀN TOÀN TÌNH TRẠNG VỠ ẢNH (Không can thiệp quá đà / No Over-Processing):
+      + Nếu ảnh gốc đã sắc nét (laplacian_var >= 80): Tuyệt đối KHÔNG làm nét nhân tạo nữa
+        (bỏ qua Unsharp Masking) để tránh tạo quầng trắng (halos), vỡ khối hay nổi hạt nhiễu (noise).
+      + Nếu ảnh hơi mềm (laplacian_var < 80): Chỉ áp dụng mức làm nét vi mô siêu nhẹ (1.08 / -0.08)
+        và khóa các mảng màu phẳng (tường, trần, sàn) để không sinh hạt.
+    - CÂN BẰNG SÁNG TỰ NHIÊN: Giảm CLAHE clipLimit xuống 1.2 và chỉ hòa trộn 25% với 75% ảnh gốc.
+      Kéo sáng nhẹ nhàng các góc tối mà vẫn giữ trọn màu sắc và độ trong trẻo thật của không gian.
     """
     try:
-        # 1. Cân bằng sáng thích ứng CLAHE trên kênh Luminance (L)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        laplacian_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+
+        # 1. Cân bằng sáng thích ứng nhẹ nhàng (Gentle Adaptive CLAHE)
         lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(8, 8))
+        clahe = cv2.createCLAHE(clipLimit=1.2, tileGridSize=(8, 8))
         l_clahe = clahe.apply(l)
-        # Hòa trộn 55% ảnh cân bằng sáng với 45% ảnh gốc để bảo toàn sự tự nhiên
-        l_balanced = cv2.addWeighted(l_clahe, 0.55, l, 0.45, 0)
+        # Hòa trộn nhẹ 25% CLAHE với 75% gốc: kéo sáng dịu mắt góc tối, không làm bệt/cháy màu
+        l_balanced = cv2.addWeighted(l_clahe, 0.25, l, 0.75, 0)
         balanced_bgr = cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
 
-        # 2. Tăng cường độ nét vi mô tự nhiên (Natural Micro-Sharpening)
+        # 2. Xử lý độ nét thích ứng theo chất lượng ảnh thực tế:
+        # Nếu ảnh vốn đã rất nét (laplacian >= 80) -> Giữ nguyên 100% độ mượt tự nhiên, không unsharp mask!
+        if laplacian_var >= 80.0:
+            return balanced_bgr
+
+        # Nếu ảnh hơi mềm (laplacian < 80) -> Chỉ làm nét vi mô cực nhẹ và bảo vệ mảng màu phẳng
         blurred = cv2.GaussianBlur(balanced_bgr, (0, 0), 1.0)
-        sharpened = float(1.4) * balanced_bgr.astype(np.float32) - float(0.4) * blurred.astype(np.float32)
+        sharpened = float(1.08) * balanced_bgr.astype(np.float32) - float(0.08) * blurred.astype(np.float32)
         sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
 
-        # Chống nhiễu hạt ở các mảng màu phẳng
-        diff = np.abs(balanced_bgr.astype(np.int16) - blurred.astype(np.int16))
-        mask = diff < 2
-        np.copyto(sharpened, balanced_bgr, where=mask)
+        # Bảo vệ các vùng màu phẳng (trần, tường, sàn gạch men) chống nhiễu hạt
+        diff = cv2.absdiff(balanced_bgr, blurred)
+        flat_mask = np.mean(diff, axis=2) < 2.0
+        sharpened[flat_mask] = balanced_bgr[flat_mask]
         return sharpened
     except Exception as e:
         print(f"[Warning] Không thể áp dụng enhance_museum_texture: {e}", file=sys.stderr)
@@ -260,7 +302,7 @@ def balance_indoor_lighting(img):
     except Exception:
         return img
 
-def run_stitch(image_paths, output_path, target_width=4096):
+def run_stitch(image_paths, output_path, target_width=0):
     """
     Thực thi quy trình ghép ảnh:
     - Nếu là 1 ảnh: Tự động nhận diện ảnh Pano từ điện thoại, cắt viền và nắn Equirectangular 2:1 chuẩn.
@@ -621,7 +663,7 @@ def main():
     parser.add_argument("--images", nargs="+", help="Danh sách đường dẫn các file ảnh cần ghép")
     parser.add_argument("--input_json", help="File JSON chứa danh sách đường dẫn ảnh")
     parser.add_argument("--output", help="Đường dẫn file ảnh đầu ra (.jpg)")
-    parser.add_argument("--width", type=int, default=4096, help="Chiều rộng ảnh đầu ra (mặc định: 4096)")
+    parser.add_argument("--width", type=int, default=0, help="Chiều rộng ảnh đầu ra (0 = Tự động thích ứng chất lượng theo ảnh gốc)")
 
     args = parser.parse_args()
 

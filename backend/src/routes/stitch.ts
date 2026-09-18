@@ -209,12 +209,13 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
 
   console.log(`[Stitch API] Bắt đầu ghép ${imagePaths.length} tấm ảnh qua OpenCV...`);
 
-  // Chuẩn bị arguments cho Python script
+  // Chuẩn bị arguments cho Python script (mặc định width=0 để tự động thích ứng chất lượng theo ảnh gốc, chống vỡ hạt)
+  const targetWidth = req.body.width ? String(req.body.width) : '0';
   const args = [
     STITCHER_SCRIPT,
     '--images', ...imagePaths,
     '--output', outputPath,
-    '--width', '4096'
+    '--width', targetWidth
   ];
 
   const pyProcess = spawn(PYTHON_PATH, args);
