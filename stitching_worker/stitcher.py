@@ -252,20 +252,23 @@ def run_stitch(image_paths, output_path, target_width=4096):
     # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img48)
     sorted_paths = sorted(image_paths, key=natural_sort_key)
 
-    # THUẬT TOÁN CHẮT LỌC KHUNG HÌNH TỐI ƯU (Intelligent Keyframe Selection):
-    # Trong Thị giác máy tính 360°, số lượng khung hình lý tưởng để bao phủ 360° là 12 đến 16 ảnh (mỗi ảnh cách nhau ~25°-30°).
-    # Nếu đưa toàn bộ 48 ảnh vào, số cặp đối chiếu bùng nổ lên 1,128 cặp (48x47/2), gây cạn kiệt RAM và làm Linux kernel tắt tiến trình.
-    # Ta tự động chắt lọc 16 khung hình phân bổ đều nhất quanh 360° để thuật toán ghép siêu tốc (10-15s), bảo toàn độ sắc nét và ổn định tuyệt đối!
-    if len(sorted_paths) > 16:
-        print(f"[*] Phát hiện {len(sorted_paths)} ảnh đầu vào. Đang chắt lọc 16 khung hình phân bổ đều nhất quanh 360° để tối ưu bộ nhớ...", file=sys.stderr)
-        indices = np.linspace(0, len(sorted_paths) - 1, 16, dtype=int)
-        selected_paths = [sorted_paths[i] for i in indices]
+    # ƯU TIÊN GIỮ NGUYÊN TOÀN BỘ ẢNH (Không bỏ sót góc nào):
+    # Người chụp có thể lùi xa lấy góc rộng hơn hoặc chụp bổ sung các góc chi tiết.
+    # Ta giữ trọn vẹn 100% tất cả ảnh đầu vào, tự động điều chỉnh độ phân giải nạp (max_dim)
+    # để thuật toán ghép tận dụng tối đa dữ liệu mà vẫn bảo đảm an toàn tuyệt đối cho bộ nhớ RAM!
+    selected_paths = sorted_paths
+    total_imgs = len(selected_paths)
+
+    if total_imgs <= 16:
+        stitch_max_dim = 1400
+    elif total_imgs <= 24:
+        stitch_max_dim = 1200
+    elif total_imgs <= 36:
+        stitch_max_dim = 1050
     else:
-        selected_paths = sorted_paths
+        stitch_max_dim = 900
 
-    stitch_max_dim = 1300 if len(selected_paths) >= 12 else 1500
-
-    print(f"[*] Đang nạp và chuẩn hóa EXIF cho {len(selected_paths)} ảnh đại diện tối ưu (max_dim={stitch_max_dim}px)...", file=sys.stderr)
+    print(f"[*] Tiếp nhận toàn bộ {total_imgs} ảnh đầu vào (giữ trọn vẹn mọi góc nhìn, max_dim={stitch_max_dim}px)...", file=sys.stderr)
     images = []
     for p in selected_paths:
         if not os.path.exists(p):
@@ -424,43 +427,53 @@ def verify_single_image(image_path, prev_image_path=None):
                     match_count = len(good_matches)
                     has_overlap = match_count >= 16
 
-                    # KIỂM TRA LỆCH TỌA ĐỘ ĐỨNG (Parallax / Camera Translation Detection):
-                    # - Nếu đứng yên 1 chỗ và xoay máy (Pure Rotation): Các điểm ảnh khớp hoàn hảo theo 1 ma trận Homography duy nhất (Inlier Ratio > 52%).
-                    # - Nếu người chụp bước chân di chuyển (Translation / Lệch tọa độ): Hiện tượng thị sai (Parallax) xảy ra do vật gần và cảnh xa
-                    #   trượt với vận tốc khác nhau, phá vỡ ma trận Homography hoặc làm giảm mạnh tỷ lệ điểm đồng phẳng.
-                    if match_count >= 12:
+                    # KIỂM TRA ĐỘ ỔN ĐỊNH VỊ TRÍ & DUNG SAI THỊ SAI (Adaptive Position & Parallax Tolerance):
+                    # - Nếu đứng yên 1 chỗ xoay máy: Khớp rất cao (Inlier Ratio > 50%).
+                    # - Nếu người chụp dịch chuyển nhẹ / lùi xa lấy góc rộng hơn: Vẫn có điểm chung tốt (match_count >= 12, inliers >= 6).
+                    #   Hệ thống có DUNG SAI MỀM DẺO: Vẫn ĐẠT CHUẨN và ưu tiên lấy trọn vẹn góc nhìn này để không gian chính xác nhất!
+                    # - Chỉ cảnh báo khi lệch vị trí quá nhiều làm mất hoàn toàn sự tương thích hình học.
+                    if match_count >= 10:
                         src_pts = np.float32([kp[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
                         dst_pts = np.float32([prev_kp[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-                        H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 4.5)
+                        H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
                         if H is not None and inlier_mask is not None:
                             inlier_count = int(np.sum(inlier_mask))
                             inlier_ratio = inlier_count / float(match_count)
                             det = float(np.linalg.det(H[:2, :2]))
-                            # Điều kiện xác định đứng yên tại chỗ xoay máy (không bước chân)
-                            is_position_stable = (inlier_ratio >= 0.50) and (inlier_count >= 10) and (0.25 < det < 4.0)
+
+                            # Dung sai thông minh: Cho phép xê dịch nhẹ hoặc lùi xa lấy góc nhìn xa hơn
+                            is_position_stable = (inlier_ratio >= 0.32 and inlier_count >= 6 and 0.15 < det < 6.5) or (match_count >= 22)
+
+                            if inlier_ratio >= 0.50:
+                                pos_label = "Chuẩn trục xoay (Khớp hoàn hảo)"
+                            elif is_position_stable:
+                                pos_label = "Góc nhìn hợp lệ (Độ lệch trong giới hạn cho phép)"
+                            else:
+                                pos_label = "⚠️ Lệch vị trí nhiều (Nên đứng gần lại góc trước)"
+
                             position_info = {
                                 "passed": is_position_stable,
                                 "inlier_ratio": round(inlier_ratio * 100, 1),
-                                "label": "Đứng chuẩn trục xoay (Không lệch vị trí)" if is_position_stable else "⚠️ Lệch tọa độ: Bạn vừa bước đi (thị sai Parallax)!"
+                                "label": pos_label
                             }
                         else:
-                            is_position_stable = False
+                            is_position_stable = match_count >= 18
                             position_info = {
-                                "passed": False,
+                                "passed": is_position_stable,
                                 "inlier_ratio": 0.0,
-                                "label": "⚠️ Lệch tọa độ: Cảnh bị xáo trộn do thay đổi vị trí đứng!"
+                                "label": "Góc nhìn mở rộng (Đạt)" if is_position_stable else "⚠️ Khung cảnh bị xáo trộn do thay đổi vị trí"
                             }
                     else:
                         is_position_stable = has_overlap
                         position_info = {
                             "passed": has_overlap,
-                            "label": "Độ khớp tạm đủ" if has_overlap else "Chưa đủ điểm so khớp vị trí"
+                            "label": "Độ khớp hợp lệ" if has_overlap else "Chưa đủ điểm chung với góc trước"
                         }
 
                     overlap_info = {
                         "match_count": match_count,
                         "passed": has_overlap,
-                        "label": "Khớp nối tốt với ảnh trước" if match_count >= 28 else ("Độ gối đầu vừa đủ" if has_overlap else "Chưa đủ điểm chung với ảnh trước")
+                        "label": "Khớp nối tốt với ảnh trước" if match_count >= 24 else ("Độ gối đầu vừa đủ" if has_overlap else "Chưa đủ điểm chung với ảnh trước")
                     }
                 else:
                     has_overlap = False
