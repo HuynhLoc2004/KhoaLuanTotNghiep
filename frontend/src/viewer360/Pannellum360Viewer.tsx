@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 declare global {
   interface Window {
@@ -77,10 +78,20 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       }
     }));
 
+    // Tự động phân giải URL: nếu là Cloudflare R2 subdomain chưa có CORS cho WebGL, bọc qua Backend Proxy
+    let effectivePanoramaUrl = panoramaUrl;
+    if (
+      effectivePanoramaUrl &&
+      effectivePanoramaUrl.includes('r2.dev') &&
+      !effectivePanoramaUrl.includes('/api/stitch/proxy-image')
+    ) {
+      effectivePanoramaUrl = `${API_BASE}/stitch/proxy-image?url=${encodeURIComponent(effectivePanoramaUrl)}`;
+    }
+
     try {
       const viewer = window.pannellum.viewer(containerId.current, {
         type: 'equirectangular',
-        panorama: panoramaUrl,
+        panorama: effectivePanoramaUrl,
         autoLoad: true,
         showControls: false,
         compass: false,

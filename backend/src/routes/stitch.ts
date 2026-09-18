@@ -177,23 +177,21 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
             const fileBuf = fs.readFileSync(outputPath);
             cloudR2Url = await uploadToR2(`panoramas_360/${outFilename}`, fileBuf, 'image/jpeg');
             if (cloudR2Url) {
-              finalPanoramaUrl = cloudR2Url;
-              console.log('[Stitch API] Đã lưu trữ thành công lên Cloudflare R2 CDN:', finalPanoramaUrl);
+              console.log('[Stitch API] Đã lưu trữ thành công lên Cloudflare R2 CDN:', cloudR2Url);
             }
           }
         } catch (r2Err: any) {
           console.warn('[Stitch API R2 Sync Warning]:', r2Err.message);
         }
 
-        // 2. Đồng thời đồng bộ sao lưu lên Cloudinary CDN
+        // 2. Đồng thời đồng bộ lên Cloudinary CDN (Được kích hoạt chuẩn CORS toàn cầu cho WebGL Pannellum)
+        let cloudinaryUrl: string | null = null;
         try {
-          console.log('[Stitch API] Đang đồng bộ sao lưu ảnh 360 lên Cloudinary (folder: museum/panoramas_360)...');
+          console.log('[Stitch API] Đang đồng bộ ảnh 360 lên Cloudinary (folder: museum/panoramas_360)...');
           const cldRes = await uploadToCloudinary(outputPath, 'museum/panoramas_360');
           if (cldRes && cldRes.secure_url) {
-            if (!cloudR2Url) {
-              finalPanoramaUrl = cldRes.secure_url;
-            }
-            console.log('[Stitch API] Đã đồng bộ thành công lên Cloudinary CDN:', cldRes.secure_url);
+            cloudinaryUrl = cldRes.secure_url;
+            console.log('[Stitch API] Đã đồng bộ thành công lên Cloudinary CDN:', cloudinaryUrl);
           }
         } catch (cldErr: any) {
           console.warn('[Stitch API Cloudinary Sync Warning]:', cldErr.message, '- Dùng fallback URL.');
@@ -202,11 +200,25 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
         // Xóa cache danh sách phòng trong Redis
         await cacheDel('rooms:all');
 
-        console.log(`[Stitch API] Ghép thành công! URL ảnh: ${finalPanoramaUrl}`);
+        // Ưu tiên Cloudinary URL cho WebGL Viewer vì Cloudinary luôn có CORS header chuẩn (Access-Control-Allow-Origin: *)
+        // Nếu không có Cloudinary, sử dụng Local URL từ máy chủ (cũng đã kích hoạt CORS)
+        // Nếu dùng R2 thì bọc qua Proxy endpoint để tránh lỗi bảo mật WebGL
+        if (cloudinaryUrl) {
+          finalPanoramaUrl = cloudinaryUrl;
+        } else if (fs.existsSync(outputPath)) {
+          finalPanoramaUrl = `${baseUrl}/uploads/${outFilename}`;
+        } else if (cloudR2Url) {
+          finalPanoramaUrl = `${baseUrl}/api/stitch/proxy-image?url=${encodeURIComponent(cloudR2Url)}`;
+        }
+
+        console.log(`[Stitch API] Ghép thành công! URL ảnh hiển thị: ${finalPanoramaUrl}`);
         return res.json({
           success: true,
           data: {
             panoramaUrl: finalPanoramaUrl,
+            cloudinaryUrl: cloudinaryUrl,
+            r2Url: cloudR2Url,
+            localUrl: `${baseUrl}/uploads/${outFilename}`,
             filename: outFilename,
             width: result.width,
             height: result.height,
@@ -240,3 +252,34 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
     });
   });
 });
+
+/**
+ * GET /api/stitch/proxy-image?url=...
+ * Proxy hình ảnh hỗ trợ CORS header cho WebGL Canvas/Pannellum
+ */
+stitchRouter.get('/proxy-image', async (req: Request, res: Response) => {
+  const targetUrl = req.query.url as string;
+  if (!targetUrl) {
+    return res.status(400).send('Missing url query parameter');
+  }
+
+  try {
+    const remoteRes = await fetch(targetUrl);
+    if (!remoteRes.ok) {
+      return res.status(remoteRes.status).send(`Failed to fetch image: ${remoteRes.statusText}`);
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Content-Type', remoteRes.headers.get('content-type') || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+
+    const arrayBuf = await remoteRes.arrayBuffer();
+    return res.send(Buffer.from(arrayBuf));
+  } catch (err: any) {
+    console.error('[Proxy Image Error]:', err.message);
+    return res.status(500).send('Error proxying image');
+  }
+});
+
