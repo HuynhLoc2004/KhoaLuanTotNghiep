@@ -225,15 +225,16 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       return; // Không chụp lúc đang lia quá nhanh để bảo toàn độ sắc nét tuyệt đối!
     }
 
-    // 2. Kiểm tra độ cân bằng trục chân trời (Pitch balance)
-    const isLevel = Math.abs(tilt) <= 6;
+    // 2. Không giới hạn góc nghiêng cứng nhắc, cho phép người dùng tự do ngắm quét không gian (-65° đến +65°)
+    // Chỉ tạm dừng nếu máy bị chúc thẳng đứng xuống đất hoặc ngửa thẳng lên trời (trên 75°)
+    const isExtremeTilt = Math.abs(tilt) > 75;
 
-    // 3. Khóa chống chụp liên hồi & thời gian nghỉ (Tối thiểu 750ms giữa 2 bức ảnh)
+    // 3. Khóa chống chụp liên hồi & thời gian nghỉ (Tối thiểu 700ms giữa 2 bức ảnh)
     const canSnapNow =
       !isSnappingRef.current &&
-      now - lastSnapTimeRef.current >= 750;
+      now - lastSnapTimeRef.current >= 700;
 
-    // Khoảng cách góc so với bức ảnh vừa chụp gần nhất (Tối thiểu 15° mới chụp bức tiếp theo)
+    // Khoảng cách góc so với bức ảnh vừa chụp gần nhất (Tối thiểu 14° mới chụp bức tiếp theo)
     let angleFromLast = 360;
     if (lastCapturedHeadingRef.current !== null) {
       let diff = Math.abs(heading - lastCapturedHeadingRef.current);
@@ -242,7 +243,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     }
 
     // Tự động chụp nếu đi vào một góc chưa từng chụp hoặc xoay đủ bước góc
-    if (!isCurrentSectorCaptured && isLevel && canSnapNow && angleFromLast >= 15) {
+    if (!isCurrentSectorCaptured && !isExtremeTilt && canSnapNow && angleFromLast >= 14) {
       snapFrame(heading, currentSector);
       setGuidanceMessage({
         text: `✓ Đã bắt nét điểm ảnh góc ${heading}°! Tiếp tục xoay từ từ...`,
@@ -290,12 +291,12 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
     const targetHeading = Math.round(closestMissingSector * (360 / TOTAL_SECTORS) + (360 / TOTAL_SECTORS / 2));
 
-    if (!isLevel) {
+    if (isExtremeTilt) {
       setGuidanceMessage({
-        text: `⚠️ Máy đang bị nghiêng ${tilt > 0 ? '+' : ''}${tilt}°! Giữ thẳng máy để bảo toàn phối cảnh`,
+        text: `⚠️ Máy đang bị ngửa/chúc quá mức (${tilt > 0 ? '+' : ''}${tilt}°)! Hãy hướng vào không gian phòng`,
         type: 'warning'
       });
-    } else if (minDistance > 25) {
+    } else if (minDistance > 20) {
       setGuidanceMessage({
         text: turnDirection === 'right'
           ? `👉 Xoay sang PHẢI về góc ~${targetHeading}° để bù điểm ảnh còn thiếu`
@@ -305,15 +306,15 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       });
     } else {
       setGuidanceMessage({
-        text: 'Đang ngắm góc cần bổ sung — Giữ êm máy để tự động chớp khung hình...',
+        text: `Đang ở góc ~${targetHeading}° — Giữ êm máy để tự động chớp khung hình...`,
         type: 'info'
       });
     }
   };
 
   // Chụp 1 khung hình từ luồng video trực tiếp với KHÓA ĐỒNG BỘ CHỐNG SPAM
-  const snapFrame = (angle: number, sectorIndex: number) => {
-    if (!videoRef.current || isSnappingRef.current) return;
+  const snapFrame = (angle: number, sectorIndex: number, force = false) => {
+    if (!videoRef.current || (isSnappingRef.current && !force)) return;
     const video = videoRef.current;
     if (!video.videoWidth || !video.videoHeight) return;
 
@@ -584,8 +585,8 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 left: '12%',
                 right: '12%',
                 height: '2px',
-                background: Math.abs(deviceTilt) <= 4 ? '#10B981' : '#F59E0B',
-                boxShadow: `0 0 10px ${Math.abs(deviceTilt) <= 4 ? '#10B981' : '#F59E0B'}`,
+                background: Math.abs(deviceTilt) <= 15 ? '#10B981' : (deviceTilt < 0 ? '#38BDF8' : '#C084FC'),
+                boxShadow: `0 0 10px ${Math.abs(deviceTilt) <= 15 ? '#10B981' : (deviceTilt < 0 ? '#38BDF8' : '#C084FC')}`,
                 pointerEvents: 'none',
                 transition: 'all 0.15s ease'
               }}
@@ -600,12 +601,16 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                   padding: '3px 10px',
                   borderRadius: 12,
                   fontSize: 11,
-                  color: Math.abs(deviceTilt) <= 4 ? '#10B981' : '#F59E0B',
+                  color: Math.abs(deviceTilt) <= 15 ? '#10B981' : (deviceTilt < 0 ? '#BAE6FD' : '#E9D5FF'),
                   fontWeight: 700,
                   whiteSpace: 'nowrap'
                 }}
               >
-                {Math.abs(deviceTilt) <= 4 ? '✓ Góc nhìn thẳng chuẩn' : `Nghiêng: ${deviceTilt > 0 ? '+' : ''}${deviceTilt}° (Hãy giữ thẳng máy)`}
+                {Math.abs(deviceTilt) <= 15
+                  ? '✓ Trục nhìn ngang chuẩn'
+                  : deviceTilt < 0
+                  ? `Góc thấp: ${deviceTilt}° (Quét hiện vật & sàn)`
+                  : `Góc cao: +${deviceTilt}° (Quét trần & không gian)`}
               </div>
             </div>
 
@@ -881,19 +886,21 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 <button
                   onClick={() => {
                     const sector = Math.floor(currentHeading / (360 / TOTAL_SECTORS)) % TOTAL_SECTORS;
-                    snapFrame(currentHeading, sector);
+                    snapFrame(currentHeading, sector, true);
                   }}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.15)',
+                    background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
                     color: '#FFF',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    border: 'none',
                     padding: '6px 14px',
                     borderRadius: 20,
                     fontSize: 12,
-                    fontWeight: 600
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)'
                   }}
                 >
-                  + Chụp góc {currentHeading}°
+                  📸 + Chụp góc {currentHeading}°
                 </button>
               )}
             </div>
