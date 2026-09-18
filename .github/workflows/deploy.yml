@@ -73,8 +73,13 @@ jobs:
             fi
 
             echo ">>> Sử dụng lệnh Docker: $COMPOSE_CMD"
-            $COMPOSE_CMD down || true
-            $COMPOSE_CMD up -d --build
+            $COMPOSE_CMD up -d --build --remove-orphans
+
+            # Đảm bảo Nginx nhận diện chứng chỉ SSL Let's Encrypt nếu có
+            if [ -f "scripts/setup-ssl.sh" ]; then
+              echo ">>> Kiểm tra và làm mới chứng chỉ SSL..."
+              bash scripts/setup-ssl.sh || true
+            fi
 
             echo ">>> [4/4] Dọn dẹp image cũ & Kiểm tra trạng thái..."
             docker image prune -f || true
