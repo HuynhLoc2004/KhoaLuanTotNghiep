@@ -386,7 +386,6 @@ export const PocStitchingPage: React.FC = () => {
                   ref={nativeCameraInputRef}
                   type="file"
                   accept="image/*"
-                  capture="environment"
                   style={{ display: 'none' }}
                   onChange={handleNativeCapture}
                   disabled={isProcessing}
