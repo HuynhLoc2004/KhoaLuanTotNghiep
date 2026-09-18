@@ -185,22 +185,36 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
 
     return canvas
 
-def apply_unsharp_mask(image, sigma=1.0, strength=1.25, threshold=3):
+def enhance_museum_texture(image):
     """
-    Bộ lọc Unsharp Masking thông minh (Computer Vision Contrast Enhancement):
-    Làm nổi bật tối đa các chi tiết vi mô, hoa văn, chữ khắc, cổ vật bảo tàng và vân tường,
-    khắc phục triệt để hiện tượng mềm ảnh/mờ nhạt sau khi chiếu hình cầu và hòa trộn đa dải tần.
+    Bộ lọc Tăng Cường Chi Tiết & Cân Bằng Ánh Sáng Bảo Tàng Chuyên Nghiệp:
+    1. Cân bằng tương phản cục bộ thích ứng (Adaptive CLAHE trên kênh Luminance của không gian màu LAB):
+       Giúp các cổ vật trong tủ kính, góc tối của gian phòng được kéo sáng rõ nét mà không bị cháy sáng ở các ngọn đèn.
+    2. Bộ lọc Unsharp Masking vi mô: Tăng cường độ nổi khối các đường nét chạm khắc, hoa văn cổ vật và phù điêu.
+    3. Giữ nguyên các vùng màu đồng nhất (trần nhà, nền gạch) để không bị sinh nhiễu hạt (noise).
     """
     try:
-        blurred = cv2.GaussianBlur(image, (0, 0), sigma)
-        sharpened = float(strength + 1.0) * image.astype(np.float32) - float(strength) * blurred.astype(np.float32)
+        # 1. Cân bằng sáng thích ứng CLAHE trên kênh Luminance (L)
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(8, 8))
+        l_clahe = clahe.apply(l)
+        # Hòa trộn 55% ảnh cân bằng sáng với 45% ảnh gốc để bảo toàn sự tự nhiên
+        l_balanced = cv2.addWeighted(l_clahe, 0.55, l, 0.45, 0)
+        balanced_bgr = cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
+
+        # 2. Tăng cường độ nét vi mô (Unsharp Masking)
+        blurred = cv2.GaussianBlur(balanced_bgr, (0, 0), 1.0)
+        sharpened = float(2.25) * balanced_bgr.astype(np.float32) - float(1.25) * blurred.astype(np.float32)
         sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
-        if threshold > 0:
-            low_contrast_mask = np.abs(image.astype(np.int16) - blurred.astype(np.int16)) < threshold
-            np.copyto(sharpened, image, where=low_contrast_mask)
+
+        # Chống nhiễu hạt ở các mảng màu phẳng
+        diff = np.abs(balanced_bgr.astype(np.int16) - blurred.astype(np.int16))
+        mask = diff < 2
+        np.copyto(sharpened, balanced_bgr, where=mask)
         return sharpened
     except Exception as e:
-        print(f"[Warning] Không thể áp dụng Unsharp Masking: {e}", file=sys.stderr)
+        print(f"[Warning] Không thể áp dụng enhance_museum_texture: {e}", file=sys.stderr)
         return image
 
 def run_stitch(image_paths, output_path, target_width=4096):
@@ -230,9 +244,9 @@ def run_stitch(image_paths, output_path, target_width=4096):
             img = load_and_orient_image(p, max_dim=4096)
             cropped = crop_black_borders(img)
             equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width)
-            equi_pano = apply_unsharp_mask(equi_pano, sigma=1.0, strength=1.2)
+            equi_pano = enhance_museum_texture(equi_pano)
             os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-            cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 96])
+            cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 98])
             h, w = equi_pano.shape[:2]
             return {
                 "success": True,
@@ -259,14 +273,14 @@ def run_stitch(image_paths, output_path, target_width=4096):
     selected_paths = sorted_paths
     total_imgs = len(selected_paths)
 
-    if total_imgs <= 16:
-        stitch_max_dim = 1400
-    elif total_imgs <= 24:
-        stitch_max_dim = 1200
-    elif total_imgs <= 36:
-        stitch_max_dim = 1050
+    if total_imgs <= 12:
+        stitch_max_dim = 1800
+    elif total_imgs <= 20:
+        stitch_max_dim = 1500
+    elif total_imgs <= 32:
+        stitch_max_dim = 1300
     else:
-        stitch_max_dim = 900
+        stitch_max_dim = 1100
 
     print(f"[*] Tiếp nhận toàn bộ {total_imgs} ảnh đầu vào (giữ trọn vẹn mọi góc nhìn, max_dim={stitch_max_dim}px)...", file=sys.stderr)
     images = []
@@ -310,16 +324,24 @@ def run_stitch(image_paths, output_path, target_width=4096):
             s.setInterpolationFlags(cv2.INTER_LANCZOS4)
         except Exception:
             pass
+        try:
+            s.setRegistrationResol(1.2) # Nhân đôi độ chính xác phát hiện đặc trưng bảo tàng
+        except Exception:
+            pass
+        try:
+            s.setSeamEstimationResol(0.2) # Tinh chỉnh đường nối đa dải tần
+        except Exception:
+            pass
         return s
 
     # Thử nghiệm lần 1 với confidence 0.30
     stitcher = build_stitcher(confidence=0.30)
     status, stitched = stitcher.stitch(images)
 
-    # Nếu lần 1 không thành công (do tường trắng hoặc thiếu hoa văn), tự động thử lại với ngưỡng thấp hơn 0.18
+    # Nếu lần 1 không thành công (do tường trắng hoặc thiếu hoa văn), tự động thử lại với ngưỡng thấp hơn 0.16
     if status != cv2.Stitcher_OK:
-        print(f"[!] Lần 1 thất bại với mã {status}. Đang kích hoạt chế độ Tự Động Thử Lại (Confidence 0.18)...", file=sys.stderr)
-        stitcher_retry = build_stitcher(confidence=0.18)
+        print(f"[!] Lần 1 thất bại với mã {status}. Đang kích hoạt chế độ Tự Động Thử Lại (Confidence 0.16)...", file=sys.stderr)
+        stitcher_retry = build_stitcher(confidence=0.16)
         status, stitched = stitcher_retry.stitch(images)
 
     STATUS_MAP = {
@@ -349,9 +371,9 @@ def run_stitch(image_paths, output_path, target_width=4096):
     # Chuẩn hóa về tỷ lệ Equirectangular 2:1
     equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width)
 
-    # Tăng cường độ sắc nét tối đa qua bộ lọc Unsharp Masking
-    print("[*] Đang áp dụng thuật toán Unsharp Masking tăng cường độ sắc nét chi tiết hiện vật...", file=sys.stderr)
-    equi_pano = apply_unsharp_mask(equi_pano, sigma=1.0, strength=1.25, threshold=3)
+    # Tăng cường độ sắc nét và cân bằng ánh sáng bảo tàng chuyên nghiệp
+    print("[*] Đang áp dụng thuật toán CLAHE & Unsharp Masking tăng cường độ tương phản và chi tiết cổ vật...", file=sys.stderr)
+    equi_pano = enhance_museum_texture(equi_pano)
 
     # Lưu kết quả với chất lượng JPEG tối đa 98%
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
