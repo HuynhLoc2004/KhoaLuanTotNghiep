@@ -45,14 +45,7 @@ const INITIAL_ARTIFACTS: Omit<MuseumArtifact, 'qrCodeDataUrl' | 'qrTargetUrl'>[]
     audioText: 'Chào mừng quý khách đến với Bảo vật Quốc gia Tượng Phật Gỗ Óc Eo. Pho tượng này có niên đại từ thế kỷ thứ 4, được tạc từ một thân cây gỗ Sao nguyên khối. Điểm đặc biệt của bức tượng là tà áo cà sa mỏng manh buông dài theo phong cách điêu khắc Amaravati cổ kính, phản ánh thời kỳ cực thịnh của vương quốc cổ Phù Nam tại châu thổ sông Cửu Long.',
     thumbnailUrl: 'https://images.unsplash.com/photo-1544967082-d9d25d867d66?auto=format&fit=crop&w=800&q=80',
     images360: [
-      'https://images.unsplash.com/photo-1544967082-d9d25d867d66?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1569383746724-6f1b882b8f46?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1544967082-d9d25d867d66?auto=format&fit=crop&w=800&q=80'
     ],
     featured: true,
     orderIndex: 1,
@@ -73,12 +66,7 @@ const INITIAL_ARTIFACTS: Omit<MuseumArtifact, 'qrCodeDataUrl' | 'qrTargetUrl'>[]
     audioText: 'Quý khách đang chiêm ngưỡng Trống đồng Cảnh Thịnh, một di vật vô cùng hiếm hoi còn nguyên vẹn từ phong trào khởi nghĩa Tây Sơn oai hùng. Thân trống được chạm khắc các dải mây, rồng phượng và 272 chữ Hán ca ngợi công đức đúc trống thờ Phật và cầu quốc thái dân an.',
     thumbnailUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80',
     images360: [
-      'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1569383746724-6f1b882b8f46?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1544967082-d9d25d867d66?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80'
     ],
     featured: true,
     orderIndex: 2,
@@ -99,10 +87,7 @@ const INITIAL_ARTIFACTS: Omit<MuseumArtifact, 'qrCodeDataUrl' | 'qrTargetUrl'>[]
     audioText: 'Bức tượng Nữ thần Devi hay Laksmi bằng sa thạch này thể hiện đỉnh cao của nghệ thuật điêu khắc Chămpa cổ thế kỷ thứ 7. Khuôn mặt nữ thần toát lên vẻ đẹp thanh tú, đôn hậu, thân hình uyển chuyển mang lại nguồn sinh khí và tài lộc.',
     thumbnailUrl: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=800&q=80',
     images360: [
-      'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1544967082-d9d25d867d66?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1569383746724-6f1b882b8f46?auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=800&q=80'
     ],
     featured: false,
     orderIndex: 3,

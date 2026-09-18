@@ -77,8 +77,25 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
   });
 
   // Open Create Modal
+  const handleOpenView3D = (art: MuseumArtifact) => {
+    setSelectedArtifact(art);
+    setQrModalOpen(false);
+    setEditModalOpen(false);
+    setView3DModalOpen(true);
+  };
+
+  const handleOpenQr = (art: MuseumArtifact) => {
+    setSelectedArtifact(art);
+    setView3DModalOpen(false);
+    setEditModalOpen(false);
+    setQrModalOpen(true);
+  };
+
+  // Open Create Modal
   const handleOpenCreate = () => {
     setIsCreating(true);
+    setView3DModalOpen(false);
+    setQrModalOpen(false);
     setForm({
       code: `HV-${Date.now().toString().slice(-4)}`,
       name: '',
@@ -100,6 +117,8 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
   const handleOpenEdit = (art: MuseumArtifact) => {
     setIsCreating(false);
     setSelectedArtifact(art);
+    setView3DModalOpen(false);
+    setQrModalOpen(false);
     setForm({ ...art });
     setEditModalOpen(true);
   };
@@ -388,10 +407,7 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button
                         className="btn btn-secondary"
-                        onClick={() => {
-                          setSelectedArtifact(art);
-                          setView3DModalOpen(true);
-                        }}
+                        onClick={() => handleOpenView3D(art)}
                         style={{ padding: '6px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
                         title="Trình chiếu mâm xoay 360°"
                       >
@@ -401,10 +417,7 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
 
                       <button
                         className="btn btn-secondary"
-                        onClick={() => {
-                          setSelectedArtifact(art);
-                          setQrModalOpen(true);
-                        }}
+                        onClick={() => handleOpenQr(art)}
                         style={{ padding: '6px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
                         title="Xem và tải mã QR"
                       >
