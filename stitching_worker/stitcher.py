@@ -250,24 +250,25 @@ def run_stitch(image_paths, output_path, target_width=4096):
                 "detail": f"Lỗi xử lý ảnh PANO: {str(e)}"
             }
 
-    # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img16)
+    # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img48)
     sorted_paths = sorted(image_paths, key=natural_sort_key)
 
-    # Tối ưu kích thước đầu vào theo số lượng ảnh để triệt tiêu hiện tượng tràn RAM/treo máy trên VPS:
-    # Với chùm ảnh lớn (>=16 ảnh): 1200px (đảm bảo hoàn tất trong 15-20s, RAM < 300MB)
-    # Với 8-15 ảnh: 1400px
-    # Dưới 8 ảnh: 1600px
-    # Output cuối cùng luôn được mở rộng lên 4096x2048 chuẩn 4K siêu sắc nét qua thuật toán LANCZOS-4!
-    if len(sorted_paths) >= 16:
-        stitch_max_dim = 1200
-    elif len(sorted_paths) >= 8:
-        stitch_max_dim = 1400
+    # THUẬT TOÁN CHẮT LỌC KHUNG HÌNH TỐI ƯU (Intelligent Keyframe Selection):
+    # Trong Thị giác máy tính 360°, số lượng khung hình lý tưởng để bao phủ 360° là 12 đến 16 ảnh (mỗi ảnh cách nhau ~25°-30°).
+    # Nếu đưa toàn bộ 48 ảnh vào, số cặp đối chiếu bùng nổ lên 1,128 cặp (48x47/2), gây cạn kiệt RAM và làm Linux kernel tắt tiến trình.
+    # Ta tự động chắt lọc 16 khung hình phân bổ đều nhất quanh 360° để thuật toán ghép siêu tốc (10-15s), bảo toàn độ sắc nét và ổn định tuyệt đối!
+    if len(sorted_paths) > 16:
+        print(f"[*] Phát hiện {len(sorted_paths)} ảnh đầu vào. Đang chắt lọc 16 khung hình phân bổ đều nhất quanh 360° để tối ưu bộ nhớ...", file=sys.stderr)
+        indices = np.linspace(0, len(sorted_paths) - 1, 16, dtype=int)
+        selected_paths = [sorted_paths[i] for i in indices]
     else:
-        stitch_max_dim = 1600
+        selected_paths = sorted_paths
 
-    print(f"[*] Đang nạp và chuẩn hóa EXIF cho {len(sorted_paths)} ảnh đầu vào (max_dim={stitch_max_dim}px)...", file=sys.stderr)
+    stitch_max_dim = 1300 if len(selected_paths) >= 12 else 1500
+
+    print(f"[*] Đang nạp và chuẩn hóa EXIF cho {len(selected_paths)} ảnh đại diện tối ưu (max_dim={stitch_max_dim}px)...", file=sys.stderr)
     images = []
-    for p in sorted_paths:
+    for p in selected_paths:
         if not os.path.exists(p):
             return {
                 "success": False,

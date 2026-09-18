@@ -833,11 +833,34 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
               );
             })()}
 
+            {/* Thanh Hướng Dẫn Vị Trí Cố Định: Đứng yên tại tâm phòng, xoay tròn tại chỗ */}
+            <div
+              style={{
+                position: 'absolute',
+                top: isMobile ? 12 : 20,
+                left: isMobile ? 12 : 20,
+                background: 'rgba(15, 23, 42, 0.92)',
+                color: '#FBBF24',
+                padding: isMobile ? '5px 10px' : '6px 14px',
+                borderRadius: 20,
+                fontSize: isMobile ? 10.5 : 12,
+                fontWeight: 700,
+                border: '1px solid rgba(251, 191, 36, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                zIndex: 14,
+                boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
+              }}
+            >
+              <span>🚶 Đứng yên tại tâm phòng • Xoay tròn tại chỗ</span>
+            </div>
+
             {/* 4. AR Smart Guidance Overlay (Chỉ dẫn di chuyển camera thông minh) */}
             <div
               style={{
                 position: 'absolute',
-                top: isMobile ? 90 : 20,
+                top: isMobile ? 54 : 64,
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: isMobile ? 'calc(100% - 24px)' : 'auto',
