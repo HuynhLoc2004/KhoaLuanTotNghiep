@@ -131,15 +131,23 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
     h, w = stitched_img.shape[:2]
     target_height = target_width // 2 # 2048
 
-    # BẢO TỒN NGUYÊN BẢN TỶ LỆ HÌNH HỌC THỰC TẾ (1:1 Aspect Ratio):
-    # Chiều cao của đồ vật trong ảnh (tủ, cửa, bàn ghế) phải tuân theo đúng tiêu cự thật,
-    # tuyệt đối không ép kéo giãn chiều dọc làm đồ vật bị biến dạng cao ngoằng kỳ dị.
-    aspect_ratio = w / float(h)
-    new_w = target_width
-    new_h = int(target_width / aspect_ratio)
-    new_h = min(int(target_height * 0.85), max(700, new_h))
-
-    resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+    # BẢO TỒN NGUYÊN BẢN TỶ LỆ HÌNH HỌC THỰC TẾ (Optical Perspective Preservation):
+    # Trong phép chiếu Equirectangular 2:1 (360° x 180°), góc nhìn thẳng đứng tự nhiên của camera điện thoại
+    # chiếm khoảng 65°-85° (tương đương 750px - 1100px trong khung hình cao 2048px).
+    # Tuyệt đối không phóng đại chiều cao hay ép dẹt chiều ngang khiến đồ vật biến dạng, gây chóng mặt/nhức đầu.
+    aspect_ratio = max(0.5, w / float(h))
+    
+    if aspect_ratio >= 4.0:
+        # Ảnh quét trọn vẹn hoặc ảnh PANO toàn cảnh điện thoại
+        new_w = target_width
+        new_h = min(1150, max(750, int(target_width / aspect_ratio)))
+        resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+    else:
+        # Chùm ảnh góc hẹp (chưa quét đủ 360°): Giữ nguyên tỷ lệ chuẩn, không kéo giãn ngang
+        new_h = 850
+        scaled_w = min(target_width, int(new_h * aspect_ratio))
+        resized_temp = cv2.resize(stitched_img, (scaled_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+        resized_pano = cv2.resize(resized_temp, (target_width, new_h), interpolation=cv2.INTER_LANCZOS4)
 
     # Khâu mịn đường nối giữa cạnh trái và cạnh phải để 360° liền mạch
     seam_blend_width = 45
@@ -152,7 +160,7 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
 
     # Tạo canvas 2:1
     canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
-    y_offset = (target_height - new_h) // 2 # ~274px từ đỉnh và đáy
+    y_offset = (target_height - new_h) // 2 # ~450px từ đỉnh và đáy
 
     # Đặt ảnh phòng vào giữa
     canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano

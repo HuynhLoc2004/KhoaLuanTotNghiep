@@ -173,25 +173,38 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     setCameraError(null);
     if (!navigator?.mediaDevices?.getUserMedia) {
       setCameraError(
-        'Trình duyệt yêu cầu kết nối bảo mật HTTPS hoặc Localhost để mở luồng video Camera trực tiếp. Trên điện thoại qua mạng HTTP, bạn hãy bấm nút "Chụp / Chọn ảnh từ Camera điện thoại" bên dưới để hệ thống chụp và nạp trực tiếp!'
+        'Trình duyệt yêu cầu kết nối bảo mật HTTPS hoặc Localhost để mở luồng video Camera trực tiếp. Trên điện thoại, bạn có thể bấm nút "Chụp / Chọn ảnh từ Camera điện thoại" bên dưới để chụp trực tiếp!'
       );
       return;
     }
 
     try {
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: { ideal: 'environment' }, // Camera sau góc rộng
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 }
-        },
-        audio: false
-      };
+      let stream: MediaStream | null = null;
+      // Thử lần lượt các mức ràng buộc từ tối ưu đến cơ bản nhất để không bao giờ bị OverconstrainedError trên Chrome Android
+      const attempts: MediaStreamConstraints[] = [
+        { video: { facingMode: { ideal: 'environment' } }, audio: false },
+        { video: { facingMode: 'environment' }, audio: false },
+        { video: true, audio: false }
+      ];
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let lastError: any = null;
+      for (const constraint of attempts) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraint);
+          if (stream) break;
+        } catch (attemptErr: any) {
+          lastError = attemptErr;
+          console.warn('[Camera Try Constraint Warning]:', constraint, attemptErr.name, attemptErr.message);
+        }
+      }
+
+      if (!stream) {
+        throw lastError || new Error('Không thể khởi tạo luồng camera.');
+      }
+
       streamRef.current = stream;
 
-      // Đảm bảo khi iOS unmute track thì video tự động play lại
+      // Đảm bảo khi track sẵn sàng thì video tự động play
       stream.getVideoTracks().forEach((track) => {
         track.onunmute = () => {
           if (videoRef.current) {
@@ -212,7 +225,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       console.error('[Camera Access Error]:', err);
       setCameraError(
         err.name === 'NotAllowedError'
-          ? 'Quyền truy cập Camera bị từ chối. Vui lòng cho phép quyền Camera trên trình duyệt.'
+          ? 'Quyền Camera bị từ chối trên Chrome. Bạn hãy bấm vào biểu tượng cài đặt/ổ khóa cạnh thanh địa chỉ để Cho phép (Allow) Camera, hoặc bấm nút "Chụp từ Camera điện thoại" bên dưới!'
           : `Không thể mở Camera: ${err.message || 'Thiết bị không hỗ trợ hoặc camera đang bị ứng dụng khác chiếm dụng.'}`
       );
     }

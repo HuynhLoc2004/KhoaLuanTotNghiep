@@ -95,11 +95,11 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         autoLoad: true,
         showControls: false,
         compass: false,
-        hfov: 100, // Góc nhìn ngang rộng rãi 100° chuẩn rạp chiếu phim
-        minHfov: 45,
-        maxHfov: 120,
-        minPitch: -50, // Giới hạn góc nhìn tự nhiên theo độ cao phòng
-        maxPitch: 50,  // Chống nhìn thẳng lên trần khuyết điểm
+        hfov: 75, // Chuẩn góc nhìn mắt người (75°), triệt tiêu hoàn toàn hiện tượng méo rìa thấu kính & chóng mặt
+        minHfov: 50,
+        maxHfov: 95,
+        minPitch: -35, // Giới hạn góc nhìn thẳng vào không gian trưng bày, không nhìn chúc thẳng xuống đất
+        maxPitch: 35,  // Chống ngửa thẳng lên trần nhà gây méo góc
         hotSpots: formattedHotSpots,
       });
 

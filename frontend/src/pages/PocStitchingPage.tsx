@@ -234,6 +234,37 @@ export const PocStitchingPage: React.FC = () => {
           </div>
 
           <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* BẢNG HƯỚNG DẪN 2 CÁCH TẠO TOUR 360° ĐẸP NHẤT & KHÔNG BỊ CHÓNG MẶT */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%)',
+                border: '1px solid #FCD34D',
+                borderRadius: '10px',
+                padding: '14px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#92400E', fontWeight: 700, fontSize: '13.5px' }}>
+                <span>💡 BÍ QUYẾT TẠO ẢNH 360° ĐẸP NHẤT, THẲNG TẮP & KHÔNG BỊ CHÓNG MẶT:</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, fontSize: '12.5px', color: '#78350F' }}>
+                <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: 8, border: '1px solid #FDE68A' }}>
+                  <strong style={{ color: '#B45309', display: 'block', marginBottom: 4 }}>
+                    ⭐ CÁCH 1 (Khuyên Dùng - Đẹp & Nét 100%):
+                  </strong>
+                  Mở ứng dụng Camera mặc định trên iPhone / Android, chọn chế độ <strong>"Toàn cảnh (PANO)"</strong>. Xoay 1 vòng quanh phòng rồi bấm <strong>"Chọn 1 ảnh PANO"</strong> bên dưới. Con quay hồi chuyển phần cứng của điện thoại sẽ giữ tường thẳng tắp, không lượn sóng!
+                </div>
+                <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: 8, border: '1px solid #FDE68A' }}>
+                  <strong style={{ color: '#2563EB', display: 'block', marginBottom: 4 }}>
+                    📹 CÁCH 2: Quét trực tiếp bằng Web Camera:
+                  </strong>
+                  Bấm nút xanh bên dưới. Đứng yên tại giữa phòng, <strong>giữ điện thoại thẳng đứng ngang tầm mắt (không ngửa lên trần hay cắm xuống đất)</strong> và xoay tròn chầm chậm 1 vòng (chụp 12 tấm).
+                </div>
+              </div>
+            </div>
+
             {/* Nút bấm trực tiếp Mở Camera Điện Thoại Quay Quét 360 */}
             <button
               type="button"
@@ -258,7 +289,7 @@ export const PocStitchingPage: React.FC = () => {
               }}
             >
               <Camera size={20} />
-              <span>Mở Camera Điện Thoại Quay Quét 360° Đa Tầng (Trần - Tầm Mắt - Sàn)</span>
+              <span>Mở Camera Quét 360° (Cân Bằng Thước Thủy Tầm Mắt)</span>
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
