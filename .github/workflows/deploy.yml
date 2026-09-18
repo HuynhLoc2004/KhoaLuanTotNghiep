@@ -5,7 +5,13 @@ on:
     branches:
       - main
       - master
+      - 'feature/**'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Tên nhánh (branch) muốn deploy lên VPS'
+        required: false
+        default: 'main'
 
 jobs:
   deploy:
@@ -27,6 +33,11 @@ jobs:
           script_stop: false
           script: |
             exec 2>&1
+            TARGET_BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
+            echo "========================================================"
+            echo "🚀 TIẾN HÀNH DEPLOY NHÁNH: $TARGET_BRANCH"
+            echo "========================================================"
+
             echo ">>> [1/4] Xác định và di chuyển vào thư mục dự án chuẩn..."
             git config --global --add safe.directory "*" || true
 
@@ -50,19 +61,20 @@ jobs:
               systemctl start docker
             fi
 
-            echo ">>> [2/4] Kéo mã nguồn mới nhất từ GitHub..."
+            echo ">>> [2/4] Kéo mã nguồn nhánh [$TARGET_BRANCH] từ GitHub..."
             if [ ! -d ".git" ]; then
               echo ">>> Thư mục chưa có git repo, tiến hành clone mới..."
-              git clone https://github.com/HuynhLoc2004/KhoaLuanTotNghiep.git .
+              git clone -b "$TARGET_BRANCH" https://github.com/HuynhLoc2004/KhoaLuanTotNghiep.git .
             else
-              echo ">>> Cập nhật code từ origin/main..."
+              echo ">>> Cập nhật code từ origin/$TARGET_BRANCH..."
               git status || true
               git remote remove origin 2>/dev/null || true
               git remote add origin https://github.com/HuynhLoc2004/KhoaLuanTotNghiep.git || true
-              git fetch origin main || true
-              git reset --hard origin/main || true
+              git fetch origin "$TARGET_BRANCH" || true
+              git checkout "$TARGET_BRANCH" 2>/dev/null || git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH" || true
+              git reset --hard "origin/$TARGET_BRANCH" || true
               git clean -fd || true
-              git pull origin main || true
+              git pull origin "$TARGET_BRANCH" || true
             fi
 
             echo ">>> [3/4] Build & Khởi chạy các container Docker..."
