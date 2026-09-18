@@ -239,14 +239,15 @@ def enhance_museum_texture(image):
         l_balanced = cv2.addWeighted(l_clahe, 0.55, l, 0.45, 0)
         balanced_bgr = cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
 
-        # 2. Tăng cường độ nét vi mô (Unsharp Masking)
+        # 2. Tăng cường độ nét tự nhiên vi mô (Natural Micro-contrast)
+        # Giảm hệ số gai từ 2.25 xuống 1.5 để triệt tiêu viền hào quang trắng/đen quanh song sắt và khung cửa
         blurred = cv2.GaussianBlur(balanced_bgr, (0, 0), 1.0)
-        sharpened = float(2.25) * balanced_bgr.astype(np.float32) - float(1.25) * blurred.astype(np.float32)
+        sharpened = float(1.5) * balanced_bgr.astype(np.float32) - float(0.5) * blurred.astype(np.float32)
         sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
 
         # Chống nhiễu hạt ở các mảng màu phẳng
         diff = np.abs(balanced_bgr.astype(np.int16) - blurred.astype(np.int16))
-        mask = diff < 2
+        mask = diff < 3
         np.copyto(sharpened, balanced_bgr, where=mask)
         return sharpened
     except Exception as e:
@@ -343,10 +344,10 @@ def run_stitch(image_paths, output_path, target_width=4096):
         pass
 
     # Thiết lập stitcher với cấu hình tối ưu độ nét & cân bằng đường chân trời
-    def build_stitcher(confidence=0.30):
+    def build_stitcher(confidence=0.30, wave_correct=True):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
-            s.setWaveCorrection(True)
+            s.setWaveCorrection(wave_correct)
         except Exception:
             pass
         try:
@@ -371,21 +372,56 @@ def run_stitch(image_paths, output_path, target_width=4096):
             pass
         return s
 
-    # Thử nghiệm lần 1 với confidence 0.30
-    stitcher = build_stitcher(confidence=0.30)
-    status, stitched = stitcher.stitch(images)
+    def stitch_with_stabilization(stitcher_obj, imgs):
+        """
+        Thực thi 2 bước: estimateTransform -> Chuẩn hóa tiêu cự quang học -> composePanorama.
+        Khắc phục triệt để hiện tượng vặn méo, cong song sắt cửa hoặc lệch mép bàn:
+        - Khi chụp bằng điện thoại, tiêu cự vật lý là CỐ ĐỊNH qua các ảnh.
+        - Tự động chuẩn hóa tiêu cự các frame về cùng trung vị (Median Focal Scale),
+          đảm bảo mọi bức ảnh cùng một tỷ lệ hình học tuyệt đối, chống giật méo và bóng đôi.
+        """
+        st = stitcher_obj.estimateTransform(imgs)
+        if st != cv2.Stitcher_OK:
+            return st, None
 
-    # Nếu lần 1 không thành công (do tường trắng hoặc thiếu hoa văn), tự động thử lại với ngưỡng thấp hơn 0.16
-    if status != cv2.Stitcher_OK:
-        print(f"[!] Lần 1 thất bại với mã {status}. Đang kích hoạt chế độ Tự Động Thử Lại (Confidence 0.16)...", file=sys.stderr)
-        stitcher_retry = build_stitcher(confidence=0.16)
-        status, stitched = stitcher_retry.stitch(images)
+        # Ổn định tiêu cự quang học giữa các frame
+        try:
+            cams = stitcher_obj.cameras()
+            if cams and len(cams) > 0:
+                valid_focals = [float(c.focal) for c in cams if c.focal > 0]
+                if len(valid_focals) > 0:
+                    med_focal = float(np.median(valid_focals))
+                    for c in cams:
+                        # Nếu tiêu cự frame nào lệch quá 12% so với trung vị máy ảnh, đồng bộ về med_focal
+                        if abs(c.focal - med_focal) / (med_focal + 1e-5) > 0.12:
+                            c.focal = med_focal
+        except Exception:
+            pass
 
-    # Nếu vẫn chưa được, thử lần 3 với ngưỡng nhạy cao 0.10 cho các góc rộng độ tương phản cao
-    if status != cv2.Stitcher_OK:
-        print(f"[!] Lần 2 thất bại với mã {status}. Đang kích hoạt chế độ Góc Rộng Độ Nhạy Cao (Confidence 0.10)...", file=sys.stderr)
-        stitcher_retry2 = build_stitcher(confidence=0.10)
-        status, stitched = stitcher_retry2.stitch(images)
+        st, pano = stitcher_obj.composePanorama()
+        return st, pano
+
+    # Thử nghiệm lần 1: Độ tin cậy chuẩn 0.30 với ổn định tiêu cự
+    stitcher = build_stitcher(confidence=0.30, wave_correct=True)
+    status, stitched = stitch_with_stabilization(stitcher, images)
+
+    # Nếu lần 1 chưa đạt: Tự động thử lại với ngưỡng nhạy hơn 0.18
+    if status != cv2.Stitcher_OK or stitched is None:
+        print(f"[!] Lần 1 thất bại với mã {status}. Kích hoạt Tự Động Thử Lại (Confidence 0.18)...", file=sys.stderr)
+        stitcher_retry = build_stitcher(confidence=0.18, wave_correct=True)
+        status, stitched = stitch_with_stabilization(stitcher_retry, images)
+
+    # Nếu vẫn chưa đạt (hoặc bị xoắn hình do góc nghiêng): Tắt wave correction để giữ phẳng tự nhiên các đường thẳng đứng
+    if status != cv2.Stitcher_OK or stitched is None:
+        print(f"[!] Lần 2 chưa hoàn hảo. Kích hoạt chế độ Chống Xoắn Nghiêng Góc Chụp (WaveCorrection=False, Confidence 0.14)...", file=sys.stderr)
+        stitcher_retry2 = build_stitcher(confidence=0.14, wave_correct=False)
+        status, stitched = stitch_with_stabilization(stitcher_retry2, images)
+
+    # Lần cuối cho không gian khó / ít hoa văn
+    if status != cv2.Stitcher_OK or stitched is None:
+        print(f"[!] Lần 3 kích hoạt chế độ Quét Sâu Chi Tiết Mảnh (Confidence 0.08)...", file=sys.stderr)
+        stitcher_retry3 = build_stitcher(confidence=0.08, wave_correct=False)
+        status, stitched = stitch_with_stabilization(stitcher_retry3, images)
 
     STATUS_MAP = {
         cv2.Stitcher_OK: "OK",
