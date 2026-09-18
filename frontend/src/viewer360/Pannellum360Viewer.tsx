@@ -388,12 +388,14 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           cursor: pointer !important;
           pointer-events: auto !important;
           user-select: none;
-          transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
           filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+          transform: translate(-50%, -50%);
           z-index: 30 !important;
+          transition: filter 0.2s ease;
         }
         .walking-arrow-hotspot:hover {
-          transform: translate(-50%, -55%) scale(1.15) !important;
+          /* Không dùng transform để triệt tiêu 100% rung giật */
+          filter: drop-shadow(0 8px 24px rgba(37, 99, 235, 0.9)) !important;
         }
         .walking-arrow-label,
         .walking-arrow-disc,
@@ -422,7 +424,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         .walking-arrow-hotspot:hover .walking-arrow-label {
           background: #1D4ED8;
           border-color: #93C5FD;
-          box-shadow: 0 0 16px rgba(59, 130, 246, 0.8);
+          box-shadow: 0 0 20px rgba(59, 130, 246, 0.95);
         }
         .walking-arrow-disc {
           position: relative;
@@ -436,19 +438,21 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           align-items: center;
           justify-content: center;
           animation: pulse-walking-disc 1.8s infinite ease-in-out;
+          transition: all 0.2s ease;
+        }
+        .walking-arrow-hotspot:hover .walking-arrow-disc {
+          border-color: #93C5FD;
+          box-shadow: 0 0 30px rgba(59, 130, 246, 1);
         }
         @keyframes pulse-walking-disc {
           0% {
-            transform: scale(0.96);
-            box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.75);
+            box-shadow: 0 0 15px rgba(37, 99, 235, 0.85), 0 0 0 0 rgba(37, 99, 235, 0.75);
           }
           70% {
-            transform: scale(1.06);
-            box-shadow: 0 0 0 15px rgba(37, 99, 235, 0);
+            box-shadow: 0 0 25px rgba(37, 99, 235, 0.95), 0 0 0 14px rgba(37, 99, 235, 0);
           }
           100% {
-            transform: scale(0.96);
-            box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+            box-shadow: 0 0 15px rgba(37, 99, 235, 0.85), 0 0 0 0 rgba(37, 99, 235, 0);
           }
         }
         .walking-arrow-svg {
