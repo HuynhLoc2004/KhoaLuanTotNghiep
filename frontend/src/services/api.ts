@@ -141,6 +141,11 @@ export const api = {
     if (!json.success) throw new Error(json.message || 'Lỗi xóa hiện vật');
   },
 
+  async uploadArtifactPhoto(file: File): Promise<{ url: string }> {
+    const res = await this.uploadArtifactFrames([file]);
+    return { url: res.thumbnail || res.images[0] || '' };
+  },
+
   async uploadArtifactFrames(files: File[]): Promise<{ images: string[]; thumbnail: string }> {
     const formData = new FormData();
     for (const file of files) {

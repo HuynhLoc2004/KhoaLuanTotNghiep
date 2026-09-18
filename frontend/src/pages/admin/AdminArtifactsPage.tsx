@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MuseumArtifact, MuseumRoom } from '../../types';
-import { api, API_BASE, API_ROOT } from '../../services/api';
+import { api, API_BASE, API_ROOT, formatMediaUrl } from '../../services/api';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { AIVoiceNarrator } from '../../components/AIVoiceNarrator';
 import {
@@ -125,6 +125,27 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
 
   const [generating3DId, setGenerating3DId] = useState<string | null>(null);
   const [isGeneratingForm3D, setIsGeneratingForm3D] = useState(false);
+  const [autoGenerate3D, setAutoGenerate3D] = useState(true);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Upload 1 ảnh chụp hiện vật (mặt trước qua tủ kính)
+  const handleSinglePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingPhoto(true);
+      const res = await api.uploadArtifactPhoto(file);
+      setForm(prev => ({
+        ...prev,
+        thumbnailUrl: res.url,
+        images360: [res.url]
+      }));
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi tải ảnh hiện vật');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   // Sinh mô hình 3D từ ảnh cho một hiện vật bất kỳ
   const handleGenerate3DMeshForArtifact = async (art: MuseumArtifact) => {
@@ -155,7 +176,7 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
     try {
       const imgUrl = form.thumbnailUrl || (form.images360 && form.images360[0]);
       if (!imgUrl) {
-        alert('Vui lòng nhập ảnh đại diện hoặc tải ảnh mâm xoay trước khi tạo 3D');
+        alert('Vui lòng tải ảnh hiện vật lên trước khi tạo 3D');
         return;
       }
       setIsGeneratingForm3D(true);
@@ -194,11 +215,32 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
 
     try {
       setSaving(true);
+      let payload = { ...form };
+
+      // Tự động tạo giọng đọc thuyết minh nếu chưa nhập riêng
+      if (!payload.audioText && payload.description) {
+        payload.audioText = payload.description;
+      }
+
+      // Tự động tạo 3D từ ảnh nếu có ảnh và chọn autoGenerate3D nhưng chưa có file 3D
+      if (autoGenerate3D && !payload.model3dUrl && payload.thumbnailUrl) {
+        try {
+          const res3d = await api.generate3DMesh({
+            imageUrl: payload.thumbnailUrl,
+            depthScale: 0.35,
+            resolution: 150
+          });
+          payload.model3dUrl = res3d.model3dUrl;
+        } catch (meshErr: any) {
+          console.warn('Lỗi sinh 3D tự động khi lưu:', meshErr);
+        }
+      }
+
       if (isCreating) {
-        const created = await api.createArtifact(form);
+        const created = await api.createArtifact(payload);
         setArtifacts(prev => [...prev, created]);
       } else if (selectedArtifact) {
-        const updated = await api.updateArtifact(selectedArtifact.id, form);
+        const updated = await api.updateArtifact(selectedArtifact.id, payload);
         setArtifacts(prev => prev.map(a => a.id === updated.id ? updated : a));
       }
       setEditModalOpen(false);
@@ -697,262 +739,267 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
 
       {/* ================= MODAL: THÊM / SỬA HIỆN VẬT ================= */}
       {editModalOpen && (
-        <div className="modal-overlay" onClick={() => setEditModalOpen(false)}>
+        <div className="modal-backdrop" onClick={() => setEditModalOpen(false)}>
           <div
             className="modal-card"
-            style={{ maxWidth: 700, width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: 24 }}
+            style={{ maxWidth: 620, width: '100%' }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
-                {isCreating ? 'Thêm Hiện vật 3D mới' : 'Chỉnh sửa Hiện vật di sản'}
-              </h3>
-              <button className="icon-btn" onClick={() => setEditModalOpen(false)}>
-                <X size={18} />
+            {/* Header */}
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Box size={20} color="var(--primary)" />
+                <h3 className="modal-title" style={{ margin: 0, fontSize: 16 }}>
+                  {isCreating ? 'Thêm Hiện vật Di sản Mới' : 'Chỉnh sửa Hiện vật Di sản'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
+              >
+                <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSave}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 16 }}>
-                <div>
-                  <label className="label">Mã hiện vật (*)</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={form.code || ''}
-                    onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
-                    placeholder="VD: BV-OCEO-01"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Tên hiện vật (*)</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={form.name || ''}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="VD: Tượng Phật Gỗ Cổ Óc Eo"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Niên đại / Thời kỳ</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={form.period || ''}
-                    onChange={e => setForm(f => ({ ...f, period: e.target.value }))}
-                    placeholder="VD: Thế kỷ IV - Văn hóa Óc Eo"
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Gian phòng trưng bày Tour 360</label>
-                  <select
-                    className="input"
-                    value={form.roomId || ''}
-                    onChange={e => setForm(f => ({ ...f, roomId: e.target.value }))}
-                  >
-                    <option value="">-- Chưa gắn vào phòng --</option>
-                    {rooms.map(r => (
-                      <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="label">Chất liệu</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={form.material || ''}
-                    onChange={e => setForm(f => ({ ...f, material: e.target.value }))}
-                    placeholder="VD: Đồng đúc / Gỗ sao"
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Kích thước</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={form.dimensions || ''}
-                    onChange={e => setForm(f => ({ ...f, dimensions: e.target.value }))}
-                    placeholder="VD: Cao 220cm, Rộng 60cm"
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label className="label">Xuất xứ khai quật / Nguồn gốc</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={form.origin || ''}
-                  onChange={e => setForm(f => ({ ...f, origin: e.target.value }))}
-                  placeholder="VD: Khai quật tại Giồng Xoài, Thoại Sơn, An Giang"
-                />
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label className="label">Mô tả lịch sử & Ý nghĩa khảo cổ</label>
-                <textarea
-                  className="input"
-                  rows={3}
-                  value={form.description || ''}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Nội dung lịch sử chi tiết về hiện vật..."
-                />
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label className="label" style={{ margin: 0 }}>Lời thoại AI Voice Thuyết minh (Tùy chọn)</label>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ fontSize: 11, padding: '2px 8px' }}
-                    onClick={() => setForm(f => ({ ...f, audioText: f.description || '' }))}
-                  >
-                    Lấy từ Mô tả
-                  </button>
-                </div>
-                <textarea
-                  className="input"
-                  rows={2}
-                  value={form.audioText || ''}
-                  onChange={e => setForm(f => ({ ...f, audioText: e.target.value }))}
-                  placeholder="Nội dung AI sẽ đọc khi du khách nhấn nút Thuyết minh (mặc định lấy theo Mô tả)..."
-                />
-              </div>
-
-              {/* 3D Mesh GLB Section */}
-              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 12, border: '1px solid rgba(217, 119, 6, 0.35)', marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Box size={16} />
-                    <span>Mô hình 3D Thực thể (.GLB)</span>
+              <div className="modal-body" style={{ maxHeight: 'calc(85vh - 120px)', overflowY: 'auto', padding: '18px 20px', gap: 12 }}>
+                {/* Row 1: Mã & Tên */}
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 12 }}>
+                  <div className="form-group">
+                    <label className="form-label">Mã hiện vật (*)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.code || ''}
+                      onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
+                      placeholder="VD: BV-01"
+                      required
+                    />
                   </div>
-                  {form.model3dUrl ? (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', padding: '2px 8px', borderRadius: 6 }}>
-                      ✓ Đã có file 3D
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Chưa có file 3D</span>
-                  )}
+
+                  <div className="form-group">
+                    <label className="form-label">Tên hiện vật (*)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.name || ''}
+                      onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="VD: Tượng Phật Gỗ Cổ Óc Eo"
+                      required
+                    />
+                  </div>
                 </div>
 
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
-                  Tạo mô hình 3D thực thể khối có chiều sâu đa giác từ 1 ảnh chụp qua tủ kính, hoặc tải lên file .glb sẵn có.
-                </p>
+                {/* Row 2: Niên đại & Gian phòng */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group">
+                    <label className="form-label">Niên đại / Thời kỳ</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.period || ''}
+                      onChange={e => setForm(f => ({ ...f, period: e.target.value }))}
+                      placeholder="VD: Thế kỷ IV - Văn hóa Óc Eo"
+                    />
+                  </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleGenerateForm3D}
-                    disabled={isGeneratingForm3D}
+                  <div className="form-group">
+                    <label className="form-label">Gian phòng trưng bày Tour 360</label>
+                    <select
+                      className="form-control"
+                      value={form.roomId || ''}
+                      onChange={e => setForm(f => ({ ...f, roomId: e.target.value }))}
+                    >
+                      <option value="">-- Chưa gắn vào phòng --</option>
+                      {rooms.map(r => (
+                        <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 3: Chất liệu & Kích thước */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group">
+                    <label className="form-label">Chất liệu</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.material || ''}
+                      onChange={e => setForm(f => ({ ...f, material: e.target.value }))}
+                      placeholder="VD: Đồng đúc / Gỗ sao"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Kích thước</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.dimensions || ''}
+                      onChange={e => setForm(f => ({ ...f, dimensions: e.target.value }))}
+                      placeholder="VD: Cao 220cm, Rộng 60cm"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 4: Xuất xứ */}
+                <div className="form-group">
+                  <label className="form-label">Xuất xứ khai quật / Nguồn gốc</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={form.origin || ''}
+                    onChange={e => setForm(f => ({ ...f, origin: e.target.value }))}
+                    placeholder="VD: Khai quật tại Giồng Xoài, Thoại Sơn, An Giang"
+                  />
+                </div>
+
+                {/* Row 5: Mô tả */}
+                <div className="form-group">
+                  <label className="form-label">Mô tả lịch sử & Ý nghĩa khảo cổ</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={form.description || ''}
+                    onChange={e => setForm(f => ({ ...f, description: e.target.value, audioText: e.target.value }))}
+                    placeholder="Nội dung lịch sử giới thiệu hiện vật (đồng thời dùng cho AI Voice đọc thuyết minh cho du khách)..."
+                  />
+                </div>
+
+                {/* Row 6: Ảnh chụp hiện vật & Tự động 3D */}
+                <div className="form-group">
+                  <label className="form-label">Ảnh chụp hiện vật (Mặt trước qua tủ kính)</label>
+                  <div
                     style={{
+                      border: '1.5px dashed var(--border-color)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: 14,
+                      background: '#FAFAFA',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 6,
-                      color: '#d97706',
-                      borderColor: 'rgba(217, 119, 6, 0.5)',
-                      background: 'rgba(217, 119, 6, 0.08)'
+                      gap: 14
                     }}
                   >
-                    {isGeneratingForm3D ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />}
-                    <span>{isGeneratingForm3D ? 'Đang phân tích độ sâu & dựng khối 3D...' : 'Tự động tạo mô hình 3D (.GLB) từ ảnh'}</span>
-                  </button>
+                    {/* Thumbnail Preview */}
+                    {form.thumbnailUrl ? (
+                      <div style={{ position: 'relative', width: 68, height: 68, flexShrink: 0 }}>
+                        <img
+                          src={formatMediaUrl(form.thumbnailUrl)}
+                          alt="Thumbnail"
+                          style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-color)' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, thumbnailUrl: '', images360: [], model3dUrl: undefined }))}
+                          style={{
+                            position: 'absolute',
+                            top: -6,
+                            right: -6,
+                            background: '#ef4444',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: 18,
+                            height: 18,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: 10,
+                            lineHeight: 1
+                          }}
+                          title="Xóa ảnh"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          width: 68,
+                          height: 68,
+                          borderRadius: 8,
+                          background: '#f1f5f9',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-muted)',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Upload size={18} />
+                        <span style={{ fontSize: 10, marginTop: 4 }}>Chưa có ảnh</span>
+                      </div>
+                    )}
 
-                  <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                    <Upload size={14} />
-                    <span>Tải file .glb thủ công</span>
-                    <input
-                      type="file"
-                      accept=".glb,.gltf"
-                      onChange={handleModelUpload}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                        <label className="btn btn-secondary" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {uploadingPhoto ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+                          <span>{form.thumbnailUrl ? 'Đổi ảnh chụp' : 'Chọn ảnh hiện vật'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSinglePhotoUpload}
+                            style={{ display: 'none' }}
+                            disabled={uploadingPhoto}
+                          />
+                        </label>
 
-                {form.model3dUrl && (
-                  <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-                    <strong>Đường dẫn 3D:</strong> {form.model3dUrl}
-                  </div>
-                )}
-              </div>
+                        {form.model3dUrl ? (
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Check size={14} />
+                            <span>Đã có khối 3D (.GLB)</span>
+                          </span>
+                        ) : (
+                          <label style={{ fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
+                            <span>Tải file .glb có sẵn (nếu có)</span>
+                            <input
+                              type="file"
+                              accept=".glb,.gltf"
+                              onChange={handleModelUpload}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                        )}
+                      </div>
 
-              {/* Turntable 360 Frames Upload */}
-              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 12, border: '1px dashed var(--primary)', marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--primary)' }}>
-                    Chuỗi ảnh Mâm xoay 360° (Turntable Frames)
-                  </div>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    {form.images360 ? form.images360.length : 0} ảnh đã tải
-                  </span>
-                </div>
-
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
-                  Tải lên chuỗi ảnh chụp quanh mâm xoay (12, 24, 36 hoặc 72 ảnh) để tạo chuyển động 360 mượt mà.
-                </p>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Upload size={14} />
-                    <span>Chọn chuỗi ảnh mâm xoay</span>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleFramesUpload}
-                      style={{ display: 'none' }}
-                      disabled={uploadingFrames}
-                    />
-                  </label>
-
-                  {uploadingFrames && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--primary)' }}>
-                      <Loader2 size={16} className="spin" />
-                      <span>Đang xử lý tải chuỗi ảnh lên Cloud...</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="checkbox"
+                          id="auto-gen-3d-toggle"
+                          checked={autoGenerate3D}
+                          onChange={e => setAutoGenerate3D(e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <label htmlFor="auto-gen-3d-toggle" style={{ fontSize: 12, color: 'var(--text-main)', cursor: 'pointer', userSelect: 'none' }}>
+                          ✨ Tự động bóc tách độ sâu & tạo file 3D (.GLB) khi lưu
+                        </label>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Preview thumbnails */}
-                {form.images360 && form.images360.length > 0 && (
-                  <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginTop: 12, paddingBottom: 6 }}>
-                    {form.images360.map((url, i) => (
-                      <img
-                        key={i}
-                        src={url}
-                        alt={`frame-${i}`}
-                        style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }}
-                      />
-                    ))}
-                  </div>
-                )}
+                {/* Featured Checkbox */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  <input
+                    type="checkbox"
+                    id="featured-checkbox"
+                    checked={form.featured || false}
+                    onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <label htmlFor="featured-checkbox" style={{ fontSize: 12.5, fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}>
+                    ⭐ Đánh dấu là Bảo vật Quốc gia / Hiện vật tiêu biểu
+                  </label>
+                </div>
               </div>
 
-              {/* Featured Checkbox */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-                <input
-                  type="checkbox"
-                  id="featured-checkbox"
-                  checked={form.featured || false}
-                  onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))}
-                />
-                <label htmlFor="featured-checkbox" style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  Đánh dấu là Bảo vật Quốc gia / Hiện vật tiêu biểu
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              {/* Footer */}
+              <div className="modal-footer">
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -963,11 +1010,11 @@ export const AdminArtifactsPage: React.FC<AdminArtifactsPageProps> = ({
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={saving}
+                  disabled={saving || uploadingPhoto}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   {saving ? <Loader2 size={16} className="spin" /> : <Check size={16} />}
-                  <span>{isCreating ? 'Tạo hiện vật & Sinh mã QR' : 'Lưu thay đổi'}</span>
+                  <span>{saving ? 'Đang tạo 3D & Lưu...' : (isCreating ? 'Tạo hiện vật & Sinh mã QR' : 'Lưu thay đổi')}</span>
                 </button>
               </div>
             </form>
