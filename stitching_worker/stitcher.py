@@ -123,34 +123,27 @@ def crop_black_borders(img):
 
 def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
     """
-    Nắn chỉnh và chuẩn hóa ảnh ghép thành tỷ lệ 2:1 Equirectangular chuẩn quốc tế.
-    - Mở rộng chiều cao ảnh lên 1500px - 1600px (chiếm 80% quả cầu 360°).
-    - Tự động phân tích và nội suy trần nhà (ceiling extrapolation) và nền sàn (floor extrapolation)
-      từ chính dữ liệu ảnh chụp của căn phòng, XÓA BỎ HOÀN TOÀN CÁC MẢNG XÁM TRÒN.
+    Nắn chỉnh và chuẩn hóa ảnh ghép thành tỷ lệ 2:1 Equirectangular chuẩn quốc tế:
+    - Mở rộng tỷ lệ bao phủ chiều cao phòng lên 72% - 85% (tương đương 1474px - 1740px trên canvas 2048px).
+    - Bảo tồn độ phẳng kiến trúc (Rectilinear Flatness), triệt tiêu hoàn toàn hiện tượng kéo dẹt ngang làm méo vách tường,
+      đồng thời xóa bỏ cảm giác ống hút / phễu sâu (tunnel effect) và không gian hẹp.
+    - Khâu liền mạch 360° ở kinh tuyến 0°-360° và nội suy mượt mà 2 cực Zenith & Nadir.
     """
     h, w = stitched_img.shape[:2]
-    target_height = target_width // 2 # 2048
+    target_height = target_width // 2 # 2048px cho canvas 4096px
+    aspect_ratio = max(0.5, float(w) / float(h))
 
-    # BẢO TỒN NGUYÊN BẢN TỶ LỆ HÌNH HỌC THỰC TẾ (Optical Perspective Preservation):
-    # Trong phép chiếu Equirectangular 2:1 (360° x 180°), góc nhìn thẳng đứng tự nhiên của camera điện thoại
-    # chiếm khoảng 65°-85° (tương đương 750px - 1100px trong khung hình cao 2048px).
-    # Tuyệt đối không phóng đại chiều cao hay ép dẹt chiều ngang khiến đồ vật biến dạng, gây chóng mặt/nhức đầu.
-    aspect_ratio = max(0.5, w / float(h))
-    
-    if aspect_ratio >= 4.0:
-        # Ảnh quét trọn vẹn hoặc ảnh PANO toàn cảnh điện thoại
-        new_w = target_width
-        new_h = min(1150, max(750, int(target_width / aspect_ratio)))
-        resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
-    else:
-        # Chùm ảnh góc hẹp (chưa quét đủ 360°): Giữ nguyên tỷ lệ chuẩn, không kéo giãn ngang
-        new_h = 850
-        scaled_w = min(target_width, int(new_h * aspect_ratio))
-        resized_temp = cv2.resize(stitched_img, (scaled_w, new_h), interpolation=cv2.INTER_LANCZOS4)
-        resized_pano = cv2.resize(resized_temp, (target_width, new_h), interpolation=cv2.INTER_LANCZOS4)
+    # TÍNH TOÁN KÍCH THƯỚC ĐẠI DIỆN CHUẨN KHÔNG GIAN (Optical Space Expansion):
+    # Chiều cao phòng chiếm từ 72% đến 85% quả cầu 360° (tương đương 130° - 153° góc nhìn dọc tự nhiên),
+    # giúp khách tham quan nhìn thấy trọn vẹn trần nhà, đèn trang trí, vách tường và bục hiện vật.
+    new_w = target_width
+    new_h = min(int(target_height * 0.85), max(int(target_height * 0.72), int(target_width / aspect_ratio)))
 
-    # Khâu mịn đường nối giữa cạnh trái và cạnh phải để 360° liền mạch
-    seam_blend_width = 45
+    # Co giãn chất lượng cao với bộ lọc Lanczos 4-tap chống gai & giữ độ sắc nét
+    resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+
+    # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) để xoay vòng liền mạch
+    seam_blend_width = min(60, new_w // 20)
     for i in range(seam_blend_width):
         alpha = i / float(seam_blend_width)
         left_col = resized_pano[:, i].astype(np.float32)
@@ -158,33 +151,31 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
         blended = (1 - alpha) * right_col + alpha * left_col
         resized_pano[:, i] = blended.astype(np.uint8)
 
-    # Tạo canvas 2:1
+    # Tạo canvas Equirectangular 2:1
     canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
-    y_offset = (target_height - new_h) // 2 # ~450px từ đỉnh và đáy
+    y_offset = (target_height - new_h) // 2 # Khoảng cách cực đỉnh và cực đáy chỉ còn ~150px - 280px
 
-    # Đặt ảnh phòng vào giữa
+    # Đặt không gian phòng vào trung tâm quả cầu
     canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
 
-    # 1. Nội suy mở rộng trần nhà lên đỉnh cực (+90°)
-    # Lấy mẫu màu và độ sáng của mép trên trần nhà
+    # 1. Nội suy mượt mà trần nhà lên đỉnh cực (+90° Zenith)
     top_edge = resized_pano[0, :].astype(np.float32)
-    zenith_color = np.clip(np.median(top_edge, axis=0) * 1.05, 0, 255).astype(np.float32)
+    zenith_color = np.clip(np.median(top_edge, axis=0) * 1.03, 0, 255).astype(np.float32)
     for y in range(y_offset):
-        t = y / float(y_offset) # 0 ở đỉnh cực, 1 ở mép ảnh
-        # Gradient mượt mà từ màu đỉnh cực tới mép ảnh thật
+        t = y / float(y_offset) # 0 ở đỉnh cực, 1 ở mép ảnh thật
         canvas[y, :] = ((1.0 - t) * zenith_color + t * top_edge).astype(np.uint8)
 
-    # 2. Nội suy mở rộng nền sàn xuống đáy cực (-90°)
+    # 2. Nội suy mượt mà nền sàn xuống đáy cực (-90° Nadir)
     bottom_edge = resized_pano[-1, :].astype(np.float32)
-    nadir_color = np.clip(np.median(bottom_edge, axis=0) * 0.95, 0, 255).astype(np.float32)
+    nadir_color = np.clip(np.median(bottom_edge, axis=0) * 0.97, 0, 255).astype(np.float32)
     floor_start = y_offset + new_h
     floor_height = target_height - floor_start
     for y in range(floor_height):
-        t = y / float(floor_height) # 0 ở mép ảnh, 1 ở đáy cực
+        t = y / float(floor_height) # 0 ở mép ảnh thật, 1 ở đáy cực
         canvas[floor_start + y, :] = ((1.0 - t) * bottom_edge + t * nadir_color).astype(np.uint8)
 
-    # Làm mờ nhẹ vùng chuyển tiếp (feathering) 25px
-    feather = 25
+    # Làm mờ nhẹ chuyển tiếp (feathering) 20px
+    feather = min(20, y_offset // 2) if y_offset > 0 else 0
     for fi in range(feather):
         alpha = fi / float(feather)
         curr_top = y_offset + fi

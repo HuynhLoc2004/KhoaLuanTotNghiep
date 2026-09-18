@@ -158,8 +158,8 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
         lon += 0.18;
       }
 
-      // Giới hạn góc ngước/cúi tự nhiên từ -38° đến +38° để không bao giờ bị thắt nút cực
-      lat = Math.max(-38, Math.min(38, lat));
+      // Mở rộng góc ngước/cúi tự nhiên từ -75° đến +75° cho không gian thoáng đãng, trọn vẹn trần và sàn
+      lat = Math.max(-75, Math.min(75, lat));
       const phi = THREE.MathUtils.degToRad(90 - lat);
       const theta = THREE.MathUtils.degToRad(lon);
 
