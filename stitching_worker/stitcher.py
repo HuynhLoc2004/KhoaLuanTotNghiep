@@ -165,23 +165,48 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
         t = y / float(y_offset) # 0 ở đỉnh cực, 1 ở mép ảnh thật
         canvas[y, :] = ((1.0 - t) * zenith_color + t * top_edge).astype(np.uint8)
 
-    # 2. Nội suy mượt mà nền sàn xuống đáy cực (-90° Nadir)
-    bottom_edge = resized_pano[-1, :].astype(np.float32)
-    nadir_color = np.clip(np.median(bottom_edge, axis=0) * 0.97, 0, 255).astype(np.float32)
+    # 2. XỬ LÝ TỐI ƯU HÓA ĐẶC BIỆT CHO SÀN NHÀ (-90° Nadir Floor Optimization):
+    # - Khử bóng bàn chân người chụp / chân máy ảnh ở 25px sát mép đáy bằng mẫu màu gạch sàn an toàn.
+    # - Hội tụ quang học hình cầu: Tăng dần độ mịn ngang khi càng xuống gần cực Nam để triệt tiêu hoàn toàn sọc tia (starburst/barcode).
+    safe_floor_zone = resized_pano[max(0, new_h - 75):max(1, new_h - 28), :]
+    nadir_color = np.median(safe_floor_zone, axis=(0, 1)).astype(np.float32)
+
+    # Mẫu cạnh sàn sạch không dính mũi giày/chân
+    clean_bottom_edge = cv2.GaussianBlur(resized_pano[max(0, new_h - 26), :][np.newaxis, :, :], (65, 1), 0)[0].astype(np.float32)
+
+    # Hòa tan nhẹ 20px sát mép đáy của ảnh thật vào màu gạch sàn sạch để che khuất hoàn toàn bàn chân
+    if new_h > 80:
+        feet_h = min(22, new_h // 12)
+        for fi in range(feet_h):
+            alpha = fi / float(feet_h) # 0 ở đáy cùng, 1 ở trên
+            row_idx = new_h - feet_h + fi
+            resized_pano[row_idx, :] = (alpha * resized_pano[row_idx, :].astype(np.float32) + (1.0 - alpha) * clean_bottom_edge).astype(np.uint8)
+
+    # Cập nhật lại ảnh phòng vào canvas với mép sàn đã được làm sạch
+    canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
+
     floor_start = y_offset + new_h
     floor_height = target_height - floor_start
-    for y in range(floor_height):
-        t = y / float(floor_height) # 0 ở mép ảnh thật, 1 ở đáy cực
-        canvas[floor_start + y, :] = ((1.0 - t) * bottom_edge + t * nadir_color).astype(np.uint8)
 
-    # Làm mờ nhẹ chuyển tiếp (feathering) 20px
-    feather = min(20, y_offset // 2) if y_offset > 0 else 0
+    for y in range(floor_height):
+        t = y / float(floor_height) # 0 ở mép sàn thật, 1 ở đáy cực
+        smooth_t = (1.0 - np.cos(t * np.pi)) * 0.5 # Cosine chuyển tiếp êm dịu
+        row = (1.0 - smooth_t) * clean_bottom_edge + smooth_t * nadir_color
+        canvas[floor_start + y, :] = row.astype(np.uint8)
+
+    # Tán xạ mịn theo phương ngang càng xuống gần cực Nam (đặc tính quang học phép chiếu Equirectangular)
+    for y in range(floor_start + int(floor_height * 0.20), target_height):
+        progress = (y - (floor_start + floor_height * 0.20)) / float(floor_height * 0.80)
+        ksize = int(progress * 45) * 2 + 1
+        if ksize >= 5:
+            canvas[y:y+1, :] = cv2.GaussianBlur(canvas[y:y+1, :], (ksize, 1), 0)
+
+    # Làm mờ nhẹ vùng chuyển tiếp (feathering) trần nhà 15px
+    feather = min(15, y_offset // 2) if y_offset > 0 else 0
     for fi in range(feather):
         alpha = fi / float(feather)
         curr_top = y_offset + fi
         canvas[curr_top, :] = ((1.0 - alpha) * canvas[y_offset - 1, :] + alpha * resized_pano[fi, :]).astype(np.uint8)
-        curr_bot = floor_start - 1 - fi
-        canvas[curr_bot, :] = ((1.0 - alpha) * canvas[floor_start, :] + alpha * resized_pano[new_h - 1 - fi, :]).astype(np.uint8)
 
     return canvas
 

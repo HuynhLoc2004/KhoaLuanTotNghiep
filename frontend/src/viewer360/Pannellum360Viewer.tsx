@@ -100,8 +100,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         maxHfov: 125, // Cho phép zoom rộng thoải mái để bao quát toàn phòng
         pitch: 0,
         yaw: 0,
-        minPitch: -80, // Cho phép ngước/cúi tự nhiên thoải mái
-        maxPitch: 80,  // Góc ngước cao tự nhiên
+        minPitch: -58, // Cho phép nhìn thấy toàn bộ sàn nhà và chân đồ vật, nhưng dừng lại tự nhiên trước khi nhìn thẳng vào chân người chụp
+        maxPitch: 80,  // Góc ngước cao tự nhiên chiêm ngưỡng trần nhà
         friction: 0.15,
         hotSpots: formattedHotSpots,
       });
