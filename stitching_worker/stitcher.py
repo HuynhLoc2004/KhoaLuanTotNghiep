@@ -129,6 +129,7 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
       đồng thời xóa bỏ cảm giác ống hút / phễu sâu (tunnel effect) và không gian hẹp.
     - Khâu liền mạch 360° ở kinh tuyến 0°-360° và nội suy mượt mà 2 cực Zenith & Nadir.
     """
+    h, w = stitched_img.shape[:2]
     target_height = target_width // 2 # 2048px cho canvas 4096px
     aspect_ratio = max(0.5, float(w) / float(h))
 
