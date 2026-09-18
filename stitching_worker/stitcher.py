@@ -242,6 +242,23 @@ def enhance_museum_texture(image):
         print(f"[Warning] Không thể áp dụng enhance_museum_texture: {e}", file=sys.stderr)
         return image
 
+def balance_indoor_lighting(img):
+    """
+    Cân bằng ánh sáng đèn phòng và kéo sáng các góc tối thích ứng:
+    - Kéo sáng các góc tối (bộ bàn ghế, góc cửa sổ buổi tối, hành lang).
+    - Triệt tiêu lóa sáng từ bóng đèn trần trên vách gạch men và kính cửa sắt.
+    - Giúp bộ trích xuất đặc trưng tìm được đầy đủ điểm neo vững chắc ở mọi góc phòng.
+    """
+    try:
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
+        l_eq = clahe.apply(l)
+        l_balanced = cv2.addWeighted(l_eq, 0.60, l, 0.40, 0)
+        return cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
+    except Exception:
+        return img
+
 def run_stitch(image_paths, output_path, target_width=4096):
     """
     Thực thi quy trình ghép ảnh:
@@ -291,10 +308,9 @@ def run_stitch(image_paths, output_path, target_width=4096):
     # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img48)
     sorted_paths = sorted(image_paths, key=natural_sort_key)
 
-    # ƯU TIÊN GIỮ NGUYÊN TOÀN BỘ ẢNH (Không bỏ sót góc nào):
-    # Người chụp quét trọn vẹn không gian phòng quanh 360°.
-    # Ta giữ trọn vẹn 100% tất cả ảnh đầu vào, tự động điều chỉnh độ phân giải nạp (max_dim)
-    # để thuật toán ghép tận dụng tối đa dữ liệu mắt xích liên tục mà vẫn bảo đảm an toàn tuyệt đối cho RAM!
+    # ƯU TIÊN GIỮ NGUYÊN TOÀN BỘ 100% ẢNH ĐẦU VÀO (Không cắt xén, không bỏ sót bất kỳ góc nào):
+    # Người dùng quét bao nhiêu tấm hệ thống đều tiếp nhận đầy đủ để bảo đảm độ chồng lấp mắt xích liên tục.
+    # Tự động điều chỉnh kích thước nạp (stitch_max_dim) tương ứng với số lượng ảnh để tối ưu tốc độ và an toàn RAM!
     selected_paths = sorted_paths
     total_imgs = len(selected_paths)
 
@@ -307,7 +323,7 @@ def run_stitch(image_paths, output_path, target_width=4096):
     else:
         stitch_max_dim = 900
 
-    print(f"[*] Tiếp nhận toàn bộ {total_imgs} ảnh đầu vào (giữ trọn vẹn mọi góc nhìn, max_dim={stitch_max_dim}px)...", file=sys.stderr)
+    print(f"[*] Tiếp nhận trọn vẹn 100% ({total_imgs} ảnh) đầu vào (max_dim={stitch_max_dim}px, cân bằng ánh sáng đèn phòng)...", file=sys.stderr)
     images = []
     for p in selected_paths:
         if not os.path.exists(p):
@@ -318,6 +334,8 @@ def run_stitch(image_paths, output_path, target_width=4096):
             }
         try:
             img = load_and_orient_image(p, max_dim=stitch_max_dim)
+            # Cân bằng phơi sáng đèn đêm và kéo sáng các góc tối
+            img = balance_indoor_lighting(img)
             images.append(img)
         except Exception as e:
             return {
@@ -335,7 +353,7 @@ def run_stitch(image_paths, output_path, target_width=4096):
         pass
 
     # Thiết lập stitcher với cấu hình tối ưu độ nét & cân bằng đường chân trời
-    def build_stitcher(confidence=0.30):
+    def build_stitcher(confidence=0.20):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
             s.setWaveCorrection(True)
@@ -350,24 +368,30 @@ def run_stitch(image_paths, output_path, target_width=4096):
         except Exception:
             pass
         try:
-            s.setRegistrationResol(0.7) # Tối ưu hóa tốc độ dò tìm đặc trưng siêu tốc
+            s.setRegistrationResol(0.6) # Chuẩn 0.6 Mpx tối ưu hóa phát hiện đặc trưng
         except Exception:
             pass
         try:
-            s.setSeamEstimationResol(0.2) # Tinh chỉnh đường nối đa dải tần
+            s.setSeamEstimationResol(0.1) # Tinh chỉnh đường nối đa dải tần
         except Exception:
             pass
         return s
 
-    # Thử nghiệm lần 1 với confidence 0.30
-    stitcher = build_stitcher(confidence=0.30)
+    # Thử nghiệm lần 1 với confidence 0.20 (thích ứng tốt ánh sáng trong nhà và bóng tối)
+    stitcher = build_stitcher(confidence=0.20)
     status, stitched = stitcher.stitch(images)
 
-    # Nếu lần 1 không thành công (do tường trắng hoặc thiếu hoa văn), tự động thử lại với ngưỡng thấp hơn 0.16
+    # Nếu lần 1 không thành công, tự động thử lại với ngưỡng thấp hơn 0.12
     if status != cv2.Stitcher_OK:
-        print(f"[!] Lần 1 thất bại với mã {status}. Đang kích hoạt chế độ Tự Động Thử Lại (Confidence 0.16)...", file=sys.stderr)
-        stitcher_retry = build_stitcher(confidence=0.16)
+        print(f"[!] Lần 1 thất bại với mã {status}. Đang kích hoạt chế độ Tự Động Thử Lại (Confidence 0.12)...", file=sys.stderr)
+        stitcher_retry = build_stitcher(confidence=0.12)
         status, stitched = stitcher_retry.stitch(images)
+
+    # Nếu lần 2 vẫn chưa được, thử lần cuối với ngưỡng nhạy cao 0.08
+    if status != cv2.Stitcher_OK:
+        print(f"[!] Lần 2 thất bại với mã {status}. Đang kích hoạt chế độ Ghép Nhạy Cao (Confidence 0.08)...", file=sys.stderr)
+        stitcher_deep = build_stitcher(confidence=0.08)
+        status, stitched = stitcher_deep.stitch(images)
 
     STATUS_MAP = {
         cv2.Stitcher_OK: "OK",
