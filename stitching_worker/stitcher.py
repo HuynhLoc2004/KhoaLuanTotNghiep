@@ -115,9 +115,8 @@ def crop_black_borders(img):
     # Tuyệt đối KHÔNG inpaint các vật thể đen/tối thật trong phòng (như cửa sổ sắt đen, bóng đổ, cánh cửa)
     gray_c = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
     ch, cw = gray_c.shape[:2]
-    black_cand = (gray_c <= 8).astype(np.uint8)
+    black_cand = (gray_c <= 6).astype(np.uint8)
 
-    # Chỉ tìm các pixel đen chạm trực tiếp vào 4 cạnh viền ngoài cùng
     edge_black_mask = np.zeros((ch, cw), dtype=np.uint8)
     for x in range(cw):
         if black_cand[0, x] and not edge_black_mask[0, x]:
@@ -131,7 +130,7 @@ def crop_black_borders(img):
             cv2.floodFill(edge_black_mask, None, (cw - 1, y), 255)
 
     edge_black_count = int(np.sum(edge_black_mask > 0))
-    if 0 < edge_black_count < int(ch * cw * 0.02):
+    if 0 < edge_black_count < int(ch * cw * 0.015):
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         dilated_edge = cv2.dilate(edge_black_mask, kernel, iterations=1)
         cropped = cv2.inpaint(cropped, dilated_edge, inpaintRadius=3, flags=cv2.INPAINT_TELEA)
@@ -191,9 +190,15 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=4096):
     # Mẫu cạnh sàn sạch không dính mũi giày/chân
     clean_bottom_edge = cv2.GaussianBlur(resized_pano[max(0, new_h - 26), :][np.newaxis, :, :], (65, 1), 0)[0].astype(np.float32)
 
-    # Giữ nguyên 100% chi tiết ảnh thực tế của phòng (cửa, gạch, chân tường),
-    # tuyệt đối không làm mờ đè lên chân cửa hay vách phòng.
-    # Phần mở rộng sàn nhà (Nadir) chỉ tổng hợp ở vùng canvas phía dưới floor_start.
+    # Hòa tan nhẹ 20px sát mép đáy của ảnh thật vào màu gạch sàn sạch để che khuất hoàn toàn bàn chân
+    if new_h > 80:
+        feet_h = min(22, new_h // 12)
+        for fi in range(feet_h):
+            alpha = fi / float(feet_h) # 0 ở đáy cùng, 1 ở trên
+            row_idx = new_h - feet_h + fi
+            resized_pano[row_idx, :] = (alpha * resized_pano[row_idx, :].astype(np.float32) + (1.0 - alpha) * clean_bottom_edge).astype(np.uint8)
+
+    # Cập nhật lại ảnh phòng vào canvas với mép sàn đã được làm sạch
     canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
 
     floor_start = y_offset + new_h
@@ -239,15 +244,14 @@ def enhance_museum_texture(image):
         l_balanced = cv2.addWeighted(l_clahe, 0.55, l, 0.45, 0)
         balanced_bgr = cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
 
-        # 2. Tăng cường độ nét tự nhiên vi mô (Natural Micro-contrast)
-        # Giảm hệ số gai từ 2.25 xuống 1.5 để triệt tiêu viền hào quang trắng/đen quanh song sắt và khung cửa
+        # 2. Tăng cường độ nét vi mô (Unsharp Masking)
         blurred = cv2.GaussianBlur(balanced_bgr, (0, 0), 1.0)
-        sharpened = float(1.5) * balanced_bgr.astype(np.float32) - float(0.5) * blurred.astype(np.float32)
+        sharpened = float(2.25) * balanced_bgr.astype(np.float32) - float(1.25) * blurred.astype(np.float32)
         sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
 
         # Chống nhiễu hạt ở các mảng màu phẳng
         diff = np.abs(balanced_bgr.astype(np.int16) - blurred.astype(np.int16))
-        mask = diff < 3
+        mask = diff < 2
         np.copyto(sharpened, balanced_bgr, where=mask)
         return sharpened
     except Exception as e:
@@ -304,18 +308,20 @@ def run_stitch(image_paths, output_path, target_width=4096):
     sorted_paths = sorted(image_paths, key=natural_sort_key)
 
     # TỐI ƯU HÓA KHUNG HÌNH THÔNG MINH CHO CHÙM ẢNH LỚN:
-    # Cân bằng tối ưu giữa độ phủ góc rộng và tốc độ xử lý CPU:
-    # Chọn 20 khung hình phân bổ đều nhất quanh 360° (mỗi ảnh cách nhau ~18°, đảm bảo 60% overlap chuẩn).
-    # Giảm tải tính toán 3 lần, đảm bảo VPS xử lý xong trong 15 - 30 giây siêu tốc, tuyệt đối không bị timeout.
-    if len(sorted_paths) > 20:
-        print(f"[*] Phát hiện {len(sorted_paths)} ảnh đầu vào. Đang chọn 20 khung hình phân bổ tối ưu quanh 360°...", file=sys.stderr)
-        indices = np.linspace(0, len(sorted_paths) - 1, 20, dtype=int)
+    # Khi chụp trên 18 ảnh quanh 360°, độ chồng lấp giữa 2 ảnh kề nhau lên tới 85%-90%.
+    # Số cặp đối chiếu bùng nổ cấp số nhân (38 ảnh = 703 cặp), gây nghẽn CPU và vượt quá thời gian timeout (180s).
+    # Thuật toán tự động chắt lọc 18 khung hình phân bổ đều đặn nhất quanh vòng 360°:
+    # - Vừa giữ trọn vẹn 100% các góc phòng (cả góc xa và góc gần).
+    # - Vừa giảm tải tính toán 5 lần, giúp tạo không gian 360 chỉ trong 15 - 25 giây siêu tốc!
+    if len(sorted_paths) > 18:
+        print(f"[*] Phát hiện {len(sorted_paths)} ảnh đầu vào. Đang chọn 18 khung hình phân bổ đều nhất quanh 360° để xử lý siêu tốc...", file=sys.stderr)
+        indices = np.linspace(0, len(sorted_paths) - 1, 18, dtype=int)
         selected_paths = [sorted_paths[i] for i in indices]
     else:
         selected_paths = sorted_paths
 
     total_imgs = len(selected_paths)
-    stitch_max_dim = 1200
+    stitch_max_dim = 1500 if total_imgs <= 12 else 1300
 
     print(f"[*] Xử lý {total_imgs} ảnh đại diện tối ưu không gian (max_dim={stitch_max_dim}px)...", file=sys.stderr)
     images = []
@@ -344,11 +350,11 @@ def run_stitch(image_paths, output_path, target_width=4096):
     except Exception:
         pass
 
-    # Thiết lập stitcher với cấu hình cân bằng tốc độ & ổn định hình học
-    def build_stitcher(confidence=0.22, wave_correct=True):
+    # Thiết lập stitcher với cấu hình tối ưu độ nét & cân bằng đường chân trời
+    def build_stitcher(confidence=0.30):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
-            s.setWaveCorrection(wave_correct)
+            s.setWaveCorrection(True)
         except Exception:
             pass
         try:
@@ -360,49 +366,24 @@ def run_stitch(image_paths, output_path, target_width=4096):
         except Exception:
             pass
         try:
-            s.setRegistrationResol(0.6) # 0.6 MP siêu tốc và nhẹ CPU
+            s.setRegistrationResol(0.7) # Tối ưu hóa tốc độ dò tìm đặc trưng siêu tốc
         except Exception:
             pass
         try:
-            s.setSeamEstimationResol(0.25)
+            s.setSeamEstimationResol(0.2) # Tinh chỉnh đường nối đa dải tần
         except Exception:
             pass
         return s
 
-    def stitch_with_stabilization(stitcher_obj, imgs):
-        """
-        Thực thi 2 bước: estimateTransform -> Chuẩn hóa tiêu cự quang học -> composePanorama.
-        Khắc phục triệt để hiện tượng vặn méo, cong song sắt cửa hoặc lệch mép bàn.
-        """
-        st = stitcher_obj.estimateTransform(imgs)
-        if st != cv2.Stitcher_OK:
-            return st, None
+    # Thử nghiệm lần 1 với confidence 0.30
+    stitcher = build_stitcher(confidence=0.30)
+    status, stitched = stitcher.stitch(images)
 
-        # Ổn định tiêu cự quang học giữa các frame
-        try:
-            cams = stitcher_obj.cameras()
-            if cams and len(cams) > 0:
-                valid_focals = [float(c.focal) for c in cams if c.focal > 0]
-                if len(valid_focals) > 0:
-                    med_focal = float(np.median(valid_focals))
-                    for c in cams:
-                        if abs(c.focal - med_focal) / (med_focal + 1e-5) > 0.15:
-                            c.focal = med_focal
-        except Exception:
-            pass
-
-        st, pano = stitcher_obj.composePanorama()
-        return st, pano
-
-    # Lần 1: Ghép chuẩn với ổn định tiêu cự (Confidence 0.22)
-    stitcher = build_stitcher(confidence=0.22, wave_correct=True)
-    status, stitched = stitch_with_stabilization(stitcher, images)
-
-    # Lần 2 (Chỉ chạy khi lần 1 thất bại): Chống xoắn nghiêng góc chụp (WaveCorrection=False, Confidence 0.12)
-    if status != cv2.Stitcher_OK or stitched is None:
-        print(f"[!] Lần 1 chưa hoàn hảo ({status}). Tự động chuyển sang chế độ Góc Rộng Chống Xoắn (Confidence 0.12)...", file=sys.stderr)
-        stitcher_retry = build_stitcher(confidence=0.12, wave_correct=False)
-        status, stitched = stitch_with_stabilization(stitcher_retry, images)
+    # Nếu lần 1 không thành công (do tường trắng hoặc thiếu hoa văn), tự động thử lại với ngưỡng thấp hơn 0.16
+    if status != cv2.Stitcher_OK:
+        print(f"[!] Lần 1 thất bại với mã {status}. Đang kích hoạt chế độ Tự Động Thử Lại (Confidence 0.16)...", file=sys.stderr)
+        stitcher_retry = build_stitcher(confidence=0.16)
+        status, stitched = stitcher_retry.stitch(images)
 
     STATUS_MAP = {
         cv2.Stitcher_OK: "OK",
