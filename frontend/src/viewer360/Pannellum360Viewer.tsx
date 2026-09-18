@@ -68,14 +68,29 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         if (hs.onClick) hs.onClick();
       },
       createTooltipFunc: (hotSpotDiv: HTMLElement) => {
-        hotSpotDiv.className = 'custom-hotspot-badge';
-        hotSpotDiv.innerHTML = `
-          <div class="hotspot-pulse">
-            <i class="fa-solid ${hs.icon || 'fa-location-dot'}"></i>
-          </div>
-          <div class="hotspot-label">${hs.text}</div>
-        `;
+        if (hs.type === 'scene' || (hs as any).type === 'navigation' || hs.roomId || hs.sceneId) {
+          hotSpotDiv.className = 'custom-hotspot-badge walking-arrow-hotspot';
+          hotSpotDiv.innerHTML = `
+            <div class="walking-arrow-label">
+              <span>🚪 ${hs.text}</span>
+            </div>
+            <div class="walking-arrow-disc">
+              <svg class="walking-arrow-svg" viewBox="0 0 24 24">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </div>
+          `;
+        } else {
+          hotSpotDiv.className = 'custom-hotspot-badge';
+          hotSpotDiv.innerHTML = `
+            <div class="hotspot-pulse">
+              <i class="fa-solid ${hs.icon || 'fa-location-dot'}"></i>
+            </div>
+            <div class="hotspot-label">${hs.text}</div>
+          `;
+        }
       }
+
     }));
 
     // Tự động phân giải URL: nếu là Cloudflare R2 subdomain chưa có CORS cho WebGL, bọc qua Backend Proxy
@@ -260,6 +275,92 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           70% { box-shadow: 0 0 0 16px rgba(37, 99, 235, 0); }
           100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
         }
+
+        /* 3D Walking Arrow Styles */
+        .walking-arrow-hotspot {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          cursor: pointer;
+          user-select: none;
+          transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+          filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+        }
+        .walking-arrow-hotspot:hover {
+          transform: translate(-50%, -55%) scale(1.15) !important;
+        }
+        .walking-arrow-label {
+          background: rgba(15, 23, 42, 0.92);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          color: #FFFFFF;
+          font-size: 12.5px;
+          font-weight: 700;
+          padding: 6px 14px;
+          border-radius: 20px;
+          border: 1.5px solid rgba(59, 130, 246, 0.7);
+          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+          white-space: nowrap;
+          margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s ease;
+        }
+        .walking-arrow-hotspot:hover .walking-arrow-label {
+          background: #1D4ED8;
+          border-color: #93C5FD;
+          box-shadow: 0 0 16px rgba(59, 130, 246, 0.8);
+        }
+        .walking-arrow-disc {
+          position: relative;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: radial-gradient(circle, #2563EB 0%, #1E3A8A 100%);
+          border: 2.5px solid #FFFFFF;
+          box-shadow: 0 0 20px rgba(37, 99, 235, 0.85), 0 0 35px rgba(59, 130, 246, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: pulse-walking-disc 1.8s infinite ease-in-out;
+        }
+        @keyframes pulse-walking-disc {
+          0% {
+            transform: scale(0.96);
+            box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.75);
+          }
+          70% {
+            transform: scale(1.06);
+            box-shadow: 0 0 0 15px rgba(37, 99, 235, 0);
+          }
+          100% {
+            transform: scale(0.96);
+            box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+          }
+        }
+        .walking-arrow-svg {
+          width: 24px;
+          height: 24px;
+          fill: none;
+          stroke: #FFFFFF;
+          stroke-width: 3.2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          animation: bounce-chevron 1.4s infinite ease-in-out;
+        }
+        @keyframes bounce-chevron {
+          0%, 100% {
+            transform: translateY(2px);
+            opacity: 0.85;
+          }
+          50% {
+            transform: translateY(-3px);
+            opacity: 1;
+            filter: drop-shadow(0 0 5px #93C5FD);
+          }
+        }
+
         .glass-toolbar {
           background: rgba(15, 23, 42, 0.85);
           backdrop-filter: blur(14px);

@@ -434,7 +434,7 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
           ref={(el) => {
             hotspotElementsRef.current[hs.id] = el;
           }}
-          className="hotspot-marker"
+          className={hs.type === 'navigation' ? 'hotspot-marker walking-arrow-hotspot' : 'hotspot-marker'}
           style={{ display: 'none' }}
           onClick={(e) => {
             e.stopPropagation();
@@ -442,10 +442,25 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
           }}
           title={hs.title}
         >
-          <div className="hotspot-icon-wrapper">
-            <Navigation size={20} style={{ transform: 'rotate(-45deg)' }} />
-          </div>
-          <div className="hotspot-label">{hs.title}</div>
+          {hs.type === 'navigation' ? (
+            <>
+              <div className="walking-arrow-label">
+                <span>🚪 {hs.title}</span>
+              </div>
+              <div className="walking-arrow-disc">
+                <svg className="walking-arrow-svg" viewBox="0 0 24 24">
+                  <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="hotspot-icon-wrapper">
+                <Navigation size={20} style={{ transform: 'rotate(-45deg)' }} />
+              </div>
+              <div className="hotspot-label">{hs.title}</div>
+            </>
+          )}
         </div>
       ))}
 
