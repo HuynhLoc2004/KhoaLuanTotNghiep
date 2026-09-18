@@ -34,6 +34,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
 }) => {
   const [isPinMode, setIsPinMode] = useState(false);
   const [pendingCoords, setPendingCoords] = useState<{ pitch: number; yaw: number } | null>(null);
+  const [focusCoords, setFocusCoords] = useState<{ pitch: number; yaw: number; timestamp?: number } | null>(null);
   const [panoInputUrl, setPanoInputUrl] = useState(currentRoom.panoramaUrl);
   const [uploading, setUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -152,6 +153,14 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
           title={`${currentRoom.name} (${currentRoom.code})`}
           autoStartLittlePlanet={false}
           hotspots={pannellumHotspots}
+          onHotspotClick={(hs) => {
+            const origin = currentRoom.hotspots?.find(
+              (h) => (h.targetRoomId && h.targetRoomId === hs.roomId) || h.title === hs.text
+            );
+            if (origin) handleHotspotClick(origin);
+            else if (hs.roomId) onNavigateRoom(hs.roomId);
+          }}
+          focusCoords={focusCoords}
           isPinMode={isPinMode}
           onTogglePinMode={() => setIsPinMode((prev) => !prev)}
           onCanvasPinClick={handleCanvasPinClick}
@@ -224,14 +233,41 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                     </span>
                   </div>
 
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    title="Xóa điểm ghim này"
-                    onClick={() => handleDeleteHotspot(hs.id)}
-                    style={{ color: '#EF4444', padding: '4px 8px' }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {/* Nút xoay camera đến vị trí điểm này */}
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      title="Xoay góc nhìn 360 đến vị trí điểm này"
+                      onClick={() => setFocusCoords({ pitch: hs.pitch, yaw: hs.yaw, timestamp: Date.now() })}
+                      style={{ padding: '5px 8px', color: '#2563EB', borderColor: '#BFDBFE', background: '#EFF6FF' }}
+                    >
+                      <Eye size={13} />
+                    </button>
+
+                    {/* Nút Đi vào phòng đích ngay lập tức */}
+                    {hs.type === 'navigation' && hs.targetRoomId && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        title="Đi vào phòng này ngay lập tức"
+                        onClick={() => handleHotspotClick(hs)}
+                        style={{ padding: '5px 10px', fontSize: '11.5px', gap: 4 }}
+                      >
+                        <Navigation size={12} />
+                        <span>Vào phòng</span>
+                      </button>
+                    )}
+
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      title="Xóa điểm ghim này"
+                      onClick={() => handleDeleteHotspot(hs.id)}
+                      style={{ color: '#EF4444', padding: '5px 8px' }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               );
             })

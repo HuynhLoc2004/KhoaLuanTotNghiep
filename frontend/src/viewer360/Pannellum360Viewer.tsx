@@ -32,6 +32,7 @@ interface Pannellum360ViewerProps {
   initialPitch?: number;
   initialYaw?: number;
   initialHfov?: number;
+  focusCoords?: { pitch: number; yaw: number; timestamp?: number } | null;
 }
 
 export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
@@ -47,15 +48,28 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   initialPitch = 0,
   initialYaw = 0,
   initialHfov = 100,
+  focusCoords,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const containerId = useRef(`pannellum-container-${Math.random().toString(36).substring(2, 9)}`);
   const hasIntroducedRef = useRef<string | null>(null);
   const introTimerRef = useRef<any>(null);
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [isLittlePlanet, setIsLittlePlanet] = useState(false);
+
+  // Focus xoay camera đến tọa độ chỉ định (ví dụ click từ sidebar)
+  useEffect(() => {
+    if (focusCoords && viewerRef.current) {
+      try {
+        viewerRef.current.lookAt(focusCoords.pitch, focusCoords.yaw, 100, 1000);
+      } catch (err) {
+        console.warn('[Pannellum lookAt error]:', err);
+      }
+    }
+  }, [focusCoords]);
 
   // Serialize hotspots để không bị re-render do tham chiếu mảng mới
   const hotspotsHash = JSON.stringify(hotspots || []);
@@ -82,8 +96,12 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         if (hs.onClick) hs.onClick();
       },
       createTooltipFunc: (hotSpotDiv: HTMLElement) => {
+        hotSpotDiv.classList.add('custom-hotspot-badge');
+        hotSpotDiv.style.pointerEvents = 'auto';
+        hotSpotDiv.style.cursor = 'pointer';
+
         if (hs.type === 'scene' || (hs as any).type === 'navigation' || hs.roomId || hs.sceneId) {
-          hotSpotDiv.className = 'custom-hotspot-badge walking-arrow-hotspot';
+          hotSpotDiv.classList.add('walking-arrow-hotspot');
           hotSpotDiv.innerHTML = `
             <div class="walking-arrow-label">
               <span>🚪 ${hs.text}</span>
@@ -95,7 +113,6 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
             </div>
           `;
         } else {
-          hotSpotDiv.className = 'custom-hotspot-badge';
           hotSpotDiv.innerHTML = `
             <div class="hotspot-pulse">
               <i class="fa-solid ${hs.icon || 'fa-location-dot'}"></i>
@@ -103,8 +120,16 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
             <div class="hotspot-label">${hs.text}</div>
           `;
         }
-      }
 
+        const onTrigger = (e: Event) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (onHotspotClick) onHotspotClick(hs);
+          if (hs.onClick) hs.onClick();
+        };
+
+        hotSpotDiv.onclick = onTrigger;
+      }
     }));
 
     // Tự động phân giải URL: nếu là Cloudflare R2 subdomain chưa có CORS cho WebGL, bọc qua Backend Proxy
@@ -260,6 +285,16 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   // Studio: Bắt sự kiện click lên ảnh để ghim tọa độ Hotspot
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isPinMode || !viewerRef.current || !onCanvasPinClick) return;
+
+    // Phân biệt kéo xoay camera và click ghim: nếu rê chuột > 6px thì bỏ qua không ghim
+    if (pointerDownPos.current) {
+      const dist = Math.hypot(
+        e.clientX - pointerDownPos.current.x,
+        e.clientY - pointerDownPos.current.y
+      );
+      if (dist > 6) return;
+    }
+
     const target = e.target as HTMLElement;
     if (
       target.closest('.glass-toolbar') ||
@@ -455,6 +490,9 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       <div
         id={containerId.current}
         ref={containerRef}
+        onPointerDown={(e) => {
+          pointerDownPos.current = { x: e.clientX, y: e.clientY };
+        }}
         onClick={handleContainerClick}
         style={{
           width: '100%',
