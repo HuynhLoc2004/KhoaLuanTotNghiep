@@ -126,6 +126,27 @@ export const PocStitchingPage: React.FC = () => {
     setTimeout(() => setCopiedHistoryUrl(null), 2500);
   };
 
+  const handleDeleteHistoryPano = async (filename: string) => {
+    if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn không gian 360° "${filename}" khỏi máy chủ?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/stitch/panoramas/${encodeURIComponent(filename)}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        setHistoryList((prev) => prev.filter((p) => p.filename !== filename));
+        if (stitchResult && stitchResult.filename === filename) {
+          setStitchResult(null);
+        }
+      } else {
+        alert(data.message || 'Lỗi khi xóa ảnh');
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối máy chủ: ' + err.message);
+    }
+  };
+
+
 
   // 1. CHỤP ẢNH TỪNG TẤM BẰNG CAMERA NATIVE ĐIỆN THOẠI & TỰ ĐỘNG THẨM ĐỊNH PYTHON
   const handleNativeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1418,7 +1439,29 @@ export const PocStitchingPage: React.FC = () => {
                         >
                           <ExternalLink size={13} />
                         </a>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleDeleteHistoryPano(item.filename)}
+                          title="Xóa vĩnh viễn ảnh 360 này khỏi máy chủ"
+                          style={{
+                            fontSize: '12px',
+                            padding: '6px 10px',
+                            color: '#DC2626',
+                            borderColor: '#FECACA',
+                            background: '#FEF2F2',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          <span>Xóa</span>
+                        </button>
                       </div>
+
                     </div>
                   </div>
                 ))}

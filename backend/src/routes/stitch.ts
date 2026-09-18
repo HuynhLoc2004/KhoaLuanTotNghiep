@@ -475,5 +475,41 @@ stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) 
   }
 });
 
+/**
+ * POST /api/stitch/panoramas/batch-delete
+ * Xóa nhiều file ảnh 360 cùng lúc
+ */
+stitchRouter.post('/panoramas/batch-delete', async (req: Request, res: Response) => {
+  try {
+    const { filenames } = req.body;
+    if (!Array.isArray(filenames) || filenames.length === 0) {
+      return res.status(400).json({ success: false, message: 'Danh sách file cần xóa không hợp lệ' });
+    }
+
+    let deletedCount = 0;
+    for (const filename of filenames) {
+      const cleanName = String(filename || '');
+      if (cleanName.startsWith('stitched_360_') && !cleanName.includes('..') && !cleanName.includes('/') && !cleanName.includes('\\')) {
+        const filePath = path.join(UPLOAD_ROOT, cleanName);
+        if (fs.existsSync(filePath)) {
+          try {
+            await fs.promises.unlink(filePath);
+            deletedCount++;
+          } catch (e) {}
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Đã dọn dẹp thành công ${deletedCount} file ảnh không gian 360°`,
+      deletedCount
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
 
 

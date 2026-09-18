@@ -52,6 +52,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   
   // Kho ảnh 360° đã tạo
   const [panoramas, setPanoramas] = useState<PanoHistoryItem[]>([]);
+  const [selectedFilenames, setSelectedFilenames] = useState<string[]>([]);
   const [loadingPanos, setLoadingPanos] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [previewPanoUrl, setPreviewPanoUrl] = useState<{ url: string; title: string } | null>(null);
@@ -76,7 +77,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   }, []);
 
   const handleDeletePano = async (filename: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa file không gian 360° "${filename}"?`)) return;
+    if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn không gian 360° "${filename}"?`)) return;
     try {
       const res = await fetch(`${API_BASE}/stitch/panoramas/${encodeURIComponent(filename)}`, {
         method: 'DELETE'
@@ -84,8 +85,70 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       const data = await res.json();
       if (data.success) {
         setPanoramas((prev) => prev.filter((p) => p.filename !== filename));
+        setSelectedFilenames((prev) => prev.filter((f) => f !== filename));
       } else {
         alert(data.message || 'Lỗi khi xóa file ảnh');
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối máy chủ: ' + err.message);
+    }
+  };
+
+  const handleToggleSelect = (filename: string) => {
+    setSelectedFilenames((prev) =>
+      prev.includes(filename) ? prev.filter((f) => f !== filename) : [...prev, filename]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedFilenames.length === filteredPanos.length) {
+      setSelectedFilenames([]);
+    } else {
+      setSelectedFilenames(filteredPanos.map((p) => p.filename));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedFilenames.length === 0) return;
+    if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn ${selectedFilenames.length} file ảnh 360° đã chọn khỏi máy chủ?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/stitch/panoramas/batch-delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filenames: selectedFilenames })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPanoramas((prev) => prev.filter((p) => !selectedFilenames.includes(p.filename)));
+        setSelectedFilenames([]);
+      } else {
+        alert(data.message || 'Lỗi khi xóa ảnh');
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối máy chủ: ' + err.message);
+    }
+  };
+
+  const handleKeepOnlyLatest = async (keepCount = 3) => {
+    if (panoramas.length <= keepCount) {
+      alert(`Kho hiện tại chỉ có ${panoramas.length} ảnh (ít hơn hoặc bằng ${keepCount}), không cần dọn dẹp thêm.`);
+      return;
+    }
+    const toDelete = panoramas.slice(keepCount).map((p) => p.filename);
+    if (!confirm(`Bạn có muốn giữ lại ${keepCount} ảnh 360° mới nhất và xóa toàn bộ ${toDelete.length} ảnh thử nghiệm cũ còn lại để dọn dẹp bộ nhớ?`)) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/stitch/panoramas/batch-delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filenames: toDelete })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPanoramas((prev) => prev.filter((p) => !toDelete.includes(p.filename)));
+        setSelectedFilenames([]);
+      } else {
+        alert(data.message || 'Lỗi khi dọn dẹp ảnh');
       }
     } catch (err: any) {
       alert('Lỗi kết nối máy chủ: ' + err.message);
@@ -204,17 +267,60 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             {activeSubTab === 'gallery' && (
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={fetchPanoramas}
-                disabled={loadingPanos}
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-              >
-                <RotateCw size={14} className={loadingPanos ? 'spin' : ''} />
-                <span>Làm mới</span>
-              </button>
+              <>
+                {selectedFilenames.length > 0 && (
+                  <button
+                    className="btn btn-sm"
+                    onClick={handleDeleteSelected}
+                    style={{
+                      background: '#DC2626',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 14px',
+                      borderRadius: 6
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    <span>Xóa {selectedFilenames.length} ảnh đã chọn</span>
+                  </button>
+                )}
+
+                {panoramas.length > 3 && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleKeepOnlyLatest(3)}
+                    title="Giữ lại 3 ảnh mới nhất, dọn dẹp các ảnh cũ"
+                    style={{
+                      color: '#B91C1C',
+                      borderColor: '#FCA5A5',
+                      background: '#FEF2F2',
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5
+                    }}
+                  >
+                    <Trash2 size={13} />
+                    <span>Dọn dẹp ảnh cũ (giữ 3 ảnh mới)</span>
+                  </button>
+                )}
+
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={fetchPanoramas}
+                  disabled={loadingPanos}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <RotateCw size={14} className={loadingPanos ? 'spin' : ''} />
+                  <span>Làm mới</span>
+                </button>
+              </>
             )}
 
             <button
@@ -229,6 +335,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             </button>
           </div>
         </div>
+
 
         {/* Search Header */}
         <div className="panel-header" style={{ borderBottom: '1px solid #E2E8F0', padding: '14px 20px' }}>
@@ -374,6 +481,30 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       onClick={() => setPreviewPanoUrl({ url: item.url, title: item.filename })}
                       title="Bấm để xoay xem toàn cảnh 360°"
                     >
+                      {/* Checkbox chọn xóa nhiều ảnh */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          zIndex: 3,
+                          background: 'rgba(255, 255, 255, 0.9)',
+                          borderRadius: 4,
+                          padding: '3px 5px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedFilenames.includes(item.filename)}
+                          onChange={() => handleToggleSelect(item.filename)}
+                          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#DC2626' }}
+                          title="Chọn ảnh này để dọn dẹp hàng loạt"
+                        />
+                      </div>
+
                       <img
                         src={item.url}
                         alt={item.filename}
@@ -464,13 +595,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             flex: 1,
                             justifyContent: 'center',
                             fontSize: '12px',
-                            padding: '7px 10px',
+                            padding: '7px 8px',
                             fontWeight: 700,
-                            gap: 6
+                            gap: 5
                           }}
                         >
                           <Plus size={14} />
-                          <span>+ Tạo Gian Phòng</span>
+                          <span>+ Tạo Phòng</span>
                         </button>
 
                         <button
@@ -491,14 +622,21 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                           type="button"
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleDeletePano(item.filename)}
-                          title="Xóa ảnh 360 khỏi kho"
+                          title="Xóa vĩnh viễn ảnh 360 này để dọn dẹp bộ nhớ"
                           style={{
                             fontSize: '12px',
                             padding: '7px 10px',
-                            color: '#EF4444'
+                            color: '#DC2626',
+                            borderColor: '#FECACA',
+                            background: '#FEF2F2',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
                           }}
                         >
                           <Trash2 size={14} />
+                          <span>Xóa</span>
                         </button>
                       </div>
                     </div>
