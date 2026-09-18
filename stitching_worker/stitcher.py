@@ -373,14 +373,142 @@ def run_stitch(image_paths, output_path, target_width=4096):
         "message": "Đã tạo thành công ảnh toàn cảnh 360° Equirectangular chuẩn WebGL siêu nét."
     }
 
+def verify_single_image(image_path, prev_image_path=None):
+    """
+    Thẩm định chất lượng ảnh chụp từ camera điện thoại trong thời gian thực:
+    - Độ sắc nét (Laplacian variance): Phát hiện rung tay, nhòe mờ.
+    - Ánh sáng / Phơi sáng: Kiểm tra quá tối hoặc cháy sáng.
+    - Điểm đặc trưng (ORB features): Đảm bảo cảnh có đủ hoa văn để máy tính nhận diện.
+    - Độ chồng lấp (Overlap): Đối chiếu với ảnh kế trước để đảm bảo nối được không gian.
+    """
+    if not os.path.exists(image_path):
+        return {
+            "success": False,
+            "error": "ERR_FILE_NOT_FOUND",
+            "message": f"Không tìm thấy file ảnh: {image_path}"
+        }
+
+    try:
+        img = load_and_orient_image(image_path, max_dim=1200)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        h, w = gray.shape
+
+        # 1. Đo độ sắc nét (Laplacian Variance)
+        laplacian_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        is_sharp = laplacian_var >= 35.0
+        sharpness_label = "Rất sắc nét" if laplacian_var > 80 else ("Đủ độ nét" if is_sharp else "Bị nhòe / rung tay")
+
+        # 2. Đo độ sáng / phơi sáng (Mean Intensity)
+        mean_brightness = float(np.mean(gray))
+        is_exposed = 35.0 <= mean_brightness <= 230.0
+        brightness_label = "Đủ sáng" if is_exposed else ("Quá tối" if mean_brightness < 35.0 else "Bị chói / cháy sáng")
+
+        # 3. Đo mật độ chi tiết hoa văn (ORB Features)
+        orb = cv2.ORB_create(nfeatures=1000)
+        kp, des = orb.detectAndCompute(gray, None)
+        feature_count = len(kp) if kp is not None else 0
+        has_features = feature_count >= 150
+        feature_label = "Hoa văn phong phú" if feature_count >= 350 else ("Đủ chi tiết" if has_features else "Thiếu chi tiết (tường trơn)")
+
+        # 4. Đo độ chồng lấp với ảnh trước (nếu có)
+        overlap_info = None
+        has_overlap = True
+        if prev_image_path and os.path.exists(prev_image_path):
+            try:
+                prev_img = load_and_orient_image(prev_image_path, max_dim=1200)
+                prev_gray = cv2.cvtColor(prev_img, cv2.COLOR_BGR2GRAY)
+                prev_kp, prev_des = orb.detectAndCompute(prev_gray, None)
+
+                if des is not None and prev_des is not None and len(des) > 10 and len(prev_des) > 10:
+                    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+                    matches = bf.knnMatch(des, prev_des, k=2)
+                    good_matches = []
+                    for m_pair in matches:
+                        if len(m_pair) == 2 and m_pair[0].distance < 0.75 * m_pair[1].distance:
+                            good_matches.append(m_pair[0])
+
+                    match_count = len(good_matches)
+                    has_overlap = match_count >= 18
+                    overlap_info = {
+                        "match_count": match_count,
+                        "passed": has_overlap,
+                        "label": "Khớp nối tốt với ảnh trước" if match_count >= 30 else ("Độ gối đầu vừa đủ" if has_overlap else "Chưa đủ điểm chung với ảnh trước")
+                    }
+                else:
+                    has_overlap = False
+                    overlap_info = {
+                        "match_count": 0,
+                        "passed": False,
+                        "label": "Không tìm thấy điểm chung với ảnh trước"
+                    }
+            except Exception as oErr:
+                print(f"[Warning] Overlap calculation note: {oErr}", file=sys.stderr)
+
+        # Đánh giá tổng quát
+        passed = is_sharp and is_exposed and has_features and has_overlap
+        
+        # Tính điểm chất lượng từ 0 - 100
+        score = 0
+        if is_sharp:
+            score += min(35, int(laplacian_var / 3.0))
+        if is_exposed:
+            score += 25
+        if has_features:
+            score += min(20, int(feature_count / 25))
+        if has_overlap:
+            score += 20
+        score = min(100, max(20, score))
+
+        message = "✓ Ảnh đạt chuẩn chất lượng không gian!" if passed else (
+            "⚠️ Ảnh chưa đạt: " + (
+                "Bị nhòe do rung tay, hãy giữ chắc máy chụp lại. " if not is_sharp else (
+                    "Ánh sáng không phù hợp. " if not is_exposed else (
+                        "Cảnh thiếu hoa văn chi tiết. " if not has_features else "Chưa đủ cảnh chung với ảnh trước, hãy nhích nhẹ lại gần góc trước."
+                    )
+                )
+            )
+        )
+
+        return {
+            "success": True,
+            "passed": passed,
+            "score": score,
+            "checks": {
+                "sharpness": { "passed": is_sharp, "value": round(laplacian_var, 1), "label": sharpness_label },
+                "brightness": { "passed": is_exposed, "value": round(mean_brightness, 1), "label": brightness_label },
+                "features": { "passed": has_features, "count": feature_count, "label": feature_label },
+                "overlap": overlap_info
+            },
+            "message": message
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": "ERR_VERIFY_FAILED",
+            "message": f"Lỗi thẩm định ảnh: {str(e)}"
+        }
+
 def main():
-    parser = argparse.ArgumentParser(description="OpenCV 360 Panorama Stitching Worker")
+    parser = argparse.ArgumentParser(description="OpenCV 360 Panorama Stitching & Verification Worker")
+    parser.add_argument("--verify-image", help="Đường dẫn 1 file ảnh cần kiểm tra chất lượng")
+    parser.add_argument("--prev-image", help="Đường dẫn file ảnh kế trước để so khớp độ chồng lấp")
     parser.add_argument("--images", nargs="+", help="Danh sách đường dẫn các file ảnh cần ghép")
     parser.add_argument("--input_json", help="File JSON chứa danh sách đường dẫn ảnh")
-    parser.add_argument("--output", required=True, help="Đường dẫn file ảnh đầu ra (.jpg)")
+    parser.add_argument("--output", help="Đường dẫn file ảnh đầu ra (.jpg)")
     parser.add_argument("--width", type=int, default=4096, help="Chiều rộng ảnh đầu ra (mặc định: 4096)")
 
     args = parser.parse_args()
+
+    # Chế độ thẩm định ảnh đơn lẻ
+    if args.verify_image:
+        result = verify_single_image(args.verify_image, prev_image_path=args.prev_image)
+        print(json.dumps(result, ensure_ascii=True, indent=2))
+        return
+
+    # Chế độ ghép không gian 360
+    if not args.output:
+        print(json.dumps({"success": False, "error": "MISSING_OUTPUT", "detail": "Thiếu tham số --output"}, ensure_ascii=True))
+        return
 
     image_paths = []
     if args.images:
@@ -395,3 +523,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

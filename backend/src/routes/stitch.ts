@@ -60,6 +60,24 @@ const uploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
   });
 };
 
+const VERIFY_DIR = path.join(TEMP_DIR, 'verified_frames');
+if (!fs.existsSync(VERIFY_DIR)) fs.mkdirSync(VERIFY_DIR, { recursive: true });
+
+const singleFrameStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, VERIFY_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, `frame_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${ext}`);
+  }
+});
+
+const uploadSingleFrame = multer({
+  storage: singleFrameStorage,
+  limits: { fileSize: 35 * 1024 * 1024 }
+}).single('frame');
+
 // Đường dẫn Python (hỗ trợ cả Windows local và Linux/Docker)
 const PYTHON_PATH = process.env.PYTHON_PATH || (process.platform === 'win32'
   ? 'C:\\Users\\HUYNH TAN LOC\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
@@ -70,24 +88,108 @@ const STITCHER_SCRIPT = process.env.STITCHER_SCRIPT || (fs.existsSync(path.join(
   : path.join(process.cwd(), '..', 'stitching_worker', 'stitcher.py'));
 
 /**
+ * POST /api/stitch/verify-frame
+ * Nhận 1 ảnh đơn lẻ vừa chụp từ camera điện thoại -> Thẩm định chất lượng thời gian thực (Đạt / Chưa đạt)
+ */
+stitchRouter.post('/verify-frame', uploadSingleFrame, async (req: Request, res: Response) => {
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: 'Vui lòng cung cấp file ảnh chụp từ camera'
+    });
+  }
+
+  const filePath = req.file.path;
+  const prevFilePath = req.body.prevFilePath as string;
+
+  const args = [STITCHER_SCRIPT, '--verify-image', filePath];
+  if (prevFilePath && fs.existsSync(prevFilePath)) {
+    args.push('--prev-image', prevFilePath);
+  }
+
+  const pyProcess = spawn(PYTHON_PATH, args);
+  let stdoutData = '';
+  let stderrData = '';
+
+  pyProcess.stdout.on('data', (d) => { stdoutData += d.toString(); });
+  pyProcess.stderr.on('data', (d) => { stderrData += d.toString(); });
+
+  pyProcess.on('close', (code) => {
+    try {
+      if (!stdoutData.trim()) {
+        console.error('[Verify Frame API] Worker stdout rỗng. Stderr:', stderrData);
+        return res.status(500).json({
+          success: false,
+          message: 'Không nhận được kết quả phân tích từ Python OpenCV',
+          rawStderr: stderrData
+        });
+      }
+
+      const result = JSON.parse(stdoutData.trim());
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      const baseUrl = process.env.PUBLIC_API_URL ? process.env.PUBLIC_API_URL.replace(/\/$/, '') : `${protocol}://${host}`;
+      const relPath = path.relative(path.join(process.cwd(), 'public'), filePath).replace(/\\/g, '/');
+
+      return res.json({
+        success: true,
+        data: {
+          serverPath: filePath,
+          url: `${baseUrl}/${relPath}`,
+          filename: req.file!.filename,
+          evaluation: result
+        }
+      });
+    } catch (parseErr: any) {
+      console.error('[Verify Frame API] Lỗi parse JSON:', parseErr.message, stdoutData);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi định dạng phản hồi từ Python worker'
+      });
+    }
+  });
+
+  pyProcess.on('error', (err) => {
+    console.error('[Verify Frame API] Không thể khởi chạy tiến trình Python:', err);
+    res.status(500).json({
+      success: false,
+      message: `Không thể khởi chạy worker Python: ${err.message}`
+    });
+  });
+});
+
+/**
  * POST /api/stitch
  * Nhận danh sách ảnh rời từ điện thoại -> Kích hoạt worker OpenCV -> Trả về URL ảnh Equirectangular 2:1
  */
 stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => {
-  const files = req.files as Express.Multer.File[];
+  const files = (req.files as Express.Multer.File[]) || [];
+  let imagePaths: string[] = files.map(f => f.path);
 
-  if (!files || files.length < 1) {
+  // Hỗ trợ truyền danh sách serverPaths đã thẩm định sẵn từ các bước chụp trước
+  if (imagePaths.length === 0 && req.body.serverPaths) {
+    try {
+      const parsed = typeof req.body.serverPaths === 'string' ? JSON.parse(req.body.serverPaths) : req.body.serverPaths;
+      if (Array.isArray(parsed)) {
+        imagePaths = parsed.filter((p: string) => typeof p === 'string' && fs.existsSync(p));
+      }
+    } catch (parseErr) {
+      console.warn('[Stitch API] Lỗi parse serverPaths:', parseErr);
+    }
+  }
+
+  if (!imagePaths || imagePaths.length < 1) {
     return res.status(400).json({
       success: false,
       message: 'Vui lòng chọn tối thiểu 1 ảnh toàn cảnh PANO hoặc chùm ảnh rời để thực hiện ghép.'
     });
   }
 
-  const imagePaths = files.map(f => f.path);
+
   const outFilename = `stitched_360_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
 
-  console.log(`[Stitch API] Bắt đầu ghép ${files.length} tấm ảnh qua OpenCV...`);
+  console.log(`[Stitch API] Bắt đầu ghép ${imagePaths.length} tấm ảnh qua OpenCV...`);
 
   // Chuẩn bị arguments cho Python script
   const args = [

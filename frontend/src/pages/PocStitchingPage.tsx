@@ -14,14 +14,40 @@ import {
   ExternalLink,
   Download,
   Cloud,
-  Eye
+  Eye,
+  Check,
+  XCircle,
+  RotateCw,
+  HelpCircle
 } from 'lucide-react';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
-import { LiveCameraSweepCapture } from '../components/LiveCameraSweepCapture';
 import { API_BASE } from '../services/api';
+
+interface FrameEvaluation {
+  passed: boolean;
+  score: number;
+  checks: {
+    sharpness: { passed: boolean; value: number; label: string };
+    brightness: { passed: boolean; value: number; label: string };
+    features: { passed: boolean; count: number; label: string };
+    overlap?: { passed: boolean; match_count: number; label: string } | null;
+  };
+  message: string;
+}
+
+interface VerifiedFrame {
+  id: string;
+  file: File;
+  previewUrl: string;
+  serverPath?: string;
+  isVerifying: boolean;
+  evaluation?: FrameEvaluation;
+}
 
 interface StitchResult {
   panoramaUrl: string;
+  cloudinaryUrl?: string;
+  r2Url?: string;
   filename: string;
   width: number;
   height: number;
@@ -30,67 +56,139 @@ interface StitchResult {
 }
 
 export const PocStitchingPage: React.FC = () => {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  // Danh sách các khung hình chụp từ camera điện thoại đã/đang được thẩm định
+  const [verifiedFrames, setVerifiedFrames] = useState<VerifiedFrame[]>([]);
+  // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
+  const [batchFiles, setBatchFiles] = useState<File[]>([]);
+  const [batchPreviews, setBatchPreviews] = useState<string[]>([]);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [stitchResult, setStitchResult] = useState<StitchResult | null>(null);
-  const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
 
   const viewerSectionRef = useRef<HTMLDivElement>(null);
+  const nativeCameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Sắp xếp tự nhiên theo tên file (img1, img2, ..., img10)
-  const naturalSortFiles = (fileList: File[]): File[] => {
-    return [...fileList].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-    );
-  };
+  // 1. CHỤP ẢNH TỪNG TẤM BẰNG CAMERA NATIVE ĐIỆN THOẠI & TỰ ĐỘNG THẨM ĐỊNH PYTHON
+  const handleNativeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Nhận chùm ảnh từ Camera quét không gian điện thoại
-  const handleCameraFramesCaptured = (files: File[]) => {
-    setSelectedFiles(files);
-    const urls = files.map((f) => URL.createObjectURL(f));
-    setPreviewUrls(urls);
+    const frameId = `frame_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const previewUrl = URL.createObjectURL(file);
+
+    // Tìm serverPath của tấm ảnh trước đó (để Python so khớp độ chồng lấp)
+    const prevFrame = [...verifiedFrames].reverse().find((f) => f.serverPath);
+    const prevFilePath = prevFrame?.serverPath;
+
+    // Tạo frame mới ở trạng thái đang thẩm định
+    const newFrame: VerifiedFrame = {
+      id: frameId,
+      file,
+      previewUrl,
+      isVerifying: true
+    };
+
+    setVerifiedFrames((prev) => [...prev, newFrame]);
     setErrorMsg(null);
+
+    // Reset input để người dùng có thể chụp tiếp ngay
+    e.target.value = '';
+
+    // Tự động upload lên server để Python thẩm định chất lượng
+    try {
+      const formData = new FormData();
+      formData.append('frame', file);
+      if (prevFilePath) {
+        formData.append('prevFilePath', prevFilePath);
+      }
+
+      const res = await fetch(`${API_BASE}/stitch/verify-frame`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Lỗi phân tích chất lượng ảnh');
+      }
+
+      // Cập nhật kết quả thẩm định cho frame
+      setVerifiedFrames((prev) =>
+        prev.map((item) =>
+          item.id === frameId
+            ? {
+                ...item,
+                isVerifying: false,
+                serverPath: json.data.serverPath,
+                evaluation: json.data.evaluation
+              }
+            : item
+        )
+      );
+    } catch (err: any) {
+      console.error('[Verify Frame Error]:', err);
+      setVerifiedFrames((prev) =>
+        prev.map((item) =>
+          item.id === frameId
+            ? {
+                ...item,
+                isVerifying: false,
+                evaluation: {
+                  passed: false,
+                  score: 40,
+                  checks: {
+                    sharpness: { passed: false, value: 0, label: 'Lỗi kiểm tra' },
+                    brightness: { passed: false, value: 0, label: 'Lỗi kiểm tra' },
+                    features: { passed: false, count: 0, label: 'Lỗi kiểm tra' }
+                  },
+                  message: `Lỗi thẩm định: ${err.message}`
+                }
+              }
+            : item
+        )
+      );
+    }
   };
 
-  // Chọn ảnh từ máy tính / thư viện ảnh điện thoại
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 2. CHỌN 1 ẢNH PANO TOÀN CẢNH HOẶC CHÙM ẢNH CÓ SẴN
+  const handleBatchSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const sorted = naturalSortFiles(files);
+    setBatchFiles((prev) => [...prev, ...files]);
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setBatchPreviews((prev) => [...prev, ...urls]);
+    setErrorMsg(null);
+  };
 
-    setSelectedFiles((prev) => {
-      const merged = [...prev, ...sorted];
-      return naturalSortFiles(merged);
+  // Xóa 1 frame đã chụp
+  const handleRemoveVerifiedFrame = (id: string) => {
+    setVerifiedFrames((prev) => {
+      const target = prev.find((f) => f.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((f) => f.id !== id);
     });
-
-    const urls = sorted.map((f) => URL.createObjectURL(f));
-    setPreviewUrls((prev) => [...prev, ...urls]);
-    setErrorMsg(null);
   };
 
-  // Xóa 1 ảnh khỏi danh sách
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-    URL.revokeObjectURL(previewUrls[index]);
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // Xóa toàn bộ ảnh
+  // Xóa tất cả ảnh
   const handleClearAll = () => {
-    previewUrls.forEach((u) => URL.revokeObjectURL(u));
-    setSelectedFiles([]);
-    setPreviewUrls([]);
+    verifiedFrames.forEach((f) => URL.revokeObjectURL(f.previewUrl));
+    batchPreviews.forEach((u) => URL.revokeObjectURL(u));
+    setVerifiedFrames([]);
+    setBatchFiles([]);
+    setBatchPreviews([]);
     setErrorMsg(null);
   };
 
-  // Thực thi ghép ảnh qua API OpenCV Backend
+  // 3. THỰC THI TẠO KHÔNG GIAN 360° (OPENCV NATURAL FLAT PERSPECTIVE)
   const handleExecuteStitch = async () => {
-    if (selectedFiles.length < 1) {
-      setErrorMsg('Vui lòng chọn ít nhất 1 ảnh (ảnh PANO toàn cảnh điện thoại) hoặc chùm ảnh rời (8-16 tấm).');
+    const validVerified = verifiedFrames.filter((f) => f.evaluation?.passed !== false);
+    const totalCount = validVerified.length + batchFiles.length;
+
+    if (totalCount < 1) {
+      setErrorMsg('Vui lòng chụp ít nhất 1 ảnh PANO toàn cảnh hoặc chùm ảnh đạt chuẩn (khuyên dùng 8–12 góc).');
       return;
     }
 
@@ -99,11 +197,24 @@ export const PocStitchingPage: React.FC = () => {
     setCurrentStep(1);
 
     const formData = new FormData();
-    selectedFiles.forEach((file, index) => {
-      const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const orderedName = `${String(index).padStart(4, '0')}_${cleanName}`;
-      formData.append('images', file, orderedName);
+
+    // Ưu tiên nạp các serverPath đã được server lưu sẵn từ bước thẩm định
+    const serverPaths = validVerified.map((f) => f.serverPath).filter(Boolean);
+    if (serverPaths.length > 0) {
+      formData.append('serverPaths', JSON.stringify(serverPaths));
+    }
+
+    // Nạp các file chùm ảnh nếu có
+    batchFiles.forEach((file, index) => {
+      formData.append('images', file, `batch_${String(index).padStart(4, '0')}_${file.name}`);
     });
+
+    // Nếu không có serverPaths (ví dụ lỗi mạng lưu tạm), gửi trực tiếp file
+    if (serverPaths.length === 0) {
+      validVerified.forEach((frame, index) => {
+        formData.append('images', frame.file, `verified_${String(index).padStart(4, '0')}_${frame.file.name}`);
+      });
+    }
 
     try {
       const stepTimer1 = setTimeout(() => setCurrentStep(2), 1500);
@@ -133,7 +244,6 @@ export const PocStitchingPage: React.FC = () => {
       setCurrentStep(5);
       setStitchResult(json.data);
 
-      // Tự động cuộn xuống phần kết quả 360° bên dưới để người dùng trải nghiệm ngay
       setTimeout(() => {
         viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 350);
@@ -161,12 +271,16 @@ export const PocStitchingPage: React.FC = () => {
     }, 200);
   };
 
+  const passedCount = verifiedFrames.filter((f) => f.evaluation?.passed).length;
+  const failedCount = verifiedFrames.filter((f) => f.evaluation && !f.evaluation.passed).length;
+  const totalFrames = verifiedFrames.length + batchFiles.length;
+
   return (
     <div
       style={{
-        minHeight: 'calc(100vh - 60px)',
+        minHeight: '100vh',
         background: '#F8FAFC',
-        padding: '16px 12px 40px',
+        padding: '24px 16px',
         overflowY: 'auto'
       }}
     >
@@ -179,37 +293,38 @@ export const PocStitchingPage: React.FC = () => {
           gap: '24px'
         }}
       >
-        {/* CARD 1: BẢNG ĐIỀU KHIỂN & TẢI CHÙM ẢNH (NẰM TRÊN) */}
+        {/* CARD 1: STUDIO CHỤP & THẨM ĐỊNH TẠO KHÔNG GIAN 360° */}
         <div
           style={{
             background: '#FFFFFF',
-            borderRadius: '12px',
+            borderRadius: '14px',
             border: '1px solid #E2E8F0',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
             overflow: 'hidden'
           }}
         >
           {/* Header */}
           <div
             style={{
-              padding: '18px 20px',
+              padding: '18px 22px',
               borderBottom: '1px solid #E2E8F0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: 12
+              gap: 12,
+              background: 'linear-gradient(135deg, #FAF5FF 0%, #FFFFFF 100%)'
             }}
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#8B261D' }}>
-                <Camera size={20} />
-                <h2 style={{ fontSize: '16px', fontWeight: 700, textTransform: 'uppercase', margin: 0 }}>
-                  Gian Trưng Bày & Quét Tour 360° (OpenCV 4K Pipeline)
+                <Camera size={22} />
+                <h2 style={{ fontSize: '17px', fontWeight: 800, textTransform: 'uppercase', margin: 0, letterSpacing: '0.3px' }}>
+                  Chụp Camera Điện Thoại & Thẩm Định Không Gian 360°
                 </h2>
               </div>
-              <p style={{ fontSize: '12.5px', color: '#64748B', marginTop: 4, margin: '4px 0 0' }}>
-                Chụp quét toàn diện không gian phòng (độ chồng lấp 30–40%) hoặc tải ảnh Pano từ điện thoại.
+              <p style={{ fontSize: '13px', color: '#64748B', marginTop: 4, margin: '4px 0 0' }}>
+                Mở camera gốc của điện thoại, tự động upload và kiểm tra chất lượng thời gian thực bằng Python OpenCV.
               </p>
             </div>
 
@@ -218,249 +333,391 @@ export const PocStitchingPage: React.FC = () => {
                 style={{
                   background: 'rgba(16, 185, 129, 0.12)',
                   color: '#059669',
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   borderRadius: 20,
-                  fontSize: 11.5,
-                  fontWeight: 600,
+                  fontSize: 12,
+                  fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 5
+                  gap: 6
                 }}
               >
-                <Cloud size={13} />
+                <Cloud size={14} />
                 <span>Cloudflare R2 & Cloudinary CDN</span>
               </span>
             </div>
           </div>
 
-          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* BẢNG HƯỚNG DẪN 2 CÁCH TẠO TOUR 360° ĐẸP NHẤT & KHÔNG BỊ CHÓNG MẶT */}
+          <div style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* KHU VỰC HÀNH ĐỘNG CHÍNH: 2 NÚT NỔI BẬT */}
             <div
               style={{
-                background: 'linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%)',
-                border: '1px solid #FCD34D',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: 14
+              }}
+            >
+              {/* NÚT 1: CHỤP BẰNG CAMERA NATIVE ĐIỆN THOẠI */}
+              <label
+                style={{
+                  background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 60%, #3B82F6 100%)',
+                  color: '#FFFFFF',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  fontWeight: 800,
+                  fontSize: '15px',
+                  boxShadow: '0 6px 20px rgba(37, 99, 235, 0.35)',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center'
+                }}
+              >
+                <Camera size={22} />
+                <span>
+                  {verifiedFrames.length === 0
+                    ? '📸 Bấm Chụp Góc Đầu Tiên (Camera Máy)'
+                    : `📸 Chụp Góc Tiếp Theo (#${verifiedFrames.length + 1})`}
+                </span>
+                <input
+                  ref={nativeCameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: 'none' }}
+                  onChange={handleNativeCapture}
+                  disabled={isProcessing}
+                />
+              </label>
+
+              {/* NÚT 2: TẢI ẢNH PANO TOÀN CẢNH (NẾU CÓ) HOẶC CHỌN TỪ THƯ VIỆN */}
+              <label
+                style={{
+                  background: '#FFFFFF',
+                  color: '#8B261D',
+                  border: '2px solid #8B261D',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  boxShadow: '0 2px 8px rgba(139, 38, 29, 0.1)',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center'
+                }}
+              >
+                <Globe size={20} />
+                <span>⭐ Chọn 1 Ảnh Toàn Cảnh (PANO Điện Thoại)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleBatchSelect}
+                  disabled={isProcessing}
+                />
+              </label>
+            </div>
+
+            {/* HƯỚNG DẪN ADMIN QUAY QUÉT ĐỂ TẠO KHÔNG GIAN PHẲNG ĐẸP */}
+            <div
+              style={{
+                background: '#F8FAFC',
                 borderRadius: '10px',
+                border: '1px solid #E2E8F0',
                 padding: '14px 16px',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: 10
+                alignItems: 'flex-start',
+                gap: 12
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#92400E', fontWeight: 700, fontSize: '13.5px' }}>
-                <span>💡 BÍ QUYẾT TẠO ẢNH 360° ĐẸP NHẤT, THẲNG TẮP & KHÔNG BỊ CHÓNG MẶT:</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, fontSize: '12.5px', color: '#78350F' }}>
-                <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: 8, border: '1px solid #FDE68A' }}>
-                  <strong style={{ color: '#B45309', display: 'block', marginBottom: 4 }}>
-                    ⭐ CÁCH 1 (Khuyên Dùng - Đẹp & Nét 100%):
-                  </strong>
-                  Mở ứng dụng Camera mặc định trên iPhone / Android, chọn chế độ <strong>"Toàn cảnh (PANO)"</strong>. Xoay 1 vòng quanh phòng rồi bấm <strong>"Chọn 1 ảnh PANO"</strong> bên dưới. Con quay hồi chuyển phần cứng của điện thoại sẽ giữ tường thẳng tắp, không lượn sóng!
-                </div>
-                <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: 8, border: '1px solid #FDE68A' }}>
-                  <strong style={{ color: '#2563EB', display: 'block', marginBottom: 4 }}>
-                    📹 CÁCH 2: Quét trực tiếp bằng Web Camera:
-                  </strong>
-                  Bấm nút xanh bên dưới. Đứng yên tại giữa phòng, <strong>giữ điện thoại thẳng đứng ngang tầm mắt (không ngửa lên trần hay cắm xuống đất)</strong> và xoay tròn chầm chậm 1 vòng (chụp 12 tấm).
-                </div>
+              <Info size={20} style={{ color: '#2563EB', flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6 }}>
+                <strong style={{ color: '#0F172A', display: 'block', marginBottom: 3 }}>
+                  🚶 Quy tắc tạo không gian 3D/360 phẳng, thoáng mắt và không bị nhức đầu:
+                </strong>
+                1. Đứng yên tại <strong>tâm giữa phòng</strong>, cầm điện thoại thẳng đứng ngang tầm mắt.<br />
+                2. Chụp xong tấm này, bạn <strong>nhích nhẹ người sang phải khoảng 30°</strong> (sao cho góc mới vẫn nhìn thấy 1/3 cảnh cũ) rồi bấm chụp tấm tiếp theo.<br />
+                3. Xoay 1 vòng tròn 360° (tầm <strong>8 đến 12 góc</strong>). Máy tính Python sẽ kiểm tra từng tấm: Đủ nét + Đủ sáng + Khớp nối tốt là đạt chuẩn!
               </div>
             </div>
 
-            {/* Nút bấm trực tiếp Mở Camera Điện Thoại Quay Quét 360 */}
-            <button
-              type="button"
-              onClick={() => setIsLiveCameraOpen(true)}
-              disabled={isProcessing}
-              style={{
-                background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 60%, #3B82F6 100%)',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '10px',
-                padding: '14px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                fontWeight: 700,
-                fontSize: '14px',
-                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
-                transition: 'all 0.2s ease',
-                width: '100%'
-              }}
-            >
-              <Camera size={20} />
-              <span>Mở Camera Quét 360° (Cân Bằng Thước Thủy Tầm Mắt)</span>
-            </button>
+            {/* TIẾN TRÌNH & THỐNG KÊ CÁC GÓC ẢNH ĐÃ CHỤP */}
+            {totalFrames > 0 && (
+              <div
+                style={{
+                  background: '#F1F5F9',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 10
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A' }}>
+                    Đã nạp: <strong style={{ color: '#2563EB' }}>{totalFrames}</strong> ảnh
+                  </span>
+                  {verifiedFrames.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, fontSize: '12px' }}>
+                      <span style={{ background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
+                        ✓ {passedCount} đạt chuẩn
+                      </span>
+                      {failedCount > 0 && (
+                        <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
+                          ⚠️ {failedCount} cần chụp lại
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
-              <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
-              <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>HOẶC CHỌN ẢNH TỪ MÁY / THƯ VIỆN</span>
-              <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
-            </div>
-
-            {/* Dropzone Upload */}
-            <label
-              style={{
-                border: '2px dashed #CBD5E1',
-                borderRadius: '10px',
-                padding: '24px 16px',
-                textAlign: 'center',
-                cursor: isProcessing ? 'wait' : 'pointer',
-                background: '#F8FAFC',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 8,
-                transition: 'border-color 0.2s'
-              }}
-            >
-              <Upload size={28} style={{ color: '#8B261D' }} />
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E293B' }}>
-                Chọn 1 ảnh PANO hoặc chùm ảnh (8–24 tấm)
-              </div>
-              <div style={{ fontSize: '12px', color: '#64748B', textAlign: 'center' }}>
-                Hỗ trợ ảnh PANO toàn cảnh 360° hoặc chùm ảnh JPG, PNG, HEIC từ iPhone / Android
-              </div>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileSelect}
-                style={{ display: 'none' }}
-                disabled={isProcessing}
-              />
-            </label>
-
-            {/* Danh sách ảnh đã chọn */}
-            {selectedFiles.length > 0 && (
-              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 14, border: '1px solid #E2E8F0' }}>
-                <div
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  disabled={isProcessing}
                   style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#EF4444',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
                     display: 'flex',
-                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginBottom: 10
+                    gap: 4
                   }}
                 >
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B' }}>
-                    Đã nạp {selectedFiles.length} tấm ảnh ({naturalSortFiles(selectedFiles).length} khung hình)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleClearAll}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#EF4444',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                    disabled={isProcessing}
-                  >
-                    Xóa tất cả
-                  </button>
-                </div>
+                  <Trash2 size={14} />
+                  <span>Xóa tất cả chụp lại</span>
+                </button>
+              </div>
+            )}
 
-                {/* Grid Preview Thumbnails */}
+            {/* DANH SÁCH THẺ ẢNH ĐÃ CHỤP & KẾT QUẢ THẨM ĐỊNH PYTHON REALTIME */}
+            {verifiedFrames.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+                  Kết quả thẩm định thị giác máy tính OpenCV cho từng góc nhìn:
+                </div>
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-                    gap: 8,
-                    maxHeight: '220px',
-                    overflowY: 'auto',
-                    padding: '4px'
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                    gap: 12
                   }}
                 >
-                  {previewUrls.map((url, idx) => (
+                  {verifiedFrames.map((frame, idx) => (
                     <div
-                      key={idx}
+                      key={frame.id}
                       style={{
-                        position: 'relative',
-                        height: '75px',
-                        borderRadius: '6px',
+                        background: '#FFFFFF',
+                        borderRadius: '10px',
+                        border: `1.5px solid ${
+                          frame.isVerifying
+                            ? '#93C5FD'
+                            : frame.evaluation?.passed
+                            ? '#86EFAC'
+                            : '#FCA5A5'
+                        }`,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                         overflow: 'hidden',
-                        border: '1.5px solid #CBD5E1'
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}
                     >
-                      <img
-                        src={url}
-                        alt={`Ảnh ${idx + 1}`}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: 2,
-                          left: 2,
-                          background: 'rgba(0,0,0,0.75)',
-                          color: '#fff',
-                          fontSize: '9px',
-                          padding: '1px 4px',
-                          borderRadius: '3px'
-                        }}
-                      >
-                        #{idx + 1}
-                      </span>
-                      {!isProcessing && (
-                        <button
-                          onClick={() => handleRemoveFile(idx)}
+                      {/* Image Thumbnail Header */}
+                      <div style={{ position: 'relative', height: '140px', background: '#0F172A' }}>
+                        <img
+                          src={frame.previewUrl}
+                          alt={`Góc #${idx + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <span
                           style={{
                             position: 'absolute',
-                            top: 2,
-                            right: 2,
+                            top: 8,
+                            left: 8,
+                            background: 'rgba(15, 23, 42, 0.85)',
+                            color: '#FFFFFF',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: 6
+                          }}
+                        >
+                          Góc #{idx + 1}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVerifiedFrame(frame.id)}
+                          style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
                             background: 'rgba(239, 68, 68, 0.9)',
-                            color: '#fff',
+                            color: '#FFFFFF',
                             border: 'none',
                             borderRadius: '50%',
-                            width: '18px',
-                            height: '18px',
+                            width: '24px',
+                            height: '24px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             cursor: 'pointer'
                           }}
+                          title="Xóa góc này"
                         >
-                          <Trash2 size={10} />
+                          <Trash2 size={12} />
                         </button>
-                      )}
+                      </div>
+
+                      {/* Verification Status Body */}
+                      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {frame.isVerifying ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#2563EB', fontSize: '12.5px', fontWeight: 600 }}>
+                            <Loader2 size={15} className="spin" />
+                            <span>Python đang kiểm tra chất lượng...</span>
+                          </div>
+                        ) : frame.evaluation ? (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  color: frame.evaluation.passed ? '#15803D' : '#B91C1C'
+                                }}
+                              >
+                                {frame.evaluation.passed ? (
+                                  <>
+                                    <CheckCircle2 size={15} style={{ color: '#16A34A' }} />
+                                    <span>ĐẠT CHUẨN</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle size={15} style={{ color: '#DC2626' }} />
+                                    <span>CHƯA ĐẠT</span>
+                                  </>
+                                )}
+                              </span>
+
+                              <span
+                                style={{
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  color: frame.evaluation.passed ? '#16A34A' : '#DC2626',
+                                  background: frame.evaluation.passed ? '#F0FDF4' : '#FEF2F2',
+                                  padding: '1px 6px',
+                                  borderRadius: 6
+                                }}
+                              >
+                                {frame.evaluation.score}/100 đ
+                              </span>
+                            </div>
+
+                            <p style={{ fontSize: '11.5px', color: '#475569', margin: '2px 0 4px', lineHeight: 1.4 }}>
+                              {frame.evaluation.message}
+                            </p>
+
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: '10.5px' }}>
+                              <span style={{ background: '#F1F5F9', color: '#334155', padding: '2px 6px', borderRadius: 4 }}>
+                                {frame.evaluation.checks.sharpness.label}
+                              </span>
+                              <span style={{ background: '#F1F5F9', color: '#334155', padding: '2px 6px', borderRadius: 4 }}>
+                                {frame.evaluation.checks.brightness.label}
+                              </span>
+                              {frame.evaluation.checks.overlap && (
+                                <span
+                                  style={{
+                                    background: frame.evaluation.checks.overlap.passed ? '#DCFCE7' : '#FEE2E2',
+                                    color: frame.evaluation.checks.overlap.passed ? '#166534' : '#991B1B',
+                                    padding: '2px 6px',
+                                    borderRadius: 4,
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  {frame.evaluation.checks.overlap.label}
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {/* DANH SÁCH ẢNH BATCH / PANO (NẾU CÓ) */}
+            {batchFiles.length > 0 && (
+              <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 14, border: '1px solid #E2E8F0' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B', marginBottom: 8 }}>
+                  Ảnh toàn cảnh PANO / Thư viện đã nạp ({batchFiles.length} file):
+                </div>
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 0' }}>
+                  {batchPreviews.map((url, i) => (
+                    <div key={i} style={{ width: 100, height: 70, borderRadius: 6, overflow: 'hidden', flexShrink: 0, border: '1.5px solid #8B261D' }}>
+                      <img src={url} alt="Batch" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* NÚT THỰC THI TẠO KHÔNG GIAN 360° */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
               <button
                 className="btn btn-primary"
                 onClick={handleExecuteStitch}
-                disabled={isProcessing || selectedFiles.length < 1}
+                disabled={isProcessing || totalFrames < 1}
                 style={{
                   flex: 1,
-                  minWidth: '240px',
-                  padding: '14px 24px',
-                  fontSize: '14.5px',
-                  fontWeight: 700,
+                  minWidth: '260px',
+                  padding: '16px 28px',
+                  fontSize: '15.5px',
+                  fontWeight: 800,
                   justifyContent: 'center',
-                  background: isProcessing ? '#64748B' : 'linear-gradient(135deg, #8B261D, #B91C1C)',
+                  background: isProcessing
+                    ? '#64748B'
+                    : totalFrames >= 3 || batchFiles.length >= 1
+                    ? 'linear-gradient(135deg, #8B261D 0%, #B91C1C 100%)'
+                    : 'linear-gradient(135deg, #475569 0%, #64748B 100%)',
                   color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 14px rgba(139, 38, 29, 0.35)',
-                  cursor: isProcessing || selectedFiles.length < 1 ? 'not-allowed' : 'pointer'
+                  borderRadius: '10px',
+                  boxShadow: '0 6px 20px rgba(139, 38, 29, 0.35)',
+                  cursor: isProcessing || totalFrames < 1 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10
                 }}
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 size={18} className="spin" />
-                    <span>Đang xử lý thuật toán OpenCV (15-20s)...</span>
+                    <Loader2 size={20} className="spin" />
+                    <span>Đang Tạo Không Gian 360° Phẳng Bằng OpenCV (10-15s)...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles size={18} />
-                    <span>Upload & Tự Động Ghép 360° ({selectedFiles.length} ảnh)</span>
+                    <Sparkles size={20} />
+                    <span>
+                      🚀 Bắt Đầu Tạo Không Gian 360° (Phối Cảnh Phẳng Tự Nhiên){' '}
+                      {totalFrames > 0 ? `(${totalFrames} ảnh)` : ''}
+                    </span>
                   </>
                 )}
               </button>
@@ -470,106 +727,50 @@ export const PocStitchingPage: React.FC = () => {
                 className="btn btn-secondary"
                 onClick={handleLoadDemoPano}
                 style={{
-                  padding: '14px 20px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  borderRadius: '8px',
+                  padding: '16px 22px',
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  borderRadius: '10px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6
+                  gap: 8
                 }}
               >
-                <Globe size={16} />
+                <Eye size={17} />
                 <span>Xem ảnh mẫu 360°</span>
               </button>
             </div>
 
-            {/* Tiến trình Pipeline OpenCV */}
-            {isProcessing && (
-              <div
-                style={{
-                  background: '#F1F5F9',
-                  padding: '16px',
-                  borderRadius: '8px',
-                  border: '1px solid #E2E8F0',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10
-                }}
-              >
-                <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#1E293B', marginBottom: 2 }}>
-                  TIẾN TRÌNH THỊ GIÁC MÁY TÍNH (OPENCV 4K PIPELINE):
-                </div>
-                <div style={{ fontSize: '12px', color: currentStep >= 1 ? '#059669' : '#64748B', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle2 size={14} style={{ opacity: currentStep >= 1 ? 1 : 0.3 }} />
-                  <span>Bước 1: Nạp chùm ảnh & Tối ưu kích thước đầu vào (Chống tràn RAM)</span>
-                </div>
-                <div style={{ fontSize: '12px', color: currentStep >= 2 ? '#059669' : '#64748B', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle2 size={14} style={{ opacity: currentStep >= 2 ? 1 : 0.3 }} />
-                  <span>Bước 2: Dò tìm điểm đặc trưng & Tự động thử lại Fallback Confidence (0.30 ➔ 0.18)</span>
-                </div>
-                <div style={{ fontSize: '12px', color: currentStep >= 3 ? '#059669' : '#64748B', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle2 size={14} style={{ opacity: currentStep >= 3 ? 1 : 0.3 }} />
-                  <span>Bước 3: Uốn cong hình cầu (Spherical Warp) & Multi-band Blending đa tầng</span>
-                </div>
-                <div style={{ fontSize: '12px', color: currentStep >= 4 ? '#059669' : '#64748B', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle2 size={14} style={{ opacity: currentStep >= 4 ? 1 : 0.3 }} />
-                  <span>Bước 4: Nắn chuẩn Equirectangular 2:1 (4096x2048) & Bộ lọc Unsharp Masking siêu nét</span>
-                </div>
-              </div>
-            )}
-
-            {/* Error Message with Advice */}
+            {/* Thông báo lỗi nếu có */}
             {errorMsg && (
               <div
                 style={{
+                  padding: '14px 18px',
                   background: '#FEF2F2',
-                  border: '1px solid #FCA5A5',
-                  padding: '14px',
+                  border: '1px solid #F87171',
                   borderRadius: '8px',
                   color: '#991B1B',
-                  fontSize: '13px'
+                  fontSize: '13.5px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4 }}>
-                  <AlertTriangle size={16} />
-                  <span>Lỗi Ghép Ảnh</span>
-                </div>
-                <div>{errorMsg}</div>
-                <div style={{ marginTop: 8, fontSize: '12px', color: '#7F1D1D', lineHeight: 1.5 }}>
-                  💡 <strong>Mẹo chụp:</strong> Đứng tại một vị trí giữa phòng, lia máy chậm rãi theo chiều kim đồng hồ, đảm bảo mỗi bức ảnh kề nhau có ít nhất 30% cảnh chung để thuật toán tìm điểm nối.
+                <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <strong>Lỗi Xử Lý:</strong> {errorMsg}
                 </div>
               </div>
             )}
-
-            {/* Cloud Storage Information */}
-            <div
-              style={{
-                fontSize: '12px',
-                color: '#64748B',
-                background: '#F8FAFC',
-                padding: '10px 14px',
-                borderRadius: '6px',
-                border: '1px solid #E2E8F0',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              }}
-            >
-              <Info size={15} style={{ flexShrink: 0, color: '#2563EB' }} />
-              <span>
-                Ảnh sau khi ghép được tự động làm sắc nét bằng <strong>Unsharp Masking (USM)</strong> và lưu trữ trực tiếp trên <strong>Cloudflare R2 & Cloudinary CDN</strong> để phục vụ trải nghiệm người xem tốc độ cao.
-              </span>
-            </div>
           </div>
         </div>
 
-        {/* CARD 2: MÀN HÌNH TRẢI NGHIỆM CLIENT 360° (NẰM Ở DƯỚI - RESPONSIVE 100%) */}
+        {/* CARD 2: MÀN HÌNH TRẢI NGHIỆM CLIENT 360° (PHỐI CẢNH PHẲNG RỘNG TỰ NHIÊN) */}
         <div
           ref={viewerSectionRef}
           style={{
             background: '#FFFFFF',
-            borderRadius: '12px',
+            borderRadius: '14px',
             border: '1px solid #E2E8F0',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
             overflow: 'hidden',
@@ -580,7 +781,7 @@ export const PocStitchingPage: React.FC = () => {
           {/* Card 2 Header */}
           <div
             style={{
-              padding: '16px 20px',
+              padding: '16px 22px',
               borderBottom: '1px solid #E2E8F0',
               display: 'flex',
               alignItems: 'center',
@@ -591,11 +792,11 @@ export const PocStitchingPage: React.FC = () => {
               color: '#FFFFFF'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 36,
+                  height: 36,
                   borderRadius: 8,
                   background: 'linear-gradient(135deg, #8B261D, #DC2626)',
                   display: 'flex',
@@ -603,14 +804,14 @@ export const PocStitchingPage: React.FC = () => {
                   justifyContent: 'center'
                 }}
               >
-                <Globe size={18} />
+                <Globe size={20} />
               </div>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>
-                  Màn Hình Trải Nghiệm Không Gian 360° (Little Planet & VR Tour)
+                <h3 style={{ fontSize: '15.5px', fontWeight: 800, margin: 0, letterSpacing: '0.2px' }}>
+                  Không Gian Thực Tế Ảo 360° (Phối Cảnh Phẳng Rộng • Chuẩn Kiến Trúc)
                 </h3>
                 <p style={{ fontSize: '12px', color: '#94A3B8', margin: '2px 0 0' }}>
-                  Kéo chuột hoặc vuốt tay trên màn hình điện thoại để xoay 360° tự do
+                  Kéo chuột hoặc vuốt tay để xoay 360° tự do • Triệt tiêu hoàn toàn cảm giác méo phễu và chóng mặt
                 </p>
               </div>
             </div>
@@ -687,8 +888,8 @@ export const PocStitchingPage: React.FC = () => {
               >
                 <div
                   style={{
-                    width: 72,
-                    height: 72,
+                    width: 76,
+                    height: 76,
                     borderRadius: '50%',
                     background: 'rgba(255,255,255,0.05)',
                     display: 'flex',
@@ -698,14 +899,14 @@ export const PocStitchingPage: React.FC = () => {
                     border: '1px solid rgba(255,255,255,0.1)'
                   }}
                 >
-                  <Globe size={36} />
+                  <Globe size={38} />
                 </div>
-                <div style={{ maxWidth: 460 }}>
-                  <h4 style={{ fontSize: '16px', color: '#FFFFFF', fontWeight: 600, marginBottom: 8 }}>
-                    Chưa có ảnh toàn cảnh 360°
+                <div style={{ maxWidth: 480 }}>
+                  <h4 style={{ fontSize: '16.5px', color: '#FFFFFF', fontWeight: 700, marginBottom: 8 }}>
+                    Chưa có không gian toàn cảnh 360°
                   </h4>
                   <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#94A3B8' }}>
-                    Hãy mở camera điện thoại hoặc tải chùm ảnh ở phần trên, sau đó bấm <strong>"Upload & Tự Động Ghép 360°"</strong>. Kết quả không gian thực tế ảo sẽ hiển thị trực tiếp tại đây với hiệu ứng chuyển cảnh Little Planet!
+                    Hãy bấm nút <strong>"Chụp Bằng Camera Điện Thoại"</strong> ở trên để nạp các góc phòng, hoặc chọn 1 ảnh PANO toàn cảnh. Sau đó bấm <strong>"Bắt Đầu Tạo Không Gian 360°"</strong> để thưởng thức không gian ảo tại đây!
                   </p>
                 </div>
                 <button
@@ -717,16 +918,16 @@ export const PocStitchingPage: React.FC = () => {
                     background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
                     color: '#FFFFFF',
                     border: 'none',
-                    padding: '10px 18px',
+                    padding: '10px 20px',
                     borderRadius: 20,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: 13,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6
                   }}
                 >
-                  <Eye size={14} />
+                  <Eye size={15} />
                   <span>Xem thử ảnh mẫu 360° ngay</span>
                 </button>
               </div>
@@ -737,7 +938,7 @@ export const PocStitchingPage: React.FC = () => {
           {stitchResult && (
             <div
               style={{
-                padding: '14px 20px',
+                padding: '14px 22px',
                 background: '#F8FAFC',
                 borderTop: '1px solid #E2E8F0',
                 display: 'flex',
@@ -750,23 +951,19 @@ export const PocStitchingPage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12.5px', color: '#0F172A' }}>
                 <CheckCircle2 size={16} style={{ color: '#10B981' }} />
                 <span>
-                  Đã lưu trữ vĩnh viễn: <strong style={{ color: '#2563EB', wordBreak: 'break-all' }}>{stitchResult.panoramaUrl}</strong>
+                  Đã lưu trữ vĩnh viễn:{' '}
+                  <strong style={{ color: '#2563EB', wordBreak: 'break-all' }}>
+                    {stitchResult.panoramaUrl}
+                  </strong>
                 </span>
               </div>
-              <div style={{ fontSize: '12px', color: '#64748B' }}>
-                Chuẩn hóa Equirectangular 2:1 • 4K WebGL
+              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+                Chuẩn hóa Equirectangular 2:1 • Phối cảnh phẳng kiến trúc 4K WebGL
               </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* Live Camera Sweep 360 Modal */}
-      <LiveCameraSweepCapture
-        isOpen={isLiveCameraOpen}
-        onClose={() => setIsLiveCameraOpen(false)}
-        onFramesCaptured={handleCameraFramesCaptured}
-      />
     </div>
   );
 };
