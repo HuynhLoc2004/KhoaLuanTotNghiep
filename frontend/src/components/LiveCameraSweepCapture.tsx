@@ -230,6 +230,9 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
         videoRef.current.srcObject = stream;
         try {
           await videoRef.current.play();
+          // Tự động kích hoạt chế độ quét AR thông minh ngay khi mở camera
+          isScanningRef.current = true;
+          setIsScanning(true);
         } catch (playErr) {
           console.warn('Video play interrupted:', playErr);
         }
