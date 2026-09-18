@@ -410,3 +410,49 @@ stitchRouter.get('/proxy-image', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/stitch/history
+ * Lấy danh sách các bức ảnh 360° đã được tạo / ghép nối trên hệ thống
+ */
+stitchRouter.get('/history', async (req: Request, res: Response) => {
+  try {
+    if (!fs.existsSync(UPLOAD_ROOT)) {
+      return res.json({ success: true, count: 0, panoramas: [] });
+    }
+
+    const files = await fs.promises.readdir(UPLOAD_ROOT);
+    const panoFiles = files.filter(f => f.startsWith('stitched_360_') && (f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp')));
+
+    const host = req.get('host') || '103-178-233-206.sslip.io';
+    const proto = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+
+    const panoramas = await Promise.all(
+      panoFiles.map(async (file) => {
+        const filePath = path.join(UPLOAD_ROOT, file);
+        const stats = await fs.promises.stat(filePath);
+        return {
+          filename: file,
+          url: `${proto}://${host}/uploads/${file}`,
+          size: stats.size,
+          createdAt: stats.mtime
+        };
+      })
+    );
+
+    panoramas.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return res.json({
+      success: true,
+      count: panoramas.length,
+      panoramas
+    });
+  } catch (err: any) {
+    console.error('[Stitch History Error]:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể đọc lịch sử ảnh 360: ' + err.message
+    });
+  }
+});
+
+

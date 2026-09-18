@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   Layers,
@@ -19,10 +19,21 @@ import {
   XCircle,
   RotateCw,
   HelpCircle,
-  Copy
+  Copy,
+  History,
+  Clock,
+  HardDrive
 } from 'lucide-react';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../services/api';
+
+interface StitchedHistoryItem {
+  filename: string;
+  url: string;
+  size: number;
+  createdAt: string;
+}
+
 
 interface FrameEvaluation {
   passed: boolean;
@@ -69,9 +80,52 @@ export const PocStitchingPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [stitchResult, setStitchResult] = useState<StitchResult | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [historyList, setHistoryList] = useState<StitchedHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [copiedHistoryUrl, setCopiedHistoryUrl] = useState<string | null>(null);
 
   const viewerSectionRef = useRef<HTMLDivElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const res = await fetch(`${API_BASE}/stitch/history`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.panoramas)) {
+        setHistoryList(data.panoramas);
+      }
+    } catch (err) {
+      console.warn('Lỗi tải lịch sử ảnh 360:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const handleSelectHistoryPano = (item: StitchedHistoryItem) => {
+    setStitchResult({
+      panoramaUrl: item.url,
+      filename: item.filename,
+      width: 4096,
+      height: 2048,
+      aspectRatio: '2:1',
+      message: `Đang xem không gian lưu trữ: ${item.filename}`
+    });
+    setTimeout(() => {
+      viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  };
+
+  const handleCopyHistoryUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedHistoryUrl(url);
+    setTimeout(() => setCopiedHistoryUrl(null), 2500);
+  };
+
 
   // 1. CHỤP ẢNH TỪNG TẤM BẰNG CAMERA NATIVE ĐIỆN THOẠI & TỰ ĐỘNG THẨM ĐỊNH PYTHON
   const handleNativeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -332,6 +386,7 @@ export const PocStitchingPage: React.FC = () => {
 
       setCurrentStep(5);
       setStitchResult(json.data);
+      fetchHistory();
 
       setTimeout(() => {
         viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1114,7 +1169,265 @@ export const PocStitchingPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* CARD 3: THƯ VIỆN & LỊCH SỬ CÁC KHÔNG GIAN 360° ĐÃ TẠO */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            borderRadius: '14px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
+            overflow: 'hidden'
+          }}
+        >
+          <div
+            style={{
+              padding: '18px 22px',
+              borderBottom: '1px solid #E2E8F0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+              background: 'linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%)'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1D4ED8' }}>
+                <History size={22} />
+                <h3 style={{ fontSize: '17px', fontWeight: 800, textTransform: 'uppercase', margin: 0 }}>
+                  Thư Viện Không Gian 360° Đã Tạo ({historyList.length})
+                </h3>
+              </div>
+              <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0' }}>
+                Toàn bộ các không gian 360° do Admin đã tạo hoặc ghép nối, được lưu trữ vĩnh viễn trên máy chủ và đám mây.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={fetchHistory}
+                disabled={loadingHistory}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <RotateCw size={14} className={loadingHistory ? 'spin' : ''} />
+                <span>Làm mới</span>
+              </button>
+            </div>
+          </div>
+
+          <div style={{ padding: '22px' }}>
+            {/* Banner Hướng dẫn liên kết sang Gian Trưng Bày */}
+            <div
+              style={{
+                background: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                marginBottom: '20px',
+                fontSize: '13px',
+                color: '#166534'
+              }}
+            >
+              <Info size={18} style={{ flexShrink: 0, color: '#16A34A' }} />
+              <div>
+                <strong>Xem và liên kết không gian:</strong> Bấm nút <strong>"Xem 360°"</strong> trên bất kỳ ảnh nào bên dưới để nạp lên Trình xem 360° ở trên. Hoặc bấm <strong>"Sao chép link"</strong> để dán vào mục <strong>"Gian trưng bày & Tour 360"</strong> khi tạo phòng bảo tàng mới!
+              </div>
+            </div>
+
+            {loadingHistory && historyList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                <Loader2 size={28} className="spin" style={{ margin: '0 auto 10px', color: '#2563EB' }} />
+                <div>Đang tải kho không gian 360°...</div>
+              </div>
+            ) : historyList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#64748B' }}>
+                <HardDrive size={36} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
+                <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                  Chưa có không gian 360° nào được tạo
+                </h4>
+                <p style={{ fontSize: '13px', maxWidth: '400px', margin: '0 auto' }}>
+                  Hãy dùng camera điện thoại chụp hoặc chọn ảnh từ máy để tạo không gian 360° đầu tiên.
+                </p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                  gap: '18px'
+                }}
+              >
+                {historyList.map((item, idx) => (
+                  <div
+                    key={item.filename || idx}
+                    style={{
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      background: '#FFFFFF',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {/* Thumbnail */}
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '140px',
+                        background: '#0F172A',
+                        overflow: 'hidden',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSelectHistoryPano(item)}
+                      title="Bấm để xem trong Trình xem 360°"
+                    >
+                      <img
+                        src={item.url}
+                        alt={item.filename}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          opacity: 0.9,
+                          transition: 'transform 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1.0)')}
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          left: 8,
+                          background: 'rgba(0, 0, 0, 0.65)',
+                          color: '#FFFFFF',
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          backdropFilter: 'blur(4px)'
+                        }}
+                      >
+                        Equirectangular 360°
+                      </div>
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 8,
+                          right: 8,
+                          background: 'rgba(37, 99, 235, 0.85)',
+                          color: '#FFFFFF',
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        <Eye size={12} />
+                        <span>Xem 360°</span>
+                      </div>
+                    </div>
+
+                    {/* Metadata & Actions */}
+                    <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div
+                        style={{
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                          color: '#1E293B',
+                          wordBreak: 'break-all',
+                          lineHeight: 1.3
+                        }}
+                      >
+                        {item.filename}
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          fontSize: '11.5px',
+                          color: '#64748B'
+                        }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={12} />
+                          <span>{new Date(item.createdAt).toLocaleString('vi-VN')}</span>
+                        </span>
+                        <span>{(item.size / (1024 * 1024)).toFixed(2)} MB</span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 6, marginTop: 'auto', paddingTop: 6 }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleSelectHistoryPano(item)}
+                          style={{
+                            flex: 1,
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            padding: '6px 10px',
+                            gap: 5
+                          }}
+                        >
+                          <Eye size={13} />
+                          <span>Xem 360°</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleCopyHistoryUrl(item.url)}
+                          title="Sao chép link ảnh 360"
+                          style={{
+                            fontSize: '12px',
+                            padding: '6px 10px',
+                            color: copiedHistoryUrl === item.url ? '#16A34A' : '#334155'
+                          }}
+                        >
+                          {copiedHistoryUrl === item.url ? <Check size={13} /> : <Copy size={13} />}
+                        </button>
+
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary btn-sm"
+                          title="Mở ảnh gốc trong tab mới"
+                          style={{
+                            fontSize: '12px',
+                            padding: '6px 10px',
+                            color: '#334155'
+                          }}
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 };
+
