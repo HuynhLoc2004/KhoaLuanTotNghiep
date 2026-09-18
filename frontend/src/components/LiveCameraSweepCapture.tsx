@@ -118,6 +118,25 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     };
   }, [isOpen]);
 
+  // Bộ giám sát giữ luồng video Camera luôn thức trên iOS Safari (chống màn hình đen do WebKit tạm dừng)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const ensurePlaying = () => {
+      const video = videoRef.current;
+      if (!video || !streamRef.current) return;
+      if (video.srcObject !== streamRef.current) {
+        video.srcObject = streamRef.current;
+      }
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
+    };
+
+    const interval = setInterval(ensurePlaying, 800);
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
   const startCamera = async () => {
     setCameraError(null);
     if (!navigator?.mediaDevices?.getUserMedia) {
@@ -131,14 +150,23 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: { ideal: 'environment' }, // Camera sau góc rộng
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 }
         },
         audio: false
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
+
+      // Đảm bảo khi iOS unmute track thì video tự động play lại
+      stream.getVideoTracks().forEach((track) => {
+        track.onunmute = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(() => {});
+          }
+        };
+      });
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -570,10 +598,17 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
               autoPlay
               playsInline
               muted
+              onPause={() => {
+                if (videoRef.current && streamRef.current) {
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover'
+                objectFit: 'cover',
+                transform: 'translateZ(0)',
+                WebkitTransform: 'translateZ(0)'
               }}
             />
 
