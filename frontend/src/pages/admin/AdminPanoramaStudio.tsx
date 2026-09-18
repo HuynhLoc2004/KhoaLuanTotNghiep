@@ -35,6 +35,8 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const [isPinMode, setIsPinMode] = useState(false);
   const [pendingCoords, setPendingCoords] = useState<{ pitch: number; yaw: number } | null>(null);
   const [focusCoords, setFocusCoords] = useState<{ pitch: number; yaw: number; timestamp?: number } | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionText, setTransitionText] = useState('');
   const [panoInputUrl, setPanoInputUrl] = useState(currentRoom.panoramaUrl);
   const [uploading, setUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -85,10 +87,23 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     }
   };
 
-  // When admin clicks an existing hotspot in viewer
+  // When admin clicks an existing hotspot in viewer (Hiệu ứng bước qua cửa mượt mà chuẩn Google Street View)
   const handleHotspotClick = (hs: Hotspot) => {
     if (hs.type === 'navigation' && hs.targetRoomId) {
-      onNavigateRoom(hs.targetRoomId);
+      const target = allRooms.find((r) => r.id === hs.targetRoomId || String(r.id) === String(hs.targetRoomId));
+      setTransitionText(target ? target.name : 'gian phòng tiếp theo');
+      setIsTransitioning(true);
+
+      // Bước 1: Xoay thẳng về hướng cửa
+      setFocusCoords({ pitch: hs.pitch, yaw: hs.yaw, timestamp: Date.now() });
+
+      // Bước 2: Hiệu ứng phóng tới & mờ ảo chuyển cảnh như bước qua cửa
+      setTimeout(() => {
+        onNavigateRoom(hs.targetRoomId!);
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 450);
+      }, 350);
     } else {
       alert(`[Thông tin di sản]: ${hs.title}\n${hs.description || ''}`);
     }
@@ -146,7 +161,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   return (
     <div className="studio-container">
       {/* 360 Viewport Area (4K Crisp Pannellum WebGL Engine) */}
-      <div className="studio-viewport-area">
+      <div className="studio-viewport-area" style={{ position: 'relative' }}>
         <Pannellum360Viewer
           key={currentRoom.id}
           panoramaUrl={currentRoom.panoramaUrl}
@@ -169,6 +184,58 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
           initialYaw={currentRoom.initialView?.yaw ?? 0}
           initialHfov={currentRoom.initialView?.fov ?? 100}
         />
+
+        {/* Hiệu ứng bước qua cửa chuyển cảnh mượt mà chuẩn Google Street View */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 100,
+            pointerEvents: isTransitioning ? 'auto' : 'none',
+            opacity: isTransitioning ? 1 : 0,
+            transition: 'opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+            background: 'radial-gradient(circle at center, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.96) 100%)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 14
+          }}
+        >
+          <div
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: '50%',
+              border: '3px solid rgba(59, 130, 246, 0.25)',
+              borderTopColor: '#3B82F6',
+              animation: 'spin 0.8s linear infinite',
+              boxShadow: '0 0 25px rgba(59, 130, 246, 0.5)'
+            }}
+          />
+          <div
+            style={{
+              color: '#FFFFFF',
+              fontSize: '14px',
+              fontWeight: 700,
+              letterSpacing: '0.3px',
+              textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'rgba(15, 23, 42, 0.8)',
+              padding: '8px 20px',
+              borderRadius: '30px',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 8px 20px rgba(0, 0, 0, 0.4)'
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>🚪</span>
+            <span>Đang bước vào {transitionText}...</span>
+          </div>
+        </div>
       </div>
 
       {/* Studio Control Sidebar */}

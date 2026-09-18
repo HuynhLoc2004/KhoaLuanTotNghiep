@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Navigation, Info, MapPin } from 'lucide-react';
+import { X, Navigation, Info, MapPin, Compass, Sparkles, Check, ArrowRight } from 'lucide-react';
 import { MuseumRoom, Hotspot } from '../types';
 
 interface HotspotModalProps {
@@ -9,6 +9,14 @@ interface HotspotModalProps {
   onClose: () => void;
   onSave: (hotspotData: Omit<Hotspot, 'id'>) => void;
 }
+
+const QUICK_CHIPS = [
+  'Ra ngoài sân',
+  'Lối ra sân vườn',
+  'Gian Chính Điện',
+  'Lối vào phòng khách',
+  'Bước sang phòng tiếp theo'
+];
 
 export const HotspotModal: React.FC<HotspotModalProps> = ({
   currentRoom,
@@ -21,7 +29,7 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
   const [type, setType] = useState<'navigation' | 'info'>('navigation');
   const [targetRoomId, setTargetRoomId] = useState(otherRooms[0]?.id || '');
   const [title, setTitle] = useState(
-    otherRooms[0] ? `Bước sang ${otherRooms[0].name}` : 'Điểm chuyển phòng'
+    otherRooms[0] ? `Bước sang ${otherRooms[0].name}` : 'Ra ngoài sân'
   );
   const [description, setDescription] = useState('');
 
@@ -48,156 +56,405 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MapPin size={18} style={{ color: 'var(--primary)' }} />
-            <h2 className="modal-title">Ghim Điểm Liên Kết 360°</h2>
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+      style={{
+        backdropFilter: 'blur(8px)',
+        background: 'rgba(15, 23, 42, 0.75)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        zIndex: 9999
+      }}
+    >
+      <div
+        className="modal-card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: '540px',
+          background: '#FFFFFF',
+          borderRadius: '20px',
+          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(226, 232, 240, 0.8)',
+          overflow: 'hidden',
+          animation: 'modalEntrance 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
+      >
+        <style>{`
+          @keyframes modalEntrance {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          .chip-btn {
+            background: #F8FAFC;
+            color: #475569;
+            border: 1px solid #E2E8F0;
+            border-radius: 9999px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+          }
+          .chip-btn:hover {
+            background: #EFF6FF;
+            color: #2563EB;
+            border-color: #BFDBFE;
+            transform: translateY(-1px);
+          }
+          .chip-btn.active {
+            background: #EFF6FF;
+            color: #1D4ED8;
+            border-color: #3B82F6;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+          }
+          .type-tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1.5px solid transparent;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+          }
+        `}</style>
+
+        {/* Modal Header */}
+        <div
+          style={{
+            padding: '18px 24px',
+            borderBottom: '1px solid #F1F5F9',
+            background: 'linear-gradient(to bottom, #FFFFFF, #F8FAFC)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)',
+                border: '1px solid #BFDBFE',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#2563EB'
+              }}
+            >
+              <MapPin size={20} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
+                Thiết Lập Điểm Chuyển Cảnh
+              </h3>
+              <p style={{ margin: 0, fontSize: '12px', color: '#64748B', marginTop: 2 }}>
+                Gắn mũi tên 3D tại cửa để bước sang không gian khác
+              </p>
+            </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '8px',
+              border: 'none',
+              background: '#F1F5F9',
+              color: '#64748B',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease'
+            }}
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+          <div style={{ padding: '20px 24px', maxHeight: '72vh', overflowY: 'auto' }}>
+            {/* Tọa độ góc nhìn */}
             <div
               style={{
-                background: 'var(--bg-subtle)',
-                padding: '10px 14px',
-                borderRadius: 6,
-                fontSize: 12.5,
-                color: 'var(--text-muted)',
                 display: 'flex',
-                justifyContent: 'space-between'
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: '12px',
+                padding: '8px 14px',
+                marginBottom: '16px'
               }}
             >
-              <span>
-                Tọa độ góc: <strong>Pitch: {coords.pitch}°</strong>
-              </span>
-              <span>
-                <strong>Yaw: {coords.yaw}°</strong>
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', color: '#475569' }}>
+                <Compass size={14} style={{ color: '#2563EB' }} />
+                <span>Tọa độ đã chọn trên ảnh 360:</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: 6,
+                    padding: '2px 8px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    color: '#0F172A'
+                  }}
+                >
+                  Pitch: {coords.pitch}°
+                </span>
+                <span
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: 6,
+                    padding: '2px 8px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    color: '#0F172A'
+                  }}
+                >
+                  Yaw: {coords.yaw}°
+                </span>
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Loại điểm liên kết</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {/* Bộ chọn loại điểm */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: 8 }}>
+                Loại Điểm Tương Tác
+              </label>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  background: '#F1F5F9',
+                  padding: 4,
+                  borderRadius: 14
+                }}
+              >
                 <button
                   type="button"
-                  className={`btn ${type === 'navigation' ? 'btn-primary' : 'btn-secondary'}`}
+                  className="type-tab-btn"
                   onClick={() => setType('navigation')}
-                  style={{ justifyContent: 'center', gap: 6 }}
+                  style={{
+                    background: type === 'navigation' ? '#FFFFFF' : 'transparent',
+                    color: type === 'navigation' ? '#2563EB' : '#64748B',
+                    boxShadow: type === 'navigation' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                    borderColor: type === 'navigation' ? '#DBEAFE' : 'transparent'
+                  }}
                 >
                   <Navigation size={15} />
-                  <span>🚪 Chuyển Phòng (Mũi Tên Đi Bộ 3D)</span>
+                  <span>Mũi Tên Đi Bộ 3D</span>
                 </button>
+
                 <button
                   type="button"
-                  className={`btn ${type === 'info' ? 'btn-primary' : 'btn-secondary'}`}
+                  className="type-tab-btn"
                   onClick={() => setType('info')}
-                  style={{ justifyContent: 'center', gap: 6 }}
+                  style={{
+                    background: type === 'info' ? '#FFFFFF' : 'transparent',
+                    color: type === 'info' ? '#D97706' : '#64748B',
+                    boxShadow: type === 'info' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                    borderColor: type === 'info' ? '#FDE68A' : 'transparent'
+                  }}
                 >
                   <Info size={15} />
-                  <span>Thông tin hiện vật</span>
+                  <span>Thông Tin Hiện Vật</span>
                 </button>
               </div>
             </div>
 
+            {/* Trường chọn phòng đích */}
             {type === 'navigation' && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">Chọn gian phòng đích khi du khách bước qua cửa</label>
-                  {otherRooms.length > 0 ? (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+                  Gian Phòng Đích (Nơi du khách bước tới)
+                </label>
+                {otherRooms.length > 0 ? (
+                  <div style={{ position: 'relative' }}>
                     <select
                       className="form-control"
                       value={targetRoomId}
                       onChange={(e) => handleTargetRoomChange(e.target.value)}
                       required
+                      style={{
+                        padding: '10px 14px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        color: '#0F172A',
+                        borderRadius: '10px',
+                        borderColor: '#CBD5E1'
+                      }}
                     >
                       {otherRooms.map((r) => (
                         <option key={r.id} value={r.id}>
-                          {r.code} - {r.name}
+                          🏛️ [{r.code}] — {r.name}
                         </option>
                       ))}
                     </select>
-                  ) : (
-                    <div style={{ fontSize: '12.5px', color: '#B45309', background: '#FEF3C7', padding: '10px 12px', borderRadius: 6 }}>
-                      ⚠️ Hiện chưa có gian phòng nào khác trong hệ thống. Bạn có thể sang menu <strong>"Gian trưng bày & Tour 360"</strong> hoặc <strong>"Kho Không Gian 360°"</strong> để tạo thêm phòng (vd: "Ngoài sân"), sau đó liên kết đến đây nhé!
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      fontSize: '12.5px',
+                      color: '#92400E',
+                      background: '#FEF3C7',
+                      border: '1px solid #FDE68A',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      lineHeight: 1.4
+                    }}
+                  >
+                    ⚠️ Hiện chưa có phòng nào khác. Bạn có thể sang menu <strong>"Gian trưng bày & Tour 360"</strong> hoặc <strong>"Kho Không Gian 360°"</strong> để tạo thêm phòng (vd: "Ngoài sân"), sau đó liên kết đến đây nhé!
+                  </div>
+                )}
+              </div>
+            )}
 
-                {/* Gợi ý chữ nhanh */}
-                <div className="form-group">
-                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Gợi ý tên cửa chuyển cảnh nhanh:</span>
-                  </label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {['Ra ngoài sân', 'Lối ra sân vườn', 'Lối vào phòng khách', 'Bước sang phòng tiếp theo'].map((chip) => (
+            {/* Gợi ý tên nhanh */}
+            {type === 'navigation' && (
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: 8 }}>
+                  <Sparkles size={13} style={{ color: '#EAB308' }} />
+                  <span>Gợi ý nhãn tên cửa nhanh:</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {QUICK_CHIPS.map((chip) => {
+                    const isActive = title === chip;
+                    return (
                       <button
                         key={chip}
                         type="button"
+                        className={`chip-btn ${isActive ? 'active' : ''}`}
                         onClick={() => setTitle(chip)}
-                        style={{
-                          background: title === chip ? '#EFF6FF' : '#F1F5F9',
-                          color: title === chip ? '#1D4ED8' : '#475569',
-                          border: title === chip ? '1.5px solid #3B82F6' : '1px solid #CBD5E1',
-                          borderRadius: 16,
-                          padding: '3px 10px',
-                          fontSize: '11.5px',
-                          fontWeight: 600,
-                          cursor: 'pointer'
-                        }}
                       >
-                        🚪 {chip}
+                        <span>🚪</span>
+                        <span>{chip}</span>
+                        {isActive && <Check size={12} />}
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              </>
+              </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label">Chữ hiển thị trên mũi tên (Nhãn text)</label>
+            {/* Ô nhập tên hiển thị */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+                Chữ Hiển Thị Trên Mũi Tên
+              </label>
               <input
                 type="text"
                 className="form-control"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ví dụ: Ra ngoài sân, Bước sang sân vườn..."
+                placeholder="Ví dụ: Ra ngoài sân, Lối vào gian tiền sử..."
                 required
+                style={{
+                  padding: '10px 14px',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  borderRadius: '10px',
+                  borderColor: '#CBD5E1'
+                }}
               />
             </div>
 
-            {/* Xem trước Mũi Tên Đi Bộ 3D */}
+            {/* KHUNG XEM TRƯỚC DIỆN MẠO (CLEAN & GORGEOUS - NO OVERLAP) */}
             {type === 'navigation' && (
               <div
                 style={{
-                  background: '#0F172A',
-                  borderRadius: 10,
-                  padding: '16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '12px 0 16px',
-                  border: '1px solid #334155'
+                  background: 'linear-gradient(145deg, #0B1120, #0F172A)',
+                  borderRadius: '14px',
+                  padding: '18px 20px',
+                  marginBottom: '16px',
+                  border: '1px solid #1E293B',
+                  boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)'
                 }}
               >
-                <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Xem trước biểu tượng sẽ xuất hiện tại cửa:
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#64748B',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.8px',
+                    textAlign: 'center',
+                    marginBottom: '14px'
+                  }}
+                >
+                  Xem trước diện mạo mũi tên tại cửa:
                 </div>
-                <div className="walking-arrow-hotspot" style={{ pointerEvents: 'none' }}>
-                  <div className="walking-arrow-label">
-                    <span>🚪 {title || 'Ra ngoài sân'}</span>
+
+                {/* Container riêng cho mockup */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    padding: '8px 0'
+                  }}
+                >
+                  <div
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.95)',
+                      border: '1.5px solid #3B82F6',
+                      borderRadius: '30px',
+                      padding: '6px 16px',
+                      color: '#FFFFFF',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      boxShadow: '0 0 16px rgba(59, 130, 246, 0.5)',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    🚪 {title || 'Ra ngoài sân'}
                   </div>
-                  <div className="walking-arrow-disc">
-                    <svg className="walking-arrow-svg" viewBox="0 0 24 24">
+
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'radial-gradient(circle, #2563EB 0%, #1E3A8A 100%)',
+                      border: '2.5px solid #FFFFFF',
+                      boxShadow: '0 0 20px rgba(37, 99, 235, 0.85), 0 0 35px rgba(59, 130, 246, 0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      style={{
+                        width: 22,
+                        height: 22,
+                        fill: 'none',
+                        stroke: '#FFFFFF',
+                        strokeWidth: 3.2,
+                        strokeLinecap: 'round',
+                        strokeLinejoin: 'round'
+                      }}
+                    >
                       <polyline points="18 15 12 9 6 15"></polyline>
                     </svg>
                   </div>
@@ -205,27 +462,73 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
               </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label">Ghi chú hoặc mô tả ngắn (Tùy chọn)</label>
+            {/* Ghi chú mô tả */}
+            <div style={{ marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+                Ghi Chú Hoặc Mô Tả Ngắn (Tùy chọn)
+              </label>
               <textarea
                 className="form-control"
                 rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ví dụ: Cửa chính dẫn ra khoảng sân trước nhà..."
+                placeholder="Ví dụ: Cửa gỗ cổ dẫn ra khuôn viên sân trước..."
+                style={{
+                  borderRadius: '10px',
+                  borderColor: '#CBD5E1',
+                  padding: '9px 12px',
+                  fontSize: '12.5px',
+                  resize: 'none'
+                }}
               />
             </div>
           </div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+          {/* Modal Footer */}
+          <div
+            style={{
+              padding: '14px 24px',
+              background: '#F8FAFC',
+              borderTop: '1px solid #E2E8F0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 10
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+              style={{
+                borderRadius: '10px',
+                padding: '9px 18px',
+                fontWeight: 600,
+                fontSize: '13px'
+              }}
+            >
               Hủy bỏ
             </button>
-            <button type="submit" className="btn btn-primary" style={{ fontWeight: 700, padding: '9px 18px' }}>
-              ✓ Lưu & Đặt Mũi Tên Tại Cửa
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{
+                borderRadius: '10px',
+                padding: '9px 22px',
+                fontWeight: 700,
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                border: 'none',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)'
+              }}
+            >
+              <span>Lưu & Đặt Mũi Tên</span>
+              <ArrowRight size={15} />
             </button>
           </div>
-
         </form>
       </div>
     </div>
