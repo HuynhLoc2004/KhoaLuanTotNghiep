@@ -551,6 +551,7 @@ export const PocStitchingPage: React.FC = () => {
                   ref={nativeCameraInputRef}
                   type="file"
                   accept="image/*"
+                  capture="environment"
                   style={{ display: 'none' }}
                   onChange={handleNativeCapture}
                   disabled={isProcessing}
@@ -590,7 +591,7 @@ export const PocStitchingPage: React.FC = () => {
               </label>
             </div>
 
-            {/* LỜI KHUYÊN DÀNH CHO IPHONE KHI CHROME BỊ ĐEN CAMERA */}
+            {/* HƯỚNG DẪN KHI TRÌNH DUYỆT CHROME CHẶN BẬT CAMERA */}
             <div
               style={{
                 background: '#EFF6FF',
@@ -605,11 +606,12 @@ export const PocStitchingPage: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-                <span>💡 MẸO KHI CHROME TRÊN IPHONE BỊ MÀN HÌNH ĐEN (DO GIỚI HẠN BẢO MẬT CỦA APPLE):</span>
+                <span>💡 KHI TRÌNH DUYỆT CHROME KHÔNG BẬT CAMERA TRỰC TIẾP:</span>
               </div>
               <div style={{ lineHeight: 1.5, color: '#1E3A8A' }}>
-                • <strong>Cách 1 (Nhanh nhất & không cần cài gì):</strong> Thoát ra màn hình chính, mở ứng dụng <strong>Camera của iPhone</strong> chụp vài tấm (hoặc chụp 1 tấm Toàn cảnh PANO) $\rightarrow$ Quay lại web này bấm <strong>"Chọn Ảnh Từ Thư Viện / Album"</strong> để tải lên.<br />
-                • <strong>Cách 2:</strong> Mở link web bằng trình duyệt <strong>Safari</strong> (chính chủ Apple). Safari hỗ trợ camera iPhone 100% không bao giờ bị đen như Chrome!
+                • <strong>Cách 1 (Nhanh và ảnh nét đẹp nhất):</strong> Dùng camera gốc của điện thoại chụp vài tấm quanh phòng (hoặc chụp 1 tấm chế độ PANO) $\rightarrow$ Bấm nút <strong>"🖼️ Chọn Ảnh Từ Thư Viện / Album"</strong> để tải lên ghép 360° ngay.<br />
+                • <strong>Cách 2 (Cấp quyền Camera cho Chrome):</strong> Trên thanh địa chỉ URL của Chrome, bấm vào biểu tượng <strong>Cài đặt / Ổ khóa bên trái đường link</strong> $\rightarrow$ Chọn <strong>"Quyền cho trang web"</strong> $\rightarrow$ Bật <strong>"Máy ảnh (Camera): Cho phép"</strong>.<br />
+                • <strong>Nếu dùng iPhone:</strong> Vào <strong>Cài đặt máy (Settings) $\rightarrow$ Chrome $\rightarrow$ bật Máy ảnh (Camera) sang Xanh</strong> (hoặc mở web bằng <strong>Safari</strong> để camera hoạt động mượt mà 100%).
               </div>
             </div>
 
