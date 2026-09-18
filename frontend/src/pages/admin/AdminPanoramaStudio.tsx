@@ -137,7 +137,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const pannellumHotspots: PannellumHotSpot[] = (currentRoom.hotspots || []).map((h) => ({
     pitch: h.pitch,
     yaw: h.yaw,
-    type: h.type === 'navigation' ? 'scene' : 'info',
+    type: 'info', // Luôn dùng 'info' để Pannellum kích hoạt clickHandlerFunc thay vì loadScene nội bộ
     text: h.title,
     roomId: h.targetRoomId,
     onClick: () => handleHotspotClick(h)

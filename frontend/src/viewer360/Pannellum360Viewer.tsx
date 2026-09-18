@@ -124,11 +124,18 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         const onTrigger = (e: Event) => {
           e.stopPropagation();
           e.preventDefault();
+          console.log('[Hotspot Navigation Clicked]:', hs);
           if (onHotspotClick) onHotspotClick(hs);
           if (hs.onClick) hs.onClick();
         };
 
         hotSpotDiv.onclick = onTrigger;
+        hotSpotDiv.onpointerup = onTrigger;
+        if (hotSpotDiv.parentElement) {
+          hotSpotDiv.parentElement.style.pointerEvents = 'auto';
+          hotSpotDiv.parentElement.style.cursor = 'pointer';
+          hotSpotDiv.parentElement.onclick = onTrigger;
+        }
       }
     }));
 
@@ -368,18 +375,31 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
         }
 
+        .pnlm-hotspot-base {
+          pointer-events: auto !important;
+          cursor: pointer !important;
+          z-index: 25 !important;
+        }
         /* 3D Walking Arrow Styles */
         .walking-arrow-hotspot {
           display: flex;
           flex-direction: column;
           align-items: center;
-          cursor: pointer;
+          cursor: pointer !important;
+          pointer-events: auto !important;
           user-select: none;
           transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
           filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+          z-index: 30 !important;
         }
         .walking-arrow-hotspot:hover {
           transform: translate(-50%, -55%) scale(1.15) !important;
+        }
+        .walking-arrow-label,
+        .walking-arrow-disc,
+        .walking-arrow-svg {
+          pointer-events: auto !important;
+          cursor: pointer !important;
         }
         .walking-arrow-label {
           background: rgba(15, 23, 42, 0.92);

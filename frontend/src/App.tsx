@@ -77,11 +77,14 @@ export const App: React.FC = () => {
 
   // Hotspot jump navigation inside studio
   const handleNavigateRoom = (targetRoomId: string) => {
-    const target = rooms.find((r) => r.id === targetRoomId);
+    console.log('[handleNavigateRoom targetRoomId]:', targetRoomId, 'available rooms:', rooms.map(r => ({ id: r.id, name: r.name })));
+    const target = rooms.find(
+      (r) => r.id === targetRoomId || String(r.id) === String(targetRoomId) || r.name === targetRoomId
+    );
     if (target) {
       setActiveRoom(target);
     } else {
-      alert('Không tìm thấy phòng đích');
+      alert(`Không tìm thấy phòng đích (Mã phòng: ${targetRoomId})`);
     }
   };
 
