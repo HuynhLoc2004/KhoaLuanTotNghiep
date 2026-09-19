@@ -313,6 +313,8 @@
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   box-shadow: var(--shadow-sm);
   text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn:active {
@@ -358,6 +360,9 @@
   padding: 6px 12px;
   font-size: 12px;
   border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.35;
 }
 
 /* /* Stats Cards */
@@ -2819,7 +2824,7 @@
   border-collapse: collapse;
   text-align: left;
   font-size: 13px;
-  min-width: 780px;
+  min-width: 900px;
 }
 
 .lang-table th {

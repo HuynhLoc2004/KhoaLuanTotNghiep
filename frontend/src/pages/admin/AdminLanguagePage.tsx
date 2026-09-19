@@ -548,11 +548,11 @@ export const AdminLanguagePage: React.FC = () => {
                 <table className="lang-table">
                   <thead>
                     <tr>
-                      <th style={{ width: 100, textAlign: 'center' }}>Cờ & ISO</th>
-                      <th>Ngôn ngữ bản xứ</th>
-                      <th>Cấu hình Giọng đọc AI</th>
-                      <th style={{ width: 180 }}>Trực tuyến (Client)</th>
-                      <th style={{ width: 160, textAlign: 'right' }}>Thao tác</th>
+                      <th style={{ width: 85, textAlign: 'center' }}>Cờ & ISO</th>
+                      <th style={{ minWidth: 160 }}>Ngôn ngữ bản xứ</th>
+                      <th style={{ minWidth: 260 }}>Cấu hình Giọng đọc AI</th>
+                      <th style={{ width: 170, textAlign: 'center' }}>Trực tuyến (Client)</th>
+                      <th style={{ width: 190, textAlign: 'right', whiteSpace: 'nowrap' }}>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -612,7 +612,7 @@ export const AdminLanguagePage: React.FC = () => {
                         </td>
 
                         {/* TRẠNG THÁI HIỂN THỊ */}
-                        <td>
+                        <td style={{ textAlign: 'center' }}>
                           <button
                             type="button"
                             className={`lang-status-badge ${lang.isActive ? 'active' : 'inactive'}`}
@@ -626,15 +626,22 @@ export const AdminLanguagePage: React.FC = () => {
                         </td>
 
                         {/* THAO TÁC */}
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, whiteSpace: 'nowrap' }}>
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleTestVoice(lang)}
                               disabled={testingCode === lang.code}
                               title="Nghe thử âm thanh thuyết minh AI"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px' }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '6px 14px',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                              }}
                             >
                               {testingCode === lang.code ? (
                                 <RotateCw size={13} className="spin" />
@@ -650,7 +657,16 @@ export const AdminLanguagePage: React.FC = () => {
                                 className="btn btn-secondary btn-sm"
                                 onClick={() => handleDeleteLanguage(lang)}
                                 title="Xóa ngôn ngữ khỏi hệ thống"
-                                style={{ padding: '6px 10px', color: 'var(--error)' }}
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  padding: 0,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'var(--error)',
+                                  flexShrink: 0
+                                }}
                               >
                                 <Trash2 size={14} />
                               </button>
