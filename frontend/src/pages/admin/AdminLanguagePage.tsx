@@ -23,6 +23,41 @@ import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination } from '../../components/Pagination';
 
+export interface LanguagePreset {
+  code: string;
+  name: string;
+  nativeName: string;
+  flagIcon: string;
+  voiceName: string;
+  gender: 'female' | 'male';
+  label: string;
+}
+
+export const GLOBAL_LANGUAGE_PRESETS: LanguagePreset[] = [
+  { code: 'es', name: 'Spanish', nativeName: 'Español', flagIcon: '🇪🇸', voiceName: 'es-ES-Neural2-A', gender: 'female', label: 'Tây Ban Nha' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', flagIcon: '🇷🇺', voiceName: 'ru-RU-Wavenet-C', gender: 'female', label: 'Nga' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano', flagIcon: '🇮🇹', voiceName: 'it-IT-Neural2-A', gender: 'female', label: 'Ý' },
+  { code: 'th', name: 'Thai', nativeName: 'ไทย', flagIcon: '🇹🇭', voiceName: 'th-TH-Standard-A', gender: 'female', label: 'Thái Lan' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', flagIcon: '🇩🇪', voiceName: 'de-DE-Neural2-F', gender: 'female', label: 'Đức' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', flagIcon: '🇰🇷', voiceName: 'ko-KR-Neural2-A', gender: 'female', label: 'Hàn Quốc' },
+  { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', flagIcon: '🇮🇩', voiceName: 'id-ID-Standard-A', gender: 'female', label: 'Indonesia' },
+  { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu', flagIcon: '🇲🇾', voiceName: 'ms-MY-Standard-A', gender: 'female', label: 'Malaysia' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português', flagIcon: '🇵🇹', voiceName: 'pt-PT-Wavenet-A', gender: 'female', label: 'Bồ Đào Nha' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flagIcon: '🇦🇪', voiceName: 'ar-XA-Wavenet-A', gender: 'female', label: 'Ả Rập' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flagIcon: '🇮🇳', voiceName: 'hi-IN-Neural2-A', gender: 'female', label: 'Ấn Độ (Hindi)' },
+  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', flagIcon: '🇳🇱', voiceName: 'nl-NL-Standard-A', gender: 'female', label: 'Hà Lan' },
+  { code: 'pl', name: 'Polish', nativeName: 'Polski', flagIcon: '🇵🇱', voiceName: 'pl-PL-Wavenet-A', gender: 'female', label: 'Ba Lan' },
+  { code: 'sv', name: 'Swedish', nativeName: 'Svenska', flagIcon: '🇸🇪', voiceName: 'sv-SE-Wavenet-A', gender: 'female', label: 'Thụy Điển' },
+  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flagIcon: '🇹🇷', voiceName: 'tr-TR-Standard-A', gender: 'female', label: 'Thổ Nhĩ Kỳ' },
+  { code: 'el', name: 'Greek', nativeName: 'Ελληνικά', flagIcon: '🇬🇷', voiceName: 'el-GR-Standard-A', gender: 'female', label: 'Hy Lạp' },
+  { code: 'km', name: 'Khmer', nativeName: 'ភាសាខ្មែរ', flagIcon: '🇰🇭', voiceName: 'km-KH-Standard-A', gender: 'female', label: 'Campuchia (Khmer)' },
+  { code: 'lo', name: 'Lao', nativeName: 'ພາສາລາວ', flagIcon: '🇱🇦', voiceName: 'lo-LA-Standard-A', gender: 'female', label: 'Lào' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', flagIcon: '🇯🇵', voiceName: 'ja-JP-Neural2-B', gender: 'female', label: 'Nhật Bản' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文 (简体)', flagIcon: '🇨🇳', voiceName: 'cmn-CN-Wavenet-A', gender: 'female', label: 'Trung Quốc' },
+  { code: 'fr', name: 'French', nativeName: 'Français', flagIcon: '🇫🇷', voiceName: 'fr-FR-Neural2-A', gender: 'female', label: 'Pháp' },
+  { code: 'en', name: 'English', nativeName: 'English', flagIcon: '🇬🇧', voiceName: 'en-US-Neural2-F', gender: 'female', label: 'Anh (UK/US)' },
+];
+
 export const AdminLanguagePage: React.FC = () => {
   const { showToast } = useToast();
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
@@ -38,6 +73,7 @@ export const AdminLanguagePage: React.FC = () => {
   const [pageSize, setPageSize] = useState(5);
 
   // Form thêm ngôn ngữ mới
+  const [selectedPresetCode, setSelectedPresetCode] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
   const [newNativeName, setNewNativeName] = useState('');
@@ -46,6 +82,20 @@ export const AdminLanguagePage: React.FC = () => {
   const [newVoiceName, setNewVoiceName] = useState('neural2-standard');
   const [newGender, setNewGender] = useState<'female' | 'male'>('female');
   const [submitting, setSubmitting] = useState(false);
+
+  // Áp dụng cấu hình tự động khi chọn ngôn ngữ từ thư viện
+  const handleApplyPreset = (code: string) => {
+    setSelectedPresetCode(code);
+    const preset = GLOBAL_LANGUAGE_PRESETS.find((p) => p.code === code);
+    if (!preset) return;
+
+    setNewCode(preset.code);
+    setNewFlag(preset.flagIcon);
+    setNewNativeName(preset.nativeName);
+    setNewName(preset.name);
+    setNewVoiceName(preset.voiceName);
+    setNewGender(preset.gender);
+  };
 
   // Confirm Modal state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -209,6 +259,7 @@ export const AdminLanguagePage: React.FC = () => {
       setLanguages((prev) => [...prev, newLang]);
       setShowAddModal(false);
       // Reset form
+      setSelectedPresetCode('');
       setNewCode('');
       setNewName('');
       setNewNativeName('');
@@ -219,6 +270,18 @@ export const AdminLanguagePage: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleOpenAddModal = () => {
+    setSelectedPresetCode('');
+    setNewCode('');
+    setNewName('');
+    setNewNativeName('');
+    setNewFlag('🌐');
+    setNewVoiceName('neural2-standard');
+    setNewGender('female');
+    setNewIsActive(true);
+    setShowAddModal(true);
   };
 
   // Lọc danh sách theo từ khóa và trạng thái
@@ -284,7 +347,7 @@ export const AdminLanguagePage: React.FC = () => {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => setShowAddModal(true)}
+              onClick={handleOpenAddModal}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Plus size={15} />
@@ -726,6 +789,85 @@ export const AdminLanguagePage: React.FC = () => {
 
               <form onSubmit={handleAddSubmit}>
                 <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* Trợ lý chọn nhanh từ danh mục quốc tế */}
+                  <div
+                    style={{
+                      background: 'rgba(212, 168, 106, 0.08)',
+                      border: '1px solid rgba(212, 168, 106, 0.28)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--accent-gold)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}
+                    >
+                      <Sparkles size={14} />
+                      <span>Chọn nhanh quốc gia (Tự động điền mã ISO & giọng đọc chuẩn):</span>
+                    </label>
+
+                    <select
+                      className="form-control"
+                      style={{ fontSize: '13px', background: 'var(--bg-surface)' }}
+                      value={selectedPresetCode}
+                      onChange={(e) => handleApplyPreset(e.target.value)}
+                    >
+                      <option value="">-- Nhấp vào đây để chọn quốc gia cần thêm --</option>
+                      {GLOBAL_LANGUAGE_PRESETS.map((p) => {
+                        const exists = languages.some((l) => l.code === p.code);
+                        return (
+                          <option key={p.code} value={p.code} disabled={exists}>
+                            {p.flagIcon} {p.label} ({p.nativeName} - {p.name}, mã: {p.code})
+                            {exists ? ' — [Đã có trong hệ thống]' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    {/* Gợi ý chọn nhanh các thứ tiếng du khách ưa chuộng nhất */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Gợi ý nhanh:</span>
+                      {['es', 'ru', 'it', 'th', 'de', 'ko', 'id'].map((c) => {
+                        const p = GLOBAL_LANGUAGE_PRESETS.find((x) => x.code === c);
+                        if (!p) return null;
+                        const exists = languages.some((l) => l.code === p.code);
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => handleApplyPreset(c)}
+                            disabled={exists}
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              border: '1px solid ' + (selectedPresetCode === c ? 'var(--accent-gold)' : 'var(--border-color)'),
+                              background: selectedPresetCode === c ? 'rgba(212, 168, 106, 0.2)' : 'var(--bg-surface)',
+                              color: exists ? 'var(--text-light)' : 'var(--text-main)',
+                              cursor: exists ? 'not-allowed' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              opacity: exists ? 0.45 : 1
+                            }}
+                          >
+                            <span>{p.flagIcon}</span>
+                            <span>{p.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">Mã ISO (2 ký tự) *</label>
@@ -786,6 +928,9 @@ export const AdminLanguagePage: React.FC = () => {
                         value={newVoiceName}
                         onChange={(e) => setNewVoiceName(e.target.value)}
                       />
+                      <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>
+                        Tự động cấu hình chuẩn theo Google TTS.
+                      </span>
                     </div>
 
                     <div className="form-group">
