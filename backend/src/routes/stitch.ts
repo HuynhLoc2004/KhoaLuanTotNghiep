@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 import { uploadToCloudinary } from '../services/cloudinary.js';
 import { uploadToR2 } from '../services/r2.js';
 import { cacheDel } from '../services/redis.js';
+import { PanoramaModel } from '../models/Panorama.js';
 
 export const stitchRouter = Router();
 
@@ -339,10 +340,47 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
           finalPanoramaUrl = `${baseUrl}/api/stitch/proxy-image?url=${encodeURIComponent(cloudR2Url)}`;
         }
 
+        // 3. Tự động lưu trữ thông tin không gian 360° vào MongoDB (Collection: panoramas)
+        let panoDoc: any = null;
+        try {
+          const stats = fs.existsSync(outputPath) ? fs.statSync(outputPath) : null;
+          panoDoc = await PanoramaModel.findOneAndUpdate(
+            { filename: outFilename },
+            {
+              id: `pano-${Date.now()}`,
+              filename: outFilename,
+              title: `Không gian toàn cảnh 360° (${new Date().toLocaleDateString('vi-VN')})`,
+              panoramaUrl: finalPanoramaUrl,
+              thumbnailUrl: finalPanoramaUrl,
+              localUrl: `${baseUrl}/uploads/${outFilename}`,
+              cloudinaryUrl: cloudinaryUrl || '',
+              r2Url: cloudR2Url || '',
+              width: result.width || 4096,
+              height: result.height || 2048,
+              aspectRatio: result.aspectRatio || 2.0,
+              sizeBytes: stats ? stats.size : 0,
+              inputFramesCount: imagePaths.length,
+              status: 'ready',
+              metadata: {
+                engine: 'OpenCV Cylindrical/Spherical Stitcher',
+                hfov: result.hfov || 360,
+                waveCorrection: true,
+                bicubicWarp: true,
+                enhancedAt: new Date()
+              }
+            },
+            { upsert: true, new: true }
+          );
+          console.log(`[Stitch API] Đã lưu thông tin ảnh 360 vào MongoDB (Collection: panoramas, ID: ${panoDoc?.id})`);
+        } catch (dbErr: any) {
+          console.error('[Stitch API MongoDB Save Error]:', dbErr.message);
+        }
+
         console.log(`[Stitch API] Ghép thành công! URL ảnh hiển thị: ${finalPanoramaUrl}`);
         return res.json({
           success: true,
           data: {
+            id: panoDoc?.id || `pano-${Date.now()}`,
             panoramaUrl: finalPanoramaUrl,
             cloudinaryUrl: cloudinaryUrl,
             r2Url: cloudR2Url,
@@ -351,6 +389,7 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
             width: result.width,
             height: result.height,
             aspectRatio: result.aspectRatio,
+            inputFramesCount: imagePaths.length,
             message: result.message
           }
         });
@@ -413,34 +452,71 @@ stitchRouter.get('/proxy-image', async (req: Request, res: Response) => {
 
 /**
  * GET /api/stitch/history
- * Lấy danh sách các bức ảnh 360° đã được tạo / ghép nối trên hệ thống
+ * Lấy danh sách các bức ảnh 360° đã được tạo / ghép nối từ MongoDB và đồng bộ với đĩa cứng
  */
 stitchRouter.get('/history', async (req: Request, res: Response) => {
   try {
-    if (!fs.existsSync(UPLOAD_ROOT)) {
-      return res.json({ success: true, count: 0, panoramas: [] });
-    }
-
-    const files = await fs.promises.readdir(UPLOAD_ROOT);
-    const panoFiles = files.filter(f => f.startsWith('stitched_360_') && (f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp')));
-
     const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '103-170-233-206.sslip.io';
     const proto = (req.headers['x-forwarded-proto'] as string) || (req.protocol === 'https' ? 'https' : 'http');
+    const baseUrl = `${proto}://${host}`;
 
-    const panoramas = await Promise.all(
-      panoFiles.map(async (file) => {
-        const filePath = path.join(UPLOAD_ROOT, file);
-        const stats = await fs.promises.stat(filePath);
-        return {
-          filename: file,
-          url: `${proto}://${host}/uploads/${file}`,
-          size: stats.size,
-          createdAt: stats.mtime
-        };
-      })
-    );
+    // 1. Quét các file thực tế trên đĩa cứng
+    const existingDiskFiles: string[] = [];
+    if (fs.existsSync(UPLOAD_ROOT)) {
+      const allFiles = await fs.promises.readdir(UPLOAD_ROOT);
+      for (const f of allFiles) {
+        if (f.startsWith('stitched_360_') && (f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'))) {
+          existingDiskFiles.push(f);
+        }
+      }
+    }
 
-    panoramas.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // 2. Lấy dữ liệu từ MongoDB
+    let dbPanos = await PanoramaModel.find().sort({ createdAt: -1 }).lean();
+
+    // 3. Tự động đồng bộ các ảnh cũ đã có trên đĩa nhưng chưa kịp lưu vào MongoDB
+    const recordedFilenames = new Set(dbPanos.map((p: any) => p.filename));
+    const missingInDb = existingDiskFiles.filter(f => !recordedFilenames.has(f));
+
+    if (missingInDb.length > 0) {
+      for (const missingFile of missingInDb) {
+        try {
+          const filePath = path.join(UPLOAD_ROOT, missingFile);
+          const stats = await fs.promises.stat(filePath);
+          const newDoc = await PanoramaModel.create({
+            id: `pano-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            filename: missingFile,
+            title: `Không gian toàn cảnh 360° (${new Date(stats.mtime).toLocaleDateString('vi-VN')})`,
+            panoramaUrl: `${baseUrl}/uploads/${missingFile}`,
+            thumbnailUrl: `${baseUrl}/uploads/${missingFile}`,
+            localUrl: `${baseUrl}/uploads/${missingFile}`,
+            sizeBytes: stats.size,
+            status: 'ready',
+            createdAt: stats.mtime,
+            updatedAt: stats.mtime
+          });
+          dbPanos.push(newDoc.toObject ? newDoc.toObject() : newDoc);
+        } catch (syncErr) {
+          console.warn('[Stitch DB Sync Warning]:', syncErr);
+        }
+      }
+      dbPanos.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    // 4. Định dạng kết quả trả về tương thích 100% với giao diện hiện tại
+    const panoramas = dbPanos.map((p: any) => ({
+      id: p.id || `pano-${p._id}`,
+      filename: p.filename,
+      title: p.title || p.filename,
+      url: p.panoramaUrl || `${baseUrl}/uploads/${p.filename}`,
+      thumbnailUrl: p.thumbnailUrl || p.panoramaUrl || `${baseUrl}/uploads/${p.filename}`,
+      size: p.sizeBytes || 0,
+      width: p.width || 4096,
+      height: p.height || 2048,
+      inputFramesCount: p.inputFramesCount || 0,
+      linkedRoomId: p.linkedRoomId || null,
+      createdAt: p.createdAt
+    }));
 
     return res.json({
       success: true,
@@ -458,7 +534,7 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/stitch/panoramas/:filename
- * Xóa file ảnh 360 khỏi thư mục uploads
+ * Xóa file ảnh 360 khỏi thư mục uploads và MongoDB
  */
 stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) => {
   try {
@@ -470,7 +546,11 @@ stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) 
     if (fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
     }
-    return res.json({ success: true, message: 'Đã xóa file ảnh 360 thành công' });
+
+    // Xóa trong MongoDB
+    await PanoramaModel.deleteOne({ filename });
+
+    return res.json({ success: true, message: 'Đã xóa không gian 360 khỏi hệ thống và CSDL thành công' });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -478,7 +558,7 @@ stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) 
 
 /**
  * POST /api/stitch/panoramas/batch-delete
- * Xóa nhiều file ảnh 360 cùng lúc
+ * Xóa nhiều file ảnh 360 cùng lúc khỏi đĩa và MongoDB
  */
 stitchRouter.post('/panoramas/batch-delete', async (req: Request, res: Response) => {
   try {
@@ -488,9 +568,12 @@ stitchRouter.post('/panoramas/batch-delete', async (req: Request, res: Response)
     }
 
     let deletedCount = 0;
+    const validNames: string[] = [];
+
     for (const filename of filenames) {
       const cleanName = String(filename || '');
       if (cleanName.startsWith('stitched_360_') && !cleanName.includes('..') && !cleanName.includes('/') && !cleanName.includes('\\')) {
+        validNames.push(cleanName);
         const filePath = path.join(UPLOAD_ROOT, cleanName);
         if (fs.existsSync(filePath)) {
           try {
@@ -501,9 +584,13 @@ stitchRouter.post('/panoramas/batch-delete', async (req: Request, res: Response)
       }
     }
 
+    if (validNames.length > 0) {
+      await PanoramaModel.deleteMany({ filename: { $in: validNames } });
+    }
+
     return res.json({
       success: true,
-      message: `Đã dọn dẹp thành công ${deletedCount} file ảnh không gian 360°`,
+      message: `Đã dọn dẹp thành công ${deletedCount} không gian 360° khỏi hệ thống và CSDL`,
       deletedCount
     });
   } catch (err: any) {
