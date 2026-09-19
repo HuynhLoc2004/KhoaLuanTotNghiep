@@ -14,8 +14,7 @@ import {
   RefreshCw,
   Eye,
   Cpu,
-  VolumeX,
-  Sparkles
+  VolumeX
 } from 'lucide-react';
 import { LanguageItem } from '../../types';
 import { api } from '../../services/api';
@@ -72,20 +71,26 @@ export const AdminLanguagePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  // Form thêm ngôn ngữ mới
+  // Form thêm ngôn ngữ mới & Validation
   const [selectedPresetCode, setSelectedPresetCode] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
   const [newNativeName, setNewNativeName] = useState('');
-  const [newFlag, setNewFlag] = useState('🌐');
+  const [newFlag, setNewFlag] = useState('');
   const [newIsActive, setNewIsActive] = useState(true);
   const [newVoiceName, setNewVoiceName] = useState('neural2-standard');
   const [newGender, setNewGender] = useState<'female' | 'male'>('female');
+  const [formErrors, setFormErrors] = useState<{
+    code?: string;
+    nativeName?: string;
+    name?: string;
+  }>({});
   const [submitting, setSubmitting] = useState(false);
 
   // Áp dụng cấu hình tự động khi chọn ngôn ngữ từ thư viện
   const handleApplyPreset = (code: string) => {
     setSelectedPresetCode(code);
+    if (!code) return;
     const preset = GLOBAL_LANGUAGE_PRESETS.find((p) => p.code === code);
     if (!preset) return;
 
@@ -95,6 +100,7 @@ export const AdminLanguagePage: React.FC = () => {
     setNewName(preset.name);
     setNewVoiceName(preset.voiceName);
     setNewGender(preset.gender);
+    setFormErrors({});
   };
 
   // Confirm Modal state
@@ -231,11 +237,45 @@ export const AdminLanguagePage: React.FC = () => {
     });
   };
 
+  // Kiểm tra tính hợp lệ của dữ liệu trước khi gửi
+  const validateForm = () => {
+    const errors: { code?: string; nativeName?: string; name?: string } = {};
+    const trimmedCode = newCode.trim().toLowerCase();
+    const trimmedNative = newNativeName.trim();
+    const trimmedName = newName.trim();
+
+    // Kiểm tra Mã ISO
+    if (!trimmedCode) {
+      errors.code = 'Vui lòng nhập mã ISO (ví dụ: en, fr, ja, ko)';
+    } else if (!/^[a-z]{2,5}$/.test(trimmedCode)) {
+      errors.code = 'Mã ISO chỉ gồm 2-5 ký tự chữ cái (ví dụ: en, fr, de, ja)';
+    } else if (languages.some((l) => l.code.toLowerCase() === trimmedCode)) {
+      errors.code = `Mã ngôn ngữ "${trimmedCode}" đã tồn tại trong hệ thống`;
+    }
+
+    // Kiểm tra Tên bản xứ
+    if (!trimmedNative) {
+      errors.nativeName = 'Vui lòng nhập tên ngôn ngữ bản xứ';
+    } else if (trimmedNative.length < 2) {
+      errors.nativeName = 'Tên bản xứ phải có ít nhất 2 ký tự';
+    }
+
+    // Kiểm tra Tên tiếng Anh
+    if (!trimmedName) {
+      errors.name = 'Vui lòng nhập tên tiếng Anh';
+    } else if (trimmedName.length < 2) {
+      errors.name = 'Tên tiếng Anh phải có ít nhất 2 ký tự';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Thêm ngôn ngữ mới
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCode.trim() || !newName.trim() || !newNativeName.trim()) {
-      showToast('Vui lòng điền đủ Mã ISO, Tên tiếng Anh và Tên bản ngữ', 'warning');
+    if (!validateForm()) {
+      showToast('Vui lòng kiểm tra lại các trường thông tin bị thiếu hoặc không hợp lệ', 'warning');
       return;
     }
 
@@ -249,7 +289,7 @@ export const AdminLanguagePage: React.FC = () => {
         isActive: newIsActive,
         ttsVoiceConfig: {
           provider: 'google',
-          voiceName: newVoiceName,
+          voiceName: newVoiceName.trim() || 'neural2-standard',
           gender: newGender,
           speed: 1.0,
           pitch: 0.0
@@ -258,12 +298,6 @@ export const AdminLanguagePage: React.FC = () => {
 
       setLanguages((prev) => [...prev, newLang]);
       setShowAddModal(false);
-      // Reset form
-      setSelectedPresetCode('');
-      setNewCode('');
-      setNewName('');
-      setNewNativeName('');
-      setNewFlag('🌐');
       showToast(`Đã thêm ngôn ngữ "${newLang.nativeName}" thành công`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi thêm ngôn ngữ', 'error');
@@ -277,10 +311,11 @@ export const AdminLanguagePage: React.FC = () => {
     setNewCode('');
     setNewName('');
     setNewNativeName('');
-    setNewFlag('🌐');
+    setNewFlag('');
     setNewVoiceName('neural2-standard');
     setNewGender('female');
     setNewIsActive(true);
+    setFormErrors({});
     setShowAddModal(true);
   };
 
@@ -780,173 +815,144 @@ export const AdminLanguagePage: React.FC = () => {
           )}
         </div>
 
-        {/* MODAL THÊM NGÔN NGỮ MỚI */}
+        {/* MODAL THÊM NGÔN NGỮ */}
         {showAddModal && (
           <div className="modal-backdrop" onClick={() => setShowAddModal(false)} style={{ zIndex: 1200 }}>
             <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
               <div className="modal-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Languages size={17} />
-                  </div>
-                  <div>
-                    <h2 className="modal-title" style={{ fontSize: '17px', margin: 0 }}>Thêm Ngôn ngữ Mới</h2>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cấu hình quốc gia & giọng đọc AI thuyết minh</span>
-                  </div>
+                <div>
+                  <h2 className="modal-title">Thêm ngôn ngữ mới</h2>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                    Thiết lập ngôn ngữ hiển thị và cấu hình giọng đọc thuyết minh
+                  </p>
                 </div>
                 <button
                   type="button"
                   className="modal-close-btn"
                   onClick={() => setShowAddModal(false)}
+                  title="Đóng"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleAddSubmit}>
+              <form onSubmit={handleAddSubmit} noValidate>
                 <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {/* Trợ lý chọn nhanh từ danh mục quốc tế */}
-                  <div
-                    style={{
-                      background: 'rgba(212, 168, 106, 0.08)',
-                      border: '1px solid rgba(212, 168, 106, 0.28)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '12px 14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: 'var(--accent-gold)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6
-                      }}
-                    >
-                      <Sparkles size={14} />
-                      <span>Chọn nhanh quốc gia (Tự động điền mã ISO & giọng đọc chuẩn):</span>
-                    </label>
-
+                  {/* Danh mục mẫu chọn nhanh */}
+                  <div className="form-group">
+                    <label className="form-label">Chọn ngôn ngữ mẫu (Tùy chọn)</label>
                     <select
                       className="form-control"
-                      style={{ fontSize: '13px', background: 'var(--bg-surface)' }}
                       value={selectedPresetCode}
                       onChange={(e) => handleApplyPreset(e.target.value)}
                     >
-                      <option value="">-- Nhấp vào đây để chọn quốc gia cần thêm --</option>
+                      <option value="">-- Chọn mẫu để tự động điền (hoặc tự nhập thông tin bên dưới) --</option>
                       {GLOBAL_LANGUAGE_PRESETS.map((p) => {
                         const exists = languages.some((l) => l.code === p.code);
                         return (
                           <option key={p.code} value={p.code} disabled={exists}>
-                            {p.flagIcon} {p.label} ({p.nativeName} - {p.name}, mã: {p.code})
-                            {exists ? ' — [Đã có trong hệ thống]' : ''}
+                            {p.flagIcon} {p.label} ({p.nativeName} - {p.name}) {exists ? '— [Đã có]' : ''}
                           </option>
                         );
                       })}
                     </select>
-
-                    {/* Gợi ý chọn nhanh các thứ tiếng du khách ưa chuộng nhất */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Gợi ý nhanh:</span>
-                      {['es', 'ru', 'it', 'th', 'de', 'ko', 'id'].map((c) => {
-                        const p = GLOBAL_LANGUAGE_PRESETS.find((x) => x.code === c);
-                        if (!p) return null;
-                        const exists = languages.some((l) => l.code === p.code);
-                        return (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => handleApplyPreset(c)}
-                            disabled={exists}
-                            style={{
-                              fontSize: '11px',
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              border: '1px solid ' + (selectedPresetCode === c ? 'var(--accent-gold)' : 'var(--border-color)'),
-                              background: selectedPresetCode === c ? 'rgba(212, 168, 106, 0.2)' : 'var(--bg-surface)',
-                              color: exists ? 'var(--text-light)' : 'var(--text-main)',
-                              cursor: exists ? 'not-allowed' : 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              opacity: exists ? 0.45 : 1
-                            }}
-                          >
-                            <span>{p.flagIcon}</span>
-                            <span>{p.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
+                  {/* Mã ISO & Cờ */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 12 }}>
                     <div className="form-group">
-                      <label className="form-label">Mã ISO (2 ký tự) *</label>
+                      <label className="form-label">
+                        Mã ISO <span style={{ color: 'var(--error)' }}>*</span>
+                      </label>
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="es, it, ru..."
+                        placeholder="vi, en, ja..."
                         maxLength={5}
                         value={newCode}
-                        onChange={(e) => setNewCode(e.target.value)}
-                        required
+                        style={formErrors.code ? { borderColor: 'var(--error)' } : undefined}
+                        onChange={(e) => {
+                          const val = e.target.value.toLowerCase().replace(/[^a-z]/g, '');
+                          setNewCode(val);
+                          if (formErrors.code) setFormErrors((prev) => ({ ...prev, code: undefined }));
+                        }}
                       />
+                      {formErrors.code && (
+                        <span style={{ color: 'var(--error)', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                          {formErrors.code}
+                        </span>
+                      )}
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Icon Cờ (Emoji)</label>
+                      <label className="form-label">Biểu tượng cờ (Emoji)</label>
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="🇪🇸, 🇮🇹, 🇷🇺..."
+                        placeholder="Ví dụ: 🇬🇧, 🇫🇷, 🇯🇵..."
                         value={newFlag}
                         onChange={(e) => setNewFlag(e.target.value)}
                       />
                     </div>
                   </div>
 
+                  {/* Tên bản xứ */}
                   <div className="form-group">
-                    <label className="form-label">Tên bản ngữ (Hiển thị cho du khách) *</label>
+                    <label className="form-label">
+                      Tên bản xứ <span style={{ color: 'var(--error)' }}>*</span>
+                    </label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Español, Italiano, Русский..."
+                      placeholder="Ví dụ: Tiếng Việt, English, 日本語..."
                       value={newNativeName}
-                      onChange={(e) => setNewNativeName(e.target.value)}
-                      required
+                      style={formErrors.nativeName ? { borderColor: 'var(--error)' } : undefined}
+                      onChange={(e) => {
+                        setNewNativeName(e.target.value);
+                        if (formErrors.nativeName) setFormErrors((prev) => ({ ...prev, nativeName: undefined }));
+                      }}
                     />
+                    {formErrors.nativeName && (
+                      <span style={{ color: 'var(--error)', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                        {formErrors.nativeName}
+                      </span>
+                    )}
                   </div>
 
+                  {/* Tên tiếng Anh */}
                   <div className="form-group">
-                    <label className="form-label">Tên tiếng Anh *</label>
+                    <label className="form-label">
+                      Tên quốc tế (Tiếng Anh) <span style={{ color: 'var(--error)' }}>*</span>
+                    </label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Spanish, Italian, Russian..."
+                      placeholder="Ví dụ: Vietnamese, English, Japanese..."
                       value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      required
+                      style={formErrors.name ? { borderColor: 'var(--error)' } : undefined}
+                      onChange={(e) => {
+                        setNewName(e.target.value);
+                        if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
                     />
+                    {formErrors.name && (
+                      <span style={{ color: 'var(--error)', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                        {formErrors.name}
+                      </span>
+                    )}
                   </div>
 
+                  {/* Giọng đọc TTS & Giới tính */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 12 }}>
                     <div className="form-group">
-                      <label className="form-label">Giọng đọc Voice AI mặc định</label>
+                      <label className="form-label">Mã giọng đọc (TTS Voice)</label>
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="neural2-female, standard..."
+                        placeholder="vi-VN-Standard-A, en-US-Neural2-F..."
                         value={newVoiceName}
                         onChange={(e) => setNewVoiceName(e.target.value)}
                       />
-                      <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>
-                        Tự động cấu hình chuẩn theo Google TTS.
-                      </span>
                     </div>
 
                     <div className="form-group">
@@ -962,16 +968,17 @@ export const AdminLanguagePage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                  {/* Checkbox kích hoạt */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
                     <input
                       type="checkbox"
                       id="chkIsActive"
                       checked={newIsActive}
                       onChange={(e) => setNewIsActive(e.target.checked)}
-                      style={{ width: 16, height: 16, accentColor: 'var(--accent-gold)' }}
+                      style={{ width: 16, height: 16, accentColor: 'var(--accent-gold)', cursor: 'pointer' }}
                     />
-                    <label htmlFor="chkIsActive" style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--text-main)' }}>
-                      Kích hoạt ngay trên Client (Khách tham quan có thể chọn ngay)
+                    <label htmlFor="chkIsActive" style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--text-main)', userSelect: 'none' }}>
+                      Kích hoạt hiển thị cho khách tham quan (Client)
                     </label>
                   </div>
                 </div>
@@ -981,17 +988,18 @@ export const AdminLanguagePage: React.FC = () => {
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => setShowAddModal(false)}
+                    disabled={submitting}
                   >
-                    <span>Hủy</span>
+                    Hủy
                   </button>
                   <button
                     type="submit"
                     className="btn btn-primary"
                     disabled={submitting}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
-                    {submitting ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
-                    <span>Thêm ngôn ngữ</span>
+                    {submitting && <RotateCw size={14} className="spin" />}
+                    <span>Lưu ngôn ngữ</span>
                   </button>
                 </div>
               </form>
