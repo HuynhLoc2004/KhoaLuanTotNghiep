@@ -635,7 +635,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Plus size={15} />
-              <span>+ Thêm gian phòng mới</span>
+              <span>Thêm gian phòng mới</span>
             </button>
           </div>
         </div>
@@ -1243,7 +1243,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                           }}
                         >
                           <Plus size={14} />
-                          <span>+ Tạo Phòng</span>
+                          <span>Tạo Phòng</span>
                         </button>
 
                         <button
