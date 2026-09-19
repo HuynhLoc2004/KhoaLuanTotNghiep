@@ -156,10 +156,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [previewPanoUrl, setPreviewPanoUrl] = useState<{ url: string; title: string } | null>(null);
 
-  // Pagination
+  // Pagination (Theo quy tắc chuẩn hệ thống: 5 - 10 - 20 - 30 - 50)
   const [roomPage, setRoomPage] = useState(1);
+  const [roomPageSize, setRoomPageSize] = useState(5);
   const [panoPage, setPanoPage] = useState(1);
-  const PAGE_SIZE = 6;
+  const [panoPageSize, setPanoPageSize] = useState(5);
 
   const fetchPanoramas = async () => {
     try {
@@ -309,8 +310,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     p.filename.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const paginatedRooms = filteredRooms.slice((roomPage - 1) * PAGE_SIZE, roomPage * PAGE_SIZE);
-  const paginatedPanos = filteredPanos.slice((panoPage - 1) * PAGE_SIZE, panoPage * PAGE_SIZE);
+  const paginatedRooms = filteredRooms.slice((roomPage - 1) * roomPageSize, roomPage * roomPageSize);
+  const paginatedPanos = filteredPanos.slice((panoPage - 1) * panoPageSize, panoPage * panoPageSize);
 
   // Real-time Database Metrics (KPI)
   const totalHotspots = rooms.reduce((acc, r) => acc + (r.hotspots?.length || 0), 0);
@@ -973,8 +974,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             <Pagination
               currentPage={roomPage}
               totalItems={filteredRooms.length}
-              pageSize={PAGE_SIZE}
+              pageSize={roomPageSize}
               onPageChange={setRoomPage}
+              onPageSizeChange={(newSize) => {
+                setRoomPageSize(newSize);
+                setRoomPage(1);
+              }}
+              pageSizeOptions={[5, 10, 20, 30, 50]}
               itemLabel="gian phòng"
             />
           </>
@@ -1182,8 +1188,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             <Pagination
               currentPage={panoPage}
               totalItems={filteredPanos.length}
-              pageSize={PAGE_SIZE}
+              pageSize={panoPageSize}
               onPageChange={setPanoPage}
+              onPageSizeChange={(newSize) => {
+                setPanoPageSize(newSize);
+                setPanoPage(1);
+              }}
+              pageSizeOptions={[5, 10, 20, 30, 50]}
               itemLabel="không gian 360°"
             />
           </div>

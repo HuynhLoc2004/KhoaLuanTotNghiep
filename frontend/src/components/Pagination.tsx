@@ -1,11 +1,15 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+export const DEFAULT_PAGE_SIZE_OPTIONS = [5, 10, 20, 30, 50];
+
 interface PaginationProps {
   currentPage: number;
   totalItems: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (newSize: number) => void;
+  pageSizeOptions?: number[];
   className?: string;
   itemLabel?: string;
   hideOnSinglePage?: boolean;
@@ -16,6 +20,8 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalItems,
   pageSize,
   onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   className = '',
   itemLabel = 'mục',
   hideOnSinglePage = false
@@ -52,8 +58,28 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div className={`pagination-container ${className}`}>
-      <div className="pagination-info">
-        Hiển thị <strong>{startItem}</strong> - <strong>{endItem}</strong> trên tổng số <strong>{totalItems}</strong> {itemLabel}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <div className="pagination-info">
+          Hiển thị <strong>{startItem}</strong> - <strong>{endItem}</strong> trên tổng số <strong>{totalItems}</strong> {itemLabel}
+        </div>
+
+        {onPageSizeChange && (
+          <div className="pagination-size-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Mỗi trang:</span>
+            <select
+              className="pagination-size-select"
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              aria-label="Chọn số lượng hiển thị trên mỗi trang"
+            >
+              {pageSizeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt} / trang
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="pagination-controls">

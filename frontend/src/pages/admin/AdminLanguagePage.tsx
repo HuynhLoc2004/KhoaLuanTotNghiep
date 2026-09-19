@@ -23,8 +23,6 @@ import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination } from '../../components/Pagination';
 
-const PAGE_SIZE = 5;
-
 export const AdminLanguagePage: React.FC = () => {
   const { showToast } = useToast();
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
@@ -33,10 +31,11 @@ export const AdminLanguagePage: React.FC = () => {
   const [testingCode, setTestingCode] = useState<string | null>(null);
   const [previewAudio, setPreviewAudio] = useState<{ url: string; langName: string; flag: string } | null>(null);
 
-  // Search & Filter & Pagination state
+  // Search & Filter & Pagination state (Chuẩn 5 - 10 - 20 - 30 - 50)
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   // Form thêm ngôn ngữ mới
   const [newCode, setNewCode] = useState('');
@@ -243,9 +242,9 @@ export const AdminLanguagePage: React.FC = () => {
 
   // Phân trang dữ liệu
   const paginatedLanguages = useMemo(() => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
-    return filteredLanguages.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [filteredLanguages, currentPage]);
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredLanguages.slice(startIndex, startIndex + pageSize);
+  }, [filteredLanguages, currentPage, pageSize]);
 
   const activeCount = languages.filter((l) => l.isActive).length;
   const activePercent = languages.length > 0 ? Math.round((activeCount / languages.length) * 100) : 0;
@@ -685,12 +684,18 @@ export const AdminLanguagePage: React.FC = () => {
                 ))}
               </div>
 
-              {/* PHÂN TRANG CHUẨN CỦA HỆ THỐNG */}
+              {/* PHÂN TRANG CHUẨN CỦA HỆ THỐNG: 5 - 10 - 20 - 30 - 50 */}
               <Pagination
                 currentPage={currentPage}
                 totalItems={filteredLanguages.length}
-                pageSize={PAGE_SIZE}
+                pageSize={pageSize}
                 onPageChange={setCurrentPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+                pageSizeOptions={[5, 10, 20, 30, 50]}
+                itemLabel="ngôn ngữ"
               />
             </>
           )}

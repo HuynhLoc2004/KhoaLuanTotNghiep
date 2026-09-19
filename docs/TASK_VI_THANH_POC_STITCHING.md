@@ -139,7 +139,8 @@
 * **Hiện trạng**: Danh sách "Thư viện không gian 360° đã tạo" cần đảm bảo áp dụng đúng chuẩn phân trang của toàn hệ thống Admin (`Pagination.tsx`).
 * **Giải pháp cần làm**:
   - Sử dụng component `frontend/src/components/Pagination.tsx`.
-  - Cấu hình kích thước trang: 6 - 8 ảnh / trang.
+  - **Áp dụng chuẩn bậc chung toàn hệ thống Admin: 5 - 10 - 20 - 30 - 50 ảnh/trang** (tuyệt đối không dùng các con số tùy tiện như 3, 6, 8...).
+  - Truyền `pageSizeOptions={[5, 10, 20, 30, 50]}` và hàm `onPageSizeChange` để Admin chủ động chọn số lượng ảnh hiển thị mỗi trang.
   - Hiển thị dòng thông báo: *"Hiển thị X - Y trên tổng số Z ảnh 360°"* kèm các nút chuyển trang đẹp mắt, đồng bộ màu vàng đồng di sản.
 
 ---

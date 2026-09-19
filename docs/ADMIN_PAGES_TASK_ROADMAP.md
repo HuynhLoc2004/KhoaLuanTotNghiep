@@ -13,11 +13,12 @@
    - **Màu điểm nhấn (Accent)**: Vàng kim hoàng gia / Đồng thau cổ (`var(--accent-gold)` - `#D4A86A` / `#B47D28`).
    - **Màu thương hiệu (Primary)**: Đỏ sơn son / Gạch ngói cổ (`var(--primary)` - `#8C2D19` / `#C85A32`).
    - ⚠️ **Tuyệt đối KHÔNG sử dụng màu xanh lá cây neon/AI sáng chói (`#10B981`, `#22C55E`)**: Mọi huy hiệu hoạt động/trực tuyến/active phải dùng tone Vàng đồng (`var(--accent-gold)`) hoặc ngọc bích cổ trầm dịu nhẹ (`#7F9E87`).
-2. **Quy tắc Phân trang (`Pagination`)**:
+2. **Quy tắc Phân trang Chuẩn Hệ thống (`Pagination`)**:
    - Sử dụng component phân trang dùng chung của hệ thống: `Pagination.tsx`.
-   - Quy định kích thước trang: 5 - 10 mục/trang tùy loại dữ liệu.
-   - Luôn hiển thị thông tin rõ ràng: *"Hiển thị X - Y trên tổng số Z mục"* kèm nút lật trang mượt mà.
-   - Tự động nhảy về Trang 1 khi người dùng lọc hoặc tìm kiếm.
+   - **Bắt buộc phân trang theo chuẩn bậc chung toàn bộ hệ thống: 5 - 10 - 20 - 30 - 50 mục/trang** (tuyệt đối không dùng các con số tùy tiện như 3, 6, 8...).
+   - Component `Pagination.tsx` tích hợp sẵn bộ chọn số lượng hiển thị (`Page Size Selector`: 5, 10, 20, 30, 50 / trang).
+   - Luôn hiển thị thanh phân trang trang trọng khi có dữ liệu: *"Hiển thị X - Y trên tổng số Z mục (kèm tên đối tượng: gian phòng, ngôn ngữ, hiện vật...)"* và cụm điều hướng `[Trước] [1] [2]... [Sau]`.
+   - Tự động nhảy về Trang 1 khi người dùng thay đổi số lượng phần tử / trang, tìm kiếm hoặc lọc chuyên đề.
 3. **Quy tắc Phân loại & Bộ lọc (`Filter & Category`)**:
    - Mỗi trang quản trị dữ liệu đều phải có Toolbar gồm:
      - Ô tìm kiếm từ khóa tức thì (Search input với icon kính lúp và nút xóa nhanh).
@@ -34,9 +35,9 @@
 
 | STT | Tên Trang Admin | File Mã Nguồn | Phân Loại | Phân Trang | Giao Diện Di Sản | Responsive Mobile | Trạng Thái |
 |:---:|:---|:---|:---:|:---:|:---:|:---:|:---:|
-| 1 | **Quản trị Ngôn ngữ & Voice AI** | `AdminLanguagePage.tsx` | ✅ Đã có | ✅ 5 mục/trang | ✅ Vàng đồng chuẩn | ✅ Bảng + Thẻ mobile | `HOÀN THÀNH` |
-| 2 | **Gian trưng bày & Tour 360** | `AdminRoomsPage.tsx` | ✅ Đã có | ✅ Đã có | ✅ Vàng đồng chuẩn | ✅ Bố cục gọn | `HOÀN THÀNH` |
-| 3 | **Xưởng Ghép Ảnh 360° Studio** | `PocStitchingPage.tsx` | 📋 Cần thêm | ✅ Đã có | ⏳ Cần đồng bộ màu | ⏳ Cần tối ưu mobile | `ĐANG SỬA ĐỔI` |
+| 1 | **Quản trị Ngôn ngữ & Voice AI** | `AdminLanguagePage.tsx` | ✅ Đã có | ✅ 5-10-20-30-50 | ✅ Vàng đồng chuẩn | ✅ Bảng + Thẻ mobile | `HOÀN THÀNH` |
+| 2 | **Gian trưng bày & Tour 360** | `AdminRoomsPage.tsx` | ✅ Đã có | ✅ 5-10-20-30-50 | ✅ Vàng đồng chuẩn | ✅ Bố cục gọn | `HOÀN THÀNH` |
+| 3 | **Xưởng Ghép Ảnh 360° Studio** | `PocStitchingPage.tsx` | 📋 Cần thêm | 📋 5-10-20-30-50 (Task Vĩ Thành) | ⏳ Cần đồng bộ màu | ⏳ Cần tối ưu mobile | `ĐANG SỬA ĐỔI` |
 | 4 | **Studio Cắm Hotspot Tour 360** | `AdminPanoramaStudio.tsx` | 📋 Cần thêm | 📋 Cần thêm | ⏳ Cần tinh chỉnh | ⏳ Cần tối ưu tablet | `ĐANG SỬA ĐỔI` |
 | 5 | **Quản lý Hiện vật & Cổ vật** | `AdminArtifactsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
 | 6 | **Báo cáo & Thống kê Lượt xem** | `AdminAnalyticsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
@@ -58,7 +59,7 @@
   - [x] **Layout & Thẩm mỹ**: Thiết kế lại toàn diện theo tone màu Vàng Đồng Hoàng Gia (`var(--accent-gold)`), loại bỏ màu xanh lá AI sáng chói.
   - [x] **Thẻ chỉ số KPI**: 3 thẻ thông số trực quan (Tổng ngôn ngữ, Đang hiển thị với thanh tiến trình %, Bộ máy Voice AI Pre-rendered).
   - [x] **Tìm kiếm & Phân loại**: Ô tìm kiếm theo tên bản ngữ, tên tiếng Anh, mã ISO + Dropdown lọc trạng thái (Tất cả / Đang hiển thị / Đang tạm tắt).
-  - [x] **Phân trang**: Tích hợp component `Pagination` chuẩn (5 mục/trang), tự động quay về trang 1 khi lọc.
+  - [x] **Phân trang Chuẩn 5-10-20-30-50**: Tích hợp component `Pagination` chuẩn kèm bộ chọn kích thước trang (5, 10, 20, 30, 50 / trang), tự động quay về trang 1 khi lọc hoặc đổi cỡ trang.
   - [x] **Banner Nghe thử**: Thanh phát audio có hiệu ứng sóng âm Equalizer động khi bấm "Thử giọng".
   - [x] **Responsive**: Bảng cuộn ngang tự nhiên trên Desktop/Tablet, tự chuyển sang danh sách thẻ trên Mobile.
   - [ ] **Hạng mục nâng cấp tiếp theo**: Bổ sung bộ chỉnh tham số nâng cao (Pitch/Speed) và công cụ tự động dịch nhanh bản mô tả phòng khi thêm ngôn ngữ mới.
@@ -73,7 +74,7 @@
   - Tạo mới & cập nhật gian phòng với trải nghiệm mượt mà, hỗ trợ chọn ảnh trực tiếp từ kho 360°.
 - **Tiến độ & Các hạng mục chi tiết cần làm**:
   - [x] Hỗ trợ 2 Sub-tab: "Danh sách Gian phòng" và "Kho Không Gian 360° Đã Ghép".
-  - [x] Đã có phân trang `Pagination` ở cả 2 tab.
+  - [x] **Phân trang Chuẩn 5-10-20-30-50**: Tích hợp component `Pagination` chuẩn hệ thống kèm bộ chọn 5, 10, 20, 30, 50 / trang cho cả 2 Sub-tab ("Danh sách Gian phòng" và "Kho Không Gian 360° Đã Ghép").
   - [x] **[Nhiệm vụ 1] Tinh gọn Bố cục Thẻ (KPI Cards & Room Cards)**:
     - Thu nhỏ các thẻ KPI trên cùng (gọn gàng, thanh thoát theo chuẩn thẩm mỹ bảo tàng, padding 12px 16px, số liệu 20px).
     - Tinh chỉnh thẻ gian phòng (Room Card): Chiều cao vừa phải, ảnh đại diện thumbnail 135px, gom gọn các nút thao tác vào 1 hàng duy nhất, giảm hơn 100px chiều cao card.
