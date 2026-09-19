@@ -738,17 +738,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         </span>
                       </div>
 
-                      {/* Action buttons 1 tầng gọn gàng, thanh thoát */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 8, marginTop: 'auto', borderTop: '1px solid var(--border-color)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {/* Action buttons 2 hàng thoáng đãng, không bị chèn ép chữ */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 10, marginTop: 'auto', borderTop: '1px solid var(--border-color)' }}>
+                        {/* Hàng 1: Hai nút chức năng chính */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <button
                             type="button"
                             className="btn btn-primary btn-sm"
                             onClick={() => onOpenStudio(room)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: '12px' }}
+                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '7px 10px', fontSize: '12px', fontWeight: 600 }}
                             title="Mở trình biên tập ghim Hotspots 360°"
                           >
-                            <Compass size={13} />
+                            <Compass size={14} />
                             <span>Biên tập 360</span>
                           </button>
 
@@ -756,23 +757,25 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenAiDrawer(room)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', fontSize: '12px' }}
+                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '7px 10px', fontSize: '12px', fontWeight: 600 }}
                             title="Thuyết minh & Trợ lý ảo cho gian phòng"
                           >
-                            <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
+                            <Volume2 size={14} style={{ color: 'var(--accent-gold)' }} />
                             <span>Thuyết minh</span>
                           </button>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {/* Hàng 2: Nút công cụ phụ */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
                             title="Tải mã QR Standee phòng này"
                             onClick={() => handleOpenQrModal(room)}
-                            style={{ padding: '5px 8px' }}
+                            style={{ flex: 1, justifyContent: 'center', padding: '5px 8px', fontSize: '11.5px', whiteSpace: 'nowrap' }}
                           >
                             <QrCode size={13} />
+                            <span>Mã QR</span>
                           </button>
 
                           <button
@@ -780,9 +783,10 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             className="btn btn-secondary btn-sm"
                             title="Chỉnh sửa thông tin phòng"
                             onClick={() => setEditingRoom(room)}
-                            style={{ padding: '5px 8px' }}
+                            style={{ padding: '5px 12px', fontSize: '11.5px', whiteSpace: 'nowrap' }}
                           >
                             <Edit3 size={13} />
+                            <span>Sửa</span>
                           </button>
 
                           <button
@@ -796,9 +800,10 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                                 () => onDeleteRoom(room.id)
                               );
                             }}
-                            style={{ padding: '5px 8px', color: 'var(--error)' }}
+                            style={{ padding: '5px 10px', color: 'var(--error)', fontSize: '11.5px', whiteSpace: 'nowrap' }}
                           >
                             <Trash2 size={13} />
+                            <span>Xóa</span>
                           </button>
                         </div>
                       </div>

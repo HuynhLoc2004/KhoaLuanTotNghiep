@@ -356,9 +356,10 @@
 
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 18px;
-  padding: 18px 20px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 390px));
+  gap: 20px;
+  padding: 20px;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
