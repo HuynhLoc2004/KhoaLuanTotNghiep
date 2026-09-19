@@ -975,6 +975,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               totalItems={filteredRooms.length}
               pageSize={PAGE_SIZE}
               onPageChange={setRoomPage}
+              itemLabel="gian phòng"
             />
           </>
         )}
@@ -1183,6 +1184,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               totalItems={filteredPanos.length}
               pageSize={PAGE_SIZE}
               onPageChange={setPanoPage}
+              itemLabel="không gian 360°"
             />
           </div>
         )}

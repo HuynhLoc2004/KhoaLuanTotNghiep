@@ -7,6 +7,8 @@ interface PaginationProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   className?: string;
+  itemLabel?: string;
+  hideOnSinglePage?: boolean;
 }
 
 export const Pagination: React.FC<PaginationProps> = ({
@@ -14,11 +16,14 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalItems,
   pageSize,
   onPageChange,
-  className = ''
+  className = '',
+  itemLabel = 'mục',
+  hideOnSinglePage = false
 }) => {
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-  if (totalPages <= 1) return null;
+  if (totalItems <= 0) return null;
+  if (hideOnSinglePage && totalPages <= 1) return null;
 
   const startItem = Math.min((currentPage - 1) * pageSize + 1, totalItems);
   const endItem = Math.min(currentPage * pageSize, totalItems);
@@ -48,7 +53,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   return (
     <div className={`pagination-container ${className}`}>
       <div className="pagination-info">
-        Hiển thị <strong>{startItem}</strong> - <strong>{endItem}</strong> trên <strong>{totalItems}</strong> mục
+        Hiển thị <strong>{startItem}</strong> - <strong>{endItem}</strong> trên tổng số <strong>{totalItems}</strong> {itemLabel}
       </div>
 
       <div className="pagination-controls">
