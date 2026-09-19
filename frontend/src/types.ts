@@ -13,6 +13,7 @@ export interface MuseumRoom {
   code: string;
   name: string;
   period: string;
+  category?: string;
   description: string;
   panoramaUrl: string;
   thumbnailUrl: string;
@@ -24,6 +25,12 @@ export interface MuseumRoom {
   hotspots: Hotspot[];
   orderIndex: number;
   active: boolean;
+  aiVoiceEnabled?: boolean;
+  aiKnowledgePrompt?: string;
+  aiScript?: string;
+  aiVoiceLang?: string;
+  qrScanCount?: number;
+  scenesCount?: number;
   createdAt: string;
   updatedAt: string;
 }

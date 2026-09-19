@@ -15,6 +15,7 @@ export interface IRoom extends Document {
   code: string;
   name: string;
   period: string;
+  category?: string;
   description: string;
   panoramaUrl: string;
   thumbnailUrl: string;
@@ -26,6 +27,12 @@ export interface IRoom extends Document {
   hotspots: IHotspot[];
   orderIndex: number;
   active: boolean;
+  aiVoiceEnabled?: boolean;
+  aiKnowledgePrompt?: string;
+  aiScript?: string;
+  aiVoiceLang?: string;
+  qrScanCount?: number;
+  scenesCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,7 +51,8 @@ const RoomSchema = new Schema<IRoom>({
   id: { type: String, required: true, unique: true },
   code: { type: String, required: true },
   name: { type: String, required: true },
-  period: { type: String, default: 'Hiện vật Lịch sử' },
+  period: { type: String, default: 'Tiến trình Lịch sử VN' },
+  category: { type: String, default: 'Tiến trình Lịch sử VN' },
   description: { type: String, default: '' },
   panoramaUrl: { type: String, required: true },
   thumbnailUrl: { type: String, required: true },
@@ -55,7 +63,13 @@ const RoomSchema = new Schema<IRoom>({
   },
   hotspots: [HotspotSchema],
   orderIndex: { type: Number, default: 1 },
-  active: { type: Boolean, default: true }
+  active: { type: Boolean, default: true },
+  aiVoiceEnabled: { type: Boolean, default: false },
+  aiKnowledgePrompt: { type: String, default: '' },
+  aiScript: { type: String, default: '' },
+  aiVoiceLang: { type: String, default: 'vi-south' },
+  qrScanCount: { type: Number, default: 0 },
+  scenesCount: { type: Number, default: 1 }
 }, {
   timestamps: true,
   toJSON: {

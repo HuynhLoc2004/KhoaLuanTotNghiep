@@ -130,6 +130,54 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
               </div>
             )}
 
+            {/* Chọn nhanh mẫu phòng Bảo tàng Lịch sử TP.HCM */}
+            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>🏛️ Mẫu phòng thực tế (Bảo tàng Lịch sử TP.HCM)</span>
+              </div>
+              <select
+                className="form-control"
+                style={{ fontSize: '12.5px', background: 'var(--bg-surface)' }}
+                defaultValue=""
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'P-01') {
+                    setCode('P-01');
+                    setName('Khảo cổ học Tiền - Sơ sử Việt Nam');
+                    setPeriod('Tiến trình Lịch sử VN');
+                    setDescription('Trưng bày các di chỉ khảo cổ học quan trọng từ Thời Đồ Đá Cũ, Đồ Đá Mới đến Thời Đại Kim Khí Đông Sơn, Sa Huỳnh và Đồng Nai.');
+                  } else if (val === 'P-05') {
+                    setCode('P-05');
+                    setName('Triều đại Nhà Nguyễn & Mỹ thuật Cung đình');
+                    setPeriod('Tiến trình Lịch sử VN');
+                    setDescription('Không gian lưu giữ di sản văn hóa, trang phục hoàng gia, ấn tín cửu đỉnh và nghệ thuật pháp lam dưới triều đại nhà Nguyễn (1802 - 1945).');
+                  } else if (val === 'P-09') {
+                    setCode('P-09');
+                    setName('Di sản Văn hóa Vương quốc Phù Nam - Óc Eo');
+                    setPeriod('Văn hóa Nam Bộ & Cổ vật');
+                    setDescription('Bộ sưu tập độc bản về nền văn minh Phù Nam cổ xưa thế kỷ 1 - 7 sau Công Nguyên phát hiện tại thương cảng cổ Óc Eo (An Giang) và đồng bằng Nam Bộ.');
+                  } else if (val === 'P-12') {
+                    setCode('P-12');
+                    setName('Điêu khắc Phật giáo & Ấn Độ giáo Champa');
+                    setPeriod('Văn hóa Nam Bộ & Cổ vật');
+                    setDescription('Tuyển tập các kiệt tác điêu khắc sa thạch Champa từ thế kỷ 7 đến thế kỷ 13 với phong cách Mỹ Sơn, Đồng Dương và Tháp Mẫm.');
+                  } else if (val === 'P-16') {
+                    setCode('P-16');
+                    setName('Bộ sưu tập Cổ vật Vương Hồng Sển');
+                    setPeriod('Sưu tập Đặc biệt');
+                    setDescription('Toàn bộ cổ vật quý hiếm do học giả nhà khảo cổ Vương Hồng Sển hiến tặng cho nhà nước năm 1996, gồm gốm men lam, đồ đồng cổ và tượng cổ.');
+                  }
+                }}
+              >
+                <option value="">-- Bấm vào đây để chọn nhanh mẫu phòng hoặc tự nhập bên dưới --</option>
+                <option value="P-01">P-01: Khảo cổ học Tiền - Sơ sử Việt Nam (Tiến trình Lịch sử VN)</option>
+                <option value="P-05">P-05: Triều đại Nhà Nguyễn & Mỹ thuật Cung đình (Tiến trình Lịch sử VN)</option>
+                <option value="P-09">P-09: Di sản Văn hóa Vương quốc Phù Nam - Óc Eo (Văn hóa Nam Bộ & Cổ vật)</option>
+                <option value="P-12">P-12: Điêu khắc Phật giáo & Ấn Độ giáo Champa (Văn hóa Nam Bộ & Cổ vật)</option>
+                <option value="P-16">P-16: Bộ sưu tập Cổ vật Vương Hồng Sển (Sưu tập Đặc biệt)</option>
+              </select>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
               <div className="form-group">
                 <label className="form-label">Mã phòng</label>

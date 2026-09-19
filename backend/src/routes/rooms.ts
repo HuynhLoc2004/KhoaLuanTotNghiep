@@ -42,7 +42,22 @@ roomsRouter.get('/:id', async (req: Request, res: Response) => {
 // CREATE room
 roomsRouter.post('/', async (req: Request, res: Response) => {
   try {
-    const { code, name, period, description, panoramaUrl, thumbnailUrl, initialView } = req.body;
+    const {
+      code,
+      name,
+      period,
+      category,
+      description,
+      panoramaUrl,
+      thumbnailUrl,
+      initialView,
+      aiVoiceEnabled,
+      aiKnowledgePrompt,
+      aiScript,
+      aiVoiceLang,
+      scenesCount,
+      qrScanCount
+    } = req.body;
     if (!name || !panoramaUrl) {
       return res.status(400).json({ success: false, message: 'Tên gian phòng và đường dẫn ảnh 360 là bắt buộc' });
     }
@@ -53,14 +68,21 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
       id: newId,
       code: code || `P-${100 + count + 1}`,
       name,
-      period: period || 'Hiện vật Lịch sử',
+      period: period || 'Tiến trình Lịch sử VN',
+      category: category || period || 'Tiến trình Lịch sử VN',
       description: description || '',
       panoramaUrl,
       thumbnailUrl: thumbnailUrl || panoramaUrl,
       initialView: initialView || { pitch: 0, yaw: 0, fov: 90 },
       hotspots: [],
       orderIndex: count + 1,
-      active: true
+      active: true,
+      aiVoiceEnabled: !!aiVoiceEnabled,
+      aiKnowledgePrompt: aiKnowledgePrompt || '',
+      aiScript: aiScript || '',
+      aiVoiceLang: aiVoiceLang || 'vi-south',
+      qrScanCount: qrScanCount || 0,
+      scenesCount: scenesCount || 1
     });
 
     await cacheDel('rooms:all');

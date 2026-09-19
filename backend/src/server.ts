@@ -22,8 +22,8 @@ app.use(cors({
   allowedHeaders: ['*']
 }));
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // Serve static uploads with explicit CORS for WebGL & Canvas textures
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads'), {
