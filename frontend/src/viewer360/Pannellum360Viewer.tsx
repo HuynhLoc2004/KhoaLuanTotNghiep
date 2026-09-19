@@ -56,7 +56,16 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   const containerId = useRef(`pannellum-container-${Math.random().toString(36).substring(2, 9)}`);
   const hasIntroducedRef = useRef<string | null>(null);
   const introTimerRef = useRef<any>(null);
-  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+
+  const isPinModeRef = useRef(isPinMode);
+  useEffect(() => {
+    isPinModeRef.current = isPinMode;
+  }, [isPinMode]);
+
+  const onCanvasPinClickRef = useRef(onCanvasPinClick);
+  useEffect(() => {
+    onCanvasPinClickRef.current = onCanvasPinClick;
+  }, [onCanvasPinClick]);
 
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [isLittlePlanet, setIsLittlePlanet] = useState(false);
@@ -123,10 +132,6 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       yaw: hs.yaw,
       type: hs.type || 'info',
       text: hs.text,
-      clickHandlerFunc: () => {
-        if (onHotspotClick) onHotspotClick(hs);
-        if (hs.onClick) hs.onClick();
-      },
       createTooltipFunc: (hotSpotDiv: HTMLElement) => {
         hotSpotDiv.classList.add('custom-hotspot-badge');
         hotSpotDiv.style.pointerEvents = 'auto';
@@ -153,21 +158,25 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           `;
         }
 
+        let lastClickTime = 0;
         const onTrigger = (e: Event) => {
+          // Khi đang ở chế độ cắm điểm mới, hoàn toàn không kích hoạt hotspot cũ
+          if (isPinModeRef.current) return;
+
           e.stopPropagation();
           e.preventDefault();
-          console.log('[Hotspot Navigation Clicked]:', hs);
-          if (onHotspotClick) onHotspotClick(hs);
-          if (hs.onClick) hs.onClick();
+          const now = Date.now();
+          if (now - lastClickTime < 500) return; // Debounce 500ms
+          lastClickTime = now;
+
+          if (onHotspotClick) {
+            onHotspotClick(hs);
+          } else if (hs.onClick) {
+            hs.onClick();
+          }
         };
 
         hotSpotDiv.onclick = onTrigger;
-        hotSpotDiv.onpointerup = onTrigger;
-        if (hotSpotDiv.parentElement) {
-          hotSpotDiv.parentElement.style.pointerEvents = 'auto';
-          hotSpotDiv.parentElement.style.cursor = 'pointer';
-          hotSpotDiv.parentElement.onclick = onTrigger;
-        }
       }
     }));
 
@@ -323,41 +332,60 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     }
   };
 
-  // Studio: Bắt sự kiện click lên ảnh để ghim tọa độ Hotspot
-  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isPinMode || !viewerRef.current || !onCanvasPinClick) return;
+  // Studio: Bắt sự kiện click lên ảnh để ghim tọa độ Hotspot bằng capture phase listener
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-    // Phân biệt kéo xoay camera và click ghim: nếu rê chuột > 6px thì bỏ qua không ghim
-    if (pointerDownPos.current) {
-      const dist = Math.hypot(
-        e.clientX - pointerDownPos.current.x,
-        e.clientY - pointerDownPos.current.y
-      );
-      if (dist > 6) return;
-    }
+    let downPos: { x: number; y: number } | null = null;
 
-    const target = e.target as HTMLElement;
-    if (
-      target.closest('.glass-toolbar') ||
-      target.closest('.custom-hotspot-badge') ||
-      target.closest('.studio-pin-banner') ||
-      target.closest('.top-title-banner')
-    ) {
-      return;
-    }
-    try {
-      const coords = viewerRef.current.mouseEventToCoords(e.nativeEvent);
-      if (coords && coords.length === 2) {
-        const [pitch, yaw] = coords;
-        onCanvasPinClick({
-          pitch: Math.round(pitch * 10) / 10,
-          yaw: Math.round(yaw * 10) / 10
-        });
+    const handleNativePointerDown = (e: PointerEvent) => {
+      downPos = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleNativePointerUp = (e: PointerEvent) => {
+      if (!isPinModeRef.current || !viewerRef.current || !onCanvasPinClickRef.current || !downPos) return;
+
+      const dist = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
+      downPos = null;
+
+      // Click jitter tolerance: nếu rê chuột > 10px thì là kéo xoay camera, bỏ qua không ghim
+      if (dist > 10) return;
+
+      const target = e.target as HTMLElement;
+      if (
+        target.closest('.glass-toolbar') ||
+        target.closest('.studio-pin-banner') ||
+        target.closest('.top-title-banner') ||
+        target.closest('button')
+      ) {
+        return;
       }
-    } catch (err) {
-      console.error('[Pannellum Pin Click Error]:', err);
-    }
-  };
+
+      try {
+        const coords = viewerRef.current.mouseEventToCoords(e);
+        if (coords && coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+          const [pitch, yaw] = coords;
+          e.stopPropagation();
+          e.preventDefault();
+          onCanvasPinClickRef.current({
+            pitch: Math.round(pitch * 10) / 10,
+            yaw: Math.round(yaw * 10) / 10
+          });
+        }
+      } catch (err) {
+        console.error('[Pannellum Pin Click Error]:', err);
+      }
+    };
+
+    container.addEventListener('pointerdown', handleNativePointerDown, { capture: true });
+    container.addEventListener('pointerup', handleNativePointerUp, { capture: true });
+
+    return () => {
+      container.removeEventListener('pointerdown', handleNativePointerDown, { capture: true });
+      container.removeEventListener('pointerup', handleNativePointerUp, { capture: true });
+    };
+  }, []);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -541,6 +569,16 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         .glass-btn.active {
           background: #2563EB;
           box-shadow: 0 0 12px rgba(37, 99, 235, 0.7);
+        }
+        .studio-pin-mode-active .pnlm-hotspot-base,
+        .studio-pin-mode-active .custom-hotspot-badge,
+        .studio-pin-mode-active .walking-arrow-hotspot {
+          pointer-events: none !important;
+          opacity: 0.5 !important;
+          filter: grayscale(0.5);
+          cursor: crosshair !important;
+        }
+
         @media (max-width: 600px) {
           .glass-toolbar {
             padding: 5px 8px !important;
@@ -566,10 +604,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       <div
         id={containerId.current}
         ref={containerRef}
-        onPointerDown={(e) => {
-          pointerDownPos.current = { x: e.clientX, y: e.clientY };
-        }}
-        onClick={handleContainerClick}
+        className={isPinMode ? 'studio-pin-mode-active' : ''}
         style={{
           width: '100%',
           height: '100%',
@@ -653,36 +688,37 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 30,
-            background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
-            border: '1.5px solid #FECACA',
-            color: '#FFFFFF',
-            padding: '8px 18px',
-            borderRadius: '30px',
-            fontSize: 13,
-            fontWeight: 700,
+            background: 'rgba(36, 32, 29, 0.95)',
+            border: '1.5px solid var(--accent-gold)',
+            color: '#EDE5DF',
+            padding: '7px 18px',
+            borderRadius: '24px',
+            fontSize: 12.5,
+            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            boxShadow: '0 8px 24px rgba(220, 38, 38, 0.5)',
-            pointerEvents: 'auto'
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'auto',
+            backdropFilter: 'blur(8px)'
           }}
         >
-          <MapPin size={15} />
-          <span>Chế độ ghim đang BẬT: Nhấp chuột lên vị trí cửa/lối đi để gắn Mũi tên</span>
+          <MapPin size={15} style={{ color: 'var(--accent-gold)' }} />
+          <span>Nhấp chuột lên vị trí bất kỳ trên ảnh để đặt điểm</span>
           {onTogglePinMode && (
             <button
               type="button"
               onClick={onTogglePinMode}
               style={{
-                background: 'rgba(255, 255, 255, 0.25)',
-                border: 'none',
-                color: '#FFF',
+                background: 'rgba(212, 168, 106, 0.15)',
+                border: '1px solid rgba(212, 168, 106, 0.35)',
+                color: 'var(--accent-gold)',
                 borderRadius: '12px',
-                padding: '3px 10px',
+                padding: '2px 10px',
                 cursor: 'pointer',
                 fontWeight: 600,
-                fontSize: '11.5px',
-                marginLeft: 6
+                fontSize: '11px',
+                marginLeft: 4
               }}
             >
               Hủy ghim

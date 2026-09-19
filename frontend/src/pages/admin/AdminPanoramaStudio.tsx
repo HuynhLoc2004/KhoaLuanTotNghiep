@@ -117,6 +117,9 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
 
   // When admin clicks an existing hotspot in viewer
   const handleHotspotClick = (hs: Hotspot) => {
+    // Nếu đang ở chế độ cắm điểm mới, hoàn toàn bỏ qua không kích hoạt hotspot cũ
+    if (isPinMode) return;
+
     if (hs.type === 'navigation' && hs.targetRoomId) {
       const target = allRooms.find((r) => r.id === hs.targetRoomId || String(r.id) === String(hs.targetRoomId));
       setTransitionText(target ? target.name : 'gian phòng tiếp theo');
@@ -133,7 +136,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         }, 450);
       }, 350);
     } else {
-      showToast(`[Thông tin di sản]: ${hs.title} - ${hs.description || ''}`, 'info');
+      showToast(`[Thông tin]: ${hs.title}${hs.description ? ` - ${hs.description}` : ''}`, 'info');
     }
   };
 
@@ -178,7 +181,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     }
   };
 
-  // Update Panorama URL manually
+  // Manually update panorama URL
   const handleUpdatePanoUrl = async () => {
     if (!panoInputUrl.trim()) return;
     try {
@@ -187,6 +190,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         thumbnailUrl: panoInputUrl.trim()
       });
       onRoomUpdated(updated);
+      setShowUrlInput(false);
       setSaveSuccess(true);
       showToast('Cập nhật liên kết ảnh 360° thành công', 'success');
       setTimeout(() => setSaveSuccess(false), 2500);
@@ -201,8 +205,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     yaw: h.yaw,
     type: 'info',
     text: h.title,
-    roomId: h.targetRoomId,
-    onClick: () => handleHotspotClick(h)
+    roomId: h.targetRoomId
   }));
 
   return (
