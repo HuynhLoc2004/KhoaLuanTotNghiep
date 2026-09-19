@@ -75,24 +75,25 @@
   --accent-gold-light: rgba(212, 168, 106, 0.10);
   --accent-gold-border: rgba(212, 168, 106, 0.22);
 
-  --bg-page: #17120E;
-  --bg-surface: #221A15;
-  --bg-subtle: #2B211B;
-  --bg-card-header: #1C1511;
+  /* Nền trang dịu mắt, ấm áp thanh lịch (Soft Heritage Charcoal & Warm Stone) */
+  --bg-page: #1A1715;
+  --bg-surface: #24201D;
+  --bg-subtle: #2C2723;
+  --bg-card-header: #1F1B18;
 
-  --btn-secondary-bg: #281F1A;
-  --btn-secondary-border: #3D3027;
-  --btn-secondary-hover: #332821;
-  --btn-secondary-hover-border: #4F3F34;
+  --btn-secondary-bg: #292420;
+  --btn-secondary-border: #3D3630;
+  --btn-secondary-hover: #332D28;
+  --btn-secondary-hover-border: #4A423A;
   --btn-secondary-text: #EDE5DF;
 
-  --heading-color: #F5EFEB;
-  --text-main: #EDE5DF;
-  --text-muted: #9E9184;
-  --text-light: #7A6F64;
+  --heading-color: #F4EFEB;
+  --text-main: #EBE5DF;
+  --text-muted: #A3978C;
+  --text-light: #7E7368;
 
-  --border-color: #342821;
-  --border-dark: #45352C;
+  --border-color: #362F29;
+  --border-dark: #473E36;
 
   --success: #7F9E87;
   --success-bg: rgba(127, 158, 135, 0.12);
