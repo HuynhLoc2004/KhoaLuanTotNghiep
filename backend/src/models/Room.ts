@@ -10,6 +10,16 @@ export interface IHotspot {
   yaw: number;
 }
 
+export interface IRoomTranslation {
+  name?: string;
+  period?: string;
+  category?: string;
+  description?: string;
+  narrationScript?: string;
+  audioUrl?: string;
+  aiKnowledgePrompt?: string;
+}
+
 export interface IRoom extends Document {
   id: string;
   code: string;
@@ -33,6 +43,7 @@ export interface IRoom extends Document {
   aiVoiceLang?: string;
   qrScanCount?: number;
   scenesCount?: number;
+  translations?: Record<string, IRoomTranslation>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,7 +80,20 @@ const RoomSchema = new Schema<IRoom>({
   aiScript: { type: String, default: '' },
   aiVoiceLang: { type: String, default: 'vi-south' },
   qrScanCount: { type: Number, default: 0 },
-  scenesCount: { type: Number, default: 1 }
+  scenesCount: { type: Number, default: 1 },
+  translations: {
+    type: Map,
+    of: new Schema({
+      name: { type: String },
+      period: { type: String },
+      category: { type: String },
+      description: { type: String },
+      narrationScript: { type: String },
+      audioUrl: { type: String },
+      aiKnowledgePrompt: { type: String }
+    }, { _id: false }),
+    default: {}
+  }
 }, {
   timestamps: true,
   toJSON: {

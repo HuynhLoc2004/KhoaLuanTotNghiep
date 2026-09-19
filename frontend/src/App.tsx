@@ -11,6 +11,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
 
 import { PocStitchingPage } from './pages/PocStitchingPage';
+import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 
 const AppContent: React.FC = () => {
   const { showToast } = useToast();
@@ -207,6 +208,8 @@ const AppContent: React.FC = () => {
             onRoomUpdated={handleRoomUpdated}
             onDeleteRoom={handleDeleteRoom}
           />
+        ) : currentTab === 'languages' ? (
+          <AdminLanguagePage />
         ) : (
           <div className="admin-content">
             <div className="panel" style={{ padding: 40, textAlign: 'center' }}>

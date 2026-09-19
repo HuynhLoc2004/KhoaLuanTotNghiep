@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X } from 'lucide-react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages } from 'lucide-react';
 import { AdminTab } from '../types';
 
 interface SidebarProps {
@@ -77,6 +77,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Box size={16} />
           <span>Hiện vật & Cổ vật di sản</span>
+        </button>
+
+        <button
+          className={`nav-item ${currentTab === 'languages' ? 'active' : ''}`}
+          onClick={() => handleItemClick('languages')}
+        >
+          <Languages size={16} />
+          <span>Quản trị Ngôn ngữ & Voice AI</span>
         </button>
 
         <button

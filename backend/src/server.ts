@@ -8,6 +8,8 @@ import { connectMongoDB } from './db/mongodb.js';
 
 import { stitchRouter } from './routes/stitch.js';
 import { mailRouter } from './routes/mail.js';
+import { languagesRouter } from './routes/languages.js';
+import { seedDefaultLanguages } from './models/Language.js';
 import { getRedisStatus } from './services/redis.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
@@ -39,6 +41,7 @@ app.use('/api/rooms', roomsRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/stitch', stitchRouter);
 app.use('/api/mail', mailRouter);
+app.use('/api/languages', languagesRouter);
 
 // Health check with real statuses
 app.get('/api/health', (req, res) => {
@@ -75,7 +78,8 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Connect Real Database and Start Server
-connectMongoDB().then(() => {
+connectMongoDB().then(async () => {
+  await seedDefaultLanguages();
   app.listen(PORT, () => {
     console.log(`[Bảo tàng Lịch sử TP.HCM API] Máy chủ chạy tại http://localhost:${PORT}`);
   });

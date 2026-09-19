@@ -86,3 +86,10 @@ Giao diện Client được chia nhỏ thành các Khối (Sections), Admin có 
 * **NoSQL / SQL Injection Defense**: Chuẩn hóa kiểu dữ liệu nghiêm ngặt, từ chối các toán tử MongoDB độc hại.
 * **Queue Isolation**: Các tác vụ nặng (ghép ảnh 360 OpenCV, sinh giọng đọc TTS) chạy ngầm qua Queue, không bao giờ chặn luồng HTTP chính.
 
+#### 4. Quy tắc Đa ngôn ngữ Động (Dynamic Localization) & Pre-rendered Heritage Voice AI
+* **Dynamic Language Registry (Không Hardcode Ngôn ngữ)**: Client tuyệt đối không fix cứng danh sách ngôn ngữ (`vi`, `en`...). Mọi ngôn ngữ mà Client hiển thị trên Language Selector đều phải tải động từ API `GET /api/languages/active`. Chỉ khi Admin bật `isActive: true` trong trang quản trị, ngôn ngữ đó mới được kích hoạt trên toàn hệ thống.
+* **Pre-rendered Voice AI Thuyết minh (Không sinh thời gian thực tại Client)**: Tránh việc TTS tại trình duyệt client phát âm bậy bạ, méo tiếng hoặc giật lag. Toàn bộ file âm thanh thuyết minh di sản của từng ngôn ngữ đều được Admin tiền kết xuất (pre-render) thành file tĩnh `.mp3` chất lượng cao, lưu trữ lâu dài và gắn trực tiếp vào trường `translations[lang].audioUrl`. Client chỉ việc phát file này với độ trễ 0ms.
+* **Heritage Glossary AI Translation (Bản dịch có kiểm soát sử học)**: Sử dụng mô hình AI kết hợp từ điển thuật ngữ di sản bảo tàng (Óc Eo, Phù Nam, Champa, Tiền sử - Sơ sử, Triều Nguyễn...) để dịch nháp tại Admin. Admin là người duyệt và chỉnh sửa câu từ cuối cùng trước khi lưu vào Database, triệt tiêu nguy cơ hallucination sai lệch lịch sử.
+* **Fallback an toàn**: Nếu một trường thông tin ở ngôn ngữ được chọn chưa có bản dịch, hệ thống tự động fallback về tiếng Việt chuẩn (`vi`), không bao giờ để giao diện bị trống hoặc lỗi.
+
+

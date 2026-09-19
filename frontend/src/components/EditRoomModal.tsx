@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Upload, Image as ImageIcon, Loader2, Check } from 'lucide-react';
-import { MuseumRoom } from '../types';
+import { X, Upload, Image as ImageIcon, Loader2, Check, Globe } from 'lucide-react';
+import { MuseumRoom, RoomTranslation } from '../types';
 import { api } from '../services/api';
+import { LocalizedTabEditor } from './LocalizedTabEditor';
 
 interface EditRoomModalProps {
   room: MuseumRoom;
@@ -17,6 +18,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
   const [panoramaUrl, setPanoramaUrl] = useState(room.panoramaUrl);
   const [qrScanCount, setQrScanCount] = useState(room.qrScanCount || 0);
   const [active, setActive] = useState(room.active !== false);
+  const [translations, setTranslations] = useState<Record<string, RoomTranslation>>(room.translations || {});
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,8 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
         panoramaUrl: panoramaUrl.trim(),
         thumbnailUrl: panoramaUrl.trim(),
         qrScanCount: Number(qrScanCount) || 0,
-        active
+        active,
+        translations
       });
       onUpdated(updated);
     } catch (err: any) {
@@ -67,7 +70,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
 
   return (
     <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1100 }}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 760, width: '92vw' }}>
         <div className="modal-header">
           <h2 className="modal-title">Chỉnh sửa gian phòng: {room.name}</h2>
           <button
@@ -244,6 +247,28 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
                 </div>
               </div>
             )}
+
+            {/* Bộ biên tập Bản dịch Đa ngôn ngữ & Voice AI Thuyết minh */}
+            <div style={{ marginTop: 20, borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+                <Globe size={16} style={{ color: 'var(--primary)' }} />
+                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
+                  Bản dịch Đa ngôn ngữ & Voice AI Thuyết minh Di sản
+                </h3>
+              </div>
+              <LocalizedTabEditor
+                primaryValues={{
+                  name,
+                  period,
+                  description,
+                  narrationScript: room.aiScript || '',
+                  audioUrl: room.aiVoiceEnabled ? room.aiScript : ''
+                }}
+                translations={translations}
+                onChange={setTranslations}
+                roomCode={code}
+              />
+            </div>
           </div>
 
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>

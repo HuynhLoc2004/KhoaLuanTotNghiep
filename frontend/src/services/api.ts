@@ -85,5 +85,72 @@ export const api = {
       url: `http://localhost:3000${json.data.url}`,
       filename: json.data.filename
     };
+  },
+
+  // Language Registry APIs
+  async getLanguages(): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/languages`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải danh mục ngôn ngữ');
+    return json.data;
+  },
+
+  async getActiveLanguages(): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/languages/active`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải danh mục ngôn ngữ kích hoạt');
+    return json.data;
+  },
+
+  async createLanguage(data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/languages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi thêm ngôn ngữ');
+    return json.data;
+  },
+
+  async updateLanguage(code: string, patch: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/languages/${code}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật ngôn ngữ');
+    return json.data;
+  },
+
+  async deleteLanguage(code: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/languages/${code}`, {
+      method: 'DELETE'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi xóa ngôn ngữ');
+  },
+
+  async translateDraft(payload: { targetLang: string; name?: string; period?: string; description?: string; narrationScript?: string }): Promise<any> {
+    const res = await fetch(`${API_BASE}/languages/translate-draft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi dịch thuật AI');
+    return json.data;
+  },
+
+  async generateTtsAudio(payload: { text: string; langCode: string; roomCode?: string }): Promise<{ audioUrl: string; duration: number }> {
+    const res = await fetch(`${API_BASE}/languages/generate-tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi sinh file âm thanh Voice AI');
+    return json;
   }
 };
