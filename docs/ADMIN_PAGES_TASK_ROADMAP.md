@@ -95,18 +95,47 @@
 
 ### 3. Xưởng Ghép Ảnh Toàn Cảnh 360° (Panorama Stitching Studio)
 - **File**: `frontend/src/pages/PocStitchingPage.tsx`
-- **Mục tiêu đạt được**:
-  - Cho phép quản trị viên chụp chuỗi ảnh liên tiếp từ camera điện thoại hoặc tải lên nhiều ảnh từ máy tính.
-  - Tự động phát hiện góc nhìn, cân bằng sáng trong nhà (indoor lighting balance), ghép nối thành ảnh cầu 360° hoàn chỉnh bằng OpenCV SIFT/LoFTR.
-  - Lưu trữ tự động vào MongoDB và kho lưu trữ tĩnh để dùng cho các gian phòng.
-- **Tiến độ chi tiết**:
-  - [x] Đã sửa lỗi crash `undefined is not an object` khi đọc điểm đặc trưng.
-  - [x] Đã cải thiện thuật toán giữ màu tự nhiên, nhận diện tốt trong điều kiện thiếu sáng hoặc chói nắng.
-  - [x] Đã có phân trang lịch sử các ảnh 360° đã ghép.
-  - [ ] **Hạng mục cần sửa đổi/bổ sung**:
-    - [ ] Chuẩn hóa bảng màu các thanh đo độ phủ và điểm chất lượng theo gam màu di sản.
-    - [ ] Thêm bộ lọc phân loại nguồn ảnh: *Tất cả*, *Chụp trực tiếp từ Camera*, *Tải ảnh từ máy tính*.
-    - [ ] Cải thiện khu vực xem trước xoay 360° (Interactive Preview) ngay sau khi ghép xong để Admin kiểm tra trước khi lưu vào phòng.
+- **Người phụ trách**: **Vĩ Thành**
+- **Tài liệu hướng dẫn chi tiết**: 📄 [TASK_VI_THANH_POC_STITCHING.md](file:///d:/KhoaluanTotNghiep/docs/TASK_VI_THANH_POC_STITCHING.md)
+- **Trạng thái**: `ĐANG THỰC HIỆN (TASK CỦA VĨ THÀNH)`
+
+> [!CAUTION]
+> **QUY TẮC BẤT KHẢ XÂM PHẠM VỀ THUẬT TOÁN (STRICT CONSTRAINT):**  
+> **TUYỆT ĐỐI KHÔNG ĐƯỢC PHÉP THAY ĐỔI THUẬT TOÁN GHÉP ẢNH HIỆN TẠI!**  
+> Thuật toán ghép nối ảnh toàn cảnh 360° (`stitching_worker/stitcher.py`), cân bằng sáng trong nhà (`balance_indoor_lighting`), trích xuất và so khớp đặc trưng SIFT/LoFTR và API backend `/stitch` đã được kiểm thử ổn định 100%, chịu được chói sáng và thiếu sáng tốt.  
+> **Bất kỳ ai (Vĩ Thành hoặc bất kỳ AI nào) khi thực hiện task này ĐỀU KHÔNG ĐƯỢC CHẠM VÀO/PHÁ THUẬT TOÁN ĐÃ XÂY DỰNG.** Toàn bộ công việc chỉ tập trung vào **Bố cục Giao diện (UI/UX) và luồng tương tác phía Frontend!**
+
+- **Tiến độ đã hoàn thành**:
+  - [x] Thuật toán cân bằng ánh sáng indoor balance tự nhiên, chống cháy sáng và chịu được thiếu sáng tốt (đã khóa ổn định).
+  - [x] Đã sửa lỗi crash `undefined is not an object` khi đọc điểm đặc trưng của ảnh.
+  - [x] Lưu trữ đầy đủ kết quả ghép vào MongoDB (`panoramas`) và kho lưu trữ tĩnh.
+- **Danh sách các hạng mục chi tiết cần làm (Dành cho Vĩ Thành)**:
+  - [ ] **[Nhiệm vụ 1] Tối ưu hóa Bố cục & Hạn chế Cuộn (Scroll) trên Điện thoại**:
+    - Thiết kế lại container hiển thị danh sách ảnh tải lên: Giới hạn chiều cao (`max-height: 280px`) có thanh cuộn nội bộ mượt mà (Internal Scrollable Grid) hoặc dạng gập/mở (Accordion).
+    - Tránh tình trạng khi người dùng tải lên 15 - 25 ảnh trên điện thoại thì khung ảnh bị kéo dài vô tận làm người dùng phải cuộn mỏi tay mới xuống được nút bấm.
+  - [ ] **[Nhiệm vụ 2] Sửa luồng Nút "Chụp camera"**:
+    - Trên máy tính (Laptop/PC): Hiện tại bấm "Chụp camera" bị nhảy vào hộp thoại chọn file (Open File Picker) thay vì mở camera. Cần phân định rõ ràng:
+      - Trên điện thoại: Kích hoạt camera thiết bị để chụp ảnh trực tiếp.
+      - Trên máy tính: Mở webcam/Live Camera Sweep hoặc thông báo rõ ràng thiết bị không có camera sau để quản trị viên chọn "Chọn từ máy".
+  - [ ] **[Nhiệm vụ 3] Loại bỏ Lạm dụng Icon & Emoji**:
+    - Loại bỏ các icon thừa thãi và emoji sặc sỡ không cần thiết.
+    - Đồng bộ màu chữ, màu nền, đường viền theo phong cách Di sản Bảo tàng (Nâu gỗ trầm, Vàng đồng hoàng gia `var(--accent-gold)`, Đỏ ngói `var(--primary)`).
+  - [ ] **[Nhiệm vụ 4] Sửa lỗi Nút "Sao chép link" trên môi trường HTTP/VPS**:
+    - Hiện tại nút "Sao chép link" ở Trình xem trước 360° chưa hoạt động được vì `navigator.clipboard.writeText` bị trình duyệt chặn trên môi trường HTTP (`http://103.178.233.206`).
+    - Bổ sung hàm fallback `document.execCommand('copy')` bằng thẻ `<textarea>` ẩn để sao chép mượt mà trên cả HTTP lẫn HTTPS.
+  - [ ] **[Nhiệm vụ 5] Bổ sung Hiệu ứng Loading & Thông báo Tiến trình khi Ghép ảnh**:
+    - Khi Admin bấm "Tạo không gian toàn cảnh 360°", icon loading tại nút bấm phải xoay liên tục.
+    - Khối Trình xem trước kết quả 360° (khối bên phải) phải hiển thị màn phủ mờ (Overlay Loading) kèm spinner xoay tròn và các câu thông báo trạng thái từng bước (*"Đang phân tích đặc trưng & cân bằng ánh sáng..."*, *"Đang ghép nối toàn cảnh 360° bằng thuật toán OpenCV..."*) để Admin biết máy chủ đang xử lý bình thường, không bị tưởng đơ web.
+  - [ ] **[Nhiệm vụ 6] Cập nhật lại Modal "Hướng dẫn chụp ảnh" chuẩn thực tế**:
+    - Bổ sung và viết lại các bước hướng dẫn chụp ảnh bám sát 100% quy tắc ghép ảnh hiện tại:
+      - *Đứng cố định tại 1 vị trí tâm phòng, xoay tròn thân người.*
+      - *Góc chụp ngang tầm mắt/ngực, giữ camera song song mặt đất.*
+      - *Độ gối đầu giữa 2 ảnh liên tiếp đạt từ 30% - 50%.*
+      - *Quay lia đều 360 độ từ 16 - 24 góc nhìn để phủ kín không gian.*
+  - [ ] **[Nhiệm vụ 7] Bổ sung Phân trang chuẩn hệ thống (`Pagination`) cho Thư viện Không Gian 360°**:
+    - Khối "Thư viện không gian 360° đã tạo" ở nửa dưới trang phải tích hợp component `Pagination.tsx` chuẩn chung của hệ thống, không để danh sách ảnh tràn dài làm vỡ bố cục.
+  - [ ] **[Nhiệm vụ 8] Quản lý Dữ liệu Thực tế, Cache & Queue**:
+    - Đảm bảo toàn bộ ảnh 360° lấy từ Database thật, cơ chế cache Redis/Bộ nhớ và hàng đợi xử lý ảnh ổn định.
 
 ---
 
