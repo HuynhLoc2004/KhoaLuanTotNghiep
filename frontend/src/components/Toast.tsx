@@ -6,7 +6,7 @@ export type ToastType = 'success' | 'error' | 'warning' | 'info';
 export interface ToastMessage {
   id: string;
   type: ToastType;
-  title: string;
+  title?: string;
   message: string;
   duration?: number;
 }
@@ -26,26 +26,16 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    (messageOrConfig: string, type: ToastType = 'info', duration: number = 3500) => {
+    (messageOrConfig: string, type: ToastType = 'info', duration: number = 3200) => {
       let rawMessage = messageOrConfig;
-      let customTitle: string | undefined;
+      let title: string | undefined;
 
-      // Hỗ trợ tự động phân tích định dạng "[Tiêu đề]: nội dung"
+      // Hỗ trợ phân tích định dạng "[Tiêu đề]: nội dung" nếu có
       const bracketMatch = rawMessage.match(/^\[(.*?)\]:\s*(.*)$/);
       if (bracketMatch) {
-        customTitle = bracketMatch[1];
+        title = bracketMatch[1];
         rawMessage = bracketMatch[2];
       }
-
-      const title =
-        customTitle ||
-        (type === 'success'
-          ? 'Thành công'
-          : type === 'error'
-          ? 'Lỗi'
-          : type === 'warning'
-          ? 'Cảnh báo'
-          : 'Thông báo');
 
       setToasts((prev) => {
         // Chống spam thông báo trùng lặp đang hiển thị
@@ -60,7 +50,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             removeToast(id);
           }, duration);
         }
-        return [...prev.slice(-2), newToast]; // Giữ tối đa 3 thông báo cùng lúc
+        return [...prev.slice(-2), newToast]; // Tối đa 3 thông báo cùng lúc
       });
     },
     [removeToast]
@@ -73,13 +63,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast-item toast-${toast.type}`}>
             <div className="toast-icon">
-              {toast.type === 'success' && <CheckCircle2 size={16} />}
-              {toast.type === 'error' && <AlertCircle size={16} />}
-              {toast.type === 'warning' && <AlertTriangle size={16} />}
-              {toast.type === 'info' && <Info size={16} />}
+              {toast.type === 'success' && <CheckCircle2 size={15} />}
+              {toast.type === 'error' && <AlertCircle size={15} />}
+              {toast.type === 'warning' && <AlertTriangle size={15} />}
+              {toast.type === 'info' && <Info size={15} />}
             </div>
             <div className="toast-content-wrapper">
-              <div className="toast-title">{toast.title}</div>
+              {toast.title && <div className="toast-title">{toast.title}</div>}
               <div className="toast-message">{toast.message}</div>
             </div>
             <button
@@ -88,7 +78,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               onClick={() => removeToast(toast.id)}
               aria-label="Đóng thông báo"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           </div>
         ))}

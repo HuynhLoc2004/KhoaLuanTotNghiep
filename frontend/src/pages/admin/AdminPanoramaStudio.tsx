@@ -136,7 +136,8 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         }, 450);
       }, 350);
     } else {
-      showToast(`[Thông tin]: ${hs.title}${hs.description ? ` - ${hs.description}` : ''}`, 'info');
+      // Xoay góc nhìn hướng thẳng đến hiện vật để quản trị viên kiểm tra vị trí
+      setFocusCoords({ pitch: hs.pitch, yaw: hs.yaw, timestamp: Date.now() });
     }
   };
 
