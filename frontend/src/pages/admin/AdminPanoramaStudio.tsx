@@ -66,7 +66,6 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const [uploading, setUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
-  const [panoramas, setPanoramas] = useState<Array<{ filename: string; url: string; created_at: number }>>([]);
 
   // Voice AI Audio Guide Widget State
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
@@ -180,22 +179,6 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
       });
   };
 
-  // Fetch Kho ảnh 360° đã ghép nối
-  useEffect(() => {
-    const fetchPanoramas = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/stitch/history`);
-        const data = await res.json();
-        if (data.success && Array.isArray(data.panoramas)) {
-          setPanoramas(data.panoramas);
-        }
-      } catch (err) {
-        console.warn('Lỗi tải danh sách ảnh 360:', err);
-      }
-    };
-    fetchPanoramas();
-  }, []);
-
   // When admin clicks on canvas in Pin Mode
   const handleCanvasPinClick = (coords: { pitch: number; yaw: number }) => {
     setPendingCoords(coords);
@@ -303,21 +286,25 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     }
   };
 
-  // Select panorama from history
-  const handleSelectFromLibrary = async (url: string) => {
-    try {
-      const updated = await api.updateRoom(currentRoom.id, {
-        panoramaUrl: url,
-        thumbnailUrl: url
-      });
-      setPanoInputUrl(url);
-      onRoomUpdated(updated);
-      setSaveSuccess(true);
-      showToast('Đã gắn ảnh từ kho 360° vào phòng này', 'success');
-      setTimeout(() => setSaveSuccess(false), 2500);
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi cập nhật ảnh 360', 'error');
+  // Xem thử góc nhìn mặc định đã lưu
+  const handlePreviewInitialView = () => {
+    const pitch = currentRoom.initialView?.pitch ?? 0;
+    const yaw = currentRoom.initialView?.yaw ?? 0;
+    setFocusCoords({ pitch, yaw, timestamp: Date.now() });
+    showToast(`Đang xoay camera về góc nhìn ban đầu (Ngang: ${Math.round(yaw)}°, Đứng: ${Math.round(pitch)}°)`, 'info');
+  };
+
+  // Lưu góc nhìn mà Admin đang xoay camera trên màn hình làm góc nhìn mặc định khi vào phòng
+  const handleSaveCurrentView = () => {
+    const activeViewer = (window as any)._activePannellumViewer;
+    if (activeViewer) {
+      const pitch = Math.round(activeViewer.getPitch() * 10) / 10;
+      const yaw = Math.round(activeViewer.getYaw() * 10) / 10;
+      const fov = Math.round(activeViewer.getHfov() * 10) / 10;
+      handleCaptureInitialView({ pitch, yaw, fov });
+      return;
     }
+    showToast('Hãy xoay khung nhìn 360° đến góc bạn muốn trước khi lưu.', 'info');
   };
 
   // Manually update panorama URL
@@ -730,79 +717,127 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         {/* TAB 2: CÀI ĐẶT ẢNH 360° & GÓC NHÌN */}
         {activeTab === 'settings' && (
           <div className="studio-tab-body">
-            {/* Góc nhìn mặc định */}
+            {/* Mục 1: Góc nhìn ban đầu khi vào phòng */}
             <div className="studio-section">
               <div className="studio-section-title">
                 <Camera size={13} style={{ color: 'var(--accent-gold)' }} />
                 <span>Góc nhìn ban đầu khi vào phòng</span>
               </div>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.35 }}>
-                Góc nhìn mà du khách sẽ thấy đầu tiên khi bước vào phòng.
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.4 }}>
+                Hướng nhìn mà khách tham quan (Client) sẽ thấy đầu tiên ngay khi mở phòng hoặc quét mã QR.
               </p>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                style={{ width: '100%', justifyContent: 'center', fontSize: '11.5px', gap: 5 }}
-                onClick={() => {
-                  const activeViewer = (window as any)._activePannellumViewer;
-                  if (activeViewer) {
-                    const pitch = activeViewer.getPitch();
-                    const yaw = activeViewer.getYaw();
-                    const fov = activeViewer.getHfov();
-                    handleCaptureInitialView({ pitch, yaw, fov });
-                    return;
-                  }
-                  showToast('Nhấp vào nút máy ảnh trên thanh công cụ xoay 360° để lưu góc nhìn này.', 'info');
+
+              {/* Thông số góc nhìn hiện hành đang lưu trong DB */}
+              <div
+                style={{
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 6,
+                  padding: '8px 10px',
+                  marginBottom: 10,
+                  fontSize: '11px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4
                 }}
               >
-                <Save size={12} />
-                <span>Lưu góc đang nhìn làm mặc định</span>
-              </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
+                  <span>Góc xoay ngang (Yaw):</span>
+                  <strong style={{ color: 'var(--accent-gold)' }}>
+                    {currentRoom.initialView?.yaw !== undefined ? `${Math.round(currentRoom.initialView.yaw)}°` : '0° (Chính diện)'}
+                  </strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
+                  <span>Góc ngước/cúi (Pitch):</span>
+                  <strong style={{ color: 'var(--accent-gold)' }}>
+                    {currentRoom.initialView?.pitch !== undefined ? `${Math.round(currentRoom.initialView.pitch)}°` : '0° (Ngang mắt)'}
+                  </strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
+                  <span>Góc mở rộng (FOV):</span>
+                  <strong style={{ color: 'var(--accent-gold)' }}>
+                    {currentRoom.initialView?.fov !== undefined ? `${Math.round(currentRoom.initialView.fov)}°` : '100° (Chuẩn)'}
+                  </strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ width: '100%', justifyContent: 'center', fontSize: '11.5px', gap: 6 }}
+                  onClick={handleSaveCurrentView}
+                  title="Lấy góc nhìn hiện tại bạn đang xoay trong khung 360 làm góc mặc định"
+                >
+                  <Save size={12} />
+                  <span>Lưu góc đang nhìn làm mặc định</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ width: '100%', justifyContent: 'center', fontSize: '11.5px', gap: 6 }}
+                  onClick={handlePreviewInitialView}
+                  title="Xoay camera về đúng góc nhìn mặc định đã lưu để kiểm tra"
+                >
+                  <Eye size={12} />
+                  <span>Xem thử góc nhìn mặc định</span>
+                </button>
+              </div>
             </div>
 
-            {/* Thay đổi ảnh toàn cảnh 360° */}
+            {/* Mục 2: Thay đổi ảnh toàn cảnh 360° */}
             <div className="studio-section">
               <div className="studio-section-title">
                 <Layers size={13} style={{ color: 'var(--accent-gold)' }} />
-                <span>Ảnh toàn cảnh 360°</span>
+                <span>Ảnh toàn cảnh 360° của phòng</span>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.4 }}>
+                Ảnh Panorama 360° thực tế (Equirectangular 2:1) đang dùng cho gian phòng này.
+              </p>
+
+              {/* Preview ảnh hiện tại */}
+              <div
+                style={{
+                  position: 'relative',
+                  borderRadius: 6,
+                  overflow: 'hidden',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: 10,
+                  background: '#000'
+                }}
+              >
+                <img
+                  src={currentRoom.panoramaUrl}
+                  alt={currentRoom.name}
+                  style={{ width: '100%', height: 85, objectFit: 'cover', display: 'block' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    left: 6,
+                    background: 'rgba(0, 0, 0, 0.75)',
+                    color: '#FFF',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    fontSize: '10px'
+                  }}
+                >
+                  Ảnh hiện hành
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* Lựa chọn từ Kho 360° đã ghép */}
-                {panoramas.length > 0 && (
-                  <div>
-                    <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                      Chọn từ Kho 360° ({panoramas.length} ảnh):
-                    </label>
-                    <select
-                      className="form-control"
-                      style={{ fontSize: '11.5px', width: '100%' }}
-                      value={currentRoom.panoramaUrl}
-                      onChange={(e) => {
-                        const selected = e.target.value;
-                        if (selected && selected !== currentRoom.panoramaUrl) {
-                          handleSelectFromLibrary(selected);
-                        }
-                      }}
-                    >
-                      <option value={currentRoom.panoramaUrl}>-- Ảnh hiện tại --</option>
-                      {panoramas.map((p) => (
-                        <option key={p.filename} value={p.url}>
-                          {p.filename}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Nút tải ảnh mới & link URL */}
+                {/* Nút tải ảnh mới từ máy tính & nhập URL */}
                 <div style={{ display: 'flex', gap: 6 }}>
                   <label
                     className="btn btn-secondary btn-sm"
                     style={{ flex: 1, justifyContent: 'center', cursor: 'pointer', fontSize: '11.5px', gap: 5 }}
+                    title="Tải file ảnh panorama 360 mới từ máy tính lên máy chủ"
                   >
                     <Upload size={12} />
-                    <span>{uploading ? 'Đang tải...' : 'Tải ảnh mới'}</span>
+                    <span>{uploading ? 'Đang tải lên...' : 'Tải ảnh mới từ máy'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -815,8 +850,8 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '11.5px', padding: '5px 9px', gap: 4 }}
-                    title="Nhập liên kết URL thủ công"
+                    style={{ fontSize: '11.5px', padding: '5px 10px', gap: 4 }}
+                    title="Nhập liên kết URL ảnh 360°"
                     onClick={() => setShowUrlInput(!showUrlInput)}
                   >
                     <Link2 size={12} />
@@ -832,7 +867,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                       className="form-control"
                       value={panoInputUrl}
                       onChange={(e) => setPanoInputUrl(e.target.value)}
-                      placeholder="https://... link ảnh 360"
+                      placeholder="https://... đường dẫn ảnh 360"
                       style={{ fontSize: '11px', padding: '5px 8px' }}
                     />
                     <button
@@ -842,7 +877,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                       style={{ justifyContent: 'center', fontSize: '11.5px', padding: '4px 8px', gap: 4 }}
                     >
                       <Save size={11} />
-                      <span>Áp dụng link</span>
+                      <span>Áp dụng liên kết</span>
                     </button>
                   </div>
                 )}
@@ -857,7 +892,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                       gap: 4
                     }}
                   >
-                    <CheckCircle2 size={12} /> Đã cập nhật ảnh 360°!
+                    <CheckCircle2 size={12} /> Đã cập nhật ảnh 360° thành công!
                   </span>
                 )}
               </div>
