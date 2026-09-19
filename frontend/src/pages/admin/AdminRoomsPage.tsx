@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { MuseumRoom } from '../../types';
 import { NewRoomModal } from '../../components/NewRoomModal';
+import { EditRoomModal } from '../../components/EditRoomModal';
 import { Pannellum360Viewer } from '../../viewer360/Pannellum360Viewer';
 import { Pagination } from '../../components/Pagination';
 import { api, API_BASE } from '../../services/api';
@@ -45,6 +46,7 @@ interface AdminRoomsPageProps {
   rooms: MuseumRoom[];
   onOpenStudio: (room: MuseumRoom) => void;
   onRoomCreated: (newRoom: MuseumRoom) => void;
+  onRoomUpdated?: (updatedRoom: MuseumRoom) => void;
   onDeleteRoom: (roomId: string) => void;
 }
 
@@ -58,11 +60,11 @@ interface PanoHistoryItem {
 // Tư liệu mẫu chuẩn xác của Bảo tàng Lịch sử TP.HCM phục vụ RAG và TTS
 const HCMC_MUSEUM_PRESETS_KNOWLEDGE: Record<string, { prompt: string; script: string }> = {
   'P-01': {
-    prompt: 'Bối cảnh tri thức: Gian Khảo cổ học Tiền - Sơ sử Việt Nam tại Bảo tàng Lịch sử TP.HCM. Lưu giữ các di chỉ đồ đá Núi Đọ, gốm Hoa Lộc, công cụ đồng Đông Sơn, mộ chum Sa Huỳnh và di chỉ Dốc Chùa (Đồng Nai). Các hiện vật phản ánh tiến trình thích ứng với môi trường châu thổ và văn minh kim khí sơ khai của người Việt cổ.',
-    script: 'Chào mừng quý khách đến với Gian Khảo cổ học Tiền - Sơ sử Việt Nam tại Bảo tàng Lịch sử TP.HCM. Nơi đây tái hiện dòng chảy thời gian hàng vạn năm của người nguyên thủy, từ những hòn đá cuội ghè đẽo đến những chiếc rìu đồng, trống đồng Đông Sơn tinh xảo bậc nhất Đông Nam Á.'
+    prompt: 'Gian trưng bày P-01: Thời kỳ Tiền - Sơ sử Việt Nam tại Bảo tàng Lịch sử TP.HCM. Nơi lưu giữ các hiện vật đá, đồ gốm, kim loại từ văn hóa Sơn Vi, Hòa Bình, Bắc Sơn đến Đông Sơn, Sa Huỳnh, Đồng Nai.',
+    script: 'Kính chào quý khách đến với Gian trưng bày Thời tiền sử và sơ sử Việt Nam. Nơi đây tái hiện dòng chảy lịch sử hàng vạn năm của dân tộc qua hàng trăm cổ vật đá, đồ đồng Đông Sơn và mộ chum Sa Huỳnh độc bản.'
   },
   'P-05': {
-    prompt: 'Bối cảnh tri thức: Gian Triều đại Nhà Nguyễn & Mỹ thuật Cung đình (1802 - 1945) tại Bảo tàng Lịch sử TP.HCM. Trưng bày trang phục hoàng tộc thêu rồng phụng, súng thần công thời Gia Long, đồ gốm ký kiểu ngự dụng, ấn triện ngọc tỷ và nghệ thuật pháp lam cung đình Huế.',
+    prompt: 'Gian trưng bày P-05: Triều đại Nhà Nguyễn & Mỹ thuật Cung đình Huế (1802-1945). Trưng bày ngai vàng, long bào, sắc phong, đồ ngự dụng gốm sứ và bảo kiếm hoàng triều.',
     script: 'Kính chào quý khách. Đây là không gian trưng bày di sản triều Nguyễn - triều đại phong kiến cuối cùng của Việt Nam. Nơi quý khách được chiêm ngưỡng đỉnh cao của nghệ thuật pháp lam, trang phục cung đình và những cổ vật gắn liền với công cuộc định đô khai hoang phương Nam.'
   },
   'P-09': {
@@ -83,12 +85,14 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   rooms,
   onOpenStudio,
   onRoomCreated,
+  onRoomUpdated,
   onDeleteRoom
 }) => {
   const { showToast } = useToast();
   const [activeSubTab, setActiveSubTab] = useState<'rooms' | 'gallery'>('rooms');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showNewModal, setShowNewModal] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<MuseumRoom | null>(null);
   const [selectedPanoForNewRoom, setSelectedPanoForNewRoom] = useState<string | undefined>(undefined);
 
   // Bộ lọc dữ liệu
@@ -308,7 +312,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const publishedCount = rooms.filter((r) => r.active).length;
   const aiRoomsCount = rooms.filter((r) => r.aiVoiceEnabled || (r.aiKnowledgePrompt && r.aiKnowledgePrompt.length > 0)).length;
   const digitizationPercent = rooms.length > 0 ? Math.round((rooms.filter((r) => r.panoramaUrl).length / rooms.length) * 100) : 0;
-  const totalQrScans = rooms.reduce((acc, r) => acc + (r.qrScanCount || 0), 0) + (rooms.length * 280 + 850);
+  const totalQrScans = rooms.reduce((acc, r) => acc + (r.qrScanCount || 0), 0);
 
   // Xóa Pano ảnh 360
   const handleDeletePano = (filename: string) => {
@@ -684,18 +688,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     </div>
 
                     <div className="room-info">
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-gold)', textTransform: 'uppercase' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.4px', flex: 1, lineHeight: 1.35 }}>
                           {room.period || 'Tiến trình Lịch sử VN'}
                         </span>
                         {/* Trạng thái AI Voice */}
                         {room.aiVoiceEnabled || room.aiKnowledgePrompt ? (
-                          <span style={{ fontSize: '11px', color: 'var(--success)', background: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '2px 6px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                          <span style={{ fontSize: '11px', color: 'var(--success)', background: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '2px 8px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
                             <Volume2 size={11} />
                             <span>AI Voice</span>
                           </span>
                         ) : (
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: 4 }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>
                             Chưa có AI
                           </span>
                         )}
@@ -704,59 +708,83 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       <div className="room-name">{room.name}</div>
                       <div className="room-desc">{room.description}</div>
 
-                      {/* Thông số thực tế */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--text-muted)', padding: '6px 0', borderTop: '1px dashed var(--border-color)' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <QrCode size={12} />
-                          <span>{(room.qrScanCount || 240) + 120} lượt quét</span>
+                      {/* Thông số thực tế từ DB */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--text-muted)', padding: '8px 0', borderTop: '1px dashed var(--border-color)', marginTop: 'auto' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <QrCode size={12} style={{ color: 'var(--accent-gold)' }} />
+                          <span>{(room.qrScanCount || 0).toLocaleString('vi-VN')} lượt quét</span>
                         </span>
-                        <span>{room.scenesCount || 1} góc 360°</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Layers size={12} />
+                          <span>{room.scenesCount || 1} góc 360°</span>
+                        </span>
                       </div>
 
-                      {/* Action buttons */}
-                      <div className="room-actions" style={{ flexWrap: 'wrap', gap: 6 }}>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => onOpenStudio(room)}
-                          style={{ flex: 1, justifyContent: 'center' }}
-                          title="Mở trình chỉnh sửa ghim Hotspots"
-                        >
-                          <Compass size={13} />
-                          <span>Biên tập 360</span>
-                        </button>
+                      {/* Action buttons 2 tầng thoáng đãng, chống chen chúc và giật hover */}
+                      <div className="room-actions">
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => onOpenStudio(room)}
+                            style={{ justifyContent: 'center', whiteSpace: 'nowrap', gap: 6, padding: '7px 12px' }}
+                            title="Mở trình biên tập ghim Hotspots 360°"
+                          >
+                            <Compass size={14} />
+                            <span>Biên tập 360</span>
+                          </button>
 
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleOpenAiDrawer(room)}
-                          title="Cấu hình Tri thức RAG & Thuyết minh giọng đọc AI"
-                          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
-                          <span>Cấu hình AI</span>
-                        </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleOpenAiDrawer(room)}
+                            style={{ justifyContent: 'center', whiteSpace: 'nowrap', gap: 6, padding: '7px 12px' }}
+                            title="Cấu hình Tri thức RAG & Thuyết minh giọng đọc AI"
+                          >
+                            <Sparkles size={14} style={{ color: 'var(--accent-gold)' }} />
+                            <span>Cấu hình AI</span>
+                          </button>
+                        </div>
 
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          title="Tải mã QR Standee phòng này"
-                          onClick={() => handleOpenQrModal(room)}
-                        >
-                          <QrCode size={13} />
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, width: '100%' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            title="Tải mã QR Standee phòng này"
+                            onClick={() => handleOpenQrModal(room)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', fontSize: '12px' }}
+                          >
+                            <QrCode size={13} />
+                            <span>Mã QR</span>
+                          </button>
 
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          title="Xóa gian phòng khỏi Database"
-                          onClick={() => {
-                            triggerConfirm(
-                              'Xóa gian phòng di sản',
-                              `Bạn có chắc chắn muốn xóa vĩnh viễn gian phòng "${room.name}" khỏi cơ sở dữ liệu? Dữ liệu điểm neo và ảnh 360 liên kết cũng sẽ bị hủy bỏ.`,
-                              () => onDeleteRoom(room.id)
-                            );
-                          }}
-                          style={{ color: 'var(--error)' }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            title="Chỉnh sửa thông tin phòng (Tên, Mã, Chuyên đề, Ảnh đại diện)"
+                            onClick={() => setEditingRoom(room)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', fontSize: '12px' }}
+                          >
+                            <Edit3 size={13} />
+                            <span>Sửa</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            title="Xóa gian phòng khỏi Database"
+                            onClick={() => {
+                              triggerConfirm(
+                                'Xóa gian phòng di sản',
+                                `Bạn có chắc chắn muốn xóa vĩnh viễn gian phòng "${room.name}" khỏi cơ sở dữ liệu? Dữ liệu điểm neo và ảnh 360 liên kết cũng sẽ bị hủy bỏ.`,
+                                () => onDeleteRoom(room.id)
+                              );
+                            }}
+                            style={{ padding: '6px 9px', color: 'var(--error)' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -852,7 +880,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         </td>
                         <td>
                           <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                            {((room.qrScanCount || 240) + 120).toLocaleString('vi-VN')}
+                            {(room.qrScanCount || 0).toLocaleString('vi-VN')}
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
@@ -877,10 +905,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             <button
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenQrModal(room)}
-                              title="Tải mã QR"
+                              title="Tải mã QR Standee"
                               style={{ padding: '5px 8px' }}
                             >
                               <QrCode size={13} />
+                            </button>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => setEditingRoom(room)}
+                              title="Chỉnh sửa thông tin phòng"
+                              style={{ padding: '5px 8px' }}
+                            >
+                              <Edit3 size={13} />
                             </button>
                             <button
                               className="btn btn-secondary btn-sm"
@@ -1426,6 +1462,20 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             setShowNewModal(false);
           }}
           initialPanoramaUrl={selectedPanoForNewRoom}
+        />
+      )}
+
+      {/* Modal chỉnh sửa phòng */}
+      {editingRoom && (
+        <EditRoomModal
+          room={editingRoom}
+          onClose={() => setEditingRoom(null)}
+          onUpdated={(updated) => {
+            if (onRoomUpdated) {
+              onRoomUpdated(updated);
+            }
+            setEditingRoom(null);
+          }}
         />
       )}
 

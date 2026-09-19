@@ -204,6 +204,7 @@ const AppContent: React.FC = () => {
             rooms={rooms}
             onOpenStudio={handleOpenStudio}
             onRoomCreated={handleRoomCreated}
+            onRoomUpdated={handleRoomUpdated}
             onDeleteRoom={handleDeleteRoom}
           />
         ) : (
