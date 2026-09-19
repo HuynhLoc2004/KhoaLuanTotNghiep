@@ -31,6 +31,12 @@
    - Khung giao diện cho phép cuộn tự nhiên (`overflow-y: auto`, `overscroll-behavior-y: contain`), không để tình trạng khóa cứng chiều cao gây nghẽn cuộn.
    - Trên Desktop/Tablet: Bảng cuộn ngang mượt mà trong container (`overflow-x: auto`), không co giật cột.
    - Trên Mobile ($< 768px$): Tự động chuyển đổi thành giao diện thẻ (Mobile Card View) với nút bấm to, thân thiện với ngón tay.
+5. **Quy tắc Chuẩn hóa Thanh Tiêu đề Quản trị (`Admin Header`)**:
+   - **Xóa bỏ hoàn toàn dấu ấn "AI hoá" sơ khai**: Không để badge thừa thãi như `● API: Trực tuyến` hay nhãn nút cồng kềnh.
+   - **Breadcrumbs thông minh theo ngữ cảnh**: Luôn cập nhật chính xác tên phân hệ đang đứng (Gian trưng bày, Xưởng ghép 360, Ngôn ngữ...), kèm icon bảo tàng di sản mạ vàng `Landmark`.
+   - **Nút tiện ích thực tế `[Xem Tour Khách]`**: Mở nhanh tab khách tham quan để đối chiếu trực tiếp.
+   - **Cụm nhận diện Quản trị viên cao cấp**: Avatar tròn gradient di sản viền vàng hoàng gia, định danh `Ban Quản lý` - `Quản trị viên`.
+   - **Đồng bộ kích thước & căn chỉnh tuyệt đối**: Chiều cao chuẩn 56px, tất cả icon và chữ đều căn giữa (`align-items: center`), không bị lệch dòng hay khập khiễng.
 
 ---
 
