@@ -41,6 +41,7 @@ export interface MuseumRoom {
   aiVoiceLang?: string;
   qrScanCount?: number;
   scenesCount?: number;
+  audioUrl?: string;
   translations?: Record<string, RoomTranslation>;
   createdAt: string;
   updatedAt: string;

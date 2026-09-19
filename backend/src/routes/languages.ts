@@ -468,6 +468,19 @@ languagesRouter.post('/generate-tts', async (req: Request, res: Response) => {
     const cleanLang = (langCode || 'vi').toLowerCase().trim();
     const safeRoomCode = (roomCode || 'general').toLowerCase().replace(/[^a-z0-9_-]/g, '_');
 
+    // Ánh xạ mã ngôn ngữ chuẩn sang mã Google Speech
+    let googleLang = 'vi';
+    if (cleanLang.startsWith('vi')) googleLang = 'vi';
+    else if (cleanLang.startsWith('en')) googleLang = 'en';
+    else if (cleanLang.startsWith('ja')) googleLang = 'ja';
+    else if (cleanLang.startsWith('th')) googleLang = 'th';
+    else if (cleanLang.startsWith('fr')) googleLang = 'fr';
+    else if (cleanLang.startsWith('zh')) googleLang = 'zh-CN';
+    else if (cleanLang.startsWith('ko')) googleLang = 'ko';
+    else if (cleanLang.startsWith('de')) googleLang = 'de';
+    else if (cleanLang.startsWith('es')) googleLang = 'es';
+    else googleLang = cleanLang.substring(0, 2);
+
     // Đảm bảo thư mục lưu trữ tĩnh /public/uploads/audio tồn tại
     const audioDir = path.join(process.cwd(), 'public', 'uploads', 'audio');
     if (!fs.existsSync(audioDir)) {
@@ -479,50 +492,70 @@ languagesRouter.post('/generate-tts', async (req: Request, res: Response) => {
     const filename = `voice_${safeRoomCode}_${cleanLang}_${timestamp}.mp3`;
     const filePath = path.join(audioDir, filename);
 
-    // Tải giọng đọc TTS chuẩn từ Google TTS
-    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${cleanLang}&client=tw-ob&q=${encodeURIComponent(text.substring(0, 200))}`;
-    let audioGenerated = false;
+    // Tách kịch bản thành các đoạn nhỏ dưới 180 ký tự theo dấu câu để đọc trọn vẹn văn bản
+    const splitTextIntoChunks = (str: string, maxLen = 170): string[] => {
+      const sentences = str.match(/[^.!?\n]+[.!?\n]+/g) || [str];
+      const chunks: string[] = [];
+      let currentChunk = '';
 
-    try {
-      const fetchAudio = await fetch(ttsUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      if (fetchAudio.ok) {
-        const arrayBuf = await fetchAudio.arrayBuffer();
-        if (arrayBuf.byteLength > 200) {
-          fs.writeFileSync(filePath, Buffer.from(arrayBuf));
-          audioGenerated = true;
+      for (const s of sentences) {
+        const trimmed = s.trim();
+        if (!trimmed) continue;
+        if ((currentChunk + ' ' + trimmed).trim().length <= maxLen) {
+          currentChunk = (currentChunk + ' ' + trimmed).trim();
+        } else {
+          if (currentChunk) chunks.push(currentChunk);
+          if (trimmed.length > maxLen) {
+            // Cắt nhỏ hơn nếu câu quá dài
+            const words = trimmed.split(' ');
+            let sub = '';
+            for (const w of words) {
+              if ((sub + ' ' + w).trim().length <= maxLen) {
+                sub = (sub + ' ' + w).trim();
+              } else {
+                if (sub) chunks.push(sub);
+                sub = w;
+              }
+            }
+            if (sub) currentChunk = sub;
+            else currentChunk = '';
+          } else {
+            currentChunk = trimmed;
+          }
         }
       }
-    } catch (e: any) {
-      console.warn('[Google TTS fetch error]:', e.message);
+      if (currentChunk) chunks.push(currentChunk);
+      return chunks.length > 0 ? chunks : [str.substring(0, maxLen)];
+    };
+
+    const textChunks = splitTextIntoChunks(text);
+    const audioBuffers: Buffer[] = [];
+
+    for (const chunk of textChunks) {
+      if (!chunk.trim()) continue;
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${googleLang}&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+      try {
+        const fetchAudio = await fetch(ttsUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
+        });
+        if (fetchAudio.ok) {
+          const arrayBuf = await fetchAudio.arrayBuffer();
+          if (arrayBuf.byteLength > 100) {
+            audioBuffers.push(Buffer.from(arrayBuf));
+          }
+        }
+      } catch (e: any) {
+        console.warn(`[Google TTS chunk fetch error (${googleLang})]:`, e.message);
+      }
     }
 
-    // Fallback: Sinh file âm thanh WAV chuẩn nếu máy chủ không có kết nối ra ngoài
-    if (!audioGenerated) {
-      const sampleRate = 22050;
-      const numSamples = sampleRate * 2;
-      const wavBuffer = Buffer.alloc(44 + numSamples * 2);
-      wavBuffer.write('RIFF', 0);
-      wavBuffer.writeUInt32LE(36 + numSamples * 2, 4);
-      wavBuffer.write('WAVE', 8);
-      wavBuffer.write('fmt ', 12);
-      wavBuffer.writeUInt32LE(16, 16);
-      wavBuffer.writeUInt16LE(1, 20);
-      wavBuffer.writeUInt16LE(1, 22);
-      wavBuffer.writeUInt32LE(sampleRate, 24);
-      wavBuffer.writeUInt32LE(sampleRate * 2, 28);
-      wavBuffer.writeUInt16LE(2, 32);
-      wavBuffer.writeUInt16LE(16, 34);
-      wavBuffer.write('data', 36);
-      wavBuffer.writeUInt32LE(numSamples * 2, 40);
-      for (let i = 0; i < numSamples; i++) {
-        const sample = Math.sin(2 * Math.PI * 440 * (i / sampleRate)) * 0.15 * 32767;
-        wavBuffer.writeInt16LE(Math.floor(sample), 44 + i * 2);
-      }
-      fs.writeFileSync(filePath, wavBuffer);
+    if (audioBuffers.length > 0) {
+      const combinedBuffer = Buffer.concat(audioBuffers);
+      fs.writeFileSync(filePath, combinedBuffer);
+    } else {
+      throw new Error(`Không thể kết nối đến dịch vụ tổng hợp giọng nói cho ngôn ngữ [${cleanLang.toUpperCase()}]`);
     }
 
     const publicUrl = `/uploads/audio/${filename}`;
@@ -533,7 +566,7 @@ languagesRouter.post('/generate-tts', async (req: Request, res: Response) => {
       filename,
       lang: cleanLang,
       duration: Math.max(5, Math.round(text.length / 15)),
-      message: `Đã kết xuất sẵn (Pre-rendered) file Voice AI thành công cho ngôn ngữ [${cleanLang.toUpperCase()}]`
+      message: `Đã xuất bản file Voice AI chuẩn tiếng Việt/Đa ngôn ngữ thành công cho [${cleanLang.toUpperCase()}]`
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi sinh giọng đọc Voice AI: ' + err.message });

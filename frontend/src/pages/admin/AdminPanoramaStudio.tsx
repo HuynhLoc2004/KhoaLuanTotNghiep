@@ -341,7 +341,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         <Pannellum360Viewer
           key={currentRoom.id}
           panoramaUrl={currentRoom.panoramaUrl}
-          title={`${currentRoom.name} (${currentRoom.code})`}
+          title=""
           autoStartLittlePlanet={false}
           hotspots={pannellumHotspots}
           onHotspotClick={(hs) => {
@@ -361,131 +361,155 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
           initialHfov={currentRoom.initialView?.fov ?? 100}
         />
 
-        {/* Floating Voice AI Audio Guide Widget (Góc trái ngay dưới badge tên phòng) */}
+        {/* CỤM THANH HEADER DI SẢN 360° THỐNG NHẤT (Tên phòng + Mã phòng + Audio Guide trên cùng 1 thanh sang trọng) */}
         <div
           style={{
             position: 'absolute',
-            top: 70,
-            left: 20,
+            top: 16,
+            left: 18,
             zIndex: 25,
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            background: 'rgba(26, 23, 21, 0.92)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            gap: 12,
+            background: 'rgba(23, 18, 14, 0.88)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid rgba(212, 168, 106, 0.35)',
             borderRadius: 30,
-            padding: '5px 14px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            padding: '5px 16px 5px 14px',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.55)',
             color: '#EDE5DF',
-            fontSize: '12.5px'
+            fontFamily: "'Be Vietnam Pro', -apple-system, sans-serif",
+            maxWidth: 'calc(100% - 36px)',
+            flexWrap: 'wrap'
           }}
         >
-          {availableVoiceLangs.length === 0 ? (
-            /* Khi phòng chưa có file âm thanh MP3 nào trong DB */
-            <div
+          {/* Cụm 1: Biểu tượng bảo tàng & Tên gian phòng */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <span style={{ fontSize: '15px' }} title="Bảo tàng Lịch sử TP. Hồ Chí Minh">🏛️</span>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#F5EBE1', letterSpacing: '0.2px' }}>
+              {currentRoom.name}
+            </span>
+            <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 7,
-                color: 'var(--text-muted)',
-                fontSize: '12px',
-                padding: '3px 4px'
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--accent-gold)',
+                background: 'rgba(212, 168, 106, 0.15)',
+                border: '1px solid rgba(212, 168, 106, 0.3)',
+                borderRadius: 12,
+                padding: '1px 8px'
               }}
-              title="Gian phòng này chưa có file âm thanh Voice AI nào được tạo trong Database. Hãy vào mục Chỉnh sửa phòng để tạo file Voice AI."
             >
-              <VolumeX size={15} style={{ color: 'var(--text-muted)' }} />
-              <span>Chưa có Voice AI</span>
-            </div>
-          ) : (
-            /* Khi phòng THỰC SỰ đã có 1 hoặc nhiều file .mp3 trong DB */
-            <>
-              {/* Nút Play/Pause phát giọng nói */}
-              <button
-                type="button"
-                onClick={handleToggleVoice}
+              {currentRoom.code}
+            </span>
+          </div>
+
+          {/* Vạch ngăn cách di sản thanh lịch */}
+          <div style={{ width: 1, height: 18, background: 'rgba(212, 168, 106, 0.25)', flexShrink: 0 }} />
+
+          {/* Cụm 2: Thuyết minh Voice AI Di sản (Tích hợp liền mạch) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {availableVoiceLangs.length === 0 ? (
+              <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  border: 'none',
-                  background: isPlayingVoice ? '#DC2626' : 'var(--accent-gold)',
-                  color: isPlayingVoice ? '#FFF' : '#160F0C',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: isPlayingVoice ? '0 0 12px rgba(220, 38, 38, 0.6)' : '0 2px 8px rgba(212, 168, 106, 0.4)'
+                  gap: 6,
+                  color: 'var(--text-muted)',
+                  fontSize: '11.5px',
+                  padding: '2px 0'
                 }}
-                title={isPlayingVoice ? 'Tạm dừng giọng thuyết minh' : 'Phát thuyết minh Voice AI cho phòng này'}
+                title="Gian phòng chưa có file âm thanh thuyết minh nào trong Database"
               >
-                {isPlayingVoice ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 2 }} />}
-              </button>
-
-              {/* Chọn ngôn ngữ thuyết minh - CHỈ HIỂN THỊ ĐÚNG CÁC NGÔN NGỮ ĐÃ CÓ FILE MP3 THẬT */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '11.5px', color: 'var(--accent-gold)', fontWeight: 600 }}>
-                  {isPlayingVoice ? 'Đang đọc:' : 'Thuyết minh:'}
-                </span>
-                {availableVoiceLangs.length === 1 ? (
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#FFF', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span>{availableVoiceLangs[0].flag}</span>
-                    <span>{availableVoiceLangs[0].label}</span>
-                    <span style={{ color: 'var(--accent-gold)' }}>🔊</span>
-                  </span>
-                ) : (
-                  <select
-                    value={voiceLang}
-                    onChange={(e) => {
-                      const newLang = e.target.value;
-                      setVoiceLang(newLang);
-                      if (isPlayingVoice && audioRef.current) {
-                        audioRef.current.pause();
-                        setIsPlayingVoice(false);
-                      }
-                    }}
-                    style={{
-                      background: 'rgba(0,0,0,0.45)',
-                      color: '#FFF',
-                      border: '1px solid rgba(212, 168, 106, 0.35)',
-                      borderRadius: 14,
-                      padding: '3px 8px',
-                      fontSize: '11.5px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                  >
-                    {availableVoiceLangs.map((lang) => (
-                      <option key={lang.code} value={lang.code} style={{ background: '#1A1715', color: '#FFF' }}>
-                        {lang.flag} {lang.label} 🔊
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <VolumeX size={14} style={{ opacity: 0.7 }} />
+                <span>Chưa có Voice AI</span>
               </div>
+            ) : (
+              <>
+                {/* Nút Play/Pause phát giọng nói */}
+                <button
+                  type="button"
+                  onClick={handleToggleVoice}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: isPlayingVoice ? '#DC2626' : 'var(--accent-gold)',
+                    color: isPlayingVoice ? '#FFF' : '#160F0C',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isPlayingVoice ? '0 0 12px rgba(220, 38, 38, 0.6)' : '0 2px 6px rgba(212, 168, 106, 0.4)'
+                  }}
+                  title={isPlayingVoice ? 'Tạm dừng giọng thuyết minh' : 'Phát thuyết minh Voice AI'}
+                >
+                  {isPlayingVoice ? <Pause size={13} /> : <Play size={13} style={{ marginLeft: 2 }} />}
+                </button>
 
-              {/* Nút xem kịch bản đang đọc */}
-              <button
-                type="button"
-                onClick={() => setShowScriptPopup((prev) => !prev)}
-                style={{
-                  background: showScriptPopup ? 'rgba(212, 168, 106, 0.25)' : 'transparent',
-                  border: 'none',
-                  color: showScriptPopup ? 'var(--accent-gold)' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-                title="Xem kịch bản lời đọc thuyết minh"
-              >
-                <Info size={15} />
-              </button>
-            </>
-          )}
+                {/* Chọn hoặc hiển thị ngôn ngữ */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {availableVoiceLangs.length === 1 ? (
+                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#EDE5DF', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>{availableVoiceLangs[0].flag}</span>
+                      <span>{availableVoiceLangs[0].label}</span>
+                    </span>
+                  ) : (
+                    <select
+                      value={voiceLang}
+                      onChange={(e) => {
+                        const newLang = e.target.value;
+                        setVoiceLang(newLang);
+                        if (isPlayingVoice && audioRef.current) {
+                          audioRef.current.pause();
+                          setIsPlayingVoice(false);
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(0,0,0,0.45)',
+                        color: '#FFF',
+                        border: '1px solid rgba(212, 168, 106, 0.35)',
+                        borderRadius: 14,
+                        padding: '2px 8px',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        fontFamily: "'Be Vietnam Pro', sans-serif"
+                      }}
+                    >
+                      {availableVoiceLangs.map((lang) => (
+                        <option key={lang.code} value={lang.code} style={{ background: '#1A1715', color: '#FFF' }}>
+                          {lang.flag} {lang.label} 🔊
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* Nút xem kịch bản đang đọc */}
+                <button
+                  type="button"
+                  onClick={() => setShowScriptPopup((prev) => !prev)}
+                  style={{
+                    background: showScriptPopup ? 'rgba(212, 168, 106, 0.25)' : 'transparent',
+                    border: 'none',
+                    color: showScriptPopup ? 'var(--accent-gold)' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '3px',
+                    borderRadius: 4,
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Xem văn bản kịch bản thuyết minh"
+                >
+                  <Info size={14} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Popup hiển thị kịch bản thuyết minh */}
@@ -493,18 +517,20 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
           <div
             style={{
               position: 'absolute',
-              top: 118,
-              left: 20,
-              zIndex: 25,
-              maxWidth: 380,
-              background: 'rgba(26, 23, 21, 0.94)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
+              top: 60,
+              left: 18,
+              zIndex: 35,
+              width: 360,
+              maxWidth: 'calc(100% - 36px)',
+              background: 'rgba(23, 18, 14, 0.96)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
               border: '1px solid rgba(212, 168, 106, 0.4)',
               borderRadius: 12,
               padding: '12px 16px',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
-              color: '#EDE5DF'
+              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.7)',
+              color: '#EDE5DF',
+              fontFamily: "'Be Vietnam Pro', sans-serif"
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, fontSize: '11.5px', fontWeight: 600, color: 'var(--accent-gold)' }}>

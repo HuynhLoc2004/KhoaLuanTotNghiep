@@ -254,19 +254,29 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     }
   };
 
-  // Tạo bản nghe thử giọng đọc thuyết minh
-  const handleGenerateTtsAudio = () => {
+  // Tạo bản nghe thử giọng đọc thuyết minh tiếng Việt chuẩn
+  const handleGenerateTtsAudio = async () => {
     if (!aiScript.trim()) {
-      showToast('Vui lòng nhập lời đọc thuyết minh trước khi nghe thử', 'error');
+      showToast('Vui lòng nhập lời đọc thuyết minh trước khi tạo giọng đọc', 'error');
       return;
     }
-    setIsGeneratingTts(true);
-    setTimeout(() => {
+    try {
+      setIsGeneratingTts(true);
+      const res = await api.generateTtsAudio({
+        text: aiScript.trim(),
+        langCode: 'vi',
+        roomCode: aiDrawerRoom?.code || 'room'
+      });
+      const resolvedUrl = res.audioUrl.startsWith('http')
+        ? res.audioUrl
+        : `${API_BASE.replace('/api', '')}${res.audioUrl}`;
+      setPreviewAudioUrl(resolvedUrl);
+      showToast('Đã xuất bản Voice AI thuyết minh tiếng Việt thành công!', 'success');
+    } catch (err: any) {
+      showToast('Lỗi khi tạo Voice AI: ' + err.message, 'error');
+    } finally {
       setIsGeneratingTts(false);
-      // Audio mẫu chuẩn chất lượng cao để nghe thử
-      setPreviewAudioUrl('https://actions.google.com/sounds/v1/ambiences/museum_acoustics.ogg');
-      showToast('Đã tạo bản nghe thử giọng đọc thành công', 'success');
-    }, 1200);
+    }
   };
 
   // Lưu lời thuyết minh vào hệ thống
@@ -274,15 +284,33 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     if (!aiDrawerRoom) return;
     try {
       setIsSavingAi(true);
+
+      // Cập nhật đồng bộ cả translations.vi và trường gốc của phòng
+      const existingTranslations = aiDrawerRoom.translations || {};
+      const updatedTranslations = {
+        ...existingTranslations,
+        vi: {
+          ...(existingTranslations.vi || {}),
+          name: existingTranslations.vi?.name || aiDrawerRoom.name,
+          period: existingTranslations.vi?.period || aiDrawerRoom.period,
+          description: existingTranslations.vi?.description || aiDrawerRoom.description,
+          narrationScript: aiScript.trim(),
+          audioUrl: previewAudioUrl || existingTranslations.vi?.audioUrl || ''
+        }
+      };
+
       const updated = await api.updateRoom(aiDrawerRoom.id, {
         aiScript: aiScript.trim(),
         aiVoiceEnabled: true,
-        aiVoiceLang: aiVoiceLang
+        aiVoiceLang: aiVoiceLang,
+        audioUrl: previewAudioUrl || (aiDrawerRoom as any).audioUrl,
+        translations: updatedTranslations
       });
       aiDrawerRoom.aiScript = updated.aiScript;
       aiDrawerRoom.aiVoiceEnabled = true;
       aiDrawerRoom.aiVoiceLang = aiVoiceLang;
-      showToast(`Đã lưu lời thuyết minh cho gian phòng "${aiDrawerRoom.name}"`, 'success');
+      aiDrawerRoom.translations = updated.translations;
+      showToast(`Đã lưu lời thuyết minh và đồng bộ Voice AI tiếng Việt cho gian phòng "${aiDrawerRoom.name}"`, 'success');
     } catch (err: any) {
       showToast('Lỗi lưu lời thuyết minh: ' + err.message, 'error');
     } finally {

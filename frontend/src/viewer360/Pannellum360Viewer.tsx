@@ -727,31 +727,35 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         </div>
       )}
 
-      {/* Top Banner */}
-      <div
-        className="top-title-banner"
-        style={{
-          position: 'absolute',
-          top: 14,
-          left: 14,
-          zIndex: 20,
-          background: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.18)',
-          borderRadius: 12,
-          padding: '8px 14px',
-          color: '#F8FAFC',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          boxShadow: '0 4px 15px rgba(0,0,0,0.35)'
-        }}
-      >
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-        <span>{title}</span>
-      </div>
+      {/* Top Banner (Chỉ hiện khi có title được cung cấp) */}
+      {Boolean(title && title.trim().length > 0) && (
+        <div
+          className="top-title-banner"
+          style={{
+            position: 'absolute',
+            top: 14,
+            left: 14,
+            zIndex: 20,
+            background: 'rgba(26, 20, 16, 0.88)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(212, 168, 106, 0.35)',
+            borderRadius: 20,
+            padding: '6px 14px',
+            color: '#F5EBE1',
+            fontSize: '12.5px',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            boxShadow: '0 4px 18px rgba(0,0,0,0.45)',
+            fontFamily: "'Be Vietnam Pro', sans-serif"
+          }}
+        >
+          <span>🏛️</span>
+          <span>{title}</span>
+        </div>
+      )}
 
       {/* Bottom Floating Control Bar */}
       <div
