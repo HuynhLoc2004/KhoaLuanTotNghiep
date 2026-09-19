@@ -46,3 +46,43 @@
    - Mỗi tính năng mới phát triển trên một nhánh riêng: `feature/<tên-tính-năng>`.
    - GitHub Actions tự động build nhánh đó lên VPS để test.
    - Khi test chức năng hoàn tất mới merge vào nhánh chính `main`.
+
+---
+
+## IV. BỘ QUY TẮC KIẾN TRÚC DỮ LIỆU ĐỘNG & QUẢN TRỊ TOÀN DIỆN (HEADLESS CMS & DATA AXIOMS)
+> **Nguyên tắc cốt lõi**: Phục vụ cho giai đoạn phát triển giao diện Client tiếp theo. Client tuyệt đối **KHÔNG HARDCODE** bất kỳ chữ nào, ảnh nào, banner nào. Toàn bộ nội dung hiển thị cho du khách đều là **Dữ Liệu Động (100% Dynamic Data Driven)** được điều phối từ Admin Dashboard và lưu trữ thực tế trong Database (MongoDB & PostgreSQL).
+
+### 1. Nguyên tắc Ánh xạ 1:1 (One Client Page = One Admin Controller)
+Mỗi trang hiển thị phía Client đều có một trang quản trị tương ứng trực tiếp trong Admin Dashboard:
+* **Client Page 1: Trang Chủ (Home Page)** ↔ **Admin: Quản trị Trang Chủ & Cấu hình Khối (Home Sections Builder)**.
+* **Client Page 2: Không Gian Tham Quan 360° (Virtual Tour)** ↔ **Admin: Gian trưng bày & Tour 360 (Rooms Studio)**.
+* **Client Page 3: Kho Tàng Hiện Vật (Artifacts Archive)** ↔ **Admin: Quản lý Hiện vật & Cổ vật di sản**.
+* **Client Page 4: Tiến Trình Lịch Sử & Sự Kiện (Roadmap Timeline)** ↔ **Admin: Quản lý Dòng thời gian & Lịch sử Bảo tàng**.
+* **Client Page 5: Tin Tức & Thông Báo (News & Announcements)** ↔ **Admin: Trung tâm Thông báo & Tin tức Hoạt động**.
+
+### 2. Quản lý nội dung phân tầng theo từng Section (Section-based Content Management)
+Giao diện Client được chia nhỏ thành các Khối (Sections), Admin có toàn quyền chỉnh sửa và bật/tắt theo thời gian thực:
+* **Section Header & Menu**: Menu điều hướng chính, logo bảo tàng, hotline, liên kết mạng xã hội.
+* **Section Hero Banner**: Tiêu đề lớn (Headline), phụ đề (Sub-headline), ảnh/video nền 360, nút kêu gọi hành động (CTA).
+* **Section Giới thiệu Tổng quan**: Video thuyết minh, bài viết tổng quan về kiến trúc Đông Dương 1929 của bảo tàng.
+* **Section Gian phòng Nổi bật (Featured 360 Rooms)**: Danh sách phòng được ghim lên trang chủ, độ ưu tiên hiển thị (`orderIndex`).
+* **Section Cổ vật Tiêu biểu (Highlight Artifacts)**: Cổ vật độc bản (Bảo vật Quốc gia), ảnh cận cảnh 3D/2D, câu chuyện lịch sử.
+* **Section Dòng thời gian Sự kiện (Roadmap / Timeline)**: Các cột mốc di sản từ thời Tiền sử đến Triều Nguyễn.
+* **Section Thông báo & Lịch hoạt động**: Giờ mở cửa, giá vé, thông báo khẩn cấp, trưng bày chuyên đề ngắn hạn.
+
+### 3. Chuẩn hóa trải nghiệm Thông báo (No Native Browser Alerts)
+* **Tuyệt đối không sử dụng `window.alert()` hoặc `window.confirm()` mặc định của trình duyệt** (vốn mang giao diện xám xịt của hệ điều hành, làm vỡ tính thẩm mỹ cổ kính của bảo tàng).
+* **Chuẩn hóa 100% bằng Hệ thống Thông báo Di Sản (Heritage Notification System)**:
+  * **Thông báo trạng thái (Toasts)**: Dùng Toast component tự động biến mất với 4 trạng thái (*Thành công*, *Cảnh báo*, *Lỗi*, *Thông tin*), hỗ trợ Dark/Light mode chuẩn.
+  * **Hộp thoại xác nhận (Custom Confirm Modals)**: Khi thực hiện hành động xóa, ghi đè, hoặc xuất dữ liệu, hiển thị Modal thiết kế riêng với nội dung rõ ràng, nút bấm mang sắc thái Đỏ gạch di sản / Vàng đồng thau.
+
+### 4. Tính toàn vẹn Cơ sở dữ liệu (Database Integrity - Zero Mock Data)
+* Toàn bộ dữ liệu quản trị là **Dữ liệu thật (Real Persistence)** được lưu trong PostgreSQL (quan hệ, ACID, kiểm toán) và MongoDB (360 tour, Hotspots, RAG AI).
+* Không sử dụng dữ liệu ảo (Mock Data) hardcode trong code giao diện.
+* Mọi thao tác Thêm / Sửa / Xóa trên Admin đều phát sinh Request API đồng bộ thực tế với cơ sở dữ liệu.
+
+### 5. An toàn Bộ nhớ & Phòng thủ Tấn công (Anti-OOM & Data Security)
+* **Redis Caching**: Mọi key đều có thời gian sống TTL rõ ràng (300s - 600s), không lưu vĩnh viễn. Giới hạn trần RAM `maxmemory 256mb` với chính sách thu hồi `allkeys-lru` chống sập VPS.
+* **NoSQL / SQL Injection Defense**: Chuẩn hóa kiểu dữ liệu nghiêm ngặt, từ chối các toán tử MongoDB độc hại.
+* **Queue Isolation**: Các tác vụ nặng (ghép ảnh 360 OpenCV, sinh giọng đọc TTS) chạy ngầm qua Queue, không bao giờ chặn luồng HTTP chính.
+

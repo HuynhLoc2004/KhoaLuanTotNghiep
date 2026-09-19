@@ -39,6 +39,7 @@ import { Pannellum360Viewer } from '../../viewer360/Pannellum360Viewer';
 import { Pagination } from '../../components/Pagination';
 import { api, API_BASE } from '../../services/api';
 import { useToast } from '../../components/Toast';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 interface AdminRoomsPageProps {
   rooms: MuseumRoom[];
@@ -108,6 +109,41 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   // Modal QR Standee
   const [selectedQrRoom, setSelectedQrRoom] = useState<MuseumRoom | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
+
+  // Custom Confirm Dialog (Không dùng alert/confirm mặc định của trình duyệt)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const triggerConfirm = (
+    title: string,
+    message: string,
+    onConfirmAction: () => void,
+    type: 'danger' | 'warning' | 'info' = 'danger',
+    confirmText: string = 'Xóa vĩnh viễn'
+  ) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm: () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        onConfirmAction();
+      }
+    });
+  };
 
   // Kho ảnh 360° đã tạo
   const [panoramas, setPanoramas] = useState<PanoHistoryItem[]>([]);
@@ -275,23 +311,28 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const totalQrScans = rooms.reduce((acc, r) => acc + (r.qrScanCount || 0), 0) + (rooms.length * 280 + 850);
 
   // Xóa Pano ảnh 360
-  const handleDeletePano = async (filename: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn không gian 360° "${filename}"?`)) return;
-    try {
-      const res = await fetch(`${API_BASE}/stitch/panoramas/${encodeURIComponent(filename)}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPanoramas((prev) => prev.filter((p) => p.filename !== filename));
-        setSelectedFilenames((prev) => prev.filter((f) => f !== filename));
-        showToast('Đã xóa không gian 360° thành công', 'success');
-      } else {
-        showToast(data.message || 'Lỗi khi xóa file ảnh', 'error');
+  const handleDeletePano = (filename: string) => {
+    triggerConfirm(
+      'Xóa không gian 360°',
+      `Bạn có chắc chắn muốn xóa vĩnh viễn file toàn cảnh "${filename}" khỏi máy chủ lưu trữ?`,
+      async () => {
+        try {
+          const res = await fetch(`${API_BASE}/stitch/panoramas/${encodeURIComponent(filename)}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+          if (data.success) {
+            setPanoramas((prev) => prev.filter((p) => p.filename !== filename));
+            setSelectedFilenames((prev) => prev.filter((f) => f !== filename));
+            showToast('Đã xóa không gian 360° thành công', 'success');
+          } else {
+            showToast(data.message || 'Lỗi khi xóa file ảnh', 'error');
+          }
+        } catch (err: any) {
+          showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
+        }
       }
-    } catch (err: any) {
-      showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
-    }
+    );
   };
 
   const handleToggleSelect = (filename: string) => {
@@ -300,26 +341,31 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     );
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
     if (selectedFilenames.length === 0) return;
-    if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn ${selectedFilenames.length} file ảnh 360° đã chọn khỏi máy chủ?`)) return;
-    try {
-      const res = await fetch(`${API_BASE}/stitch/panoramas/batch-delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filenames: selectedFilenames })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPanoramas((prev) => prev.filter((p) => !selectedFilenames.includes(p.filename)));
-        setSelectedFilenames([]);
-        showToast(`Đã xóa thành công ${selectedFilenames.length} ảnh 360°`, 'success');
-      } else {
-        showToast(data.message || 'Lỗi khi xóa ảnh', 'error');
+    triggerConfirm(
+      'Xóa hàng loạt không gian 360°',
+      `Bạn có chắc muốn xóa vĩnh viễn ${selectedFilenames.length} file ảnh 360° đã chọn khỏi máy chủ lưu trữ?`,
+      async () => {
+        try {
+          const res = await fetch(`${API_BASE}/stitch/panoramas/batch-delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filenames: selectedFilenames })
+          });
+          const data = await res.json();
+          if (data.success) {
+            setPanoramas((prev) => prev.filter((p) => !selectedFilenames.includes(p.filename)));
+            setSelectedFilenames([]);
+            showToast(`Đã xóa thành công ${selectedFilenames.length} ảnh 360°`, 'success');
+          } else {
+            showToast(data.message || 'Lỗi khi xóa ảnh', 'error');
+          }
+        } catch (err: any) {
+          showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
+        }
       }
-    } catch (err: any) {
-      showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
-    }
+    );
   };
 
   const handleCopyLink = (url: string) => {
@@ -701,9 +747,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                           className="btn btn-secondary btn-sm"
                           title="Xóa gian phòng khỏi Database"
                           onClick={() => {
-                            if (confirm(`Bạn có chắc muốn xóa gian phòng "${room.name}" khỏi cơ sở dữ liệu?`)) {
-                              onDeleteRoom(room.id);
-                            }
+                            triggerConfirm(
+                              'Xóa gian phòng di sản',
+                              `Bạn có chắc chắn muốn xóa vĩnh viễn gian phòng "${room.name}" khỏi cơ sở dữ liệu? Dữ liệu điểm neo và ảnh 360 liên kết cũng sẽ bị hủy bỏ.`,
+                              () => onDeleteRoom(room.id)
+                            );
                           }}
                           style={{ color: 'var(--error)' }}
                         >
@@ -837,9 +885,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             <button
                               className="btn btn-secondary btn-sm"
                               onClick={() => {
-                                if (confirm(`Bạn có chắc muốn xóa gian phòng "${room.name}"?`)) {
-                                  onDeleteRoom(room.id);
-                                }
+                                triggerConfirm(
+                                  'Xóa gian phòng di sản',
+                                  `Bạn có chắc chắn muốn xóa vĩnh viễn gian phòng "${room.name}"?`,
+                                  () => onDeleteRoom(room.id)
+                                );
                               }}
                               title="Xóa phòng"
                               style={{ padding: '5px 8px', color: 'var(--error)' }}
@@ -1452,6 +1502,16 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           </div>
         </div>
       )}
+      {/* Custom Heritage Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        confirmText={confirmDialog.confirmText}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };
