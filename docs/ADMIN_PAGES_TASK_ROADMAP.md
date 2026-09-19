@@ -35,7 +35,7 @@
 | STT | Tên Trang Admin | File Mã Nguồn | Phân Loại | Phân Trang | Giao Diện Di Sản | Responsive Mobile | Trạng Thái |
 |:---:|:---|:---|:---:|:---:|:---:|:---:|:---:|
 | 1 | **Quản trị Ngôn ngữ & Voice AI** | `AdminLanguagePage.tsx` | ✅ Đã có | ✅ 5 mục/trang | ✅ Vàng đồng chuẩn | ✅ Bảng + Thẻ mobile | `HOÀN THÀNH` |
-| 2 | **Gian trưng bày & Tour 360** | `AdminRoomsPage.tsx` | ✅ Đã có | ✅ Đã có | ⏳ Cần đồng bộ màu | ⏳ Cần tối ưu mobile | `ĐANG SỬA ĐỔI` |
+| 2 | **Gian trưng bày & Tour 360** | `AdminRoomsPage.tsx` | ✅ Đã có | ✅ Đã có | ✅ Vàng đồng chuẩn | ✅ Bố cục gọn | `HOÀN THÀNH` |
 | 3 | **Xưởng Ghép Ảnh 360° Studio** | `PocStitchingPage.tsx` | 📋 Cần thêm | ✅ Đã có | ⏳ Cần đồng bộ màu | ⏳ Cần tối ưu mobile | `ĐANG SỬA ĐỔI` |
 | 4 | **Studio Cắm Hotspot Tour 360** | `AdminPanoramaStudio.tsx` | 📋 Cần thêm | 📋 Cần thêm | ⏳ Cần tinh chỉnh | ⏳ Cần tối ưu tablet | `ĐANG SỬA ĐỔI` |
 | 5 | **Quản lý Hiện vật & Cổ vật** | `AdminArtifactsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
@@ -66,20 +66,30 @@
 ---
 
 ### 2. Quản lý Gian trưng bày & Tour 360 (Rooms & Spaces Management)
-- **File**: `frontend/src/pages/admin/AdminRoomsPage.tsx`
+- **File**: `frontend/src/pages/admin/AdminRoomsPage.tsx` & `frontend/src/components/NewRoomModal.tsx`
 - **Mục tiêu đạt được**:
   - Quản lý các gian phòng trưng bày, thời kỳ lịch sử, mô tả và thứ tự tham quan.
   - Quản lý kho ảnh toàn cảnh 360° đã ghép nối thành công.
-  - Xuất gói mã QR Standee đặt tại các phòng vật lý ngoài bảo tàng thực tế.
-- **Tiến độ chi tiết**:
+  - Tạo mới & cập nhật gian phòng với trải nghiệm mượt mà, hỗ trợ chọn ảnh trực tiếp từ kho 360°.
+- **Tiến độ & Các hạng mục chi tiết cần làm**:
   - [x] Hỗ trợ 2 Sub-tab: "Danh sách Gian phòng" và "Kho Không Gian 360° Đã Ghép".
   - [x] Đã có phân trang `Pagination` ở cả 2 tab.
-  - [x] Đã có bộ lọc chuyên đề thời kỳ lịch sử và ô tìm kiếm.
-  - [ ] **Hạng mục cần sửa đổi/bổ sung**:
-    - [ ] Kiểm tra và thay thế các badge màu xanh lá còn sót lại thành tone Vàng đồng / Ngọc bích cổ di sản.
-    - [ ] Thêm bộ lọc trạng thái phòng: *Tất cả*, *Đang mở cửa đón khách*, *Đang bảo trì/Tạm ẩn*.
-    - [ ] Tối ưu hóa giao diện danh sách phòng trên màn hình điện thoại (Mobile) không bị co ép nút.
-    - [ ] Tối ưu hóa tải ảnh đại diện thumbnail để trang mượt mà hơn khi kho phòng lớn.
+  - [x] **[Nhiệm vụ 1] Tinh gọn Bố cục Thẻ (KPI Cards & Room Cards)**:
+    - Thu nhỏ các thẻ KPI trên cùng (gọn gàng, thanh thoát theo chuẩn thẩm mỹ bảo tàng, padding 12px 16px, số liệu 20px).
+    - Tinh chỉnh thẻ gian phòng (Room Card): Chiều cao vừa phải, ảnh đại diện thumbnail 135px, gom gọn các nút thao tác vào 1 hàng duy nhất, giảm hơn 100px chiều cao card.
+  - [x] **[Nhiệm vụ 2] Sửa Bộ lọc Chuyên đề Trưng bày (Dynamic Category Filter)**:
+    - Loại bỏ các chuyên đề hardcode giả định.
+    - Tự động trích xuất danh sách Chuyên đề / Thời kỳ thực tế từ dữ liệu phòng trong Database (`r.period`) để lọc chính xác 100% dữ liệu thật.
+  - [x] **[Nhiệm vụ 3] Loại bỏ chất "AI hoá", Emoji và Chuẩn hóa Màu sắc Di sản**:
+    - Không sử dụng icon/emoji thừa thãi.
+    - Chuẩn hóa toàn bộ màu chữ, viền, huy hiệu theo đúng quy tắc thiết kế chung: Nâu gỗ mộc (`var(--bg-surface)`), Vàng đồng hoàng gia (`var(--accent-gold)`), Đỏ sơn son (`var(--primary)`), không dùng màu xanh neon hoặc cam chói.
+  - [x] **[Nhiệm vụ 4] Xử lý Mẫu phòng thực tế (NewRoomModal)**:
+    - Bỏ hộp chọn mock data mẫu phòng (P-01, P-05...), không sử dụng dữ liệu giả. Cho phép nhập trực tiếp thông tin phòng thật của Bảo tàng Lịch sử TP.HCM.
+  - [x] **[Nhiệm vụ 5] Sửa Chụp ảnh / Tải ảnh trong Modal Thêm phòng**:
+    - Xóa bỏ nút "Quét AR" / "Quét QR" bị thừa không sử dụng.
+    - Sửa luồng tải/chụp ảnh: Nút "Tải tệp ảnh" trực quan, hỗ trợ chọn file trên máy tính và mở camera trên điện thoại.
+  - [x] **[Nhiệm vụ 6] Bổ sung Chọn Không gian 3D/360° từ Kho lưu trữ**:
+    - Trong modal thêm gian phòng mới, bổ sung **Dropdown chọn trực tiếp ảnh 360° có sẵn từ "Kho không gian 360° đã ghép"** (`panoramas`), giúp quản trị viên gắn ngay ảnh trong kho vào phòng mới.
 
 ---
 

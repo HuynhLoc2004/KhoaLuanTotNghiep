@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus,
   Compass,
@@ -277,18 +277,23 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     setShowQrModal(true);
   };
 
+  // Lấy danh sách các chuyên đề/thời kỳ thực tế từ Database phòng
+  const availablePeriods = useMemo(() => {
+    const periods = rooms.map((r) => r.period?.trim()).filter(Boolean);
+    return Array.from(new Set(periods)) as string[];
+  }, [rooms]);
+
   // Lọc dữ liệu phòng
   const filteredRooms = rooms.filter((r) => {
     const matchesSearch =
       r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.period.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.period && r.period.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (r.description && r.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesCategory =
       selectedCategory === 'all' ||
-      r.period === selectedCategory ||
-      r.category === selectedCategory;
+      r.period?.trim() === selectedCategory;
 
     const matchesStatus =
       selectedStatus === 'all' ||
@@ -392,25 +397,25 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
         <div className="stat-card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="stat-title">Gian phòng Tour 360</div>
-            <Compass size={16} style={{ color: 'var(--primary)' }} />
+            <Compass size={15} style={{ color: 'var(--accent-gold)' }} />
           </div>
-          <div className="stat-value" style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <div className="stat-value" style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
             <span>{publishedCount}/{rooms.length}</span>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>phòng</span>
+            <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>phòng</span>
           </div>
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: 4 }}>
+          <div style={{ marginTop: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginBottom: 3 }}>
               <span>Tiến độ số hóa</span>
-              <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{digitizationPercent}%</span>
+              <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{digitizationPercent}%</span>
             </div>
-            <div style={{ width: '100%', height: 6, background: 'var(--bg-subtle)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: 4, background: 'var(--bg-subtle)', borderRadius: 99, overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${digitizationPercent}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, var(--accent-gold) 0%, var(--primary) 100%)',
-                  borderRadius: 3,
-                  transition: 'width 0.5s ease'
+                  background: 'linear-gradient(90deg, var(--accent-gold) 0%, #E5B268 100%)',
+                  borderRadius: 99,
+                  transition: 'width 0.4s ease'
                 }}
               />
             </div>
@@ -420,34 +425,34 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
         {/* Card 2: Điểm neo tương tác Hotspots */}
         <div className="stat-card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="stat-title">Điểm neo hiện vật (Hotspots)</div>
-            <MapPin size={16} style={{ color: 'var(--accent-gold)' }} />
+            <div className="stat-title">Điểm neo hiện vật</div>
+            <MapPin size={15} style={{ color: 'var(--accent-gold)' }} />
           </div>
           <div className="stat-value">{totalHotspots}</div>
-          <div className="stat-desc">Định vị hiện vật & dẫn hướng không gian</div>
+          <div className="stat-desc">Định vị hiện vật & dẫn hướng</div>
         </div>
 
         {/* Card 3: Thuyết minh AI & Trợ lý ảo */}
         <div className="stat-card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="stat-title">Thuyết minh AI & Trợ lý ảo</div>
-            <Sparkles size={16} style={{ color: 'var(--accent-gold)' }} />
+            <div className="stat-title">Thuyết minh AI</div>
+            <Sparkles size={15} style={{ color: 'var(--accent-gold)' }} />
           </div>
-          <div className="stat-value" style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <div className="stat-value" style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
             <span>{aiRoomsCount}</span>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>phòng</span>
+            <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>phòng</span>
           </div>
-          <div className="stat-desc">Đã kích hoạt AI Voice & RAG tri thức</div>
+          <div className="stat-desc">Đã kích hoạt AI Voice & RAG</div>
         </div>
 
         {/* Card 4: Tương tác quét QR thực địa */}
         <div className="stat-card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="stat-title">Tương tác QR thực địa</div>
-            <QrCode size={16} style={{ color: 'var(--primary)' }} />
+            <div className="stat-title">Tương tác QR thực tế</div>
+            <QrCode size={15} style={{ color: 'var(--accent-gold)' }} />
           </div>
           <div className="stat-value">{totalQrScans.toLocaleString('vi-VN')}</div>
-          <div className="stat-desc">Lượt du khách quét tại phòng trưng bày</div>
+          <div className="stat-desc">Lượt khách quét tại phòng trưng bày</div>
         </div>
       </div>
 
@@ -640,18 +645,26 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
           {activeSubTab === 'rooms' && (
             <>
-              {/* Lọc chuyên đề */}
-              <div style={{ minWidth: 200 }}>
+              {/* Lọc chuyên đề thực tế từ DB */}
+              <div style={{ minWidth: 220 }}>
                 <select
                   className="form-control"
                   style={{ fontSize: '13px', width: '100%' }}
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    setRoomPage(1);
+                  }}
                 >
-                  <option value="all">Tất cả chuyên đề trưng bày</option>
-                  <option value="Tiến trình Lịch sử VN">Tiến trình Lịch sử VN</option>
-                  <option value="Văn hóa Nam Bộ & Cổ vật">Văn hóa Nam Bộ & Cổ vật</option>
-                  <option value="Sưu tập Đặc biệt">Sưu tập Đặc biệt</option>
+                  <option value="all">Tất cả chuyên đề trưng bày ({rooms.length})</option>
+                  {availablePeriods.map((p) => {
+                    const count = rooms.filter((r) => r.period?.trim() === p).length;
+                    return (
+                      <option key={p} value={p}>
+                        {p} ({count})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -661,10 +674,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   className="form-control"
                   style={{ fontSize: '13px', width: '100%' }}
                   value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value);
+                    setRoomPage(1);
+                  }}
                 >
                   <option value="all">Tất cả trạng thái</option>
-                  <option value="active">Đang trực tuyến (Active)</option>
+                  <option value="active">Đang trực tuyến</option>
                   <option value="ai_enabled">Đã bật AI Voice</option>
                   <option value="no_ai">Chưa cấu hình AI</option>
                 </select>
@@ -691,49 +707,48 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     </div>
 
                     <div className="room-info">
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px', flex: 1, lineHeight: 1.35 }}>
-                          {room.period || 'Tiến trình Lịch sử VN'}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.4px', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {room.period || 'Hiện vật Lịch sử'}
                         </span>
-                        {/* Trạng thái AI Voice */}
                         {room.aiVoiceEnabled || room.aiKnowledgePrompt ? (
-                          <span style={{ fontSize: '11px', color: 'var(--success)', background: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '2px 8px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            <Volume2 size={11} />
+                          <span style={{ fontSize: '10.5px', color: 'var(--accent-gold)', background: 'rgba(212, 168, 106, 0.12)', border: '1px solid rgba(212, 168, 106, 0.28)', padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            <Volume2 size={10} />
                             <span>AI Voice</span>
                           </span>
                         ) : (
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>
                             Chưa có AI
                           </span>
                         )}
                       </div>
 
-                      <div className="room-name">{room.name}</div>
-                      <div className="room-desc">{room.description}</div>
+                      <div className="room-name" title={room.name}>{room.name}</div>
+                      <div className="room-desc" title={room.description}>{room.description}</div>
 
                       {/* Thông số thực tế từ DB */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--text-muted)', padding: '8px 0', borderTop: '1px dashed var(--border-color)', marginTop: 'auto' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <QrCode size={12} style={{ color: 'var(--accent-gold)' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', padding: '6px 0', borderTop: '1px dashed var(--border-color)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <QrCode size={11} style={{ color: 'var(--accent-gold)' }} />
                           <span>{(room.qrScanCount || 0).toLocaleString('vi-VN')} lượt quét</span>
                         </span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Layers size={12} />
+                          <Layers size={11} />
                           <span>{room.scenesCount || 1} góc 360°</span>
                         </span>
                       </div>
 
-                      {/* Action buttons 2 tầng thoáng đãng, chống chen chúc và giật hover */}
-                      <div className="room-actions">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}>
+                      {/* Action buttons 1 tầng gọn gàng, thanh thoát */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 8, marginTop: 'auto', borderTop: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <button
                             type="button"
                             className="btn btn-primary btn-sm"
                             onClick={() => onOpenStudio(room)}
-                            style={{ justifyContent: 'center', whiteSpace: 'nowrap', gap: 6, padding: '7px 12px' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: '12px' }}
                             title="Mở trình biên tập ghim Hotspots 360°"
                           >
-                            <Compass size={14} />
+                            <Compass size={13} />
                             <span>Biên tập 360</span>
                           </button>
 
@@ -741,35 +756,33 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenAiDrawer(room)}
-                            style={{ justifyContent: 'center', whiteSpace: 'nowrap', gap: 6, padding: '7px 12px' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', fontSize: '12px' }}
                             title="Cấu hình Tri thức RAG & Thuyết minh giọng đọc AI"
                           >
-                            <Sparkles size={14} style={{ color: 'var(--accent-gold)' }} />
-                            <span>Cấu hình AI</span>
+                            <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+                            <span>AI</span>
                           </button>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
                             title="Tải mã QR Standee phòng này"
                             onClick={() => handleOpenQrModal(room)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', fontSize: '12px' }}
+                            style={{ padding: '5px 8px' }}
                           >
                             <QrCode size={13} />
-                            <span>Mã QR</span>
                           </button>
 
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
-                            title="Chỉnh sửa thông tin phòng (Tên, Mã, Chuyên đề, Ảnh đại diện)"
+                            title="Chỉnh sửa thông tin phòng"
                             onClick={() => setEditingRoom(room)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', fontSize: '12px' }}
+                            style={{ padding: '5px 8px' }}
                           >
                             <Edit3 size={13} />
-                            <span>Sửa</span>
                           </button>
 
                           <button
@@ -783,7 +796,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                                 () => onDeleteRoom(room.id)
                               );
                             }}
-                            style={{ padding: '6px 9px', color: 'var(--error)' }}
+                            style={{ padding: '5px 8px', color: 'var(--error)' }}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1465,6 +1478,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             setShowNewModal(false);
           }}
           initialPanoramaUrl={selectedPanoForNewRoom}
+          panoramas={panoramas}
         />
       )}
 
