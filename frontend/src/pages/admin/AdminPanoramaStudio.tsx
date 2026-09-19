@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   MapPin,
@@ -10,12 +10,14 @@ import {
   Save,
   CheckCircle2,
   Navigation,
-  Info
+  Info,
+  Compass,
+  Link2
 } from 'lucide-react';
 import { MuseumRoom, Hotspot } from '../../types';
 import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
 import { HotspotModal } from '../../components/HotspotModal';
-import { api } from '../../services/api';
+import { api, API_BASE } from '../../services/api';
 import { useToast } from '../../components/Toast';
 
 interface AdminPanoramaStudioProps {
@@ -42,6 +44,24 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const [panoInputUrl, setPanoInputUrl] = useState(currentRoom.panoramaUrl);
   const [uploading, setUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [panoramas, setPanoramas] = useState<Array<{ filename: string; url: string; created_at: number }>>([]);
+
+  // Fetch Kho ảnh 360° đã ghép nối
+  useEffect(() => {
+    const fetchPanoramas = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/stitch/history`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.panoramas)) {
+          setPanoramas(data.panoramas);
+        }
+      } catch (err) {
+        console.warn('Lỗi tải danh sách ảnh 360:', err);
+      }
+    };
+    fetchPanoramas();
+  }, []);
 
   // When admin clicks on canvas in Pin Mode
   const handleCanvasPinClick = (coords: { pitch: number; yaw: number }) => {
@@ -86,7 +106,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     try {
       const updated = await api.updateRoom(currentRoom.id, { initialView: view });
       onRoomUpdated(updated);
-      showToast('Đã lưu góc nhìn mặc định thành công', 'success');
+      showToast('Đã lưu hướng nhìn mặc định khi vào phòng thành công', 'success');
     } catch (err: any) {
       console.error('Lỗi cập nhật góc nhìn mặc định:', err);
       showToast('Lỗi lưu góc nhìn mặc định', 'error');
@@ -139,6 +159,23 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     }
   };
 
+  // Select panorama from history
+  const handleSelectFromLibrary = async (url: string) => {
+    try {
+      const updated = await api.updateRoom(currentRoom.id, {
+        panoramaUrl: url,
+        thumbnailUrl: url
+      });
+      setPanoInputUrl(url);
+      onRoomUpdated(updated);
+      setSaveSuccess(true);
+      showToast('Đã gắn ảnh từ kho 360° vào phòng này', 'success');
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi cập nhật ảnh 360', 'error');
+    }
+  };
+
   // Update Panorama URL manually
   const handleUpdatePanoUrl = async () => {
     if (!panoInputUrl.trim()) return;
@@ -149,18 +186,18 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
       });
       onRoomUpdated(updated);
       setSaveSuccess(true);
-      showToast('Cập nhật URL ảnh 360° thành công', 'success');
+      showToast('Cập nhật liên kết ảnh 360° thành công', 'success');
       setTimeout(() => setSaveSuccess(false), 2500);
     } catch (err: any) {
-      showToast(err.message || 'Lỗi cập nhật URL ảnh 360', 'error');
+      showToast(err.message || 'Lỗi cập nhật liên kết ảnh 360', 'error');
     }
   };
 
-  // Map museum room hotspots to Pannellum format (with 3D Walking Arrow for navigation)
+  // Map museum room hotspots to Pannellum format
   const pannellumHotspots: PannellumHotSpot[] = (currentRoom.hotspots || []).map((h) => ({
     pitch: h.pitch,
     yaw: h.yaw,
-    type: 'info', // Luôn dùng 'info' để Pannellum kích hoạt clickHandlerFunc thay vì loadScene nội bộ
+    type: 'info',
     text: h.title,
     roomId: h.targetRoomId,
     onClick: () => handleHotspotClick(h)
@@ -168,7 +205,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
 
   return (
     <div className="studio-container">
-      {/* 360 Viewport Area (4K Crisp Pannellum WebGL Engine) */}
+      {/* 360 Viewport Area */}
       <div className="studio-viewport-area" style={{ position: 'relative' }}>
         <Pannellum360Viewer
           key={currentRoom.id}
@@ -193,7 +230,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
           initialHfov={currentRoom.initialView?.fov ?? 100}
         />
 
-        {/* Hiệu ứng bước qua cửa chuyển cảnh mượt mà chuẩn Google Street View */}
+        {/* Hiệu ứng bước qua cửa chuyển cảnh mượt mà chuẩn Di Sản Bảo Tàng */}
         <div
           style={{
             position: 'absolute',
@@ -202,7 +239,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
             pointerEvents: isTransitioning ? 'auto' : 'none',
             opacity: isTransitioning ? 1 : 0,
             transition: 'opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-            background: 'radial-gradient(circle at center, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.96) 100%)',
+            background: 'radial-gradient(circle at center, rgba(26, 23, 21, 0.5) 0%, rgba(26, 23, 21, 0.96) 100%)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
             display: 'flex',
@@ -214,170 +251,250 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         >
           <div
             style={{
-              width: 50,
-              height: 50,
+              width: 46,
+              height: 46,
               borderRadius: '50%',
-              border: '3px solid rgba(59, 130, 246, 0.25)',
-              borderTopColor: '#3B82F6',
+              border: '3px solid rgba(212, 168, 106, 0.25)',
+              borderTopColor: 'var(--accent-gold)',
               animation: 'spin 0.8s linear infinite',
-              boxShadow: '0 0 25px rgba(59, 130, 246, 0.5)'
+              boxShadow: '0 0 20px rgba(212, 168, 106, 0.4)'
             }}
           />
           <div
             style={{
-              color: '#FFFFFF',
-              fontSize: '14px',
-              fontWeight: 700,
-              letterSpacing: '0.3px',
-              textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+              color: '#EDE5DF',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              letterSpacing: '0.2px',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              background: 'rgba(15, 23, 42, 0.8)',
+              background: 'rgba(36, 32, 29, 0.92)',
               padding: '8px 20px',
               borderRadius: '30px',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 8px 20px rgba(0, 0, 0, 0.4)'
+              border: '1px solid rgba(212, 168, 106, 0.3)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)'
             }}
           >
-            <Navigation size={16} />
+            <Navigation size={15} style={{ color: 'var(--accent-gold)' }} />
             <span>Đang chuyển đến {transitionText}...</span>
           </div>
         </div>
       </div>
 
-      {/* Studio Control Sidebar */}
+      {/* Studio Control Sidebar - Bố cục gọn gàng, tự nhiên */}
       <div className="studio-sidebar">
+        {/* Header phòng */}
         <div className="studio-side-header">
           <button
-            className="btn btn-secondary btn-sm"
+            type="button"
+            className="studio-back-btn"
             onClick={onBack}
-            style={{ marginBottom: 10, width: '100%' }}
+            title="Quay lại danh sách các gian trưng bày"
           >
-            <ArrowLeft size={14} />
-            <span>Quay lại danh sách phòng</span>
+            <ArrowLeft size={13} />
+            <span>Quay lại</span>
           </button>
-          <div className="studio-side-title">{currentRoom.name}</div>
-          <div style={{ fontSize: 12, color: 'var(--accent-gold)', marginTop: 2 }}>
-            Mã định danh: {currentRoom.code}
+
+          <div>
+            <div className="studio-room-title" title={currentRoom.name}>
+              {currentRoom.name}
+            </div>
+            <div className="studio-room-badges" style={{ marginTop: 6 }}>
+              <span className="studio-badge-code">{currentRoom.code}</span>
+              <span className="studio-badge-period">{currentRoom.period || 'Hiện vật Lịch sử'}</span>
+            </div>
           </div>
         </div>
 
-        {/* Hotspot Pinning Mode Control */}
+        {/* Khối 1: Cắm điểm chuyển phòng */}
         <div className="studio-section">
-          <div className="studio-section-title">Chế độ Ghim Điểm Liên Kết</div>
+          <div className="studio-section-header">
+            <div className="studio-section-title">
+              <Compass size={14} style={{ color: 'var(--accent-gold)' }} />
+              <span>Cắm điểm chuyển phòng</span>
+            </div>
+          </div>
+
           <button
-            className={`btn ${isPinMode ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
+            className={`studio-pin-btn ${isPinMode ? 'active' : ''}`}
             onClick={() => setIsPinMode((prev) => !prev)}
-            style={{ width: '100%', justifyContent: 'center' }}
           >
-            <MapPin size={16} />
-            <span>{isPinMode ? 'Đang bật: Nhấp vào ảnh để ghim' : 'Bật chế độ Ghim Hotspot'}</span>
+            <MapPin size={15} />
+            <span>{isPinMode ? 'Đang bật: Nhấp vào ảnh để đặt điểm' : 'Bật chế độ cắm điểm'}</span>
           </button>
-          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.4 }}>
-            * Hướng dẫn: Xoay ảnh 360 đến vị trí lối đi hoặc cửa phòng, sau đó click chuột trực tiếp lên vị trí đó để tạo điểm chuyển phòng.
-          </p>
+
+          <div className="studio-help-box">
+            <Info size={13} style={{ flexShrink: 0, color: 'var(--accent-gold)', marginTop: 1 }} />
+            <span>Xoay ảnh 360° đến vị trí cửa hoặc hiện vật, sau đó nhấp chuột vào ảnh để đặt điểm tương tác.</span>
+          </div>
         </div>
 
-        {/* Existing Hotspots List */}
+        {/* Khối 2: Danh sách điểm liên kết đã tạo */}
         <div className="studio-section" style={{ flex: 1, overflowY: 'auto' }}>
-          <div className="studio-section-title">
-            Danh sách Điểm Liên Kết ({currentRoom.hotspots?.length || 0})
+          <div className="studio-section-header">
+            <div className="studio-section-title">
+              <Navigation size={14} style={{ color: 'var(--accent-gold)' }} />
+              <span>Điểm liên kết đã tạo ({currentRoom.hotspots?.length || 0})</span>
+            </div>
           </div>
 
           {currentRoom.hotspots && currentRoom.hotspots.length > 0 ? (
-            currentRoom.hotspots.map((hs) => {
-              const targetRoom = allRooms.find((r) => r.id === hs.targetRoomId);
-              return (
-                <div key={hs.id} className="hotspot-item">
-                  <div className="hotspot-item-info">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="studio-hotspot-list">
+              {currentRoom.hotspots.map((hs) => {
+                const targetRoom = allRooms.find(
+                  (r) => r.id === hs.targetRoomId || String(r.id) === String(hs.targetRoomId)
+                );
+                return (
+                  <div key={hs.id} className="studio-hotspot-card">
+                    {/* Dòng 1: Tên điểm */}
+                    <div className="studio-hotspot-name" title={hs.title}>
                       {hs.type === 'navigation' ? (
-                        <Navigation size={13} style={{ color: 'var(--primary)' }} />
+                        <Navigation size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
                       ) : (
-                        <Info size={13} style={{ color: 'var(--accent-gold)' }} />
+                        <Info size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
                       )}
-                      <span className="hotspot-item-title">{hs.title}</span>
+                      <span>{hs.title}</span>
                     </div>
-                    <span className="hotspot-item-sub">
-                      {hs.type === 'navigation'
-                        ? `Dẫn đến: ${targetRoom ? targetRoom.name : 'Chưa gán phòng'}`
-                        : 'Thông tin chú thích'}
-                      {' • '}
-                      (P: {hs.pitch}°, Y: {hs.yaw}°)
-                    </span>
-                  </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {/* Nút xoay camera đến vị trí điểm này */}
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      title="Xoay góc nhìn 360 đến vị trí điểm này"
-                      onClick={() => setFocusCoords({ pitch: hs.pitch, yaw: hs.yaw, timestamp: Date.now() })}
-                      style={{ padding: '5px 8px' }}
-                    >
-                      <Eye size={13} />
-                    </button>
+                    {/* Dòng 2: Điểm đến */}
+                    <div className="studio-hotspot-dest">
+                      {hs.type === 'navigation' ? (
+                        <span className="studio-dest-badge">
+                          Lối sang: <strong>{targetRoom ? targetRoom.name : 'Chưa gán'}</strong>
+                        </span>
+                      ) : (
+                        <span className="studio-dest-badge">
+                          Thông tin chú thích
+                        </span>
+                      )}
+                    </div>
 
-                    {/* Nút Đi vào phòng đích ngay lập tức */}
-                    {hs.type === 'navigation' && hs.targetRoomId && (
+                    {/* Dòng 3: Thao tác mini */}
+                    <div className="studio-hotspot-actions">
                       <button
                         type="button"
-                        className="btn btn-primary btn-sm"
-                        title="Đi vào phòng này ngay lập tức"
-                        onClick={() => handleHotspotClick(hs)}
-                        style={{ padding: '5px 10px', fontSize: '11.5px', gap: 4 }}
+                        className="btn-action"
+                        title="Xoay góc nhìn 360 đến vị trí điểm này"
+                        onClick={() => setFocusCoords({ pitch: hs.pitch, yaw: hs.yaw, timestamp: Date.now() })}
                       >
-                        <Navigation size={12} />
-                        <span>Vào phòng</span>
+                        <Eye size={12} />
+                        <span>Xoay nhìn</span>
                       </button>
-                    )}
 
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      title="Xóa điểm ghim này"
-                      onClick={() => handleDeleteHotspot(hs.id)}
-                      style={{ color: 'var(--error)', padding: '5px 8px' }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                      {hs.type === 'navigation' && hs.targetRoomId && (
+                        <button
+                          type="button"
+                          className="btn-action primary"
+                          title="Đi vào phòng này để kiểm tra chuyển cảnh"
+                          onClick={() => handleHotspotClick(hs)}
+                        >
+                          <Navigation size={12} />
+                          <span>Vào thử</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        className="btn-action danger"
+                        title="Xóa điểm liên kết này"
+                        onClick={() => handleDeleteHotspot(hs.id)}
+                      >
+                        <Trash2 size={12} />
+                        <span>Xóa</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           ) : (
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              Chưa có điểm liên kết nào trong gian phòng này. Hãy bật chế độ ghim và click lên ảnh để tạo mới.
+            <div className="studio-empty-hotspots">
+              <MapPin size={22} style={{ color: 'var(--accent-gold)', opacity: 0.6, marginBottom: 4 }} />
+              <div>Chưa có điểm liên kết nào trong gian phòng này.</div>
+              <p>Bật chế độ cắm điểm và nhấp chuột lên ảnh 360° để tạo mới.</p>
             </div>
           )}
         </div>
 
-        {/* Panorama Source / Upload */}
+        {/* Khối 3: Cài đặt Hướng Nhìn Mặc Định (Initial View) */}
         <div className="studio-section">
-          <div className="studio-section-title">Thay đổi Ảnh Toàn Cảnh 360°</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <input
-              type="text"
-              className="form-control"
-              value={panoInputUrl}
-              onChange={(e) => setPanoInputUrl(e.target.value)}
-              placeholder="Nhập đường dẫn URL ảnh 360..."
-              style={{ fontSize: 12 }}
-            />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleUpdatePanoUrl}
-                style={{ flex: 1, justifyContent: 'center' }}
-              >
-                <Save size={13} />
-                <span>Cập nhật URL</span>
-              </button>
+          <div className="studio-section-header">
+            <div className="studio-section-title">
+              <Camera size={14} style={{ color: 'var(--accent-gold)' }} />
+              <span>Góc nhìn ban đầu khi vào phòng</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ width: '100%', justifyContent: 'center', fontSize: '12px', gap: 6 }}
+            onClick={() => {
+              if (window.pannellum) {
+                // Viewer Pannellum instance handles view capture
+                const activeViewer = (window as any)._activePannellumViewer;
+                if (activeViewer) {
+                  const pitch = activeViewer.getPitch();
+                  const yaw = activeViewer.getYaw();
+                  const fov = activeViewer.getHfov();
+                  handleCaptureInitialView({ pitch, yaw, fov });
+                  return;
+                }
+              }
+              showToast('Nhấp vào nút biểu tượng máy ảnh trên thanh công cụ xoay 360° để lưu góc nhìn này.', 'info');
+            }}
+          >
+            <Save size={13} />
+            <span>Lưu góc đang nhìn làm mặc định</span>
+          </button>
+        </div>
 
-              <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+        {/* Khối 4: Thay đổi Ảnh Toàn Cảnh 360° */}
+        <div className="studio-section">
+          <div className="studio-section-header">
+            <div className="studio-section-title">
+              <Layers size={14} style={{ color: 'var(--accent-gold)' }} />
+              <span>Ảnh toàn cảnh 360°</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Lựa chọn từ Kho không gian 360° đã ghép */}
+            {panoramas.length > 0 && (
+              <div>
+                <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                  Chọn từ Kho 360° đã ghép ({panoramas.length} ảnh):
+                </label>
+                <select
+                  className="form-control"
+                  style={{ fontSize: '12px', width: '100%' }}
+                  value={currentRoom.panoramaUrl}
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    if (selected && selected !== currentRoom.panoramaUrl) {
+                      handleSelectFromLibrary(selected);
+                    }
+                  }}
+                >
+                  <option value={currentRoom.panoramaUrl}>-- Ảnh hiện tại của phòng --</option>
+                  {panoramas.map((p) => (
+                    <option key={p.filename} value={p.url}>
+                      {p.filename} ({new Date(p.created_at * 1000).toLocaleDateString('vi-VN')})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Nút tải file ảnh mới và Nút mở link URL */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <label
+                className="btn btn-secondary btn-sm"
+                style={{ flex: 1, justifyContent: 'center', cursor: 'pointer', fontSize: '11.5px', gap: 5 }}
+              >
                 <Upload size={13} />
-                <span>{uploading ? 'Đang tải...' : 'Tải file'}</span>
+                <span>{uploading ? 'Đang tải...' : 'Tải ảnh mới'}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -386,18 +503,53 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                   disabled={uploading}
                 />
               </label>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '11.5px', padding: '5px 10px', gap: 4 }}
+                title="Nhập liên kết URL thủ công"
+                onClick={() => setShowUrlInput(!showUrlInput)}
+              >
+                <Link2 size={13} />
+                <span>Link URL</span>
+              </button>
             </div>
+
+            {/* Khung nhập URL mở rộng */}
+            {showUrlInput && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={panoInputUrl}
+                  onChange={(e) => setPanoInputUrl(e.target.value)}
+                  placeholder="https://... ảnh equirectangular 2:1"
+                  style={{ fontSize: '11.5px', padding: '6px 10px' }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleUpdatePanoUrl}
+                  style={{ justifyContent: 'center', fontSize: '11.5px', padding: '5px 10px', gap: 4 }}
+                >
+                  <Save size={12} />
+                  <span>Áp dụng liên kết</span>
+                </button>
+              </div>
+            )}
+
             {saveSuccess && (
               <span
                 style={{
                   fontSize: 11.5,
-                  color: 'var(--success)',
+                  color: 'var(--accent-gold)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4
                 }}
               >
-                <CheckCircle2 size={13} /> Đã cập nhật ảnh 360 thành công!
+                <CheckCircle2 size={13} /> Đã cập nhật ảnh 360° thành công!
               </span>
             )}
           </div>

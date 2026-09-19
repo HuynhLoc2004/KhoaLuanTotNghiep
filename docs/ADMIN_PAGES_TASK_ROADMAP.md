@@ -47,7 +47,7 @@
 | 1 | **Quản trị Ngôn ngữ & Voice AI** | `AdminLanguagePage.tsx` | ✅ Đã có | ✅ 5-10-20-30-50 | ✅ Vàng đồng chuẩn | ✅ Bảng + Thẻ mobile | `HOÀN THÀNH` |
 | 2 | **Gian trưng bày & Tour 360** | `AdminRoomsPage.tsx` | ✅ Đã có | ✅ 5-10-20-30-50 | ✅ Vàng đồng chuẩn | ✅ Bố cục gọn | `HOÀN THÀNH` |
 | 3 | **Xưởng Ghép Ảnh 360° Studio** | `PocStitchingPage.tsx` | 📋 Cần thêm | 📋 5-10-20-30-50 (Task Vĩ Thành) | ⏳ Cần đồng bộ màu | ⏳ Cần tối ưu mobile | `ĐANG SỬA ĐỔI` |
-| 4 | **Studio Cắm Hotspot Tour 360** | `AdminPanoramaStudio.tsx` | 📋 Cần thêm | 📋 Cần thêm | ⏳ Cần tinh chỉnh | ⏳ Cần tối ưu tablet | `ĐANG SỬA ĐỔI` |
+| 4 | **Studio Cắm Hotspot Tour 360** | `AdminPanoramaStudio.tsx` | ✅ Đã có | 📋 Gọn trong Sidebar | ✅ Vàng đồng chuẩn | ✅ Bố cục tinh tế | `HOÀN THÀNH` |
 | 5 | **Quản lý Hiện vật & Cổ vật** | `AdminArtifactsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
 | 6 | **Báo cáo & Thống kê Lượt xem** | `AdminAnalyticsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
 | 7 | **Cấu hình Tham số Hệ thống** | `AdminSettingsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
@@ -154,18 +154,18 @@
 ---
 
 ### 4. Studio Cắm Hotspot & Liên Kết Tour 360 (Panorama Studio)
-- **File**: `frontend/src/pages/admin/AdminPanoramaStudio.tsx`
+- **File**: `frontend/src/pages/admin/AdminPanoramaStudio.tsx` & `frontend/src/components/HotspotModal.tsx`
 - **Mục tiêu đạt được**:
   - Trực quan hóa ảnh toàn cảnh 360° bằng công nghệ WebGL (Pannellum Viewer).
   - Cắm các điểm tương tác (Hotspots): Chuyển phòng liên thông, điểm xem thông tin hiện vật, điểm phát thuyết minh Voice AI.
   - Đặt góc nhìn mặc định (Pitch, Yaw, FOV) khi du khách bước vào phòng.
 - **Tiến độ chi tiết**:
-  - [x] Hỗ trợ xoay tương tác 360°, bấm để lấy tọa độ Pitch/Yaw.
-  - [x] Hỗ trợ cắm Hotspot nhảy qua lại giữa các phòng trưng bày.
-  - [ ] **Hạng mục cần sửa đổi/bổ sung**:
-    - [ ] Thiết kế lại thanh công cụ (Toolbar) nổi phía trên: tinh tế, gọn gàng hơn, không che khuất góc nhìn bảo tàng.
-    - [ ] Bổ sung bảng danh sách các Hotspot đã cắm trong phòng (kèm phân loại: Điểm chuyển phòng / Điểm hiện vật / Điểm thuyết minh) có nút xóa nhanh và phân trang.
-    - [ ] Tối ưu hóa điều khiển cảm ứng xoay 360° trên màn hình iPad/Tablet.
+  - [x] **Xóa sạch chất "AI hoá" & đơn giản hóa text**: Thay thế các hướng dẫn asterisk dài dòng, xóa bỏ hiển thị tọa độ Pitch/Yaw thô ráp bằng thẻ điểm đến trực quan, tự nhiên.
+  - [x] **Tái thiết kế Thẻ Điểm Liên Kết (Hotspot Card)**: Bố cục 3 hàng thoáng đãng, không bị chèn ép chữ: Hàng 1 có tên điểm, Hàng 2 có huy hiệu đích đến, Hàng 3 có thanh nút bấm nhỏ gọn (`[Xoay nhìn]`, `[Vào thử]`, `[Xóa]`).
+  - [x] **Chọn nhanh từ Kho ảnh 360° đã ghép nối**: Tích hợp dropdown chọn trực tiếp ảnh từ thư viện kho ảnh của hệ thống thay vì bắt buộc gõ link URL dài dòng.
+  - [x] **Lưu hướng nhìn mặc định**: Bổ sung nút lưu nhanh góc nhìn hiện tại làm góc mặc định khi khách tham quan bước vào phòng.
+  - [x] **Đồng bộ Thẩm mỹ Di sản cho HotspotModal**: Loại bỏ hoàn toàn mã màu xanh dương ngoại lai `#2563EB`, chuẩn hóa tone màu nâu gỗ mộc, vàng đồng hoàng gia và đỏ sơn son.
+  - [x] **Hiệu ứng chuyển cảnh (Transition Overlay)**: Đồng bộ màu vàng hoàng gia và nền than đá ấm, tạo cảm giác sang trọng khi chuyển phòng.
 
 ---
 
