@@ -104,13 +104,38 @@ export const AdminLanguagePage: React.FC = () => {
         de: 'Willkommen im Historischen Museum von Ho-Chi-Minh-Stadt, dem Hüter des jahrtausendealten südvietnamesischen Kulturerbes.'
       };
 
+      const speechText = testTexts[lang.code] || `Welcome to the Museum of History in ${lang.nativeName}`;
+
+      // 1. PHÁT TIẾNG NÓI TRỰC TIẾP QUA LOA THIẾT BỊ (TỨC THÌ 0MS)
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(speechText);
+        const localeMap: Record<string, string> = {
+          vi: 'vi-VN',
+          en: 'en-US',
+          fr: 'fr-FR',
+          ja: 'ja-JP',
+          zh: 'zh-CN',
+          ko: 'ko-KR',
+          de: 'de-DE'
+        };
+        utterance.lang = localeMap[lang.code] || lang.code;
+        utterance.rate = 0.92;
+        window.speechSynthesis.speak(utterance);
+      }
+
+      // 2. GỌI BACKEND SINH FILE MP3 TĨNH ĐỂ NẠP VÀO TRÌNH PHÁT
       const res = await api.generateTtsAudio({
-        text: testTexts[lang.code] || `Welcome to Museum of History in ${lang.nativeName}`,
+        text: speechText,
         langCode: lang.code,
         roomCode: 'sample'
       });
 
-      setPreviewAudio(res.audioUrl);
+      const audioUrl = res.audioUrl.startsWith('http')
+        ? res.audioUrl
+        : `${window.location.origin}${res.audioUrl}`;
+
+      setPreviewAudio(audioUrl);
       showToast(`Đang phát mẫu giọng đọc AI [${lang.nativeName}]`, 'info');
     } catch (err: any) {
       showToast('Lỗi thử giọng đọc AI: ' + err.message, 'error');
@@ -278,8 +303,7 @@ export const AdminLanguagePage: React.FC = () => {
               </div>
             </div>
           </div>
-          <audio controls autoPlay key={previewAudio} style={{ height: 36 }}>
-            <source src={previewAudio} type="audio/mpeg" />
+          <audio controls autoPlay key={previewAudio} src={previewAudio} style={{ height: 36, minWidth: 260 }}>
             Trình duyệt không hỗ trợ audio.
           </audio>
           <button
