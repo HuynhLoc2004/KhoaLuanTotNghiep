@@ -52,16 +52,56 @@ const AppContent: React.FC = () => {
     fetchRooms();
   }, []);
 
+  // Xử lý deep link: Quét QR hoặc mở liên kết ?room=CODE hoặc ?room=ID
+  useEffect(() => {
+    const handleCheckRoomUrl = () => {
+      if (rooms.length === 0) return;
+      const params = new URLSearchParams(window.location.search);
+      const roomQuery = params.get('room');
+      if (!roomQuery) return;
+
+      const matched = rooms.find(
+        (r) =>
+          r.code?.toLowerCase() === roomQuery.toLowerCase() ||
+          r.id === roomQuery ||
+          (r as any)._id === roomQuery
+      );
+
+      if (matched) {
+        setActiveRoom(matched);
+        setCurrentTab('studio');
+      }
+    };
+
+    handleCheckRoomUrl();
+    window.addEventListener('popstate', handleCheckRoomUrl);
+    return () => window.removeEventListener('popstate', handleCheckRoomUrl);
+  }, [rooms]);
+
   // Open Studio for a room
   const handleOpenStudio = (room: MuseumRoom) => {
     setActiveRoom(room);
     setCurrentTab('studio');
+    try {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', room.code || room.id);
+      window.history.pushState({}, '', newUrl.toString());
+    } catch {
+      // Ignored
+    }
   };
 
   // Back from Studio to Rooms list
   const handleBackToRooms = () => {
     setActiveRoom(null);
     setCurrentTab('rooms');
+    try {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('room');
+      window.history.pushState({}, '', newUrl.toString());
+    } catch {
+      // Ignored
+    }
   };
 
   // Room created
@@ -101,6 +141,13 @@ const AppContent: React.FC = () => {
     );
     if (target) {
       setActiveRoom(target);
+      try {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('room', target.code || target.id);
+        window.history.pushState({}, '', newUrl.toString());
+      } catch {
+        // Ignored
+      }
     } else {
       showToast(`Không tìm thấy phòng đích (Mã phòng: ${targetRoomId})`, 'warning');
     }

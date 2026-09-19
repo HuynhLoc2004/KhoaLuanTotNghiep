@@ -1555,11 +1555,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       {/* MODAL XUẤT QR STANDEE BẢO TÀNG THỰC ĐỊA */}
       {showQrModal && selectedQrRoom && (
         <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 520 }}>
+          <div className="modal-card" style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <QrCode size={18} style={{ color: 'var(--primary)' }} />
-                <h2 className="modal-title">Standee QR Thực Địa: {selectedQrRoom.name}</h2>
+                <h2 className="modal-title">Mã QR Tham Quan: {selectedQrRoom.name}</h2>
               </div>
               <button
                 type="button"
@@ -1573,53 +1573,90 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
             <div className="modal-body" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
               {/* Standee Print Preview Card */}
-              <div className="standee-print-card">
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#8C2D19', marginBottom: 6 }}>
-                  Bảo Tàng Lịch Sử Thành Phố Hồ Chí Minh
+              <div className="standee-print-card" style={{ padding: '28px 20px', borderRadius: 16 }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#8C2D19', marginBottom: 6 }}>
+                  BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH
                 </div>
-                <div style={{ fontSize: '17px', fontWeight: 700, color: '#2A1B14', marginBottom: 2 }}>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1A110B', marginBottom: 4, lineHeight: 1.3 }}>
                   {selectedQrRoom.name}
                 </div>
-                <div style={{ fontSize: '12px', color: '#5C4D43', marginBottom: 16 }}>
-                  Mã gian phòng: <strong>{selectedQrRoom.code}</strong> • {selectedQrRoom.period}
+                <div style={{ fontSize: '12px', color: '#6B584C', marginBottom: 16 }}>
+                  Mã phòng: <strong>{selectedQrRoom.code}</strong> • {selectedQrRoom.period}
                 </div>
 
-                <div style={{ width: 180, height: 180, margin: '0 auto 16px', padding: 8, background: '#FFFFFF', border: '2px solid #EADEC9', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 190, height: 190, margin: '0 auto 16px', padding: 8, background: '#FFFFFF', border: '2px solid #D4A86A', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${window.location.origin}/?room=${selectedQrRoom.id}`)}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${window.location.origin}/?room=${selectedQrRoom.code || selectedQrRoom.id}`)}`}
                     alt={`QR Code ${selectedQrRoom.name}`}
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
                 </div>
 
-                <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#2A1B14', marginBottom: 4 }}>
-                  Quét mã để bước vào không gian 360° & nghe Thuyết minh AI
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A110B', marginBottom: 3 }}>
+                  Quét mã để tham quan không gian 360°
                 </div>
-                <div style={{ fontSize: '11px', color: '#5C4D43' }}>
-                  Ứng dụng Công nghệ 4.0 và AI trong Bảo tồn Di sản Văn hóa
+                <div style={{ fontSize: '11.5px', color: '#8C7769', letterSpacing: '0.2px' }}>
+                  Scan to explore 360° virtual tour
                 </div>
+              </div>
+
+              {/* Đường dẫn trực tiếp & nút sao chép */}
+              <div style={{ marginTop: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '9px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)', marginRight: 5 }}>Link:</span>
+                  <code style={{ color: 'var(--primary)', fontSize: '11.5px' }}>{`${window.location.origin}/?room=${selectedQrRoom.code || selectedQrRoom.id}`}</code>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-xs"
+                  onClick={() => {
+                    const link = `${window.location.origin}/?room=${selectedQrRoom.code || selectedQrRoom.id}`;
+                    navigator.clipboard.writeText(link);
+                    showToast('Đã sao chép liên kết tham quan', 'success');
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, padding: '4px 8px' }}
+                  title="Sao chép liên kết vào bộ nhớ tạm"
+                >
+                  <Copy size={12} />
+                  <span>Sao chép</span>
+                </button>
               </div>
             </div>
 
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  window.print();
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-              >
-                <Printer size={14} />
-                <span>In Standee A5</span>
-              </button>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    window.print();
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Printer size={14} />
+                  <span>In Standee</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowQrModal(false);
+                    onOpenStudio(selectedQrRoom);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  title="Mở ngay không gian 360° của phòng này"
+                >
+                  <ExternalLink size={14} />
+                  <span>Vào phòng 360°</span>
+                </button>
+              </div>
 
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={() => setShowQrModal(false)}
               >
-                <span>Hoàn tất</span>
+                <span>Đóng</span>
               </button>
             </div>
           </div>
