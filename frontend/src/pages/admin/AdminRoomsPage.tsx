@@ -714,17 +714,17 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         {room.aiVoiceEnabled || room.aiKnowledgePrompt ? (
                           <span style={{ fontSize: '10.5px', color: 'var(--accent-gold)', background: 'rgba(212, 168, 106, 0.12)', border: '1px solid rgba(212, 168, 106, 0.28)', padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
                             <Volume2 size={10} />
-                            <span>AI Voice</span>
+                            <span>Đã có thuyết minh</span>
                           </span>
                         ) : (
                           <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            Chưa có AI
+                            Chưa cấu hình
                           </span>
                         )}
                       </div>
 
                       <div className="room-name" title={room.name}>{room.name}</div>
-                      <div className="room-desc" title={room.description}>{room.description}</div>
+                      <div className="room-desc" title={room.description}>{room.description || 'Chưa có thông tin mô tả chi tiết cho gian phòng này.'}</div>
 
                       {/* Thông số thực tế từ DB */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', padding: '6px 0', borderTop: '1px dashed var(--border-color)' }}>
