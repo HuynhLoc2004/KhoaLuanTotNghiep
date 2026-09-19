@@ -379,7 +379,7 @@
 .room-thumbnail-wrapper {
   position: relative;
   height: 170px;
-  background-color: #1E293B;
+  background-color: var(--bg-subtle);
   overflow: hidden;
 }
 
@@ -398,7 +398,7 @@
   position: absolute;
   top: 10px;
   left: 10px;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(22, 19, 17, 0.85);
   color: #FFFFFF;
   padding: 3px 8px;
   border-radius: var(--radius-sm);
@@ -1572,7 +1572,7 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  background-color: rgba(15, 23, 42, 0.75);
+  background-color: rgba(22, 19, 17, 0.85);
   color: #FFFFFF;
   padding: 2px 8px;
   border-radius: 4px;
