@@ -61,6 +61,7 @@ export const AdminLanguagePage: React.FC = () => {
   const { showToast } = useToast();
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [testingCode, setTestingCode] = useState<string | null>(null);
   const [previewAudio, setPreviewAudio] = useState<{ url: string; langName: string; flag: string } | null>(null);
@@ -116,7 +117,7 @@ export const AdminLanguagePage: React.FC = () => {
     onConfirm: () => {}
   });
 
-  // Tải danh sách ngôn ngữ
+  // Tải danh sách ngôn ngữ ban đầu
   const fetchLanguages = async () => {
     try {
       setLoading(true);
@@ -126,6 +127,23 @@ export const AdminLanguagePage: React.FC = () => {
       showToast('Lỗi tải danh mục ngôn ngữ: ' + err.message, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Làm mới danh mục ngôn ngữ (có hiệu ứng xoay icon loading tối thiểu 500ms)
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      const [data] = await Promise.all([
+        api.getLanguages(),
+        new Promise((resolve) => setTimeout(resolve, 500))
+      ]);
+      setLanguages(data);
+      showToast('Đã làm mới dữ liệu danh mục ngôn ngữ thành công', 'success');
+    } catch (err: any) {
+      showToast('Lỗi làm mới danh mục ngôn ngữ: ' + err.message, 'error');
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -376,13 +394,13 @@ export const AdminLanguagePage: React.FC = () => {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={fetchLanguages}
-              disabled={loading}
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
               title="Làm mới dữ liệu từ máy chủ"
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              <RefreshCw size={14} className={loading ? 'spin' : ''} />
-              <span>Làm mới</span>
+              <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
+              <span>{isRefreshing ? 'Đang làm mới...' : 'Làm mới'}</span>
             </button>
 
             <button
