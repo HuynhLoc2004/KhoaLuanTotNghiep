@@ -298,7 +298,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
                   period,
                   description,
                   narrationScript: room.aiScript || '',
-                  audioUrl: room.aiVoiceEnabled ? room.aiScript : ''
+                  audioUrl: room.translations?.vi?.audioUrl || ''
                 }}
                 translations={translations}
                 onChange={setTranslations}
