@@ -60,6 +60,10 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
     try {
       setLoading(true);
       setError(null);
+      // Đồng bộ tự động kịch bản thuyết minh và Voice AI từ bản dịch sang trường gốc của phòng
+      const syncedScript = translations.vi?.narrationScript || translations.en?.narrationScript || Object.values(translations)[0]?.narrationScript || room.aiScript || '';
+      const hasAudio = Boolean(translations.vi?.audioUrl || translations.en?.audioUrl || Object.values(translations).some(t => Boolean(t.audioUrl)) || room.aiVoiceEnabled);
+
       const updated = await api.updateRoom(room.id, {
         code: code.trim(),
         name: name.trim(),
@@ -70,7 +74,10 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
         thumbnailUrl: panoramaUrl.trim(),
         qrScanCount: Number(qrScanCount) || 0,
         active,
-        translations
+        translations,
+        aiScript: syncedScript,
+        aiVoiceEnabled: hasAudio,
+        aiKnowledgePrompt: room.aiKnowledgePrompt || description.trim()
       });
       onUpdated(updated);
     } catch (err: any) {

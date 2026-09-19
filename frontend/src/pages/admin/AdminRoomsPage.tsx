@@ -199,14 +199,19 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     setPanoPage(1);
   }, [searchQuery, selectedCategory, selectedStatus, activeSubTab]);
 
-  // Khi mở Slide-over Drawer của phòng nào, nạp đúng dữ liệu của phòng đó từ DB
+  // Khi mở Slide-over Drawer của phòng nào, nạp đúng dữ liệu của phòng đó từ DB và Translations
   const handleOpenAiDrawer = (room: MuseumRoom) => {
     setAiDrawerRoom(room);
-    setAiKnowledgePrompt(room.aiKnowledgePrompt || '');
-    setAiScript(room.aiScript || '');
+    const knowledge = room.aiKnowledgePrompt || room.description || '';
+    const script = room.aiScript || room.translations?.vi?.narrationScript || room.translations?.en?.narrationScript || (room.translations ? Object.values(room.translations).find(t => t.narrationScript)?.narrationScript : '') || '';
+    const audio = room.translations?.vi?.audioUrl || room.translations?.en?.audioUrl || (room.translations ? Object.values(room.translations).find(t => t.audioUrl)?.audioUrl : null) || null;
+
+    setAiKnowledgePrompt(knowledge);
+    setAiScript(script);
     setAiVoiceLang(room.aiVoiceLang || 'vi-south');
-    setPreviewAudioUrl(null);
-    setDrawerActiveTab('rag');
+    setPreviewAudioUrl(audio);
+    // Khi người dùng bấm nút [Thuyết minh], mở thẳng Tab "Thuyết minh âm thanh" để người dùng nghe và kiểm tra lời đọc
+    setDrawerActiveTab('tts');
   };
 
   const handleCloseAiDrawer = () => {
@@ -1485,8 +1490,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         <Volume2 size={14} />
                         <span>Bản nghe thử giọng đọc thuyết minh:</span>
                       </div>
-                      <audio controls style={{ width: '100%', height: 36 }}>
-                        <source src={previewAudioUrl} type="audio/ogg" />
+                      <audio controls key={previewAudioUrl} style={{ width: '100%', height: 36 }}>
+                        <source src={previewAudioUrl} />
                         Trình duyệt của bạn không hỗ trợ thẻ audio.
                       </audio>
                     </div>
