@@ -1283,6 +1283,100 @@
   display: none;
 }
 
+.breadcrumb-mobile-back {
+  display: none;
+}
+
+.studio-mobile-toggle-btn {
+  display: none;
+}
+
+.studio-mobile-close-btn {
+  display: none;
+}
+
+.studio-mobile-backdrop {
+  display: none;
+}
+
+.studio-mobile-drawer-handle {
+  display: none;
+}
+
+/* Cụm Header Di Sản 360° Studio */
+.studio-heritage-capsule {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(23, 18, 14, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 168, 106, 0.35);
+  border-radius: 30px;
+  padding: 5px 16px 5px 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+  color: #EDE5DF;
+  font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
+  max-width: calc(100% - 36px);
+}
+
+.studio-heritage-room-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.studio-heritage-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #F5EBE1;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.studio-heritage-code {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  background: rgba(212, 168, 106, 0.15);
+  border: 1px solid rgba(212, 168, 106, 0.3);
+  border-radius: 12px;
+  padding: 1px 8px;
+  flex-shrink: 0;
+}
+
+.studio-heritage-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(212, 168, 106, 0.25);
+  flex-shrink: 0;
+}
+
+.studio-heritage-voice-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.studio-voice-select {
+  background: rgba(0, 0, 0, 0.45);
+  color: #FFF;
+  border: 1px solid rgba(212, 168, 106, 0.35);
+  border-radius: 14px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
 /* TABLET & MOBILE BREAKPOINT (<= 768px) */
 @media (max-width: 768px) {
   .admin-app {
@@ -1329,14 +1423,64 @@
     animation: fadeIn 0.2s ease;
   }
 
-  /* Header Optimization */
+  /* Header Optimization on Mobile */
   .admin-header {
-    height: 52px;
-    padding: 0 12px;
+    height: 50px;
+    padding: 0 10px;
   }
 
-  .breadcrumb-museum-name {
-    display: none;
+  .header-left {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    gap: 8px;
+  }
+
+  .header-breadcrumbs {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /* Ẩn các cấp breadcrumb trung gian và tên bảo tàng trên mobile để không bao giờ vỡ dòng */
+  .breadcrumb-root,
+  .breadcrumb-divider,
+  .breadcrumb-link {
+    display: none !important;
+  }
+
+  .breadcrumb-mobile-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    margin-right: 2px;
+    flex-shrink: 0;
+  }
+
+  .breadcrumb-mobile-back:hover {
+    color: var(--accent-gold);
+  }
+
+  .breadcrumb-active {
+    display: block;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+
+  .header-actions {
+    flex-shrink: 0;
+    gap: 6px;
   }
 
   .header-tour-label {
@@ -1344,11 +1488,180 @@
   }
 
   .header-tour-link {
-    padding: 6px 8px;
+    padding: 5px 8px;
+  }
+
+  .header-theme-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .header-separator {
+    display: none;
   }
 
   .header-user-meta {
     display: none;
+  }
+
+  /* 360 Studio Mobile Responsive: Canvas tràn 100%, Sidebar thành Bottom Drawer trượt êm */
+  .studio-container {
+    flex-direction: column;
+    height: calc(100dvh - 50px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .studio-viewport-area {
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1;
+  }
+
+  /* Thanh Header Di Sản 360° trên Mobile siêu gọn gàng */
+  .studio-heritage-capsule {
+    top: 10px !important;
+    left: 10px !important;
+    max-width: calc(100% - 20px) !important;
+    padding: 4px 10px !important;
+    gap: 6px !important;
+    border-radius: 20px !important;
+  }
+
+  .studio-heritage-title {
+    font-size: 11.5px !important;
+    max-width: 95px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .studio-heritage-code {
+    font-size: 9.5px !important;
+    padding: 1px 5px !important;
+  }
+
+  .studio-voice-lang-label {
+    display: none;
+  }
+
+  .studio-heritage-divider {
+    height: 14px !important;
+  }
+
+  /* Nút nổi mở bảng công cụ & điểm trên mobile */
+  .studio-mobile-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: absolute;
+    bottom: 72px;
+    right: 14px;
+    z-index: 30;
+    background: rgba(23, 18, 14, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--accent-gold);
+    color: #FAF5EE;
+    padding: 8px 14px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.65);
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .studio-mobile-toggle-btn:active {
+    transform: scale(0.96);
+  }
+
+  .studio-mobile-badge {
+    background: var(--accent-gold);
+    color: #160F0C;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  /* Biến Sidebar Studio thành Bottom Sheet mượt mà trên Mobile */
+  .studio-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100% !important;
+    max-height: 75vh;
+    height: 72vh;
+    border-radius: 20px 20px 0 0;
+    border-left: none;
+    border-top: 1px solid rgba(212, 168, 106, 0.4);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.75);
+    z-index: 1050;
+    transform: translateY(105%);
+    transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+    background-color: var(--bg-surface);
+  }
+
+  .studio-sidebar.mobile-open {
+    transform: translateY(0);
+  }
+
+  .studio-mobile-drawer-handle {
+    display: block;
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.28);
+    margin: 8px auto 2px auto;
+    flex-shrink: 0;
+  }
+
+  .studio-mobile-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+
+  .studio-mobile-close-btn:hover {
+    color: var(--heading-color);
+    border-color: var(--accent-gold);
+  }
+
+  .studio-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1040;
+    animation: fadeIn 0.2s ease;
+  }
+
+  /* Glass toolbar ở đáy trình xem 360 thu gọn trên màn hình điện thoại */
+  .glass-toolbar {
+    gap: 6px !important;
+    padding: 6px 10px !important;
+    max-width: calc(100vw - 20px) !important;
+    overflow-x: auto;
+  }
+
+  .glass-btn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+    flex-shrink: 0;
   }
 
   /* Content Padding & Cards */

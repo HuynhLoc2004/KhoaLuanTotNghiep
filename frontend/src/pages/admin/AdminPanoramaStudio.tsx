@@ -18,7 +18,9 @@ import {
   VolumeX,
   Play,
   Pause,
-  Globe
+  Globe,
+  Sliders,
+  X
 } from 'lucide-react';
 import { MuseumRoom, Hotspot } from '../../types';
 import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
@@ -43,7 +45,7 @@ interface AdminPanoramaStudioProps {
   currentRoom: MuseumRoom;
   allRooms: MuseumRoom[];
   onBack: () => void;
-  onRoomUpdated: (updated: MuseumRoom) => void;
+  onRoomUpdated: (updatedRoom: MuseumRoom) => void;
   onNavigateRoom: (roomId: string) => void;
 }
 
@@ -66,6 +68,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const [uploading, setUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
   // Voice AI Audio Guide Widget State
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
@@ -362,54 +365,23 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         />
 
         {/* CỤM THANH HEADER DI SẢN 360° THỐNG NHẤT (Tên phòng + Mã phòng + Audio Guide trên cùng 1 thanh sang trọng) */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 16,
-            left: 18,
-            zIndex: 25,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            background: 'rgba(23, 18, 14, 0.88)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(212, 168, 106, 0.35)',
-            borderRadius: 30,
-            padding: '5px 16px 5px 14px',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.55)',
-            color: '#EDE5DF',
-            fontFamily: "'Be Vietnam Pro', -apple-system, sans-serif",
-            maxWidth: 'calc(100% - 36px)',
-            flexWrap: 'wrap'
-          }}
-        >
+        <div className="studio-heritage-capsule">
           {/* Cụm 1: Biểu tượng bảo tàng & Tên gian phòng */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div className="studio-heritage-room-block">
             <span style={{ fontSize: '15px' }} title="Bảo tàng Lịch sử TP. Hồ Chí Minh">🏛️</span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#F5EBE1', letterSpacing: '0.2px' }}>
+            <span className="studio-heritage-title">
               {currentRoom.name}
             </span>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'var(--accent-gold)',
-                background: 'rgba(212, 168, 106, 0.15)',
-                border: '1px solid rgba(212, 168, 106, 0.3)',
-                borderRadius: 12,
-                padding: '1px 8px'
-              }}
-            >
+            <span className="studio-heritage-code">
               {currentRoom.code}
             </span>
           </div>
 
           {/* Vạch ngăn cách di sản thanh lịch */}
-          <div style={{ width: 1, height: 18, background: 'rgba(212, 168, 106, 0.25)', flexShrink: 0 }} />
+          <div className="studio-heritage-divider" />
 
           {/* Cụm 2: Thuyết minh Voice AI Di sản (Tích hợp liền mạch) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div className="studio-heritage-voice-block">
             {availableVoiceLangs.length === 0 ? (
               <div
                 style={{
@@ -455,7 +427,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                   {availableVoiceLangs.length === 1 ? (
                     <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#EDE5DF', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span>{availableVoiceLangs[0].flag}</span>
-                      <span>{availableVoiceLangs[0].label}</span>
+                      <span className="studio-voice-lang-label">{availableVoiceLangs[0].label}</span>
                     </span>
                   ) : (
                     <select
@@ -468,21 +440,11 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                           setIsPlayingVoice(false);
                         }
                       }}
-                      style={{
-                        background: 'rgba(0,0,0,0.45)',
-                        color: '#FFF',
-                        border: '1px solid rgba(212, 168, 106, 0.35)',
-                        borderRadius: 14,
-                        padding: '2px 8px',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        outline: 'none',
-                        fontFamily: "'Be Vietnam Pro', sans-serif"
-                      }}
+                      className="studio-voice-select"
                     >
                       {availableVoiceLangs.map((lang) => (
                         <option key={lang.code} value={lang.code} style={{ background: '#1A1715', color: '#FFF' }}>
-                          {lang.flag} {lang.label} 🔊
+                          {lang.flag} {lang.label}
                         </option>
                       ))}
                     </select>
@@ -599,10 +561,32 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
             <span>Đang chuyển đến {transitionText}...</span>
           </div>
         </div>
+        {/* Nút mở bảng công cụ & điểm trên mobile */}
+        <button
+          type="button"
+          className="studio-mobile-toggle-btn"
+          onClick={() => setIsMobilePanelOpen(true)}
+          aria-label="Mở bảng công cụ gian phòng"
+        >
+          <Sliders size={14} />
+          <span>Công cụ & Điểm</span>
+          <span className="studio-mobile-badge">{currentRoom.hotspots?.length || 0}</span>
+        </button>
       </div>
 
-      {/* Studio Control Sidebar - Siêu gọn 2 Tab, không cần cuộn */}
-      <div className="studio-sidebar">
+      {/* Backdrop mờ khi mở Drawer trên mobile */}
+      {isMobilePanelOpen && (
+        <div
+          className="studio-mobile-backdrop"
+          onClick={() => setIsMobilePanelOpen(false)}
+        />
+      )}
+
+      {/* Studio Control Sidebar - Siêu gọn 2 Tab, không cần cuộn (Bottom Sheet trên Mobile) */}
+      <div className={`studio-sidebar ${isMobilePanelOpen ? 'mobile-open' : ''}`}>
+        {/* Thanh kéo drawer trên mobile */}
+        <div className="studio-mobile-drawer-handle" />
+
         {/* Header phòng siêu gọn (1 hàng) */}
         <div className="studio-side-header">
           <button
@@ -621,6 +605,16 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
               {currentRoom.name}
             </span>
           </div>
+
+          {/* Nút đóng bảng điều khiển trên Mobile */}
+          <button
+            type="button"
+            className="studio-mobile-close-btn"
+            onClick={() => setIsMobilePanelOpen(false)}
+            aria-label="Đóng bảng công cụ"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {/* 2-Tab Switcher */}
@@ -653,7 +647,14 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
               <button
                 type="button"
                 className={`studio-pin-btn ${isPinMode ? 'active' : ''}`}
-                onClick={() => setIsPinMode((prev) => !prev)}
+                onClick={() => {
+                  const next = !isPinMode;
+                  setIsPinMode(next);
+                  if (next && window.innerWidth <= 768) {
+                    setIsMobilePanelOpen(false);
+                    showToast('Chạm vào vị trí bất kỳ trên ảnh 360° để đặt điểm', 'info');
+                  }
+                }}
               >
                 <MapPin size={14} />
                 <span>{isPinMode ? 'Đang chọn: Nhấp lên ảnh để đặt' : 'Cắm điểm mới'}</span>

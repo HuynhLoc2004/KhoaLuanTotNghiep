@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Menu, Sun, Moon, ExternalLink, Landmark, Shield } from 'lucide-react';
+import { ChevronRight, Menu, Sun, Moon, ExternalLink, Landmark, Shield, ArrowLeft } from 'lucide-react';
 import { AdminTab, MuseumRoom } from '../types';
 import { useTheme } from '../context/ThemeContext';
 
@@ -54,6 +54,17 @@ export const Header: React.FC<HeaderProps> = ({
 
           {currentTab === 'studio' && activeRoom ? (
             <>
+              {onBackToRooms && (
+                <button
+                  type="button"
+                  className="breadcrumb-mobile-back"
+                  onClick={onBackToRooms}
+                  title="Quay lại danh sách phòng"
+                  aria-label="Quay lại danh sách phòng"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+              )}
               <button
                 type="button"
                 className="breadcrumb-link"
