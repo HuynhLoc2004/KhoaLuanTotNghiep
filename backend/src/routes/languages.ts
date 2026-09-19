@@ -268,8 +268,82 @@ languagesRouter.delete('/:code', async (req: Request, res: Response) => {
 });
 
 /**
+ * Helper: Dịch một đoạn văn bản ngắn qua Neural Machine Translation (MyMemory)
+ */
+async function fetchSingleChunkNMT(chunk: string, targetLang: string): Promise<string> {
+  if (!chunk || !chunk.trim()) return '';
+  const cleanLang = targetLang.toLowerCase().trim();
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk.trim())}&langpair=vi|${encodeURIComponent(cleanLang)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (res.ok) {
+      const data: any = await res.json();
+      if (data?.responseData?.translatedText) {
+        let result: string = data.responseData.translatedText;
+        // Decode các thực thể HTML nếu có
+        result = result
+          .replace(/&#39;/g, "'")
+          .replace(/&quot;/g, '"')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>');
+        // Bỏ qua nếu là chuỗi cảnh báo quota
+        if (!result.toLowerCase().startsWith('mymemory warning') && !result.toLowerCase().includes('quota exceeded')) {
+          return result;
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn('[NMT chunk translate error]:', err.message);
+  }
+  return chunk;
+}
+
+/**
+ * Helper: Dịch toàn diện đoạn văn bản dài, tự động chia tách câu thông minh
+ */
+async function translateTextWithNMT(text: string, targetLang: string): Promise<string> {
+  if (!text || !text.trim()) return '';
+  const cleanText = text.trim();
+  const tLang = targetLang.toLowerCase().trim();
+
+  // Nếu đoạn văn ngắn dưới 350 ký tự, dịch trực tiếp 1 lần
+  if (cleanText.length <= 350) {
+    return fetchSingleChunkNMT(cleanText, tLang);
+  }
+
+  // Tách theo dấu kết thúc câu (. ? ! \n) để giữ nguyên cấu trúc ngữ pháp
+  const sentences = cleanText.split(/(?<=[.\n?!])\s+/);
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  for (const s of sentences) {
+    if ((currentChunk + ' ' + s).length > 300 && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = s;
+    } else {
+      currentChunk = currentChunk ? currentChunk + ' ' + s : s;
+    }
+  }
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  const results: string[] = [];
+  for (const c of chunks) {
+    const translated = await fetchSingleChunkNMT(c, tLang);
+    results.push(translated);
+  }
+
+  return results.join(' ');
+}
+
+/**
  * POST /api/languages/translate-draft
  * Dịch tự động bằng AI có áp dụng Heritage Glossary chuyên sâu bảo tàng
+ * - Cấp 1: Gemini 2.5 Flash / 1.5 Flash (nếu có cấu hình API Key)
+ * - Cấp 2: Neural Machine Translation (NMT) dịch toàn văn 100% ngữ nghĩa tự nhiên
+ * - Hậu xử lý: Chuẩn hóa thuật ngữ bảo tàng di sản học bằng Heritage Glossary
  */
 languagesRouter.post('/translate-draft', async (req: Request, res: Response) => {
   try {
@@ -278,10 +352,16 @@ languagesRouter.post('/translate-draft', async (req: Request, res: Response) => 
       return res.status(400).json({ success: false, message: 'Cần chỉ định mã ngôn ngữ đích (targetLang)' });
     }
 
-    const tLang = targetLang.toLowerCase();
+    const tLang = targetLang.toLowerCase().trim();
 
-    // Hàm thay thế thuật ngữ sử học theo glossary
+    // Chuẩn bị kịch bản thuyết minh cơ sở nếu chưa có
+    const baseNarrationScript = (narrationScript && narrationScript.trim())
+      ? narrationScript.trim()
+      : `Kính chào quý khách đến với ${name || 'gian trưng bày'} tại Bảo tàng Lịch sử TP.HCM. ${description || ''}`;
+
+    // Hàm thay thế thuật ngữ sử học theo glossary bảo tàng
     const applyGlossary = (text: string, lang: string): string => {
+      if (!text) return '';
       let result = text;
       for (const [vietnameseTerm, translations] of Object.entries(HERITAGE_GLOSSARY)) {
         if (translations[lang] && result.includes(vietnameseTerm)) {
@@ -292,11 +372,10 @@ languagesRouter.post('/translate-draft', async (req: Request, res: Response) => 
       return result;
     };
 
-    // Kiểm tra cấu hình Gemini API Key
+    // KIỂM TRA CẤP 1: Gemini API Key nếu có cấu hình
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey && apiKey.trim().length > 10) {
       try {
-        // Chuẩn bị prompt chuyên gia bảo tàng cho Gemini
         const systemInstruction = `You are a Senior Heritage Translator and Museum Curator for the Museum of History in Ho Chi Minh City.
 Translate Vietnamese museum information into ${tLang.toUpperCase()}.
 CRITICAL RULES:
@@ -305,7 +384,12 @@ CRITICAL RULES:
 ${Object.entries(HERITAGE_GLOSSARY).map(([vi, dict]) => `- "${vi}" -> "${dict[tLang] || dict['en']}"`).join('\n')}
 3. Output strictly valid JSON with keys: "name", "period", "description", "narrationScript".`;
 
-        const userPayload = JSON.stringify({ name, period, description, narrationScript });
+        const userPayload = JSON.stringify({
+          name: name || '',
+          period: period || '',
+          description: description || '',
+          narrationScript: baseNarrationScript
+        });
         const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         const geminiRes = await fetch(geminiEndpoint, {
@@ -314,73 +398,45 @@ ${Object.entries(HERITAGE_GLOSSARY).map(([vi, dict]) => `- "${vi}" -> "${dict[tL
           body: JSON.stringify({
             contents: [{ parts: [{ text: `${systemInstruction}\n\nTranslate this:\n${userPayload}` }] }],
             generationConfig: { responseMimeType: 'application/json' }
-          })
+          }),
+          signal: AbortSignal.timeout(8000)
         });
 
         if (geminiRes.ok) {
-          const data = await geminiRes.json();
+          const data: any = await geminiRes.json();
           const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawText) {
             const parsed = JSON.parse(rawText);
             return res.json({
               success: true,
-              data: parsed,
+              data: {
+                name: parsed.name || name,
+                period: parsed.period || period,
+                description: parsed.description || description,
+                narrationScript: parsed.narrationScript || baseNarrationScript
+              },
               engine: 'Gemini-2.5-Flash (Heritage Contextual)'
             });
           }
         }
       } catch (aiErr: any) {
-        console.warn('[Gemini Translation Fallback]:', aiErr.message);
+        console.warn('[Gemini Translation Fallback to NMT]:', aiErr.message);
       }
     }
 
-    // Fallback: Engine dịch thuật ngữ chuẩn (Bảo đảm 100% không bao giờ 500 kể cả khi chưa có API key)
-    let translatedName = name ? applyGlossary(name, tLang) : '';
-    let translatedPeriod = period ? applyGlossary(period, tLang) : '';
-    let translatedDesc = description ? applyGlossary(description, tLang) : '';
-    let translatedScript = narrationScript ? applyGlossary(narrationScript, tLang) : '';
+    // CẤP 2: Neural Machine Translation (NMT) dịch toàn văn chuyên sâu đa ngôn ngữ
+    let [translatedName, translatedPeriod, translatedDesc, translatedScript] = await Promise.all([
+      name ? translateTextWithNMT(name, tLang) : Promise.resolve(''),
+      period ? translateTextWithNMT(period, tLang) : Promise.resolve(''),
+      description ? translateTextWithNMT(description, tLang) : Promise.resolve(''),
+      baseNarrationScript ? translateTextWithNMT(baseNarrationScript, tLang) : Promise.resolve('')
+    ]);
 
-    // Bản dịch mẫu theo ngôn ngữ chuẩn xác
-    if (tLang === 'en') {
-      if (name?.includes('P-01') || name?.includes('Tiền') || name?.includes('Sơ sử')) {
-        translatedName = 'Gallery P-01: Prehistoric and Protohistoric Vietnam';
-        translatedPeriod = 'Chronicle of Vietnamese History';
-        translatedDesc = 'Exhibition of stone, bronze, and archaeological artefacts from Son Vi, Dong Son, and Sa Huynh cultures.';
-        translatedScript = 'Welcome esteemed visitors to Gallery P-01 at the Museum of History in Ho Chi Minh City. This gallery showcases thousands of years of human civilization through rare Dong Son bronze drums and ancient Sa Huynh burial urns.';
-      } else if (name?.includes('P-05') || name?.includes('Nguyễn') || name?.includes('Cung đình')) {
-        translatedName = 'Gallery P-05: Nguyen Dynasty & Imperial Court Arts';
-        translatedPeriod = 'Chronicle of Vietnamese History';
-        translatedDesc = 'Displays the throne, imperial robes, royal decrees, imperial porcelain, and ceremonial swords.';
-        translatedScript = 'Welcome to the Nguyen Dynasty gallery. Here you can admire sublime 19th-century royal heirlooms, embroidered dragon robes, and renowned Huế Enamel court antiquities.';
-      } else if (name?.includes('P-09') || name?.includes('Óc Eo') || name?.includes('Phù Nam')) {
-        translatedName = 'Gallery P-09: Oc Eo Culture & Kingdom of Funan Heritage';
-        translatedPeriod = 'Southern Regional Heritage & Antiquities';
-        translatedDesc = 'Exquisite collection of ancient gold jewellery, wooden Buddha statues, and seals from the 1st to 7th centuries AD.';
-        translatedScript = 'Welcome to the Oc Eo and Kingdom of Funan exhibition. Nearly two millennia ago, the Mekong Delta was home to a flourishing maritime trading empire.';
-      } else if (name?.includes('P-12') || name?.includes('Champa')) {
-        translatedName = 'Gallery P-12: Champa Buddhist & Hindu Sculpture';
-        translatedPeriod = 'Southern Regional Heritage & Antiquities';
-        translatedDesc = 'Sandstone sculptures of deities Shiva, Brahma, Hanuman, and ancient temple steles dating from the 7th to 14th centuries.';
-        translatedScript = 'Step into the realm of Champa sacred art, where ancient master sculptors turned sandstone into timeless divine figures of Lord Shiva and celestial Apsara dancers.';
-      } else if (name?.includes('P-16') || name?.includes('Vương Hồng Sển')) {
-        translatedName = 'Gallery P-16: Antiquities Collection of Scholar Vuong Hong Sen';
-        translatedPeriod = 'Special Heritage Collections';
-        translatedDesc = 'Over 800 invaluable antiquities donated in 1996, including Bleu de Huế porcelain, Cay Mai ceramics, and Southern folk relics.';
-        translatedScript = 'You are admiring the distinguished collection bequeathed by Scholar Vuong Hong Sen, featuring masterwork Bleu de Huế porcelains and historic Saigon pottery.';
-      }
-    } else if (tLang === 'fr') {
-      if (name?.includes('P-01') || name?.includes('Tiền')) {
-        translatedName = 'Galerie P-01: Préhistoire et Protohistoire du Vietnam';
-        translatedPeriod = 'Chronologie de l\'Histoire du Vietnam';
-        translatedDesc = 'Exposition des artefacts lithiques, bronzes Dong Son et jarres funéraires de Sa Huynh.';
-        translatedScript = 'Bienvenue à la Galerie P-01 du Musée d\'Histoire de Hô Chi Minh-Ville. Cet espace retrace des millénaires d\'évolution culturelle à travers des tambours de bronze et des trésors archéologiques insignes.';
-      } else if (name?.includes('P-09') || name?.includes('Óc Eo')) {
-        translatedName = 'Galerie P-09: Patrimoine de la Culture d\'Oc Eo et du Fou-nan';
-        translatedPeriod = 'Culture Méridionale et Antiquités';
-        translatedDesc = 'Collection remarquable d\'orfèvrerie en or, de statues de Bouddha en bois ancien et de sceaux gravés.';
-        translatedScript = 'Bienvenue à l\'exposition de la civilisation du Fou-nan et de la culture d\'Oc Eo, berceau d\'un carrefour maritime majeur du delta du Mékong.';
-      }
-    }
+    // HẬU XỬ LÝ: Áp dụng từ điển Heritage Glossary chuẩn bảo tàng
+    translatedName = applyGlossary(translatedName, tLang);
+    translatedPeriod = applyGlossary(translatedPeriod, tLang);
+    translatedDesc = applyGlossary(translatedDesc, tLang);
+    translatedScript = applyGlossary(translatedScript, tLang);
 
     res.json({
       success: true,
@@ -388,9 +444,9 @@ ${Object.entries(HERITAGE_GLOSSARY).map(([vi, dict]) => `- "${vi}" -> "${dict[tL
         name: translatedName || name,
         period: translatedPeriod || period,
         description: translatedDesc || description,
-        narrationScript: translatedScript || narrationScript
+        narrationScript: translatedScript || baseNarrationScript
       },
-      engine: 'Heritage Glossary Translation Engine'
+      engine: 'Neural Heritage Translation Engine'
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi dịch thuật: ' + err.message });
