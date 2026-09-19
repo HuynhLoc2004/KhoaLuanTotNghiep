@@ -291,8 +291,8 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
       const result = JSON.parse(stdoutData.trim());
 
       if (result.success) {
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const host = req.get('host');
+        const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
+        const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '103-170-233-206.sslip.io';
         const baseUrl = process.env.PUBLIC_API_URL ? process.env.PUBLIC_API_URL.replace(/\/$/, '') : `${protocol}://${host}`;
 
         let finalPanoramaUrl = `${baseUrl}/uploads/${outFilename}`;
@@ -424,8 +424,8 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
     const files = await fs.promises.readdir(UPLOAD_ROOT);
     const panoFiles = files.filter(f => f.startsWith('stitched_360_') && (f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp')));
 
-    const host = req.get('host') || '103-178-233-206.sslip.io';
-    const proto = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '103-170-233-206.sslip.io';
+    const proto = (req.headers['x-forwarded-proto'] as string) || (req.protocol === 'https' ? 'https' : 'http');
 
     const panoramas = await Promise.all(
       panoFiles.map(async (file) => {

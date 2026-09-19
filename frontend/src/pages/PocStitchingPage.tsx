@@ -115,9 +115,27 @@ export const PocStitchingPage: React.FC = () => {
     fetchHistory();
   }, []);
 
+// Chuẩn hóa URL ảnh 360° tự động chuyển localhost/IP thành domain thực tế của trình duyệt
+function normalizePanoUrl(rawUrl: string): string {
+  if (!rawUrl) return '';
+  if (rawUrl.startsWith('/')) {
+    return `${typeof window !== 'undefined' ? window.location.origin : ''}${rawUrl}`;
+  }
+  try {
+    const parsed = new URL(rawUrl);
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname.includes('sslip.io')) {
+        return `${window.location.origin}${parsed.pathname}${parsed.search}`;
+      }
+    }
+  } catch (_) {}
+  return rawUrl;
+}
+
   const handleSelectHistoryPano = (item: StitchedHistoryItem) => {
+    const normalizedUrl = normalizePanoUrl(item.url);
     setStitchResult({
-      panoramaUrl: item.url,
+      panoramaUrl: normalizedUrl,
       filename: item.filename,
       width: 4096,
       height: 2048,
@@ -416,7 +434,11 @@ export const PocStitchingPage: React.FC = () => {
       }
 
       setCurrentStep(5);
-      setStitchResult(json.data);
+      const resData = {
+        ...json.data,
+        panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
+      };
+      setStitchResult(resData);
       fetchHistory();
 
       setTimeout(() => {
@@ -457,9 +479,10 @@ export const PocStitchingPage: React.FC = () => {
   );
 
   return (
-    <div className="studio-layout">
-      {/* Top Header */}
-      <div className="studio-header">
+    <div className="admin-content poc-stitching-page">
+      <div className="studio-layout">
+        {/* Top Header */}
+        <div className="studio-header">
         <div className="studio-title-group">
           <h2>
             <Camera size={20} />
@@ -560,6 +583,29 @@ export const PocStitchingPage: React.FC = () => {
                     )}
                   </div>
                 </div>
+              )}
+
+              {/* Nút Tạo Không Gian Trên Cùng (Hiển thị ngay khi có ảnh, không bị ẩn dưới danh sách trên điện thoại) */}
+              {totalFrames >= 1 && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleExecuteStitch}
+                  disabled={isProcessing}
+                  style={{ width: '100%', justifyContent: 'center', padding: '11px 16px', fontWeight: 600 }}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 size={16} className="spin" />
+                      <span>Đang ghép nối toàn cảnh 360°...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      <span>Tạo không gian toàn cảnh 360° ({totalFrames} ảnh)</span>
+                    </>
+                  )}
+                </button>
               )}
 
               {/* Frame list */}
@@ -686,14 +732,16 @@ export const PocStitchingPage: React.FC = () => {
         {/* Right Column: 360 Viewer Canvas */}
         <div className="studio-viewer-col" ref={viewerSectionRef}>
           <div className="studio-card">
-            <div className="studio-card-header">
-              <span className="studio-card-title">
-                <Globe size={16} />
-                {stitchResult ? stitchResult.filename : 'Trình xem trước không gian 360°'}
+            <div className="studio-card-header" style={{ flexWrap: 'wrap', gap: 10 }}>
+              <span className="studio-card-title" style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={stitchResult ? stitchResult.filename : 'Trình xem trước không gian 360°'}>
+                <Globe size={16} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {stitchResult ? stitchResult.filename : 'Trình xem trước không gian 360°'}
+                </span>
               </span>
 
               {stitchResult && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -704,6 +752,7 @@ export const PocStitchingPage: React.FC = () => {
                       showToast('Đã sao chép link ảnh 360°', 'success');
                       setTimeout(() => setCopiedUrl(false), 2000);
                     }}
+                    style={{ whiteSpace: 'nowrap' }}
                   >
                     {copiedUrl ? <Check size={13} /> : <Copy size={13} />}
                     <span>{copiedUrl ? 'Đã chép' : 'Sao chép link'}</span>
@@ -714,6 +763,7 @@ export const PocStitchingPage: React.FC = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-secondary btn-sm"
+                    style={{ whiteSpace: 'nowrap' }}
                   >
                     <ExternalLink size={13} />
                     <span>Mở ảnh gốc</span>
@@ -888,11 +938,43 @@ export const PocStitchingPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Thanh Ghim Nút Tạo Không Gian 360° Cố Định Đáy Màn Hình Điện Thoại */}
+      {totalFrames >= 1 && (
+        <div className="mobile-stitch-sticky-bar">
+          <div className="mobile-stitch-info">
+            <span className="mobile-stitch-count">
+              <Camera size={14} /> <strong>{totalFrames}</strong> ảnh đã nạp
+            </span>
+            {passedCount > 0 && <span className="badge badge-success" style={{ fontSize: 11 }}>{passedCount} đạt chuẩn</span>}
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary btn-stitch-sticky"
+            onClick={handleExecuteStitch}
+            disabled={isProcessing}
+            style={{ flex: 1, justifyContent: 'center', padding: '10px 14px', whiteSpace: 'nowrap' }}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 size={15} className="spin" />
+                <span>Đang ghép...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} />
+                <span>Ghép 360° ngay</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Guide Slide-up Modal */}
       <ShootingGuideModal
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
       />
+      </div>
     </div>
   );
 };

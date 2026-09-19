@@ -60,6 +60,37 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
 
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [isLittlePlanet, setIsLittlePlanet] = useState(false);
+  const [viewerError, setViewerError] = useState<string | null>(null);
+  const [isLoadingPanorama, setIsLoadingPanorama] = useState(true);
+
+  // Tự động phân giải URL: chuyển relative/localhost về domain client thực tế và bọc R2 qua Proxy nếu cần
+  const effectivePanoramaUrl = React.useMemo(() => {
+    let url = panoramaUrl;
+    if (url) {
+      if (url.startsWith('/')) {
+        url = `${typeof window !== 'undefined' ? window.location.origin : ''}${url}`;
+      } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+          try {
+            const parsed = new URL(url);
+            url = `${window.location.origin}${parsed.pathname}${parsed.search}`;
+          } catch (_) {
+            url = url.replace(/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, window.location.origin);
+          }
+        }
+      }
+    }
+
+    if (
+      url &&
+      url.includes('r2.dev') &&
+      !url.includes('/api/stitch/proxy-image')
+    ) {
+      url = `${API_BASE}/stitch/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+
+    return url;
+  }, [panoramaUrl]);
 
   // Focus xoay camera đến tọa độ chỉ định (ví dụ click từ sidebar)
   useEffect(() => {
@@ -140,15 +171,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       }
     }));
 
-    // Tự động phân giải URL: nếu là Cloudflare R2 subdomain chưa có CORS cho WebGL, bọc qua Backend Proxy
-    let effectivePanoramaUrl = panoramaUrl;
-    if (
-      effectivePanoramaUrl &&
-      effectivePanoramaUrl.includes('r2.dev') &&
-      !effectivePanoramaUrl.includes('/api/stitch/proxy-image')
-    ) {
-      effectivePanoramaUrl = `${API_BASE}/stitch/proxy-image?url=${encodeURIComponent(effectivePanoramaUrl)}`;
-    }
+    setIsLoadingPanorama(true);
+    setViewerError(null);
 
     try {
       const viewer = window.pannellum.viewer(containerId.current, {
@@ -171,13 +195,23 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       viewerRef.current = viewer;
 
       viewer.on('load', () => {
+        setIsLoadingPanorama(false);
+        setViewerError(null);
         if (autoStartLittlePlanet && hasIntroducedRef.current !== panoramaUrl) {
           hasIntroducedRef.current = panoramaUrl;
           runLittlePlanetIntro();
         }
       });
-    } catch (err) {
+
+      viewer.on('error', (err: any) => {
+        console.warn('[Pannellum 360 Error]:', err);
+        setIsLoadingPanorama(false);
+        setViewerError(typeof err === 'string' ? err : 'Không thể khởi tạo WebGL 360° với ảnh này.');
+      });
+    } catch (err: any) {
       console.error('[Pannellum Init Error]:', err);
+      setIsLoadingPanorama(false);
+      setViewerError(err?.message || 'Lỗi khởi tạo trình xem 360°');
     }
 
     return () => {
@@ -507,6 +541,24 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         .glass-btn.active {
           background: #2563EB;
           box-shadow: 0 0 12px rgba(37, 99, 235, 0.7);
+        @media (max-width: 600px) {
+          .glass-toolbar {
+            padding: 5px 8px !important;
+            gap: 5px !important;
+          }
+          .glass-btn {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 11.5px !important;
+          }
+          .top-title-banner {
+            max-width: calc(100% - 24px) !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            padding: 5px 10px !important;
+            font-size: 11.5px !important;
+          }
         }
       `}</style>
 
@@ -521,10 +573,75 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          background: '#0F172A',
+          background: '#17120E',
           cursor: isPinMode ? 'crosshair' : 'default'
         }}
       />
+
+      {/* Loading Spinner Indicator */}
+      {isLoadingPanorama && !viewerError && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(23, 18, 14, 0.85)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 15,
+          gap: 10,
+          color: 'var(--text-muted)'
+        }}>
+          <div style={{
+            width: 32,
+            height: 32,
+            border: '3px solid var(--border-color)',
+            borderTopColor: 'var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+          <span style={{ fontSize: 12.5, fontWeight: 500 }}>Đang nạp không gian 360°...</span>
+        </div>
+      )}
+
+      {/* Fallback View if WebGL fails or load error */}
+      {viewerError && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(23, 18, 14, 0.95)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          textAlign: 'center',
+          zIndex: 35,
+          gap: 12
+        }}>
+          <div style={{ width: '100%', maxHeight: '55%', overflow: 'hidden', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+            <img
+              src={effectivePanoramaUrl}
+              alt="Ảnh toàn cảnh 360°"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+            />
+          </div>
+          <p style={{ fontSize: 12.5, color: 'var(--text-muted)', maxWidth: 380, margin: 0, lineHeight: 1.45 }}>
+            Đã lưu ảnh toàn cảnh 360° thành công. Nếu thiết bị gặp giới hạn WebGL, bạn có thể xem trực tiếp ảnh gốc:
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <a
+              href={effectivePanoramaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary btn-sm"
+            >
+              Mở xem ảnh toàn cảnh gốc
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Pin Mode Glowing Banner */}
       {isPinMode && (

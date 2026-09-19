@@ -14,7 +14,7 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
       <div
         className="modal-card shooting-guide-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 580 }}
+        style={{ maxWidth: 580, width: '100%' }}
       >
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
