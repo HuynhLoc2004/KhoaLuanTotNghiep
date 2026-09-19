@@ -344,6 +344,12 @@ export const AdminLanguagePage: React.FC = () => {
     return filteredLanguages.slice(startIndex, startIndex + pageSize);
   }, [filteredLanguages, currentPage, pageSize]);
 
+  // Chiều cao tối thiểu cố định cho bảng để khi chuyển giữa các trang không bị giật hay co rút chiều cao
+  const tableMinHeight = useMemo(() => {
+    const rowsToReserve = Math.min(pageSize, Math.max(filteredLanguages.length, 1));
+    return `${rowsToReserve * 74 + 46}px`;
+  }, [pageSize, filteredLanguages.length]);
+
   const activeCount = languages.filter((l) => l.isActive).length;
   const activePercent = languages.length > 0 ? Math.round((activeCount / languages.length) * 100) : 0;
 
@@ -579,7 +585,7 @@ export const AdminLanguagePage: React.FC = () => {
           ) : (
             <>
               {/* DESKTOP / TABLET VIEW: BẢNG CUỘN NGANG TỰ NHIÊN */}
-              <div className="lang-table-scroll">
+              <div className="lang-table-scroll" style={{ minHeight: tableMinHeight }}>
                 <table className="lang-table">
                   <thead>
                     <tr>
@@ -590,7 +596,7 @@ export const AdminLanguagePage: React.FC = () => {
                       <th style={{ width: 190, textAlign: 'right', whiteSpace: 'nowrap' }}>Thao tác</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody key={currentPage} className="lang-page-transition">
                     {paginatedLanguages.map((lang) => (
                       <tr key={lang.code}>
                         {/* CỜ & MÃ ISO */}
@@ -715,7 +721,7 @@ export const AdminLanguagePage: React.FC = () => {
               </div>
 
               {/* MOBILE VIEW: DẠNG DANH SÁCH THẺ GỌN GÀNG CHO MÀN HÌNH NHỎ */}
-              <div className="lang-mobile-list">
+              <div key={currentPage} className="lang-mobile-list lang-page-transition">
                 {paginatedLanguages.map((lang) => (
                   <div key={lang.code} className="lang-mobile-card">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>

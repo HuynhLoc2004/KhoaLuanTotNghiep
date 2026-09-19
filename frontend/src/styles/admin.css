@@ -2817,6 +2817,7 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   width: 100%;
+  transition: min-height 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .lang-table {
@@ -2844,6 +2845,8 @@
   border-bottom: 1px solid var(--border-color);
   color: var(--text-main);
   vertical-align: middle;
+  height: 74px;
+  box-sizing: border-box;
 }
 
 .lang-table tr:last-child td {
@@ -2852,6 +2855,22 @@
 
 .lang-table tr:hover td {
   background-color: var(--bg-subtle);
+}
+
+/* Page switch smooth fade & slide transition */
+@keyframes tablePageFadeIn {
+  0% {
+    opacity: 0.25;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lang-page-transition {
+  animation: tablePageFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Status Button Badge */
