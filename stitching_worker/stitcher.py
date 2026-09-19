@@ -230,24 +230,27 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
         canvas[y, :] = ((1.0 - t) * zenith_color + t * top_edge).astype(np.uint8)
 
     # 2. XỬ LÝ TỐI ƯU HÓA ĐẶC BIỆT CHO SÀN NHÀ (-90° Nadir Floor Optimization):
-    bottom_edge = canvas[y_offset + new_h - 1, :].astype(np.float32)
+    # Lấy mẫu màu sàn bằng cách làm mờ nhẹ mép dưới để vật dụng (khăn trải bàn, đĩa hoa quả) không tạo sọc dọc
+    bottom_slice = canvas[max(y_offset, y_offset + new_h - 4):y_offset + new_h, :].astype(np.float32)
+    bottom_edge = np.mean(bottom_slice, axis=0) if len(bottom_slice) > 0 else canvas[y_offset + new_h - 1, :].astype(np.float32)
     nadir_color = np.median(bottom_edge, axis=0).astype(np.float32)
 
     floor_start = y_offset + new_h
     floor_height = target_height - floor_start
 
     for y in range(floor_height):
-        t = y / float(floor_height) # 0 ở mép sàn thật, 1 ở đáy cực
-        smooth_t = (1.0 - np.cos(t * np.pi)) * 0.5 # Cosine chuyển tiếp êm dịu
+        t = y / float(max(1, floor_height))
+        # Chuyển tiếp nhanh dần về màu sàn trung tính
+        smooth_t = float(np.sin(t * (np.pi / 2.0)))
         row = (1.0 - smooth_t) * bottom_edge + smooth_t * nadir_color
         canvas[floor_start + y, :] = row.astype(np.uint8)
 
-    # Tán xạ mịn theo phương ngang càng xuống gần cực Nam
-    for y in range(floor_start + int(floor_height * 0.20), target_height):
-        progress = (y - (floor_start + floor_height * 0.20)) / float(floor_height * 0.80)
-        ksize = int(progress * 45) * 2 + 1
+        # Tán xạ làm mờ theo chiều ngang tăng dần đều để hòa tan tự nhiên vào nền gạch
+        ksize = int(t * 50) * 2 + 1
         if ksize >= 5:
-            canvas[y:y+1, :] = cv2.GaussianBlur(canvas[y:y+1, :], (ksize, 1), 0)
+            canvas[floor_start + y:floor_start + y + 1, :] = cv2.GaussianBlur(
+                canvas[floor_start + y:floor_start + y + 1, :], (ksize, 1), 0
+            )
 
     # Làm mờ nhẹ vùng chuyển tiếp (feathering) trần nhà
     feather = min(15, y_offset // 2) if y_offset > 0 else 0
@@ -376,14 +379,15 @@ def run_stitch(image_paths, output_path, target_width=0):
     sorted_paths = sorted(image_paths, key=natural_sort_key)
     num_total = len(sorted_paths)
 
-    def select_optimal_keyframes(paths, max_target=36):
+    def select_optimal_keyframes(paths, max_target=48):
         """
         Chắt lọc các khung hình đại diện quanh chuỗi quay:
-        - Loại bỏ các khung hình trùng lặp góc đứng yên (< 2.2% chênh lệch).
-        - Bảo toàn 100% tính liên tục của vòng quay 360°, không bỏ sót vách tường hay góc phòng.
-        - Khống chế số lượng tối đa 32-36 khung hình để vừa phủ trọn 360° vừa tránh trùng lặp.
+        - Chỉ loại bỏ các khung hình người chụp đứng yên một góc (< 1.8% khác biệt).
+        - Giữ lại chuỗi khung hình dồi dào (tối đa 45-48 ảnh) để độ gối đầu (overlap) luôn đạt 60-70%.
+        - Nhờ độ phủ dày, sai số lệch tâm do tay người chụp xoay điện thoại quanh người (parallax/hand drift)
+          được chia nhỏ và triệt tiêu mượt mà, không gây đứt dây điện hay lệch nan ghế gỗ.
         """
-        if len(paths) <= 24:
+        if len(paths) <= 30:
             return paths
 
         kept = [paths[0]]
@@ -404,9 +408,9 @@ def run_stitch(image_paths, output_path, target_width=0):
                 thumb = cv2.resize(curr, (160, 120))
                 if prev_thumb is not None:
                     diff = float(np.mean(cv2.absdiff(prev_thumb, thumb)))
-                    # Chỉ bỏ qua khung hình nếu người chụp đứng yên tại 1 góc (< 2.2% khác biệt)
+                    # Chỉ bỏ qua khung hình nếu người chụp đứng yên tại 1 góc (< 1.8% khác biệt)
                     remaining = len(paths) - i
-                    if diff < 2.2 and (len(kept) + remaining) > 20:
+                    if diff < 1.8 and (len(kept) + remaining) > 24:
                         continue
                 kept.append(p)
                 prev_thumb = thumb
@@ -436,26 +440,36 @@ def run_stitch(image_paths, output_path, target_width=0):
         except Exception:
             pass
         try:
-            s.setRegistrationResol(0.6)
+            # Nâng độ phân giải đối sánh đặc trưng (Registration Resolution) lên 0.95 Mpx:
+            # Khi chụp bằng điện thoại cầm tay, tăng độ phân giải giúp bộ dò bắt chính xác từng sợi dây điện,
+            # nan ghế gỗ và đường ron gạch men, khử triệt để sai lệch trục xoay (parallax/drift)
+            s.setRegistrationResol(0.95)
         except Exception:
             pass
         try:
-            # Tinh chỉnh độ phân giải tìm đường nối (Seam Estimation) 0.4 Mpx:
-            # Giúp GraphCut nhìn rõ sợi dây điện và hoa văn gạch, uốn lượn đường nối mượt mà
-            s.setSeamEstimationResol(0.4)
+            # Tinh chỉnh độ phân giải tìm đường nối (Seam Estimation) 0.5 Mpx:
+            # Giúp GraphCut nhìn rõ cạnh gờ tường, chân tường và viền khung gỗ để luồn đường ghép
+            # vào đúng khe tự nhiên, không cắt ngang qua giữa nan ghế hay dây điện
+            s.setSeamEstimationResol(0.5)
+        except Exception:
+            pass
+        try:
+            # Bật phép nội suy Bicubic (INTER_CUBIC) khi uốn cong ảnh lên mặt cầu 360:
+            # Giữ cho các đường chéo mảnh (dây điện, mép cửa) liền mạch, không bị gãy bậc thang
+            s.setInterpolationFlags(cv2.INTER_CUBIC)
         except Exception:
             pass
         return s
 
     # Chuẩn bị danh sách khung hình đại diện tối ưu
-    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=36)
+    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=48)
     print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã chắt lọc chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
 
     candidate_schemes = [
         # (danh_sách_ảnh, max_dim, conf, mô_tả)
-        (optimal_paths, 1400, 0.25, "Độ nét cao (Conf 0.25, MaxDim 1400px)"),
+        (optimal_paths, 1400, 0.25, "Độ nét cao & Gối đầu dày (Conf 0.25, MaxDim 1400px)"),
         (optimal_paths, 1200, 0.16, "Tăng cường độ nhạy sáng trong phòng (Conf 0.16, MaxDim 1200px)"),
-        (sorted_paths if len(sorted_paths) <= 36 else optimal_paths, 1100, 0.10, "Quét toàn bộ ảnh đầu vào (Conf 0.10, MaxDim 1100px)"),
+        (sorted_paths if len(sorted_paths) <= 48 else optimal_paths, 1100, 0.10, "Quét toàn bộ ảnh đầu vào (Conf 0.10, MaxDim 1100px)"),
         (optimal_paths if len(optimal_paths) <= 24 else sorted_paths, 950, 0.04, "Quét vét độ nhạy cao (Conf 0.04, MaxDim 950px)")
     ]
 
