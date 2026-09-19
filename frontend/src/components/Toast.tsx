@@ -6,6 +6,7 @@ export type ToastType = 'success' | 'error' | 'warning' | 'info';
 export interface ToastMessage {
   id: string;
   type: ToastType;
+  title: string;
   message: string;
   duration?: number;
 }
@@ -24,23 +25,46 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info', duration: number = 3500) => {
-    setToasts((prev) => {
-      // Prevent identical toasts from spamming/stacking
-      if (prev.some((t) => t.message === message)) {
-        return prev;
-      }
-      const id = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const newToast: ToastMessage = { id, type, message, duration };
+  const showToast = useCallback(
+    (messageOrConfig: string, type: ToastType = 'info', duration: number = 3500) => {
+      let rawMessage = messageOrConfig;
+      let customTitle: string | undefined;
 
-      if (duration > 0) {
-        setTimeout(() => {
-          removeToast(id);
-        }, duration);
+      // Hỗ trợ tự động phân tích định dạng "[Tiêu đề]: nội dung"
+      const bracketMatch = rawMessage.match(/^\[(.*?)\]:\s*(.*)$/);
+      if (bracketMatch) {
+        customTitle = bracketMatch[1];
+        rawMessage = bracketMatch[2];
       }
-      return [...prev.slice(-3), newToast];
-    });
-  }, [removeToast]);
+
+      const title =
+        customTitle ||
+        (type === 'success'
+          ? 'Thành công'
+          : type === 'error'
+          ? 'Lỗi'
+          : type === 'warning'
+          ? 'Cảnh báo'
+          : 'Thông báo');
+
+      setToasts((prev) => {
+        // Chống spam thông báo trùng lặp đang hiển thị
+        if (prev.some((t) => t.message === rawMessage && t.type === type)) {
+          return prev;
+        }
+        const id = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const newToast: ToastMessage = { id, type, title, message: rawMessage, duration };
+
+        if (duration > 0) {
+          setTimeout(() => {
+            removeToast(id);
+          }, duration);
+        }
+        return [...prev.slice(-2), newToast]; // Giữ tối đa 3 thông báo cùng lúc
+      });
+    },
+    [removeToast]
+  );
 
   return (
     <ToastContext.Provider value={{ showToast, removeToast }}>
@@ -49,12 +73,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast-item toast-${toast.type}`}>
             <div className="toast-icon">
-              {toast.type === 'success' && <CheckCircle2 size={18} />}
-              {toast.type === 'error' && <AlertCircle size={18} />}
-              {toast.type === 'warning' && <AlertTriangle size={18} />}
-              {toast.type === 'info' && <Info size={18} />}
+              {toast.type === 'success' && <CheckCircle2 size={16} />}
+              {toast.type === 'error' && <AlertCircle size={16} />}
+              {toast.type === 'warning' && <AlertTriangle size={16} />}
+              {toast.type === 'info' && <Info size={16} />}
             </div>
-            <div className="toast-content">{toast.message}</div>
+            <div className="toast-content-wrapper">
+              <div className="toast-title">{toast.title}</div>
+              <div className="toast-message">{toast.message}</div>
+            </div>
             <button
               type="button"
               className="toast-close-btn"
