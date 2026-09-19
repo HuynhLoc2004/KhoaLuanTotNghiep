@@ -1,9 +1,10 @@
 :root {
   /* Di Sản Bảo Tàng Việt Nam - Light Mode (Giấy Dó & Gỗ Sơn Son) */
-  --primary: #8B261D;
-  --primary-hover: #731C14;
-  --primary-light: #FDF4F3;
-  --primary-border: #F3C3BF;
+  --primary: #8C2D19;
+  --primary-hover: #702212;
+  --primary-light: #FBF0ED;
+  --primary-border: #E8BFB6;
+  --primary-text: #F9F6F0;
 
   --accent-gold: #B47D28;
   --accent-gold-light: #FBF4E8;
@@ -14,13 +15,15 @@
   --bg-subtle: #EFECE4;
   --bg-card-header: #FAF7F2;
 
-  --btn-secondary-bg: #FFFFFF;
-  --btn-secondary-border: #DFD8CB;
-  --btn-secondary-hover: #F5F1E8;
+  --btn-secondary-bg: #E8E2D5;
+  --btn-secondary-border: #D8D0C0;
+  --btn-secondary-hover: #DDD5C7;
+  --btn-secondary-hover-border: #C8BFAD;
+  --btn-secondary-text: #4A3F3A;
 
   --text-main: #2C2420;
   --text-muted: #6E6359;
-  --text-light: #9C9084;
+  --text-light: #8E8276;
 
   --border-color: #E8E2D5;
   --border-dark: #D2C7B6;
@@ -35,7 +38,7 @@
   --warning-border: #F7DFB0;
   --warning-text: #783C08;
 
-  --error: #992323;
+  --error: #8C2525;
   --error-bg: #FDF3F3;
   --error-border: #F7BFBF;
   --error-text: #7F1D1D;
@@ -56,52 +59,55 @@
   --font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Di Sản Bảo Tàng Việt Nam - Dark Mode (Gỗ Mun Cổ & Than Đen Di Sản) */
+/* Di Sản Bảo Tàng Việt Nam - Dark Mode (Nâu Trầm Gỗ Cổ & Đỏ Gốm Di Sản) */
 [data-theme="dark"] {
-  --primary: #B23528;
-  --primary-hover: #98281D;
-  --primary-light: rgba(178, 53, 40, 0.16);
-  --primary-border: rgba(178, 53, 40, 0.35);
+  --primary: #C14949;
+  --primary-hover: #A83737;
+  --primary-light: rgba(193, 73, 73, 0.16);
+  --primary-border: rgba(193, 73, 73, 0.35);
+  --primary-text: #FFFFFF;
 
-  --accent-gold: #C99438;
-  --accent-gold-light: rgba(201, 148, 56, 0.15);
-  --accent-gold-border: rgba(201, 148, 56, 0.35);
+  --accent-gold: #E6C280;
+  --accent-gold-light: rgba(230, 194, 128, 0.12);
+  --accent-gold-border: rgba(230, 194, 128, 0.35);
 
-  --bg-page: #131110;
-  --bg-surface: #1C1918;
-  --bg-subtle: #262220;
-  --bg-card-header: #211E1C;
+  --bg-page: #1A110B;
+  --bg-surface: #281D16;
+  --bg-subtle: #33251D;
+  --bg-card-header: #221812;
 
-  --btn-secondary-bg: #211E1C;
-  --btn-secondary-border: #3A3430;
-  --btn-secondary-hover: #2B2623;
+  --btn-secondary-bg: transparent;
+  --btn-secondary-border: #E6C280;
+  --btn-secondary-hover: rgba(230, 194, 128, 0.12);
+  --btn-secondary-hover-border: #F0CF96;
+  --btn-secondary-text: #E6C280;
 
   --text-main: #F5EFEB;
-  --text-muted: #A4988C;
-  --text-light: #6E645A;
+  --text-muted: #D5CBB8;
+  --text-light: #A89D8E;
 
-  --border-color: #2F2A26;
-  --border-dark: #423C36;
+  --border-color: #3D2F26;
+  --border-dark: #4F3D32;
 
   --success: #4ADE80;
-  --success-bg: #12241A;
-  --success-border: #1E4E35;
+  --success-bg: #1A281E;
+  --success-border: #284D35;
   --success-text: #C7F9D4;
 
   --warning: #FBBF24;
-  --warning-bg: #281B0E;
-  --warning-border: #5E3B17;
+  --warning-bg: #2E2214;
+  --warning-border: #66461D;
   --warning-text: #FDE68A;
 
   --error: #F87171;
-  --error-bg: #281313;
-  --error-border: #5E2222;
+  --error-bg: #301717;
+  --error-border: #6B2929;
   --error-text: #FECACA;
 
-  --info: #79A7D9;
-  --info-bg: #1A222C;
-  --info-border: #2E4057;
-  --info-text: #CDE0F5;
+  --info: #8AB7E6;
+  --info-bg: #1B232E;
+  --info-border: #31445D;
+  --info-text: #D6E8FC;
 
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
