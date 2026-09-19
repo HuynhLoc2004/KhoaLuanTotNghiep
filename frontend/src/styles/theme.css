@@ -63,63 +63,63 @@
   --font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Di Sản Bảo Tàng Việt Nam - Dark Mode (Nâu Trầm Gỗ Cổ & Đỏ Gốm Di Sản) */
+/* Di Sản Bảo Tàng Việt Nam - Dark Mode (Trang nhã, Tự nhiên, Chiều sâu Gỗ Cổ & Đỏ Sơn Son) */
 [data-theme="dark"] {
-  --primary: #C14949;
-  --primary-hover: #A83737;
-  --primary-light: rgba(193, 73, 73, 0.16);
-  --primary-border: rgba(193, 73, 73, 0.35);
+  --primary: #B23825;
+  --primary-hover: #9B2E1D;
+  --primary-light: rgba(178, 56, 37, 0.15);
+  --primary-border: rgba(178, 56, 37, 0.3);
   --primary-text: #FFFFFF;
 
-  --accent-gold: #E6C280;
-  --accent-gold-light: rgba(230, 194, 128, 0.12);
-  --accent-gold-border: rgba(230, 194, 128, 0.35);
+  --accent-gold: #D4A86A;
+  --accent-gold-light: rgba(212, 168, 106, 0.10);
+  --accent-gold-border: rgba(212, 168, 106, 0.22);
 
-  --bg-page: #1A110B;
-  --bg-surface: #281D16;
-  --bg-subtle: #33251D;
-  --bg-card-header: #221812;
+  --bg-page: #17120E;
+  --bg-surface: #221A15;
+  --bg-subtle: #2B211B;
+  --bg-card-header: #1C1511;
 
-  --btn-secondary-bg: transparent;
-  --btn-secondary-border: #E6C280;
-  --btn-secondary-hover: rgba(230, 194, 128, 0.12);
-  --btn-secondary-hover-border: #F0CF96;
-  --btn-secondary-text: #E6C280;
+  --btn-secondary-bg: #281F1A;
+  --btn-secondary-border: #3D3027;
+  --btn-secondary-hover: #332821;
+  --btn-secondary-hover-border: #4F3F34;
+  --btn-secondary-text: #EDE5DF;
 
   --heading-color: #F5EFEB;
-  --text-main: #F5EFEB;
-  --text-muted: #D5CBB8;
-  --text-light: #A89D8E;
+  --text-main: #EDE5DF;
+  --text-muted: #9E9184;
+  --text-light: #7A6F64;
 
-  --border-color: #3D2F26;
-  --border-dark: #4F3D32;
+  --border-color: #342821;
+  --border-dark: #45352C;
 
-  --success: #7FA88B;
-  --success-bg: #1E2820;
-  --success-border: #2D4233;
+  --success: #6E9E7B;
+  --success-bg: rgba(110, 158, 123, 0.12);
+  --success-border: rgba(110, 158, 123, 0.25);
   --success-text: #CDE2D2;
 
-  --warning: #FBBF24;
-  --warning-bg: #2E2214;
-  --warning-border: #66461D;
+  --warning: #D49B35;
+  --warning-bg: rgba(212, 155, 53, 0.12);
+  --warning-border: rgba(212, 155, 53, 0.25);
   --warning-text: #FDE68A;
 
-  --error: #F87171;
-  --error-bg: #301717;
-  --error-border: #6B2929;
+  --error: #D9534F;
+  --error-bg: rgba(217, 83, 79, 0.12);
+  --error-border: rgba(217, 83, 79, 0.25);
   --error-text: #FECACA;
 
-  --info: #8AB7E6;
-  --info-bg: #1B232E;
-  --info-border: #31445D;
+  --info: #78A5D6;
+  --info-bg: rgba(120, 165, 214, 0.12);
+  --info-border: rgba(120, 165, 214, 0.25);
   --info-text: #D6E8FC;
 
-  --guide-badge-bg: #3A2C22;
-  --guide-badge-text: #E6C280;
+  --guide-badge-bg: #2D231C;
+  --guide-badge-text: #D4A86A;
 
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.6), 0 6px 12px -4px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.45);
 }
 
 * {

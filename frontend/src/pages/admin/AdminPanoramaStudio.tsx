@@ -315,7 +315,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                       className="btn btn-secondary btn-sm"
                       title="Xoay góc nhìn 360 đến vị trí điểm này"
                       onClick={() => setFocusCoords({ pitch: hs.pitch, yaw: hs.yaw, timestamp: Date.now() })}
-                      style={{ padding: '5px 8px', color: '#2563EB', borderColor: '#BFDBFE', background: '#EFF6FF' }}
+                      style={{ padding: '5px 8px' }}
                     >
                       <Eye size={13} />
                     </button>
@@ -338,7 +338,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                       className="btn btn-secondary btn-sm"
                       title="Xóa điểm ghim này"
                       onClick={() => handleDeleteHotspot(hs.id)}
-                      style={{ color: '#EF4444', padding: '5px 8px' }}
+                      style={{ color: 'var(--error)', padding: '5px 8px' }}
                     >
                       <Trash2 size={13} />
                     </button>

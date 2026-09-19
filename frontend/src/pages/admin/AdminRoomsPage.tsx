@@ -423,7 +423,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             <div className="stat-title">Điểm neo hiện vật (Hotspots)</div>
             <MapPin size={16} style={{ color: 'var(--accent-gold)' }} />
           </div>
-          <div className="stat-value" style={{ color: 'var(--accent-gold)' }}>{totalHotspots}</div>
+          <div className="stat-value">{totalHotspots}</div>
           <div className="stat-desc">Định vị hiện vật & dẫn hướng không gian</div>
         </div>
 
@@ -431,9 +431,12 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
         <div className="stat-card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="stat-title">Thuyết minh AI & Trợ lý ảo</div>
-            <Sparkles size={16} style={{ color: 'var(--success)' }} />
+            <Sparkles size={16} style={{ color: 'var(--accent-gold)' }} />
           </div>
-          <div className="stat-value" style={{ color: 'var(--success)' }}>{aiRoomsCount} phòng</div>
+          <div className="stat-value" style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span>{aiRoomsCount}</span>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>phòng</span>
+          </div>
           <div className="stat-desc">Đã kích hoạt AI Voice & RAG tri thức</div>
         </div>
 
@@ -688,8 +691,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     </div>
 
                     <div className="room-info">
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.4px', flex: 1, lineHeight: 1.35 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px', flex: 1, lineHeight: 1.35 }}>
                           {room.period || 'Tiến trình Lịch sử VN'}
                         </span>
                         {/* Trạng thái AI Voice */}

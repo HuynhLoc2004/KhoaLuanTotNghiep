@@ -233,11 +233,11 @@ export const AdminLanguagePage: React.FC = () => {
 
       {/* KPI METRIC CARDS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
             Tổng ngôn ngữ hỗ trợ
           </span>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--heading-color)' }}>
+          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--heading-color)' }}>
             {languages.length}
           </div>
           <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
@@ -245,23 +245,24 @@ export const AdminLanguagePage: React.FC = () => {
           </span>
         </div>
 
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
             Đang hiển thị trên Client
           </span>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--success)' }}>
-            {activeCount} / {languages.length}
+          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--heading-color)', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span>{activeCount}</span>
+            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)' }}>/ {languages.length}</span>
           </div>
           <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
             Ngôn ngữ du khách có thể chọn
           </span>
         </div>
 
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
             Voice AI Engine
           </span>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--accent-gold)' }}>
+          <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--heading-color)' }}>
             Pre-rendered
           </div>
           <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
