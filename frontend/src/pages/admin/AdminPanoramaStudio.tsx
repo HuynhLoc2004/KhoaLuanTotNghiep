@@ -23,6 +23,7 @@ import {
 import { MuseumRoom, Hotspot } from '../../types';
 import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
 import { HotspotModal } from '../../components/HotspotModal';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { api, API_BASE } from '../../services/api';
 import { useToast } from '../../components/Toast';
 
@@ -57,6 +58,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const [activeTab, setActiveTab] = useState<'hotspots' | 'settings'>('hotspots');
   const [isPinMode, setIsPinMode] = useState(false);
   const [pendingCoords, setPendingCoords] = useState<{ pitch: number; yaw: number } | null>(null);
+  const [deletingHotspot, setDeletingHotspot] = useState<Hotspot | null>(null);
   const [focusCoords, setFocusCoords] = useState<{ pitch: number; yaw: number; timestamp?: number } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionText, setTransitionText] = useState('');
@@ -216,19 +218,26 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     }
   };
 
-  // Delete a hotspot
-  const handleDeleteHotspot = async (hotspotId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa điểm liên kết này?')) return;
+  // Kích hoạt hộp thoại xác nhận xóa điểm liên kết
+  const promptDeleteHotspot = (hs: Hotspot) => {
+    setDeletingHotspot(hs);
+  };
+
+  // Thực thi xóa điểm liên kết thật trong Database và cập nhật state
+  const executeDeleteHotspot = async () => {
+    if (!deletingHotspot) return;
+    const targetId = deletingHotspot.id;
+    setDeletingHotspot(null);
     try {
-      await api.deleteHotspot(currentRoom.id, hotspotId);
+      await api.deleteHotspot(currentRoom.id, targetId);
       const updatedRoom: MuseumRoom = {
         ...currentRoom,
-        hotspots: currentRoom.hotspots.filter((h) => h.id !== hotspotId)
+        hotspots: (currentRoom.hotspots || []).filter((h) => h.id !== targetId)
       };
       onRoomUpdated(updatedRoom);
-      showToast('Đã xóa điểm liên kết thành công', 'success');
+      showToast('Đã xóa điểm liên kết khỏi cơ sở dữ liệu thành công', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Lỗi xóa điểm liên kết', 'error');
+      showToast(err.message || 'Lỗi khi xóa điểm liên kết', 'error');
     }
   };
 
@@ -695,8 +704,8 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                           <button
                             type="button"
                             className="studio-icon-btn danger"
-                            title="Xóa điểm này"
-                            onClick={() => handleDeleteHotspot(hs.id)}
+                            title="Xóa điểm liên kết này"
+                            onClick={() => promptDeleteHotspot(hs)}
                           >
                             <Trash2 size={12} />
                           </button>
@@ -867,6 +876,18 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
           onSave={handleSaveHotspot}
         />
       )}
+
+      {/* Modal xác nhận xóa điểm liên kết chuẩn hệ thống Admin */}
+      <ConfirmModal
+        isOpen={Boolean(deletingHotspot)}
+        title="Xác nhận xóa điểm liên kết"
+        message={`Bạn có chắc chắn muốn xóa điểm liên kết "${deletingHotspot?.title}"? Điểm này sẽ bị xóa vĩnh viễn khỏi không gian 360° của gian phòng trong cơ sở dữ liệu.`}
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        type="danger"
+        onConfirm={executeDeleteHotspot}
+        onCancel={() => setDeletingHotspot(null)}
+      />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { RoomModel, IRoom, IHotspot } from '../models/Room.js';
 import { cacheGet, cacheSet, cacheDel } from '../services/redis.js';
 
@@ -141,17 +142,18 @@ roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
       yaw: Number(yaw)
     };
 
-    const updated = await RoomModel.findOneAndUpdate(
-      { id },
-      { $push: { hotspots: newHs } },
-      { new: true }
-    );
+    const query = mongoose.isValidObjectId(id) ? { $or: [{ id }, { _id: id }] } : { id };
+    const room = await RoomModel.findOne(query);
 
-    if (!updated) {
+    if (!room) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng để thêm hotspot' });
     }
 
-    res.status(201).json({ success: true, data: newHs });
+    room.hotspots.push(newHs);
+    await room.save();
+    await cacheDel('rooms:all');
+
+    res.status(201).json({ success: true, data: newHs, room });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -162,23 +164,24 @@ roomsRouter.put('/:id/hotspots/:hotspotId', async (req: Request, res: Response) 
   try {
     const id = getId(req.params.id);
     const hotspotId = getId(req.params.hotspotId);
-    const fieldsToSet: Record<string, any> = {};
-    for (const [k, v] of Object.entries(req.body)) {
-      fieldsToSet[`hotspots.$.${k}`] = v;
+
+    const query = mongoose.isValidObjectId(id) ? { $or: [{ id }, { _id: id }] } : { id };
+    const room = await RoomModel.findOne(query);
+
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
 
-    const updated = await RoomModel.findOneAndUpdate(
-      { id, 'hotspots.id': hotspotId },
-      { $set: fieldsToSet },
-      { new: true }
-    );
-
-    if (!updated) {
+    const hs = room.hotspots.find((h) => h.id === hotspotId || (h as any)._id?.toString() === hotspotId);
+    if (!hs) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hotspot' });
     }
 
-    const hs = updated.hotspots.find(h => h.id === hotspotId);
-    res.json({ success: true, data: hs });
+    Object.assign(hs, req.body);
+    await room.save();
+    await cacheDel('rooms:all');
+
+    res.json({ success: true, data: hs, room });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -190,17 +193,20 @@ roomsRouter.delete('/:id/hotspots/:hotspotId', async (req: Request, res: Respons
     const id = getId(req.params.id);
     const hotspotId = getId(req.params.hotspotId);
 
-    const updated = await RoomModel.findOneAndUpdate(
-      { id },
-      { $pull: { hotspots: { id: hotspotId } } },
-      { new: true }
-    );
+    const query = mongoose.isValidObjectId(id) ? { $or: [{ id }, { _id: id }] } : { id };
+    const room = await RoomModel.findOne(query);
 
-    if (!updated) {
+    if (!room) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
 
-    res.json({ success: true, message: 'Đã xóa hotspot' });
+    room.hotspots = room.hotspots.filter(
+      (h) => h.id !== hotspotId && (h as any)._id?.toString() !== hotspotId
+    );
+    await room.save();
+    await cacheDel('rooms:all');
+
+    res.json({ success: true, message: 'Đã xóa hotspot khỏi cơ sở dữ liệu', room });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
