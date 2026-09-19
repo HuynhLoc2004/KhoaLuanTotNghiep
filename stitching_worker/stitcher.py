@@ -58,21 +58,35 @@ def load_and_orient_image(image_path, max_dim=3000):
 
 def crop_black_borders(img):
     """
-    Thuật toán cắt viền thông minh kết hợp Content-Aware Inpainting (Tương tự Adobe Photoshop):
-    Khắc phục triệt để vấn đề "chụp bằng tay rung lắc, cao thấp không đều":
-    - Khi chụp bằng tay, mỗi bức ảnh có độ cao lệch nhau một chút khiến viền trên/dưới bị lượn sóng.
-    - Thuật toán cũ gọt cụt (shave) toàn bộ hàng pixel cho đến khi không còn hạt đen nào,
-      khiến 50%-60% chiều cao của căn phòng bị vứt bỏ oan uổng!
-    - Thuật toán mới:
-      1. Tìm khung hình chữ nhật chứa tối đa nội dung hợp lệ (ngưỡng diện tích 90%).
-      2. Cắt viền mép trái/phải gọn gàng.
-      3. Dùng cv2.inpaint (thuật toán Navier-Stokes / Telea) để tự động bù lấp các góc khuyết
-         nhỏ ở viền trần và viền sàn, giữ lại trọn vẹn 100% chiều cao của tường và cửa!
+    Thuật toán cắt viền thông minh bảo vệ 100% cổ vật & cửa sắt màu đen:
+    - Phân biệt chính xác giữa 'Viền đen rỗng ngoài khung hình của OpenCV' và 'Đồ vật thật màu đen' (cửa sắt, tủ lạnh, bóng tối).
+    - Dùng floodFill từ 4 cạnh ngoài để đánh dấu CHỈ các vùng rỗng ngoài biên ảnh,
+      tuyệt đối không gọt nhầm hay inpaint rách vào cửa sắt màu đen.
     """
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    mask = (gray > 10).astype(np.uint8)
+    h, w = img.shape[:2]
+    # Pixel rỗng thực tế của canvas OpenCV là pixel bằng 0 sát viền
+    exact_zero = ((img[:, :, 0] <= 3) & (img[:, :, 1] <= 3) & (img[:, :, 2] <= 3)).astype(np.uint8)
 
-    y_idx, x_idx = np.where(mask > 0)
+    # Đánh dấu vùng ngoài biên thực tế bằng flood fill từ mép ngoài
+    ff_mask = np.zeros((h + 2, w + 2), dtype=np.uint8)
+    flood_work = exact_zero.copy()
+
+    # Lấy các điểm biên ở 4 góc và dọc 4 cạnh
+    seed_points = [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]
+    for x in range(0, w, max(1, w // 20)):
+        seed_points.extend([(x, 0), (x, h - 1)])
+    for y in range(0, h, max(1, h // 20)):
+        seed_points.extend([(0, y), (w - 1, y)])
+
+    for sx, sy in seed_points:
+        if flood_work[sy, sx] == 1:
+            cv2.floodFill(flood_work, ff_mask, (sx, sy), 2)
+
+    # Vùng ngoài biên thật sự là vùng có giá trị 2
+    is_true_exterior = (flood_work == 2)
+    valid_mask = (~is_true_exterior).astype(np.uint8)
+
+    y_idx, x_idx = np.where(valid_mask > 0)
     if len(y_idx) == 0 or len(x_idx) == 0:
         return img
 
@@ -80,44 +94,45 @@ def crop_black_borders(img):
     left, right = np.min(x_idx), np.max(x_idx)
 
     cropped = img[top:bottom+1, left:right+1].copy()
-    mask_c = mask[top:bottom+1, left:right+1].copy()
+    mask_c = valid_mask[top:bottom+1, left:right+1].copy()
+    ext_c = is_true_exterior[top:bottom+1, left:right+1].copy()
 
-    # Gọt bớt các cạnh ngoài cùng có quá nhiều pixel đen (ngưỡng 90% thay vì 99.8%)
-    max_iters = 300
+    # Gọt bớt các cạnh ngoài cùng nếu vẫn còn dính viền rỗng biên
+    max_iters = 100
     iters = 0
     while iters < max_iters and cropped.shape[0] > 100 and cropped.shape[1] > 100:
         iters += 1
         changed = False
-        # Nếu hàng trên cùng có hơn 10% là pixel đen, mới gọt
-        if np.mean(mask_c[0, :]) < 0.90:
+        if np.mean(mask_c[0, :]) < 0.95:
             mask_c = mask_c[1:, :]
+            ext_c = ext_c[1:, :]
             cropped = cropped[1:, :]
             changed = True
-        # Nếu hàng dưới cùng có hơn 10% là pixel đen, mới gọt
-        if np.mean(mask_c[-1, :]) < 0.90:
+        if np.mean(mask_c[-1, :]) < 0.95:
             mask_c = mask_c[:-1, :]
+            ext_c = ext_c[:-1, :]
             cropped = cropped[:-1, :]
             changed = True
-        # Hai bên trái phải yêu cầu khắt khe hơn để ảnh nối 360 liền mạch
-        if np.mean(mask_c[:, 0]) < 0.95:
+        if np.mean(mask_c[:, 0]) < 0.98:
             mask_c = mask_c[:, 1:]
+            ext_c = ext_c[:, 1:]
             cropped = cropped[:, 1:]
             changed = True
-        if np.mean(mask_c[:, -1]) < 0.95:
+        if np.mean(mask_c[:, -1]) < 0.98:
             mask_c = mask_c[:, :-1]
+            ext_c = ext_c[:, :-1]
             cropped = cropped[:, :-1]
             changed = True
 
         if not changed:
             break
 
-    # Với các khoảng đen nhỏ còn sót lại ở mép gợn sóng (do tay rung lệch):
-    # Dùng Content-Aware Inpainting để tự động bù màu mượt mà theo hoa văn tường/trần kề bên
-    rem_black = (cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY) <= 10).astype(np.uint8) * 255
-    if np.sum(rem_black) > 0:
+    # Chỉ inpaint các góc khuyết viền rỗng thật sự (ext_c), tuyệt đối không inpaint vào cửa sắt màu đen
+    rem_exterior = (ext_c & (cropped[:, :, 0] <= 3) & (cropped[:, :, 1] <= 3) & (cropped[:, :, 2] <= 3)).astype(np.uint8) * 255
+    if np.sum(rem_exterior) > 0:
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        rem_black = cv2.dilate(rem_black, kernel, iterations=1)
-        cropped = cv2.inpaint(cropped, rem_black, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
+        rem_exterior = cv2.dilate(rem_exterior, kernel, iterations=1)
+        cropped = cv2.inpaint(cropped, rem_exterior, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
 
     return cropped
 
@@ -289,16 +304,24 @@ def enhance_museum_texture(image):
 
 def balance_indoor_lighting(img):
     """
-    Cân bằng ánh sáng đèn phòng và kéo sáng các góc tối thích ứng:
-    - Triệt tiêu quầng lóa từ bóng đèn trần trên gạch men và kính cửa sắt.
-    - Kéo sáng các góc tối (bàn ghế, góc cửa sổ ban đêm) giúp phát hiện đầy đủ điểm neo hoa văn.
+    Cân bằng ánh sáng thông minh chống lóa ngược sáng cửa chính & kéo sáng góc tối:
+    - Nén các vùng lóa sáng cực đại (> 215) ở cửa kính/cửa sắt ngược sáng để cứu chi tiết khung cửa.
+    - Kéo sáng các nan sắt tối màu và hoa văn gạch, giúp bộ dò đặc trưng (ORB/AKAZE) tìm đủ điểm neo.
     """
     try:
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        l_eq = clahe.apply(l)
-        l_balanced = cv2.addWeighted(l_eq, 0.55, l, 0.45, 0)
+        
+        # Nén vùng lóa sáng cực đại do ánh nắng ngoài cửa chiếu vào
+        l_f = l.astype(np.float32)
+        bright_mask = l_f > 215.0
+        if np.any(bright_mask):
+            l_f[bright_mask] = 215.0 + (l_f[bright_mask] - 215.0) * 0.40
+        l_comp = np.clip(l_f, 0, 255).astype(np.uint8)
+
+        clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
+        l_eq = clahe.apply(l_comp)
+        l_balanced = cv2.addWeighted(l_eq, 0.55, l_comp, 0.45, 0)
         return cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
     except Exception:
         return img
@@ -353,14 +376,14 @@ def run_stitch(image_paths, output_path, target_width=0):
     sorted_paths = sorted(image_paths, key=natural_sort_key)
     num_total = len(sorted_paths)
 
-    def select_optimal_keyframes(paths, max_target=26):
+    def select_optimal_keyframes(paths, max_target=36):
         """
         Chắt lọc các khung hình đại diện quanh chuỗi quay:
-        - Loại bỏ các khung hình trùng lặp góc đứng yên (< 3.5% chênh lệch).
+        - Loại bỏ các khung hình trùng lặp góc đứng yên (< 2.2% chênh lệch).
         - Bảo toàn 100% tính liên tục của vòng quay 360°, không bỏ sót vách tường hay góc phòng.
-        - Khống chế số lượng ở mức 16-26 khung hình lý tưởng nhất cho OpenCV Stitcher.
+        - Khống chế số lượng tối đa 32-36 khung hình để vừa phủ trọn 360° vừa tránh trùng lặp.
         """
-        if len(paths) <= 20:
+        if len(paths) <= 24:
             return paths
 
         kept = [paths[0]]
@@ -381,9 +404,9 @@ def run_stitch(image_paths, output_path, target_width=0):
                 thumb = cv2.resize(curr, (160, 120))
                 if prev_thumb is not None:
                     diff = float(np.mean(cv2.absdiff(prev_thumb, thumb)))
-                    # Nếu góc chụp hầu như không đổi (< 3.5%), bỏ qua khung hình trùng lặp
+                    # Chỉ bỏ qua khung hình nếu người chụp đứng yên tại 1 góc (< 2.2% khác biệt)
                     remaining = len(paths) - i
-                    if diff < 3.5 and (len(kept) + remaining) > 16:
+                    if diff < 2.2 and (len(kept) + remaining) > 20:
                         continue
                 kept.append(p)
                 prev_thumb = thumb
@@ -417,21 +440,23 @@ def run_stitch(image_paths, output_path, target_width=0):
         except Exception:
             pass
         try:
-            s.setSeamEstimationResol(0.1)
+            # Tinh chỉnh độ phân giải tìm đường nối (Seam Estimation) 0.4 Mpx:
+            # Giúp GraphCut nhìn rõ sợi dây điện và hoa văn gạch, uốn lượn đường nối mượt mà
+            s.setSeamEstimationResol(0.4)
         except Exception:
             pass
         return s
 
     # Chuẩn bị danh sách khung hình đại diện tối ưu
-    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=26)
+    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=36)
     print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã chắt lọc chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
 
     candidate_schemes = [
         # (danh_sách_ảnh, max_dim, conf, mô_tả)
         (optimal_paths, 1400, 0.25, "Độ nét cao (Conf 0.25, MaxDim 1400px)"),
-        (optimal_paths, 1200, 0.15, "Tăng cường độ nhạy sáng trong phòng (Conf 0.15, MaxDim 1200px)"),
-        (sorted_paths, 1100, 0.10, "Quét toàn bộ ảnh đầu vào (Conf 0.10, MaxDim 1100px)"),
-        (optimal_paths if len(optimal_paths) <= 20 else sorted_paths, 900, 0.04, "Quét vét độ nhạy cao (Conf 0.04, MaxDim 900px)")
+        (optimal_paths, 1200, 0.16, "Tăng cường độ nhạy sáng trong phòng (Conf 0.16, MaxDim 1200px)"),
+        (sorted_paths if len(sorted_paths) <= 36 else optimal_paths, 1100, 0.10, "Quét toàn bộ ảnh đầu vào (Conf 0.10, MaxDim 1100px)"),
+        (optimal_paths if len(optimal_paths) <= 24 else sorted_paths, 950, 0.04, "Quét vét độ nhạy cao (Conf 0.04, MaxDim 950px)")
     ]
 
     best_pano = None
@@ -450,8 +475,8 @@ def run_stitch(image_paths, output_path, target_width=0):
                 break
             try:
                 img = load_and_orient_image(p, max_dim=max_dim)
-                if conf <= 0.15:
-                    img = balance_indoor_lighting(img)
+                # Luôn cân bằng ánh sáng và nén lóa sáng ngược sáng để bảo toàn chi tiết cửa chính & góc tối
+                img = balance_indoor_lighting(img)
                 images.append(img)
             except Exception:
                 load_ok = False
