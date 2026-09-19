@@ -10,7 +10,10 @@ import { stitchRouter } from './routes/stitch.js';
 import { mailRouter } from './routes/mail.js';
 import { languagesRouter } from './routes/languages.js';
 import { topicsRouter } from './routes/topics.js';
+import { authRouter } from './routes/auth.js';
 import { seedDefaultLanguages } from './models/Language.js';
+import { seedDefaultRoles } from './models/Role.js';
+import { seedDefaultAdmin } from './models/User.js';
 import { getRedisStatus } from './services/redis.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
@@ -38,6 +41,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
 }));
 
 // API routes
+app.use('/api/auth', authRouter);
 app.use('/api/rooms', roomsRouter);
 app.use('/api/topics', topicsRouter);
 app.use('/api/upload', uploadRouter);
@@ -82,6 +86,8 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Connect Real Database and Start Server
 connectMongoDB().then(async () => {
   await seedDefaultLanguages();
+  await seedDefaultRoles();
+  await seedDefaultAdmin();
   app.listen(PORT, () => {
     console.log(`[Bảo tàng Lịch sử TP.HCM API] Máy chủ chạy tại http://localhost:${PORT}`);
   });

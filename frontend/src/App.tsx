@@ -5,15 +5,19 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { AdminRoomsPage } from './pages/admin/AdminRoomsPage';
 import { AdminPanoramaStudio } from './pages/admin/AdminPanoramaStudio';
+import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { MuseumRoom, AdminTab } from './types';
 import { api } from './services/api';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 
 const AppContent: React.FC = () => {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { showToast } = useToast();
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
@@ -24,6 +28,7 @@ const AppContent: React.FC = () => {
 
   // Fetch all rooms from API
   const fetchRooms = async () => {
+    if (!user || user.role !== 'admin') return;
     try {
       setLoading(true);
       setError(null);
@@ -40,17 +45,19 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     let timer: any;
-    if (loading) {
+    if (loading && user) {
       timer = setTimeout(() => setIsLagging(true), 4000);
     } else {
       setIsLagging(false);
     }
     return () => clearTimeout(timer);
-  }, [loading]);
+  }, [loading, user]);
 
   useEffect(() => {
-    fetchRooms();
-  }, []);
+    if (user && user.role === 'admin') {
+      fetchRooms();
+    }
+  }, [user]);
 
   // Xử lý deep link: Quét QR hoặc mở liên kết ?room=CODE hoặc ?room=ID
   useEffect(() => {
@@ -154,6 +161,23 @@ const AppContent: React.FC = () => {
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Màn hình chờ xác thực phiên đăng nhập
+  if (isAuthLoading) {
+    return (
+      <div className="admin-auth-loading">
+        <div className="heritage-emblem-spin">🏛️</div>
+        <Loader2 size={30} className="spin" style={{ color: 'var(--accent-gold)' }} />
+        <div className="auth-loading-title">BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH</div>
+        <p className="auth-loading-text">Đang xác thực bảo mật hệ thống quản trị...</p>
+      </div>
+    );
+  }
+
+  // Chặn người dùng chưa đăng nhập hoặc không có quyền Admin
+  if (!user || user.role !== 'admin') {
+    return <AdminLoginPage />;
+  }
 
   return (
     <div className="admin-app">
@@ -283,13 +307,13 @@ const AppContent: React.FC = () => {
   );
 };
 
-import { ThemeProvider } from './context/ThemeContext';
-
 export const App: React.FC = () => {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <AppContent />
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
   );

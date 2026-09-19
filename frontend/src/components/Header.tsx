@@ -1,7 +1,8 @@
 import React from 'react';
-import { ChevronRight, Menu, Sun, Moon, ExternalLink, Landmark, Shield, ArrowLeft } from 'lucide-react';
+import { ChevronRight, Menu, Sun, Moon, ExternalLink, Landmark, Shield, ArrowLeft, LogOut } from 'lucide-react';
 import { AdminTab, MuseumRoom } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
   currentTab: AdminTab;
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar
 }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
   const currentTabInfo = TAB_TITLES[currentTab] || { label: 'Bảng Điều Khiển' };
 
   return (
@@ -118,15 +120,26 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="header-separator" />
 
         {/* Khối Thông tin Người Quản trị Di sản */}
-        <div className="header-user-profile" title="Tài khoản Quản trị viên Bảo tàng">
+        <div className="header-user-profile" title={`Tài khoản: ${user?.email || 'admin'}`}>
           <div className="header-user-avatar">
             <Shield size={14} />
           </div>
           <div className="header-user-meta">
-            <span className="header-user-name">Ban Quản lý</span>
-            <span className="header-user-role">Quản trị viên</span>
+            <span className="header-user-name">{user?.fullName || 'Ban Quản trị'}</span>
+            <span className="header-user-role">{user?.role === 'admin' ? 'Quản trị viên (Admin)' : user?.role || 'Admin'}</span>
           </div>
         </div>
+
+        {/* Nút Đăng xuất an toàn */}
+        <button
+          type="button"
+          className="header-logout-btn"
+          onClick={logout}
+          title="Đăng xuất khỏi hệ thống quản trị"
+          aria-label="Đăng xuất"
+        >
+          <LogOut size={15} />
+        </button>
       </div>
     </header>
   );

@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -7,6 +7,18 @@ export const API_ROOT = import.meta.env.VITE_API_URL
       : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'));
 
 export const API_BASE = `${API_ROOT}/api`;
+
+export const getAuthHeaders = (contentType: boolean = true): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  if (contentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const token = typeof window !== 'undefined' ? localStorage.getItem('museum_admin_token') : null;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
 
 export const api = {
   async getRooms(): Promise<MuseumRoom[]> {
@@ -190,5 +202,87 @@ export const api = {
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi xóa chuyên đề');
+  },
+
+  // === QUẢN TRỊ XÁC THỰC ADMIN & RBAC (OTP + CREDENTIALS) ===
+  async sendOtp(email: string): Promise<SendOtpResponse> {
+    const res = await fetch(`${API_BASE}/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const json = await res.json();
+    if (!res.ok && res.status === 429) {
+      // Bị chặn cooldown chống spam 60s
+      return {
+        success: false,
+        message: json.message || 'Vui lòng chờ thêm trước khi yêu cầu mã mới',
+        retryAfter: json.retryAfter || 60
+      };
+    }
+    if (!json.success) throw new Error(json.message || 'Lỗi khi gửi mã xác thực OTP');
+    return json;
+  },
+
+  async verifyOtp(email: string, otp: string): Promise<AuthResponse> {
+    const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi xác thực mã OTP');
+    return json;
+  },
+
+  async loginCredentials(usernameOrEmail: string, password: string): Promise<AuthResponse> {
+    const res = await fetch(`${API_BASE}/auth/login-credentials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usernameOrEmail, password })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Đăng nhập không thành công');
+    return json;
+  },
+
+  async getMe(): Promise<AuthUser> {
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: getAuthHeaders(false)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Phiên đăng nhập không hợp lệ');
+    return json.user;
+  },
+
+  async getRoles(): Promise<RoleItem[]> {
+    const res = await fetch(`${API_BASE}/auth/roles`, {
+      headers: getAuthHeaders(false)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách vai trò');
+    return json.roles;
+  },
+
+  async createRole(role: Partial<RoleItem>): Promise<RoleItem> {
+    const res = await fetch(`${API_BASE}/auth/roles`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(role)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tạo vai trò mới');
+    return json.role;
+  },
+
+  async updateRole(id: string, patch: Partial<RoleItem>): Promise<RoleItem> {
+    const res = await fetch(`${API_BASE}/auth/roles/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(patch)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật vai trò');
+    return json.role;
   }
 };

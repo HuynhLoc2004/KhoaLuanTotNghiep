@@ -79,3 +79,38 @@ export interface TopicItem {
 }
 
 export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'languages' | 'analytics' | 'settings';
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  fullName?: string;
+  role: string;
+  permissions: string[];
+}
+
+export interface RoleItem {
+  _id: string;
+  name: string;
+  displayName: string;
+  description: string;
+  permissions: string[];
+  isSystem: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SendOtpResponse {
+  success: boolean;
+  message: string;
+  email?: string;
+  cooldownSeconds?: number;
+  retryAfter?: number;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  token: string;
+  user: AuthUser;
+}

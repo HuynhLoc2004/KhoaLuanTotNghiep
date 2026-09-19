@@ -11,19 +11,23 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1134.0",
     "@types/pg": "^8.23.1",
+    "bcryptjs": "^3.0.3",
     "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.1",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^10.0.10",
     "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.13.9",
     "@types/nodemailer": "^8.0.2",
