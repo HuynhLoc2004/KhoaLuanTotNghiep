@@ -15,9 +15,12 @@
    - ⚠️ **Tuyệt đối KHÔNG sử dụng màu xanh lá cây neon/AI sáng chói (`#10B981`, `#22C55E`)**: Mọi huy hiệu hoạt động/trực tuyến/active phải dùng tone Vàng đồng (`var(--accent-gold)`) hoặc ngọc bích cổ trầm dịu nhẹ (`#7F9E87`).
 2. **Quy tắc Phân trang Chuẩn Hệ thống (`Pagination`)**:
    - Sử dụng component phân trang dùng chung của hệ thống: `Pagination.tsx`.
-   - **Bắt buộc phân trang theo chuẩn bậc chung toàn bộ hệ thống: 5 - 10 - 20 - 30 - 50 mục/trang** (tuyệt đối không dùng các con số tùy tiện như 3, 6, 8...).
-   - Component `Pagination.tsx` tích hợp sẵn bộ chọn số lượng hiển thị (`Page Size Selector`: 5, 10, 20, 30, 50 / trang).
-   - Luôn hiển thị thanh phân trang trang trọng khi có dữ liệu: *"Hiển thị X - Y trên tổng số Z mục (kèm tên đối tượng: gian phòng, ngôn ngữ, hiện vật...)"* và cụm điều hướng `[Trước] [1] [2]... [Sau]`.
+   - **Quy định bậc phân trang chuẩn hóa theo dạng bố cục hiển thị**:
+     - **Dạng Lưới Thẻ 3 Cột (Card Grid)**: Bắt buộc dùng bội số của 3: **6 - 9 - 12 - 18 - 24** thẻ / trang (giúp các hàng 3 cột luôn được lấp đầy vuông vắn, cân đối thị giác, không bị khuyết góc trơ trọi thẻ lẻ).
+     - **Dạng Bảng / Danh sách 1 hàng (Table / List View)**: Chuẩn **5 - 10 - 20 - 30 - 50** mục / trang (mỗi mục chiếm trọn 1 hàng ngang).
+   - Trang quản trị hỗ trợ nút chuyển đổi nhanh giữa **[Chế độ Lưới Thẻ]** và **[Chế độ Bảng Danh Sách]** trên thanh công cụ Toolbar.
+   - Component `Pagination.tsx` tích hợp sẵn bộ chọn số lượng hiển thị (`Page Size Selector`) tự động thích ứng theo chế độ xem.
+   - Luôn hiển thị thanh phân trang trang trọng khi có dữ liệu: *"Hiển thị X - Y trên tổng số Z mục (kèm tên đối tượng: gian phòng, ngôn ngữ, không gian 360°...)"* và cụm điều hướng `[Trước] [1] [2]... [Sau]`.
    - Tự động nhảy về Trang 1 khi người dùng thay đổi số lượng phần tử / trang, tìm kiếm hoặc lọc chuyên đề.
 3. **Quy tắc Phân loại & Bộ lọc (`Filter & Category`)**:
    - Mỗi trang quản trị dữ liệu đều phải có Toolbar gồm:

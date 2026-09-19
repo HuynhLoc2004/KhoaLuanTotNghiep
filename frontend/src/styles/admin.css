@@ -356,10 +356,9 @@
 
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 390px));
-  gap: 20px;
-  padding: 20px;
-  justify-content: center;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  padding: 16px 20px;
 }
 
 @media (max-width: 768px) {
@@ -395,7 +394,7 @@
 
 .room-thumbnail-wrapper {
   position: relative;
-  height: 160px;
+  height: 135px;
   background-color: #1A110B;
   overflow: hidden;
 }
@@ -444,26 +443,26 @@
 }
 
 .room-info {
-  padding: 14px;
+  padding: 11px 13px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .room-name {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--heading-color);
-  line-height: 1.35;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: 20px;
+  min-height: 18px;
 }
 
 .room-period {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -471,23 +470,23 @@
 }
 
 .room-desc {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-muted);
-  line-height: 1.45;
-  margin-bottom: 4px;
+  line-height: 1.4;
+  margin-bottom: 2px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 35px;
+  height: 32px;
 }
 
 .room-actions {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
+  gap: 6px;
+  padding-top: 10px;
   border-top: 1px solid var(--border-color);
 }
 

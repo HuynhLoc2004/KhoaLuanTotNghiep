@@ -156,11 +156,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [previewPanoUrl, setPreviewPanoUrl] = useState<{ url: string; title: string } | null>(null);
 
-  // Pagination (Theo quy tắc chuẩn hệ thống: 5 - 10 - 20 - 30 - 50)
+  // Pagination (Theo chuẩn bội số 3 cho lưới thẻ: 6 - 9 - 12 - 18 - 24)
   const [roomPage, setRoomPage] = useState(1);
-  const [roomPageSize, setRoomPageSize] = useState(5);
+  const [roomPageSize, setRoomPageSize] = useState(6);
   const [panoPage, setPanoPage] = useState(1);
-  const [panoPageSize, setPanoPageSize] = useState(5);
+  const [panoPageSize, setPanoPageSize] = useState(6);
 
   const fetchPanoramas = async () => {
     try {
@@ -670,7 +670,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </div>
 
               {/* Lọc trạng thái */}
-              <div style={{ minWidth: 170 }}>
+              <div style={{ minWidth: 160 }}>
                 <select
                   className="form-control"
                   style={{ fontSize: '13px', width: '100%' }}
@@ -685,6 +685,62 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   <option value="ai_enabled">Đã bật AI Voice</option>
                   <option value="no_ai">Chưa cấu hình AI</option>
                 </select>
+              </div>
+
+              {/* Chuyển đổi chế độ xem: Lưới thẻ / Danh sách bảng */}
+              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', padding: 3, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode('grid');
+                    setRoomPageSize(6);
+                    setRoomPage(1);
+                  }}
+                  style={{
+                    padding: '5px 9px',
+                    borderRadius: 4,
+                    border: 'none',
+                    background: viewMode === 'grid' ? 'var(--accent-gold)' : 'transparent',
+                    color: viewMode === 'grid' ? '#160F0C' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: '12px',
+                    fontWeight: viewMode === 'grid' ? 600 : 500,
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Chế độ xem Lưới Thẻ (3 cột, 6-9-12 thẻ/trang)"
+                >
+                  <LayoutGrid size={13} />
+                  <span>Lưới</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode('table');
+                    setRoomPageSize(5);
+                    setRoomPage(1);
+                  }}
+                  style={{
+                    padding: '5px 9px',
+                    borderRadius: 4,
+                    border: 'none',
+                    background: viewMode === 'table' ? 'var(--accent-gold)' : 'transparent',
+                    color: viewMode === 'table' ? '#160F0C' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: '12px',
+                    fontWeight: viewMode === 'table' ? 600 : 500,
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Chế độ xem Danh Sách Bảng (1 hàng, 5-10-20 mục/trang)"
+                >
+                  <List size={13} />
+                  <span>Bảng</span>
+                </button>
               </div>
             </>
           )}
@@ -740,17 +796,17 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       </div>
 
                       {/* Action buttons 2 hàng thoáng đãng, không bị chèn ép chữ */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 10, marginTop: 'auto', borderTop: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 8, marginTop: 'auto', borderTop: '1px solid var(--border-color)' }}>
                         {/* Hàng 1: Hai nút chức năng chính */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <button
                             type="button"
                             className="btn btn-primary btn-sm"
                             onClick={() => onOpenStudio(room)}
-                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '7px 10px', fontSize: '12px', fontWeight: 600 }}
+                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
                             title="Mở trình biên tập ghim Hotspots 360°"
                           >
-                            <Compass size={14} />
+                            <Compass size={13} />
                             <span>Biên tập 360</span>
                           </button>
 
@@ -758,24 +814,24 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenAiDrawer(room)}
-                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '7px 10px', fontSize: '12px', fontWeight: 600 }}
+                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
                             title="Thuyết minh & Trợ lý ảo cho gian phòng"
                           >
-                            <Volume2 size={14} style={{ color: 'var(--accent-gold)' }} />
+                            <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
                             <span>Thuyết minh</span>
                           </button>
                         </div>
 
                         {/* Hàng 2: Nút công cụ phụ */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
                             title="Tải mã QR Standee phòng này"
                             onClick={() => handleOpenQrModal(room)}
-                            style={{ flex: 1, justifyContent: 'center', padding: '5px 8px', fontSize: '11.5px', whiteSpace: 'nowrap' }}
+                            style={{ flex: 1, justifyContent: 'center', padding: '4px 6px', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
-                            <QrCode size={13} />
+                            <QrCode size={12} />
                             <span>Mã QR</span>
                           </button>
 
@@ -784,9 +840,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             className="btn btn-secondary btn-sm"
                             title="Chỉnh sửa thông tin phòng"
                             onClick={() => setEditingRoom(room)}
-                            style={{ padding: '5px 12px', fontSize: '11.5px', whiteSpace: 'nowrap' }}
+                            style={{ padding: '4px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
-                            <Edit3 size={13} />
+                            <Edit3 size={12} />
                             <span>Sửa</span>
                           </button>
 
@@ -801,9 +857,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                                 () => onDeleteRoom(room.id)
                               );
                             }}
-                            style={{ padding: '5px 10px', color: 'var(--error)', fontSize: '11.5px', whiteSpace: 'nowrap' }}
+                            style={{ padding: '4px 8px', color: 'var(--error)', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={12} />
                             <span>Xóa</span>
                           </button>
                         </div>
@@ -980,7 +1036,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 setRoomPageSize(newSize);
                 setRoomPage(1);
               }}
-              pageSizeOptions={[5, 10, 20, 30, 50]}
+              pageSizeOptions={viewMode === 'grid' ? [6, 9, 12, 18, 24] : [5, 10, 20, 30, 50]}
               itemLabel="gian phòng"
             />
           </>
@@ -1194,7 +1250,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 setPanoPageSize(newSize);
                 setPanoPage(1);
               }}
-              pageSizeOptions={[5, 10, 20, 30, 50]}
+              pageSizeOptions={[6, 9, 12, 18, 24]}
               itemLabel="không gian 360°"
             />
           </div>
