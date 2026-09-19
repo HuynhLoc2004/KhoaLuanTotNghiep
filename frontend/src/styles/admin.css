@@ -3354,7 +3354,7 @@
 }
 
 /* ==============================================================================
-   ADMIN AUTHENTICATION & LOGIN PAGE (HERITAGE MUSEUM AESTHETICS)
+   ADMIN AUTHENTICATION & LOGIN PAGE (Chuẩn Mực Di Sản, Không AI-Hóa, Responsive)
    ============================================================================== */
 
 .header-logout-btn {
@@ -3373,9 +3373,9 @@
 }
 
 .header-logout-btn:hover {
-  background: rgba(220, 38, 38, 0.12);
-  color: #EF4444;
-  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(140, 45, 25, 0.1);
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
 .admin-auth-loading {
@@ -3385,25 +3385,19 @@
   justify-content: center;
   min-height: 100vh;
   width: 100vw;
-  background: radial-gradient(circle at center, #24201D 0%, #120F0D 100%);
-  color: #EDE5DF;
-  gap: 16px;
-  font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  gap: 14px;
+  font-family: var(--font-family);
   text-align: center;
   padding: 24px;
 }
 
-.heritage-emblem-spin {
-  font-size: 40px;
-  filter: drop-shadow(0 0 15px rgba(212, 168, 106, 0.4));
-  animation: pulse 2s ease-in-out infinite;
-}
-
 .auth-loading-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--accent-gold);
-  letter-spacing: 0.5px;
+  color: var(--heading-color);
+  letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
@@ -3413,96 +3407,75 @@
   margin: 0;
 }
 
-/* Wrapper toàn màn hình */
+/* Wrapper toàn màn hình: Tự nhiên, hỗ trợ dark/light mượt mà */
 .admin-login-wrapper {
   min-height: 100vh;
   width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 20%, #28231F 0%, #120F0D 100%);
-  position: relative;
-  overflow: hidden;
+  background-color: var(--bg-page);
   padding: 20px;
-  font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
+  font-family: var(--font-family);
 }
 
-.login-heritage-glow {
-  position: absolute;
-  top: 15%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 500px;
-  height: 350px;
-  background: radial-gradient(circle, rgba(212, 168, 106, 0.15) 0%, rgba(212, 168, 106, 0) 70%);
-  pointer-events: none;
-  filter: blur(40px);
-}
-
-/* Thẻ đăng nhập trung tâm */
+/* Thẻ đăng nhập trung tâm: Thanh lịch, chuẩn mực, viền sắc nét */
 .admin-login-card {
   width: 100%;
-  max-width: 440px;
-  background: rgba(26, 23, 21, 0.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(212, 168, 106, 0.35);
-  border-radius: 16px;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  max-width: 420px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
   position: relative;
-  z-index: 10;
-  animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Header Thẻ */
 .login-card-header {
   padding: 28px 24px 20px 24px;
   text-align: center;
-  border-bottom: 1px solid rgba(212, 168, 106, 0.15);
-  background: linear-gradient(180deg, rgba(36, 32, 29, 0.6) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-card-header);
 }
 
-.login-heritage-emblem {
-  font-size: 36px;
-  margin-bottom: 8px;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+.login-museum-icon-box {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px auto;
+  border-radius: 50%;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-museum-icon {
+  color: var(--primary);
 }
 
 .login-museum-title {
-  font-size: 15.5px;
+  font-size: 14.5px;
   font-weight: 700;
-  color: var(--accent-gold);
+  color: var(--heading-color);
   margin: 0 0 4px 0;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
 }
 
 .login-sub-title {
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--text-muted);
-  margin: 0 0 12px 0;
-  letter-spacing: 0.2px;
+  margin: 0;
 }
 
-.login-role-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(212, 168, 106, 0.1);
-  border: 1px solid rgba(212, 168, 106, 0.3);
-  padding: 3px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #F5EBE1;
-}
-
-/* Tabs chuyển đổi OTP / Mật khẩu */
+/* Tabs chuyển đổi phương thức đăng nhập */
 .login-tabs {
   display: flex;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(212, 168, 106, 0.15);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-card-header);
 }
 
 .login-tab-btn {
@@ -3510,30 +3483,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 11px 12px;
+  gap: 8px;
+  padding: 12px 14px;
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  font-family: var(--font-family);
 }
 
 .login-tab-btn:hover {
-  color: #EDE5DF;
-  background: rgba(255, 255, 255, 0.02);
+  color: var(--heading-color);
+  background-color: var(--bg-subtle);
 }
 
 .login-tab-btn.active {
-  color: var(--accent-gold);
-  border-bottom-color: var(--accent-gold);
-  background: rgba(212, 168, 106, 0.06);
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background-color: var(--bg-surface);
 }
 
-/* Thân form đăng nhập */
+/* Thân form */
 .login-card-body {
   padding: 24px;
 }
@@ -3541,13 +3515,13 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .login-label {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #D5CBC2;
+  color: var(--heading-color);
   margin-bottom: 6px;
   display: block;
 }
@@ -3567,117 +3541,101 @@
 
 .login-input {
   width: 100%;
-  padding: 10px 14px 10px 40px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(212, 168, 106, 0.3);
-  border-radius: var(--radius-md);
-  color: #F5EBE1;
+  padding: 10px 14px 10px 38px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
   font-size: 13.5px;
+  font-family: var(--font-family);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .login-input:focus {
-  border-color: var(--accent-gold);
-  box-shadow: 0 0 0 3px rgba(212, 168, 106, 0.18);
-  background: rgba(0, 0, 0, 0.5);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(140, 45, 25, 0.15);
 }
 
 .login-input-hint {
-  font-size: 11px;
+  display: block;
+  font-size: 11.5px;
   color: var(--text-muted);
-  margin-top: 5px;
+  margin-top: 6px;
   line-height: 1.4;
 }
 
+/* Nút bấm Submit chuẩn mực: Màu Đỏ Sơn Son Di Sản (var(--primary)) */
 .login-submit-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 11px 16px;
-  background: linear-gradient(135deg, #D4A86A 0%, #B88A4A 100%);
-  color: #160F0C;
-  border: none;
-  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  background-color: var(--primary);
+  color: #FFFFFF;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 600;
+  font-family: var(--font-family);
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(212, 168, 106, 0.35);
-  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: background-color 0.15s, transform 0.1s;
   margin-top: 4px;
 }
 
 .login-submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(212, 168, 106, 0.5);
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
 .login-submit-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.6;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
-/* Preset Email Admin */
-.login-preset-box {
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: var(--radius-sm);
-  border: 1px dashed rgba(212, 168, 106, 0.25);
+/* Khối thông tin gửi mã */
+.otp-info-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-}
-
-.preset-title {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.preset-tag {
-  background: rgba(212, 168, 106, 0.12);
-  border: 1px solid rgba(212, 168, 106, 0.35);
-  color: var(--accent-gold);
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: monospace;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.preset-tag:hover {
-  background: rgba(212, 168, 106, 0.25);
-}
-
-/* OTP Banner & Inputs */
-.otp-banner {
-  display: flex;
-  align-items: center;
   gap: 10px;
-  background: rgba(212, 168, 106, 0.1);
-  border: 1px solid rgba(212, 168, 106, 0.3);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
   padding: 10px 14px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
-.otp-back-email-btn {
+.otp-info-text {
+  font-size: 12.5px;
+  color: var(--text-main);
+  min-width: 0;
+  flex: 1;
+}
+
+.otp-info-text strong {
+  color: var(--heading-color);
+  word-break: break-all;
+}
+
+.otp-change-email-btn {
   background: none;
-  border: 1px solid rgba(212, 168, 106, 0.35);
-  color: var(--accent-gold);
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 11px;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
   cursor: pointer;
-  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.15s;
 }
 
-.otp-back-email-btn:hover {
-  background: rgba(212, 168, 106, 0.2);
+.otp-change-email-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 /* 6 ô nhập chữ số OTP */
@@ -3685,41 +3643,40 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .otp-digit-input {
-  width: 48px;
-  height: 54px;
+  width: 46px;
+  height: 50px;
   text-align: center;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
   font-family: 'Courier New', monospace;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1.5px solid rgba(212, 168, 106, 0.35);
-  border-radius: var(--radius-md);
-  color: #FFFFFF;
+  background-color: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--heading-color);
   outline: none;
   transition: all 0.15s ease;
 }
 
 .otp-digit-input:focus {
-  border-color: var(--accent-gold);
-  box-shadow: 0 0 12px rgba(212, 168, 106, 0.4);
-  background: rgba(0, 0, 0, 0.65);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(140, 45, 25, 0.15);
 }
 
 .otp-digit-input.filled {
-  border-color: rgba(212, 168, 106, 0.7);
-  background: rgba(212, 168, 106, 0.08);
+  border-color: var(--border-dark);
+  background-color: var(--bg-subtle);
 }
 
-/* Hàng gửi lại mã với countdown */
+/* Hàng gửi lại mã */
 .otp-resend-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .btn-link-resend {
@@ -3728,9 +3685,9 @@
   gap: 6px;
   background: none;
   border: none;
-  color: var(--accent-gold);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--primary);
+  font-size: 12.5px;
+  font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s;
   padding: 4px 8px;
@@ -3741,33 +3698,43 @@
 }
 
 .btn-link-resend:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
   color: var(--text-muted);
 }
 
-/* Tip đăng nhập tài khoản */
-.login-credential-tip {
-  padding: 8px 12px;
-  background: rgba(212, 168, 106, 0.08);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--accent-gold);
-  font-size: 11.5px;
-  color: #D5CBC2;
-}
-
-/* Footer Thẻ */
+/* Footer thẻ: Chuẩn mực, đơn giản */
 .login-card-footer {
   padding: 14px 24px;
-  background: rgba(0, 0, 0, 0.25);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: var(--bg-card-header);
+  border-top: 1px solid var(--border-color);
   text-align: center;
+  font-size: 12px;
+  color: var(--text-light);
 }
 
-.security-notice {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-muted);
+/* Responsive Mobile cho màn hình nhỏ */
+@media (max-width: 480px) {
+  .admin-login-wrapper {
+    padding: 12px;
+  }
+
+  .admin-login-card {
+    max-width: 100%;
+    border-radius: var(--radius-md);
+  }
+
+  .login-card-header {
+    padding: 22px 16px 16px 16px;
+  }
+
+  .login-card-body {
+    padding: 18px 16px;
+  }
+
+  .otp-digit-input {
+    width: 38px;
+    height: 46px;
+    font-size: 19px;
+  }
 }
