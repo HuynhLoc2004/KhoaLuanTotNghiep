@@ -94,10 +94,10 @@
   --border-color: #342821;
   --border-dark: #45352C;
 
-  --success: #6E9E7B;
-  --success-bg: rgba(110, 158, 123, 0.12);
-  --success-border: rgba(110, 158, 123, 0.25);
-  --success-text: #CDE2D2;
+  --success: #7F9E87;
+  --success-bg: rgba(127, 158, 135, 0.12);
+  --success-border: rgba(127, 158, 135, 0.25);
+  --success-text: #D2E2D6;
 
   --warning: #D49B35;
   --warning-bg: rgba(212, 155, 53, 0.12);

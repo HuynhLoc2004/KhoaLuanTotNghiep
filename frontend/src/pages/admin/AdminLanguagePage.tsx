@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Globe,
   Plus,
@@ -8,16 +8,22 @@ import {
   Play,
   RotateCw,
   Trash2,
-  AlertCircle,
-  HelpCircle,
-  Sliders,
-  CheckCircle2,
-  Languages
+  Languages,
+  Search,
+  SlidersHorizontal,
+  RefreshCw,
+  Eye,
+  Cpu,
+  VolumeX,
+  Sparkles
 } from 'lucide-react';
 import { LanguageItem } from '../../types';
 import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Pagination } from '../../components/Pagination';
+
+const PAGE_SIZE = 5;
 
 export const AdminLanguagePage: React.FC = () => {
   const { showToast } = useToast();
@@ -25,7 +31,12 @@ export const AdminLanguagePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [testingCode, setTestingCode] = useState<string | null>(null);
-  const [previewAudio, setPreviewAudio] = useState<string | null>(null);
+  const [previewAudio, setPreviewAudio] = useState<{ url: string; langName: string; flag: string } | null>(null);
+
+  // Search & Filter & Pagination state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Form thêm ngôn ngữ mới
   const [newCode, setNewCode] = useState('');
@@ -33,7 +44,7 @@ export const AdminLanguagePage: React.FC = () => {
   const [newNativeName, setNewNativeName] = useState('');
   const [newFlag, setNewFlag] = useState('🌐');
   const [newIsActive, setNewIsActive] = useState(true);
-  const [newVoiceName, setNewVoiceName] = useState('standard');
+  const [newVoiceName, setNewVoiceName] = useState('neural2-standard');
   const [newGender, setNewGender] = useState<'female' | 'male'>('female');
   const [submitting, setSubmitting] = useState(false);
 
@@ -66,6 +77,11 @@ export const AdminLanguagePage: React.FC = () => {
   useEffect(() => {
     fetchLanguages();
   }, []);
+
+  // Reset trang khi lọc hoặc tìm kiếm
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   // Bật/Tắt trạng thái Active của ngôn ngữ
   const handleToggleActive = async (lang: LanguageItem) => {
@@ -122,7 +138,11 @@ export const AdminLanguagePage: React.FC = () => {
         ? res.audioUrl
         : `${window.location.origin}${res.audioUrl}`;
 
-      setPreviewAudio(audioUrl);
+      setPreviewAudio({
+        url: audioUrl,
+        langName: lang.nativeName,
+        flag: lang.flagIcon || '🌐'
+      });
       showToast(`Đang phát giọng đọc AI [${lang.nativeName}]`, 'info');
     } catch (err: any) {
       // Fallback: nếu lỗi mạng mới phát qua giọng đọc trình duyệt
@@ -202,376 +222,628 @@ export const AdminLanguagePage: React.FC = () => {
     }
   };
 
+  // Lọc danh sách theo từ khóa và trạng thái
+  const filteredLanguages = useMemo(() => {
+    return languages.filter((l) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        l.code.toLowerCase().includes(q) ||
+        l.name.toLowerCase().includes(q) ||
+        l.nativeName.toLowerCase().includes(q);
+
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && l.isActive) ||
+        (statusFilter === 'inactive' && !l.isActive);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [languages, searchQuery, statusFilter]);
+
+  // Phân trang dữ liệu
+  const paginatedLanguages = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredLanguages.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filteredLanguages, currentPage]);
+
   const activeCount = languages.filter((l) => l.isActive).length;
+  const activePercent = languages.length > 0 ? Math.round((activeCount / languages.length) * 100) : 0;
 
   return (
-    <div className="admin-content" style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
-      {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Languages size={22} style={{ color: 'var(--primary)' }} />
-            <h1 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-              Quản trị Danh mục Ngôn ngữ & Voice AI (Language Registry)
-            </h1>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
-            Hệ thống Đa ngôn ngữ Động: Khách tham quan Client chỉ có quyền chọn các ngôn ngữ được Admin kích hoạt tại đây.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => setShowAddModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          <Plus size={15} />
-          <span>Thêm ngôn ngữ mới</span>
-        </button>
-      </div>
-
-      {/* KPI METRIC CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-            Tổng ngôn ngữ hỗ trợ
-          </span>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--heading-color)' }}>
-            {languages.length}
-          </div>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            Đã nạp sẵn trong hệ thống
-          </span>
-        </div>
-
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-            Đang hiển thị trên Client
-          </span>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--heading-color)', display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span>{activeCount}</span>
-            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)' }}>/ {languages.length}</span>
-          </div>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            Ngôn ngữ du khách có thể chọn
-          </span>
-        </div>
-
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-            Voice AI Engine
-          </span>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--heading-color)' }}>
-            Pre-rendered
-          </div>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            Không lag, chuẩn phát âm sử học
-          </span>
-        </div>
-      </div>
-
-      {/* AUDIO PLAYER PREVIEW NẾU ĐANG NGHE THỬ */}
-      {previewAudio && (
-        <div
-          style={{
-            marginBottom: 20,
-            background: 'var(--bg-subtle)',
-            border: '1px solid var(--border-color)',
-            padding: '14px 18px',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Volume2 size={18} style={{ color: 'var(--primary)' }} />
+    <div className="admin-content" style={{ overscrollBehaviorY: 'contain' }}>
+      <div className="lang-management-page">
+        {/* HEADER SECTION */}
+        <div className="lang-header-row">
+          <div className="lang-header-title-group">
+            <div className="lang-header-icon-badge">
+              <Languages size={22} />
+            </div>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--heading-color)' }}>
-                Đang phát mẫu âm thanh thuyết minh AI
-              </div>
-              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                Kiểm tra ngữ điệu và độ chuẩn xác của giọng đọc
-              </div>
+              <h1 className="lang-header-title">
+                Quản trị Danh mục Ngôn ngữ & Voice AI
+              </h1>
+              <p className="lang-header-desc">
+                Hệ thống Đa ngôn ngữ Động: Khách tham quan Client chỉ có quyền chọn các ngôn ngữ được Admin kích hoạt tại đây.
+              </p>
             </div>
           </div>
-          <audio controls autoPlay key={previewAudio} src={previewAudio} style={{ height: 36, minWidth: 260 }}>
-            Trình duyệt không hỗ trợ audio.
-          </audio>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => setPreviewAudio(null)}
-            style={{ padding: '4px 8px' }}
-          >
-            <X size={14} />
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={fetchLanguages}
+              disabled={loading}
+              title="Làm mới dữ liệu từ máy chủ"
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <RefreshCw size={14} className={loading ? 'spin' : ''} />
+              <span>Làm mới</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowAddModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Plus size={15} />
+              <span>Thêm ngôn ngữ mới</span>
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* DANH SÁCH NGÔN NGỮ */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-        <table className="rooms-table">
-          <thead>
-            <tr>
-              <th style={{ width: 70 }}>Cờ</th>
-              <th>Ngôn ngữ bản xứ</th>
-              <th>Mã ISO</th>
-              <th>Cấu hình Giọng đọc AI</th>
-              <th>Trực tuyến (Client)</th>
-              <th style={{ textAlign: 'right' }}>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {languages.map((lang) => (
-              <tr key={lang.code}>
-                <td style={{ textAlign: 'center', fontSize: '24px' }}>
-                  {lang.flagIcon || '🌐'}
-                </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--heading-color)' }}>
-                      {lang.nativeName}
-                    </span>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({lang.name})</span>
-                    {lang.isDefault && (
-                      <span
-                        style={{
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          background: 'var(--primary-light)',
-                          color: 'var(--primary)',
-                          padding: '2px 7px',
-                          borderRadius: 4
-                        }}
-                      >
-                        Gốc mặc định
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '12.5px', background: 'var(--bg-subtle)', padding: '2px 8px', borderRadius: 4 }}>
-                    {lang.code.toUpperCase()}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
-                    <span>{lang.ttsVoiceConfig?.voiceName || 'Google Standard'} ({lang.ttsVoiceConfig?.gender === 'male' ? 'Nam' : 'Nữ'})</span>
-                  </div>
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleActive(lang)}
-                    disabled={lang.isDefault}
-                    style={{
-                      border: 'none',
-                      background: lang.isActive ? 'var(--success-bg)' : 'var(--bg-subtle)',
-                      color: lang.isActive ? 'var(--success)' : 'var(--text-muted)',
-                      borderWidth: 1,
-                      borderStyle: 'solid',
-                      borderColor: lang.isActive ? 'var(--success-border)' : 'var(--border-color)',
-                      padding: '4px 12px',
-                      borderRadius: 999,
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: lang.isDefault ? 'not-allowed' : 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: '50%',
-                        background: lang.isActive ? 'var(--success)' : 'var(--text-muted)'
-                      }}
-                    />
-                    <span>{lang.isActive ? 'Đang bật (Client thấy)' : 'Đang tắt'}</span>
-                  </button>
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'inline-flex', gap: 6 }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleTestVoice(lang)}
-                      disabled={testingCode === lang.code}
-                      title="Nghe thử chất lượng giọng đọc AI"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px' }}
-                    >
-                      {testingCode === lang.code ? (
-                        <RotateCw size={13} className="spin" />
-                      ) : (
-                        <Play size={13} />
-                      )}
-                      <span>Thử giọng</span>
-                    </button>
+        {/* KPI METRIC CARDS */}
+        <div className="lang-kpi-grid">
+          {/* CARD 1: TỔNG NGÔN NGỮ */}
+          <div className="lang-kpi-card">
+            <div className="lang-kpi-top">
+              <span className="lang-kpi-label">Tổng ngôn ngữ hệ thống</span>
+              <div className="lang-kpi-icon-pill" style={{ background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)' }}>
+                <Languages size={17} />
+              </div>
+            </div>
+            <div className="lang-kpi-val">
+              <span>{languages.length}</span>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>quốc gia</span>
+            </div>
+            <span className="lang-kpi-sub">
+              Sẵn sàng bản dịch thuyết minh & âm thanh AI
+            </span>
+          </div>
 
-                    {!lang.isDefault && (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleDeleteLanguage(lang)}
-                        title="Xóa ngôn ngữ khỏi hệ thống"
-                        style={{ padding: '5px 8px', color: 'var(--error)' }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          {/* CARD 2: ĐANG HIỂN THỊ TRÊN CLIENT */}
+          <div className="lang-kpi-card">
+            <div className="lang-kpi-top">
+              <span className="lang-kpi-label">Đang hiển thị trên Client</span>
+              <div className="lang-kpi-icon-pill" style={{ background: 'rgba(140, 45, 25, 0.12)', color: 'var(--primary)' }}>
+                <Eye size={17} />
+              </div>
+            </div>
+            <div className="lang-kpi-val">
+              <span>{activeCount}</span>
+              <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)' }}>/ {languages.length}</span>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', marginLeft: 'auto' }}>
+                {activePercent}%
+              </span>
+            </div>
+            <div className="lang-progress-bar">
+              <div className="lang-progress-fill" style={{ width: `${activePercent}%` }} />
+            </div>
+            <span className="lang-kpi-sub">
+              Khách tham quan có thể lựa chọn tự do
+            </span>
+          </div>
 
-      {/* MODAL THÊM NGÔN NGỮ MỚI */}
-      {showAddModal && (
-        <div className="modal-backdrop" onClick={() => setShowAddModal(false)} style={{ zIndex: 1200 }}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
-            <div className="modal-header">
-              <h2 className="modal-title">Thêm Ngôn ngữ Quốc tế Mới</h2>
+          {/* CARD 3: VOICE AI ENGINE */}
+          <div className="lang-kpi-card">
+            <div className="lang-kpi-top">
+              <span className="lang-kpi-label">Voice AI Engine</span>
+              <div className="lang-kpi-icon-pill" style={{ background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)' }}>
+                <Volume2 size={17} />
+              </div>
+            </div>
+            <div className="lang-kpi-val" style={{ fontSize: '20px' }}>
+              <span>Pre-rendered Studio</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  background: 'rgba(212, 168, 106, 0.12)',
+                  color: 'var(--accent-gold)',
+                  border: '1px solid rgba(212, 168, 106, 0.25)',
+                  padding: '2px 8px',
+                  borderRadius: 4
+                }}
+              >
+                Độ trễ 0ms
+              </span>
+              <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                Chuẩn ngữ điệu sử học
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* AUDIO PLAYER BANNER NẾU ĐANG NGHE THỬ */}
+        {previewAudio && (
+          <div className="lang-audio-banner">
+            <div className="lang-audio-banner-left">
+              <div className="lang-audio-equalizer">
+                <span className="lang-eq-bar" />
+                <span className="lang-eq-bar" />
+                <span className="lang-eq-bar" />
+                <span className="lang-eq-bar" />
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>{previewAudio.flag}</span>
+                  <span>Đang phát mẫu giọng đọc AI: {previewAudio.langName}</span>
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                  Kiểm tra ngữ điệu, nhịp độ và sự lưu loát của bản ghi âm
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, justifyContent: 'flex-end', minWidth: 280 }}>
+              <audio
+                controls
+                autoPlay
+                key={previewAudio.url}
+                src={previewAudio.url}
+                style={{ height: 36, maxWidth: 360, width: '100%' }}
+              >
+                Trình duyệt không hỗ trợ audio.
+              </audio>
               <button
                 type="button"
-                className="modal-close-btn"
-                onClick={() => setShowAddModal(false)}
+                className="btn btn-secondary btn-sm"
+                onClick={() => setPreviewAudio(null)}
+                title="Đóng phát âm"
+                style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
               >
-                <X size={18} />
+                <X size={14} />
+                <span style={{ fontSize: '12px' }}>Tắt</span>
               </button>
             </div>
+          </div>
+        )}
 
-            <form onSubmit={handleAddSubmit}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
+        {/* TOOLBAR: TÌM KIẾM & BỘ LỌC */}
+        <div className="lang-toolbar-card">
+          <div className="lang-toolbar-controls">
+            {/* Ô TÌM KIẾM */}
+            <div className="lang-search-wrapper">
+              <Search size={15} className="lang-search-icon" />
+              <input
+                type="text"
+                placeholder="Tìm theo tên tiếng Việt, bản xứ hoặc mã ISO (vi, en, fr...)"
+                className="lang-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="lang-search-clear"
+                  onClick={() => setSearchQuery('')}
+                  title="Xóa tìm kiếm"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* BỘ LỌC TRẠNG THÁI */}
+            <select
+              className="lang-filter-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+            >
+              <option value="all">Tất cả trạng thái ({languages.length})</option>
+              <option value="active">Đang hiển thị trên Client ({activeCount})</option>
+              <option value="inactive">Đang tạm tắt ({languages.length - activeCount})</option>
+            </select>
+          </div>
+
+          <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+            Tìm thấy <strong>{filteredLanguages.length}</strong> / <strong>{languages.length}</strong> ngôn ngữ
+          </div>
+        </div>
+
+        {/* BẢNG DỮ LIỆU & PHÂN TRANG */}
+        <div className="lang-table-card">
+          {filteredLanguages.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
+              <Languages size={36} style={{ color: 'var(--border-dark)', margin: '0 auto 12px' }} />
+              <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--heading-color)', marginBottom: 6 }}>
+                Không tìm thấy ngôn ngữ phù hợp
+              </div>
+              <p style={{ fontSize: '13px', maxWidth: 420, margin: '0 auto 16px' }}>
+                Không có ngôn ngữ nào khớp với từ khóa tìm kiếm & bộ lọc hiện tại. Vui lòng thử lại.
+              </p>
+              {(searchQuery || statusFilter !== 'all') && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                  }}
+                >
+                  Đặt lại bộ lọc
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* DESKTOP / TABLET VIEW: BẢNG CUỘN NGANG TỰ NHIÊN */}
+              <div className="lang-table-scroll">
+                <table className="lang-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 100, textAlign: 'center' }}>Cờ & ISO</th>
+                      <th>Ngôn ngữ bản xứ</th>
+                      <th>Cấu hình Giọng đọc AI</th>
+                      <th style={{ width: 180 }}>Trực tuyến (Client)</th>
+                      <th style={{ width: 160, textAlign: 'right' }}>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedLanguages.map((lang) => (
+                      <tr key={lang.code}>
+                        {/* CỜ & MÃ ISO */}
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: '24px', lineHeight: 1 }}>{lang.flagIcon || '🌐'}</span>
+                            <span className="lang-iso-pill">{lang.code.toUpperCase()}</span>
+                          </div>
+                        </td>
+
+                        {/* TÊN BẢN XỨ & TIẾNG ANH */}
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 700, fontSize: '14.5px', color: 'var(--heading-color)' }}>
+                                {lang.nativeName}
+                              </span>
+                              {lang.isDefault && (
+                                <span
+                                  style={{
+                                    fontSize: '10.5px',
+                                    fontWeight: 700,
+                                    background: 'var(--primary-light)',
+                                    color: 'var(--primary)',
+                                    border: '1px solid var(--primary-border)',
+                                    padding: '2px 8px',
+                                    borderRadius: 4,
+                                    letterSpacing: '0.2px'
+                                  }}
+                                >
+                                  Gốc mặc định
+                                </span>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                              Tên quốc tế: {lang.name}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* CẤU HÌNH GIỌNG ĐỌC AI */}
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div className="lang-voice-chip">
+                              <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
+                              <span style={{ fontWeight: 600 }}>{lang.ttsVoiceConfig?.voiceName || 'Google Neural2'}</span>
+                              <span style={{ color: 'var(--border-dark)' }}>•</span>
+                              <span>{lang.ttsVoiceConfig?.gender === 'male' ? 'Nam' : 'Nữ'}</span>
+                            </div>
+                            <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>
+                              Tốc độ: {lang.ttsVoiceConfig?.speed || 1.0}x | Nhà cung cấp: Google Cloud TTS
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* TRẠNG THÁI HIỂN THỊ */}
+                        <td>
+                          <button
+                            type="button"
+                            className={`lang-status-badge ${lang.isActive ? 'active' : 'inactive'}`}
+                            onClick={() => handleToggleActive(lang)}
+                            disabled={lang.isDefault}
+                            title={lang.isDefault ? 'Ngôn ngữ gốc tiếng Việt luôn được kích hoạt mặc định' : 'Bấm để bật / tắt hiển thị trên trang khách tham quan'}
+                          >
+                            <span className="lang-status-dot" />
+                            <span>{lang.isActive ? 'Đang hiển thị' : 'Đang tạm tắt'}</span>
+                          </button>
+                        </td>
+
+                        {/* THAO TÁC */}
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleTestVoice(lang)}
+                              disabled={testingCode === lang.code}
+                              title="Nghe thử âm thanh thuyết minh AI"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px' }}
+                            >
+                              {testingCode === lang.code ? (
+                                <RotateCw size={13} className="spin" />
+                              ) : (
+                                <Play size={13} />
+                              )}
+                              <span>Thử giọng</span>
+                            </button>
+
+                            {!lang.isDefault && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => handleDeleteLanguage(lang)}
+                                title="Xóa ngôn ngữ khỏi hệ thống"
+                                style={{ padding: '6px 10px', color: 'var(--error)' }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* MOBILE VIEW: DẠNG DANH SÁCH THẺ GỌN GÀNG CHO MÀN HÌNH NHỎ */}
+              <div className="lang-mobile-list">
+                {paginatedLanguages.map((lang) => (
+                  <div key={lang.code} className="lang-mobile-card">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: '28px', lineHeight: 1 }}>{lang.flagIcon || '🌐'}</span>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--heading-color)' }}>
+                              {lang.nativeName}
+                            </span>
+                            <span className="lang-iso-pill">{lang.code.toUpperCase()}</span>
+                          </div>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{lang.name}</span>
+                        </div>
+                      </div>
+
+                      {lang.isDefault && (
+                        <span
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            background: 'var(--primary-light)',
+                            color: 'var(--primary)',
+                            padding: '2px 7px',
+                            borderRadius: 4
+                          }}
+                        >
+                          Mặc định
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ background: 'var(--bg-subtle)', padding: '8px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
+                        <span>Giọng: <strong>{lang.ttsVoiceConfig?.voiceName || 'Google Neural2'}</strong> ({lang.ttsVoiceConfig?.gender === 'male' ? 'Nam' : 'Nữ'})</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 6, borderTop: '1px dashed var(--border-color)' }}>
+                      <button
+                        type="button"
+                        className={`lang-status-badge ${lang.isActive ? 'active' : 'inactive'}`}
+                        onClick={() => handleToggleActive(lang)}
+                        disabled={lang.isDefault}
+                      >
+                        <span className="lang-status-dot" />
+                        <span>{lang.isActive ? 'Đang hiển thị' : 'Đang tạm tắt'}</span>
+                      </button>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleTestVoice(lang)}
+                          disabled={testingCode === lang.code}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                        >
+                          {testingCode === lang.code ? (
+                            <RotateCw size={13} className="spin" />
+                          ) : (
+                            <Play size={13} />
+                          )}
+                          <span>Thử giọng</span>
+                        </button>
+
+                        {!lang.isDefault && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleDeleteLanguage(lang)}
+                            style={{ color: 'var(--error)', padding: '6px 8px' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* PHÂN TRANG CHUẨN CỦA HỆ THỐNG */}
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredLanguages.length}
+                pageSize={PAGE_SIZE}
+                onPageChange={setCurrentPage}
+              />
+            </>
+          )}
+        </div>
+
+        {/* MODAL THÊM NGÔN NGỮ MỚI */}
+        {showAddModal && (
+          <div className="modal-backdrop" onClick={() => setShowAddModal(false)} style={{ zIndex: 1200 }}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+              <div className="modal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Languages size={17} />
+                  </div>
+                  <div>
+                    <h2 className="modal-title" style={{ fontSize: '17px', margin: 0 }}>Thêm Ngôn ngữ Mới</h2>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cấu hình quốc gia & giọng đọc AI thuyết minh</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddSubmit}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
+                    <div className="form-group">
+                      <label className="form-label">Mã ISO (2 ký tự) *</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="es, it, ru..."
+                        maxLength={5}
+                        value={newCode}
+                        onChange={(e) => setNewCode(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Icon Cờ (Emoji)</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="🇪🇸, 🇮🇹, 🇷🇺..."
+                        value={newFlag}
+                        onChange={(e) => setNewFlag(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div className="form-group">
-                    <label className="form-label">Mã ISO (2 ký tự)</label>
+                    <label className="form-label">Tên bản ngữ (Hiển thị cho du khách) *</label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="es, it, ru..."
-                      maxLength={5}
-                      value={newCode}
-                      onChange={(e) => setNewCode(e.target.value)}
+                      placeholder="Español, Italiano, Русский..."
+                      value={newNativeName}
+                      onChange={(e) => setNewNativeName(e.target.value)}
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Icon Cờ (Emoji)</label>
+                    <label className="form-label">Tên tiếng Anh *</label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="🇪🇸, 🇮🇹, 🇷🇺..."
-                      value={newFlag}
-                      onChange={(e) => setNewFlag(e.target.value)}
+                      placeholder="Spanish, Italian, Russian..."
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      required
                     />
                   </div>
-                </div>
 
-                <div className="form-group">
-                  <label className="form-label">Tên bản ngữ (Hiển thị cho du khách)</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Español, Italiano, Русский..."
-                    value={newNativeName}
-                    onChange={(e) => setNewNativeName(e.target.value)}
-                    required
-                  />
-                </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 12 }}>
+                    <div className="form-group">
+                      <label className="form-label">Giọng đọc Voice AI mặc định</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="neural2-female, standard..."
+                        value={newVoiceName}
+                        onChange={(e) => setNewVoiceName(e.target.value)}
+                      />
+                    </div>
 
-                <div className="form-group">
-                  <label className="form-label">Tên tiếng Anh</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Spanish, Italian, Russian..."
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    required
-                  />
-                </div>
+                    <div className="form-group">
+                      <label className="form-label">Giới tính giọng</label>
+                      <select
+                        className="form-control"
+                        value={newGender}
+                        onChange={(e) => setNewGender(e.target.value as any)}
+                      >
+                        <option value="female">Nữ</option>
+                        <option value="male">Nam</option>
+                      </select>
+                    </div>
+                  </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 12 }}>
-                  <div className="form-group">
-                    <label className="form-label">Giọng đọc Voice AI mặc định</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
                     <input
-                      type="text"
-                      className="form-control"
-                      placeholder="neural2-female"
-                      value={newVoiceName}
-                      onChange={(e) => setNewVoiceName(e.target.value)}
+                      type="checkbox"
+                      id="chkIsActive"
+                      checked={newIsActive}
+                      onChange={(e) => setNewIsActive(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: 'var(--accent-gold)' }}
                     />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Giới tính</label>
-                    <select
-                      className="form-control"
-                      value={newGender}
-                      onChange={(e) => setNewGender(e.target.value as any)}
-                    >
-                      <option value="female">Nữ</option>
-                      <option value="male">Nam</option>
-                    </select>
+                    <label htmlFor="chkIsActive" style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--text-main)' }}>
+                      Kích hoạt ngay trên Client (Khách tham quan có thể chọn ngay)
+                    </label>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                  <input
-                    type="checkbox"
-                    id="chkIsActive"
-                    checked={newIsActive}
-                    onChange={(e) => setNewIsActive(e.target.checked)}
-                    style={{ width: 16, height: 16 }}
-                  />
-                  <label htmlFor="chkIsActive" style={{ fontSize: '13px', cursor: 'pointer' }}>
-                    Kích hoạt ngay trên Client (Khách tham quan có thể chọn ngay)
-                  </label>
+                <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowAddModal(false)}
+                  >
+                    <span>Hủy</span>
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={submitting}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    {submitting ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
+                    <span>Thêm ngôn ngữ</span>
+                  </button>
                 </div>
-              </div>
-
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowAddModal(false)}
-                >
-                  <span>Hủy</span>
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={submitting}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  {submitting ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
-                  <span>Thêm ngôn ngữ</span>
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* CONFIRM MODAL */}
-      <ConfirmModal
-        isOpen={confirmDialog.isOpen}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        type="danger"
-        confirmText="Xác nhận xóa"
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
-      />
+        {/* CONFIRM MODAL */}
+        <ConfirmModal
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          type="danger"
+          confirmText="Xác nhận xóa"
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        />
+      </div>
     </div>
   );
 };
