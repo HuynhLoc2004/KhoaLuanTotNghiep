@@ -356,9 +356,10 @@
 
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
-  gap: 16px;
-  padding: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 380px));
+  gap: 20px;
+  padding: 20px;
+  justify-content: start;
 }
 
 @media (max-width: 768px) {
@@ -366,6 +367,10 @@
     grid-template-columns: 1fr;
     padding: 12px;
     gap: 14px;
+  }
+
+  .room-card {
+    max-width: 100% !important;
   }
 }
 
@@ -378,6 +383,8 @@
   flex-direction: column;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  width: 100%;
+  max-width: 390px;
 }
 
 .room-card:hover {
@@ -388,7 +395,7 @@
 
 .room-thumbnail-wrapper {
   position: relative;
-  height: 135px;
+  height: 170px;
   background-color: var(--bg-subtle);
   overflow: hidden;
 }
@@ -1044,6 +1051,10 @@
     grid-template-columns: 1fr;
     padding: 12px;
     gap: 14px;
+  }
+
+  .room-card {
+    max-width: 100% !important;
   }
 
   /* Modal Responsiveness */
