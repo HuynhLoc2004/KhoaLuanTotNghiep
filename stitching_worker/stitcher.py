@@ -307,20 +307,21 @@ def enhance_museum_texture(image):
 
 def balance_indoor_lighting(img):
     """
-    Cân bằng ánh sáng thông minh chống lóa ngược sáng cửa chính & kéo sáng góc tối:
-    - Nén các vùng lóa sáng cực đại (> 215) ở cửa kính/cửa sắt ngược sáng để cứu chi tiết khung cửa.
-    - Kéo sáng các nan sắt tối màu và hoa văn gạch, giúp bộ dò đặc trưng (ORB/AKAZE) tìm đủ điểm neo.
+    Cân bằng ánh sáng thông minh chống chói lóa ngược sáng & kéo sáng góc tối:
+    - Nén mượt mà vùng chói sáng cực đại (ngược sáng cửa chính, ánh nắng cửa sổ) theo đường cong Soft-knee.
+    - Bảo toàn và khuếch đại độ tương phản vi mô của nan cửa, chấn song, chớp kính để bộ dò ORB/AKAZE tìm đủ điểm neo.
+    - Kéo sáng các góc khuất bóng râm giúp căn phòng đồng đều, giữ trọn màu sắc tự nhiên.
     """
     try:
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
         
-        # Nén vùng lóa sáng cực đại do ánh nắng ngoài cửa chiếu vào
+        # Nén vùng chói sáng mềm mại (Soft-knee Highlight Compression):
+        # Bắt đầu nén từ L > 185 để các vùng nắng chói (255) được đưa về dải an toàn (~220-235)
+        # mà không tạo vết cắt cụt (clipping) hay làm bết màu
         l_f = l.astype(np.float32)
-        bright_mask = l_f > 215.0
-        if np.any(bright_mask):
-            l_f[bright_mask] = 215.0 + (l_f[bright_mask] - 215.0) * 0.40
-        l_comp = np.clip(l_f, 0, 255).astype(np.uint8)
+        excess = np.maximum(0.0, l_f - 185.0)
+        l_comp = np.clip(185.0 + excess / (1.0 + excess * 0.015), 0, 255).astype(np.uint8)
 
         clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
         l_eq = clahe.apply(l_comp)
@@ -605,8 +606,9 @@ def verify_single_image(image_path, prev_image_path=None):
         }
 
     try:
-        img = load_and_orient_image(image_path, max_dim=1200)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Áp dụng cân bằng sáng và nén chói ngược sáng để máy quét rõ nét mọi chi tiết
+        balanced_img = balance_indoor_lighting(img)
+        gray = cv2.cvtColor(balanced_img, cv2.COLOR_BGR2GRAY)
         h, w = gray.shape
 
         # 1. Đo độ sắc nét (Laplacian Variance)
@@ -614,17 +616,26 @@ def verify_single_image(image_path, prev_image_path=None):
         is_sharp = laplacian_var >= 35.0
         sharpness_label = "Rất sắc nét" if laplacian_var > 80 else ("Đủ độ nét" if is_sharp else "Bị nhòe / rung tay")
 
-        # 2. Đo độ sáng / phơi sáng (Mean Intensity)
-        mean_brightness = float(np.mean(gray))
-        is_exposed = 35.0 <= mean_brightness <= 230.0
-        brightness_label = "Đủ sáng" if is_exposed else ("Quá tối" if mean_brightness < 35.0 else "Bị chói / cháy sáng")
-
-        # 3. Đo mật độ chi tiết hoa văn (ORB Features)
+        # 2. Đo mật độ chi tiết hoa văn (ORB Features) sau khi đã phục hồi độ tương phản
         orb = cv2.ORB_create(nfeatures=1000)
         kp, des = orb.detectAndCompute(gray, None)
         feature_count = len(kp) if kp is not None else 0
-        has_features = feature_count >= 150
+        has_features = feature_count >= 140
         feature_label = "Hoa văn phong phú" if feature_count >= 350 else ("Đủ chi tiết" if has_features else "Thiếu chi tiết (tường trơn)")
+
+        # 3. Đo độ sáng / phơi sáng thông minh (có dung sai cao cho góc ngược sáng/chói nắng nếu vẫn đủ chi tiết)
+        mean_brightness = float(np.mean(gray))
+        is_exposed = (30.0 <= mean_brightness <= 238.0) or (has_features and mean_brightness <= 245.0)
+        if 35.0 <= mean_brightness <= 225.0:
+            brightness_label = "Đủ sáng"
+        elif mean_brightness > 225.0 and has_features:
+            brightness_label = "Ngược sáng (Vẫn đủ chi tiết ghép)"
+        elif mean_brightness < 35.0 and has_features:
+            brightness_label = "Góc tối (Đã kích sáng chi tiết)"
+        elif mean_brightness < 30.0:
+            brightness_label = "Quá tối"
+        else:
+            brightness_label = "Bị chói sáng nặng"
 
         # 4. Đo độ chồng lấp với ảnh trước (nếu có)
         overlap_info = None
