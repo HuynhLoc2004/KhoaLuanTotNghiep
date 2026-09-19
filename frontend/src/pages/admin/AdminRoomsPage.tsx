@@ -210,7 +210,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
         <div className="stat-card">
           <div className="stat-title">Kho Không Gian 360° Đã Tạo</div>
-          <div className="stat-value" style={{ color: '#2563EB' }}>{panoramas.length}</div>
+          <div className="stat-value" style={{ color: 'var(--accent-gold)' }}>{panoramas.length}</div>
           <div className="stat-desc">Ảnh toàn cảnh 4K đã ghép nối</div>
         </div>
 
@@ -291,19 +291,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               <>
                 {selectedFilenames.length > 0 && (
                   <button
-                    className="btn btn-sm"
+                    className="btn btn-danger btn-sm"
                     onClick={handleDeleteSelected}
-                    style={{
-                      background: '#DC2626',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '6px 14px',
-                      borderRadius: 6
-                    }}
                   >
                     <Trash2 size={14} />
                     <span>Xóa {selectedFilenames.length} ảnh đã chọn</span>
