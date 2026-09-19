@@ -90,6 +90,10 @@
     - Sửa luồng tải/chụp ảnh: Nút "Tải tệp ảnh" trực quan, hỗ trợ chọn file trên máy tính và mở camera trên điện thoại.
   - [x] **[Nhiệm vụ 6] Bổ sung Chọn Không gian 3D/360° từ Kho lưu trữ**:
     - Trong modal thêm gian phòng mới, bổ sung **Dropdown chọn trực tiếp ảnh 360° có sẵn từ "Kho không gian 360° đã ghép"** (`panoramas`), giúp quản trị viên gắn ngay ảnh trong kho vào phòng mới.
+  - [x] **[Nhiệm vụ 7] Tinh Chỉnh Modal Thuyết Minh & Trợ Lý Ảo (Xóa sạch chất "AI hóa" & Tối ưu bố cục)**:
+    - Loại bỏ hoàn toàn emoji `✨` và từ ngữ sáo rỗng khó hiểu (*AI 4.0, Cơ chế RAG, chống hallucination, Database MongoDB...*).
+    - Việt hóa tự nhiên, chuẩn mực di sản bảo tàng: *Thuyết minh & Trợ lý ảo*, *Tư liệu lịch sử (Trợ lý ảo)*, *Thuyết minh âm thanh*, *Lưu tư liệu phòng*, *Nghe thử giọng đọc*.
+    - Thay thế dạng side-drawer cao 100% bị trống hoác bên dưới thành Modal căn giữa (`maxWidth: 640px`) ôm vừa vặn nội dung, nút Đóng/Lưu đặt ngay dưới form.
 
 ---
 
