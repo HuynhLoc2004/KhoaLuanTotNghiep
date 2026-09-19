@@ -69,8 +69,8 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1100 }}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 760, width: '92vw' }}>
+    <div className="modal-backdrop" style={{ zIndex: 1100 }}>
+      <div className="modal-card" style={{ maxWidth: 760, width: '92vw' }}>
         <div className="modal-header">
           <h2 className="modal-title">Chỉnh sửa gian phòng: {room.name}</h2>
           <button

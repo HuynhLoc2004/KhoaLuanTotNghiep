@@ -1259,10 +1259,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
       {/* MODAL CẤU HÌNH THUYẾT MINH & TRỢ LÝ ẢO DI SẢN */}
       {aiDrawerRoom && (
-        <div className="modal-backdrop" onClick={handleCloseAiDrawer}>
+        <div className="modal-backdrop">
           <div
             className="modal-card"
-            onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: 640, width: '100%' }}
           >
             <div className="modal-header">
@@ -1525,8 +1524,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
       {/* MODAL XUẤT QR STANDEE BẢO TÀNG THỰC ĐỊA */}
       {showQrModal && selectedQrRoom && (
-        <div className="modal-backdrop" onClick={() => setShowQrModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+        <div className="modal-backdrop">
+          <div className="modal-card" style={{ maxWidth: 520 }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <QrCode size={18} style={{ color: 'var(--primary)' }} />

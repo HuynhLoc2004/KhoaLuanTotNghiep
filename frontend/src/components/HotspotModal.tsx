@@ -58,7 +58,6 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
   return (
     <div
       className="modal-backdrop"
-      onClick={onClose}
       style={{
         backdropFilter: 'blur(8px)',
         background: 'rgba(26, 23, 21, 0.75)',
@@ -71,7 +70,6 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
     >
       <div
         className="modal-card"
-        onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: '520px',

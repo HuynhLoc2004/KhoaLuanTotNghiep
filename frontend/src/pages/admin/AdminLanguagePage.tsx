@@ -841,8 +841,8 @@ export const AdminLanguagePage: React.FC = () => {
 
         {/* MODAL THÊM NGÔN NGỮ */}
         {showAddModal && (
-          <div className="modal-backdrop" onClick={() => setShowAddModal(false)} style={{ zIndex: 1200 }}>
-            <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+          <div className="modal-backdrop" style={{ zIndex: 1200 }}>
+            <div className="modal-card" style={{ maxWidth: 520 }}>
               <div className="modal-header">
                 <div>
                   <h2 className="modal-title">Thêm ngôn ngữ mới</h2>

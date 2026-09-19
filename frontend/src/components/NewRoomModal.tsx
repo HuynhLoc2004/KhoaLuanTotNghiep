@@ -70,8 +70,8 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1200 }}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
+    <div className="modal-backdrop" style={{ zIndex: 1200 }}>
+      <div className="modal-card" style={{ maxWidth: 540 }}>
         <div className="modal-header">
           <h2 className="modal-title" style={{ fontSize: '17px', margin: 0 }}>
             Thêm gian phòng trưng bày mới

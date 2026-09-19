@@ -42,10 +42,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" onClick={onCancel} style={{ zIndex: 1100 }}>
+    <div className="modal-backdrop" style={{ zIndex: 1100 }}>
       <div
         className="modal-card"
-        onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: 440, padding: 0, overflow: 'hidden' }}
       >
         <div className="modal-header" style={{ padding: '16px 20px' }}>
