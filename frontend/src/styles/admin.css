@@ -2353,33 +2353,44 @@
   padding-top: 8px;
 }
 
-/* Pagination Component */
+/* Pagination Component - Rõ ràng, sắc nét chuẩn Di Sản */
 .pagination-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
   padding: 14px 20px;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-surface);
-  font-size: 12.5px;
+  font-size: 13px;
+  color: var(--text-main);
+}
+
+.pagination-info {
   color: var(--text-muted);
+  font-size: 13px;
+}
+
+.pagination-info strong {
+  color: var(--heading-color);
+  font-weight: 700;
 }
 
 .pagination-size-wrapper {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pagination-size-select {
-  padding: 4px 8px;
+  padding: 5px 10px;
   background-color: var(--bg-surface);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
+  color: var(--heading-color);
+  font-weight: 600;
+  border: 1.5px solid var(--border-color);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 12.5px;
   cursor: pointer;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -2397,7 +2408,7 @@
 .pagination-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pagination-pages {
@@ -2410,34 +2421,67 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 8px;
+  gap: 6px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   background-color: var(--bg-surface);
-  color: var(--text-main);
-  font-size: 12.5px;
-  font-weight: 500;
+  color: var(--heading-color);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.pagination-btn.nav-btn {
+  padding: 0 12px;
+  font-weight: 600;
+  gap: 4px;
 }
 
 .pagination-btn:hover:not(:disabled) {
   background-color: var(--bg-subtle);
-  border-color: var(--border-dark);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  transform: translateY(-1px);
 }
 
+/* Trạng thái vô hiệu hóa (Disabled): Rõ ràng, nét chữ rõ, viền nét, không bị mờ tịt */
 .pagination-btn:disabled {
-  opacity: 0.4;
+  opacity: 1 !important;
+  background-color: var(--bg-subtle);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-light);
   cursor: not-allowed;
+  box-shadow: none;
 }
 
+.pagination-btn:disabled svg {
+  opacity: 0.7;
+}
+
+.pagination-btn:disabled .pagination-btn-label {
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+/* Nút trang đang chọn (Active) */
 .pagination-btn.active {
   background-color: var(--primary);
   border-color: var(--primary);
-  color: #FFFFFF;
-  font-weight: 600;
+  color: #FFFFFF !important;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(140, 45, 25, 0.35);
+}
+
+.pagination-btn.active:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #FFFFFF !important;
+  transform: none;
 }
 
 .pagination-ellipsis {
