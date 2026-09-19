@@ -446,7 +446,7 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
           {hs.type === 'navigation' ? (
             <>
               <div className="walking-arrow-label">
-                <span>🚪 {hs.title}</span>
+                <span>{hs.title}</span>
               </div>
               <div className="walking-arrow-disc">
                 <svg className="walking-arrow-svg" viewBox="0 0 24 24">

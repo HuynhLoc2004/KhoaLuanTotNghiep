@@ -16,6 +16,7 @@ import { MuseumRoom, Hotspot } from '../../types';
 import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
 import { HotspotModal } from '../../components/HotspotModal';
 import { api } from '../../services/api';
+import { useToast } from '../../components/Toast';
 
 interface AdminPanoramaStudioProps {
   currentRoom: MuseumRoom;
@@ -32,6 +33,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   onRoomUpdated,
   onNavigateRoom
 }) => {
+  const { showToast } = useToast();
   const [isPinMode, setIsPinMode] = useState(false);
   const [pendingCoords, setPendingCoords] = useState<{ pitch: number; yaw: number } | null>(null);
   const [focusCoords, setFocusCoords] = useState<{ pitch: number; yaw: number; timestamp?: number } | null>(null);
@@ -57,8 +59,9 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
       onRoomUpdated(updatedRoom);
       setPendingCoords(null);
       setIsPinMode(false);
+      showToast('Đã lưu điểm liên kết thành công', 'success');
     } catch (err: any) {
-      alert(err.message || 'Lỗi lưu điểm liên kết');
+      showToast(err.message || 'Lỗi lưu điểm liên kết', 'error');
     }
   };
 
@@ -72,8 +75,9 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         hotspots: currentRoom.hotspots.filter((h) => h.id !== hotspotId)
       };
       onRoomUpdated(updatedRoom);
+      showToast('Đã xóa điểm liên kết thành công', 'success');
     } catch (err: any) {
-      alert(err.message || 'Lỗi xóa điểm liên kết');
+      showToast(err.message || 'Lỗi xóa điểm liên kết', 'error');
     }
   };
 
@@ -82,12 +86,14 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     try {
       const updated = await api.updateRoom(currentRoom.id, { initialView: view });
       onRoomUpdated(updated);
+      showToast('Đã lưu góc nhìn mặc định thành công', 'success');
     } catch (err: any) {
       console.error('Lỗi cập nhật góc nhìn mặc định:', err);
+      showToast('Lỗi lưu góc nhìn mặc định', 'error');
     }
   };
 
-  // When admin clicks an existing hotspot in viewer (Hiệu ứng bước qua cửa mượt mà chuẩn Google Street View)
+  // When admin clicks an existing hotspot in viewer
   const handleHotspotClick = (hs: Hotspot) => {
     if (hs.type === 'navigation' && hs.targetRoomId) {
       const target = allRooms.find((r) => r.id === hs.targetRoomId || String(r.id) === String(hs.targetRoomId));
@@ -97,7 +103,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
       // Bước 1: Xoay thẳng về hướng cửa
       setFocusCoords({ pitch: hs.pitch, yaw: hs.yaw, timestamp: Date.now() });
 
-      // Bước 2: Hiệu ứng phóng tới & mờ ảo chuyển cảnh như bước qua cửa
+      // Bước 2: Chuyển cảnh mượt mà
       setTimeout(() => {
         onNavigateRoom(hs.targetRoomId!);
         setTimeout(() => {
@@ -105,7 +111,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         }, 450);
       }, 350);
     } else {
-      alert(`[Thông tin di sản]: ${hs.title}\n${hs.description || ''}`);
+      showToast(`[Thông tin di sản]: ${hs.title} - ${hs.description || ''}`, 'info');
     }
   };
 
@@ -124,9 +130,10 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
       });
       onRoomUpdated(updated);
       setSaveSuccess(true);
+      showToast('Tải ảnh 360° lên thành công', 'success');
       setTimeout(() => setSaveSuccess(false), 2500);
     } catch (err: any) {
-      alert(err.message || 'Lỗi tải ảnh 360');
+      showToast(err.message || 'Lỗi tải ảnh 360', 'error');
     } finally {
       setUploading(false);
     }
@@ -142,9 +149,10 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
       });
       onRoomUpdated(updated);
       setSaveSuccess(true);
+      showToast('Cập nhật URL ảnh 360° thành công', 'success');
       setTimeout(() => setSaveSuccess(false), 2500);
     } catch (err: any) {
-      alert(err.message || 'Lỗi cập nhật URL ảnh 360');
+      showToast(err.message || 'Lỗi cập nhật URL ảnh 360', 'error');
     }
   };
 
@@ -232,8 +240,8 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
               boxShadow: '0 8px 20px rgba(0, 0, 0, 0.4)'
             }}
           >
-            <span style={{ fontSize: '16px' }}>🚪</span>
-            <span>Đang bước vào {transitionText}...</span>
+            <Navigation size={16} />
+            <span>Đang chuyển đến {transitionText}...</span>
           </div>
         </div>
       </div>

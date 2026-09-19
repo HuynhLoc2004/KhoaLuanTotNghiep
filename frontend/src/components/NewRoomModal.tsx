@@ -205,7 +205,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
                   }}
                 >
                   <Camera size={18} />
-                  <span>📷 Quét Không Gian 360° (Studio Camera AR)</span>
+                  <span>Quét Không Gian 360° (Studio Camera AR)</span>
                 </button>
 
                 {/* 2. Hai nút phụ: Chụp nhanh từ Camera điện thoại & Chọn file thư viện */}
@@ -227,7 +227,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
                     }}
                   >
                     <Camera size={15} style={{ color: '#10B981' }} />
-                    <span>📱 Chụp bằng Camera sau</span>
+                    <span>Chụp bằng Camera sau</span>
                     <input
                       type="file"
                       multiple
@@ -255,7 +255,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
                     }}
                   >
                     {uploading ? <Loader2 size={15} className="spin" /> : <Upload size={15} />}
-                    <span>📁 Chọn từ Thư viện</span>
+                    <span>Chọn từ Thư viện</span>
                     <input
                       type="file"
                       multiple

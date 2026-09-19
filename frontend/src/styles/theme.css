@@ -20,12 +20,24 @@
   --border-color: #E2E8F0;
   --border-dark: #CBD5E1;
 
-  --success: #059669;
-  --success-bg: #ECFDF5;
-  --success-border: #A7F3D0;
+  --success: #166534;
+  --success-bg: #F0FDF4;
+  --success-border: #BBF7D0;
+
+  --warning: #9A3412;
+  --warning-bg: #FFFBEB;
+  --warning-border: #FDE68A;
+
+  --error: #991B1B;
+  --error-bg: #FEF2F2;
+  --error-border: #FECACA;
+
+  --info: #1E40AF;
+  --info-bg: #EFF6FF;
+  --info-border: #BFDBFE;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
 
   --radius-sm: 4px;

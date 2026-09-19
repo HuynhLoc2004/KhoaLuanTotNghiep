@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../services/api';
+import { useToast } from '../components/Toast';
 
 interface StitchedHistoryItem {
   filename: string;
@@ -69,6 +70,7 @@ interface StitchResult {
 }
 
 export const PocStitchingPage: React.FC = () => {
+  const { showToast } = useToast();
   // Danh sách các khung hình chụp từ camera điện thoại đã/đang được thẩm định
   const [verifiedFrames, setVerifiedFrames] = useState<VerifiedFrame[]>([]);
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
@@ -138,11 +140,12 @@ export const PocStitchingPage: React.FC = () => {
         if (stitchResult && stitchResult.filename === filename) {
           setStitchResult(null);
         }
+        showToast('Đã xóa không gian 360° thành công', 'success');
       } else {
-        alert(data.message || 'Lỗi khi xóa ảnh');
+        showToast(data.message || 'Lỗi khi xóa ảnh', 'error');
       }
     } catch (err: any) {
-      alert('Lỗi kết nối máy chủ: ' + err.message);
+      showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
     }
   };
 
@@ -544,8 +547,8 @@ export const PocStitchingPage: React.FC = () => {
                 <Camera size={22} />
                 <span>
                   {verifiedFrames.length === 0
-                    ? '📸 Chụp Trực Tiếp (Camera Máy)'
-                    : `📸 Chụp Góc Tiếp Theo (#${verifiedFrames.length + 1})`}
+                    ? 'Chụp trực tiếp (Camera thiết bị)'
+                    : `Chụp góc tiếp theo (#${verifiedFrames.length + 1})`}
                 </span>
                 <input
                   ref={nativeCameraInputRef}
@@ -578,8 +581,8 @@ export const PocStitchingPage: React.FC = () => {
                   textAlign: 'center'
                 }}
               >
-                <Upload size={20} />
-                <span>🖼️ Chọn Ảnh Từ Thư Viện / Album (PANO hoặc Chùm Ảnh)</span>
+                <Upload size={18} />
+                <span>Chọn ảnh từ thiết bị (PANO hoặc chùm ảnh)</span>
                 <input
                   type="file"
                   multiple
@@ -606,12 +609,12 @@ export const PocStitchingPage: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-                <span>💡 KHI TRÌNH DUYỆT CHROME KHÔNG BẬT CAMERA TRỰC TIẾP:</span>
+                <span>Hướng dẫn khi trình duyệt chưa cấp quyền camera:</span>
               </div>
               <div style={{ lineHeight: 1.5, color: '#1E3A8A' }}>
-                • <strong>Cách 1 (Nhanh và ảnh nét đẹp nhất):</strong> Dùng camera gốc của điện thoại chụp vài tấm quanh phòng (hoặc chụp 1 tấm chế độ PANO) $\rightarrow$ Bấm nút <strong>"🖼️ Chọn Ảnh Từ Thư Viện / Album"</strong> để tải lên ghép 360° ngay.<br />
-                • <strong>Cách 2 (Cấp quyền Camera cho Chrome):</strong> Trên thanh địa chỉ URL của Chrome, bấm vào biểu tượng <strong>Cài đặt / Ổ khóa bên trái đường link</strong> $\rightarrow$ Chọn <strong>"Quyền cho trang web"</strong> $\rightarrow$ Bật <strong>"Máy ảnh (Camera): Cho phép"</strong>.<br />
-                • <strong>Nếu dùng iPhone:</strong> Vào <strong>Cài đặt máy (Settings) $\rightarrow$ Chrome $\rightarrow$ bật Máy ảnh (Camera) sang Xanh</strong> (hoặc mở web bằng <strong>Safari</strong> để camera hoạt động mượt mà 100%).
+                • <strong>Cách 1 (Nhanh và tiện lợi):</strong> Dùng ứng dụng camera mặc định của điện thoại chụp vài tấm quanh phòng (hoặc 1 tấm PANO), sau đó bấm <strong>"Chọn ảnh từ thiết bị"</strong> để tải lên ghép 360°.<br />
+                • <strong>Cách 2 (Cấp quyền Camera cho trình duyệt):</strong> Bấm vào biểu tượng <strong>Cài đặt / Ổ khóa bên trái đường link</strong> trên thanh địa chỉ $\rightarrow$ Chọn <strong>"Quyền cho trang web"</strong> $\rightarrow$ Bật <strong>"Máy ảnh (Camera): Cho phép"</strong>.<br />
+                • <strong>Nếu dùng thiết bị iOS:</strong> Vào <strong>Cài đặt máy $\rightarrow$ Trình duyệt $\rightarrow$ Bật quyền Camera</strong> (hoặc mở bằng <strong>Safari</strong>).
               </div>
             </div>
 
@@ -630,7 +633,7 @@ export const PocStitchingPage: React.FC = () => {
               <Info size={20} style={{ color: '#D97706', flexShrink: 0, marginTop: 2 }} />
               <div style={{ fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
                 <strong style={{ color: '#78350F', display: 'block', fontSize: '13.5px', marginBottom: 4 }}>
-                  ⚠️ QUY TẮC BẮT BUỘC ĐỂ KHÔNG GIAN 360 PHẲNG & ĐẸP: ĐỨNG YÊN LÀM TRỤ – KHÔNG BƯỚC ĐI!
+                  Quy tắc chụp không gian 360°: Đứng yên làm trụ - Không bước đi
                 </strong>
                 • <strong>Tại sao không được bước đi?</strong> Khi bạn di chuyển bước đi, vật thể ở gần và tường ở xa sẽ bị trượt lệch góc thị sai (<em>Parallax Error</em>). Thuật toán ghép sẽ bị méo mó, biến dạng hoặc hẹp không gian.<br />
                 • <strong>Cách chụp chuẩn:</strong> Đứng cố định 2 chân tại <strong>1 vị trí duy nhất ở giữa phòng</strong> $\rightarrow$ Cầm điện thoại ngang ngực $\rightarrow$ Xoay người tại chỗ từng góc ~30° để chụp (hoặc dùng chế độ PANO xoay 1 vòng tròn 360°). Máy tính sẽ tự động phát hiện và cảnh báo nếu bạn bước đi lệch tọa độ!
@@ -657,12 +660,12 @@ export const PocStitchingPage: React.FC = () => {
                   </span>
                   {verifiedFrames.length > 0 && (
                     <div style={{ display: 'flex', gap: 8, fontSize: '12px' }}>
-                      <span style={{ background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
-                        ✓ {passedCount} đạt chuẩn
+                      <span style={{ background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
+                        {passedCount} đạt chuẩn
                       </span>
                       {failedCount > 0 && (
-                        <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
-                          ⚠️ {failedCount} cần chụp lại
+                        <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
+                          {failedCount} cần chụp lại
                         </span>
                       )}
                     </div>
@@ -917,7 +920,7 @@ export const PocStitchingPage: React.FC = () => {
                   <>
                     <Sparkles size={20} />
                     <span>
-                      🚀 Bắt Đầu Tạo Không Gian 360° (Phối Cảnh Phẳng Tự Nhiên){' '}
+                      Tạo Không Gian 360° (Phối Cảnh Tự Nhiên){' '}
                       {totalFrames > 0 ? `(${totalFrames} ảnh)` : ''}
                     </span>
                   </>
@@ -1031,7 +1034,7 @@ export const PocStitchingPage: React.FC = () => {
                     fontWeight: 700
                   }}
                 >
-                  ✓ 4K ({stitchResult.width} x {stitchResult.height})
+                  {stitchResult.width} x {stitchResult.height}
                 </span>
 
                 <button

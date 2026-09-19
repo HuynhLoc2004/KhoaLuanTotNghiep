@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { API_BASE } from '../services/api';
 
 declare global {
@@ -104,7 +105,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           hotSpotDiv.classList.add('walking-arrow-hotspot');
           hotSpotDiv.innerHTML = `
             <div class="walking-arrow-label">
-              <span>🚪 ${hs.text}</span>
+              <span>${hs.text}</span>
             </div>
             <div class="walking-arrow-disc">
               <svg class="walking-arrow-svg" viewBox="0 0 24 24">
@@ -283,7 +284,6 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       const yaw = Math.round(viewerRef.current.getYaw() * 10) / 10;
       const fov = Math.round(viewerRef.current.getHfov());
       onCaptureInitialView({ pitch, yaw, fov });
-      alert(`Đã lưu góc nhìn mặc định khi vào phòng thành công!\nPitch: ${pitch}°, Yaw: ${yaw}°, FOV: ${fov}°`);
     } catch (err) {
       console.error('[Pannellum Capture View Error]:', err);
     }
@@ -550,7 +550,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
             pointerEvents: 'auto'
           }}
         >
-          <span style={{ fontSize: '15px' }}>📍</span>
+          <MapPin size={15} />
           <span>Chế độ ghim đang BẬT: Nhấp chuột lên vị trí cửa/lối đi để gắn Mũi tên</span>
           {onTogglePinMode && (
             <button

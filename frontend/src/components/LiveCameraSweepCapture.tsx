@@ -20,9 +20,9 @@ export interface SpatialCell {
 }
 
 export const TIER_CONFIG = {
-  top: { id: 'top' as SpatialTier, label: 'Trần nhà', icon: '⬆️', count: 12, minTilt: 18, color: '#C084FC' },
-  mid: { id: 'mid' as SpatialTier, label: 'Tầm mắt', icon: '🏛️', count: 16, minTilt: -18, maxTilt: 18, color: '#38BDF8' },
-  bot: { id: 'bot' as SpatialTier, label: 'Sàn phòng', icon: '⬇️', count: 12, maxTilt: -18, color: '#34D399' }
+  top: { id: 'top' as SpatialTier, label: 'Trần nhà', icon: '', count: 12, minTilt: 18, color: '#C084FC' },
+  mid: { id: 'mid' as SpatialTier, label: 'Tầm mắt', icon: '', count: 16, minTilt: -18, maxTilt: 18, color: '#38BDF8' },
+  bot: { id: 'bot' as SpatialTier, label: 'Sàn phòng', icon: '', count: 12, maxTilt: -18, color: '#34D399' }
 };
 
 export const TOTAL_3D_CELLS = 12 + 16 + 12; // 40 ô
@@ -309,7 +309,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
 
     if (isMovingTooFast) {
       setGuidanceMessage({
-        text: '⚡ Đang lia máy hơi nhanh! Hãy xoay chậm lại để ảnh không bị nhòe chi tiết',
+        text: 'Đang lia máy hơi nhanh, hãy xoay chậm lại để ảnh không bị nhòe chi tiết',
         type: 'warning'
       });
       return;
@@ -334,9 +334,9 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
     // Tự động bắt nét chụp khi lia vào một ô chưa từng chụp
     if (!isCurrentCellCaptured && !isExtremeTilt && canSnapNow && angleFromLast >= 12) {
       snapFrame(heading, currentCell);
-      const tierName = currentCell.tier === 'top' ? 'Trần (+)' : currentCell.tier === 'bot' ? 'Sàn (-)' : 'Tầm mắt';
+      const tierName = currentCell.tier === 'top' ? 'Trần' : currentCell.tier === 'bot' ? 'Sàn' : 'Tầm mắt';
       setGuidanceMessage({
-        text: `✓ Đã bắt nét điểm ảnh tầng ${tierName} (${heading}°)! Tiếp tục xoay nhẹ...`,
+        text: `Đã ghi nhận góc chụp tầng ${tierName} (${heading}°), tiếp tục xoay nhẹ...`,
         type: 'success',
         arrow: 'check'
       });
@@ -376,8 +376,8 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       const targetHeading = Math.round(closestSector * (360 / count) + (360 / count / 2));
       setGuidanceMessage({
         text: turnDirection === 'right'
-          ? `👉 Xoay sang PHẢI (~${targetHeading}°) để bù điểm còn thiếu tầng này`
-          : `👈 Xoay sang TRÁI (~${targetHeading}°) để bù điểm còn thiếu tầng này`,
+          ? `Xoay sang PHẢI (~${targetHeading}°) để bổ sung góc còn thiếu tầng này`
+          : `Xoay sang TRÁI (~${targetHeading}°) để bổ sung góc còn thiếu tầng này`,
         type: 'info',
         arrow: turnDirection
       });
@@ -390,17 +390,17 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       if (currentCell.tier === 'mid') {
         if (topCount < 6) {
           setGuidanceMessage({
-            text: '👉 Tầm mắt đã đủ! Hãy ngửa máy lên trần (+30°) để quét kín trần phòng',
+            text: 'Tầm mắt đã đủ, hãy ngửa máy lên trần (+30°) để quét kín trần phòng',
             type: 'info'
           });
         } else if (botCount < 6) {
           setGuidanceMessage({
-            text: '👉 Hãy chúc máy xuống sàn (-30°) để quét cận cảnh sàn và hiện vật',
+            text: 'Hãy chúc máy xuống sàn (-30°) để quét cận cảnh sàn và hiện vật',
             type: 'info'
           });
         } else {
           setGuidanceMessage({
-            text: '🎉 Đã bao phủ trọn vẹn không gian! Bạn có thể bấm "Ghép 360°" ngay',
+            text: 'Đã bao phủ không gian, bạn có thể bấm "Ghép 360°" ngay',
             type: 'success',
             arrow: 'check'
           });
@@ -408,12 +408,12 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       } else if (currentCell.tier === 'top') {
         if (botCount < 6) {
           setGuidanceMessage({
-            text: '👉 Trần nhà đã đủ! Hãy chúc máy xuống sàn (-30°) để quét sàn phòng',
+            text: 'Trần nhà đã đủ, hãy chúc máy xuống sàn (-30°) để quét sàn phòng',
             type: 'info'
           });
         } else {
           setGuidanceMessage({
-            text: '🎉 Trần nhà đã kín! Bạn có thể xoay tiếp hoặc bấm "Ghép 360°"',
+            text: 'Trần nhà đã kín, bạn có thể xoay tiếp hoặc bấm "Ghép 360°"',
             type: 'success',
             arrow: 'check'
           });
@@ -421,12 +421,12 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
       } else {
         if (topCount < 6) {
           setGuidanceMessage({
-            text: '👉 Sàn nhà đã đủ! Hãy ngửa máy lên trần (+30°) để quét trần phòng',
+            text: 'Sàn nhà đã đủ, hãy ngửa máy lên trần (+30°) để quét trần phòng',
             type: 'info'
           });
         } else {
           setGuidanceMessage({
-            text: '🎉 Đã bao phủ toàn diện 3D! Bạn có thể bấm "Ghép 360°" ngay',
+            text: 'Đã bao phủ toàn diện không gian, bạn có thể bấm "Ghép 360°" ngay',
             type: 'success',
             arrow: 'check'
           });
@@ -530,7 +530,10 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
   // Hoàn tất và gửi các file ảnh đã quét sang bộ ghép OpenCV
   const handleFinishAndStitch = () => {
     if (capturedFrames.length < 3) {
-      alert('Vui lòng quét chụp ít nhất 4 góc xung quanh không gian trước khi ghép.');
+      setGuidanceMessage({
+        text: 'Vui lòng quét chụp ít nhất 4 góc xung quanh không gian trước khi ghép',
+        type: 'warning'
+      });
       return;
     }
 
@@ -743,7 +746,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 }}
               >
                 {Math.abs(deviceTilt) <= 15
-                  ? '✓ Trục nhìn ngang chuẩn'
+                  ? 'Trục nhìn ngang chuẩn'
                   : deviceTilt < 0
                   ? `Góc thấp: ${deviceTilt}° (Quét hiện vật & sàn)`
                   : `Góc cao: +${deviceTilt}° (Quét trần & không gian)`}
@@ -882,7 +885,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
               }}
             >
-              <span>🚶 Đứng yên tại tâm phòng • Xoay tròn tại chỗ</span>
+              <span>Đứng yên tại tâm phòng • Xoay tròn tại chỗ</span>
             </div>
 
             {/* 4. AR Smart Guidance Overlay (Chỉ dẫn di chuyển camera thông minh) */}
@@ -990,13 +993,13 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                 <span style={{ color: '#FFF', fontWeight: 700 }}>Độ phủ 3D:</span>
                 <strong style={{ color: coveragePercent >= 60 ? '#10B981' : '#F59E0B' }}>{coveragePercent}%</strong>
                 <span style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>
-                  🏛️ Giữa: {midCount}/16
+                  Giữa: {midCount}/16
                 </span>
                 <span style={{ background: 'rgba(192, 132, 252, 0.15)', color: '#C084FC', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>
-                  ⬆️ Trần: {topCount}/12
+                  Trần: {topCount}/12
                 </span>
                 <span style={{ background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>
-                  ⬇️ Sàn: {botCount}/12
+                  Sàn: {botCount}/12
                 </span>
               </div>
               <div style={{ fontSize: 11, color: '#CBD5E1', fontWeight: 600 }}>
@@ -1128,7 +1131,7 @@ export const LiveCameraSweepCapture: React.FC<LiveCameraSweepCaptureProps> = ({
                       cursor: 'pointer'
                     }}
                   >
-                    📸 Chụp thêm góc này
+                    Chụp thêm góc này
                   </button>
                 </div>
               </div>

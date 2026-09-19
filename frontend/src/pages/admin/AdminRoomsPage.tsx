@@ -24,6 +24,7 @@ import { MuseumRoom } from '../../types';
 import { NewRoomModal } from '../../components/NewRoomModal';
 import { Pannellum360Viewer } from '../../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../../services/api';
+import { useToast } from '../../components/Toast';
 
 interface AdminRoomsPageProps {
   rooms: MuseumRoom[];
@@ -45,6 +46,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   onRoomCreated,
   onDeleteRoom
 }) => {
+  const { showToast } = useToast();
   const [activeSubTab, setActiveSubTab] = useState<'rooms' | 'gallery'>('rooms');
   const [showNewModal, setShowNewModal] = useState(false);
   const [selectedPanoForNewRoom, setSelectedPanoForNewRoom] = useState<string | undefined>(undefined);
@@ -86,11 +88,12 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       if (data.success) {
         setPanoramas((prev) => prev.filter((p) => p.filename !== filename));
         setSelectedFilenames((prev) => prev.filter((f) => f !== filename));
+        showToast('Đã xóa không gian 360° thành công', 'success');
       } else {
-        alert(data.message || 'Lỗi khi xóa file ảnh');
+        showToast(data.message || 'Lỗi khi xóa file ảnh', 'error');
       }
     } catch (err: any) {
-      alert('Lỗi kết nối máy chủ: ' + err.message);
+      showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
     }
   };
 
@@ -121,17 +124,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       if (data.success) {
         setPanoramas((prev) => prev.filter((p) => !selectedFilenames.includes(p.filename)));
         setSelectedFilenames([]);
+        showToast(`Đã xóa thành công ${selectedFilenames.length} ảnh 360°`, 'success');
       } else {
-        alert(data.message || 'Lỗi khi xóa ảnh');
+        showToast(data.message || 'Lỗi khi xóa ảnh', 'error');
       }
     } catch (err: any) {
-      alert('Lỗi kết nối máy chủ: ' + err.message);
+      showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
     }
   };
 
   const handleKeepOnlyLatest = async (keepCount = 3) => {
     if (panoramas.length <= keepCount) {
-      alert(`Kho hiện tại chỉ có ${panoramas.length} ảnh (ít hơn hoặc bằng ${keepCount}), không cần dọn dẹp thêm.`);
+      showToast(`Kho hiện tại chỉ có ${panoramas.length} ảnh, không cần dọn dẹp thêm.`, 'info');
       return;
     }
     const toDelete = panoramas.slice(keepCount).map((p) => p.filename);
@@ -147,17 +151,19 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       if (data.success) {
         setPanoramas((prev) => prev.filter((p) => !toDelete.includes(p.filename)));
         setSelectedFilenames([]);
+        showToast(`Đã dọn dẹp ${toDelete.length} ảnh cũ, giữ lại ${keepCount} ảnh mới nhất`, 'success');
       } else {
-        alert(data.message || 'Lỗi khi dọn dẹp ảnh');
+        showToast(data.message || 'Lỗi khi dọn dẹp ảnh', 'error');
       }
     } catch (err: any) {
-      alert('Lỗi kết nối máy chủ: ' + err.message);
+      showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
     }
   };
 
   const handleCopyLink = (url: string) => {
     navigator.clipboard.writeText(url);
     setCopiedUrl(url);
+    showToast('Đã sao chép liên kết ảnh 360° vào bộ nhớ tạm', 'success');
     setTimeout(() => setCopiedUrl(null), 2500);
   };
 
@@ -361,8 +367,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           </div>
 
           {activeSubTab === 'gallery' && (
-            <div style={{ fontSize: '13px', color: '#166534', background: '#DCFCE7', padding: '6px 12px', borderRadius: 6, fontWeight: 600 }}>
-              💡 Bấm <strong>"Xem 360°"</strong> để xoay ngắm phòng, hoặc <strong>"+ Tạo Gian Phòng"</strong> để đưa vào Tour chính thức!
+            <div style={{ fontSize: '13px', color: 'var(--success)', background: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '6px 12px', borderRadius: 4, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Info size={14} style={{ flexShrink: 0 }} />
+              <span>Bấm <strong>"Xem 360°"</strong> để xoay ngắm phòng, hoặc <strong>"+ Tạo Gian Phòng"</strong> để đưa vào Tour chính thức.</span>
             </div>
           )}
         </div>

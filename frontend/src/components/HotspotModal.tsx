@@ -305,7 +305,7 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
                     >
                       {otherRooms.map((r) => (
                         <option key={r.id} value={r.id}>
-                          🏛️ [{r.code}] — {r.name}
+                          [{r.code}] — {r.name}
                         </option>
                       ))}
                     </select>
@@ -314,15 +314,15 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
                   <div
                     style={{
                       fontSize: '12.5px',
-                      color: '#92400E',
-                      background: '#FEF3C7',
-                      border: '1px solid #FDE68A',
+                      color: 'var(--warning)',
+                      background: 'var(--warning-bg)',
+                      border: '1px solid var(--warning-border)',
                       padding: '10px 14px',
-                      borderRadius: 10,
+                      borderRadius: 6,
                       lineHeight: 1.4
                     }}
                   >
-                    ⚠️ Hiện chưa có phòng nào khác. Bạn có thể sang menu <strong>"Gian trưng bày & Tour 360"</strong> hoặc <strong>"Kho Không Gian 360°"</strong> để tạo thêm phòng (vd: "Ngoài sân"), sau đó liên kết đến đây nhé!
+                    Hiện chưa có phòng nào khác trong hệ thống. Bạn có thể thêm phòng mới ở mục "Gian trưng bày & Tour 360", sau đó tạo liên kết chuyển phòng đến đây.
                   </div>
                 )}
               </div>
@@ -331,9 +331,8 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
             {/* Gợi ý tên nhanh */}
             {type === 'navigation' && (
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: 8 }}>
-                  <Sparkles size={13} style={{ color: '#EAB308' }} />
-                  <span>Gợi ý nhãn tên cửa nhanh:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 600, color: '#64748B', marginBottom: 8 }}>
+                  <span>Gợi ý tên nhanh:</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {QUICK_CHIPS.map((chip) => {
@@ -345,7 +344,6 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
                         className={`chip-btn ${isActive ? 'active' : ''}`}
                         onClick={() => setTitle(chip)}
                       >
-                        <span>🚪</span>
                         <span>{chip}</span>
                         {isActive && <Check size={12} />}
                       </button>
@@ -427,7 +425,7 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    🚪 {title || 'Ra ngoài sân'}
+                    {title || 'Chuyển gian phòng'}
                   </div>
 
                   <div

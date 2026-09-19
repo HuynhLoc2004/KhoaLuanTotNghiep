@@ -8,10 +8,12 @@ import { AdminPanoramaStudio } from './pages/admin/AdminPanoramaStudio';
 import { MuseumRoom, AdminTab } from './types';
 import { api } from './services/api';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { ToastProvider, useToast } from './components/Toast';
 
 import { PocStitchingPage } from './pages/PocStitchingPage';
 
-export const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { showToast } = useToast();
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<MuseumRoom | null>(null);
@@ -52,6 +54,7 @@ export const App: React.FC = () => {
   // Room created
   const handleRoomCreated = (newRoom: MuseumRoom) => {
     setRooms((prev) => [...prev, newRoom]);
+    showToast(`Đã thêm gian phòng "${newRoom.name}" thành công`, 'success');
   };
 
   // Room updated
@@ -60,6 +63,7 @@ export const App: React.FC = () => {
     if (activeRoom && activeRoom.id === updated.id) {
       setActiveRoom(updated);
     }
+    showToast(`Đã cập nhật dữ liệu "${updated.name}" thành công`, 'success');
   };
 
   // Room deleted
@@ -67,11 +71,12 @@ export const App: React.FC = () => {
     try {
       await api.deleteRoom(roomId);
       setRooms((prev) => prev.filter((r) => r.id !== roomId));
+      showToast('Đã xóa gian phòng thành công', 'success');
       if (activeRoom && activeRoom.id === roomId) {
         handleBackToRooms();
       }
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi xóa gian phòng');
+      showToast(err.message || 'Lỗi khi xóa gian phòng', 'error');
     }
   };
 
@@ -84,7 +89,7 @@ export const App: React.FC = () => {
     if (target) {
       setActiveRoom(target);
     } else {
-      alert(`Không tìm thấy phòng đích (Mã phòng: ${targetRoomId})`);
+      showToast(`Không tìm thấy phòng đích (Mã phòng: ${targetRoomId})`, 'warning');
     }
   };
 
@@ -200,4 +205,13 @@ export const App: React.FC = () => {
   );
 };
 
+export const App: React.FC = () => {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
+};
+
 export default App;
+
