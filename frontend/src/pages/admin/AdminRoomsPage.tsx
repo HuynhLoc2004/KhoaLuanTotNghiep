@@ -212,11 +212,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       // Mẫu tổng quát nếu là phòng tùy biến
       setAiKnowledgePrompt(`Bối cảnh lịch sử: Gian ${aiDrawerRoom.name} thuộc chuyên đề ${aiDrawerRoom.period} tại Bảo tàng Lịch sử TP.HCM. Trưng bày các hiện vật quý ghi dấu quá trình hình thành văn hóa và tiến trình phát triển.`);
       setAiScript(`Chào mừng quý khách đến với ${aiDrawerRoom.name} tại Bảo tàng Lịch sử TP.HCM. Không gian này mang lại cho quý khách cái nhìn chân thực về các di sản tiêu biểu.`);
-      showToast('Đã nạp mẫu tư liệu tổng quát', 'info');
+      showToast('Đã nạp văn bản mẫu gợi ý', 'info');
     }
   };
 
-  // Lưu Tri thức RAG vào Database
+  // Lưu tư liệu hỏi - đáp cho gian phòng
   const handleSaveRagKnowledge = async () => {
     if (!aiDrawerRoom) return;
     try {
@@ -227,18 +227,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       });
       // Cập nhật state phòng tại chỗ
       aiDrawerRoom.aiKnowledgePrompt = updated.aiKnowledgePrompt;
-      showToast('Đã lưu Tri thức RAG vào cơ sở dữ liệu MongoDB thành công', 'success');
+      showToast('Đã lưu tư liệu lịch sử cho gian phòng thành công', 'success');
     } catch (err: any) {
-      showToast('Lỗi khi lưu tri thức AI: ' + err.message, 'error');
+      showToast('Lỗi khi lưu tư liệu: ' + err.message, 'error');
     } finally {
       setIsSavingAi(false);
     }
   };
 
-  // Mô phỏng / Tạo giọng đọc AI (TTS)
+  // Tạo bản nghe thử giọng đọc thuyết minh
   const handleGenerateTtsAudio = () => {
     if (!aiScript.trim()) {
-      showToast('Vui lòng nhập kịch bản thuyết minh trước khi tạo giọng đọc', 'error');
+      showToast('Vui lòng nhập lời đọc thuyết minh trước khi nghe thử', 'error');
       return;
     }
     setIsGeneratingTts(true);
@@ -246,11 +246,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       setIsGeneratingTts(false);
       // Audio mẫu chuẩn chất lượng cao để nghe thử
       setPreviewAudioUrl('https://actions.google.com/sounds/v1/ambiences/museum_acoustics.ogg');
-      showToast('Đã tổng hợp giọng đọc AI thành công!', 'success');
+      showToast('Đã tạo bản nghe thử giọng đọc thành công', 'success');
     }, 1200);
   };
 
-  // Lưu Kịch bản & Kích hoạt AI Voice vào Database
+  // Lưu lời thuyết minh vào hệ thống
   const handleSaveTtsVoice = async () => {
     if (!aiDrawerRoom) return;
     try {
@@ -263,9 +263,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       aiDrawerRoom.aiScript = updated.aiScript;
       aiDrawerRoom.aiVoiceEnabled = true;
       aiDrawerRoom.aiVoiceLang = aiVoiceLang;
-      showToast(`Đã kích hoạt thuyết minh AI Voice cho "${aiDrawerRoom.name}"`, 'success');
+      showToast(`Đã lưu lời thuyết minh cho gian phòng "${aiDrawerRoom.name}"`, 'success');
     } catch (err: any) {
-      showToast('Lỗi kích hoạt AI Voice: ' + err.message, 'error');
+      showToast('Lỗi lưu lời thuyết minh: ' + err.message, 'error');
     } finally {
       setIsSavingAi(false);
     }
@@ -757,10 +757,10 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenAiDrawer(room)}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', fontSize: '12px' }}
-                            title="Cấu hình Tri thức RAG & Thuyết minh giọng đọc AI"
+                            title="Thuyết minh & Trợ lý ảo cho gian phòng"
                           >
-                            <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
-                            <span>AI</span>
+                            <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
+                            <span>Thuyết minh</span>
                           </button>
                         </div>
 
@@ -845,7 +845,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       <th>Mã số</th>
                       <th>Chuyên đề</th>
                       <th>Điểm neo</th>
-                      <th>Thuyết minh AI</th>
+                      <th>Thuyết minh & Voice</th>
                       <th>Lượt quét QR</th>
                       <th style={{ textAlign: 'right' }}>Thao tác</th>
                     </tr>
@@ -884,9 +884,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         </td>
                         <td>
                           {room.aiVoiceEnabled || room.aiKnowledgePrompt ? (
-                            <span style={{ fontSize: '11.5px', color: 'var(--success)', background: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '3px 8px', borderRadius: 4, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: '11.5px', color: 'var(--accent-gold)', background: 'rgba(212, 168, 106, 0.1)', border: '1px solid rgba(212, 168, 106, 0.25)', padding: '3px 8px', borderRadius: 4, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                               <CheckCircle2 size={12} />
-                              <span>Đã bật AI Voice</span>
+                              <span>Đã bật thuyết minh</span>
                             </span>
                           ) : (
                             <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', background: 'var(--bg-subtle)', padding: '3px 8px', borderRadius: 4 }}>
@@ -913,10 +913,10 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             <button
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenAiDrawer(room)}
-                              title="Cấu hình AI"
+                              title="Thuyết minh & Trợ lý ảo cho gian phòng"
                               style={{ padding: '5px 8px' }}
                             >
-                              <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+                              <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
                             </button>
                             <button
                               className="btn btn-secondary btn-sm"
@@ -1183,51 +1183,71 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
         )}
       </div>
 
-      {/* SLIDE-OVER DRAWER: CẤU HÌNH AI & THUYẾT MINH 4.0 */}
+      {/* MODAL CẤU HÌNH THUYẾT MINH & TRỢ LÝ ẢO DI SẢN */}
       {aiDrawerRoom && (
-        <div className="drawer-backdrop" onClick={handleCloseAiDrawer}>
-          <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="drawer-header">
-              <div className="drawer-title-group">
-                <h3>
-                  <Sparkles size={17} style={{ color: 'var(--accent-gold)' }} />
-                  <span>Cấu hình AI 4.0: {aiDrawerRoom.name}</span>
-                </h3>
-                <p>Mã gian phòng: <strong>{aiDrawerRoom.code}</strong> • {aiDrawerRoom.period}</p>
+        <div className="modal-backdrop" onClick={handleCloseAiDrawer}>
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 640, width: '100%' }}
+          >
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: 'rgba(212, 168, 106, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-gold)'
+                }}>
+                  <Volume2 size={18} />
+                </div>
+                <div>
+                  <h2 className="modal-title" style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
+                    Thuyết minh & Trợ lý ảo: {aiDrawerRoom.name}
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>
+                    Mã phòng: <strong style={{ color: 'var(--heading-color)' }}>{aiDrawerRoom.code}</strong> • {aiDrawerRoom.period}
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
                 className="modal-close-btn"
                 onClick={handleCloseAiDrawer}
-                aria-label="Đóng bảng cấu hình"
+                aria-label="Đóng"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Drawer Sub-Tabs */}
+            {/* Sub-Tabs dạng thanh chuyển đổi di sản */}
             <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-subtle)' }}>
               <button
                 type="button"
                 onClick={() => setDrawerActiveTab('rag')}
                 style={{
                   flex: 1,
-                  padding: '11px 16px',
+                  padding: '12px 16px',
                   background: drawerActiveTab === 'rag' ? 'var(--bg-surface)' : 'transparent',
                   border: 'none',
-                  borderBottom: drawerActiveTab === 'rag' ? '2px solid var(--primary)' : '2px solid transparent',
+                  borderBottom: drawerActiveTab === 'rag' ? '2px solid var(--accent-gold)' : '2px solid transparent',
                   fontWeight: 600,
                   fontSize: '13px',
-                  color: drawerActiveTab === 'rag' ? 'var(--primary)' : 'var(--text-muted)',
+                  color: drawerActiveTab === 'rag' ? 'var(--accent-gold)' : 'var(--text-muted)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6
+                  gap: 8,
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <BookOpen size={15} />
-                <span>Tri thức AI (RAG Context)</span>
+                <span>Tư liệu lịch sử (Trợ lý ảo)</span>
               </button>
 
               <button
@@ -1235,144 +1255,139 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 onClick={() => setDrawerActiveTab('tts')}
                 style={{
                   flex: 1,
-                  padding: '11px 16px',
+                  padding: '12px 16px',
                   background: drawerActiveTab === 'tts' ? 'var(--bg-surface)' : 'transparent',
                   border: 'none',
-                  borderBottom: drawerActiveTab === 'tts' ? '2px solid var(--primary)' : '2px solid transparent',
+                  borderBottom: drawerActiveTab === 'tts' ? '2px solid var(--accent-gold)' : '2px solid transparent',
                   fontWeight: 600,
                   fontSize: '13px',
-                  color: drawerActiveTab === 'tts' ? 'var(--primary)' : 'var(--text-muted)',
+                  color: drawerActiveTab === 'tts' ? 'var(--accent-gold)' : 'var(--text-muted)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6
+                  gap: 8,
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <Mic size={15} />
-                <span>Thuyết minh giọng đọc (TTS)</span>
+                <span>Thuyết minh âm thanh</span>
               </button>
             </div>
 
-            <div className="drawer-body">
+            <div className="modal-body" style={{ maxHeight: 'calc(80vh - 140px)', overflowY: 'auto', padding: '20px' }}>
               {drawerActiveTab === 'rag' ? (
-                /* TAB 1: TRI THỨC RAG */
+                /* TAB 1: TƯ LIỆU HỎI ĐÁP LỊCH SỬ */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  <div style={{
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
+                    padding: '12px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '12.5px',
+                    color: 'var(--text-muted)',
+                    lineHeight: 1.55
+                  }}>
                     <div style={{ fontWeight: 600, color: 'var(--heading-color)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Sparkles size={14} style={{ color: 'var(--accent-gold)' }} />
-                      <span>Cơ chế RAG (Retrieval-Augmented Generation) cho Trợ lý ảo:</span>
+                      <Info size={14} style={{ color: 'var(--accent-gold)' }} />
+                      <span>Tư liệu bối cảnh phục vụ giải đáp du khách:</span>
                     </div>
-                    Khi du khách quét QR hoặc tham quan 360°, chatbot AI sẽ truy xuất tài liệu bối cảnh này để trả lời chính xác các câu hỏi về hiện vật của gian phòng, chống hallucination (bịa đặt thông tin lịch sử).
+                    Hệ thống sẽ dựa vào nội dung tư liệu này để trả lời chính xác các câu hỏi của khách tham quan khi quét mã QR hoặc trò chuyện với trợ lý ảo tại gian phòng, đảm bảo thông tin luôn chuẩn xác theo hồ sơ bảo tàng.
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>Tư liệu bối cảnh lịch sử phòng</label>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={handleLoadPresetKnowledge}
-                      style={{ fontSize: '11.5px', padding: '4px 10px' }}
-                    >
-                      <span>Nạp mẫu chuẩn Bảo tàng</span>
-                    </button>
-                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
+                        Nội dung tóm tắt lịch sử gian phòng
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleLoadPresetKnowledge}
+                        style={{ fontSize: '11.5px', padding: '4px 10px' }}
+                      >
+                        <RotateCw size={11} style={{ marginRight: 4 }} />
+                        <span>Nạp văn bản gợi ý mẫu</span>
+                      </button>
+                    </div>
 
-                  <textarea
-                    rows={8}
-                    className="form-control"
-                    style={{ width: '100%', fontSize: '13px', lineHeight: 1.6 }}
-                    value={aiKnowledgePrompt}
-                    onChange={(e) => setAiKnowledgePrompt(e.target.value)}
-                    placeholder="Nhập tóm tắt bối cảnh lịch sử, niên đại, ý nghĩa các hiện vật tiêu biểu trong gian phòng này..."
-                  />
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={handleSaveRagKnowledge}
-                      disabled={isSavingAi}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                      {isSavingAi ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
-                      <span>Lưu Tri thức RAG vào Database</span>
-                    </button>
+                    <textarea
+                      rows={7}
+                      className="form-control"
+                      style={{ width: '100%', fontSize: '13px', lineHeight: 1.6, resize: 'vertical' }}
+                      value={aiKnowledgePrompt}
+                      onChange={(e) => setAiKnowledgePrompt(e.target.value)}
+                      placeholder="Nhập tóm tắt bối cảnh lịch sử, niên đại, các hiện vật tiêu biểu và câu chuyện nổi bật của gian phòng..."
+                    />
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
+                      {aiKnowledgePrompt.length} ký tự
+                    </div>
                   </div>
                 </div>
               ) : (
-                /* TAB 2: TEXT-TO-SPEECH (TTS) */
+                /* TAB 2: THUYẾT MINH ÂM THANH */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontWeight: 600 }}>Giọng đọc thuyết minh tự động</label>
-                      <select
-                        className="form-control"
-                        value={aiVoiceLang}
-                        onChange={(e) => setAiVoiceLang(e.target.value)}
-                        style={{ fontSize: '13px' }}
-                      >
-                        <option value="vi-south">Nữ Miền Nam (Giọng di sản truyền cảm - Đề xuất cho Bảo tàng TP.HCM)</option>
-                        <option value="vi-north">Nam Miền Bắc (Trang trọng, chuẩn mực)</option>
-                        <option value="en">Tiếng Anh (English - Chuẩn Quốc tế cho khách nước ngoài)</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>Kịch bản âm thanh thuyết minh (Audio Script)</label>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={handleLoadPresetKnowledge}
-                          style={{ fontSize: '11.5px', padding: '4px 10px' }}
-                        >
-                          <span>Điền kịch bản mẫu</span>
-                        </button>
-                      </div>
-                      <textarea
-                        rows={6}
-                        className="form-control"
-                        style={{ width: '100%', fontSize: '13px', lineHeight: 1.6 }}
-                        value={aiScript}
-                        onChange={(e) => setAiScript(e.target.value)}
-                        placeholder="Nhập lời chào và kịch bản thuyết minh tự động phát khi du khách bước vào phòng 360°..."
-                      />
-                    </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: 6 }}>
+                      Chọn giọng đọc thuyết minh
+                    </label>
+                    <select
+                      className="form-control"
+                      value={aiVoiceLang}
+                      onChange={(e) => setAiVoiceLang(e.target.value)}
+                      style={{ fontSize: '13px' }}
+                    >
+                      <option value="vi-south">Nữ Miền Nam (Giọng truyền cảm - Phù hợp Bảo tàng TP.HCM)</option>
+                      <option value="vi-north">Nam Miền Bắc (Trang trọng, chuẩn mực)</option>
+                      <option value="en">Tiếng Anh (English - Chuẩn quốc tế cho khách nước ngoài)</option>
+                    </select>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={handleGenerateTtsAudio}
-                      disabled={isGeneratingTts}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                      {isGeneratingTts ? <RotateCw size={14} className="spin" /> : <Play size={14} />}
-                      <span>Tạo & Nghe thử giọng đọc AI</span>
-                    </button>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
+                        Lời đọc thuyết minh gian phòng
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleLoadPresetKnowledge}
+                        style={{ fontSize: '11.5px', padding: '4px 10px' }}
+                      >
+                        <RotateCw size={11} style={{ marginRight: 4 }} />
+                        <span>Nạp lời đọc mẫu</span>
+                      </button>
+                    </div>
 
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={handleSaveTtsVoice}
-                      disabled={isSavingAi}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}
-                    >
-                      {isSavingAi ? <RotateCw size={14} className="spin" /> : <Volume2 size={14} />}
-                      <span>Lưu & Kích hoạt AI Voice</span>
-                    </button>
+                    <textarea
+                      rows={5}
+                      className="form-control"
+                      style={{ width: '100%', fontSize: '13px', lineHeight: 1.6, resize: 'vertical' }}
+                      value={aiScript}
+                      onChange={(e) => setAiScript(e.target.value)}
+                      placeholder="Nhập lời chào và nội dung thuyết minh tự động phát khi du khách bước vào không gian 360°..."
+                    />
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
+                      {aiScript.length} ký tự
+                    </div>
                   </div>
 
                   {/* Audio Player nghe thử */}
                   {previewAudioUrl && (
-                    <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '14px', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-color)',
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8
+                    }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Volume2 size={14} />
-                        <span>Trình phát âm thanh thử nghiệm (Hệ thống AI TTS):</span>
+                        <span>Bản nghe thử giọng đọc thuyết minh:</span>
                       </div>
-                      <audio controls style={{ width: '100%' }}>
+                      <audio controls style={{ width: '100%', height: 36 }}>
                         <source src={previewAudioUrl} type="audio/ogg" />
                         Trình duyệt của bạn không hỗ trợ thẻ audio.
                       </audio>
@@ -1382,14 +1397,53 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               )}
             </div>
 
-            <div className="drawer-footer">
+            <div className="modal-footer" style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', background: 'var(--bg-card-header)' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={handleCloseAiDrawer}
               >
-                <span>Đóng lại</span>
+                <span>Đóng</span>
               </button>
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                {drawerActiveTab === 'rag' ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSaveRagKnowledge}
+                    disabled={isSavingAi}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    {isSavingAi ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
+                    <span>Lưu tư liệu phòng</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleGenerateTtsAudio}
+                      disabled={isGeneratingTts}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      {isGeneratingTts ? <RotateCw size={14} className="spin" /> : <Play size={14} />}
+                      <span>Nghe thử giọng đọc</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleSaveTtsVoice}
+                      disabled={isSavingAi}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      {isSavingAi ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
+                      <span>Lưu lời thuyết minh</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
