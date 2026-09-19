@@ -606,6 +606,7 @@ def verify_single_image(image_path, prev_image_path=None):
         }
 
     try:
+        img = load_and_orient_image(image_path, max_dim=1200)
         # Áp dụng cân bằng sáng và nén chói ngược sáng để máy quét rõ nét mọi chi tiết
         balanced_img = balance_indoor_lighting(img)
         gray = cv2.cvtColor(balanced_img, cv2.COLOR_BGR2GRAY)

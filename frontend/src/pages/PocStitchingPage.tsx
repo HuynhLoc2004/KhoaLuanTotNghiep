@@ -637,9 +637,13 @@ function normalizePanoUrl(rawUrl: string): string {
                           ) : frame.evaluation ? (
                             <>
                               <span style={{ color: frame.evaluation.passed ? 'var(--success)' : 'var(--error)', fontWeight: 600 }}>
-                                {frame.evaluation.passed ? 'Đạt chuẩn' : 'Chưa đạt'} ({frame.evaluation.score}đ)
+                                {frame.evaluation.passed ? 'Đạt chuẩn' : 'Chưa đạt'} ({frame.evaluation.score ?? 0}đ)
                               </span>
-                              <span>• {frame.evaluation.checks.features.count} điểm đặc trưng</span>
+                              {frame.evaluation.checks?.features ? (
+                                <span>• {frame.evaluation.checks.features.count} điểm đặc trưng</span>
+                              ) : frame.evaluation.message ? (
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>• {frame.evaluation.message}</span>
+                              ) : null}
                             </>
                           ) : null}
                         </div>
