@@ -10,28 +10,29 @@
   --accent-gold-light: #FBF4E8;
   --accent-gold-border: #F2D8A7;
 
-  --bg-page: #F8F6F0;
+  --bg-page: #F9F6F0;
   --bg-surface: #FFFFFF;
-  --bg-subtle: #EFECE4;
+  --bg-subtle: #F2ECE0;
   --bg-card-header: #FAF7F2;
 
   --btn-secondary-bg: #E8E2D5;
-  --btn-secondary-border: #D8D0C0;
+  --btn-secondary-border: #EADEC9;
   --btn-secondary-hover: #DDD5C7;
-  --btn-secondary-hover-border: #C8BFAD;
+  --btn-secondary-hover-border: #D0C3AD;
   --btn-secondary-text: #4A3F3A;
 
-  --text-main: #2C2420;
-  --text-muted: #6E6359;
-  --text-light: #8E8276;
+  --heading-color: #2A1B14;
+  --text-main: #2A1B14;
+  --text-muted: #5C4D43;
+  --text-light: #807166;
 
-  --border-color: #E8E2D5;
-  --border-dark: #D2C7B6;
+  --border-color: #EADEC9;
+  --border-dark: #D8CCA8;
 
-  --success: #1E6B3A;
-  --success-bg: #F0F8F3;
-  --success-border: #BCE3CB;
-  --success-text: #14532D;
+  --success: #3D5A45;
+  --success-bg: #F0EDE4;
+  --success-border: #D8D1C2;
+  --success-text: #3D5A45;
 
   --warning: #9A5B12;
   --warning-bg: #FDF8EE;
@@ -43,14 +44,17 @@
   --error-border: #F7BFBF;
   --error-text: #7F1D1D;
 
-  --info: #2B577A;
-  --info-bg: #F2F7FA;
-  --info-border: #C2DAEB;
-  --info-text: #1E3F5A;
+  --info: #3D5A45;
+  --info-bg: #F0EDE4;
+  --info-border: #D8D1C2;
+  --info-text: #3D5A45;
 
-  --shadow-sm: 0 1px 3px 0 rgba(44, 36, 32, 0.04), 0 1px 2px -1px rgba(44, 36, 32, 0.03);
-  --shadow-md: 0 4px 10px -2px rgba(44, 36, 32, 0.07), 0 2px 6px -2px rgba(44, 36, 32, 0.04);
-  --shadow-lg: 0 12px 24px -4px rgba(44, 36, 32, 0.1), 0 4px 8px -4px rgba(44, 36, 32, 0.05);
+  --guide-badge-bg: #EADEC9;
+  --guide-badge-text: #8C2D19;
+
+  --shadow-sm: 0 1px 3px 0 rgba(42, 27, 20, 0.04), 0 1px 2px -1px rgba(42, 27, 20, 0.03);
+  --shadow-md: 0 4px 12px -2px rgba(42, 27, 20, 0.06), 0 2px 6px -2px rgba(42, 27, 20, 0.04);
+  --shadow-lg: 0 14px 28px -4px rgba(42, 27, 20, 0.08), 0 4px 10px -4px rgba(42, 27, 20, 0.04);
 
   --radius-sm: 5px;
   --radius-md: 8px;
@@ -82,6 +86,7 @@
   --btn-secondary-hover-border: #F0CF96;
   --btn-secondary-text: #E6C280;
 
+  --heading-color: #F5EFEB;
   --text-main: #F5EFEB;
   --text-muted: #D5CBB8;
   --text-light: #A89D8E;
@@ -89,10 +94,10 @@
   --border-color: #3D2F26;
   --border-dark: #4F3D32;
 
-  --success: #4ADE80;
-  --success-bg: #1A281E;
-  --success-border: #284D35;
-  --success-text: #C7F9D4;
+  --success: #7FA88B;
+  --success-bg: #1E2820;
+  --success-border: #2D4233;
+  --success-text: #CDE2D2;
 
   --warning: #FBBF24;
   --warning-bg: #2E2214;
@@ -108,6 +113,9 @@
   --info-bg: #1B232E;
   --info-border: #31445D;
   --info-text: #D6E8FC;
+
+  --guide-badge-bg: #3A2C22;
+  --guide-badge-text: #E6C280;
 
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
@@ -128,6 +136,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--heading-color, var(--text-main));
 }
 
 button {

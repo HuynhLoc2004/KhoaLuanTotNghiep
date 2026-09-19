@@ -79,7 +79,7 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
           {/* Hướng dẫn mở quyền Camera */}
           <div className="guide-permission-box">
             <div className="guide-permission-header">
-              <ShieldCheck size={16} style={{ color: 'var(--info)' }} />
+              <ShieldCheck size={16} style={{ color: 'var(--accent-gold)' }} />
               <span>Cách bật quyền Camera nếu trình duyệt chặn</span>
             </div>
             <ul className="guide-permission-list">
@@ -93,15 +93,15 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
           </div>
         </div>
 
-        <div className="modal-footer">
+        <div className="modal-footer" style={{ padding: '16px 20px' }}>
           <button
             type="button"
             className="btn btn-primary"
             onClick={onClose}
-            style={{ width: '100%', justifyContent: 'center' }}
+            style={{ width: '100%', justifyContent: 'center', padding: '12px 32px', fontSize: '14px', fontWeight: 600, gap: 8 }}
           >
             <span>Đã nắm rõ & Bắt đầu chụp</span>
-            <ArrowRight size={15} />
+            <ArrowRight size={16} />
           </button>
         </div>
       </div>
