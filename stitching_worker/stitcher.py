@@ -659,7 +659,9 @@ def verify_single_image(image_path, prev_image_path=None):
         if prev_image_path and os.path.exists(prev_image_path):
             try:
                 prev_img = load_and_orient_image(prev_image_path, max_dim=1200)
-                prev_gray = cv2.cvtColor(prev_img, cv2.COLOR_BGR2GRAY)
+                # Đồng bộ quang học: Ảnh trước cũng được cân bằng sáng để so khớp chuẩn xác
+                prev_balanced = balance_indoor_lighting(prev_img)
+                prev_gray = cv2.cvtColor(prev_balanced, cv2.COLOR_BGR2GRAY)
                 prev_kp, prev_des = orb.detectAndCompute(prev_gray, None)
 
                 if des is not None and prev_des is not None and len(des) > 10 and len(prev_des) > 10:
@@ -736,8 +738,16 @@ def verify_single_image(image_path, prev_image_path=None):
             except Exception as oErr:
                 print(f"[Warning] Overlap/Parallax calculation note: {oErr}", file=sys.stderr)
 
-        # Đánh giá tổng quát: Bắt buộc phải sắc nét, đủ sáng, đủ hoa văn, đủ độ phủ VÀ KHÔNG BỊ LỆCH TỌA ĐỘ ĐỨNG
-        passed = is_sharp and is_exposed and has_features and has_overlap and is_position_stable
+        # Đánh giá tổng quát thông minh:
+        # Nếu ảnh có hoa văn chi tiết dồi dào (feature_count >= 300, như 800 - 950 điểm trong thực tế):
+        # Thì ảnh đã có thừa thãi dữ liệu hình học để thuật toán OpenCV ghép nối thành công!
+        rich_features = (feature_count >= 300)
+
+        if rich_features:
+            # Dung sai mềm dẻo: Cho phép ảnh giàu chi tiết trong môi trường tối/ngược sáng đạt chuẩn
+            passed = is_sharp and is_exposed and (has_overlap or match_count >= 8)
+        else:
+            passed = is_sharp and is_exposed and has_features and has_overlap and is_position_stable
         
         # Tính điểm chất lượng từ 0 - 100
         score = 0
@@ -746,23 +756,26 @@ def verify_single_image(image_path, prev_image_path=None):
         if is_exposed:
             score += 25
         if has_features:
-            score += min(20, int(feature_count / 25))
-        if has_overlap:
+            score += min(25, int(feature_count / 30.0))
+        if has_overlap or (rich_features and match_count >= 8):
             score += 15
-        if is_position_stable:
-            score += 15
-        score = min(100, max(20, score))
+        if is_position_stable or rich_features:
+            score += 10
+        score = min(100, max(30, score))
 
         if passed:
-            message = "✓ Ảnh đạt chuẩn chất lượng không gian!"
-        elif not is_position_stable:
-            message = "⚠️ Phát hiện bạn vừa bước đi làm lệch tọa độ đứng (thị sai Parallax)! Cần đứng yên tại 1 vị trí ban đầu và chỉ xoay máy."
+            if rich_features and (mean_brightness < 35.0 or mean_brightness > 225.0):
+                message = "✓ Ảnh đạt chuẩn (Chi tiết phong phú, ánh sáng đã tối ưu thích ứng)!"
+            else:
+                message = "✓ Ảnh đạt chuẩn chất lượng không gian!"
         elif not is_sharp:
             message = "⚠️ Ảnh bị nhòe do rung tay, hãy giữ chắc máy chụp lại."
         elif not is_exposed:
-            message = "⚠️ Ánh sáng không phù hợp (quá tối hoặc cháy sáng)."
+            message = "⚠️ Ánh sáng quá yếu hoặc cháy sáng, hãy giữ chắc máy hoặc tăng nhẹ nguồn sáng."
         elif not has_features:
             message = "⚠️ Cảnh thiếu hoa văn chi tiết để máy tính nhận diện."
+        elif not is_position_stable:
+            message = "⚠️ Phát hiện bạn vừa bước đi làm lệch tọa độ đứng! Hãy đứng yên 1 vị trí và chỉ xoay máy."
         else:
             message = "⚠️ Chưa đủ cảnh chung với ảnh trước, hãy nhích nhẹ lại gần góc trước."
 
