@@ -66,4 +66,15 @@ export interface LanguageItem {
   updatedAt?: string;
 }
 
+export interface TopicItem {
+  id: string;
+  name: string;
+  description?: string;
+  orderIndex?: number;
+  active?: boolean;
+  roomCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'languages' | 'analytics' | 'settings';

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { X, Upload, Image as ImageIcon, Loader2, Check, Globe } from 'lucide-react';
-import { MuseumRoom, RoomTranslation } from '../types';
+import React, { useState, useEffect } from 'react';
+import { X, Upload, Image as ImageIcon, Loader2, Check, Globe, Layers } from 'lucide-react';
+import { MuseumRoom, RoomTranslation, TopicItem } from '../types';
 import { api } from '../services/api';
 import { LocalizedTabEditor } from './LocalizedTabEditor';
+import { TopicManagementModal } from './TopicManagementModal';
 
 interface EditRoomModalProps {
   room: MuseumRoom;
@@ -19,9 +20,19 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
   const [qrScanCount, setQrScanCount] = useState(room.qrScanCount || 0);
   const [active, setActive] = useState(room.active !== false);
   const [translations, setTranslations] = useState<Record<string, RoomTranslation>>(room.translations || {});
+  const [topics, setTopics] = useState<TopicItem[]>([]);
+  const [showTopicModal, setShowTopicModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getTopics().then((data) => {
+      if (isMounted) setTopics(data);
+    }).catch(console.warn);
+    return () => { isMounted = false; };
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -175,16 +186,34 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 12 }}>
               <div className="form-group">
-                <label className="form-label">Chuyên đề trưng bày</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Chuyên đề trưng bày *</label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowTopicModal(true)}
+                    style={{ fontSize: '11px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    title="Quản lý và thêm mới chuyên đề"
+                  >
+                    <Layers size={12} style={{ color: 'var(--accent-gold)' }} />
+                    <span>Quản lý chuyên đề</span>
+                  </button>
+                </div>
                 <select
                   className="form-control"
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
+                  required
                 >
-                  <option value="Tiến trình Lịch sử VN">Tiến trình Lịch sử VN</option>
-                  <option value="Văn hóa Nam Bộ & Cổ vật">Văn hóa Nam Bộ & Cổ vật</option>
-                  <option value="Sưu tập Đặc biệt">Sưu tập Đặc biệt</option>
-                  <option value="Thời kỳ Thành lập & Kiến trúc Đông Dương">Thời kỳ Thành lập & Kiến trúc Đông Dương</option>
+                  {/* Hiển thị giá trị hiện tại nếu chưa có trong danh mục */}
+                  {period && !topics.some((t) => t.name === period) && (
+                    <option value={period}>{period}</option>
+                  )}
+                  {topics.map((t) => (
+                    <option key={t.id} value={t.name}>
+                      {t.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -292,6 +321,17 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
           </div>
         </form>
       </div>
+
+      {/* Modal Quản trị Chuyên đề trưng bày */}
+      <TopicManagementModal
+        isOpen={showTopicModal}
+        onClose={() => setShowTopicModal(false)}
+        onTopicCreated={(newT) => {
+          setPeriod(newT.name);
+          setTopics((prev) => [...prev, newT]);
+        }}
+        onTopicsUpdated={setTopics}
+      />
     </div>
   );
 };

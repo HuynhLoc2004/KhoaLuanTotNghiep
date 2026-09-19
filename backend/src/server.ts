@@ -9,6 +9,7 @@ import { connectMongoDB } from './db/mongodb.js';
 import { stitchRouter } from './routes/stitch.js';
 import { mailRouter } from './routes/mail.js';
 import { languagesRouter } from './routes/languages.js';
+import { topicsRouter } from './routes/topics.js';
 import { seedDefaultLanguages } from './models/Language.js';
 import { getRedisStatus } from './services/redis.js';
 
@@ -38,6 +39,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
 
 // API routes
 app.use('/api/rooms', roomsRouter);
+app.use('/api/topics', topicsRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/stitch', stitchRouter);
 app.use('/api/mail', mailRouter);

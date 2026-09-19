@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot } from '../types';
+import { MuseumRoom, Hotspot, TopicItem } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -152,5 +152,43 @@ export const api = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi sinh file âm thanh Voice AI');
     return json;
+  },
+
+  // === QUẢN TRỊ CHUYÊN ĐỀ TRƯNG BÀY (TOPICS) ===
+  async getTopics(): Promise<TopicItem[]> {
+    const res = await fetch(`${API_BASE}/topics`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải danh mục chuyên đề');
+    return json.data;
+  },
+
+  async createTopic(topic: Partial<TopicItem>): Promise<TopicItem> {
+    const res = await fetch(`${API_BASE}/topics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(topic)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi thêm chuyên đề mới');
+    return json.data;
+  },
+
+  async updateTopic(id: string, patch: Partial<TopicItem>): Promise<TopicItem> {
+    const res = await fetch(`${API_BASE}/topics/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật chuyên đề');
+    return json.data;
+  },
+
+  async deleteTopic(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/topics/${id}`, {
+      method: 'DELETE'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi xóa chuyên đề');
   }
 };

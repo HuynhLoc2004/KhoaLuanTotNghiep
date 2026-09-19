@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
-import { MuseumRoom } from '../types';
+import React, { useState, useEffect } from 'react';
+import { X, Upload, Loader2, Image as ImageIcon, Layers } from 'lucide-react';
+import { MuseumRoom, TopicItem } from '../types';
 import { api } from '../services/api';
+import { TopicManagementModal } from './TopicManagementModal';
 
 interface NewRoomModalProps {
   onClose: () => void;
@@ -21,9 +22,24 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
   const [period, setPeriod] = useState('');
   const [description, setDescription] = useState('');
   const [panoramaUrl, setPanoramaUrl] = useState(initialPanoramaUrl || '');
+  const [topics, setTopics] = useState<TopicItem[]>([]);
+  const [showTopicModal, setShowTopicModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getTopics().then((data) => {
+      if (isMounted) {
+        setTopics(data);
+        if (data.length > 0 && !period) {
+          setPeriod(data[0].name);
+        }
+      }
+    }).catch(console.warn);
+    return () => { isMounted = false; };
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -130,14 +146,30 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Thời kỳ lịch sử / Triều đại</label>
-              <input
-                type="text"
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <label className="form-label" style={{ margin: 0 }}>Chuyên đề trưng bày *</label>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowTopicModal(true)}
+                  style={{ fontSize: '11px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  title="Quản lý và thêm mới chuyên đề"
+                >
+                  <Layers size={12} style={{ color: 'var(--accent-gold)' }} />
+                  <span>Quản lý chuyên đề</span>
+                </button>
+              </div>
+              <select
                 className="form-control"
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                placeholder="Ví dụ: Thế kỷ I đến thế kỷ VII sau Công nguyên..."
-              />
+                required
+              >
+                <option value="">-- Chọn chuyên đề trưng bày --</option>
+                {topics.map((t) => (
+                  <option key={t.id} value={t.name}>{t.name}</option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
@@ -270,6 +302,17 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Modal Quản trị Chuyên đề trưng bày */}
+      <TopicManagementModal
+        isOpen={showTopicModal}
+        onClose={() => setShowTopicModal(false)}
+        onTopicCreated={(newT) => {
+          setPeriod(newT.name);
+          setTopics((prev) => [...prev, newT]);
+        }}
+        onTopicsUpdated={setTopics}
+      />
     </div>
   );
 };

@@ -33,9 +33,10 @@ import {
   Download,
   AlertCircle
 } from 'lucide-react';
-import { MuseumRoom } from '../../types';
+import { MuseumRoom, TopicItem } from '../../types';
 import { NewRoomModal } from '../../components/NewRoomModal';
 import { EditRoomModal } from '../../components/EditRoomModal';
+import { TopicManagementModal } from '../../components/TopicManagementModal';
 import { Pannellum360Viewer } from '../../viewer360/Pannellum360Viewer';
 import { Pagination } from '../../components/Pagination';
 import { api, API_BASE } from '../../services/api';
@@ -94,6 +95,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const [showNewModal, setShowNewModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState<MuseumRoom | null>(null);
   const [selectedPanoForNewRoom, setSelectedPanoForNewRoom] = useState<string | undefined>(undefined);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
+  const [showTopicModal, setShowTopicModal] = useState(false);
 
   // Bộ lọc dữ liệu
   const [searchQuery, setSearchQuery] = useState('');
@@ -177,8 +180,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     }
   };
 
+  const loadTopics = async () => {
+    try {
+      const data = await api.getTopics();
+      setTopics(data);
+    } catch (err) {
+      console.warn('Lỗi tải danh mục chuyên đề:', err);
+    }
+  };
+
   useEffect(() => {
     fetchPanoramas();
+    loadTopics();
   }, []);
 
   useEffect(() => {
@@ -278,11 +291,12 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     setShowQrModal(true);
   };
 
-  // Lấy danh sách các chuyên đề/thời kỳ thực tế từ Database phòng
+  // Lấy danh sách các chuyên đề/thời kỳ thực tế từ Topic DB và phòng hiện tại
   const availablePeriods = useMemo(() => {
-    const periods = rooms.map((r) => r.period?.trim()).filter(Boolean);
-    return Array.from(new Set(periods)) as string[];
-  }, [rooms]);
+    const topicNames = topics.map((t) => t.name?.trim()).filter(Boolean);
+    const roomPeriods = rooms.map((r) => r.period?.trim()).filter(Boolean) as string[];
+    return Array.from(new Set([...topicNames, ...roomPeriods]));
+  }, [topics, rooms]);
 
   // Lọc dữ liệu phòng
   const filteredRooms = rooms.filter((r) => {
@@ -595,6 +609,17 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 </button>
               </>
             )}
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowTopicModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Quản lý danh sách chuyên đề / thời kỳ trưng bày"
+            >
+              <Layers size={14} style={{ color: 'var(--accent-gold)' }} />
+              <span>Quản lý chuyên đề</span>
+            </button>
 
             <button
               className="btn btn-primary btn-sm"
@@ -1696,6 +1721,15 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           </div>
         </div>
       )}
+      {/* Modal Quản lý chuyên đề trưng bày */}
+      <TopicManagementModal
+        isOpen={showTopicModal}
+        onClose={() => setShowTopicModal(false)}
+        onTopicsUpdated={(updatedTopics) => {
+          setTopics(updatedTopics);
+        }}
+      />
+
       {/* Custom Heritage Confirm Modal */}
       <ConfirmModal
         isOpen={confirmDialog.isOpen}
