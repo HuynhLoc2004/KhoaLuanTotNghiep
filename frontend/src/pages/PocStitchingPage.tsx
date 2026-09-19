@@ -260,8 +260,17 @@ function normalizePanoUrl(rawUrl: string): string {
 
   // 2. CHỌN ẢNH TỪ THƯ VIỆN / ALBUM IPHONE (1 ẢNH PANO HOẶC CHÙM ẢNH ĐÃ CHỤP SẴN)
   const handleBatchSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    const rawFiles = Array.from(e.target.files || []);
+    if (rawFiles.length === 0) return;
+
+    // Sắp xếp các ảnh chọn từ máy theo thứ tự tên tự nhiên (IMG_001, IMG_002, ...)
+    // để đảm bảo chuỗi góc quay quanh phòng theo đúng thứ tự thực tế
+    const files = [...rawFiles].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    );
+
+    // Reset input để người dùng có thể chọn thêm nếu muốn
+    e.target.value = '';
 
     // Nếu chỉ có 1 file (thường là ảnh PANO toàn cảnh):
     if (files.length === 1) {
@@ -271,8 +280,10 @@ function normalizePanoUrl(rawUrl: string): string {
       return;
     }
 
-    // Nếu chọn nhiều ảnh từ Album: đưa vào quy trình thẩm định Python từng tấm
+    // Nếu chọn nhiều ảnh từ Album: đưa vào quy trình thẩm định Python từng tấm theo chuỗi liên tục
     setErrorMsg(null);
+    let prevServerPath: string | undefined = [...verifiedFrames].reverse().find((f) => f.serverPath)?.serverPath;
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const frameId = `album_${Date.now()}_${i}`;
@@ -289,12 +300,16 @@ function normalizePanoUrl(rawUrl: string): string {
       try {
         const formData = new FormData();
         formData.append('frame', file);
+        if (prevServerPath) {
+          formData.append('prevFilePath', prevServerPath);
+        }
         const res = await fetch(`${API_BASE}/stitch/verify-frame`, {
           method: 'POST',
           body: formData
         });
         const json = await res.json();
-        if (json.success) {
+        if (json.success && json.data) {
+          prevServerPath = json.data.serverPath;
           setVerifiedFrames((prev) =>
             prev.map((item) =>
               item.id === frameId
@@ -392,21 +407,19 @@ function normalizePanoUrl(rawUrl: string): string {
 
     // Ưu tiên nạp các serverPath đã được server lưu sẵn từ bước thẩm định
     const serverPaths = validVerified.map((f) => f.serverPath).filter(Boolean);
-    if (serverPaths.length > 0) {
+    if (serverPaths.length === validVerified.length && serverPaths.length > 0) {
       formData.append('serverPaths', JSON.stringify(serverPaths));
+    } else {
+      // Nếu có frame chưa lưu serverPath, gửi trực tiếp toàn bộ file ảnh hợp lệ
+      validVerified.forEach((frame, index) => {
+        formData.append('images', frame.file, `frame_${String(index).padStart(4, '0')}_${frame.file.name}`);
+      });
     }
 
-    // Nạp các file chùm ảnh nếu có
+    // Nạp các file chùm ảnh nếu có (trường hợp chọn 1 ảnh PANO toàn cảnh)
     batchFiles.forEach((file, index) => {
       formData.append('images', file, `batch_${String(index).padStart(4, '0')}_${file.name}`);
     });
-
-    // Nếu không có serverPaths (ví dụ lỗi mạng lưu tạm), gửi trực tiếp file
-    if (serverPaths.length === 0) {
-      validVerified.forEach((frame, index) => {
-        formData.append('images', frame.file, `verified_${String(index).padStart(4, '0')}_${frame.file.name}`);
-      });
-    }
 
     try {
       const stepTimer1 = setTimeout(() => setCurrentStep(2), 1500);
