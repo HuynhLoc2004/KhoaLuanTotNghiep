@@ -307,25 +307,37 @@ def enhance_museum_texture(image):
 
 def balance_indoor_lighting(img):
     """
-    Cân bằng ánh sáng thông minh chống chói lóa ngược sáng & kéo sáng góc tối:
-    - Nén mượt mà vùng chói sáng cực đại (ngược sáng cửa chính, ánh nắng cửa sổ) theo đường cong Soft-knee.
-    - Bảo toàn và khuếch đại độ tương phản vi mô của nan cửa, chấn song, chớp kính để bộ dò ORB/AKAZE tìm đủ điểm neo.
-    - Kéo sáng các góc khuất bóng râm giúp căn phòng đồng đều, giữ trọn màu sắc tự nhiên.
+    Cân bằng ánh sáng thông minh 2 chiều (Chống chói ngược sáng & Kích sáng ảnh tối):
+    - CHIỀU SÁNG: Nén mượt mà vùng chói sáng cực đại (cửa chính, nắng cửa sổ) theo đường cong Soft-knee (L > 185).
+    - CHIỀU TỐI: Tự động phát hiện ảnh chụp thiếu sáng / về tối (mean L < 80) và áp dụng đường cong Gamma nâng sáng
+      thích ứng kết hợp CLAHE để cứu chi tiết hoa văn, nan gỗ và đồ vật chìm trong bóng tối.
+    - Giữ trọn 100% độ trung thực màu sắc, không gây bết màu hay hạt nhiễu nhân tạo.
     """
     try:
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
-        
-        # Nén vùng chói sáng mềm mại (Soft-knee Highlight Compression):
-        # Bắt đầu nén từ L > 185 để các vùng nắng chói (255) được đưa về dải an toàn (~220-235)
-        # mà không tạo vết cắt cụt (clipping) hay làm bết màu
         l_f = l.astype(np.float32)
+        
+        # 1. Nén vùng chói sáng mềm mại (Soft-knee Highlight Compression):
         excess = np.maximum(0.0, l_f - 185.0)
-        l_comp = np.clip(185.0 + excess / (1.0 + excess * 0.015), 0, 255).astype(np.uint8)
+        l_comp = np.clip(185.0 + excess / (1.0 + excess * 0.015), 0, 255)
 
-        clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
-        l_eq = clahe.apply(l_comp)
-        l_balanced = cv2.addWeighted(l_eq, 0.55, l_comp, 0.45, 0)
+        # 2. Kích sáng ảnh chụp về tối / góc tối (Adaptive Low-Light Boost):
+        mean_l = float(np.mean(l_comp))
+        if mean_l < 80.0:
+            gamma = max(0.68, float((mean_l / 80.0) ** 0.8))
+            l_work = np.clip(255.0 * ((l_comp / 255.0) ** gamma), 0, 255).astype(np.uint8)
+            clip_limit = 2.6
+            blend_w = 0.65
+        else:
+            l_work = l_comp.astype(np.uint8)
+            clip_limit = 2.2
+            blend_w = 0.55
+
+        # 3. Tăng cường độ tương phản cục bộ CLAHE
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
+        l_eq = clahe.apply(l_work)
+        l_balanced = cv2.addWeighted(l_eq, blend_w, l_work, 1.0 - blend_w, 0)
         return cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
     except Exception:
         return img
@@ -624,17 +636,17 @@ def verify_single_image(image_path, prev_image_path=None):
         has_features = feature_count >= 140
         feature_label = "Hoa văn phong phú" if feature_count >= 350 else ("Đủ chi tiết" if has_features else "Thiếu chi tiết (tường trơn)")
 
-        # 3. Đo độ sáng / phơi sáng thông minh (có dung sai cao cho góc ngược sáng/chói nắng nếu vẫn đủ chi tiết)
+        # 3. Đo độ sáng / phơi sáng thông minh (hỗ trợ cả góc chói nắng lẫn chụp trời tối/thiếu sáng)
         mean_brightness = float(np.mean(gray))
-        is_exposed = (30.0 <= mean_brightness <= 238.0) or (has_features and mean_brightness <= 245.0)
+        is_exposed = (18.0 <= mean_brightness <= 238.0) or (has_features and mean_brightness >= 14.0 and mean_brightness <= 248.0)
         if 35.0 <= mean_brightness <= 225.0:
             brightness_label = "Đủ sáng"
         elif mean_brightness > 225.0 and has_features:
             brightness_label = "Ngược sáng (Vẫn đủ chi tiết ghép)"
         elif mean_brightness < 35.0 and has_features:
-            brightness_label = "Góc tối (Đã kích sáng chi tiết)"
-        elif mean_brightness < 30.0:
-            brightness_label = "Quá tối"
+            brightness_label = "Ánh sáng tối (Đã kích sáng chi tiết)"
+        elif mean_brightness < 18.0:
+            brightness_label = "Quá tối (Không đủ ánh sáng)"
         else:
             brightness_label = "Bị chói sáng nặng"
 
