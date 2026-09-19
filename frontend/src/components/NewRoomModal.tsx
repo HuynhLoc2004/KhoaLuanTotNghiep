@@ -100,14 +100,16 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Thêm Gian Phòng Trưng Bày Mới</h2>
+          <h2 className="modal-title">Thêm gian phòng trưng bày mới</h2>
           <button
+            type="button"
+            className="modal-close-btn"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}
+            aria-label="Đóng"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -116,11 +118,12 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
             {error && (
               <div
                 style={{
-                  background: '#FEE2E2',
-                  color: '#991B1B',
-                  padding: '10px 14px',
-                  borderRadius: 6,
-                  fontSize: 13
+                  background: 'var(--error-bg)',
+                  color: 'var(--error)',
+                  border: '1px solid var(--error-border)',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 12.5
                 }}
               >
                 {error}
@@ -135,6 +138,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
                   className="form-control"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
+                  placeholder="Ví dụ: P-201"
                   required
                 />
               </div>
@@ -170,181 +174,140 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ onClose, onCreated, 
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Mô tả nội dung, hiện vật tiêu biểu trong gian phòng này..."
+                placeholder="Mô tả tóm tắt nội dung, hiện vật trưng bày trong gian phòng..."
+                style={{ resize: 'vertical' }}
               />
             </div>
 
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Ảnh Toàn Cảnh 360° (Equirectangular 2:1)</span>
-                <span style={{ fontSize: 11, color: '#2563EB', fontWeight: 600 }}>Tự động ghép OpenCV Python</span>
+                <span>Ảnh toàn cảnh 360° (Equirectangular 2:1)</span>
+                {panoramaUrl && (
+                  <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 500 }}>
+                    Đã nạp ảnh
+                  </span>
+                )}
               </label>
 
-              {/* Các tùy chọn tạo ảnh 360 được bố trí khoa học, tối ưu di động */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* 1. Nút mở Camera Studio AR */}
+              {/* 3 nút nạp ảnh đồng bộ, cùng kiểu dáng, dịu mắt */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                <label
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    cursor: uploading ? 'wait' : 'pointer',
+                    justifyContent: 'center',
+                    padding: '8px 10px',
+                    fontSize: '12px'
+                  }}
+                >
+                  <Upload size={14} />
+                  <span>Tải tệp lên</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                    disabled={uploading || stitchingCamera}
+                  />
+                </label>
+
+                <label
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    cursor: uploading ? 'wait' : 'pointer',
+                    justifyContent: 'center',
+                    padding: '8px 10px',
+                    fontSize: '12px'
+                  }}
+                >
+                  <Camera size={14} />
+                  <span>Chụp ảnh</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                    disabled={uploading || stitchingCamera}
+                  />
+                </label>
+
                 <button
                   type="button"
+                  className="btn btn-secondary btn-sm"
                   onClick={() => setIsCameraOpen(true)}
                   disabled={uploading || stitchingCamera}
-                  style={{
-                    width: '100%',
-                    background: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)',
-                    color: '#FFF',
-                    border: 'none',
-                    padding: '11px 16px',
-                    borderRadius: 8,
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
-                  }}
+                  style={{ justifyContent: 'center', padding: '8px 10px', fontSize: '12px' }}
                 >
-                  <Camera size={18} />
-                  <span>Quét Không Gian 360° (Studio Camera AR)</span>
+                  <Camera size={14} />
+                  <span>Quét AR</span>
                 </button>
-
-                {/* 2. Hai nút phụ: Chụp nhanh từ Camera điện thoại & Chọn file thư viện */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-                  {/* Chụp trực tiếp bằng Camera sau của máy (Hỗ trợ 100% điện thoại trên mọi mạng) */}
-                  <label
-                    className="btn btn-secondary"
-                    style={{
-                      cursor: uploading ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      padding: '9px 12px',
-                      borderRadius: 8,
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      background: '#F8FAFC'
-                    }}
-                  >
-                    <Camera size={15} style={{ color: '#10B981' }} />
-                    <span>Chụp bằng Camera sau</span>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleFileUpload}
-                      style={{ display: 'none' }}
-                      disabled={uploading || stitchingCamera}
-                    />
-                  </label>
-
-                  {/* Chọn từ Thư viện / Tệp */}
-                  <label
-                    className="btn btn-secondary"
-                    style={{
-                      cursor: uploading ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      padding: '9px 12px',
-                      borderRadius: 8,
-                      fontSize: 12.5,
-                      fontWeight: 600
-                    }}
-                  >
-                    {uploading ? <Loader2 size={15} className="spin" /> : <Upload size={15} />}
-                    <span>Chọn từ Thư viện</span>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      style={{ display: 'none' }}
-                      disabled={uploading || stitchingCamera}
-                    />
-                  </label>
-                </div>
-
-                {/* Ô nhập / dán URL ảnh nếu có */}
-                <input
-                  type="text"
-                  className="form-control"
-                  value={panoramaUrl}
-                  onChange={(e) => setPanoramaUrl(e.target.value)}
-                  placeholder="Hoặc dán URL ảnh 360° (Cloudinary, Cloudflare R2...)"
-                  style={{ width: '100%', fontSize: 12, marginTop: 2 }}
-                  required
-                />
               </div>
 
-              {stitchingCamera && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    background: '#EFF6FF',
-                    border: '1px solid #BFDBFE',
-                    color: '#1D4ED8',
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    marginTop: 6
-                  }}
-                >
-                  <Loader2 size={18} className="spin" />
-                  <span>Đang dùng OpenCV & Python tự động ghép chùm ảnh không gian 360°...</span>
+              {/* Ô nhập link ảnh trực tiếp */}
+              <input
+                type="text"
+                className="form-control"
+                value={panoramaUrl}
+                onChange={(e) => setPanoramaUrl(e.target.value)}
+                placeholder="Hoặc dán link ảnh 360° (Cloudinary, Cloudflare R2, URL trực tiếp...)"
+                style={{ fontSize: 12.5 }}
+                required
+              />
+
+              {uploading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', color: 'var(--text-muted)' }}>
+                  <Loader2 size={13} className="spin" />
+                  <span>Đang tải ảnh lên máy chủ...</span>
                 </div>
               )}
 
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                * Hỗ trợ quét tự động qua AR Studio hoặc chụp liên tiếp chùm ảnh bằng camera điện thoại.
-              </span>
-            </div>
-
-            {/* Image Preview */}
-            {panoramaUrl && (
-              <div
-                style={{
-                  height: 100,
-                  borderRadius: 6,
-                  overflow: 'hidden',
-                  border: '1px solid var(--border-color)',
-                  position: 'relative'
-                }}
-              >
-                <img
-                  src={panoramaUrl}
-                  alt="Preview"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 4,
-                    left: 6,
-                    background: 'rgba(0,0,0,0.7)',
-                    color: '#fff',
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                    fontSize: 11
-                  }}
-                >
-                  Xem trước ảnh toàn cảnh
+              {stitchingCamera && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', fontSize: '12px', color: 'var(--text-main)' }}>
+                  <Loader2 size={14} className="spin" style={{ color: 'var(--primary)' }} />
+                  <span>Đang ghép chùm ảnh bằng thuật toán OpenCV...</span>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Preview ảnh nhỏ xinh nếu đã có link */}
+              {panoramaUrl && (
+                <div style={{ position: 'relative', height: 110, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: '#0F172A', marginTop: 2 }}>
+                  <img
+                    src={panoramaUrl}
+                    alt="Preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(15, 23, 42, 0.75)', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>
+                    Xem trước không gian 360°
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPanoramaUrl('')}
+                    style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239, 68, 68, 0.85)', color: '#FFFFFF', border: 'none', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    title="Xóa ảnh này"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
-              Hủy
+              Hủy bỏ
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading || uploading || stitchingCamera}>
-              {loading ? 'Đang lưu...' : 'Tạo gian phòng'}
+              {loading ? (
+                <>
+                  <Loader2 size={14} className="spin" />
+                  <span>Đang lưu...</span>
+                </>
+              ) : (
+                'Tạo gian phòng'
+              )}
             </button>
           </div>
         </form>
