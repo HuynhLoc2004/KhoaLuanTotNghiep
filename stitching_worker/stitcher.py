@@ -121,21 +121,29 @@ def crop_black_borders(img):
 
     return cropped
 
-def fit_to_equirectangular_2_to_1(stitched_img, target_width=None):
+def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
     """
     Nắn chỉnh và chuẩn hóa ảnh ghép thành tỷ lệ 2:1 Equirectangular chuẩn quốc tế:
     - TỰ ĐỘNG THÍCH ỨNG THEO ĐỘ PHÂN GIẢI THỰC TẾ (Adaptive Resolution):
-      Tuyệt đối không cưỡng ép phóng to (upscale) ảnh nhỏ lên 4K khiến các hạt ảnh bị kéo dãn và vỡ hạt (pixelation).
       Tự động chọn kích thước chuẩn 2:1 tối ưu cho WebGL (4K: 4096x2048, 3K: 3072x1536, 2K: 2048x1024).
-    - Bảo tồn độ phẳng kiến trúc (Rectilinear Flatness), triệt tiêu hoàn toàn hiện tượng kéo dẹt ngang làm méo vách tường,
-      đồng thời xóa bỏ cảm giác ống hút / phễu sâu (tunnel effect) và không gian hẹp.
-    - Khâu liền mạch 360° ở kinh tuyến 0°-360° và nội suy mượt mà 2 cực Zenith & Nadir.
+    - TỰ ĐỘNG XÁC ĐỊNH GÓC QUÉT HFOV THỰC TẾ:
+      + Nếu hfov >= 315° (Toàn cảnh 360° hoàn chỉnh): Phủ trọn 360° canvas và khâu liền mạch mép 0° - 360°.
+      + Nếu hfov < 315° (Toàn cảnh góc rộng / Bán phần): Bảo tồn tỷ lệ quang học thật 1:1,
+        tuyệt đối KHÔNG cưỡng ép kéo dãn ngang làm móp méo tường và bàn ghế, không tự ý ghép chồng 2 vách tường khác nhau.
+    - Bảo tồn độ phẳng kiến trúc (Rectilinear Flatness), triệt tiêu hoàn toàn méo võng.
+    - Nội suy trần (+90° Zenith) và sàn (-90° Nadir) tự nhiên, xóa sạch viền rách.
     """
     h, w = stitched_img.shape[:2]
+    aspect_ratio = max(0.5, float(w) / float(h))
+
+    # Nếu hfov chưa được truyền, ước tính từ tỷ lệ khung hình:
+    # Camera điện thoại chụp đứng có VFOV ~ 52°, HFOV ~ aspect_ratio * 52°
+    if hfov is None or hfov <= 0:
+        hfov = min(360.0, max(45.0, aspect_ratio * 52.0))
+
+    is_full_360 = (hfov >= 315.0)
 
     # Quyết định độ phân giải mục tiêu thích ứng:
-    # Nếu target_width không chỉ định (None/0) hoặc nếu target_width lớn hơn quá nhiều so với độ phân giải thực (>15%):
-    # Tự động chọn kích thước chuẩn tương thích thông tin thực của ảnh để tránh vỡ hạt.
     if target_width is None or target_width <= 0:
         if w >= 3600:
             target_width = 4096
@@ -146,8 +154,6 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None):
         else:
             target_width = max(1024, (w // 2) * 2)
     else:
-        # Nếu truyền target_width cố định nhưng ảnh thực tế nhỏ hơn đáng kể:
-        # Hạ về chuẩn an toàn gần nhất để chống hiện tượng kéo vỡ hạt do nội suy Lanczos
         if target_width > int(w * 1.15):
             if w >= 3400:
                 target_width = 4096
@@ -161,61 +167,56 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None):
             target_width = (target_width // 2) * 2
 
     target_height = target_width // 2
-    aspect_ratio = max(0.5, float(w) / float(h))
 
-    # BẢO TỒN NGUYÊN BẢN TỶ LỆ QUANG HỌC 1:1 (True Optical Aspect Ratio Preservation):
-    # Chiều cao được nạp chính xác theo tỷ lệ thật của ảnh chụp (sx = sy),
-    # Giữ nguyên bản 100% góc nhìn thực tế: cánh cửa, bàn ghế, hiện vật có kích thước và hình dáng
-    # y chang như ảnh gốc đầu vào mà bạn chụp, triệt tiêu hoàn toàn hiện tượng bóp méo hay kéo dẹt!
-    natural_h = int(round(target_width / aspect_ratio))
-    new_w = target_width
-    new_h = min(int(target_height * 0.90), max(int(target_height * 0.35), natural_h))
-
-    # Co giãn chất lượng cao với bộ lọc Lanczos 4-tap giữ trọn độ nét chi tiết
-    resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
-
-    # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) để xoay vòng liền mạch
-    seam_blend_width = min(60, new_w // 20)
-    for i in range(seam_blend_width):
-        alpha = i / float(seam_blend_width)
-        left_col = resized_pano[:, i].astype(np.float32)
-        right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
-        blended = (1 - alpha) * right_col + alpha * left_col
-        resized_pano[:, i] = blended.astype(np.uint8)
-
-    # Tạo canvas Equirectangular 2:1
     canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
-    y_offset = (target_height - new_h) // 2
 
-    # Đặt không gian phòng vào trung tâm quả cầu
-    canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
+    if is_full_360:
+        # Toàn cảnh 360° trọn vẹn
+        new_w = target_width
+        natural_h = int(round(target_width / aspect_ratio))
+        new_h = min(int(target_height * 0.90), max(int(target_height * 0.35), natural_h))
+        resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+
+        # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) để xoay vòng liền mạch
+        seam_blend_width = min(60, new_w // 20)
+        for i in range(seam_blend_width):
+            alpha = i / float(seam_blend_width)
+            left_col = resized_pano[:, i].astype(np.float32)
+            right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
+            blended = (1 - alpha) * right_col + alpha * left_col
+            resized_pano[:, i] = blended.astype(np.uint8)
+
+        y_offset = (target_height - new_h) // 2
+        canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
+    else:
+        # Bán phần (Partial Panorama < 315°): Giữ nguyên đúng tỷ lệ quang học thật 1:1, không kéo dãn ngang
+        span_ratio = min(1.0, max(0.35, hfov / 360.0))
+        new_w = int(round(target_width * span_ratio))
+        natural_h = int(round(new_w / aspect_ratio))
+        new_h = min(int(target_height * 0.90), max(int(target_height * 0.35), natural_h))
+        resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+
+        y_offset = (target_height - new_h) // 2
+        x_offset = (target_width - new_w) // 2
+        canvas[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized_pano
+
+        # Feathering 2 biên trái phải của ảnh bán phần để chuyển tiếp êm dịu
+        fade_w = min(40, new_w // 15)
+        for fi in range(fade_w):
+            alpha = fi / float(fade_w)
+            canvas[y_offset:y_offset+new_h, x_offset + fi] = (canvas[y_offset:y_offset+new_h, x_offset + fi].astype(np.float32) * alpha).astype(np.uint8)
+            canvas[y_offset:y_offset+new_h, x_offset + new_w - 1 - fi] = (canvas[y_offset:y_offset+new_h, x_offset + new_w - 1 - fi].astype(np.float32) * alpha).astype(np.uint8)
 
     # 1. Nội suy mượt mà trần nhà lên đỉnh cực (+90° Zenith)
-    top_edge = resized_pano[0, :].astype(np.float32)
+    top_edge = canvas[y_offset, :].astype(np.float32)
     zenith_color = np.clip(np.median(top_edge, axis=0) * 1.03, 0, 255).astype(np.float32)
     for y in range(y_offset):
         t = y / float(y_offset) # 0 ở đỉnh cực, 1 ở mép ảnh thật
         canvas[y, :] = ((1.0 - t) * zenith_color + t * top_edge).astype(np.uint8)
 
     # 2. XỬ LÝ TỐI ƯU HÓA ĐẶC BIỆT CHO SÀN NHÀ (-90° Nadir Floor Optimization):
-    # - Khử bóng bàn chân người chụp / chân máy ảnh ở 25px sát mép đáy bằng mẫu màu gạch sàn an toàn.
-    # - Hội tụ quang học hình cầu: Tăng dần độ mịn ngang khi càng xuống gần cực Nam để triệt tiêu hoàn toàn sọc tia (starburst/barcode).
-    safe_floor_zone = resized_pano[max(0, new_h - 75):max(1, new_h - 28), :]
-    nadir_color = np.median(safe_floor_zone, axis=(0, 1)).astype(np.float32)
-
-    # Mẫu cạnh sàn sạch không dính mũi giày/chân
-    clean_bottom_edge = cv2.GaussianBlur(resized_pano[max(0, new_h - 26), :][np.newaxis, :, :], (65, 1), 0)[0].astype(np.float32)
-
-    # Hòa tan nhẹ 20px sát mép đáy của ảnh thật vào màu gạch sàn sạch để che khuất hoàn toàn bàn chân
-    if new_h > 80:
-        feet_h = min(22, new_h // 12)
-        for fi in range(feet_h):
-            alpha = fi / float(feet_h) # 0 ở đáy cùng, 1 ở trên
-            row_idx = new_h - feet_h + fi
-            resized_pano[row_idx, :] = (alpha * resized_pano[row_idx, :].astype(np.float32) + (1.0 - alpha) * clean_bottom_edge).astype(np.uint8)
-
-    # Cập nhật lại ảnh phòng vào canvas với mép sàn đã được làm sạch
-    canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
+    bottom_edge = canvas[y_offset + new_h - 1, :].astype(np.float32)
+    nadir_color = np.median(bottom_edge, axis=0).astype(np.float32)
 
     floor_start = y_offset + new_h
     floor_height = target_height - floor_start
@@ -223,22 +224,22 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None):
     for y in range(floor_height):
         t = y / float(floor_height) # 0 ở mép sàn thật, 1 ở đáy cực
         smooth_t = (1.0 - np.cos(t * np.pi)) * 0.5 # Cosine chuyển tiếp êm dịu
-        row = (1.0 - smooth_t) * clean_bottom_edge + smooth_t * nadir_color
+        row = (1.0 - smooth_t) * bottom_edge + smooth_t * nadir_color
         canvas[floor_start + y, :] = row.astype(np.uint8)
 
-    # Tán xạ mịn theo phương ngang càng xuống gần cực Nam (đặc tính quang học phép chiếu Equirectangular)
+    # Tán xạ mịn theo phương ngang càng xuống gần cực Nam
     for y in range(floor_start + int(floor_height * 0.20), target_height):
         progress = (y - (floor_start + floor_height * 0.20)) / float(floor_height * 0.80)
         ksize = int(progress * 45) * 2 + 1
         if ksize >= 5:
             canvas[y:y+1, :] = cv2.GaussianBlur(canvas[y:y+1, :], (ksize, 1), 0)
 
-    # Làm mờ nhẹ vùng chuyển tiếp (feathering) trần nhà 15px
+    # Làm mờ nhẹ vùng chuyển tiếp (feathering) trần nhà
     feather = min(15, y_offset // 2) if y_offset > 0 else 0
     for fi in range(feather):
         alpha = fi / float(feather)
         curr_top = y_offset + fi
-        canvas[curr_top, :] = ((1.0 - alpha) * canvas[y_offset - 1, :] + alpha * resized_pano[fi, :]).astype(np.uint8)
+        canvas[curr_top, :] = ((1.0 - alpha) * canvas[y_offset - 1, :] + alpha * canvas[curr_top, :]).astype(np.uint8)
 
     return canvas
 
@@ -350,54 +351,97 @@ def run_stitch(image_paths, output_path, target_width=0):
 
     # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img48)
     sorted_paths = sorted(image_paths, key=natural_sort_key)
+    num_total = len(sorted_paths)
 
-    # TỐI ƯU HÓA QUANG HỌC THÍCH ỨNG (Adaptive Golden Keyframe Photogrammetry):
-    # - Khi người dùng chụp chùm ảnh dày (> 8 ảnh), độ chồng lấp lên tới 90%-95% (chênh lệch góc quay quá hẹp).
-    #   OpenCV sẽ bị lỗi "Trôi tiêu cự" (Focal Drift): tiêu cự bị sụt giảm từ 360 xuống 24, khiến ảnh bị phồng to
-    #   như quả bóng (fisheye balloon) và bóp méo khung cửa, đồng thời ép nửa căn phòng vào vài pixel.
-    # - Thuật toán tự động chắt lọc chùm khung hình phân bổ đều nhất quanh 360° theo tỷ lệ vàng (35%-40% overlap),
-    #   giữ nguyên vẹn 1:1 mọi vật thể (cửa, tủ, bàn ghế) thẳng thớm, phẳng tự nhiên và nâng độ phân giải lên 1600px!
-    # - Nếu gói 8 ảnh thiếu mắt xích thì tự động nâng lên 10 ảnh, 12 ảnh hoặc toàn bộ ảnh (multi-pass fallback).
+    def select_optimal_keyframes(paths, max_target=26):
+        """
+        Chắt lọc các khung hình đại diện quanh chuỗi quay:
+        - Loại bỏ các khung hình trùng lặp góc đứng yên (< 3.5% chênh lệch).
+        - Bảo toàn 100% tính liên tục của vòng quay 360°, không bỏ sót vách tường hay góc phòng.
+        - Khống chế số lượng ở mức 16-26 khung hình lý tưởng nhất cho OpenCV Stitcher.
+        """
+        if len(paths) <= 20:
+            return paths
+
+        kept = [paths[0]]
+        prev_thumb = None
+        try:
+            t = cv2.imread(paths[0], cv2.IMREAD_GRAYSCALE)
+            if t is not None:
+                prev_thumb = cv2.resize(t, (160, 120))
+        except Exception:
+            pass
+
+        for i in range(1, len(paths) - 1):
+            p = paths[i]
+            try:
+                curr = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
+                if curr is None:
+                    continue
+                thumb = cv2.resize(curr, (160, 120))
+                if prev_thumb is not None:
+                    diff = float(np.mean(cv2.absdiff(prev_thumb, thumb)))
+                    # Nếu góc chụp hầu như không đổi (< 3.5%), bỏ qua khung hình trùng lặp
+                    remaining = len(paths) - i
+                    if diff < 3.5 and (len(kept) + remaining) > 16:
+                        continue
+                kept.append(p)
+                prev_thumb = thumb
+            except Exception:
+                kept.append(p)
+
+        kept.append(paths[-1])
+
+        if len(kept) > max_target:
+            indices = np.linspace(0, len(kept) - 1, max_target, dtype=int)
+            kept = [kept[idx] for idx in indices]
+
+        return kept
 
     cv2.ocl.setUseOpenCL(False)
 
-    def build_stitcher(confidence=0.05):
+    def build_stitcher(confidence=0.20):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
-            # Tắt wave correction trong nhà: Kiến trúc phòng có nhiều đường chỉ đứng và lưới trần
-            # khiến thuật toán wave correction bị nhầm lẫn và xoay nghiêng không gian 90 độ
-            s.setWaveCorrection(False)
+            # BẬT wave correction: Cân bằng đường chân trời, giữ vách tường, cửa sổ và trần nhà
+            # luôn thẳng đứng tự nhiên, triệt tiêu hoàn toàn lỗi nghiêng chéo 45 độ
+            s.setWaveCorrection(True)
         except Exception:
             pass
         try:
             s.setPanoConfidenceThresh(confidence)
         except Exception:
             pass
+        try:
+            s.setRegistrationResol(0.6)
+        except Exception:
+            pass
+        try:
+            s.setSeamEstimationResol(0.1)
+        except Exception:
+            pass
         return s
 
-    candidate_schemes = []
-    num_total = len(sorted_paths)
-    if num_total > 8:
-        candidate_schemes.append((8, 1600, 0.8))    # Chuẩn tỷ lệ vàng: 8 ảnh 45° step, conf 0.8 -> không gian phẳng 1:1 tuyệt đối
-        candidate_schemes.append((8, 1600, 0.5))    # Dự phòng 1: 8 ảnh, độ nhạy cao hơn
-        candidate_schemes.append((10, 1500, 0.6))   # Dự phòng 2: 10 ảnh
-        candidate_schemes.append((12, 1400, 0.6))   # Dự phòng 3: 12 ảnh
-        candidate_schemes.append((16, 1200, 0.5))   # Dự phòng 4: 16 ảnh
-    candidate_schemes.append((num_total, 1200 if num_total <= 20 else 900, 0.4)) # Dự phòng cuối: tất cả ảnh
+    # Chuẩn bị danh sách khung hình đại diện tối ưu
+    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=26)
+    print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã chắt lọc chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
 
-    status = -1
-    stitched = None
-    used_imgs = ()
+    candidate_schemes = [
+        # (danh_sách_ảnh, max_dim, conf, mô_tả)
+        (optimal_paths, 1400, 0.25, "Độ nét cao (Conf 0.25, MaxDim 1400px)"),
+        (optimal_paths, 1200, 0.15, "Tăng cường độ nhạy sáng trong phòng (Conf 0.15, MaxDim 1200px)"),
+        (sorted_paths, 1100, 0.10, "Quét toàn bộ ảnh đầu vào (Conf 0.10, MaxDim 1100px)"),
+        (optimal_paths if len(optimal_paths) <= 20 else sorted_paths, 900, 0.04, "Quét vét độ nhạy cao (Conf 0.04, MaxDim 900px)")
+    ]
 
-    for (k_count, max_dim, conf) in candidate_schemes:
-        if k_count < num_total:
-            indices = np.linspace(0, num_total - 1, k_count, dtype=int)
-            cur_paths = [sorted_paths[i] for i in indices]
-            print(f"[*] Thử nghiệm ghép tối ưu quang học {k_count}/{num_total} khung hình đại diện (max_dim={max_dim}px, góc quét 360° tự nhiên)...", file=sys.stderr)
-        else:
-            cur_paths = sorted_paths
-            print(f"[*] Ghép trọn bộ {num_total} ảnh đầu vào (max_dim={max_dim}px)...", file=sys.stderr)
+    best_pano = None
+    best_status = -1
+    best_used = ()
+    best_hfov = None
+    best_score = -1
 
+    for (cur_paths, max_dim, conf, desc) in candidate_schemes:
+        print(f"[*] Thử nghiệm ghép: {desc} với {len(cur_paths)} ảnh...", file=sys.stderr)
         images = []
         load_ok = True
         for p in cur_paths:
@@ -406,6 +450,8 @@ def run_stitch(image_paths, output_path, target_width=0):
                 break
             try:
                 img = load_and_orient_image(p, max_dim=max_dim)
+                if conf <= 0.15:
+                    img = balance_indoor_lighting(img)
                 images.append(img)
             except Exception:
                 load_ok = False
@@ -418,25 +464,46 @@ def run_stitch(image_paths, output_path, target_width=0):
         cur_stat, cur_pano = s.stitch(images)
         cur_used = s.component() if hasattr(s, 'component') else ()
 
-        min_accept = max(2, int(len(images) * 0.75))
-        if cur_stat == cv2.Stitcher_OK and len(cur_used) >= min_accept:
-            status = cur_stat
-            stitched = cur_pano
-            used_imgs = cur_used
-            print(f"[✓] Ghép thành công xuất sắc với {len(cur_used)}/{len(images)} khung hình (Độ phân giải thô: {cur_pano.shape[1]}x{cur_pano.shape[0]}px).", file=sys.stderr)
-            break
+        if cur_stat == cv2.Stitcher_OK and cur_pano is not None:
+            # Ước tính góc quét ngang thực tế (HFOV) từ tiêu cự camera
+            estimated_hfov = None
+            try:
+                cams = s.cameras()
+                focals = [c.focal for c in cams if c.focal > 0]
+                if len(focals) > 0:
+                    med_f = float(np.median(focals))
+                    estimated_hfov = (cur_pano.shape[1] / med_f) * (180.0 / np.pi)
+            except Exception:
+                pass
+
+            if estimated_hfov is None:
+                ar = float(cur_pano.shape[1]) / float(cur_pano.shape[0])
+                estimated_hfov = min(360.0, max(50.0, ar * 52.0))
+
+            used_ratio = len(cur_used) / float(len(images))
+            score = (used_ratio * 100.0) + min(200.0, estimated_hfov * 0.6)
+
+            print(f"[✓] Ghép thành công {len(cur_used)}/{len(images)} ảnh (HFOV ~{estimated_hfov:.1f}°, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
+
+            if score > best_score:
+                best_score = score
+                best_pano = cur_pano
+                best_status = cur_stat
+                best_used = cur_used
+                best_hfov = estimated_hfov
+
+            # Nếu đã kết nối trọn vẹn (>= 85% ảnh) và phủ rộng (HFOV >= 310°), hoàn tất ngay
+            if used_ratio >= 0.85 and estimated_hfov >= 310.0:
+                print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
+                break
         else:
-            print(f"[!] Gói {len(images)} ảnh chưa đạt (stat={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Chuyển sang cấu hình tiếp theo...", file=sys.stderr)
+            print(f"[!] Lượt ghép chưa đạt (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Tiếp tục thử phương án tiếp theo...", file=sys.stderr)
 
-    if status != cv2.Stitcher_OK and stitched is None:
-        # Nếu các mức tối ưu đều chưa đủ, thử lần cuối với tất cả ảnh ở confidence siêu nhạy 0.02
-        print(f"[*] Kích hoạt lần quét vét toàn bộ {num_total} ảnh ở độ nhạy cao (Confidence 0.02)...", file=sys.stderr)
-        all_imgs = [load_and_orient_image(p, max_dim=900) for p in sorted_paths if os.path.exists(p)]
-        s_fallback = build_stitcher(confidence=0.02)
-        status, stitched = s_fallback.stitch(all_imgs)
-        used_imgs = s_fallback.component() if hasattr(s_fallback, 'component') else ()
+    status = best_status
+    stitched = best_pano
+    used_imgs = best_used
 
-    print(f"[*] Kết quả ghép OpenCV: Mã trạng thái={status}, Số ảnh thực tế kết nối: {len(used_imgs)}/{len(images)} ảnh.", file=sys.stderr)
+    print(f"[*] Kết quả ghép OpenCV tốt nhất: Mã={status}, Số ảnh thực tế kết nối: {len(used_imgs)} ảnh, HFOV ước tính: {best_hfov if best_hfov else 0:.1f}°.", file=sys.stderr)
 
     STATUS_MAP = {
         cv2.Stitcher_OK: "OK",
@@ -447,7 +514,7 @@ def run_stitch(image_paths, output_path, target_width=0):
 
     status_name = STATUS_MAP.get(status, f"UNKNOWN_ERROR_{status}")
 
-    if status != cv2.Stitcher_OK:
+    if status != cv2.Stitcher_OK or stitched is None:
         error_details = {
             "ERR_NEED_MORE_IMGS": "Không đủ ảnh hoặc độ chồng lấp (overlap) giữa các ảnh quá ít. Khi chụp bằng điện thoại, hai ảnh kề nhau cần có ít nhất 30%-40% cảnh chung.",
             "ERR_HOMOGRAPHY_EST_FAIL": "Không thể ước lượng ma trận tương đồng (Homography). Nguyên nhân thường do cảnh thiếu hoa văn nhận diện hoặc ảnh bị nhòe mờ khi lia máy nhanh.",
@@ -462,8 +529,8 @@ def run_stitch(image_paths, output_path, target_width=0):
     print("[*] Ghép ảnh thành công! Đang cắt sạch viền đen và nắn chỉnh Equirectangular 2:1...", file=sys.stderr)
     cropped = crop_black_borders(stitched)
 
-    # Chuẩn hóa về tỷ lệ Equirectangular 2:1
-    equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width)
+    # Chuẩn hóa về tỷ lệ Equirectangular 2:1 với HFOV thực tế
+    equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width, hfov=best_hfov)
 
     # Tăng cường độ sắc nét và cân bằng ánh sáng bảo tàng chuyên nghiệp
     print("[*] Đang áp dụng thuật toán CLAHE & Unsharp Masking tăng cường độ tương phản và chi tiết cổ vật...", file=sys.stderr)
