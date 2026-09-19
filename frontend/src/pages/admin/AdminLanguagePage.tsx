@@ -106,25 +106,12 @@ export const AdminLanguagePage: React.FC = () => {
 
       const speechText = testTexts[lang.code] || `Welcome to the Museum of History in ${lang.nativeName}`;
 
-      // 1. PHÁT TIẾNG NÓI TRỰC TIẾP QUA LOA THIẾT BỊ (TỨC THÌ 0MS)
+      // Tắt bất kỳ âm thanh phát trước đó để tránh trùng tiếng
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(speechText);
-        const localeMap: Record<string, string> = {
-          vi: 'vi-VN',
-          en: 'en-US',
-          fr: 'fr-FR',
-          ja: 'ja-JP',
-          zh: 'zh-CN',
-          ko: 'ko-KR',
-          de: 'de-DE'
-        };
-        utterance.lang = localeMap[lang.code] || lang.code;
-        utterance.rate = 0.92;
-        window.speechSynthesis.speak(utterance);
       }
 
-      // 2. GỌI BACKEND SINH FILE MP3 TĨNH ĐỂ NẠP VÀO TRÌNH PHÁT
+      // Gọi backend sinh và nạp file MP3 phòng thu chuẩn từ Google TTS
       const res = await api.generateTtsAudio({
         text: speechText,
         langCode: lang.code,
@@ -136,8 +123,14 @@ export const AdminLanguagePage: React.FC = () => {
         : `${window.location.origin}${res.audioUrl}`;
 
       setPreviewAudio(audioUrl);
-      showToast(`Đang phát mẫu giọng đọc AI [${lang.nativeName}]`, 'info');
+      showToast(`Đang phát giọng đọc AI [${lang.nativeName}]`, 'info');
     } catch (err: any) {
+      // Fallback: nếu lỗi mạng mới phát qua giọng đọc trình duyệt
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        const fallbackUtterance = new SpeechSynthesisUtterance(`Welcome to Museum of History in ${lang.nativeName}`);
+        fallbackUtterance.lang = lang.code;
+        window.speechSynthesis.speak(fallbackUtterance);
+      }
       showToast('Lỗi thử giọng đọc AI: ' + err.message, 'error');
     } finally {
       setTestingCode(null);
