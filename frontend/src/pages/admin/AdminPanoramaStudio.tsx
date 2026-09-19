@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ArrowLeft,
   MapPin,
@@ -13,7 +13,12 @@ import {
   Info,
   Compass,
   Link2,
-  ArrowUpRight
+  ArrowUpRight,
+  Volume2,
+  VolumeX,
+  Play,
+  Pause,
+  Globe
 } from 'lucide-react';
 import { MuseumRoom, Hotspot } from '../../types';
 import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
@@ -48,6 +53,104 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [panoramas, setPanoramas] = useState<Array<{ filename: string; url: string; created_at: number }>>([]);
+
+  // Voice AI Audio Guide Widget State
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const [voiceLang, setVoiceLang] = useState('vi');
+  const [showScriptPopup, setShowScriptPopup] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Danh mục ngôn ngữ thuyết minh có sẵn cho gian phòng hiện tại
+  const availableLangs = useMemo(() => {
+    const langs: Array<{ code: string; label: string; flag: string; audioUrl?: string; script?: string }> = [
+      {
+        code: 'vi',
+        label: 'Tiếng Việt',
+        flag: '🇻🇳',
+        audioUrl: currentRoom.translations?.vi?.audioUrl,
+        script: currentRoom.translations?.vi?.narrationScript || currentRoom.aiScript || currentRoom.description
+      }
+    ];
+
+    if (currentRoom.translations) {
+      for (const [code, trans] of Object.entries(currentRoom.translations)) {
+        if (code !== 'vi' && (trans.narrationScript || trans.audioUrl)) {
+          const flag = code === 'en' ? '🇬🇧' : code === 'ja' ? '🇯🇵' : code === 'th' ? '🇹🇭' : code === 'fr' ? '🇫🇷' : '🌐';
+          langs.push({
+            code,
+            label: code === 'en' ? 'English' : code === 'ja' ? '日本語' : code === 'th' ? 'ไทย' : code.toUpperCase(),
+            flag,
+            audioUrl: trans.audioUrl,
+            script: trans.narrationScript
+          });
+        }
+      }
+    }
+    return langs;
+  }, [currentRoom]);
+
+  // Dừng phát âm thanh khi chuyển phòng
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlayingVoice(false);
+  }, [currentRoom.id]);
+
+  // Bật/Tắt phát âm thanh thuyết minh
+  const handleToggleVoice = () => {
+    if (isPlayingVoice) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setIsPlayingVoice(false);
+      return;
+    }
+
+    const currentLangObj = availableLangs.find((l) => l.code === voiceLang) || availableLangs[0];
+    const audioUrl = currentLangObj?.audioUrl;
+
+    if (audioUrl) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(audioUrl);
+      } else {
+        audioRef.current.src = audioUrl;
+      }
+
+      audioRef.current.onended = () => setIsPlayingVoice(false);
+      audioRef.current.onerror = () => {
+        setIsPlayingVoice(false);
+        showToast('Không thể phát file âm thanh', 'error');
+      };
+
+      audioRef.current
+        .play()
+        .then(() => {
+          setIsPlayingVoice(true);
+        })
+        .catch((e) => {
+          console.warn('Audio play failed:', e);
+          setIsPlayingVoice(false);
+        });
+    } else if (currentLangObj?.script && 'speechSynthesis' in window) {
+      // Dùng Web Speech API nếu chưa tạo file MP3 tĩnh
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(currentLangObj.script);
+      utterance.lang = voiceLang === 'vi' ? 'vi-VN' : voiceLang === 'en' ? 'en-US' : voiceLang === 'ja' ? 'ja-JP' : 'vi-VN';
+      utterance.onend = () => setIsPlayingVoice(false);
+      utterance.onerror = () => setIsPlayingVoice(false);
+      window.speechSynthesis.speak(utterance);
+      setIsPlayingVoice(true);
+    } else {
+      showToast('Gian phòng chưa có nội dung thuyết minh cho ngôn ngữ này', 'info');
+    }
+  };
 
   // Fetch Kho ảnh 360° đã ghép nối
   useEffect(() => {
@@ -235,6 +338,140 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
           initialYaw={currentRoom.initialView?.yaw ?? 0}
           initialHfov={currentRoom.initialView?.fov ?? 100}
         />
+
+        {/* Floating Voice AI Audio Guide Widget (Góc trái ngay dưới badge tên phòng) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 70,
+            left: 20,
+            zIndex: 25,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'rgba(26, 23, 21, 0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(212, 168, 106, 0.4)',
+            borderRadius: 30,
+            padding: '5px 14px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            color: '#EDE5DF',
+            fontSize: '12.5px'
+          }}
+        >
+          {/* Nút Play/Pause phát giọng nói */}
+          <button
+            type="button"
+            onClick={handleToggleVoice}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              border: 'none',
+              background: isPlayingVoice ? '#DC2626' : 'var(--accent-gold)',
+              color: isPlayingVoice ? '#FFF' : '#160F0C',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: isPlayingVoice ? '0 0 12px rgba(220, 38, 38, 0.6)' : '0 2px 8px rgba(212, 168, 106, 0.4)'
+            }}
+            title={isPlayingVoice ? 'Tạm dừng giọng thuyết minh' : 'Phát thuyết minh Voice AI cho phòng này'}
+          >
+            {isPlayingVoice ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 2 }} />}
+          </button>
+
+          {/* Chọn ngôn ngữ thuyết minh */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '11.5px', color: 'var(--accent-gold)', fontWeight: 600 }}>
+              {isPlayingVoice ? 'Đang đọc:' : 'Thuyết minh:'}
+            </span>
+            <select
+              value={voiceLang}
+              onChange={(e) => {
+                const newLang = e.target.value;
+                setVoiceLang(newLang);
+                if (isPlayingVoice) {
+                  setIsPlayingVoice(false);
+                  if (audioRef.current) audioRef.current.pause();
+                  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                }
+              }}
+              style={{
+                background: 'rgba(0,0,0,0.45)',
+                color: '#FFF',
+                border: '1px solid rgba(212, 168, 106, 0.35)',
+                borderRadius: 14,
+                padding: '3px 8px',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              {availableLangs.map((lang) => (
+                <option key={lang.code} value={lang.code} style={{ background: '#1A1715', color: '#FFF' }}>
+                  {lang.flag} {lang.label} {lang.audioUrl ? '🔊' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Nút xem kịch bản đang đọc */}
+          <button
+            type="button"
+            onClick={() => setShowScriptPopup((prev) => !prev)}
+            style={{
+              background: showScriptPopup ? 'rgba(212, 168, 106, 0.25)' : 'transparent',
+              border: 'none',
+              color: showScriptPopup ? 'var(--accent-gold)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            title="Xem kịch bản lời đọc thuyết minh"
+          >
+            <Info size={15} />
+          </button>
+        </div>
+
+        {/* Popup hiển thị kịch bản thuyết minh */}
+        {showScriptPopup && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 118,
+              left: 20,
+              zIndex: 25,
+              maxWidth: 380,
+              background: 'rgba(26, 23, 21, 0.94)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(212, 168, 106, 0.4)',
+              borderRadius: 12,
+              padding: '12px 16px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
+              color: '#EDE5DF'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, fontSize: '11.5px', fontWeight: 600, color: 'var(--accent-gold)' }}>
+              <span>Lời thuyết minh [{voiceLang.toUpperCase()}]:</span>
+              <button
+                type="button"
+                onClick={() => setShowScriptPopup(false)}
+                style={{ background: 'transparent', border: 'none', color: '#999', cursor: 'pointer', fontSize: '13px' }}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ margin: 0, fontSize: '12.5px', lineHeight: 1.6, color: '#F3EFEA', maxHeight: 160, overflowY: 'auto' }}>
+              {(availableLangs.find((l) => l.code === voiceLang) || availableLangs[0])?.script || 'Chưa có kịch bản thuyết minh cho ngôn ngữ này.'}
+            </p>
+          </div>
+        )}
 
         {/* Hiệu ứng bước qua cửa chuyển cảnh mượt mà chuẩn Di Sản Bảo Tàng */}
         <div
