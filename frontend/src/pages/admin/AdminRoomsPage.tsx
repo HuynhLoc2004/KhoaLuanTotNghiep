@@ -23,6 +23,7 @@ import {
 import { MuseumRoom } from '../../types';
 import { NewRoomModal } from '../../components/NewRoomModal';
 import { Pannellum360Viewer } from '../../viewer360/Pannellum360Viewer';
+import { Pagination } from '../../components/Pagination';
 import { API_BASE } from '../../services/api';
 import { useToast } from '../../components/Toast';
 
@@ -172,6 +173,15 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     setShowNewModal(true);
   };
 
+  const [roomPage, setRoomPage] = useState(1);
+  const [panoPage, setPanoPage] = useState(1);
+  const PAGE_SIZE = 6;
+
+  useEffect(() => {
+    setRoomPage(1);
+    setPanoPage(1);
+  }, [searchQuery, activeSubTab]);
+
   const filteredRooms = rooms.filter(
     (r) =>
       r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -182,6 +192,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const filteredPanos = panoramas.filter((p) =>
     p.filename.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const paginatedRooms = filteredRooms.slice((roomPage - 1) * PAGE_SIZE, roomPage * PAGE_SIZE);
+  const paginatedPanos = filteredPanos.slice((panoPage - 1) * PAGE_SIZE, panoPage * PAGE_SIZE);
 
   const totalHotspots = rooms.reduce((acc, r) => acc + (r.hotspots?.length || 0), 0);
 
@@ -222,15 +235,16 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid #E2E8F0',
+            borderBottom: '1px solid var(--border-color)',
             padding: '12px 20px',
-            background: '#F8FAFC',
+            background: 'var(--bg-subtle)',
             flexWrap: 'wrap',
             gap: 12
           }}
         >
           <div style={{ display: 'flex', gap: 8 }}>
             <button
+              type="button"
               onClick={() => setActiveSubTab('rooms')}
               style={{
                 display: 'flex',
@@ -238,13 +252,12 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 gap: 8,
                 padding: '8px 16px',
                 borderRadius: '8px',
-                border: 'none',
-                fontWeight: 700,
+                border: '1px solid ' + (activeSubTab === 'rooms' ? 'var(--border-color)' : 'transparent'),
+                fontWeight: 600,
                 fontSize: '13.5px',
                 cursor: 'pointer',
-                background: activeSubTab === 'rooms' ? '#FFFFFF' : 'transparent',
-                color: activeSubTab === 'rooms' ? '#8B261D' : '#64748B',
-                boxShadow: activeSubTab === 'rooms' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
+                background: activeSubTab === 'rooms' ? 'var(--bg-surface)' : 'transparent',
+                color: activeSubTab === 'rooms' ? 'var(--primary)' : 'var(--text-muted)'
               }}
             >
               <Compass size={16} />
@@ -252,6 +265,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={() => setActiveSubTab('gallery')}
               style={{
                 display: 'flex',
@@ -259,13 +273,12 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 gap: 8,
                 padding: '8px 16px',
                 borderRadius: '8px',
-                border: 'none',
-                fontWeight: 700,
+                border: '1px solid ' + (activeSubTab === 'gallery' ? 'var(--border-color)' : 'transparent'),
+                fontWeight: 600,
                 fontSize: '13.5px',
                 cursor: 'pointer',
-                background: activeSubTab === 'gallery' ? '#FFFFFF' : 'transparent',
-                color: activeSubTab === 'gallery' ? '#2563EB' : '#64748B',
-                boxShadow: activeSubTab === 'gallery' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
+                background: activeSubTab === 'gallery' ? 'var(--bg-surface)' : 'transparent',
+                color: activeSubTab === 'gallery' ? 'var(--primary)' : 'var(--text-muted)'
               }}
             >
               <Globe size={16} />
@@ -342,9 +355,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           </div>
         </div>
 
-
         {/* Search Header */}
-        <div className="panel-header" style={{ borderBottom: '1px solid #E2E8F0', padding: '14px 20px' }}>
+        <div className="panel-header" style={{ borderBottom: '1px solid var(--border-color)', padding: '14px 20px' }}>
           <div style={{ position: 'relative', flex: 1, maxWidth: 360 }}>
             <input
               type="text"
@@ -376,63 +388,88 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
         {/* TAB 1: GIAN PHÒNG TOUR 360 */}
         {activeSubTab === 'rooms' && (
-          <div className="rooms-grid">
-            {filteredRooms.map((room) => (
-              <div key={room.id} className="room-card">
-                <div className="room-thumbnail-wrapper">
-                  <img src={room.thumbnailUrl} alt={room.name} className="room-thumbnail" />
-                  <div className="room-badge-code">{room.code}</div>
-                  <div className="room-badge-hotspots">
-                    <MapPin size={12} />
-                    <span>{room.hotspots?.length || 0} điểm kết nối</span>
+          <>
+            <div className="rooms-grid">
+              {paginatedRooms.map((room) => (
+                <div key={room.id} className="room-card">
+                  <div className="room-thumbnail-wrapper">
+                    <img src={room.thumbnailUrl} alt={room.name} className="room-thumbnail" />
+                    <div className="room-badge-code">{room.code}</div>
+                    <div className="room-badge-hotspots">
+                      <MapPin size={12} />
+                      <span>{room.hotspots?.length || 0} điểm kết nối</span>
+                    </div>
+                  </div>
+
+                  <div className="room-info">
+                    <div className="room-name">{room.name}</div>
+                    <div className="room-period">{room.period}</div>
+                    <div className="room-desc">{room.description}</div>
+
+                    <div className="room-actions">
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => onOpenStudio(room)}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                      >
+                        <Compass size={14} />
+                        <span>Biên tập Tour 360</span>
+                      </button>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        title="Xóa phòng"
+                        onClick={() => {
+                          if (confirm(`Bạn có chắc muốn xóa gian phòng "${room.name}"?`)) {
+                            onDeleteRoom(room.id);
+                          }
+                        }}
+                        style={{ color: '#EF4444' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))}
 
-                <div className="room-info">
-                  <div className="room-name">{room.name}</div>
-                  <div className="room-period">{room.period}</div>
-                  <div className="room-desc">{room.description}</div>
-
-                  <div className="room-actions">
+              {filteredRooms.length === 0 && (
+                <div className="empty-state-card" style={{ gridColumn: '1 / -1' }}>
+                  <div className="empty-state-icon">
+                    <Compass size={26} />
+                  </div>
+                  <div className="empty-state-title">
+                    {searchQuery ? 'Không tìm thấy gian phòng phù hợp' : 'Chưa có gian phòng trưng bày nào'}
+                  </div>
+                  <div className="empty-state-desc">
+                    {searchQuery
+                      ? `Không tìm thấy gian phòng nào khớp với từ khóa "${searchQuery}". Bạn vui lòng kiểm tra lại tên hoặc mã phòng.`
+                      : 'Bắt đầu bằng việc thêm gian phòng mới để thiết lập không gian tham quan 360° cho khách trực tuyến.'}
+                  </div>
+                  {!searchQuery && (
                     <button
+                      type="button"
                       className="btn btn-primary btn-sm"
-                      onClick={() => onOpenStudio(room)}
-                      style={{ flex: 1, justifyContent: 'center' }}
-                    >
-                      <Compass size={14} />
-                      <span>Biên tập Tour 360</span>
-                    </button>
-
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      title="Xóa phòng"
                       onClick={() => {
-                        if (confirm(`Bạn có chắc muốn xóa gian phòng "${room.name}"?`)) {
-                          onDeleteRoom(room.id);
-                        }
+                        setSelectedPanoForNewRoom(undefined);
+                        setShowNewModal(true);
                       }}
-                      style={{ color: '#EF4444' }}
                     >
-                      <Trash2 size={14} />
+                      <Plus size={14} />
+                      <span>Thêm gian phòng đầu tiên</span>
                     </button>
-                  </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
 
-            {filteredRooms.length === 0 && (
-              <div
-                style={{
-                  gridColumn: '1 / -1',
-                  textAlign: 'center',
-                  padding: '48px 20px',
-                  color: 'var(--text-muted)'
-                }}
-              >
-                Không tìm thấy gian phòng nào phù hợp với từ khóa tìm kiếm.
-              </div>
-            )}
-          </div>
+            <Pagination
+              currentPage={roomPage}
+              totalItems={filteredRooms.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setRoomPage}
+            />
+          </>
         )}
 
         {/* TAB 2: KHO KHÔNG GIAN 360° ĐÃ TẠO */}
@@ -444,14 +481,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 <div>Đang tải kho không gian 360° từ hệ thống...</div>
               </div>
             ) : filteredPanos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#64748B' }}>
-                <FolderOpen size={40} style={{ color: '#CBD5E1', margin: '0 auto 12px' }} />
-                <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                  Chưa có không gian 360° nào trong kho
-                </h4>
-                <p style={{ fontSize: '13px', maxWidth: '420px', margin: '0 auto' }}>
-                  Vào menu <strong>"Tự Động Ghép 360 (PoC)"</strong> bên trái để chụp hoặc tải ảnh ghép phòng 360° đầu tiên.
-                </p>
+              <div className="empty-state-card">
+                <div className="empty-state-icon">
+                  <FolderOpen size={28} />
+                </div>
+                <div className="empty-state-title">
+                  {searchQuery ? 'Không tìm thấy ảnh 360° phù hợp' : 'Chưa có ảnh 360° nào trong kho lưu trữ'}
+                </div>
+                <div className="empty-state-desc">
+                  {searchQuery
+                    ? `Không tìm thấy ảnh 360° nào khớp với từ khóa "${searchQuery}". Vui lòng thử tìm kiếm với tên file khác.`
+                    : 'Hãy sử dụng tính năng "Tạo ảnh toàn cảnh 360°" ở thanh điều hướng bên trái để chụp hoặc ghép ảnh đầu tiên.'}
+                </div>
               </div>
             ) : (
               <div
@@ -461,7 +502,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   gap: '20px'
                 }}
               >
-                {filteredPanos.map((item, idx) => (
+                {paginatedPanos.map((item, idx) => (
                   <div
                     key={item.filename || idx}
                     style={{
@@ -651,6 +692,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 ))}
               </div>
             )}
+
+            <Pagination
+              currentPage={panoPage}
+              totalItems={filteredPanos.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPanoPage}
+            />
           </div>
         )}
       </div>

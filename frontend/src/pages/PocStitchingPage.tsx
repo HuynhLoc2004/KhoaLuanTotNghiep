@@ -29,6 +29,8 @@ import {
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../services/api';
 import { useToast } from '../components/Toast';
+import { ShootingGuideModal } from '../components/ShootingGuideModal';
+import { Pagination } from '../components/Pagination';
 
 interface StitchedHistoryItem {
   filename: string;
@@ -87,7 +89,9 @@ export const PocStitchingPage: React.FC = () => {
   const [historyList, setHistoryList] = useState<StitchedHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [copiedHistoryUrl, setCopiedHistoryUrl] = useState<string | null>(null);
-  const [showGuide, setShowGuide] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 6;
 
   const viewerSectionRef = useRef<HTMLDivElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
@@ -446,6 +450,12 @@ export const PocStitchingPage: React.FC = () => {
   const failedCount = verifiedFrames.filter((f) => f.evaluation && !f.evaluation.passed).length;
   const totalFrames = verifiedFrames.length + batchFiles.length;
 
+  const totalHistoryPages = Math.ceil(historyList.length / HISTORY_PAGE_SIZE);
+  const paginatedHistory = historyList.slice(
+    (historyPage - 1) * HISTORY_PAGE_SIZE,
+    historyPage * HISTORY_PAGE_SIZE
+  );
+
   return (
     <div className="studio-layout">
       {/* Top Header */}
@@ -456,7 +466,7 @@ export const PocStitchingPage: React.FC = () => {
             Tạo & Ghép Ảnh Toàn Cảnh 360°
           </h2>
           <p>
-            Hệ thống chụp và thẩm định chùm ảnh góc bằng thuật toán thị giác máy tính OpenCV để tạo không gian toàn cảnh Equirectangular.
+            Chụp trực tiếp bằng camera điện thoại hoặc tải lên chùm ảnh góc để ghép thành không gian tham quan 360° hoàn chỉnh.
           </p>
         </div>
       </div>
@@ -521,38 +531,15 @@ export const PocStitchingPage: React.FC = () => {
                 </label>
               </div>
 
-              {/* Collapsible Guide */}
-              <div className="studio-guide-box">
-                <button
-                  type="button"
-                  className="studio-guide-toggle"
-                  onClick={() => setShowGuide(!showGuide)}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Info size={14} style={{ color: 'var(--accent-gold)' }} />
-                    Hướng dẫn kỹ thuật chụp chuẩn
-                  </span>
-                  {showGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
-                {showGuide && (
-                  <div className="studio-guide-content">
-                    <ul>
-                      <li>
-                        <strong>Đứng cố định tại 1 vị trí</strong>: Không di chuyển bước chân để tránh lỗi thị sai (Parallax Error).
-                      </li>
-                      <li>
-                        <strong>Xoay tại chỗ từng góc ~30°</strong>: Giữ điện thoại ngang ngực, xoay đều một vòng tròn 360°.
-                      </li>
-                      <li>
-                        <strong>Chế độ PANO</strong>: Có thể dùng trực tiếp tính năng Panorama trên điện thoại rồi bấm "Chọn từ máy" tải lên.
-                      </li>
-                      <li>
-                        <strong>Quyền máy ảnh</strong>: Nếu trình duyệt báo lỗi, nhấn vào biểu tượng ổ khóa cạnh thanh địa chỉ → Quyền trang web → Bật Máy ảnh (Cho phép).
-                      </li>
-                    </ul>
-                  </div>
-                )}
-              </div>
+              {/* Guide Button opening slide-up modal */}
+              <button
+                type="button"
+                className="studio-guide-btn"
+                onClick={() => setIsGuideModalOpen(true)}
+              >
+                <HelpCircle size={15} style={{ color: 'var(--accent-gold)' }} />
+                <span>Hướng dẫn cách chụp ảnh 360° chuẩn</span>
+              </button>
 
               {/* Status summary if frames present */}
               {totalFrames > 0 && (
@@ -586,7 +573,7 @@ export const PocStitchingPage: React.FC = () => {
                         <div className="studio-frame-meta">
                           {frame.isVerifying ? (
                             <span style={{ color: 'var(--info)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Loader2 size={12} className="spin" /> Đang thẩm định...
+                              <Loader2 size={12} className="spin" /> Đang kiểm tra chất lượng...
                             </span>
                           ) : frame.evaluation ? (
                             <>
@@ -627,6 +614,32 @@ export const PocStitchingPage: React.FC = () => {
                 </div>
               )}
 
+              {/* Processing Progress Status */}
+              {isProcessing && (
+                <div style={{
+                  padding: '12px 14px',
+                  backgroundColor: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <Loader2 size={18} className="spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
+                      {currentStep <= 1 && 'Đang kiểm tra và tải ảnh lên...'}
+                      {currentStep === 2 && 'Đang phân tích các điểm nối giữa các góc ảnh...'}
+                      {currentStep === 3 && 'Đang căn chỉnh và dựng hình cầu 360°...'}
+                      {currentStep >= 4 && 'Đang hoàn thiện và tối ưu hóa không gian...'}
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 2 }}>
+                      Quá trình có thể mất vài giây, vui lòng không tắt trang...
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Stitch trigger button */}
               <button
                 type="button"
@@ -638,7 +651,7 @@ export const PocStitchingPage: React.FC = () => {
                 {isProcessing ? (
                   <>
                     <Loader2 size={16} className="spin" />
-                    <span>Đang xử lý thuật toán OpenCV...</span>
+                    <span>Đang ghép nối toàn cảnh 360°...</span>
                   </>
                 ) : (
                   <>
@@ -725,16 +738,26 @@ export const PocStitchingPage: React.FC = () => {
                     Chưa có không gian 360° được tải
                   </div>
                   <div className="studio-empty-desc">
-                    Sử dụng camera điện thoại hoặc tải ảnh PANO lên từ bảng điều khiển bên trái. Thuật toán sẽ ghép và hiển thị không gian 3D tương tác tại đây.
+                    Chụp trực tiếp bằng điện thoại, tải ảnh PANO lên từ bảng điều khiển bên trái, hoặc bấm xem thử không gian mẫu để làm quen giao diện.
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={handleLoadDemoPano}
-                  >
-                    <Eye size={14} />
-                    <span>Xem ảnh mẫu 360°</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleLoadDemoPano}
+                    >
+                      <Eye size={14} />
+                      <span>Xem thử không gian mẫu</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setIsGuideModalOpen(true)}
+                    >
+                      <HelpCircle size={14} />
+                      <span>Xem hướng dẫn chụp</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -780,79 +803,96 @@ export const PocStitchingPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="studio-history-grid">
-              {historyList.map((item, idx) => (
-                <div key={item.filename || idx} className="studio-history-card">
-                  <div
-                    className="studio-history-thumb"
-                    onClick={() => handleSelectHistoryPano(item)}
-                    title="Bấm để xem trong trình xem 360°"
-                  >
-                    <img
-                      src={item.url}
-                      alt={item.filename}
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                    <div className="studio-history-badge">
-                      Equirectangular 360°
-                    </div>
-                  </div>
-
-                  <div className="studio-history-body">
-                    <div className="studio-history-name" title={item.filename}>
-                      {item.filename}
-                    </div>
-
-                    <div className="studio-history-meta">
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Clock size={12} />
-                        {new Date(item.createdAt).toLocaleDateString('vi-VN')}
-                      </span>
-                      <span>{(item.size / (1024 * 1024)).toFixed(2)} MB</span>
-                    </div>
-
-                    <div className="studio-history-actions">
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleSelectHistoryPano(item)}
-                        style={{ flex: 1, justifyContent: 'center' }}
-                      >
-                        <Eye size={12} />
-                        <span>Xem</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          handleCopyHistoryUrl(item.url);
-                          showToast('Đã sao chép link ảnh 360°', 'success');
+            <>
+              <div className="studio-history-grid">
+                {paginatedHistory.map((item, idx) => (
+                  <div key={item.filename || idx} className="studio-history-card">
+                    <div
+                      className="studio-history-thumb"
+                      onClick={() => handleSelectHistoryPano(item)}
+                      title="Bấm để xem trong trình xem 360°"
+                    >
+                      <img
+                        src={item.url}
+                        alt={item.filename}
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
                         }}
-                        title="Sao chép link"
-                      >
-                        {copiedHistoryUrl === item.url ? <Check size={12} /> : <Copy size={12} />}
-                      </button>
+                      />
+                      <div className="studio-history-badge">
+                        Equirectangular 360°
+                      </div>
+                    </div>
 
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleDeleteHistoryPano(item.filename)}
-                        title="Xóa khỏi máy chủ"
-                        style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                    <div className="studio-history-body">
+                      <div className="studio-history-name" title={item.filename}>
+                        {item.filename}
+                      </div>
+
+                      <div className="studio-history-meta">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={12} />
+                          {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
+                        <span>{(item.size / (1024 * 1024)).toFixed(2)} MB</span>
+                      </div>
+
+                      <div className="studio-history-actions">
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleSelectHistoryPano(item)}
+                          style={{ flex: 1, justifyContent: 'center' }}
+                        >
+                          <Eye size={12} />
+                          <span>Xem</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            handleCopyHistoryUrl(item.url);
+                            showToast('Đã sao chép link ảnh 360°', 'success');
+                          }}
+                          title="Sao chép link"
+                        >
+                          {copiedHistoryUrl === item.url ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleDeleteHistoryPano(item.filename)}
+                          title="Xóa khỏi máy chủ"
+                          style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+
+              {historyList.length > HISTORY_PAGE_SIZE && (
+                <Pagination
+                  currentPage={historyPage}
+                  totalItems={historyList.length}
+                  pageSize={HISTORY_PAGE_SIZE}
+                  onPageChange={setHistoryPage}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
+
+      {/* Guide Slide-up Modal */}
+      <ShootingGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
-import { ChevronRight, ShieldCheck, Menu } from 'lucide-react';
+import { ChevronRight, ShieldCheck, Menu, Sun, Moon } from 'lucide-react';
 import { AdminTab, MuseumRoom } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
   currentTab: AdminTab;
@@ -15,6 +16,8 @@ export const Header: React.FC<HeaderProps> = ({
   onBackToRooms,
   onToggleSidebar
 }) => {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <header className="admin-header">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -47,6 +50,24 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-actions">
+        {/* Nút chuyển đổi Giao diện Tối / Sáng */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="theme-toggle-btn"
+          title={theme === 'dark' ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối'}
+          aria-label="Chuyển chế độ màu"
+        >
+          {theme === 'dark' ? (
+            <Sun size={17} style={{ color: '#FCD34D' }} />
+          ) : (
+            <Moon size={17} style={{ color: '#64748B' }} />
+          )}
+          <span className="theme-toggle-label">
+            {theme === 'dark' ? 'Giao diện Tối' : 'Giao diện Sáng'}
+          </span>
+        </button>
+
         <div className="status-badge-live">
           <span className="status-dot" />
           <span className="status-badge-text">API: Trực tuyến</span>

@@ -12,9 +12,12 @@ Thumbs.db
 # Uploads & Temp files
 backend/public/uploads/*
 !backend/public/uploads/.gitkeep
+public/uploads/*
 thumb_*.jpg
 *.pyc
 __pycache__/
 .tempmediaStorage/
 temp_*/
+scratch/
+Test/
 

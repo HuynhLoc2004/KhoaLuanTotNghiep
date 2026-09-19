@@ -1,5 +1,5 @@
 :root {
-  /* Heritage Museum Palette */
+  /* Heritage Museum Palette - Light Mode */
   --primary: #8B261D;
   --primary-hover: #701A12;
   --primary-light: #FDF2F2;
@@ -9,11 +9,11 @@
   --accent-gold-light: #FEF3C7;
   --accent-gold-border: #FCD34D;
 
-  --bg-page: #F8FAFC;
+  --bg-page: #F1F5F9;
   --bg-surface: #FFFFFF;
-  --bg-subtle: #F1F5F9;
+  --bg-subtle: #E2E8F0;
 
-  --text-main: #0F172A;
+  --text-main: #1E293B;
   --text-muted: #64748B;
   --text-light: #94A3B8;
 
@@ -44,7 +44,50 @@
   --radius-md: 6px;
   --radius-lg: 8px;
 
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Dark Mode Theme Tokens */
+[data-theme="dark"] {
+  --primary: #A8281F;
+  --primary-hover: #8C1F17;
+  --primary-light: rgba(168, 40, 31, 0.18);
+  --primary-border: rgba(168, 40, 31, 0.35);
+
+  --accent-gold: #D97706;
+  --accent-gold-light: rgba(217, 119, 6, 0.15);
+  --accent-gold-border: rgba(217, 119, 6, 0.3);
+
+  --bg-page: #0B0F19;
+  --bg-surface: #151D2C;
+  --bg-subtle: #1E293B;
+
+  --text-main: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-light: #64748B;
+
+  --border-color: #243042;
+  --border-dark: #334155;
+
+  --success: #4ADE80;
+  --success-bg: rgba(74, 222, 128, 0.12);
+  --success-border: rgba(74, 222, 128, 0.25);
+
+  --warning: #FBBF24;
+  --warning-bg: rgba(251, 191, 36, 0.12);
+  --warning-border: rgba(251, 191, 36, 0.25);
+
+  --error: #F87171;
+  --error-bg: rgba(248, 113, 113, 0.12);
+  --error-border: rgba(248, 113, 113, 0.25);
+
+  --info: #60A5FA;
+  --info-bg: rgba(96, 165, 250, 0.12);
+  --info-border: rgba(96, 165, 250, 0.25);
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -59,6 +102,8 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 button {

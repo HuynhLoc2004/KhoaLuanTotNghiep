@@ -19,12 +19,14 @@ const AppContent: React.FC = () => {
   const [activeRoom, setActiveRoom] = useState<MuseumRoom | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLagging, setIsLagging] = useState(false);
 
   // Fetch all rooms from API
   const fetchRooms = async () => {
     try {
       setLoading(true);
       setError(null);
+      setIsLagging(false);
       const data = await api.getRooms();
       setRooms(data);
     } catch (err: any) {
@@ -34,6 +36,16 @@ const AppContent: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let timer: any;
+    if (loading) {
+      timer = setTimeout(() => setIsLagging(true), 4000);
+    } else {
+      setIsLagging(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   useEffect(() => {
     fetchRooms();
@@ -132,14 +144,29 @@ const AppContent: React.FC = () => {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 12,
+              gap: 14,
+              padding: 32,
               color: 'var(--text-muted)'
             }}
           >
             <Loader2 size={32} className="spin" style={{ color: 'var(--primary)' }} />
-            <div style={{ fontSize: 14, fontWeight: 500 }}>
-              Đang kết nối hệ thống dữ liệu Bảo tàng Lịch sử...
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-main)' }}>
+              Đang tải dữ liệu không gian bảo tàng...
             </div>
+            {isLagging && (
+              <div style={{ textAlign: 'center', maxWidth: 360, marginTop: 4 }}>
+                <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 12 }}>
+                  Kết nối máy chủ đang mất nhiều thời gian hơn dự kiến do đường truyền mạng.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={fetchRooms}
+                >
+                  Tải lại dữ liệu
+                </button>
+              </div>
+            )}
           </div>
         ) : error ? (
           <div
@@ -205,11 +232,15 @@ const AppContent: React.FC = () => {
   );
 };
 
+import { ThemeProvider } from './context/ThemeContext';
+
 export const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <AppContent />
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </ThemeProvider>
   );
 };
 
