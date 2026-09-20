@@ -8,7 +8,7 @@ import { AdminPanoramaStudio } from './pages/admin/AdminPanoramaStudio';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { MuseumRoom, AdminTab } from './types';
 import { api } from './services/api';
-import { Loader2, AlertCircle, Landmark } from 'lucide-react';
+import { Loader2, AlertCircle, Landmark, RefreshCw } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -58,6 +58,18 @@ const AppContent: React.FC = () => {
       fetchRooms();
     }
   }, [user]);
+
+  // Tự động kiểm tra sức khỏe máy chủ và kết nối lại khi gặp sự cố mất kết nối / bảo trì
+  useEffect(() => {
+    if (!error) return;
+    const interval = setInterval(async () => {
+      const isOnline = await api.checkHealth();
+      if (isOnline) {
+        fetchRooms();
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [error]);
 
   // Xử lý deep link: Quét QR hoặc mở liên kết ?room=CODE hoặc ?room=ID
   useEffect(() => {
@@ -275,18 +287,122 @@ const AppContent: React.FC = () => {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 14,
-              color: 'var(--text-muted)',
-              padding: 24
+              padding: '40px 24px',
+              textAlign: 'center'
             }}
           >
-            <AlertCircle size={36} style={{ color: '#EF4444' }} />
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-main)' }}>
-              {error}
+            <div
+              style={{
+                maxWidth: 520,
+                width: '100%',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 16,
+                padding: '36px 28px',
+                boxShadow: '0 16px 40px rgba(0, 0, 0, 0.4)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '4px 12px',
+                  borderRadius: 9999,
+                  background: 'rgba(217, 119, 6, 0.12)',
+                  border: '1px solid rgba(217, 119, 6, 0.3)',
+                  color: '#FBBF24',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  marginBottom: 20
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: '#FBBF24',
+                    display: 'inline-block'
+                  }}
+                />
+                MÁY CHỦ ĐANG KHỞI ĐỘNG LẠI HOẶC BẢO TRÌ
+              </div>
+
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 16,
+                  background: 'rgba(140, 45, 25, 0.15)',
+                  border: '1px solid rgba(140, 45, 25, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--primary)',
+                  marginBottom: 16
+                }}
+              >
+                <Landmark size={32} />
+              </div>
+
+              <h2
+                style={{
+                  fontSize: 19,
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
+                  marginBottom: 10
+                }}
+              >
+                Hệ Thống Đang Nâng Cấp & Khởi Động Lại
+              </h2>
+
+              <p
+                style={{
+                  fontSize: 13.5,
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.6,
+                  marginBottom: 24,
+                  maxWidth: 420
+                }}
+              >
+                Máy chủ vừa được triển khai mã nguồn mới hoặc đang khởi động lại dịch vụ.
+                Trang sẽ tự động đồng bộ và nạp lại dữ liệu ngay khi hệ thống trực tuyến.
+              </p>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 13,
+                  color: '#FBBF24',
+                  marginBottom: 20
+                }}
+              >
+                <Loader2 size={16} className="spin" />
+                <span>Đang tự động thăm dò tín hiệu máy chủ (mỗi 3s)...</span>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={fetchRooms}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 24px',
+                  fontWeight: 600
+                }}
+              >
+                <RefreshCw size={16} />
+                Thử kết nối lại ngay
+              </button>
             </div>
-            <button className="btn btn-primary" onClick={fetchRooms}>
-              Thử kết nối lại
-            </button>
           </div>
         ) : currentTab === 'studio' && activeRoom ? (
           <AdminPanoramaStudio

@@ -262,8 +262,17 @@ export const api = {
     const res = await fetch(`${API_BASE}/auth/me`, {
       headers: getAuthHeaders(false)
     });
+    if (!res.ok) {
+      const err: any = new Error(`HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
     const json = await res.json();
-    if (!json.success) throw new Error(json.message || 'Phiên đăng nhập không hợp lệ');
+    if (!json.success) {
+      const err: any = new Error(json.message || 'Phiên đăng nhập không hợp lệ');
+      err.status = res.status;
+      throw err;
+    }
     return json.user;
   },
 
@@ -296,5 +305,16 @@ export const api = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi cập nhật vai trò');
     return json.role;
+  },
+
+  async checkHealth(): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/health?t=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 };

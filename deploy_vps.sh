@@ -65,11 +65,33 @@ server {
 
     client_max_body_size 100M;
 
+    # Cấu hình chế độ bảo trì hệ thống (Maintenance Mode)
+    set $maintenance 0;
+    if (-f /var/www/museum/maintenance.flag) {
+        set $maintenance 1;
+    }
+    # Ngoại lệ: Không áp dụng bảo trì cho trang bảo trì, favicon, assets và healthcheck
+    if ($uri ~* "^/(maintenance\.html|favicon\.svg|icons\.svg|assets/|api/health)") {
+        set $maintenance 0;
+    }
+    if ($maintenance = 1) {
+        return 503;
+    }
+
+    # Bắt lỗi khi backend khởi động lại hoặc tạm ngắt kết nối
+    error_page 502 503 504 /maintenance.html;
+
+    location = /maintenance.html {
+        root /var/www/museum;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+    }
+
     # Frontend Single Page App (Pannellum 360 WebGL)
     location / {
         root /var/www/museum;
         index index.html;
         try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
     }
 
     # Backend REST API

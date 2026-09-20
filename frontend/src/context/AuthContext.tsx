@@ -43,11 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           setToken(null);
         }
-      } catch (err) {
-        console.warn('[AuthContext] Phiên đăng nhập hết hạn hoặc không hợp lệ:', err);
-        localStorage.removeItem(TOKEN_KEY);
-        setUser(null);
-        setToken(null);
+      } catch (err: any) {
+        // Chỉ xóa token nếu máy chủ xác nhận lỗi 401 (hết hạn) hoặc 403 (không có quyền)
+        // Nếu là lỗi ngắt kết nối mạng / 502 / 503 / máy chủ đang khởi động lại, bảo lưu token
+        if (err?.status === 401 || err?.status === 403) {
+          console.warn('[AuthContext] Phiên đăng nhập hết hạn hoặc không có quyền:', err);
+          localStorage.removeItem(TOKEN_KEY);
+          setUser(null);
+          setToken(null);
+        } else {
+          console.warn('[AuthContext] Máy chủ đang bảo trì hoặc khởi động lại, bảo lưu phiên đăng nhập:', err);
+          setToken(savedToken);
+        }
       } finally {
         setIsLoading(false);
       }
