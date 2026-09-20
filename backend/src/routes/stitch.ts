@@ -49,7 +49,7 @@ const upload = multer({
 });
 
 const uploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  upload.array('images', 50)(req, res, (err: any) => {
+  upload.array('images', 150)(req, res, (err: any) => {
     if (err) {
       console.warn('[Multer Warning]:', err.message);
       return res.status(400).json({

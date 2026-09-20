@@ -186,8 +186,7 @@ export const WebcamCaptureModal: React.FC<WebcamCaptureModalProps> = ({
                 <video ref={videoRef} playsInline muted />
               </div>
               <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '10px 0 0' }}>
-                Giữ nguyên vị trí chân, xoay máy khoảng 15 đến 20 độ sau mỗi lần bấm chụp. Cần từ 16 đến 24 góc
-                để phủ trọn 360 độ gian phòng.
+                Giữ nguyên vị trí chân, xoay máy khoảng 10 đến 20 độ sau mỗi lần bấm chụp để phủ trọn 360 độ gian phòng.
               </p>
             </>
           )}

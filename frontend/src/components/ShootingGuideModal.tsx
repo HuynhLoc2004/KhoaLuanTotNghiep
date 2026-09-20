@@ -60,7 +60,7 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
               <div className="guide-step-info">
                 <div className="guide-step-heading">Xoay người tại chỗ ~30° mỗi góc</div>
                 <div className="guide-step-text">
-                  Chụp một tấm, sau đó nhích xoay người sang bên một góc nhỏ (~30°) để chụp tiếp. Bạn chỉ cần khoảng 8 đến 12 góc là phủ trọn 360° gian phòng.
+                  Chụp một tấm, sau đó nhích xoay người sang bên một góc nhỏ để chụp tiếp. Hệ thống hỗ trợ linh hoạt từ 8 đến 24 góc cơ bản đến chùm ảnh dày 50 – 100 góc để tạo không gian 360° siêu chi tiết.
                 </div>
               </div>
             </div>

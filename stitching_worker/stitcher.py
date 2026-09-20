@@ -17,6 +17,7 @@ import argparse
 import re
 import cv2
 import numpy as np
+import gc
 from PIL import Image, ImageOps
 
 # Đảm bảo stdout/stderr luôn dùng UTF-8 trên Windows để không bị lỗi UnicodeEncodeError
@@ -409,56 +410,92 @@ def run_stitch(image_paths, output_path, target_width=0):
     sorted_paths = sorted(image_paths, key=natural_sort_key)
     num_total = len(sorted_paths)
 
-    def select_optimal_keyframes(paths, max_target=48):
+    def select_optimal_keyframes(paths, max_target=36):
         """
-        Chắt lọc các khung hình đại diện quanh chuỗi quay:
-        - Với chùm ít ảnh (<= 12 ảnh): Giữ nguyên 100% tất cả các góc chụp để bảo toàn tối đa không gian.
-        - Với chùm nhiều ảnh (> 12 ảnh): Loại bỏ các khung hình trùng lặp đứng yên tại chỗ (< 1.2% khác biệt).
-        - Giữ lại chuỗi khung hình liên tục (20-26 ảnh) để độ gối đầu (overlap) luôn đạt 50-65%,
-          triệt tiêu hoàn toàn lỗi lệch tâm (drift/parallax) mà vẫn xử lý siêu tốc, không bị quá tải CPU hay timeout.
+        Chắt lọc chuỗi khung hình đại diện quanh quỹ đạo xoay 360°:
+        - Với chùm ít ảnh (<= 16 ảnh): Giữ nguyên 100% tất cả các góc chụp để bảo toàn tối đa không gian.
+        - Với chùm vừa (17 - 35 ảnh): Loại bỏ các khung hình trùng lặp đứng yên tại chỗ (< 0.8% khác biệt), giữ 20-30 ảnh.
+        - Với chùm lớn (36 - 120 ảnh, ví dụ 50 - 100 ảnh):
+          1. Đọc thumbnail grayscale siêu nhẹ (160x120) tốn <2MB RAM cho 100 ảnh.
+          2. Loại bỏ các khung hình đứng yên trùng góc (diff < 1.2%).
+          3. Áp dụng Cumulative Motion Sampling (lấy mẫu tích lũy theo biến thiên quang học):
+             Chia đều tổng lượng biến thiên chuyển động quanh vòng tròn để chọn ra chính xác 30 - 36
+             khung hình chủ chốt với độ chồng lấp lý tưởng 50% - 65%.
+          4. Luôn ghim khung hình đầu tiên (paths[0]) và khung hình cuối cùng (paths[-1]) để đảm bảo
+             khép kín trọn vẹn chuỗi quang học vòng tròn 360°.
         """
-        if len(paths) <= 12:
+        n = len(paths)
+        if n <= 16:
             return paths
 
-        kept = [paths[0]]
-        prev_thumb = None
-        try:
-            t = cv2.imread(paths[0], cv2.IMREAD_GRAYSCALE)
-            if t is not None:
-                prev_thumb = cv2.resize(t, (160, 120))
-        except Exception:
-            pass
-
-        diff_threshold = 1.2 if len(paths) > 20 else 0.8
-        min_required = 16 if len(paths) > 20 else len(paths)
-
-        for i in range(1, len(paths) - 1):
-            p = paths[i]
+        # Đọc thumbnail grayscale siêu nhẹ cho từng ảnh
+        thumbs = []
+        valid_paths = []
+        for p in paths:
             try:
-                curr = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
-                if curr is None:
-                    continue
-                thumb = cv2.resize(curr, (160, 120))
-                if prev_thumb is not None:
-                    diff = float(np.mean(cv2.absdiff(prev_thumb, thumb)))
-                    # Bỏ qua nếu người chụp đứng yên một góc chụp lặp lại nhiều tấm
-                    remaining = len(paths) - i
-                    if diff < diff_threshold and (len(kept) + remaining) > min_required:
-                        continue
-                kept.append(p)
-                prev_thumb = thumb
+                t = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
+                if t is not None:
+                    thumbs.append(cv2.resize(t, (160, 120)))
+                    valid_paths.append(p)
             except Exception:
-                kept.append(p)
+                pass
 
-        kept.append(paths[-1])
+        if len(valid_paths) <= 16:
+            return paths
 
-        # Đảm bảo tối đa 26 khung hình tối ưu để giải phóng thời gian đối sánh N*(N-1)/2 trên VPS
-        target_limit = min(max_target, 26)
-        if len(kept) > target_limit:
-            indices = np.linspace(0, len(kept) - 1, target_limit, dtype=int)
-            kept = [kept[idx] for idx in indices]
+        # 1. Tính biến thiên chuyển động liên tiếp giữa các khung hình kề nhau
+        motion_diffs = [0.0]
+        for i in range(1, len(thumbs)):
+            d = float(np.mean(cv2.absdiff(thumbs[i - 1], thumbs[i])))
+            motion_diffs.append(d)
 
-        return kept
+        # 2. Lọc sơ bộ các khung hình đứng yên trùng lặp (trừ frame đầu và cuối)
+        threshold = 1.2 if n >= 40 else 0.8
+        filtered_paths = [valid_paths[0]]
+        filtered_diffs = [motion_diffs[0]]
+
+        for i in range(1, len(valid_paths) - 1):
+            # Nếu chênh lệch quá bé (< threshold) thì người dùng bấm trùng góc hoặc lia quá chậm
+            if motion_diffs[i] >= threshold or n <= 24:
+                filtered_paths.append(valid_paths[i])
+                filtered_diffs.append(motion_diffs[i])
+
+        filtered_paths.append(valid_paths[-1])
+        filtered_diffs.append(max(0.1, motion_diffs[-1]))
+
+        target_limit = min(max_target, 36)
+        if len(filtered_paths) <= target_limit:
+            return filtered_paths
+
+        # 3. Lấy mẫu tích lũy đều theo chuyển động quang học (Cumulative Motion Sampling)
+        cum_motion = np.cumsum(filtered_diffs)
+        total_motion = cum_motion[-1]
+
+        if total_motion <= 1e-3:
+            # Trường hợp chuyển động quá ít, lấy đều theo chỉ số
+            indices = np.linspace(0, len(filtered_paths) - 1, target_limit, dtype=int)
+            return [filtered_paths[idx] for idx in indices]
+
+        sampled_indices = [0]
+        step_motion = total_motion / float(target_limit - 1)
+
+        for step in range(1, target_limit - 1):
+            target_val = step * step_motion
+            idx = int(np.searchsorted(cum_motion, target_val))
+            idx = min(idx, len(filtered_paths) - 2)
+            if idx > sampled_indices[-1]:
+                sampled_indices.append(idx)
+
+        sampled_indices.append(len(filtered_paths) - 1)
+
+        final_indices = sorted(list(set(sampled_indices)))
+        if len(final_indices) < target_limit and len(filtered_paths) > len(final_indices):
+            indices_set = set(final_indices)
+            for idx in np.linspace(0, len(filtered_paths) - 1, target_limit, dtype=int):
+                indices_set.add(idx)
+            final_indices = sorted(list(indices_set))
+
+        return [filtered_paths[i] for i in final_indices]
 
     cv2.ocl.setUseOpenCL(False)
 
@@ -476,19 +513,23 @@ def run_stitch(image_paths, output_path, target_width=0):
             pass
         try:
             # Registration resolution:
-            # 0.52 Mpx cho chùm ảnh lớn (>=16 ảnh): Bắt trọn chi tiết kiến trúc sắc nét,
-            # giảm 65% thời gian đối sánh đặc trưng theo cặp N*(N-1)/2 trên CPU.
-            # 0.62 Mpx cho chùm ảnh ít góc (<16 ảnh) để khai thác tối đa độ nét vi mô.
-            reg_resol = 0.52 if num_images >= 16 else 0.62
+            # Khi num_images > 28 (chùm ảnh 30 - 100 ảnh): đặt 0.45 Mpx để đối sánh đặc trưng siêu tốc, giảm 60% RAM trên VPS.
+            # Khi num_images từ 16 - 28: đặt 0.52 Mpx.
+            # Khi ít ảnh (<16): đặt 0.62 Mpx để khai thác tối đa độ nét vi mô.
+            if num_images > 28:
+                reg_resol = 0.45
+            elif num_images >= 16:
+                reg_resol = 0.52
+            else:
+                reg_resol = 0.62
             s.setRegistrationResol(reg_resol)
         except Exception:
             pass
         try:
             # Seam estimation resolution:
-            # Đặt ở mức tối ưu 0.15 Mpx (nhanh gấp 6-8 lần so với 0.5 Mpx),
-            # triệt tiêu hoàn toàn nghẽn thuật toán GraphCut min-cut max-flow trên VPS.
-            # Vẫn bảo toàn đường cắt ghép tinh tế dọc theo gờ tường và cửa gỗ.
-            s.setSeamEstimationResol(0.15)
+            # Đặt ở mức tối ưu 0.12 - 0.15 Mpx để triệt tiêu hoàn toàn nghẽn GraphCut min-cut max-flow trên VPS.
+            seam_resol = 0.12 if num_images > 28 else 0.15
+            s.setSeamEstimationResol(seam_resol)
         except Exception:
             pass
         try:
@@ -500,32 +541,41 @@ def run_stitch(image_paths, output_path, target_width=0):
         return s
 
     # Chuẩn bị danh sách khung hình đại diện tối ưu
-    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=48)
+    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=36)
     print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã chắt lọc chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
 
     # Chiến lược ghép thích ứng thông minh:
     # 1. Nếu ít ảnh (<= 12 ảnh): Khoảng cách góc chụp lớn hơn nên diện tích gối đầu hẹp hơn.
     #    Khởi đầu với độ nhạy conf 0.14 và MaxDim 1350px để bắt trọn liên kết ngay lượt đầu tiên.
-    # 2. Nếu chùm ảnh tiêu chuẩn (13 - 20 ảnh): Khởi đầu với Conf 0.18 và MaxDim 1250px.
-    # 3. Nếu chùm ảnh lớn (>= 21 ảnh, như 25 ảnh thực tế của người dùng):
-    #    Khởi đầu với Conf 0.18 và MaxDim 1150px để xử lý mượt mà trong ~15-25s, hoàn toàn không bị timeout 300s.
+    # 2. Nếu chùm ảnh tiêu chuẩn (13 - 24 ảnh): Khởi đầu với Conf 0.18 và MaxDim 1250px.
+    # 3. Nếu chùm ảnh lớn (25 - 40 ảnh): Khởi đầu với Conf 0.18 và MaxDim 1150px.
+    # 4. Nếu chùm ảnh siêu lớn (41 - 100+ ảnh):
+    #    LUÔN dùng optimal_paths (30-36 keyframe) phân bổ đều theo chuyển động quang học.
+    #    Tuyệt đối không nạp cả 100 ảnh thô cùng lúc vào OpenCV để chống OOM tràn RAM và hoàn tất trong ~15-25s.
     if num_total <= 12:
         candidate_schemes = [
             (optimal_paths, 1350, 0.14, "Tối ưu chùm ảnh ít góc (Conf 0.14, MaxDim 1350px)"),
             (optimal_paths, 1150, 0.08, "Độ nhạy cao cho ảnh ít góc (Conf 0.08, MaxDim 1150px)"),
             (sorted_paths, 950, 0.03, "Quét vét nhạy sáng tối đa (Conf 0.03, MaxDim 950px)")
         ]
-    elif num_total <= 20:
+    elif num_total <= 24:
         candidate_schemes = [
             (optimal_paths, 1250, 0.18, "Cân bằng tốc độ & Độ nét cao (Conf 0.18, MaxDim 1250px)"),
             (optimal_paths, 1100, 0.12, "Tăng cường độ nhạy trong phòng (Conf 0.12, MaxDim 1100px)"),
-            (sorted_paths, 950, 0.04, "Quét vét độ nhạy cao (Conf 0.04, MaxDim 950px)")
+            (optimal_paths, 950, 0.04, "Quét vét độ nhạy cao (Conf 0.04, MaxDim 950px)")
         ]
-    else:
+    elif num_total <= 40:
         candidate_schemes = [
             (optimal_paths, 1150, 0.18, "Tốc độ cao & Gối đầu dày (Conf 0.18, MaxDim 1150px)"),
             (optimal_paths, 1000, 0.12, "Tăng cường độ nhạy phòng kín (Conf 0.12, MaxDim 1000px)"),
-            (optimal_paths if len(optimal_paths) <= 24 else sorted_paths, 900, 0.05, "Quét vét độ nhạy cao (Conf 0.05, MaxDim 900px)")
+            (optimal_paths, 900, 0.05, "Quét vét độ nhạy cao (Conf 0.05, MaxDim 900px)")
+        ]
+    else:
+        # Chùm ảnh lớn (50 - 100+ ảnh): Xử lý qua chuỗi quang học chắt lọc 30-36 ảnh, giải phóng RAM
+        candidate_schemes = [
+            (optimal_paths, 1100, 0.16, f"Chùm ảnh lớn ({num_total} ảnh) - Chuỗi quang học tốc độ cao (Conf 0.16, MaxDim 1100px)"),
+            (optimal_paths, 1000, 0.10, f"Chùm ảnh lớn ({num_total} ảnh) - Tăng nhạy chi tiết không gian (Conf 0.10, MaxDim 1000px)"),
+            (optimal_paths, 900, 0.04, f"Chùm ảnh lớn ({num_total} ảnh) - Quét vét toàn cảnh nhạy cao (Conf 0.04, MaxDim 900px)")
         ]
 
     best_pano = None
@@ -552,6 +602,11 @@ def run_stitch(image_paths, output_path, target_width=0):
                 break
 
         if not load_ok or len(images) < 2:
+            try:
+                del images
+                gc.collect()
+            except Exception:
+                pass
             continue
 
         s = build_stitcher(confidence=conf, num_images=len(images))
@@ -586,12 +641,24 @@ def run_stitch(image_paths, output_path, target_width=0):
                 best_used = cur_used
                 best_hfov = estimated_hfov
 
+            # Dọn dẹp bộ nhớ ảnh sau lượt ghép thành công
+            try:
+                del images
+                gc.collect()
+            except Exception:
+                pass
+
             # Nếu đã kết nối tốt (>= 80% ảnh) và phủ rộng (HFOV >= 295°), hoàn tất ngay
             if used_ratio >= 0.80 and estimated_hfov >= 295.0:
                 print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
                 break
         else:
             print(f"[!] Lượt ghép chưa đạt (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Tiếp tục thử phương án tiếp theo...", file=sys.stderr)
+            try:
+                del images
+                gc.collect()
+            except Exception:
+                pass
 
     status = best_status
     stitched = best_pano
