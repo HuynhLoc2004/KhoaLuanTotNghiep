@@ -19,7 +19,6 @@ const TAB_TITLES: Record<AdminTab, { label: string; parent?: string }> = {
   poc_stitching: { label: 'Xưởng Ghép Ảnh Toàn Cảnh 360°' },
   artifacts: { label: 'Hiện vật & Cổ vật di sản' },
   languages: { label: 'Quản trị Ngôn ngữ & Voice AI' },
-  translations: { label: 'Từ điển & Bản dịch Đa ngữ' },
   analytics: { label: 'Báo cáo & Thống kê' },
   settings: { label: 'Cấu hình hệ thống' }
 };

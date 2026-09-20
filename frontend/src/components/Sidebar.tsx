@@ -1,4 +1,4 @@
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, BookA } from 'lucide-react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose } from 'lucide-react';
 import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 
@@ -127,13 +127,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>Quản trị Ngôn ngữ & Voice AI</span>
         </button>
 
-        <button
-          className={`nav-item ${currentTab === 'translations' ? 'active' : ''}`}
-          onClick={() => handleItemClick('translations')}
-        >
-          <BookA size={16} />
-          <span>Từ điển & Bản dịch Đa ngữ</span>
-        </button>
 
         <button
           className={`nav-item ${currentTab === 'analytics' ? 'active' : ''}`}

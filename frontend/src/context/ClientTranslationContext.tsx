@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api, API_BASE } from '../services/api';
+import { API_BASE } from '../services/api';
 import { LanguageItem } from '../types';
 
 interface ClientTranslationContextType {
@@ -7,14 +7,70 @@ interface ClientTranslationContextType {
   activeLanguages: LanguageItem[];
   isLoading: boolean;
   changeLanguage: (langCode: string) => Promise<void>;
-  t: (key: string, defaultFallback?: string) => string;
   activeLanguageInfo: LanguageItem | undefined;
 }
 
 const ClientTranslationContext = createContext<ClientTranslationContextType | undefined>(undefined);
 
 const STORAGE_LANG_KEY = 'museum_client_lang';
-const CACHE_BUNDLE_PREFIX = 'museum_bundle_';
+
+// Chuyển mã ngôn ngữ nội bộ sang mã chuẩn của Google Translate
+const mapToGoogleLang = (code: string): string => {
+  const clean = code.toLowerCase().trim();
+  if (clean === 'zh' || clean === 'cn') return 'zh-CN';
+  if (clean === 'tw') return 'zh-TW';
+  return clean;
+};
+
+// Áp dụng dịch thuật tự động toàn bộ trang web
+const applyAutoTranslation = (targetCode: string) => {
+  const clean = targetCode.toLowerCase().trim();
+  const googleCode = mapToGoogleLang(clean);
+
+  try {
+    localStorage.setItem(STORAGE_LANG_KEY, clean);
+    document.documentElement.lang = clean;
+  } catch {
+    // Ignored
+  }
+
+  if (clean === 'vi') {
+    // Quay trở về tiếng Việt gốc: xóa sạch cookie googtrans trên mọi domain scope
+    const host = window.location.hostname;
+    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${host}; path=/;`;
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${host}; path=/;`;
+    
+    const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+    if (combo) {
+      combo.value = 'vi';
+      combo.dispatchEvent(new Event('change'));
+    }
+    // Reload để phục hồi DOM tiếng Việt nguyên bản hoàn hảo
+    setTimeout(() => {
+      window.location.reload();
+    }, 150);
+    return;
+  }
+
+  // Thiết lập cookie dịch toàn diện cho Google Translate Element
+  const cookieVal = `/vi/${googleCode}`;
+  const host = window.location.hostname;
+  document.cookie = `googtrans=${cookieVal}; path=/;`;
+  document.cookie = `googtrans=${cookieVal}; domain=${host}; path=/;`;
+  document.cookie = `googtrans=${cookieVal}; domain=.${host}; path=/;`;
+
+  const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+  if (combo) {
+    combo.value = googleCode;
+    combo.dispatchEvent(new Event('change'));
+  } else {
+    // Nếu widget đang khởi tạo, reload trang nhẹ để Google Translate áp dụng cookie tự động
+    setTimeout(() => {
+      window.location.reload();
+    }, 150);
+  }
+};
 
 export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentLang, setCurrentLang] = useState<string>(() => {
@@ -26,21 +82,9 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
   });
 
   const [activeLanguages, setActiveLanguages] = useState<LanguageItem[]>([]);
-  const [translations, setTranslations] = useState<Record<string, string>>(() => {
-    try {
-      const initialLang = localStorage.getItem(STORAGE_LANG_KEY) || 'vi';
-      const cached = localStorage.getItem(`${CACHE_BUNDLE_PREFIX}${initialLang}`);
-      if (cached) {
-        return JSON.parse(cached);
-      }
-    } catch {
-      // Ignored
-    }
-    return {};
-  });
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Load danh mục ngôn ngữ kích hoạt
+  // Tải danh sách các ngôn ngữ do Admin cấu hình kích hoạt
   const fetchActiveLanguages = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/languages/active`);
@@ -55,56 +99,35 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     }
   }, []);
 
-  // Tải gói từ điển tương ứng với ngôn ngữ
-  const fetchBundle = useCallback(async (langCode: string) => {
+  useEffect(() => {
+    fetchActiveLanguages();
+  }, [fetchActiveLanguages]);
+
+  // Tự động kiểm tra và duy trì ngôn ngữ đã chọn khi tải trang
+  useEffect(() => {
+    if (currentLang && currentLang !== 'vi') {
+      const timer = setTimeout(() => {
+        const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+        if (combo && combo.value !== mapToGoogleLang(currentLang)) {
+          combo.value = mapToGoogleLang(currentLang);
+          combo.dispatchEvent(new Event('change'));
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentLang]);
+
+  // Hàm chuyển đổi ngôn ngữ hiển thị
+  const changeLanguage = async (langCode: string) => {
+    const clean = langCode.toLowerCase().trim();
+    setCurrentLang(clean);
     setIsLoading(true);
     try {
-      const bundle = await api.getTranslationBundle(langCode);
-      setTranslations(bundle);
-      try {
-        localStorage.setItem(`${CACHE_BUNDLE_PREFIX}${langCode}`, JSON.stringify(bundle));
-      } catch {
-        // Ignored
-      }
-    } catch (err) {
-      console.warn(`[ClientTranslation] Lỗi nạp gói từ điển cho ${langCode}:`, err);
+      applyAutoTranslation(clean);
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchActiveLanguages();
-    fetchBundle(currentLang);
-  }, [fetchActiveLanguages, fetchBundle, currentLang]);
-
-  // Chuyển đổi ngôn ngữ
-  const changeLanguage = async (langCode: string) => {
-    const clean = langCode.toLowerCase().trim();
-    if (clean === currentLang) return;
-
-    setCurrentLang(clean);
-    try {
-      localStorage.setItem(STORAGE_LANG_KEY, clean);
-      document.documentElement.lang = clean;
-    } catch {
-      // Ignored
-    }
-
-    // Nạp gói bundle tương ứng
-    await fetchBundle(clean);
   };
-
-  // Hàm dịch nhanh O(1)
-  const t = useCallback(
-    (key: string, defaultFallback?: string): string => {
-      if (translations && translations[key]) {
-        return translations[key];
-      }
-      return defaultFallback !== undefined ? defaultFallback : key;
-    },
-    [translations]
-  );
 
   const activeLanguageInfo = activeLanguages.find((l) => l.code.toLowerCase() === currentLang.toLowerCase()) || {
     code: currentLang,
@@ -123,7 +146,6 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
         activeLanguages,
         isLoading,
         changeLanguage,
-        t,
         activeLanguageInfo
       }}
     >
