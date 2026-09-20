@@ -231,8 +231,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       showToast(`Đã nạp tư liệu lịch sử chuẩn cho ${aiDrawerRoom.name}`, 'info');
     } else {
       // Mẫu tổng quát nếu là phòng tùy biến
-      setAiKnowledgePrompt(`Bối cảnh lịch sử: Gian ${aiDrawerRoom.name} thuộc chuyên đề ${aiDrawerRoom.period} tại Bảo tàng Lịch sử TP.HCM. Trưng bày các hiện vật quý ghi dấu quá trình hình thành văn hóa và tiến trình phát triển.`);
-      setAiScript(`Chào mừng quý khách đến với ${aiDrawerRoom.name} tại Bảo tàng Lịch sử TP.HCM. Không gian này mang lại cho quý khách cái nhìn chân thực về các di sản tiêu biểu.`);
+      const museumTitle = branding.shortName || 'Bảo tàng';
+      setAiKnowledgePrompt(`Bối cảnh lịch sử: Gian ${aiDrawerRoom.name} thuộc chuyên đề ${aiDrawerRoom.period} tại ${museumTitle}. Trưng bày các hiện vật quý ghi dấu quá trình hình thành văn hóa và tiến trình phát triển.`);
+      setAiScript(`Chào mừng quý khách đến với ${aiDrawerRoom.name} tại ${museumTitle}. Không gian này mang lại cho quý khách cái nhìn chân thực về các di sản tiêu biểu.`);
       showToast('Đã nạp văn bản mẫu gợi ý', 'info');
     }
   };

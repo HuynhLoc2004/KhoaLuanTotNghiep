@@ -1085,6 +1085,104 @@ export const AdminSettingsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* 5. Preview Nắp Đáy Sàn 360 (Nadir Floor Mirror) */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Eye size={15} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                    Mô phỏng Nắp Đáy Sàn 360° (Nadir Mirror)
+                  </span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: 8,
+                    padding: '16px',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16
+                  }}
+                >
+                  {/* Mô phỏng nắp tròn Nadir */}
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: '50%',
+                      background: 'radial-gradient(circle, #2A1D15 0%, #0F0B08 100%)',
+                      border: '2px solid #D4A86A',
+                      boxShadow: '0 0 12px rgba(212, 168, 106, 0.25)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      textAlign: 'center',
+                      padding: 4
+                    }}
+                  >
+                    <div style={{ fontSize: 8, fontWeight: 800, color: '#D4A86A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {brandingForm.shortName || 'BẢO TÀNG'}
+                    </div>
+                    <div style={{ width: 24, height: 1, backgroundColor: '#8C2D19', margin: '2px 0' }} />
+                    <div style={{ fontSize: 6.5, color: '#E8D8C8', textTransform: 'uppercase' }}>
+                      {brandingForm.city || 'TOUR 360°'}
+                    </div>
+                  </div>
+
+                  <div style={{ flex: 1, fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: 2 }}>
+                      Che chân tripod & Khắc sâu thương hiệu
+                    </strong>
+                    Nắp đáy sàn trong không gian 360 (Three.js & Pannellum) tự động khắc tên bảo tàng và thành phố bằng chữ vàng đồng sang trọng.
+                  </div>
+                </div>
+              </div>
+
+              {/* 6. Preview Cổng Đăng Nhập & Tiêu Đề Tab */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Eye size={15} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                    Mô phỏng Tab Trình Duyệt & Cổng Đăng Nhập
+                  </span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: 8,
+                    padding: '12px 14px',
+                    border: '1px solid var(--border-color)',
+                    fontSize: 12
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'var(--bg-surface)', borderRadius: 6, border: '1px solid var(--border-color)', marginBottom: 8 }}>
+                    <Globe size={13} style={{ color: 'var(--accent-gold)' }} />
+                    <span style={{ fontSize: 11.5, color: 'var(--text-main)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {brandingForm.shortName || 'Bảo tàng'} - Hệ thống Tour 360 Không gian Di sản
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    Cổng Đăng Nhập hiển thị trang trọng tiêu đề <strong>{brandingForm.museumName?.toUpperCase() || 'TÊN BẢO TÀNG'}</strong> cùng copyright bản quyền chân trang.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -1696,25 +1794,35 @@ export const AdminSettingsPage: React.FC = () => {
                 }}
               >
                 {/* Emblem */}
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    margin: '0 auto 12px',
-                    background: 'linear-gradient(135deg, #8C2D19 0%, #6E2212 100%)',
-                    color: '#D4A86A',
-                    border: '1px solid rgba(212, 168, 106, 0.45)',
-                    borderRadius: 6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 14,
-                    fontWeight: 800,
-                    letterSpacing: 0.5
-                  }}
-                >
-                  BT
-                </div>
+                {branding.logoUrl ? (
+                  <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
+                    <img
+                      src={branding.logoUrl}
+                      alt=""
+                      style={{ maxHeight: 42, maxWidth: 100, objectFit: 'contain' }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      margin: '0 auto 12px',
+                      background: 'linear-gradient(135deg, #8C2D19 0%, #6E2212 100%)',
+                      color: '#D4A86A',
+                      border: '1px solid rgba(212, 168, 106, 0.45)',
+                      borderRadius: 6,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 14,
+                      fontWeight: 800,
+                      letterSpacing: 0.5
+                    }}
+                  >
+                    {branding.emblemText || 'BT'}
+                  </div>
+                )}
 
                 <div
                   style={{
@@ -1726,7 +1834,7 @@ export const AdminSettingsPage: React.FC = () => {
                     marginBottom: 6
                   }}
                 >
-                  Bảo tàng Lịch sử TP. Hồ Chí Minh
+                  {branding.museumName?.toUpperCase() || 'BẢO TÀNG'}
                 </div>
 
                 <div

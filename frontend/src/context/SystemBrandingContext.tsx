@@ -68,6 +68,24 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
     fetchBranding();
   }, []);
 
+  // Tự động đồng bộ Tiêu đề Tab trình duyệt (document.title) & Favicon theo thương hiệu bảo tàng
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const name = branding.shortName || branding.museumName || 'Bảo tàng Di sản';
+      document.title = `${name} - Hệ thống Tour 360 Không gian Di sản`;
+
+      if (branding.logoUrl) {
+        let favicon: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+        if (!favicon) {
+          favicon = document.createElement('link');
+          favicon.rel = 'icon';
+          document.head.appendChild(favicon);
+        }
+        favicon.href = branding.logoUrl;
+      }
+    }
+  }, [branding]);
+
   const handleUpdateBranding = async (patch: Partial<SystemBranding>): Promise<SystemBranding> => {
     const updated = await api.updateBranding(patch);
     setBranding(updated);

@@ -21,6 +21,7 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination } from '../../components/Pagination';
+import { useSystemBranding } from '../../context/SystemBrandingContext';
 
 export interface LanguagePreset {
   code: string;
@@ -59,6 +60,7 @@ export const GLOBAL_LANGUAGE_PRESETS: LanguagePreset[] = [
 
 export const AdminLanguagePage: React.FC = () => {
   const { showToast } = useToast();
+  const { branding } = useSystemBranding();
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -183,17 +185,18 @@ export const AdminLanguagePage: React.FC = () => {
   const handleTestVoice = async (lang: LanguageItem) => {
     try {
       setTestingCode(lang.code);
+      const mName = branding.museumName || 'Bảo tàng';
       const testTexts: Record<string, string> = {
-        vi: 'Kính chào quý khách đến với Bảo tàng Lịch sử Thành phố Hồ Chí Minh. Nơi lưu giữ ngàn năm văn hiến di sản phương Nam.',
-        en: 'Welcome to the Museum of History in Ho Chi Minh City. Preserving thousands of years of Southern Vietnamese heritage.',
-        fr: "Bienvenue au Musée d'Histoire de Hô Chi Minh-Ville. Gardien de millénaires de patrimoine du Sud Vietnamien.",
-        ja: 'ホーチミン市歴史博物館へようこそ。千年の歴史と南部ベトナムの文化遺産を保存しています。',
-        zh: '欢迎来到胡志明市历史博物馆，这里珍藏着越南南方数千年的珍贵文化遗产。',
-        ko: '호치민시 역사박물관에 오신 것을 환영합니다. 남부 베트남의 유구한 역사와 문화유산을 간직하고 있습니다.',
-        de: 'Willkommen im Historischen Museum von Ho-Chi-Minh-Stadt, dem Hüter des jahrtausendealten südvietnamesischen Kulturerbes.'
+        vi: `Kính chào quý khách đến với ${mName}. Nơi lưu giữ ngàn năm văn hiến di sản và lịch sử.`,
+        en: `Welcome to ${mName}. Preserving thousands of years of cultural heritage.`,
+        fr: `Bienvenue au ${mName}. Gardien de millénaires de patrimoine national.`,
+        ja: `${mName}へようこそ。千年の歴史と貴重な文化遺産を保存しています。`,
+        zh: `欢迎来到${mName}，这里珍藏着数千年的珍贵文化遗产。`,
+        ko: `${mName}에 오신 것을 환영합니다. 유구한 역사와 문화유산을 간직하고 있습니다.`,
+        de: `Willkommen im ${mName}, dem Hüter des jahrtausendealten Kulturerbes.`
       };
 
-      const speechText = testTexts[lang.code] || `Welcome to the Museum of History in ${lang.nativeName}`;
+      const speechText = testTexts[lang.code] || `Welcome to ${mName} in ${lang.nativeName}`;
 
       // Tắt bất kỳ âm thanh phát trước đó để tránh trùng tiếng
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -478,7 +481,7 @@ export const AdminLanguagePage: React.FC = () => {
                 </span>
               </div>
               <div className="heritage-stat-sub">
-                <span>Được thẩm định chuyên sâu cho Bảo tàng Lịch sử TP.HCM</span>
+                <span>Được thẩm định chuyên sâu cho {branding.shortName || 'Bảo tàng'}</span>
               </div>
             </div>
           </div>
