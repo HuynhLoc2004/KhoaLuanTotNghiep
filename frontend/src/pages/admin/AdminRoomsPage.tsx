@@ -1624,6 +1624,15 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             <div className="modal-body" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
               {/* Standee Print Preview Card */}
               <div className="standee-print-card" style={{ padding: '28px 20px', borderRadius: 16 }}>
+                {branding.logoUrl && (
+                  <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center', height: 46, alignItems: 'center' }}>
+                    <img
+                      src={branding.logoUrl}
+                      alt=""
+                      style={{ maxHeight: 44, maxWidth: 160, width: 'auto', height: 'auto', objectFit: 'contain' }}
+                    />
+                  </div>
+                )}
                 <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#8C2D19', marginBottom: 6 }}>
                   {branding.museumName?.toUpperCase() || 'BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH'}
                 </div>

@@ -29,7 +29,8 @@ import {
   MapPin,
   Mail,
   Trash2,
-  Landmark
+  Landmark,
+  Lock
 } from 'lucide-react';
 
 const DEFAULT_MUSEUM_TITLE = 'Hệ Thống Đang Nâng Cấp & Bảo Trì';
@@ -683,68 +684,111 @@ export const AdminSettingsPage: React.FC = () => {
                   <div style={{
                     padding: '14px 16px',
                     borderRadius: 8,
-                    background: 'var(--bg-subtle)',
-                    border: '1px solid var(--border-color)'
+                    background: brandingForm.logoUrl ? 'rgba(0, 0, 0, 0.15)' : 'var(--bg-subtle)',
+                    border: brandingForm.logoUrl ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid var(--border-color)',
+                    transition: 'all 0.2s ease'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
-                        2. Biểu trưng chữ viết tắt (Emblem dự phòng)
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+                      <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {brandingForm.logoUrl && <Lock size={14} style={{ color: '#F59E0B' }} />}
+                        <span>2. Biểu trưng chữ viết tắt (Emblem)</span>
                       </label>
-                      <span style={{ fontSize: 11, color: brandingForm.logoUrl ? 'var(--text-muted)' : 'var(--accent-gold)', fontWeight: 600 }}>
-                        {brandingForm.logoUrl ? 'Đang ẩn (Dự phòng khi không có ảnh logo)' : 'Đang được sử dụng'}
+                      <span style={{
+                        fontSize: 11,
+                        padding: '3px 9px',
+                        borderRadius: 4,
+                        fontWeight: 600,
+                        background: brandingForm.logoUrl ? 'rgba(245, 158, 11, 0.12)' : 'rgba(212, 168, 106, 0.12)',
+                        color: brandingForm.logoUrl ? '#F59E0B' : 'var(--accent-gold)',
+                        border: brandingForm.logoUrl ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(212, 168, 106, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}>
+                        {brandingForm.logoUrl ? (
+                          <>
+                            <Lock size={11} /> Đã khóa tính năng (Đang dùng Logo hình ảnh)
+                          </>
+                        ) : (
+                          'Đang được sử dụng'
+                        )}
                       </span>
                     </div>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
-                      Chỉ dùng khi bảo tàng chưa kịp có file ảnh logo. Hệ thống tạo một huy hiệu hình vuông sang trọng với các chữ hoa viết tắt (Ví dụ: BT, MT, VN).
-                    </p>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 8,
-                          background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
-                          border: '1px solid var(--accent-gold)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontFamily: 'serif',
-                          fontWeight: 800,
-                          fontSize: 17,
-                          color: '#FFF8F0',
-                          flexShrink: 0,
-                          opacity: brandingForm.logoUrl ? 0.45 : 1
-                        }}
-                        title={brandingForm.logoUrl ? 'Biểu trưng này bị ẩn vì bảo tàng đã có Logo hình ảnh' : 'Biểu trưng đang hiển thị'}
-                      >
-                        {brandingForm.emblemText || 'BT'}
+                    {brandingForm.logoUrl ? (
+                      /* Khi ĐÃ CÓ LOGO: Khóa hoàn toàn tính năng này, không hiển thị ô nhập để tránh nhầm lẫn */
+                      <div style={{
+                        fontSize: 12,
+                        color: 'var(--text-muted)',
+                        background: 'rgba(245, 158, 11, 0.06)',
+                        border: '1px dashed rgba(245, 158, 11, 0.25)',
+                        padding: '11px 14px',
+                        borderRadius: 6,
+                        margin: '6px 0 0 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        lineHeight: 1.5
+                      }}>
+                        <Lock size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />
+                        <span>
+                          Tính năng Biểu trưng chữ đã được <strong>khóa lại</strong> vì bạn đang kích hoạt Logo hình ảnh chính thức. Toàn bộ hệ thống sẽ ưu tiên hiển thị Logo ảnh này. Nếu muốn quay lại dùng chữ viết tắt, bạn chỉ cần bấm <strong>"Gỡ bỏ logo"</strong> ở mục 1.
+                        </span>
                       </div>
+                    ) : (
+                      /* Khi CHƯA CÓ LOGO: Cho phép nhập chữ viết tắt */
+                      <>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
+                          Chỉ dùng khi bảo tàng chưa kịp có file ảnh logo. Hệ thống tạo một huy hiệu hình vuông sang trọng với các chữ hoa viết tắt (Ví dụ: BT, MT, VN).
+                        </p>
 
-                      <div style={{ flex: 1 }}>
-                        <input
-                          type="text"
-                          className="input-field"
-                          maxLength={6}
-                          value={brandingForm.emblemText}
-                          onChange={(e) => setBrandingForm({ ...brandingForm, emblemText: e.target.value.toUpperCase() })}
-                          placeholder="Ví dụ: BT, MT, VN"
-                          required
-                          style={{
-                            maxWidth: 160,
-                            padding: '8px 12px',
-                            fontSize: 13,
-                            fontWeight: 700,
-                            letterSpacing: '1.5px',
-                            textAlign: 'center',
-                            backgroundColor: 'var(--bg-surface)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: 'var(--radius-sm, 6px)',
-                            color: 'var(--accent-gold)'
-                          }}
-                        />
-                      </div>
-                    </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 8,
+                              background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
+                              border: '1px solid var(--accent-gold)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontFamily: 'serif',
+                              fontWeight: 800,
+                              fontSize: 17,
+                              color: '#FFF8F0',
+                              flexShrink: 0
+                            }}
+                          >
+                            {brandingForm.emblemText || 'BT'}
+                          </div>
+
+                          <div style={{ flex: 1 }}>
+                            <input
+                              type="text"
+                              className="input-field"
+                              maxLength={6}
+                              value={brandingForm.emblemText}
+                              onChange={(e) => setBrandingForm({ ...brandingForm, emblemText: e.target.value.toUpperCase() })}
+                              placeholder="Ví dụ: BT, MT, VN"
+                              required
+                              style={{
+                                maxWidth: 160,
+                                padding: '8px 12px',
+                                fontSize: 13,
+                                fontWeight: 700,
+                                letterSpacing: '1.5px',
+                                textAlign: 'center',
+                                backgroundColor: 'var(--bg-surface)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-sm, 6px)',
+                                color: 'var(--accent-gold)'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 

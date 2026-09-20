@@ -33,13 +33,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
         {branding.logoUrl ? (
-          <div className="museum-logo-wrapper" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="museum-logo-wrapper" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, overflow: 'hidden' }}>
             <img
               src={branding.logoUrl}
               alt={branding.shortName}
               style={{
-                maxHeight: 38,
-                maxWidth: 48,
+                maxHeight: '100%',
+                maxWidth: '100%',
+                width: 'auto',
+                height: 'auto',
                 objectFit: 'contain',
                 display: 'block'
               }}
