@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { MaintenanceStatus, SystemInfo, SystemBranding } from '../../types';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { useClientTranslation } from '../../context/ClientTranslationContext';
 import {
   SlidersHorizontal,
   Globe,
@@ -59,6 +60,7 @@ const formatTime = (isoString?: string): string => {
 export const AdminSettingsPage: React.FC = () => {
   const { showToast } = useToast();
   const { branding, updateBranding } = useSystemBranding();
+  const { t } = useClientTranslation();
 
   const [settingsTab, setSettingsTab] = useState<'branding' | 'maintenance'>('branding');
   const [brandingForm, setBrandingForm] = useState<SystemBranding>(branding);
@@ -298,12 +300,12 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
             <div className="settings-header-text">
               <h1 className="settings-header-title">
-                Cấu hình Hệ thống & Đa Bảo Tàng
+                {t('settings.title', 'Cấu hình Hệ thống & Đa Bảo Tàng')}
               </h1>
               <p className="settings-header-desc">
                 {settingsTab === 'branding'
-                  ? 'Quản lý danh tính, logo, biểu trưng và thông tin liên hệ đa bảo tàng. Tự động đồng bộ 100% dữ liệu thật trên toàn hệ thống.'
-                  : 'Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.'}
+                  ? t('settings.descBranding', 'Quản lý danh tính, logo, biểu trưng và thông tin liên hệ đa bảo tàng. Tự động đồng bộ 100% dữ liệu thật trên toàn hệ thống.')
+                  : t('settings.descMaintenance', 'Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.')}
               </p>
             </div>
           </div>
@@ -314,11 +316,11 @@ export const AdminSettingsPage: React.FC = () => {
               className="btn btn-secondary btn-sm"
               onClick={handleManualRefresh}
               disabled={loading || refreshing}
-              title="Làm mới dữ liệu từ máy chủ và hạ tầng"
+              title={t('common.refresh', 'Làm mới')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
             >
               <RefreshCw size={14} className={refreshing || loading ? 'spin' : ''} />
-              <span>{refreshing ? 'Đang làm mới...' : 'Làm mới'}</span>
+              <span>{refreshing ? t('common.refreshing', 'Đang làm mới...') : t('common.refresh', 'Làm mới')}</span>
             </button>
 
             <a
@@ -329,7 +331,7 @@ export const AdminSettingsPage: React.FC = () => {
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
             >
               <Globe size={14} />
-              <span>Cổng tham quan</span>
+              <span>{t('settings.portal', 'Cổng tham quan')}</span>
             </a>
 
             <a
@@ -340,7 +342,7 @@ export const AdminSettingsPage: React.FC = () => {
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
             >
               <ExternalLink size={14} />
-              <span>Trang thông báo</span>
+              <span>{t('settings.noticePage', 'Trang thông báo')}</span>
             </a>
           </div>
         </div>
@@ -353,8 +355,8 @@ export const AdminSettingsPage: React.FC = () => {
             className={`btn settings-tab-btn ${settingsTab === 'branding' ? 'btn-primary' : 'btn-secondary'}`}
           >
             <Building2 size={16} />
-            <span className="tab-label-desktop">Nhận Diện & Đa Bảo Tàng (Multi-Museum)</span>
-            <span className="tab-label-short">Nhận Diện Bảo Tàng</span>
+            <span className="tab-label-desktop">{t('settings.tabBranding', 'Nhận Diện & Đa Bảo Tàng (Multi-Museum)')}</span>
+            <span className="tab-label-short">{t('settings.tabBrandingShort', 'Nhận Diện Bảo Tàng')}</span>
           </button>
 
           <button
@@ -363,8 +365,8 @@ export const AdminSettingsPage: React.FC = () => {
             className={`btn settings-tab-btn ${settingsTab === 'maintenance' ? 'btn-primary' : 'btn-secondary'}`}
           >
             <SlidersHorizontal size={16} />
-            <span className="tab-label-desktop">Vận Hành & Bảo Trì Hệ Thống</span>
-            <span className="tab-label-short">Vận Hành & Bảo Trì</span>
+            <span className="tab-label-desktop">{t('settings.tabMaintenance', 'Vận Hành & Bảo Trì Hệ Thống')}</span>
+            <span className="tab-label-short">{t('settings.tabMaintenanceShort', 'Vận Hành & Bảo Trì')}</span>
           </button>
         </div>
 

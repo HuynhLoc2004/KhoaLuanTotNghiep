@@ -58,9 +58,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {branding.emblemText || 'BT'}
             </div>
           )}
-          <div className="sidebar-title">
-            <span>{currentLang === 'vi' ? (branding.shortName || branding.museumName) : t('nav.breadcrumbMuseum', 'History Museum')}</span>
-            <span className="sidebar-sub">{currentLang === 'vi' ? 'TP. Hồ Chí Minh • Quản trị' : t('nav.adminRole', 'Administrator')}</span>
+          <div className="sidebar-title" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--heading-color)', lineHeight: 1.25 }}>
+              {currentLang === 'vi' ? (branding.shortName || branding.museumName) : t('nav.breadcrumbMuseum', 'History Museum')}
+            </span>
+            <span className="sidebar-sub" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              {currentLang === 'vi' ? 'TP. Hồ Chí Minh • Quản trị' : 'Ho Chi Minh City • Admin'}
+            </span>
           </div>
         </div>
 

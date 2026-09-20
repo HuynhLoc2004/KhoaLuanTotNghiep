@@ -114,9 +114,10 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
         if (!text) return;
         const trimmed = text.trim();
 
-        // 1. Khớp nguyên văn từ điển cụm từ
-        if (UNIVERSAL_PHRASE_MAP[trimmed]) {
-          const item = UNIVERSAL_PHRASE_MAP[trimmed];
+        // 1. Khớp nguyên văn từ điển cụm từ (hỗ trợ cả text node và original attribute)
+        const origText = node.parentElement?.getAttribute('data-i18n-orig') || trimmed;
+        if (UNIVERSAL_PHRASE_MAP[origText]) {
+          const item = UNIVERSAL_PHRASE_MAP[origText];
           const trans = item[targetLang] || item.en;
           if (trans && trans !== trimmed) {
             if (node.parentElement && !node.parentElement.hasAttribute('data-i18n-orig')) {
@@ -127,7 +128,7 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           }
         }
 
-        // 2. Thay thế các biến động số lượng phổ biến
+        // 2. Thay thế các biến động số lượng và nhãn linh hoạt
         let replaced = text;
         replaced = replaced.replace(/(\d+)\s+điểm neo/g, (_, n) => {
           const word = targetLang === 'en' ? 'anchor points' : targetLang === 'fr' ? "points d'ancrage" : targetLang === 'zh' ? '个锚点' : '箇所のスポット';
@@ -144,6 +145,44 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
         replaced = replaced.replace(/(\d+)\s+gian phòng/g, (_, n) => {
           const word = targetLang === 'en' ? 'rooms' : targetLang === 'fr' ? 'salles' : targetLang === 'zh' ? '个展厅' : '室';
           return `${n} ${word}`;
+        });
+        replaced = replaced.replace(/(\d+)\s+quốc gia & vùng lãnh thổ/g, (_, n) => {
+          const word = targetLang === 'en' ? 'countries & territories' : targetLang === 'fr' ? 'pays & territoires' : targetLang === 'zh' ? '个国家与地区' : '国・地域の言語';
+          return `${n} ${word}`;
+        });
+        replaced = replaced.replace(/(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => {
+          const word = targetLang === 'en' ? 'languages' : targetLang === 'fr' ? 'langues' : targetLang === 'zh' ? '种语言' : '言語';
+          return `${a} / ${b} ${word}`;
+        });
+        replaced = replaced.replace(/Tìm thấy\s+(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => {
+          const prefix = targetLang === 'en' ? 'Found' : targetLang === 'fr' ? 'Trouvé' : targetLang === 'zh' ? '已找到' : '検索結果';
+          const word = targetLang === 'en' ? 'languages' : targetLang === 'fr' ? 'langues' : targetLang === 'zh' ? '种语言' : '言語';
+          return `${prefix} ${a} / ${b} ${word}`;
+        });
+        replaced = replaced.replace(/Tốc độ:\s*([\d.]+)x\s*\|\s*Nhà cung cấp:\s*(.*)/g, (_, spd, prov) => {
+          const spdWord = targetLang === 'en' ? 'Speed:' : targetLang === 'fr' ? 'Vitesse :' : targetLang === 'zh' ? '语速：' : '速度：';
+          const provWord = targetLang === 'en' ? 'Provider:' : targetLang === 'fr' ? 'Fournisseur :' : targetLang === 'zh' ? '服务商：' : 'プロバイダー：';
+          return `${spdWord} ${spd}x | ${provWord} ${prov}`;
+        });
+        replaced = replaced.replace(/Tên quốc tế:\s*(.*)/g, (_, name) => {
+          const prefix = targetLang === 'en' ? 'International name: ' : targetLang === 'fr' ? 'Nom international : ' : targetLang === 'zh' ? '国际通用名：' : '国際表記：';
+          return `${prefix}${name}`;
+        });
+        replaced = replaced.replace(/Đang phát mẫu giọng đọc AI:\s*(.*)/g, (_, name) => {
+          const prefix = targetLang === 'en' ? 'Playing AI Voice sample: ' : targetLang === 'fr' ? 'Lecture de l’échantillon vocal IA : ' : targetLang === 'zh' ? '正在播放AI语音示例：' : 'AI音声サンプルを再生中：';
+          return `${prefix}${name}`;
+        });
+        replaced = replaced.replace(/Tất cả trạng thái\s*\((\d+)\)/g, (_, n) => {
+          const label = targetLang === 'en' ? 'All statuses' : targetLang === 'fr' ? 'Tous les statuts' : targetLang === 'zh' ? '所有状态' : 'すべてのステータス';
+          return `${label} (${n})`;
+        });
+        replaced = replaced.replace(/Đang hiển thị trên Client\s*\((\d+)\)/g, (_, n) => {
+          const label = targetLang === 'en' ? 'Visible on Client' : targetLang === 'fr' ? 'Visible pour les visiteurs' : targetLang === 'zh' ? '客户端显示中' : 'クライアント表示中';
+          return `${label} (${n})`;
+        });
+        replaced = replaced.replace(/Đang tạm tắt\s*\((\d+)\)/g, (_, n) => {
+          const label = targetLang === 'en' ? 'Temporarily hidden' : targetLang === 'fr' ? 'Désactivé temporairement' : targetLang === 'zh' ? '已暂停显示' : '一時停止中';
+          return `${label} (${n})`;
         });
         replaced = replaced.replace(/Mã phòng:\s*/g, () => {
           return targetLang === 'en' ? 'Room Code: ' : targetLang === 'fr' ? 'Code de la salle : ' : targetLang === 'zh' ? '展厅编号: ' : '展示室コード: ';

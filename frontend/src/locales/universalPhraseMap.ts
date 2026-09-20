@@ -261,5 +261,482 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
   'Mỗi trang:': { en: 'Per page:', fr: 'Par page :', zh: '每页显示：', ja: '表示件数：' },
   '/ trang': { en: '/ page', fr: '/ page', zh: '/ 页', ja: '/ ページ' },
   'Trước': { en: 'Previous', fr: 'Précédent', zh: '上一页', ja: '前へ' },
-  'Sau': { en: 'Next', fr: 'Suivant', zh: '下一页', ja: '次へ' }
+  'Sau': { en: 'Next', fr: 'Suivant', zh: '下一页', ja: '次へ' },
+
+  // Quản trị Danh mục Ngôn ngữ (AdminLanguagePage)
+  'Quản trị Danh mục Ngôn ngữ & Voice AI': {
+    en: 'Language & Voice AI Management',
+    fr: 'Gestion des Langues & Voix IA',
+    zh: '语言与语音AI管理',
+    ja: '言語＆AI音声管理'
+  },
+  'Hệ thống Đa ngôn ngữ Động: Khách tham quan Client chỉ có quyền chọn các ngôn ngữ được Admin kích hoạt tại đây.': {
+    en: 'Dynamic Multilingual System: Visitors can only select languages activated by the Administrator here.',
+    fr: 'Système Multilingue Dynamique : Les visiteurs peuvent uniquement choisir les langues activées par l’Administrateur.',
+    zh: '动态多语言系统：参观游客端仅可选择管理员在此处启用的语言。',
+    ja: '動的多言語システム：見学者は管理者がここで有効化した言語のみを選択できます。'
+  },
+  'Thêm ngôn ngữ mới': {
+    en: 'Add new language',
+    fr: 'Ajouter une langue',
+    zh: '添加新语言',
+    ja: '新規言語を追加'
+  },
+  'Ngôn ngữ Phục vụ Khách Quốc tế': {
+    en: 'Languages Serving International Visitors',
+    fr: 'Langues pour visiteurs internationaux',
+    zh: '服务国际游客语言',
+    ja: '外国人観光客対応言語'
+  },
+  'quốc gia & vùng lãnh thổ': {
+    en: 'countries & territories',
+    fr: 'pays & territoires',
+    zh: '个国家与地区',
+    ja: '国・地域の言語'
+  },
+  'Đang Mở Cổng Tham quan': {
+    en: 'Active in Tour Portal',
+    fr: 'Ouvert aux visiteurs',
+    zh: '开放参观入口',
+    ja: '見学ポータル公開中'
+  },
+  'Khách tham quan tự do chuyển đổi trên tour 360': {
+    en: 'Visitors freely switch languages in 360 tour',
+    fr: 'Les visiteurs basculent librement sur la visite 360°',
+    zh: '游客可在360°全景漫游中自由切换',
+    ja: '見学者は360°ツアー内で自由に切替可能'
+  },
+  'Chuẩn Thuyết minh Di sản': {
+    en: 'Heritage Narration Standard',
+    fr: 'Standard de Narration du Patrimoine',
+    zh: '遗产解说标准',
+    ja: '遺産ナレーション標準'
+  },
+  'Ngữ điệu Bản xứ Chuẩn Sử học': {
+    en: 'Historical Standard Native Accent',
+    fr: 'Accent Natif Standard Historique',
+    zh: '纯正母语史学规范语调',
+    ja: '歴史学基準のネイティブ音声'
+  },
+  'Được thẩm định chuyên sâu cho History Museum': {
+    en: 'Accredited for History Museum',
+    fr: 'Homologué pour le Musée d’Histoire',
+    zh: '专为历史博物馆深度审定',
+    ja: '歴史博物館向け専門的歴史監修'
+  },
+  'Được thẩm định chuyên sâu cho': {
+    en: 'Accredited for',
+    fr: 'Homologué pour',
+    zh: '专为深度审定',
+    ja: '専門的歴史監修'
+  },
+  'Đang phát mẫu giọng đọc AI:': {
+    en: 'Playing AI Voice sample:',
+    fr: 'Lecture de l’échantillon vocal IA :',
+    zh: '正在播放AI语音示例：',
+    ja: 'AI音声サンプルを再生中：'
+  },
+  'Kiểm tra ngữ điệu, nhịp độ và sự lưu loát của bản ghi âm': {
+    en: 'Test intonation, rhythm, and fluency of the narration audio',
+    fr: 'Vérifiez l’intonation, le rythme et la fluidité de l’audio',
+    zh: '检查解说音频的语调、节奏与流利度',
+    ja: '録音音声のイントネーション、リズム、明瞭さを確認'
+  },
+  'Trình duyệt không hỗ trợ audio.': {
+    en: 'Your browser does not support the audio element.',
+    fr: 'Votre navigateur ne prend pas en charge l’élément audio.',
+    zh: '您的浏览器不支持音频播放。',
+    ja: 'お使いのブラウザは音声タグをサポートしていません。'
+  },
+  'Tìm theo tên tiếng Việt, bản xứ hoặc mã ISO (vi, en, fr...)': {
+    en: 'Search by Vietnamese, native name or ISO code (vi, en, fr...)',
+    fr: 'Rechercher par nom, langue native ou code ISO (vi, en, fr...)',
+    zh: '按越南语、本国语或ISO代码搜索 (vi, en, fr...)',
+    ja: '言語名、母国語、またはISOコードで検索 (vi, en, fr...)'
+  },
+  'Đang hiển thị trên Client': {
+    en: 'Visible on Client',
+    fr: 'Visible pour les visiteurs',
+    zh: '客户端显示中',
+    ja: 'クライアント表示中'
+  },
+  'Đang tạm tắt': {
+    en: 'Temporarily hidden',
+    fr: 'Désactivé temporairement',
+    zh: '已暂停显示',
+    ja: '一時停止中'
+  },
+  'Đang hiển thị': {
+    en: 'Active',
+    fr: 'Activé',
+    zh: '显示中',
+    ja: '表示中'
+  },
+  'Tìm thấy': {
+    en: 'Found',
+    fr: 'Trouvé',
+    zh: '已找到',
+    ja: '検索結果'
+  },
+  'ngôn ngữ': {
+    en: 'languages',
+    fr: 'langues',
+    zh: '种语言',
+    ja: '言語'
+  },
+  'Không tìm thấy ngôn ngữ phù hợp': {
+    en: 'No matching languages found',
+    fr: 'Aucune langue correspondante',
+    zh: '未找到匹配的语言',
+    ja: '該当する言語が見つかりません'
+  },
+  'Không có ngôn ngữ nào khớp với từ khóa tìm kiếm & bộ lọc hiện tại. Vui lòng thử lại.': {
+    en: 'No languages match current search criteria. Please try again.',
+    fr: 'Aucune langue ne correspond à vos critères de recherche. Veuillez réessayer.',
+    zh: '没有语言符合当前搜索关键词和筛选条件。请重试。',
+    ja: '検索キーワードやフィルタ条件に一致する言語がありません。再試行してください。'
+  },
+  'Đặt lại bộ lọc': {
+    en: 'Reset filters',
+    fr: 'Réinitialiser les filtres',
+    zh: '重置筛选',
+    ja: 'フィルタをリセット'
+  },
+  'CỜ & ISO': { en: 'FLAG & ISO', fr: 'DRAPEAU & ISO', zh: '国旗与ISO', ja: '国旗＆ISO' },
+  'Cờ & ISO': { en: 'Flag & ISO', fr: 'Drapeau & ISO', zh: '国旗与ISO', ja: '国旗＆ISO' },
+  'NGÔN NGỮ BẢN XỨ': { en: 'NATIVE LANGUAGE', fr: 'LANGUE NATIVE', zh: '本国原生语言', ja: '母国語表記' },
+  'Ngôn ngữ bản xứ': { en: 'Native Language', fr: 'Langue native', zh: '本国原生语言', ja: '母国語表記' },
+  'CẤU HÌNH GIỌNG ĐỌC AI': { en: 'AI VOICE CONFIGURATION', fr: 'CONFIGURATION VOIX IA', zh: 'AI语音配置', ja: 'AI音声設定' },
+  'Cấu hình Giọng đọc AI': { en: 'AI Voice Configuration', fr: 'Configuration Voix IA', zh: 'AI语音配置', ja: 'AI音声設定' },
+  'TRỰC TUYẾN (CLIENT)': { en: 'ONLINE (CLIENT)', fr: 'EN LIGNE (CLIENT)', zh: '在线状态 (客户端)', ja: 'オンライン (クライアント)' },
+  'Trực tuyến (Client)': { en: 'Online (Client)', fr: 'En ligne (Client)', zh: '在线状态 (客户端)', ja: 'オンライン (クライアント)' },
+  'THAO TÁC': { en: 'ACTIONS', fr: 'ACTIONS', zh: '操作', ja: '操作' },
+  'Thao tác': { en: 'Actions', fr: 'Actions', zh: '操作', ja: '操作' },
+  'Gốc mặc định': { en: 'Default Root', fr: 'Par défaut', zh: '系统默认', ja: '規定のデフォルト' },
+  'Mặc định': { en: 'Default', fr: 'Par défaut', zh: '默认', ja: 'デフォルト' },
+  'Tên quốc tế:': { en: 'International name:', fr: 'Nom international :', zh: '国际通用名：', ja: '国際表記：' },
+  'Tốc độ:': { en: 'Speed:', fr: 'Vitesse :', zh: '语速：', ja: '速度：' },
+  'Nhà cung cấp:': { en: 'Provider:', fr: 'Fournisseur :', zh: '服务商：', ja: 'プロバイダー：' },
+  'Thử giọng': { en: 'Test Voice', fr: 'Tester la voix', zh: '试听语音', ja: '音声試聴' },
+  'Xóa ngôn ngữ khỏi hệ thống': {
+    en: 'Delete language from system',
+    fr: 'Supprimer la langue du système',
+    zh: '从系统中删除该语言',
+    ja: 'システムから言語を削除'
+  },
+  'Chọn ngôn ngữ mẫu (Tùy chọn)': {
+    en: 'Select preset language (Optional)',
+    fr: 'Sélectionner un modèle (Optionnel)',
+    zh: '选择预设语言模板 (可选)',
+    ja: '言語プリセットを選択 (任意)'
+  },
+  '-- Chọn mẫu để tự động điền (hoặc tự nhập thông tin bên dưới) --': {
+    en: '-- Select a preset to auto-fill (or enter details below) --',
+    fr: '-- Choisissez un modèle pour pré-remplir --',
+    zh: '-- 选择模板自动填充信息 (或在下方自行输入) --',
+    ja: '-- プリセットを選択して自動入力 (または下記に入力) --'
+  },
+  'Mã ISO': { en: 'ISO Code', fr: 'Code ISO', zh: 'ISO代码', ja: 'ISOコード' },
+  'Biểu tượng cờ (Emoji)': { en: 'Flag Emoji', fr: 'Drapeau (Emoji)', zh: '国旗图标 (Emoji)', ja: '国旗絵文字 (Emoji)' },
+  'Tên bản xứ': { en: 'Native Name', fr: 'Nom natif', zh: '本国语名称', ja: '母国語表記' },
+  'Tên quốc tế (Tiếng Anh)': { en: 'International Name (English)', fr: 'Nom international (Anglais)', zh: '国际通用名 (英文)', ja: '国際名 (英語)' },
+  'Mã giọng đọc (TTS Voice)': { en: 'TTS Voice Model', fr: 'Modèle vocal (TTS Voice)', zh: '语音模型代码 (TTS Voice)', ja: '音声モデルコード (TTS Voice)' },
+  'Giới tính giọng': { en: 'Voice Gender', fr: 'Genre de la voix', zh: '发音性别', ja: '音声の性別' },
+  'Kích hoạt hiển thị cho khách tham quan (Client)': {
+    en: 'Activate display for visitors (Client)',
+    fr: 'Activer l’affichage pour les visiteurs (Client)',
+    zh: '开启游客端展示 (Client)',
+    ja: '来館者向け表示を有効化 (Client)'
+  },
+  'Lưu ngôn ngữ': { en: 'Save Language', fr: 'Enregistrer la langue', zh: '保存语言配置', ja: '言語設定を保存' },
+  'Xác nhận xóa ngôn ngữ': {
+    en: 'Confirm Delete Language',
+    fr: 'Confirmer la suppression de la langue',
+    zh: '确认删除语言',
+    ja: '言語の削除確認'
+  },
+  'Bạn có chắc chắn muốn xóa ngôn ngữ này khỏi hệ thống?': {
+    en: 'Are you sure you want to remove this language from the system?',
+    fr: 'Voulez-vous vraiment supprimer cette langue du système ?',
+    zh: '您确定要从系统中彻底移除该语言吗？',
+    ja: 'この言語をシステムから完全に削除してもよろしいですか？'
+  },
+
+  // Cấu hình Hệ thống & Đa Bảo Tàng (AdminSettingsPage)
+  'Cấu hình Hệ thống & Đa Bảo Tàng': {
+    en: 'System Configuration & Multi-Museum',
+    fr: 'Configuration du Système & Multi-Musées',
+    zh: '系统全局配置与多馆管理',
+    ja: 'システム環境設定＆複数博物館管理'
+  },
+  'Nhận Diện & Đa Bảo Tàng (Multi-Museum)': {
+    en: 'Identity & Multi-Museum',
+    fr: 'Identité & Multi-Musées',
+    zh: '馆体标识与多馆支持 (Multi-Museum)',
+    ja: '博物館ブランド＆マルチミュージアム (Multi-Museum)'
+  },
+  'Nhận Diện Bảo Tàng': {
+    en: 'Museum Identity',
+    fr: 'Identité du musée',
+    zh: '馆体品牌标识',
+    ja: '博物館ブランド設定'
+  },
+  'Vận Hành & Bảo Trì Hệ Thống': {
+    en: 'Operation & Maintenance',
+    fr: 'Exploitation & Maintenance',
+    zh: '运维与系统维护',
+    ja: 'システム運用＆メンテナンス'
+  },
+  'Vận Hành & Bảo Trì': {
+    en: 'Operation & Maintenance',
+    fr: 'Exploitation & Maintenance',
+    zh: '运维与维护',
+    ja: '運用＆メンテナンス'
+  },
+  'Cấu Hình Nhận Diện Đa Bảo Tàng': {
+    en: 'Multi-Museum Identity Configuration',
+    fr: 'Configuration de l’identité multi-musées',
+    zh: '多馆品牌识别配置',
+    ja: '複数博物館ブランド識別設定'
+  },
+  'Hệ thống tự do chuyển đổi danh tính của bất kỳ bảo tàng nào. Khi lưu, toàn bộ Header, Sidebar, Login, Email và Standee sẽ lập tức đồng bộ theo dữ liệu thật.': {
+    en: 'Switch identity to any museum freely. When saved, Header, Sidebar, Login, Email, and Standee sync immediately.',
+    fr: 'Changez l’identité vers n’importe quel musée en temps réel. Header, Sidebar, Login et Standee s’adaptent automatiquement.',
+    zh: '支持自由切换为任意博物馆身份。保存后Header、Sidebar、登录页和展架均立即同步真实数据。',
+    ja: '任意の博物館のアイデンティティに自由に切り替え可能です。保存すると、ヘッダー、サイドバー、ログイン、スタンドパネルが即座に同期されます。'
+  },
+  'Tên đầy đủ của bảo tàng': {
+    en: 'Full Museum Name',
+    fr: 'Nom complet du musée',
+    zh: '博物馆全称',
+    ja: '博物館の正式名称'
+  },
+  'Tên rút gọn / Tên ngắn': {
+    en: 'Short Name',
+    fr: 'Nom court',
+    zh: '博物馆简称',
+    ja: '略称'
+  },
+  'Khẩu hiệu / Giới thiệu nhận diện (Tagline)': {
+    en: 'Tagline / Slogan',
+    fr: 'Slogan / Devise',
+    zh: '宣传标语 / 品牌口号 (Tagline)',
+    ja: 'スローガン / キャッチコピー (Tagline)'
+  },
+  'Ký hiệu biểu trưng (Emblem Text)': {
+    en: 'Emblem Text',
+    fr: 'Texte de l’emblème',
+    zh: '文字徽标 (Emblem Text)',
+    ja: 'シンボル文字 (Emblem Text)'
+  },
+  'Ảnh Logo thương hiệu': {
+    en: 'Brand Logo Image',
+    fr: 'Logo officiel',
+    zh: '官方品牌Logo图片',
+    ja: 'ブランドロゴ画像'
+  },
+  'Tải ảnh logo lên': {
+    en: 'Upload Logo',
+    fr: 'Téléverser logo',
+    zh: '上传Logo',
+    ja: 'ロゴをアップロード'
+  },
+  'Gỡ logo': {
+    en: 'Remove Logo',
+    fr: 'Supprimer logo',
+    zh: '移除Logo',
+    ja: 'ロゴを削除'
+  },
+  'Địa chỉ bảo tàng': {
+    en: 'Museum Address',
+    fr: 'Adresse du musée',
+    zh: '博物馆地址',
+    ja: '博物館の所在地'
+  },
+  'Tỉnh / Thành phố': {
+    en: 'City / Province',
+    fr: 'Ville / Province',
+    zh: '所在省市',
+    ja: '都道府県 / 市'
+  },
+  'Email liên hệ': {
+    en: 'Contact Email',
+    fr: 'E-mail de contact',
+    zh: '联系邮箱',
+    ja: '連絡先メールアドレス'
+  },
+  'Hotline liên hệ': {
+    en: 'Contact Hotline',
+    fr: 'Ligne directe (Hotline)',
+    zh: '咨询热线 (Hotline)',
+    ja: '代表電話番号 (Hotline)'
+  },
+  'Lưu cấu hình nhận diện': {
+    en: 'Save Identity Settings',
+    fr: 'Enregistrer l’identité',
+    zh: '保存品牌配置',
+    ja: 'ブランド設定を保存'
+  },
+  'Khôi phục nhận diện chuẩn': {
+    en: 'Reset to Default Template',
+    fr: 'Rétablir le modèle standard',
+    zh: '恢复标准模板',
+    ja: '標準テンプレートに戻す'
+  },
+  'Chế Độ Bảo Trì & Vận Hành Hệ Thống': {
+    en: 'System Maintenance & Operations',
+    fr: 'Maintenance & Exploitation du système',
+    zh: '系统维护与运行状态',
+    ja: 'システムメンテナンス＆運用モード'
+  },
+  'Trạng thái bảo trì': {
+    en: 'Maintenance Status',
+    fr: 'Statut de maintenance',
+    zh: '维护状态',
+    ja: 'メンテナンスステータス'
+  },
+  'Đang tắt bảo trì (Hệ thống Trực tuyến)': {
+    en: 'Maintenance Off (System Online)',
+    fr: 'Maintenance désactivée (Système en ligne)',
+    zh: '维护已关闭 (系统正常运行)',
+    ja: 'メンテナンス停止中 (通常稼働)'
+  },
+  'Đang bật bảo trì (Cổng tham quan Tạm khóa)': {
+    en: 'Maintenance On (Portal Temporarily Locked)',
+    fr: 'Maintenance activée (Portail temporairement verrouillé)',
+    zh: '维护已开启 (漫游入口已锁定)',
+    ja: 'メンテナンス中 (ポータル一時ロック)'
+  },
+  'Bật / Tắt bảo trì': {
+    en: 'Toggle Maintenance',
+    fr: 'Basculer la maintenance',
+    zh: '切换维护模式',
+    ja: 'メンテナンス切替'
+  },
+  'Cổng tham quan': {
+    en: 'Tour Portal',
+    fr: 'Portail de visite',
+    zh: '全景漫游入口',
+    ja: 'ツアーポータル'
+  },
+  'Trang thông báo': {
+    en: 'Notice Page',
+    fr: 'Page d’information',
+    zh: '公告页面',
+    ja: '案内ページ'
+  },
+  'Giám Sát Hạ Tầng & Máy Chủ': {
+    en: 'Infrastructure & Server Monitor',
+    fr: 'Surveillance serveur & infrastructure',
+    zh: '基础设施与服务器监控',
+    ja: 'インフラ＆サーバー監視'
+  },
+  'Trạng thái kết nối': {
+    en: 'Connection Status',
+    fr: 'Statut de connexion',
+    zh: '连接状态',
+    ja: '接続状態'
+  },
+  'Thời gian hoạt động': {
+    en: 'Uptime',
+    fr: 'Temps de fonctionnement',
+    zh: '运行时间',
+    ja: '稼働時間'
+  },
+  'Độ trễ phản hồi': {
+    en: 'Response Latency',
+    fr: 'Latence réseau',
+    zh: '响应延迟',
+    ja: '応答レイテンシ'
+  },
+  'Tải CPU máy chủ': {
+    en: 'Server CPU Load',
+    fr: 'Charge CPU',
+    zh: 'CPU负载',
+    ja: 'CPU負荷'
+  },
+  'Bộ nhớ RAM': {
+    en: 'Memory (RAM)',
+    fr: 'Mémoire (RAM)',
+    zh: '内存使用 (RAM)',
+    ja: 'メモリ使用量 (RAM)'
+  },
+  'Làm mới dữ liệu máy chủ': {
+    en: 'Refresh Server Metrics',
+    fr: 'Actualiser les métriques',
+    zh: '刷新服务器状态',
+    ja: 'サーバー指標を更新'
+  },
+  'Quay lại': {
+    en: 'Back',
+    fr: 'Retour',
+    zh: '返回',
+    ja: '戻る'
+  },
+  'Công cụ & Điểm': {
+    en: 'Tools & Points',
+    fr: 'Outils & Points',
+    zh: '工具与点位',
+    ja: 'ツール＆スポット'
+  },
+  'Điểm chuyển tiếp phòng': {
+    en: 'Room Portal Hotspot',
+    fr: 'Portail de changement de salle',
+    zh: '展厅切换锚点',
+    ja: '展示室移動ポータル'
+  },
+  'Điểm thuyết minh hiện vật': {
+    en: 'Artifact Info Hotspot',
+    fr: 'Fiche explicative de l’objet',
+    zh: '文物解说点',
+    ja: '遺物解説スポット'
+  },
+  'Sửa điểm neo': {
+    en: 'Edit Hotspot',
+    fr: 'Modifier le point',
+    zh: '编辑交互点',
+    ja: 'スポット編集'
+  },
+  'Xóa điểm neo': {
+    en: 'Delete Hotspot',
+    fr: 'Supprimer le point',
+    zh: '删除交互点',
+    ja: 'スポット削除'
+  },
+  'Lưu cấu hình không gian': {
+    en: 'Save Space Configuration',
+    fr: 'Enregistrer l’espace',
+    zh: '保存空间配置',
+    ja: '空間設定を保存'
+  },
+  'Đặt góc nhìn ban đầu': {
+    en: 'Set Default View',
+    fr: 'Définir la vue par défaut',
+    zh: '设置默认视角',
+    ja: '初期視点に設定'
+  },
+  'Thêm điểm neo di sản': {
+    en: 'Add Heritage Hotspot',
+    fr: 'Ajouter un point interactif',
+    zh: '添加空间锚点',
+    ja: '遺産スポットを追加'
+  },
+  'Điểm liên kết': {
+    en: 'Linked Hotspots',
+    fr: 'Points associés',
+    zh: '关联锚点',
+    ja: 'リンクスポット'
+  },
+  'Cài đặt phòng': {
+    en: 'Room Settings',
+    fr: 'Paramètres de la salle',
+    zh: '展厅设置',
+    ja: '展示室設定'
+  },
+  'Quay lại danh sách các gian trưng bày': {
+    en: 'Back to Exhibition Rooms',
+    fr: 'Retour aux galeries d’exposition',
+    zh: '返回展厅列表',
+    ja: '展示室一覧に戻る'
+  }
 };
