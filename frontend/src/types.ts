@@ -136,3 +136,19 @@ export interface SystemInfo {
   environment: string;
 }
 
+export interface SystemBranding {
+  museumName: string;
+  shortName: string;
+  emblemText: string;
+  logoUrl?: string;
+  tagline: string;
+  city: string;
+  address: string;
+  contactEmail: string;
+  hotline: string;
+  emailSenderName: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+

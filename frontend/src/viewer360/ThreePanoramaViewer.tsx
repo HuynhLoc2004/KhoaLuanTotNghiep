@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Hotspot, MuseumRoom } from '../types';
+import { useSystemBranding } from '../context/SystemBrandingContext';
 import {
   RotateCw,
   ZoomIn,
@@ -32,6 +33,7 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
   onHotspotClick,
   onCaptureInitialView
 }) => {
+  const { branding } = useSystemBranding();
   const containerRef = useRef<HTMLDivElement>(null);
   const hotspotElementsRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const isPinModeRef = useRef(isPinMode);
@@ -127,12 +129,12 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
       nctx.stroke();
 
       nctx.fillStyle = '#FFFFFF';
-      nctx.font = 'bold 26px sans-serif';
+      nctx.font = 'bold 24px sans-serif';
       nctx.textAlign = 'center';
-      nctx.fillText('BẢO TÀNG LỊCH SỬ', 256, 235);
-      nctx.font = 'bold 22px sans-serif';
+      nctx.fillText(branding.shortName?.toUpperCase() || 'BẢO TÀNG DI SẢN', 256, 235);
+      nctx.font = 'bold 20px sans-serif';
       nctx.fillStyle = '#F59E0B';
-      nctx.fillText('TP. HỒ CHÍ MINH', 256, 270);
+      nctx.fillText(branding.city?.toUpperCase() || 'TOUR 360°', 256, 270);
       nctx.font = '15px sans-serif';
       nctx.fillStyle = '#94A3B8';
       nctx.fillText('VIRTUAL TOUR 360°', 256, 305);

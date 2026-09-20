@@ -1,5 +1,6 @@
 import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose } from 'lucide-react';
 import { AdminTab } from '../types';
+import { useSystemBranding } from '../context/SystemBrandingContext';
 
 interface SidebarProps {
   currentTab: AdminTab;
@@ -18,6 +19,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   onToggle
 }) => {
+  const { branding } = useSystemBranding();
+
   const handleItemClick = (tab: AdminTab) => {
     onTabChange(tab);
     // Chỉ tự động đóng menu trên màn hình nhỏ di động
@@ -29,10 +32,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
-        <div className="museum-emblem">BT</div>
-        <div className="sidebar-title" style={{ flex: 1 }}>
-          <h1>Bảo tàng Lịch sử</h1>
-          <p>TP. Hồ Chí Minh • Quản trị</p>
+        {branding.logoUrl ? (
+          <div className="museum-logo-wrapper" style={{ flexShrink: 0 }}>
+            <img
+              src={branding.logoUrl}
+              alt={branding.shortName}
+              style={{
+                width: 38,
+                height: 38,
+                objectFit: 'contain',
+                borderRadius: 8,
+                background: 'rgba(255, 255, 255, 0.05)',
+                padding: 2,
+                border: '1px solid var(--border-color)',
+                display: 'block'
+              }}
+            />
+          </div>
+        ) : (
+          <div className="museum-emblem">{branding.emblemText || 'BT'}</div>
+        )}
+        <div className="sidebar-title" style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={branding.shortName}>
+            {branding.shortName}
+          </h1>
+          <p style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={branding.city ? `${branding.city} • Quản trị` : branding.tagline}>
+            {branding.city ? `${branding.city} • Quản trị` : (branding.tagline || 'Quản trị')}
+          </p>
         </div>
         {onToggle && (
           <button

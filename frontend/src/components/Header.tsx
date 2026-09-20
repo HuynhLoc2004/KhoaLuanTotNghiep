@@ -3,6 +3,7 @@ import { ChevronRight, Menu, Sun, Moon, ExternalLink, Landmark, Shield, ArrowLef
 import { AdminTab, MuseumRoom } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useSystemBranding } from '../context/SystemBrandingContext';
 
 interface HeaderProps {
   currentTab: AdminTab;
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { branding } = useSystemBranding();
   const currentTabInfo = TAB_TITLES[currentTab] || { label: 'Bảng Điều Khiển' };
 
   return (
@@ -49,8 +51,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         <nav className="header-breadcrumbs" aria-label="Đường dẫn điều hướng">
           <div className="breadcrumb-root">
-            <Landmark size={14} className="breadcrumb-museum-icon" />
-            <span className="breadcrumb-museum-name">Bảo tàng Lịch sử TP.HCM</span>
+            {branding.logoUrl ? (
+              <img
+                src={branding.logoUrl}
+                alt=""
+                style={{ width: 15, height: 15, objectFit: 'contain', marginRight: 4, verticalAlign: 'middle' }}
+              />
+            ) : (
+              <Landmark size={14} className="breadcrumb-museum-icon" />
+            )}
+            <span className="breadcrumb-museum-name">{branding.shortName || branding.museumName}</span>
           </div>
 
           <ChevronRight size={13} className="breadcrumb-divider" />
@@ -126,7 +136,11 @@ export const Header: React.FC<HeaderProps> = ({
             <Shield size={14} />
           </div>
           <div className="header-user-meta">
-            <span className="header-user-name">{user?.fullName || 'Ban Quản trị'}</span>
+            <span className="header-user-name">
+              {user?.fullName && !user.fullName.includes('Bảo tàng Lịch sử')
+                ? user.fullName
+                : `Ban Quản trị ${branding.shortName}`}
+            </span>
             <span className="header-user-role">{user?.role === 'admin' ? 'Quản trị viên (Admin)' : user?.role || 'Admin'}</span>
           </div>
         </div>

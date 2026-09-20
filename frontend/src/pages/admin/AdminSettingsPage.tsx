@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
-import { MaintenanceStatus, SystemInfo } from '../../types';
+import { MaintenanceStatus, SystemInfo, SystemBranding } from '../../types';
+import { useSystemBranding } from '../../context/SystemBrandingContext';
 import {
   SlidersHorizontal,
   Globe,
@@ -20,16 +21,30 @@ import {
   Info,
   Layers,
   Sparkles,
-  Eye
+  Eye,
+  Building2,
+  Upload,
+  Image,
+  Phone,
+  MapPin,
+  Mail,
+  Trash2,
+  Landmark
 } from 'lucide-react';
-
 
 const DEFAULT_MUSEUM_TITLE = 'Hệ Thống Đang Nâng Cấp & Bảo Trì';
 const DEFAULT_MUSEUM_MESSAGE =
-  'Bảo tàng Lịch sử TP. Hồ Chí Minh đang cập nhật dữ liệu hiện vật và bảo trì định kỳ không gian di sản 360. Trình duyệt sẽ tự động kết nối lại khi hoàn tất.';
+  'Hệ thống đang cập nhật dữ liệu hiện vật và bảo trì định kỳ không gian di sản 360. Trình duyệt sẽ tự động kết nối lại khi hoàn tất.';
 
 export const AdminSettingsPage: React.FC = () => {
   const { showToast } = useToast();
+  const { branding, updateBranding } = useSystemBranding();
+
+  const [settingsTab, setSettingsTab] = useState<'branding' | 'maintenance'>('branding');
+  const [brandingForm, setBrandingForm] = useState<SystemBranding>(branding);
+  const [savingBranding, setSavingBranding] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,6 +60,76 @@ export const AdminSettingsPage: React.FC = () => {
     updatedAt: new Date().toISOString(),
     updatedBy: 'Admin'
   });
+
+  useEffect(() => {
+    if (branding) {
+      setBrandingForm(branding);
+    }
+  }, [branding]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Kích thước file ảnh logo không được vượt quá 5MB', 'warning');
+      return;
+    }
+    try {
+      setUploadingLogo(true);
+      const res = await api.uploadBrandingLogo(file);
+      setBrandingForm((prev) => ({ ...prev, logoUrl: res.url }));
+      showToast('Đã tải ảnh logo lên thành công! Nhấn "Lưu cấu hình" để đồng bộ.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi tải file ảnh logo', 'error');
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) {
+        logoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setBrandingForm((prev) => ({ ...prev, logoUrl: '' }));
+    showToast('Đã gỡ logo. Hệ thống sẽ hiển thị biểu trưng chữ (Emblem) thay thế.', 'info');
+  };
+
+  const handleSaveBranding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!brandingForm.museumName.trim()) {
+      showToast('Tên đầy đủ của bảo tàng không được để trống', 'warning');
+      return;
+    }
+    if (!brandingForm.shortName.trim()) {
+      showToast('Tên rút gọn của bảo tàng không được để trống', 'warning');
+      return;
+    }
+    try {
+      setSavingBranding(true);
+      await updateBranding(brandingForm);
+      showToast('Cập nhật thành công! Nhận diện bảo tàng đã được đồng bộ 100% trên toàn hệ thống.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi lưu cấu hình nhận diện', 'error');
+    } finally {
+      setSavingBranding(false);
+    }
+  };
+
+  const handleResetDefaultBranding = () => {
+    setBrandingForm({
+      museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
+      shortName: 'Bảo tàng Lịch sử',
+      emblemText: 'BT',
+      logoUrl: '',
+      tagline: 'Hệ thống Tour 360 Không gian Di sản',
+      city: 'TP. Hồ Chí Minh',
+      address: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+      contactEmail: 'huynhtanlocpp09@gmail.com',
+      hotline: '(028) 3829 8146',
+      emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM'
+    });
+    showToast('Đã khôi phục mẫu nhận diện chuẩn. Nhấn "Lưu cấu hình" để áp dụng.', 'info');
+  };
 
   const fetchData = async () => {
     try {
@@ -187,10 +272,12 @@ export const AdminSettingsPage: React.FC = () => {
                   lineHeight: 1.3
                 }}
               >
-                Cấu hình Vận hành & Bảo trì Hệ thống
+                Cấu hình Hệ thống & Đa Bảo Tàng
               </h1>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
-                Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.
+                {settingsTab === 'branding'
+                  ? 'Quản lý danh tính, logo, biểu trưng và thông tin liên hệ đa bảo tàng. Tự động đồng bộ 100% dữ liệu thật trên toàn hệ thống.'
+                  : 'Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.'}
               </p>
             </div>
           </div>
@@ -232,6 +319,635 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* THANH ĐIỀU HƯỚNG TAB: NHẬN DIỆN THƯƠNG HIỆU & BẢO TRÌ HỆ THỐNG */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            marginBottom: 24,
+            borderBottom: '1px solid var(--border-color)',
+            paddingBottom: 14
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setSettingsTab('branding')}
+            className={`btn ${settingsTab === 'branding' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 20px',
+              fontSize: 13.5,
+              fontWeight: 600,
+              borderRadius: 'var(--radius-sm, 6px)'
+            }}
+          >
+            <Building2 size={16} />
+            <span>Nhận Diện & Đa Bảo Tàng (Multi-Museum)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSettingsTab('maintenance')}
+            className={`btn ${settingsTab === 'maintenance' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 20px',
+              fontSize: 13.5,
+              fontWeight: 600,
+              borderRadius: 'var(--radius-sm, 6px)'
+            }}
+          >
+            <SlidersHorizontal size={16} />
+            <span>Vận Hành & Bảo Trì Hệ Thống</span>
+          </button>
+        </div>
+
+        {settingsTab === 'branding' ? (
+          /* TAB 1: CẤU HÌNH NHẬN DIỆN THƯƠNG HIỆU & ĐA BẢO TÀNG */
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 0.75fr)',
+              gap: 24,
+              alignItems: 'start'
+            }}
+          >
+            {/* CỘT TRÁI: FORM CẤU HÌNH NHẬN DIỆN BẢO TÀNG */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <form
+                onSubmit={handleSaveBranding}
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '24px 26px'
+                }}
+              >
+                <div style={{ marginBottom: 20 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+                    Cấu Hình Nhận Diện Đa Bảo Tàng
+                  </h2>
+                  <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: 0 }}>
+                    Hệ thống tự do chuyển đổi danh tính của bất kỳ bảo tàng nào. Khi lưu, toàn bộ Header, Sidebar, Login, Email và Standee sẽ lập tức đồng bộ theo dữ liệu thật.
+                  </p>
+                </div>
+
+                {/* 1. Tên đầy đủ của bảo tàng */}
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Tên đầy đủ của bảo tàng <span style={{ color: 'var(--primary)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={brandingForm.museumName}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, museumName: e.target.value })}
+                    placeholder="Ví dụ: Bảo tàng Lịch sử Thành phố Hồ Chí Minh, Bảo tàng Mỹ thuật, ..."
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      fontSize: 13.5,
+                      backgroundColor: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-sm, 6px)',
+                      color: 'var(--text-main)'
+                    }}
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                    Hiển thị trang trọng trên Cổng Đăng Nhập, Thẻ Standee QR, Trang Thông Báo và Tiêu đề Tour 360.
+                  </span>
+                </div>
+
+                {/* 2 Hàng song song: Tên rút gọn & Ký hiệu Emblem */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 18 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                      Tên rút gọn / Tên ngắn <span style={{ color: 'var(--primary)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={brandingForm.shortName}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, shortName: e.target.value })}
+                      placeholder="Ví dụ: Bảo tàng Lịch sử, Bảo tàng Mỹ thuật"
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        fontSize: 13.5,
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        color: 'var(--text-main)'
+                      }}
+                    />
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                      Hiển thị trên Sidebar, Header Breadcrumb, Nắp đáy sàn 360 (Nadir).
+                    </span>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                      Biểu trưng (Emblem) <span style={{ color: 'var(--primary)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      maxLength={6}
+                      value={brandingForm.emblemText}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, emblemText: e.target.value.toUpperCase() })}
+                      placeholder="BT, MT, VN"
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        letterSpacing: '1px',
+                        textAlign: 'center',
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        color: 'var(--accent-gold)'
+                      }}
+                    />
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                      Ký tự hoa đại diện
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Logo Bảo tàng (Tải lên file hoặc dán URL) */}
+                <div style={{ marginBottom: 20, padding: '16px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border-color)' }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 8 }}>
+                    Logo nhận diện Bảo tàng
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                    {/* Box hiển thị logo hoặc emblem */}
+                    <div
+                      style={{
+                        width: 68,
+                        height: 68,
+                        borderRadius: 10,
+                        backgroundColor: 'var(--bg-surface)',
+                        border: '1px solid var(--border-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        flexShrink: 0
+                      }}
+                    >
+                      {brandingForm.logoUrl ? (
+                        <img
+                          src={brandingForm.logoUrl}
+                          alt="Logo bảo tàng"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontFamily: 'serif',
+                            fontWeight: 800,
+                            fontSize: 20,
+                            color: '#FFF8F0'
+                          }}
+                        >
+                          {brandingForm.emblemText || 'BT'}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <input
+                        type="file"
+                        ref={logoInputRef}
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        style={{ display: 'none' }}
+                      />
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => logoInputRef.current?.click()}
+                          disabled={uploadingLogo}
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                          <Upload size={14} />
+                          <span>{uploadingLogo ? 'Đang tải lên...' : 'Tải ảnh logo từ máy tính'}</span>
+                        </button>
+
+                        {brandingForm.logoUrl && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveLogo}
+                            className="btn btn-secondary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#EF4444' }}
+                          >
+                            <Trash2 size={14} />
+                            <span>Gỡ logo (Dùng biểu trưng)</span>
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={brandingForm.logoUrl || ''}
+                        onChange={(e) => setBrandingForm({ ...brandingForm, logoUrl: e.target.value })}
+                        placeholder="Hoặc dán URL ảnh trực tiếp (https://.../logo.png)"
+                        style={{
+                          width: '100%',
+                          padding: '7px 12px',
+                          fontSize: 12,
+                          backgroundColor: 'var(--bg-surface)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: 4,
+                          color: 'var(--text-main)'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Khẩu hiệu / Tagline */}
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Khẩu hiệu / Giới thiệu nhận diện (Tagline)
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={brandingForm.tagline || ''}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, tagline: e.target.value })}
+                    placeholder="Ví dụ: Hệ thống Tour 360 Không gian Di sản"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      fontSize: 13.5,
+                      backgroundColor: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-sm, 6px)',
+                      color: 'var(--text-main)'
+                    }}
+                  />
+                </div>
+
+                {/* 5 Hàng song song: Tỉnh / Thành phố & Địa chỉ */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginBottom: 18 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                      Tỉnh / Thành phố
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={brandingForm.city || ''}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, city: e.target.value })}
+                      placeholder="TP. Hồ Chí Minh, Hà Nội, Huế, ..."
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        fontSize: 13.5,
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        color: 'var(--text-main)'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                      Địa chỉ trụ sở bảo tàng
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={brandingForm.address || ''}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, address: e.target.value })}
+                      placeholder="Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        fontSize: 13.5,
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        color: 'var(--text-main)'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 6 Hàng song song: Hotline, Email liên hệ, Tên người gửi mail */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 16, marginBottom: 24 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                      Hotline liên hệ
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={brandingForm.hotline || ''}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, hotline: e.target.value })}
+                      placeholder="(028) 3829 8146"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        fontSize: 13,
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        color: 'var(--text-main)'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                      Email liên hệ
+                    </label>
+                    <input
+                      type="email"
+                      className="input-field"
+                      value={brandingForm.contactEmail || ''}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, contactEmail: e.target.value })}
+                      placeholder="contact@museum.vn"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        fontSize: 13,
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        color: 'var(--text-main)'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                      Tên người gửi Email (From)
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={brandingForm.emailSenderName || ''}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, emailSenderName: e.target.value })}
+                      placeholder="Bảo Tàng Lịch Sử TP.HCM"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        fontSize: 13,
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        color: 'var(--text-main)'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Nút hành động Lưu & Khôi phục */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleResetDefaultBranding}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <RotateCcw size={14} />
+                    <span>Khôi phục mẫu chuẩn</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={savingBranding}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 24px',
+                      fontWeight: 600,
+                      fontSize: 13.5
+                    }}
+                  >
+                    {savingBranding ? (
+                      <>
+                        <RefreshCw size={15} className="spin" />
+                        <span>Đang lưu và đồng bộ...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        <span>Lưu Cấu Hình Nhận Diện Bảo Tàng</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* CỘT PHẢI: KHUNG XEM TRƯỚC TRỰC QUAN ĐA NỀN TẢNG (LIVE PREVIEWS) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* 1. Preview Sidebar */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Eye size={15} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                    Mô phỏng Thanh Điều Hướng (Sidebar)
+                  </span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: 8,
+                    padding: '14px 16px',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12
+                  }}
+                >
+                  {brandingForm.logoUrl ? (
+                    <img
+                      src={brandingForm.logoUrl}
+                      alt=""
+                      style={{
+                        width: 38,
+                        height: 38,
+                        objectFit: 'contain',
+                        borderRadius: 8,
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        padding: 2,
+                        border: '1px solid var(--border-color)'
+                      }}
+                    />
+                  ) : (
+                    <div className="museum-emblem">{brandingForm.emblemText || 'BT'}</div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {brandingForm.shortName || 'Tên Bảo Tàng'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {brandingForm.city ? `${brandingForm.city} • Quản trị` : (brandingForm.tagline || 'Quản trị')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Preview Header Breadcrumb */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Eye size={15} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                    Mô phỏng Breadcrumb & Người Quản Trị
+                  </span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: 8,
+                    padding: '12px 16px',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    fontSize: 12.5
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)' }}>
+                    <Landmark size={14} style={{ color: 'var(--primary)' }} />
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                      {brandingForm.shortName || 'Bảo tàng'}
+                    </span>
+                    <span>›</span>
+                    <span>Gian trưng bày & Tour 360</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--accent-gold)', fontWeight: 600 }}>
+                    Ban Quản trị {brandingForm.shortName || 'Bảo tàng'}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Preview Standee QR */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Eye size={15} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                    Mô phỏng Standee QR Tham Quan Thực Địa
+                  </span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: '#F7F4EE',
+                    color: '#1A110B',
+                    borderRadius: 8,
+                    padding: '16px',
+                    textAlign: 'center',
+                    border: '1px solid #D4A86A'
+                  }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '1px', color: '#8C2D19', textTransform: 'uppercase', marginBottom: 4 }}>
+                    {brandingForm.museumName?.toUpperCase() || 'TÊN BẢO TÀNG'}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                    Gian P-01: Không Gian Trưng Bày Di Sản
+                  </div>
+                  <div style={{ width: 80, height: 80, margin: '0 auto 8px', background: '#FFFFFF', padding: 4, borderRadius: 6, border: '1px solid #D4A86A' }}>
+                    <div style={{ width: '100%', height: '100%', background: '#24201D', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontSize: 10, fontWeight: 600 }}>
+                      QR 360°
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 10, color: '#6B584C', lineHeight: 1.4 }}>
+                    {brandingForm.address || 'Địa chỉ bảo tàng'}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Preview Email Thư Báo */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Eye size={15} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                    Mô phỏng Thư Email Tự Động (SMTP)
+                  </span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: 8,
+                    padding: '12px 16px',
+                    border: '1px solid var(--border-color)',
+                    fontSize: 12
+                  }}
+                >
+                  <div style={{ marginBottom: 4 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Người gửi: </span>
+                    <strong style={{ color: 'var(--text-main)' }}>
+                      {brandingForm.emailSenderName || brandingForm.shortName || 'Bảo tàng'} &lt;smtp@museum.vn&gt;
+                    </strong>
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Tiêu đề: </span>
+                    <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>
+                      [{brandingForm.shortName || 'Bảo tàng'} 360°] Ghép hoàn tất không gian di sản
+                    </span>
+                  </div>
+                  <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: 6, color: 'var(--text-muted)', fontSize: 11 }}>
+                    Chân trang: {brandingForm.museumName} • {brandingForm.address}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* TAB 2: VẬN HÀNH & BẢO TRÌ HỆ THỐNG */
+          <>
         {/* 4 THẺ METRICS / TỔNG QUAN HỆ THỐNG */}
         <div
           style={{
@@ -1061,6 +1777,8 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import { Loader2, AlertCircle, Landmark, RefreshCw } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SystemBrandingProvider, useSystemBranding } from './context/SystemBrandingContext';
 
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
@@ -19,6 +20,7 @@ import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { branding } = useSystemBranding();
   const { showToast } = useToast();
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
@@ -224,21 +226,48 @@ const AppContent: React.FC = () => {
   if (isAuthLoading) {
     return (
       <div className="admin-auth-loading">
-        <div style={{
-          width: 44,
-          height: 44,
-          borderRadius: '50%',
-          background: 'var(--bg-subtle)',
-          border: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 4
-        }}>
-          <Landmark size={22} style={{ color: 'var(--primary)' }} />
-        </div>
-        <Loader2 size={26} className="spin" style={{ color: 'var(--primary)' }} />
-        <div className="auth-loading-title">BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH</div>
+        {branding.logoUrl ? (
+          <img
+            src={branding.logoUrl}
+            alt={branding.shortName}
+            style={{
+              width: 48,
+              height: 48,
+              objectFit: 'contain',
+              borderRadius: 8,
+              marginBottom: 8
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
+              border: '1px solid var(--accent-gold)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 8,
+              boxShadow: '0 4px 12px rgba(140, 45, 25, 0.35)'
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'serif',
+                fontWeight: 800,
+                fontSize: 16,
+                color: '#FFF8F0',
+                letterSpacing: '0.05em'
+              }}
+            >
+              {branding.emblemText || 'BT'}
+            </span>
+          </div>
+        )}
+        <Loader2 size={24} className="spin" style={{ color: 'var(--primary)', marginBottom: 4 }} />
+        <div className="auth-loading-title">{branding.museumName?.toUpperCase() || 'HỆ THỐNG TOUR 360 BẢO TÀNG'}</div>
         <p className="auth-loading-text">Đang xác thực bảo mật hệ thống quản trị...</p>
       </div>
     );
@@ -494,9 +523,11 @@ export const App: React.FC = () => {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <SystemBrandingProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </SystemBrandingProvider>
       </ToastProvider>
     </ThemeProvider>
   );

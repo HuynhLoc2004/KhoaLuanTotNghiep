@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -351,5 +351,41 @@ export const api = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải thông số hệ thống');
     return json.info;
+  },
+
+  // === QUẢN TRỊ NHẬN DIỆN THƯƠNG HIỆU ĐA BẢO TÀNG (SYSTEM BRANDING) ===
+  async getBranding(): Promise<SystemBranding> {
+    const res = await fetch(`${API_BASE}/system/branding?t=${Date.now()}`, {
+      cache: 'no-store'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải nhận diện bảo tàng');
+    return json.branding;
+  },
+
+  async updateBranding(data: Partial<SystemBranding>): Promise<SystemBranding> {
+    const res = await fetch(`${API_BASE}/system/branding`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật nhận diện bảo tàng');
+    return json.branding;
+  },
+
+  async uploadBrandingLogo(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = getAuthHeaders(false); // Không đặt application/json để trình duyệt tự set multipart/form-data boundary
+
+    const res = await fetch(`${API_BASE}/upload/branding-logo`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải lên file ảnh logo');
+    return { url: json.data.url };
   }
 };

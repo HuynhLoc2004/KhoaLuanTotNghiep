@@ -188,9 +188,9 @@
 <body>
   <div class="card">
     <!-- Emblem chuẩn của Bảo tàng -->
-    <div class="museum-emblem">BT</div>
+    <div class="museum-emblem" id="museumEmblem">BT</div>
 
-    <div class="org-title">Bảo tàng Lịch sử TP. Hồ Chí Minh</div>
+    <div class="org-title" id="orgTitle">Bảo tàng Lịch sử TP. Hồ Chí Minh</div>
     <h1 id="mainTitle">Hệ Thống Đang Nâng Cấp & Bảo Trì</h1>
     <div class="divider"></div>
 
@@ -221,7 +221,7 @@
   </div>
 
   <footer>
-    <div>Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</div>
+    <div id="footerAddress">Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</div>
     <div style="margin-top: 6px;">
       <a href="/admin-login">Quản trị viên đăng nhập</a>
     </div>
@@ -237,17 +237,49 @@
     const statusHint = document.getElementById('statusHint');
     const btnManualRetry = document.getElementById('btnManualRetry');
 
-    // Đọc thông tin bảo trì thực tế từ máy chủ (Data thật)
+    // Đọc thông tin bảo trì & nhận diện bảo tàng thực tế từ máy chủ (Data thật)
     async function loadConfig() {
       try {
-        const res = await fetch('/api/system/maintenance?t=' + Date.now(), { cache: 'no-store' });
-        const data = await res.json();
+        const [mRes, bRes] = await Promise.all([
+          fetch('/api/system/maintenance?t=' + Date.now(), { cache: 'no-store' }),
+          fetch('/api/system/branding?t=' + Date.now(), { cache: 'no-store' }).catch(() => null)
+        ]);
+
+        const data = await mRes.json();
         if (data && data.success && data.maintenance) {
           const m = data.maintenance;
           if (m.title) mainTitle.textContent = m.title;
           if (m.message) mainDesc.textContent = m.message;
           if (m.estimatedMinutes && m.estimatedMinutes > 0) {
             timeText.textContent = `Dự kiến hoàn tất trong khoảng ${m.estimatedMinutes} phút`;
+          }
+        }
+
+        if (bRes && bRes.ok) {
+          const bData = await bRes.json();
+          if (bData && bData.branding) {
+            const b = bData.branding;
+            if (b.museumName) {
+              document.title = `Thông Báo Bảo Trì | ${b.museumName}`;
+              const orgTitle = document.getElementById('orgTitle');
+              if (orgTitle) orgTitle.textContent = b.museumName;
+            }
+            if (b.emblemText && !b.logoUrl) {
+              const emblem = document.getElementById('museumEmblem');
+              if (emblem) emblem.textContent = b.emblemText;
+            }
+            if (b.logoUrl) {
+              const emblem = document.getElementById('museumEmblem');
+              if (emblem) {
+                emblem.innerHTML = `<img src="${b.logoUrl}" alt="${b.shortName || ''}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" />`;
+                emblem.style.background = 'transparent';
+                emblem.style.border = 'none';
+              }
+            }
+            if (b.address) {
+              const footerAddress = document.getElementById('footerAddress');
+              if (footerAddress) footerAddress.textContent = b.address;
+            }
           }
         }
       } catch {

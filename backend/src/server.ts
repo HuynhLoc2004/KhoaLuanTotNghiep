@@ -133,11 +133,20 @@ app.use('/api/languages', languagesRouter);
 app.use('/api/system', systemRouter);
 
 // Health check with real statuses
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   const redis = getRedisStatus();
+  let museumName = 'Hệ Thống Tour 360 Không Gian Di Sản';
+  try {
+    const { getSystemBrandingConfig } = await import('./models/SystemBranding.js');
+    const branding = await getSystemBrandingConfig();
+    if (branding && branding.shortName) {
+      museumName = `${branding.shortName} - 360 Tour API`;
+    }
+  } catch {}
+
   res.json({
     status: 'online',
-    service: 'Bảo tàng Lịch sử TP.HCM - 360 Tour API',
+    service: museumName,
     database: {
       mongo: 'connected (mongodb://mongodb:27017/museum)',
       redis: redis.connected ? 'connected' : 'connecting_or_standalone'

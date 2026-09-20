@@ -42,6 +42,7 @@ import { Pagination } from '../../components/Pagination';
 import { api, API_BASE } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useSystemBranding } from '../../context/SystemBrandingContext';
 
 interface AdminRoomsPageProps {
   rooms: MuseumRoom[];
@@ -90,6 +91,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   onDeleteRoom
 }) => {
   const { showToast } = useToast();
+  const { branding } = useSystemBranding();
   const [activeSubTab, setActiveSubTab] = useState<'rooms' | 'gallery'>('rooms');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showNewModal, setShowNewModal] = useState(false);
@@ -1622,7 +1624,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               {/* Standee Print Preview Card */}
               <div className="standee-print-card" style={{ padding: '28px 20px', borderRadius: 16 }}>
                 <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#8C2D19', marginBottom: 6 }}>
-                  BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH
+                  {branding.museumName?.toUpperCase() || 'BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH'}
                 </div>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: '#1A110B', marginBottom: 4, lineHeight: 1.3 }}>
                   {selectedQrRoom.name}

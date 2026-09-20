@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { API_BASE } from '../services/api';
+import { useSystemBranding } from '../context/SystemBrandingContext';
 
 declare global {
   interface Window {
@@ -38,7 +39,7 @@ interface Pannellum360ViewerProps {
 
 export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   panoramaUrl,
-  title = 'Toàn cảnh 360° Bảo tàng Lịch sử TP.HCM',
+  title,
   autoStartLittlePlanet = true,
   hotspots = [],
   onHotspotClick,
@@ -51,6 +52,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   initialHfov = 100,
   focusCoords,
 }) => {
+  const { branding } = useSystemBranding();
+  const effectiveTitle = title || (branding ? `Toàn cảnh 360° ${branding.museumName}` : 'Toàn cảnh 360°');
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const containerId = useRef(`pannellum-container-${Math.random().toString(36).substring(2, 9)}`);

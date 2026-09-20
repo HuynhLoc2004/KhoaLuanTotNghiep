@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
+import { useSystemBranding } from '../../context/SystemBrandingContext';
 import {
   Landmark,
   Mail,
@@ -15,6 +16,7 @@ import {
 export const AdminLoginPage: React.FC = () => {
   const { sendOtp, loginWithOtp, loginWithCredentials } = useAuth();
   const { showToast } = useToast();
+  const { branding } = useSystemBranding();
 
   const [authMode, setAuthMode] = useState<'otp' | 'credentials'>('otp');
 
@@ -160,10 +162,45 @@ export const AdminLoginPage: React.FC = () => {
       <div className="admin-login-card">
         {/* Header danh tính bảo tàng */}
         <div className="login-card-header">
-          <div className="login-museum-icon-box">
-            <Landmark size={24} className="login-museum-icon" />
-          </div>
-          <h1 className="login-museum-title">BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH</h1>
+          {branding.logoUrl ? (
+            <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
+              <img
+                src={branding.logoUrl}
+                alt={branding.shortName}
+                style={{
+                  width: 58,
+                  height: 58,
+                  objectFit: 'contain',
+                  borderRadius: 12,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  padding: 4,
+                  border: '1px solid var(--border-color)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
+                }}
+              />
+            </div>
+          ) : (
+            <div
+              className="login-museum-icon-box"
+              style={{
+                background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
+                border: '1px solid var(--accent-gold)'
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'serif',
+                  fontWeight: 800,
+                  fontSize: 18,
+                  color: '#FFF8F0',
+                  letterSpacing: '0.05em'
+                }}
+              >
+                {branding.emblemText || 'BT'}
+              </span>
+            </div>
+          )}
+          <h1 className="login-museum-title">{branding.museumName?.toUpperCase() || 'BẢO TÀNG'}</h1>
           <p className="login-sub-title">Cổng Đăng Nhập Quản Trị Hệ Thống</p>
         </div>
 
@@ -377,7 +414,7 @@ export const AdminLoginPage: React.FC = () => {
 
         {/* Footer tối giản, chuẩn mực */}
         <div className="login-card-footer">
-          <span>Bảo tàng Lịch sử TP. Hồ Chí Minh &copy; 2026</span>
+          <span>{branding.museumName} &copy; 2026</span>
         </div>
       </div>
     </div>

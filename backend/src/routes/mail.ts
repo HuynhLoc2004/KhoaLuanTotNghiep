@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { sendMail } from '../services/mail.js';
+import { getSystemBrandingConfig } from '../models/SystemBranding.js';
 
 export const mailRouter = Router();
 
@@ -9,18 +10,19 @@ export const mailRouter = Router();
  */
 mailRouter.post('/test', async (req: Request, res: Response) => {
   try {
-    const to = req.body.to || process.env.SMTP_USER || 'huynhtanlocpp09@gmail.com';
+    const branding = await getSystemBrandingConfig();
+    const to = req.body.to || process.env.SMTP_USER || branding.contactEmail || 'huynhtanlocpp09@gmail.com';
     const result = await sendMail({
       to,
-      subject: '✅ [Kiểm Tra Hệ Thống] Kết Nối Dịch Vụ Mail Bảo Tàng Lịch Sử TP.HCM Thành Công',
+      subject: `✅ [Kiểm Tra Hệ Thống] Kết Nối Dịch Vụ Mail ${branding.shortName} Thành Công`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h2 style="color: #10b981;">🎉 Dịch Vụ Email Hoạt Động Hoàn Hảo!</h2>
           <p>Xin chào quản trị viên,</p>
-          <p>Hệ thống Tour 360° Bảo Tàng Lịch Sử TP. Hồ Chí Minh đã kết nối thành công với máy chủ Gmail SMTP.</p>
+          <p>Hệ thống Tour 360° <strong>${branding.museumName}</strong> đã kết nối thành công với máy chủ gửi thư SMTP.</p>
           <p><strong>Thời gian kiểm tra:</strong> ${new Date().toLocaleString('vi-VN')}</p>
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-          <p style="font-size: 11px; color: #94a3b8;">Khóa luận Tốt nghiệp: Ứng dụng Công nghệ 4.0 và AI trong Bảo tồn Di sản Văn hóa.</p>
+          <p style="font-size: 11px; color: #94a3b8;">${branding.museumName} • ${branding.address}</p>
         </div>
       `
     });
@@ -46,22 +48,23 @@ mailRouter.post('/contact', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Vui lòng điền đủ tên, email và nội dung liên hệ.' });
     }
 
-    const adminEmail = process.env.SMTP_USER || 'huynhtanlocpp09@gmail.com';
+    const branding = await getSystemBrandingConfig();
+    const adminEmail = process.env.SMTP_USER || branding.contactEmail || 'huynhtanlocpp09@gmail.com';
     const result = await sendMail({
       to: adminEmail,
       subject: `📩 [Liên Hệ Khách Tham Quan] Từ: ${name} (${email})`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px;">
-          <h3 style="color: #2563eb; margin-top: 0;">Khách Tham Quan Gửi Thư Liên Hệ</h3>
+          <h3 style="color: #8C2D19; margin-top: 0;">Khách Tham Quan Gửi Thư Liên Hệ</h3>
           <p><strong>Họ tên:</strong> ${name}</p>
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Số điện thoại:</strong> ${phone || 'Không cung cấp'}</p>
           <p><strong>Nội dung:</strong></p>
-          <div style="background: #f8fafc; padding: 12px; border-left: 4px solid #2563eb; border-radius: 4px;">
+          <div style="background: #f8fafc; padding: 12px; border-left: 4px solid #8C2D19; border-radius: 4px;">
             ${message.replace(/\n/g, '<br/>')}
           </div>
           <p style="font-size: 12px; color: #94a3b8; margin-top: 20px;">
-            Gửi từ hệ thống Tour 360° Bảo Tàng Lịch Sử TP.HCM lúc ${new Date().toLocaleString('vi-VN')}
+            Gửi từ hệ thống Tour 360° ${branding.museumName} lúc ${new Date().toLocaleString('vi-VN')}
           </p>
         </div>
       `

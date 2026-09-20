@@ -3,6 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import { authenticate, requireAdmin, AuthRequest } from './auth.js';
 import { cacheGet, cacheSet, cacheDel, getRedisStatus } from '../services/redis.js';
+import {
+  SystemBranding,
+  getSystemBrandingConfig,
+  REDIS_BRANDING_KEY,
+  DEFAULT_BRANDING
+} from '../models/SystemBranding.js';
 
 export const systemRouter = Router();
 
@@ -208,4 +214,102 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
     });
   }
 });
+
+/**
+ * GET /api/system/branding
+ * Công khai: Lấy cấu hình nhận diện thương hiệu của Bảo tàng (cho Client, Tour 360, Header, Login, Maintenance)
+ */
+systemRouter.get('/branding', async (req: Request, res: Response) => {
+  try {
+    const branding = await getSystemBrandingConfig();
+    res.json({
+      success: true,
+      branding
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Không thể tải cấu hình nhận diện bảo tàng',
+      error: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/system/branding
+ * Quản trị viên: Cập nhật cấu hình nhận diện thương hiệu bảo tàng (Tên, Logo, Biểu trưng, Địa chỉ, Email, ...)
+ */
+systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      museumName,
+      shortName,
+      emblemText,
+      logoUrl,
+      tagline,
+      city,
+      address,
+      contactEmail,
+      hotline,
+      emailSenderName
+    } = req.body;
+
+    if (!museumName || !String(museumName).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên đầy đủ của bảo tàng không được để trống.'
+      });
+    }
+
+    if (!shortName || !String(shortName).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên rút gọn của bảo tàng không được để trống.'
+      });
+    }
+
+    const current = await getSystemBrandingConfig();
+
+    const updatePayload = {
+      museumName: String(museumName).trim(),
+      shortName: String(shortName).trim(),
+      emblemText: (emblemText && String(emblemText).trim().toUpperCase().slice(0, 6)) || current.emblemText || 'BT',
+      logoUrl: logoUrl !== undefined ? String(logoUrl).trim() : current.logoUrl,
+      tagline: tagline !== undefined ? String(tagline).trim() : current.tagline,
+      city: city !== undefined ? String(city).trim() : current.city,
+      address: address !== undefined ? String(address).trim() : current.address,
+      contactEmail: contactEmail !== undefined ? String(contactEmail).trim() : current.contactEmail,
+      hotline: hotline !== undefined ? String(hotline).trim() : current.hotline,
+      emailSenderName: emailSenderName !== undefined ? String(emailSenderName).trim() : current.emailSenderName,
+      updatedBy: req.user?.username || 'admin'
+    };
+
+    let updatedDoc = await SystemBranding.findOneAndUpdate(
+      {},
+      { $set: updatePayload },
+      { new: true, upsert: true }
+    ).lean();
+
+    // Cập nhật ngay lập tức Redis cache để mọi dịch vụ dùng dữ liệu mới (<1ms)
+    try {
+      await cacheSet(REDIS_BRANDING_KEY, updatedDoc, 86400);
+    } catch {}
+
+    console.log(`[SystemBranding] Quản trị viên (${req.user?.username}) đã cập nhật nhận diện bảo tàng: ${updatePayload.museumName}`);
+
+    res.json({
+      success: true,
+      message: 'Cập nhật cấu hình nhận diện bảo tàng thành công! Toàn bộ hệ thống đã được đồng bộ.',
+      branding: updatedDoc
+    });
+  } catch (err: any) {
+    console.error('[SystemBranding] Lỗi cập nhật cấu hình thương hiệu:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi cập nhật cấu hình nhận diện',
+      error: err.message
+    });
+  }
+});
+
 
