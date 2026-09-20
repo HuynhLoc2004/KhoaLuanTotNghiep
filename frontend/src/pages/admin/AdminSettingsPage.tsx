@@ -940,7 +940,7 @@ export const AdminSettingsPage: React.FC = () => {
             marginBottom: 24
           }}
         >
-          {/* Card 1: Trạng thái Vận hành */}
+          {/* Card 1: Trạng thái Vận hành Cổng Tham Quan */}
           <div
             style={{
               backgroundColor: 'var(--bg-surface)',
@@ -954,17 +954,15 @@ export const AdminSettingsPage: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Trạng thái cổng tham quan
+                Cổng tham quan Tour 360
               </span>
               <div
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  backgroundColor: maintenance.enabled
-                    ? 'rgba(140, 45, 25, 0.12)'
-                    : 'rgba(127, 158, 135, 0.15)',
-                  color: maintenance.enabled ? 'var(--primary)' : 'var(--success, #3D5A45)',
+                  backgroundColor: 'rgba(212, 168, 106, 0.12)',
+                  color: 'var(--accent-gold)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -976,18 +974,18 @@ export const AdminSettingsPage: React.FC = () => {
             <div>
               <div
                 style={{
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: 600,
-                  color: maintenance.enabled ? 'var(--primary)' : 'var(--text-main)',
+                  color: 'var(--text-main)',
                   marginBottom: 4
                 }}
               >
-                {maintenance.enabled ? 'Đang bảo trì' : 'Đang trực tuyến'}
+                {maintenance.enabled ? 'Tạm dừng đón khách' : 'Mở cửa đón khách'}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {maintenance.enabled
-                  ? 'Khách tham quan thấy thông báo nâng cấp'
-                  : 'Cổng 360 mở đón khách bình thường'}
+                  ? 'Khách thấy thông báo bảo trì nâng cấp'
+                  : 'Sẵn sàng phục vụ khách tham quan'}
               </div>
             </div>
           </div>
@@ -1006,7 +1004,7 @@ export const AdminSettingsPage: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Thời gian bảo trì dự kiến
+                Thời gian dự kiến
               </span>
               <div
                 style={{
@@ -1024,16 +1022,16 @@ export const AdminSettingsPage: React.FC = () => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+              <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
                 {maintenance.estimatedMinutes} phút
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Cập nhật bởi: {maintenance.updatedBy || 'Quản trị viên'}
+                Ước tính cho du khách tham quan
               </div>
             </div>
           </div>
 
-          {/* Card 3: Độ trễ API */}
+          {/* Card 3: Hạ tầng Máy chủ */}
           <div
             style={{
               backgroundColor: 'var(--bg-surface)',
@@ -1047,96 +1045,77 @@ export const AdminSettingsPage: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Độ trễ phản hồi API
+                Máy chủ hệ thống
               </span>
               <div
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  backgroundColor: 'var(--bg-subtle)',
-                  color: 'var(--text-main)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Activity size={17} />
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 600,
-                  color: 'var(--text-main)',
-                  marginBottom: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}
-              >
-                <span>{pingLatency !== null ? `${pingLatency} ms` : 'Hoạt động tốt'}</span>
-                <button
-                  type="button"
-                  onClick={handlePing}
-                  disabled={pinging}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    color: 'var(--accent-gold)',
-                    fontSize: 11.5,
-                    cursor: 'pointer',
-                    textDecoration: 'underline'
-                  }}
-                >
-                  {pinging ? 'Đang đo...' : 'Kiểm tra'}
-                </button>
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Kết nối thông suốt qua Nginx Proxy
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Tài nguyên Máy chủ */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md, 8px)',
-              padding: '18px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Tài nguyên Node.js & RAM
-              </span>
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 6,
-                  backgroundColor: 'var(--bg-subtle)',
+                  backgroundColor: 'rgba(212, 168, 106, 0.12)',
                   color: 'var(--accent-gold)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}
               >
-                <Cpu size={17} />
+                <Server size={17} />
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                {sysInfo ? `${sysInfo.memoryRssMb} MB` : 'Bình thường'}
+              <div
+                style={{
+                  fontSize: 17,
+                  fontWeight: 600,
+                  color: 'var(--text-main)',
+                  marginBottom: 4
+                }}
+              >
+                Vận hành ổn định
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {sysInfo ? `Node ${sysInfo.nodeVersion} (${sysInfo.platform})` : 'Ubuntu 24.04 • Docker Host'}
+                Địa chỉ VPS: 103.178.233.206
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Dữ liệu di sản */}
+          <div
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md, 8px)',
+              padding: '18px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
+                Cơ sở dữ liệu di sản
+              </span>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
+                  backgroundColor: 'rgba(212, 168, 106, 0.12)',
+                  color: 'var(--accent-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Database size={17} />
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                Đồng bộ trực tuyến
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                Toàn bộ dữ liệu gian phòng & hiện vật
               </div>
             </div>
           </div>
@@ -1425,66 +1404,6 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
               </form>
             </div>
-
-            {/* Card Hướng dẫn Vận hành & Cứu hộ VPS */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md, 8px)',
-                padding: '20px 24px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <Terminal size={16} style={{ color: 'var(--accent-gold)' }} />
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
-                  Quy chuẩn Vận hành & Lệnh cứu hộ VPS
-                </h3>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 12.5, color: 'var(--text-muted)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <span style={{ color: 'var(--accent-gold)', fontWeight: 700 }}>•</span>
-                  <span>
-                    <strong style={{ color: 'var(--text-main)' }}>Quyền Admin Bypass:</strong> Tài khoản Quản trị viên
-                    đã đăng nhập sẽ mang cookie đặc quyền, cho phép kiểm thử toàn bộ hệ thống ngay cả khi chế độ bảo trì đang bật.
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <span style={{ color: 'var(--accent-gold)', fontWeight: 700 }}>•</span>
-                  <span>
-                    <strong style={{ color: 'var(--text-main)' }}>Triển khai Zero-Downtime:</strong> Các thao tác đẩy mã nguồn
-                    hoặc build container chạy nền liên tục. Chỉ nên bật bảo trì khi tiến hành di chuyển cơ sở dữ liệu lớn.
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <span style={{ color: 'var(--accent-gold)', fontWeight: 700 }}>•</span>
-                  <span>
-                    <strong style={{ color: 'var(--text-main)' }}>Lệnh CLI trên VPS:</strong> Khi không truy cập được web, có thể dùng:
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: 'var(--bg-subtle)',
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-sm, 6px)',
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: 'var(--accent-gold)',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4
-                  }}
-                >
-                  <div>./maintenance.sh on "Nâng cấp dữ liệu" 30</div>
-                  <div>./maintenance.sh off</div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* CỘT PHẢI: MÔ PHỎNG THỜI GIAN THỰC (LIVE PREVIEW) & THÔNG SỐ HẠ TẦNG */}
@@ -1697,7 +1616,7 @@ export const AdminSettingsPage: React.FC = () => {
                     borderBottom: '1px solid var(--border-color)'
                   }}
                 >
-                  <span style={{ color: 'var(--text-muted)' }}>Địa chỉ VPS máy chủ</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Địa chỉ máy chủ (VPS)</span>
                   <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 500 }}>
                     103.178.233.206
                   </span>
@@ -1712,8 +1631,8 @@ export const AdminSettingsPage: React.FC = () => {
                     borderBottom: '1px solid var(--border-color)'
                   }}
                 >
-                  <span style={{ color: 'var(--text-muted)' }}>Cơ sở dữ liệu (Database)</span>
-                  <span style={{ color: 'var(--success, #7F9E87)', fontWeight: 500 }}>MongoDB Trực tuyến</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Cơ sở dữ liệu di sản</span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Kết nối trực tuyến</span>
                 </div>
 
                 <div
@@ -1725,10 +1644,8 @@ export const AdminSettingsPage: React.FC = () => {
                     borderBottom: '1px solid var(--border-color)'
                   }}
                 >
-                  <span style={{ color: 'var(--text-muted)' }}>Bộ nhớ đệm (Redis Cache)</span>
-                  <span style={{ color: sysInfo?.redisConnected ? 'var(--success, #7F9E87)' : 'var(--text-main)', fontWeight: 500 }}>
-                    {sysInfo?.redisConnected ? 'Sẵn sàng' : 'Hoạt động'}
-                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>Bộ nhớ tăng tốc (Cache)</span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Hoạt động ổn định</span>
                 </div>
 
                 <div
@@ -1740,9 +1657,9 @@ export const AdminSettingsPage: React.FC = () => {
                     borderBottom: '1px solid var(--border-color)'
                   }}
                 >
-                  <span style={{ color: 'var(--text-muted)' }}>Cờ vật lý (Maintenance Flag)</span>
-                  <span style={{ color: maintenance.enabled ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 500 }}>
-                    {maintenance.enabled ? 'Đang kích hoạt' : 'Không có'}
+                  <span style={{ color: 'var(--text-muted)' }}>Trạng thái cổng 360</span>
+                  <span style={{ color: 'var(--accent-gold)', fontWeight: 500 }}>
+                    {maintenance.enabled ? 'Đang tạm dừng bảo trì' : 'Đang mở cửa tham quan'}
                   </span>
                 </div>
 
