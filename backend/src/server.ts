@@ -11,6 +11,7 @@ import { mailRouter } from './routes/mail.js';
 import { languagesRouter } from './routes/languages.js';
 import { topicsRouter } from './routes/topics.js';
 import { authRouter } from './routes/auth.js';
+import { systemRouter } from './routes/system.js';
 import { seedDefaultLanguages } from './models/Language.js';
 import { seedDefaultRoles } from './models/Role.js';
 import { seedDefaultAdmin } from './models/User.js';
@@ -48,6 +49,7 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/stitch', stitchRouter);
 app.use('/api/mail', mailRouter);
 app.use('/api/languages', languagesRouter);
+app.use('/api/system', systemRouter);
 
 // Health check with real statuses
 app.get('/api/health', (req, res) => {

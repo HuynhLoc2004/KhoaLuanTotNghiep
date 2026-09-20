@@ -346,7 +346,12 @@
   </div>
 
   <footer>
-    Đề tài Tốt nghiệp 2026 • Hệ thống Tour 360 Không gian Di sản Bảo tàng Lịch sử TP.HCM
+    <div>Đề tài Tốt nghiệp 2026 • Hệ thống Tour 360 Không gian Di sản Bảo tàng Lịch sử TP.HCM</div>
+    <div style="margin-top: 8px;">
+      <a href="/admin-login" style="color: var(--text-subtle); text-decoration: none; font-size: 11.5px; opacity: 0.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
+        Quản trị viên đăng nhập kiểm thử →
+      </a>
+    </div>
   </footer>
 
   <script>
@@ -362,6 +367,25 @@
     const pulseDot = document.getElementById('pulseDot');
     const badgeText = document.getElementById('badgeText');
     const timerNotice = document.getElementById('timerNotice');
+
+    // Nạp thông tin lý do bảo trì tùy chỉnh nếu có từ API
+    async function loadMaintenanceInfo() {
+      try {
+        const res = await fetch('/api/system/maintenance?t=' + Date.now(), { cache: 'no-store' });
+        const data = await res.json();
+        if (data && data.success && data.maintenance) {
+          const m = data.maintenance;
+          if (m.title) document.getElementById('mainTitle').textContent = m.title;
+          if (m.message) document.getElementById('mainDesc').textContent = m.message;
+          if (m.estimatedMinutes) {
+            document.getElementById('processStatus').textContent = `Dự kiến hoàn tất trong ~${m.estimatedMinutes} phút`;
+          }
+        }
+      } catch {
+        // Ignored
+      }
+    }
+    loadMaintenanceInfo();
 
     async function pingHealth() {
       if (isChecking || isOnline) return;

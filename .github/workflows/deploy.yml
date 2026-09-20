@@ -53,12 +53,6 @@ jobs:
             cd "$PROJECT_DIR"
             echo ">>> Đang làm việc tại: $(pwd)"
 
-            echo ">>> [BẢO TRÌ] Kích hoạt cờ bảo trì hệ thống ngay khi nhận code mới..."
-            mkdir -p maintenance_flag
-            touch maintenance_flag/maintenance.flag
-            docker exec museum_frontend touch /usr/share/nginx/html/maintenance.flag 2>/dev/null || true
-            sudo touch /var/www/museum/maintenance.flag 2>/dev/null || true
-
             # Kiểm tra Docker Engine
             if ! command -v docker &> /dev/null; then
               echo ">>> Đang cài đặt Docker Engine..."
@@ -67,7 +61,7 @@ jobs:
               systemctl start docker
             fi
 
-            echo ">>> [2/5] Kéo mã nguồn nhánh [$TARGET_BRANCH] từ GitHub..."
+            echo ">>> [2/4] Kéo mã nguồn nhánh [$TARGET_BRANCH] từ GitHub..."
             if [ ! -d ".git" ]; then
               echo ">>> Thư mục chưa có git repo, tiến hành clone mới..."
               git clone -b "$TARGET_BRANCH" https://github.com/HuynhLoc2004/KhoaLuanTotNghiep.git .
@@ -83,10 +77,6 @@ jobs:
               git pull origin "$TARGET_BRANCH" || true
             fi
 
-            # Đảm bảo cờ bảo trì vẫn duy trì sau khi git pull
-            mkdir -p maintenance_flag
-            touch maintenance_flag/maintenance.flag
-
             # Đảm bảo Docker daemon dùng DNS ổn định (Google DNS / Cloudflare) chống TLS handshake timeout
             if [ ! -f /etc/docker/daemon.json ] || ! grep -q "8.8.8.8" /etc/docker/daemon.json 2>/dev/null; then
               echo ">>> Tối ưu hóa DNS cho Docker daemon (8.8.8.8, 1.1.1.1)..."
@@ -96,7 +86,7 @@ jobs:
               sleep 3
             fi
 
-            echo ">>> [3/5] Build & Khởi chạy các container Docker..."
+            echo ">>> [3/4] Build & Khởi chạy các container Docker (Zero-Downtime Background Build)..."
             if docker compose version &>/dev/null; then
               COMPOSE_CMD="docker compose"
             else
@@ -130,7 +120,7 @@ jobs:
               bash scripts/setup-ssl.sh || true
             fi
 
-            echo ">>> [4/5] Kiểm tra sức khỏe hệ thống Backend (Healthcheck)..."
+            echo ">>> [4/4] Kiểm tra sức khỏe hệ thống Backend (Healthcheck)..."
             MAX_RETRIES=45
             COUNT=0
             until curl -s -f http://127.0.0.1:3000/api/health > /dev/null || [ $COUNT -ge $MAX_RETRIES ]; do
@@ -139,16 +129,10 @@ jobs:
               sleep 2
             done
 
-            echo ">>> [5/5] Gỡ bỏ cờ bảo trì - Khôi phục hệ thống trực tuyến..."
-            rm -f maintenance_flag/maintenance.flag || true
-            docker exec museum_frontend rm -f /usr/share/nginx/html/maintenance.flag 2>/dev/null || true
-            docker exec museum_frontend rm -f /var/www/maintenance/maintenance.flag 2>/dev/null || true
-            sudo rm -f /var/www/museum/maintenance.flag 2>/dev/null || true
-
             docker image prune -f || true
             $COMPOSE_CMD ps
 
             echo "========================================================"
-            echo "🎉 CI/CD DEPLOY HOÀN TẤT THÀNH CÔNG RỰC RỠ!"
-            echo "Khách và Admin sẽ tự động kết nối lại vào phiên bản mới."
+            echo "🎉 CI/CD DEPLOY HOÀN TẤT THÀNH CÔNG (ZERO-DOWNTIME)!"
+            echo "Hệ thống đã cập nhật phiên bản mới nhất mượt mà."
             echo "========================================================"

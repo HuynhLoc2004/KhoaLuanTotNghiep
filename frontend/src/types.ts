@@ -114,3 +114,12 @@ export interface AuthResponse {
   token: string;
   user: AuthUser;
 }
+
+export interface MaintenanceStatus {
+  enabled: boolean;
+  title: string;
+  message: string;
+  estimatedMinutes: number;
+  updatedAt: string;
+  updatedBy: string;
+}

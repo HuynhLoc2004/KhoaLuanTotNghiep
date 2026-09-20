@@ -15,6 +15,7 @@ import { ThemeProvider } from './context/ThemeContext';
 
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
+import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -424,13 +425,14 @@ const AppContent: React.FC = () => {
           />
         ) : currentTab === 'languages' ? (
           <AdminLanguagePage />
+        ) : currentTab === 'settings' ? (
+          <AdminSettingsPage />
         ) : (
           <div className="admin-content">
             <div className="panel" style={{ padding: 40, textAlign: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--primary)' }}>
                 {currentTab === 'artifacts' && 'Quản lý Hiện vật & Cổ vật di sản'}
                 {currentTab === 'analytics' && 'Báo cáo & Thống kê lượt tham quan Tour 360'}
-                {currentTab === 'settings' && 'Cấu hình tham số Hệ thống Tour Di sản'}
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                 Chức năng này đang liên kết trực tiếp với dữ liệu Tour 360 hiện hành của Bảo tàng.

@@ -57,6 +57,7 @@ services:
       - R2_PUBLIC_DOMAIN=https://pub-bb1eeff16fd349f2abb33e4e71fe1ae7.r2.dev
     volumes:
       - uploads_data:/app/backend/public/uploads
+      - ./maintenance_flag:/app/maintenance_flag
 
   frontend:
     build:

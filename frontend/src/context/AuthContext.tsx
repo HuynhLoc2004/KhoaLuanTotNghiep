@@ -37,9 +37,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (currentUser && currentUser.role === 'admin') {
           setUser(currentUser);
           setToken(savedToken);
+          if (typeof document !== 'undefined') {
+            document.cookie = 'museum_admin_bypass=1; path=/; max-age=604800; SameSite=Lax';
+          }
         } else {
           // Nếu không phải quyền admin, đăng xuất
           localStorage.removeItem(TOKEN_KEY);
+          if (typeof document !== 'undefined') {
+            document.cookie = 'museum_admin_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          }
           setUser(null);
           setToken(null);
         }
@@ -49,6 +55,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (err?.status === 401 || err?.status === 403) {
           console.warn('[AuthContext] Phiên đăng nhập hết hạn hoặc không có quyền:', err);
           localStorage.removeItem(TOKEN_KEY);
+          if (typeof document !== 'undefined') {
+            document.cookie = 'museum_admin_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          }
           setUser(null);
           setToken(null);
         } else {
@@ -68,39 +77,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return await api.sendOtp(email);
   };
 
-  // 2. Đăng nhập bằng OTP
+  // 2. Đăng nhập bằng OTP (Chỉ chấp nhận tài khoản có quyền Admin)
   const loginWithOtp = async (email: string, otp: string) => {
     const res = await api.verifyOtp(email, otp);
-    if (res.success && res.token && res.user) {
-      if (res.user.role !== 'admin') {
-        throw new Error('Tài khoản của bạn không có quyền Quản trị viên (Admin) để truy cập.');
-      }
-      localStorage.setItem(TOKEN_KEY, res.token);
-      setToken(res.token);
-      setUser(res.user);
-    } else {
-      throw new Error(res.message || 'Xác thực OTP thất bại');
+    if (!res.user || res.user.role !== 'admin') {
+      throw new Error('Tài khoản của bạn không có quyền Quản trị viên (Admin) để truy cập trang này');
     }
+    localStorage.setItem(TOKEN_KEY, res.token);
+    if (typeof document !== 'undefined') {
+      document.cookie = 'museum_admin_bypass=1; path=/; max-age=604800; SameSite=Lax';
+    }
+    setToken(res.token);
+    setUser(res.user);
   };
 
-  // 3. Đăng nhập bằng Tài khoản Mật khẩu
+  // 3. Đăng nhập bằng Tài khoản / Mật khẩu (Dành cho Admin bảo mật)
   const loginWithCredentials = async (usernameOrEmail: string, password: string) => {
     const res = await api.loginCredentials(usernameOrEmail, password);
-    if (res.success && res.token && res.user) {
-      if (res.user.role !== 'admin') {
-        throw new Error('Chỉ tài khoản Quản trị viên (Admin) mới có quyền truy cập.');
-      }
-      localStorage.setItem(TOKEN_KEY, res.token);
-      setToken(res.token);
-      setUser(res.user);
-    } else {
-      throw new Error(res.message || 'Đăng nhập thất bại');
+    if (!res.user || res.user.role !== 'admin') {
+      throw new Error('Tài khoản của bạn không có quyền Quản trị viên (Admin) để truy cập trang này');
     }
+    localStorage.setItem(TOKEN_KEY, res.token);
+    if (typeof document !== 'undefined') {
+      document.cookie = 'museum_admin_bypass=1; path=/; max-age=604800; SameSite=Lax';
+    }
+    setToken(res.token);
+    setUser(res.user);
   };
 
   // 4. Đăng xuất an toàn
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
+    if (typeof document !== 'undefined') {
+      document.cookie = 'museum_admin_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    }
     setUser(null);
     setToken(null);
   };

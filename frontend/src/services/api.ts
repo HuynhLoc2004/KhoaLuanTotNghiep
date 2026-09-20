@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -316,5 +316,30 @@ export const api = {
     } catch {
       return false;
     }
+  },
+
+  async getMaintenanceStatus(): Promise<MaintenanceStatus> {
+    const res = await fetch(`${API_BASE}/system/maintenance?t=${Date.now()}`, {
+      cache: 'no-store'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải trạng thái bảo trì');
+    return json.maintenance;
+  },
+
+  async updateMaintenanceStatus(data: {
+    enabled: boolean;
+    title?: string;
+    message?: string;
+    estimatedMinutes?: number;
+  }): Promise<MaintenanceStatus> {
+    const res = await fetch(`${API_BASE}/system/maintenance`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật chế độ bảo trì');
+    return json.maintenance;
   }
 };
