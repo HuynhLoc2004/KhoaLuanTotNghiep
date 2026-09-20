@@ -74,14 +74,26 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
       const name = branding.shortName || branding.museumName || 'Bảo tàng Di sản';
       document.title = `${name} - Hệ thống Tour 360 Không gian Di sản`;
 
-      if (branding.logoUrl) {
-        let favicon: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-        if (!favicon) {
-          favicon = document.createElement('link');
-          favicon.rel = 'icon';
-          document.head.appendChild(favicon);
-        }
-        favicon.href = branding.logoUrl;
+      // Xác định Favicon mục tiêu: Dùng logo bảo tàng nếu có, nếu không thì dùng favicon chuẩn bảo tàng
+      const hasCustomLogo = Boolean(branding.logoUrl && branding.logoUrl.trim());
+      const targetIconUrl = hasCustomLogo
+        ? branding.logoUrl!.trim()
+        : `/favicon.svg?v=${branding.updatedAt ? new Date(branding.updatedAt).getTime() : Date.now()}`;
+
+      let favicons = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
+      if (favicons.length > 0) {
+        favicons.forEach((el) => {
+          el.href = targetIconUrl;
+          if (!hasCustomLogo) {
+            el.type = 'image/svg+xml';
+          }
+        });
+      } else {
+        const newFavicon = document.createElement('link');
+        newFavicon.rel = 'icon';
+        newFavicon.type = hasCustomLogo ? 'image/png' : 'image/svg+xml';
+        newFavicon.href = targetIconUrl;
+        document.head.appendChild(newFavicon);
       }
     }
   }, [branding]);
