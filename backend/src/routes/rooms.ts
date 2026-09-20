@@ -97,12 +97,23 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
 roomsRouter.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
-    const updated = await RoomModel.findOneAndUpdate({ id }, { $set: req.body }, { new: true }).lean();
-    if (!updated) {
+    const room = await RoomModel.findOne({ id });
+    if (!room) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
+
+    // Nếu có translations, ghi đè toàn bộ Map để đảm bảo các ngôn ngữ bị xoá được loại bỏ triệt để
+    if (req.body.translations !== undefined) {
+      room.set('translations', req.body.translations);
+      room.markModified('translations');
+    }
+
+    const { translations, ...restFields } = req.body;
+    Object.assign(room, restFields);
+
+    const updated = await room.save();
     await cacheDel('rooms:all');
-    res.json({ success: true, data: updated });
+    res.json({ success: true, data: updated.toJSON() });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }

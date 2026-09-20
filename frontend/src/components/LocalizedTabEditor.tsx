@@ -8,11 +8,13 @@ import {
   Check,
   AlertCircle,
   FileText,
-  HelpCircle
+  HelpCircle,
+  Trash2
 } from 'lucide-react';
 import { LanguageItem, RoomTranslation } from '../types';
 import { api } from '../services/api';
 import { useToast } from './Toast';
+import { ConfirmModal } from './ConfirmModal';
 
 interface LocalizedTabEditorProps {
   primaryValues: {
@@ -40,6 +42,7 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
   const [isTranslating, setIsTranslating] = useState(false);
   const [isGeneratingTts, setIsGeneratingTts] = useState(false);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [showConfirmDeleteLang, setShowConfirmDeleteLang] = useState(false);
 
   // Tải danh mục ngôn ngữ Active trực tiếp từ Database
   useEffect(() => {
@@ -53,7 +56,7 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
           if (data.length > 0 && !data.some((l: any) => l.code === 'vi')) {
             // Đảm bảo luôn có tab Tiếng Việt đầu tiên
             setLanguages([
-              { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flagIcon: '🇻🇳', isDefault: true, isActive: true, order: 1 },
+              { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flagIcon: 'VI', isDefault: true, isActive: true, order: 1 },
               ...data
             ]);
           }
@@ -119,7 +122,7 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
         }
       };
       onChange(updated);
-      showToast(`Đã điền bản dịch nháp chuyên sâu cho [${activeTab.toUpperCase()}]`, 'success');
+      showToast(`Đã điền bản dịch chuyên sâu cho [${activeTab.toUpperCase()}]`, 'success');
     } catch (err: any) {
       showToast('Lỗi khi dịch AI: ' + err.message, 'error');
     } finally {
@@ -156,6 +159,44 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
     }
   };
 
+  // Gỡ bỏ file âm thanh Voice AI của tab ngôn ngữ hiện tại
+  const handleRemoveVoiceAi = async () => {
+    const audioUrl = currentTranslation.audioUrl;
+    if (audioUrl) {
+      await api.deleteAudioFile(audioUrl);
+    }
+    updateField('audioUrl', '');
+    setPreviewAudioUrl(null);
+    showToast(`Đã gỡ bỏ file Voice AI của [${activeTab.toUpperCase()}]. Bấm 'Lưu thay đổi vào Database' để hoàn tất.`, 'info');
+  };
+
+  // Gỡ bỏ hoàn toàn một ngôn ngữ (bản dịch và file âm thanh) khỏi gian phòng
+  const handleConfirmDeleteLanguage = async () => {
+    if (activeTab === 'vi') return;
+
+    const langName = languages.find(l => l.code === activeTab)?.nativeName || activeTab.toUpperCase();
+
+    // Dọn dẹp file âm thanh vật lý trên server nếu có
+    if (currentTranslation.audioUrl) {
+      await api.deleteAudioFile(currentTranslation.audioUrl);
+    }
+
+    const nextTranslations = { ...translations };
+    delete nextTranslations[activeTab];
+
+    onChange(nextTranslations);
+    setActiveTab('vi');
+    setPreviewAudioUrl(translations.vi?.audioUrl || null);
+    setShowConfirmDeleteLang(false);
+    showToast(`Đã gỡ bỏ ngôn ngữ ${langName} khỏi gian phòng này`, 'success');
+  };
+
+  const hasLanguageData = Boolean(
+    translations[activeTab]?.name?.trim() ||
+    translations[activeTab]?.narrationScript?.trim() ||
+    translations[activeTab]?.audioUrl?.trim()
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Tab Navigation Header (Tải động theo các ngôn ngữ Active) */}
@@ -170,7 +211,7 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
       >
         {languages.map((lang) => {
           const isSelected = activeTab === lang.code;
-          const hasContent = lang.code === 'vi' ? true : Boolean(translations[lang.code]?.name);
+          const hasContent = lang.code === 'vi' ? true : Boolean(translations[lang.code]?.name || translations[lang.code]?.audioUrl);
 
           return (
             <button
@@ -196,7 +237,7 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
                 transition: 'all 0.15s ease'
               }}
             >
-              <span style={{ fontSize: '15px' }}>{lang.flagIcon || '🌐'}</span>
+              <Globe size={13} style={{ opacity: isSelected ? 1 : 0.6 }} />
               <span>{lang.nativeName}</span>
               {lang.code === 'vi' && (
                 <span
@@ -270,17 +311,36 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
             </button>
 
             {translations.vi?.audioUrl && (
-              <span style={{ fontSize: '11.5px', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Check size={13} />
-                <span>Đã có file Voice AI</span>
-              </span>
+              <>
+                <span style={{ fontSize: '11.5px', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Check size={13} />
+                  <span>Đã có file Voice AI</span>
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleRemoveVoiceAi}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    color: 'var(--error)',
+                    borderColor: 'var(--border-color)',
+                    fontSize: '11.5px'
+                  }}
+                  title="Gỡ bỏ file Voice AI Tiếng Việt khỏi phòng này"
+                >
+                  <Trash2 size={12} />
+                  <span>Gỡ bỏ Voice AI</span>
+                </button>
+              </>
             )}
           </div>
         </div>
       ) : (
         /* Các tab Ngoại ngữ (en, fr, ja, zh, de...) */
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Action Bar hỗ trợ Dịch tự động bằng AI */}
+          {/* Action Bar hỗ trợ Dịch tự động bằng AI và Gỡ bỏ ngôn ngữ */}
           <div
             style={{
               display: 'flex',
@@ -289,27 +349,52 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
               background: 'var(--bg-subtle)',
               border: '1px solid var(--border-color)',
               padding: '10px 14px',
-              borderRadius: 'var(--radius-sm)'
+              borderRadius: 'var(--radius-sm)',
+              flexWrap: 'wrap',
+              gap: 8
             }}
           >
             <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-              Dịch thuật chuyên sâu chuẩn Bảo tàng TP.HCM cho [<strong>{activeTab.toUpperCase()}</strong>]
+              Ngôn ngữ [<strong>{activeTab.toUpperCase()}</strong>] - {languages.find(l => l.code === activeTab)?.nativeName}
             </div>
 
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleAiTranslate}
-              disabled={isTranslating}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', padding: '5px 12px' }}
-            >
-              {isTranslating ? (
-                <RotateCw size={13} className="spin" />
-              ) : (
-                <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleAiTranslate}
+                disabled={isTranslating}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', padding: '5px 12px' }}
+              >
+                {isTranslating ? (
+                  <RotateCw size={13} className="spin" />
+                ) : (
+                  <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+                )}
+                <span>Dịch tự động bằng AI</span>
+              </button>
+
+              {hasLanguageData && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowConfirmDeleteLang(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    color: 'var(--error)',
+                    borderColor: 'var(--border-color)',
+                    fontSize: '12px',
+                    padding: '5px 10px'
+                  }}
+                  title={`Xoá toàn bộ bản dịch và Voice AI của ngôn ngữ [${activeTab.toUpperCase()}] khỏi gian phòng này`}
+                >
+                  <Trash2 size={13} />
+                  <span>Gỡ bỏ ngôn ngữ này khỏi phòng</span>
+                </button>
               )}
-              <span>✨ Dịch tự động bằng AI (Heritage Draft)</span>
-            </button>
+            </div>
           </div>
 
           {/* Form trường dữ liệu bản dịch */}
@@ -385,10 +470,29 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
             </button>
 
             {currentTranslation.audioUrl && (
-              <span style={{ fontSize: '11.5px', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Check size={13} />
-                <span>Đã có file Voice AI ({activeTab.toUpperCase()})</span>
-              </span>
+              <>
+                <span style={{ fontSize: '11.5px', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Check size={13} />
+                  <span>Đã có file Voice AI</span>
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleRemoveVoiceAi}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    color: 'var(--error)',
+                    borderColor: 'var(--border-color)',
+                    fontSize: '11.5px'
+                  }}
+                  title={`Gỡ bỏ file âm thanh thuyết minh của [${activeTab.toUpperCase()}] khỏi phòng này`}
+                >
+                  <Trash2 size={12} />
+                  <span>Gỡ bỏ Voice AI</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -408,9 +512,30 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
             gap: 6
           }}
         >
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Volume2 size={14} />
-            <span>Nghe thử Voice AI tiền kết xuất [{activeTab.toUpperCase()}]:</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Volume2 size={14} />
+              <span>Nghe thử Voice AI tiền kết xuất [{activeTab.toUpperCase()}]:</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleRemoveVoiceAi}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--error)',
+                cursor: 'pointer',
+                fontSize: '11.5px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '2px 4px'
+              }}
+              title="Xóa file âm thanh này"
+            >
+              <Trash2 size={12} />
+              <span>Gỡ bỏ file Voice AI</span>
+            </button>
           </div>
           <audio
             controls
@@ -422,6 +547,18 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
           </audio>
         </div>
       )}
+
+      {/* Modal xác nhận gỡ bỏ ngôn ngữ khỏi gian phòng */}
+      <ConfirmModal
+        isOpen={showConfirmDeleteLang}
+        title={`Gỡ bỏ ngôn ngữ [${activeTab.toUpperCase()}] khỏi phòng`}
+        message={`Bạn có chắc chắn muốn gỡ bỏ hoàn toàn bản dịch và file thuyết minh Voice AI của ngôn ngữ ${languages.find(l => l.code === activeTab)?.nativeName || activeTab.toUpperCase()} khỏi gian phòng này?`}
+        confirmText="Xác nhận gỡ bỏ"
+        cancelText="Giữ lại"
+        type="danger"
+        onConfirm={handleConfirmDeleteLanguage}
+        onCancel={() => setShowConfirmDeleteLang(false)}
+      />
     </div>
   );
 };

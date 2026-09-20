@@ -166,6 +166,18 @@ export const api = {
     return json;
   },
 
+  async deleteAudioFile(audioUrl: string): Promise<void> {
+    try {
+      await fetch(`${API_BASE}/languages/audio`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioUrl })
+      });
+    } catch (e) {
+      console.warn('Lỗi xoá file audio:', e);
+    }
+  },
+
   // === QUẢN TRỊ CHUYÊN ĐỀ TRƯNG BÀY (TOPICS) ===
   async getTopics(): Promise<TopicItem[]> {
     const res = await fetch(`${API_BASE}/topics`);

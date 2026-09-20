@@ -60,9 +60,10 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
     try {
       setLoading(true);
       setError(null);
-      // Đồng bộ tự động kịch bản thuyết minh và Voice AI từ bản dịch sang trường gốc của phòng
-      const syncedScript = translations.vi?.narrationScript || translations.en?.narrationScript || Object.values(translations)[0]?.narrationScript || room.aiScript || '';
-      const hasAudio = Boolean(translations.vi?.audioUrl || translations.en?.audioUrl || Object.values(translations).some(t => Boolean(t.audioUrl)) || room.aiVoiceEnabled);
+      // Đồng bộ kịch bản thuyết minh từ tiếng Việt hoặc bản dịch đầu tiên có nội dung
+      const syncedScript = translations.vi?.narrationScript || Object.values(translations).find(t => Boolean(t.narrationScript?.trim()))?.narrationScript || '';
+      // Tuyệt đối không mock: Chỉ true khi thực sự có ít nhất một ngôn ngữ chứa file âm thanh audioUrl
+      const hasAudio = Object.values(translations).some(t => Boolean(t.audioUrl && t.audioUrl.trim()));
 
       const updated = await api.updateRoom(room.id, {
         code: code.trim(),

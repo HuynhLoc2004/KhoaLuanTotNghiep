@@ -572,3 +572,24 @@ languagesRouter.post('/generate-tts', async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: 'Lỗi sinh giọng đọc Voice AI: ' + err.message });
   }
 });
+
+/**
+ * DELETE /api/languages/audio
+ * Xóa file âm thanh Voice AI vật lý trên ổ đĩa máy chủ (dọn dẹp storage)
+ */
+languagesRouter.delete('/audio', async (req: Request, res: Response) => {
+  try {
+    const { audioUrl } = req.body;
+    if (audioUrl && typeof audioUrl === 'string' && audioUrl.includes('/uploads/audio/')) {
+      const filename = path.basename(audioUrl);
+      const filePath = path.join(process.cwd(), 'public', 'uploads', 'audio', filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+    res.json({ success: true, message: 'Đã xóa file âm thanh vật lý trên server' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi xóa file âm thanh: ' + err.message });
+  }
+});
+
