@@ -101,7 +101,12 @@ export const api = {
 
   // Language Registry APIs
   async getLanguages(): Promise<any[]> {
-    const res = await fetch(`${API_BASE}/languages`);
+    const res = await fetch(`${API_BASE}/languages?_t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải danh mục ngôn ngữ');
     return json.data;

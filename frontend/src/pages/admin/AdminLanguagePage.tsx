@@ -68,11 +68,11 @@ export const AdminLanguagePage: React.FC = () => {
   const [testingCode, setTestingCode] = useState<string | null>(null);
   const [previewAudio, setPreviewAudio] = useState<{ url: string; langName: string; flag: string } | null>(null);
 
-  // Search & Filter & Pagination state (Chuẩn 5 - 10 - 20 - 30 - 50)
+  // Search & Filter & Pagination state (Chuẩn 6 - 9 - 12 - 18 - 24)
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(6);
 
   // Form thêm ngôn ngữ mới & Validation
   const [selectedPresetCode, setSelectedPresetCode] = useState('');
@@ -132,16 +132,16 @@ export const AdminLanguagePage: React.FC = () => {
     }
   };
 
-  // Làm mới danh mục ngôn ngữ (có hiệu ứng xoay icon loading tối thiểu 500ms)
+  // Làm mới danh mục ngôn ngữ (có hiệu ứng xoay icon loading tối thiểu 400ms và chống cache)
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
       const [data] = await Promise.all([
         api.getLanguages(),
-        new Promise((resolve) => setTimeout(resolve, 500))
+        new Promise((resolve) => setTimeout(resolve, 400))
       ]);
       setLanguages(data);
-      showToast('Đã làm mới dữ liệu danh mục ngôn ngữ thành công', 'success');
+      showToast(`Đã đồng bộ dữ liệu thật: ${data.length} ngôn ngữ sẵn sàng`, 'success');
     } catch (err: any) {
       showToast('Lỗi làm mới danh mục ngôn ngữ: ' + err.message, 'error');
     } finally {
@@ -821,7 +821,7 @@ export const AdminLanguagePage: React.FC = () => {
                 ))}
               </div>
 
-              {/* PHÂN TRANG CHUẨN CỦA HỆ THỐNG: 5 - 10 - 20 - 30 - 50 */}
+              {/* PHÂN TRANG CHUẨN CỦA HỆ THỐNG: 6 - 9 - 12 - 18 - 24 */}
               <Pagination
                 currentPage={currentPage}
                 totalItems={filteredLanguages.length}
@@ -831,7 +831,7 @@ export const AdminLanguagePage: React.FC = () => {
                   setPageSize(newSize);
                   setCurrentPage(1);
                 }}
-                pageSizeOptions={[5, 10, 20, 30, 50]}
+                pageSizeOptions={[6, 9, 12, 18, 24]}
                 itemLabel="ngôn ngữ"
               />
             </>
