@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { RoomModel, IRoom, IHotspot } from '../models/Room.js';
 import { cacheGet, cacheSet, cacheDel } from '../services/redis.js';
+import { xoaCacheThongKe } from './analytics.js';
 
 export const roomsRouter = Router();
 
@@ -86,6 +87,7 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
     });
 
     await cacheDel('rooms:all');
+    await xoaCacheThongKe();
     res.status(201).json({ success: true, data: newRoom });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -101,6 +103,7 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
     await cacheDel('rooms:all');
+    await xoaCacheThongKe();
     res.json({ success: true, data: updated });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -116,6 +119,7 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
     await cacheDel('rooms:all');
+    await xoaCacheThongKe();
     res.json({ success: true, message: 'Đã xóa gian phòng khỏi cơ sở dữ liệu' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

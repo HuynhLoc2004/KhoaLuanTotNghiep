@@ -12,6 +12,8 @@ import { ToastProvider, useToast } from './components/Toast';
 
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
+import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
+import { ghiSuKien, khoiTaoTracker } from './utils/tracker';
 
 const AppContent: React.FC = () => {
   const { showToast } = useToast();
@@ -21,6 +23,16 @@ const AppContent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLagging, setIsLagging] = useState(false);
+
+  // Bật ghi nhận lượt truy cập ẩn danh một lần duy nhất khi ứng dụng khởi động
+  useEffect(() => {
+    khoiTaoTracker();
+  }, []);
+
+  // Mỗi lần đổi mục là một lượt xem trang
+  useEffect(() => {
+    ghiSuKien({ type: 'page_view', path: `/${currentTab}` });
+  }, [currentTab]);
 
   // Fetch all rooms from API
   const fetchRooms = async () => {
@@ -54,6 +66,7 @@ const AppContent: React.FC = () => {
 
   // Open Studio for a room
   const handleOpenStudio = (room: MuseumRoom) => {
+    ghiSuKien({ type: 'room_view', roomId: room.id, path: `/studio/${room.id}` });
     setActiveRoom(room);
     setCurrentTab('studio');
   };
@@ -210,12 +223,13 @@ const AppContent: React.FC = () => {
           />
         ) : currentTab === 'languages' ? (
           <AdminLanguagePage />
+        ) : currentTab === 'analytics' ? (
+          <AdminAnalyticsPage />
         ) : (
           <div className="admin-content">
             <div className="panel" style={{ padding: 40, textAlign: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--primary)' }}>
                 {currentTab === 'artifacts' && 'Quản lý Hiện vật & Cổ vật di sản'}
-                {currentTab === 'analytics' && 'Báo cáo & Thống kê lượt tham quan Tour 360'}
                 {currentTab === 'settings' && 'Cấu hình tham số Hệ thống Tour Di sản'}
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>

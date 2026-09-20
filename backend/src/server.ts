@@ -9,6 +9,8 @@ import { connectMongoDB } from './db/mongodb.js';
 import { stitchRouter } from './routes/stitch.js';
 import { mailRouter } from './routes/mail.js';
 import { languagesRouter } from './routes/languages.js';
+import { analyticsRouter } from './routes/analytics.js';
+import { eventsRouter } from './routes/events.js';
 import { seedDefaultLanguages } from './models/Language.js';
 import { getRedisStatus } from './services/redis.js';
 
@@ -42,6 +44,8 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/stitch', stitchRouter);
 app.use('/api/mail', mailRouter);
 app.use('/api/languages', languagesRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/events', eventsRouter);
 
 // Health check with real statuses
 app.get('/api/health', (req, res) => {

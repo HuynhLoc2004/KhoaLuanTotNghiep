@@ -2958,3 +2958,689 @@
 
 
 
+
+/* ==========================================================================
+   Báo cáo & Thống kê (AdminAnalyticsPage)
+   Biểu đồ dùng một chuỗi dữ liệu duy nhất nên chỉ cần một sắc vàng đồng,
+   không cần bảng chú giải. Trạng thái luôn kèm icon và chữ, không bao giờ
+   chỉ dựa vào màu.
+   ========================================================================== */
+
+.analytics-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  background-color: var(--accent-gold-light);
+  border: 1px solid var(--accent-gold-border);
+  border-radius: var(--radius-md);
+}
+
+.analytics-notice strong {
+  color: var(--text-main);
+}
+
+.analytics-two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .analytics-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Thanh đo dùng chung cho thẻ số liệu và độ phủ bản dịch */
+/* Rãnh dùng bậc nhạt CÙNG một ramp với phần tô, để mắt đọc ra
+   "phần đã đạt trên tổng thể" chứ không phải hai đại lượng khác nhau. */
+.meter-track {
+  width: 100%;
+  height: 6px;
+  background-color: var(--accent-gold-light);
+  border: 1px solid var(--accent-gold-border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  background-color: var(--accent-gold);
+  border-radius: 99px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Độ phủ bản dịch */
+.coverage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.coverage-row {
+  display: grid;
+  grid-template-columns: 148px 1fr 96px;
+  align-items: center;
+  gap: 12px;
+}
+
+.coverage-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.coverage-label > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coverage-tag {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--guide-badge-text);
+  background-color: var(--guide-badge-bg);
+  border-radius: 3px;
+}
+
+.coverage-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.coverage-percent {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--heading-color);
+}
+
+@media (max-width: 640px) {
+  .coverage-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .coverage-value {
+    justify-content: flex-start;
+  }
+}
+
+/* Biểu đồ cột theo ngày */
+.daybar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 132px;
+  /* Chừa chỗ cho tooltip của cột cao nhất, nếu không nó đè lên tiêu đề panel */
+  padding-top: 28px;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--border-color);
+  box-sizing: content-box;
+}
+
+.daybar-col {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  cursor: default;
+}
+
+.daybar-mark {
+  width: 100%;
+  background-color: var(--accent-gold);
+  border-radius: 3px 3px 0 0;
+  transition: background-color 0.15s ease;
+}
+
+.daybar-mark.is-empty {
+  background-color: var(--border-color);
+}
+
+.daybar-col.is-hovered .daybar-mark {
+  background-color: var(--primary);
+}
+
+/* Tooltip của những cột sát mép phải neo về phía trong, nếu không chữ bị cắt cụt */
+.daybar-tooltip.align-start {
+  left: 0;
+  transform: none;
+}
+
+.daybar-tooltip.align-end {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.daybar-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 5px 9px;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-main);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+.daybar-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Việc tồn đọng */
+.pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pending-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  padding: 11px 13px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 768px) {
+  .pending-row {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+}
+
+.pending-room {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pending-code {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--primary-text);
+  background-color: var(--primary);
+  border-radius: 3px;
+}
+
+.pending-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pending-issues li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* Ảnh chưa gắn phòng */
+.orphan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.orphan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.orphan-row:last-child {
+  border-bottom: none;
+}
+
+.orphan-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orphan-meta {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Đồ thị đường có vùng tô (TrendAreaChart) */
+.trend-chart {
+  position: relative;
+  width: 100%;
+}
+
+.trend-chart svg {
+  display: block;
+  cursor: crosshair;
+}
+
+.trend-tooltip {
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 5px 9px;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-main);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+.trend-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Xếp hạng theo độ lớn (điểm neo mỗi gian phòng) */
+.rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.rank-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 28px;
+  align-items: center;
+  gap: 12px;
+}
+
+.rank-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rank-code {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--guide-badge-text);
+  background-color: var(--guide-badge-bg);
+  border-radius: 3px;
+}
+
+.rank-name {
+  font-size: 12.5px;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-track {
+  height: 8px;
+  background-color: var(--accent-gold-light);
+  border: 1px solid var(--accent-gold-border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.rank-fill {
+  height: 100%;
+  background-color: var(--accent-gold);
+  border-radius: 99px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rank-fill.is-zero {
+  background-color: transparent;
+}
+
+.rank-value {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--heading-color);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .rank-row {
+    grid-template-columns: 1fr 72px 24px;
+    gap: 8px;
+  }
+}
+
+/* Biểu đồ phân bố (số ảnh góc đầu vào) */
+/* Histogram biểu diễn phân bố nên các khoảng phải liền nhau:
+   chỉ chừa khe 2px màu nền để tách nét, không tách thành cột rời rạc. */
+.histogram {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 150px;
+}
+
+.histogram-col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.histogram-bar-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.histogram-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--heading-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.histogram-bar {
+  width: 100%;
+  background-color: var(--accent-gold);
+  border-radius: 4px 4px 0 0;
+}
+
+.histogram-label {
+  padding-top: 7px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* Khoảng đạt chuẩn được đánh dấu bằng chữ và gạch chân, không bằng màu */
+.histogram-label.is-standard {
+  color: var(--text-main);
+  font-weight: 600;
+  border-top: 2px solid var(--accent-gold);
+  margin-top: -2px;
+}
+
+/* Sparkline nhét trong thẻ số: chỉ gợi hình dáng xu hướng, con số mới là chính */
+.stat-spark {
+  margin: 6px 0 2px;
+  height: 30px;
+}
+
+/* Bảng số liệu thay thế đồ thị, cho người dùng trình đọc màn hình và khi cần con số chính xác */
+.data-table-wrap {
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-weight: 600;
+  color: var(--text-muted);
+  background-color: var(--bg-surface);
+}
+
+.data-table td {
+  color: var(--text-main);
+}
+
+.data-table td.num,
+.data-table th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table .total-row td {
+  font-weight: 700;
+  color: var(--heading-color);
+  border-bottom: none;
+  border-top: 1px solid var(--border-dark);
+}
+
+.coverage-note {
+  grid-column: 2 / -1;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .coverage-note {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Chỉ dành cho trình đọc màn hình */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Vùng đồ thị nhận được tiêu điểm bàn phím phải thấy rõ đang được chọn */
+.daybar-chart:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* Chế độ tương phản cưỡng bức của hệ điều hành bỏ hết màu nền:
+   cấp cho các nét đồ thị một màu hệ thống để chúng không biến mất. */
+@media (forced-colors: active) {
+  .meter-fill,
+  .rank-fill,
+  .daybar-mark,
+  .histogram-bar {
+    forced-color-adjust: none;
+    background-color: Highlight;
+  }
+
+  .daybar-mark.is-empty {
+    background-color: GrayText;
+  }
+
+  .meter-track,
+  .rank-track {
+    border: 1px solid CanvasText;
+  }
+
+  .trend-chart svg path[fill='none'] {
+    stroke: Highlight;
+  }
+}
+
+/* ==========================================================================
+   Bảng màu riêng cho đồ thị nhiều chuỗi.
+   Tách khỏi token giao diện vì token giao diện không đạt kiểm tra phân biệt màu
+   ở chế độ tối: --primary dark (#B23825) chỉ đạt contrast 2.89 trên nền panel.
+   Cặp dưới đây đã qua đủ 5 kiểm tra (dải sáng, độ bão hòa, phân biệt mù màu,
+   phân biệt mắt thường, tương phản nền) ở CẢ hai chế độ.
+   ========================================================================== */
+:root {
+  --chart-cat-1: #B47D28; /* vãng lai */
+  --chart-cat-2: #8C2D19; /* đã đăng nhập */
+}
+
+[data-theme="dark"] {
+  --chart-cat-1: #BE8A3C;
+  --chart-cat-2: #C8453F;
+}
+
+.visitor-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.visitor-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.visitor-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.visitor-legend-swatch.cat-1 { background-color: var(--chart-cat-1); }
+.visitor-legend-swatch.cat-2 { background-color: var(--chart-cat-2); }
+
+.visitor-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 140px;
+  padding-top: 28px;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--border-color);
+  box-sizing: content-box;
+}
+
+.visitor-chart:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.visitor-col {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  cursor: default;
+}
+
+/* Khe 2px màu nền giữa hai đoạn chồng, thay cho việc vẽ viền quanh mark */
+.visitor-seg + .visitor-seg {
+  margin-bottom: 2px;
+}
+
+.visitor-seg {
+  width: 100%;
+}
+
+.visitor-seg.cat-1 {
+  background-color: var(--chart-cat-1);
+  border-radius: 3px 3px 0 0;
+}
+
+.visitor-seg.cat-2 {
+  background-color: var(--chart-cat-2);
+}
+
+.visitor-seg.is-empty {
+  background-color: var(--border-color);
+  border-radius: 3px 3px 0 0;
+}
+
+.visitor-col.is-hovered .visitor-seg.cat-1,
+.visitor-col.is-hovered .visitor-seg.cat-2 {
+  filter: brightness(1.15);
+}
+
+@media (forced-colors: active) {
+  .visitor-seg.cat-1 { forced-color-adjust: none; background-color: Highlight; }
+  .visitor-seg.cat-2 { forced-color-adjust: none; background-color: CanvasText; }
+}
+
+.sub-title {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
