@@ -43,6 +43,7 @@ import { api, API_BASE } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { useClientTranslation } from '../../context/ClientTranslationContext';
 
 interface AdminRoomsPageProps {
   rooms: MuseumRoom[];
@@ -92,6 +93,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 }) => {
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
+  const { t, localize } = useClientTranslation();
   const [activeSubTab, setActiveSubTab] = useState<'rooms' | 'gallery'>('rooms');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showNewModal, setShowNewModal] = useState(false);
@@ -561,7 +563,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               }}
             >
               <Compass size={15} />
-              <span>Gian Phòng Triển Lãm ({rooms.length})</span>
+              <span>{t('rooms.tabRooms', 'Gian Phòng Triển Lãm')} ({rooms.length})</span>
             </button>
 
             <button
@@ -583,7 +585,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               }}
             >
               <Globe size={15} />
-              <span>Kho Không Gian 360° Đã Ghép ({panoramas.length})</span>
+              <span>{t('rooms.tabStorage', 'Kho Không Gian 360° Đã Ghép')} ({panoramas.length})</span>
             </button>
           </div>
 
@@ -603,7 +605,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   <QrCode size={14} />
-                  <span>Xuất gói QR Standee</span>
+                  <span>{t('rooms.exportStandee', 'Xuất gói QR Standee')}</span>
                 </button>
 
                 <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: 2 }}>
@@ -671,7 +673,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   <RotateCw size={14} className={loadingPanos ? 'spin' : ''} />
-                  <span>Làm mới</span>
+                  <span>{t('common.refresh', 'Làm mới')}</span>
                 </button>
               </>
             )}
@@ -685,7 +687,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Plus size={15} />
-              <span>Thêm gian phòng mới</span>
+              <span>{t('rooms.addRoom', 'Thêm gian phòng mới')}</span>
             </button>
           </div>
         </div>
@@ -706,7 +708,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
             <input
               type="text"
-              placeholder={activeSubTab === 'rooms' ? "Tìm theo tên phòng, mã P-01, P-05..." : "Tìm tên file ảnh toàn cảnh 360°..."}
+              placeholder={activeSubTab === 'rooms' ? t('rooms.searchPlaceholder', "Tìm theo tên phòng, mã P-01, P-05...") : t('rooms.searchPlaceholderPano', "Tìm tên file ảnh toàn cảnh 360°...")}
               className="form-control"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -737,7 +739,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     setRoomPage(1);
                   }}
                 >
-                  <option value="all">Tất cả chuyên đề trưng bày ({rooms.length})</option>
+                  <option value="all">{t('rooms.allThemes', 'Tất cả chuyên đề trưng bày')} ({rooms.length})</option>
                   {availablePeriods.map((p) => {
                     const count = rooms.filter((r) => r.period?.trim() === p).length;
                     return (
@@ -760,8 +762,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     setRoomPage(1);
                   }}
                 >
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="active">Đang trực tuyến</option>
+                  <option value="all">{t('rooms.allStatuses', 'Tất cả trạng thái')}</option>
+                  <option value="active">{t('rooms.statusActive', 'Đang hoạt động')}</option>
                   <option value="ai_enabled">Đã bật AI Voice</option>
                   <option value="no_ai">Chưa cấu hình AI</option>
                 </select>
@@ -846,7 +848,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     <div className="room-info">
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                         <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.4px', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {room.period || 'Hiện vật Lịch sử'}
+                          {localize(room, 'period', room.period) || 'Hiện vật Lịch sử'}
                         </span>
                         {room.aiVoiceEnabled || room.aiKnowledgePrompt ? (
                           <span style={{ fontSize: '10.5px', color: 'var(--accent-gold)', background: 'rgba(212, 168, 106, 0.12)', border: '1px solid rgba(212, 168, 106, 0.28)', padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -860,18 +862,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         )}
                       </div>
 
-                      <div className="room-name" title={room.name}>{room.name}</div>
-                      <div className="room-desc" title={room.description}>{room.description || 'Chưa có thông tin mô tả chi tiết cho gian phòng này.'}</div>
+                      <div className="room-name" title={room.name}>{localize(room, 'name', room.name)}</div>
+                      <div className="room-desc" title={room.description}>{localize(room, 'description', room.description) || 'Chưa có thông tin mô tả chi tiết cho gian phòng này.'}</div>
 
                       {/* Thông số thực tế từ DB */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', padding: '6px 0', borderTop: '1px dashed var(--border-color)' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <QrCode size={11} style={{ color: 'var(--accent-gold)' }} />
-                          <span>{(room.qrScanCount || 0).toLocaleString('vi-VN')} lượt quét</span>
+                          <span>{(room.qrScanCount || 0).toLocaleString('vi-VN')} {t('rooms.scans', 'lượt quét')}</span>
                         </span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <Layers size={11} />
-                          <span>{room.scenesCount || 1} góc 360°</span>
+                          <span>{room.scenesCount || 1} {t('rooms.angle360', 'góc 360°')}</span>
                         </span>
                       </div>
 
@@ -884,10 +886,10 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             className="btn btn-primary btn-sm"
                             onClick={() => onOpenStudio(room)}
                             style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
-                            title="Mở trình biên tập ghim Hotspots 360°"
+                            title={t('rooms.explore360', 'Mở trình biên tập ghim Hotspots 360°')}
                           >
                             <Compass size={13} />
-                            <span>Biên tập 360</span>
+                            <span>{t('rooms.explore360', 'Biên tập 360')}</span>
                           </button>
 
                           <button
@@ -895,10 +897,10 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenAiDrawer(room)}
                             style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
-                            title="Thuyết minh & Trợ lý ảo cho gian phòng"
+                            title={t('rooms.narration', 'Thuyết minh & Trợ lý ảo cho gian phòng')}
                           >
                             <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
-                            <span>Thuyết minh</span>
+                            <span>{t('rooms.narration', 'Thuyết minh')}</span>
                           </button>
                         </div>
 
@@ -912,7 +914,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             style={{ flex: 1, justifyContent: 'center', padding: '4px 6px', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
                             <QrCode size={12} />
-                            <span>Mã QR</span>
+                            <span>{t('rooms.qrCode', 'Mã QR')}</span>
                           </button>
 
                           <button
@@ -923,7 +925,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             style={{ padding: '4px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
                             <Edit3 size={12} />
-                            <span>Sửa</span>
+                            <span>{t('rooms.edit', 'Sửa')}</span>
                           </button>
 
                           <button
@@ -940,7 +942,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             style={{ padding: '4px 8px', color: 'var(--error)', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
                             <Trash2 size={12} />
-                            <span>Xóa</span>
+                            <span>{t('rooms.delete', 'Xóa')}</span>
                           </button>
                         </div>
                       </div>

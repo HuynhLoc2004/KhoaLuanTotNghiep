@@ -153,6 +153,119 @@ languagesRouter.get('/active', async (req: Request, res: Response) => {
   }
 });
 
+const BASE_UI_BUNDLE: Record<string, string> = {
+  'nav.museumTitle': 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
+  'nav.adminTitle': 'Ban Quản trị Bảo tàng Lịch sử',
+  'nav.adminRole': 'Quản trị viên (Admin)',
+  'nav.breadcrumbMuseum': 'Bảo tàng Lịch sử',
+  'nav.viewTour': 'Xem Tour Khách',
+  'nav.rooms': 'Gian trưng bày & Tour 360',
+  'nav.pocStitching': 'Tạo ảnh toàn cảnh 360°',
+  'nav.artifacts': 'Hiện vật & Cổ vật di sản',
+  'nav.languages': 'Quản trị Ngôn ngữ & Voice AI',
+  'nav.analytics': 'Báo cáo & Thống kê',
+  'nav.settings': 'Cấu hình hệ thống',
+  'nav.themeLight': 'Chuyển sang giao diện Sáng',
+  'nav.themeDark': 'Chuyển sang giao diện Tối',
+  'rooms.title': 'Gian trưng bày & Tour 360',
+  'rooms.desc': 'Quản trị không gian toàn cảnh 360°, điểm neo di sản và thiết lập điểm nhìn đầu tiên.',
+  'rooms.tabRooms': 'Gian trưng bày',
+  'rooms.tabStorage': 'Kho ảnh toàn cảnh 360°',
+  'rooms.addRoom': 'Thêm gian phòng mới',
+  'rooms.exportStandee': 'Xuất gói Standee QR',
+  'rooms.searchPlaceholder': 'Tìm theo tên phòng, mã P-01, P-05...',
+  'rooms.allThemes': 'Tất cả chủ đề',
+  'rooms.allStatuses': 'Tất cả trạng thái',
+  'rooms.statusActive': 'Đang hoạt động',
+  'rooms.statusInactive': 'Tạm ẩn',
+  'rooms.showing': 'Hiển thị',
+  'rooms.of': 'trên tổng số',
+  'rooms.roomsCount': 'phòng',
+  'rooms.perPage': 'Mỗi trang:',
+  'rooms.pageUnit': '/ trang',
+  'rooms.prev': 'Trước',
+  'rooms.next': 'Sau',
+  'rooms.explore360': 'Biên tập 360°',
+  'rooms.narration': 'Thuyết minh',
+  'rooms.qrCode': 'Mã QR',
+  'rooms.edit': 'Sửa',
+  'rooms.delete': 'Xóa',
+  'rooms.anchorPoints': 'điểm neo',
+  'rooms.notConfigured': 'Chưa cấu hình điểm nhìn',
+  'rooms.angle360': 'góc 360°',
+  'rooms.scans': 'lượt quét',
+  'rooms.statSpaces': 'không gian',
+  'rooms.statReady': 'Sẵn sàng đón khách tham quan',
+  'rooms.statCoordinates': 'tọa độ di sản',
+  'rooms.statGuidance': 'Định vị liên hoàn & dẫn tour 360',
+  'rooms.statMonographs': 'chuyên khảo',
+  'rooms.statAudio': 'Biên tập tài liệu sử & âm thanh bản ngữ',
+  'rooms.statVisitorScan': 'Khách tham quan quét mã QR tại gian trưng bày',
+  'studio.backToRooms': 'Gian trưng bày & Tour 360',
+  'studio.save': 'Lưu cấu hình không gian',
+  'studio.setInitialView': 'Đặt góc nhìn ban đầu',
+  'studio.addHotspot': 'Thêm điểm neo di sản',
+  'studio.hotspotNav': 'Điểm chuyển tiếp phòng',
+  'studio.hotspotInfo': 'Điểm thuyết minh hiện vật',
+  'studio.editHotspot': 'Sửa điểm neo',
+  'studio.deleteHotspot': 'Xóa điểm neo',
+  'common.confirm': 'Xác nhận',
+  'common.cancel': 'Hủy bỏ',
+  'common.save': 'Lưu lại',
+  'common.close': 'Đóng',
+  'common.loading': 'Đang tải dữ liệu không gian bảo tàng...',
+  'common.refresh': 'Làm mới',
+  'common.emptyData': 'Chưa có dữ liệu phù hợp',
+  'common.thesisFooter': 'Đề tài Tốt nghiệp 2026 • Hệ thống Tour 360 Không gian Di sản'
+};
+
+/**
+ * GET /api/languages/bundle/:code
+ * Tải gói từ điển i18n cho một ngôn ngữ bất kỳ
+ * Tự động dịch bằng NMT + áp dụng Heritage Glossary và lưu đệm vào Redis
+ */
+languagesRouter.get('/bundle/:code', async (req: Request, res: Response) => {
+  try {
+    const cleanCode = String(req.params.code).toLowerCase().trim();
+    if (cleanCode === 'vi') {
+      return res.json({ success: true, data: BASE_UI_BUNDLE });
+    }
+
+    const cacheKey = `cache:bundle:${cleanCode}`;
+    const cached = await cacheGet<Record<string, string>>(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached, cached: true });
+    }
+
+    const translatedBundle: Record<string, string> = {};
+    const entries = Object.entries(BASE_UI_BUNDLE);
+
+    // Dịch theo lô nhỏ để tối ưu tốc độ và không gây nghẽn
+    for (let i = 0; i < entries.length; i += 6) {
+      const batch = entries.slice(i, i + 6);
+      await Promise.all(
+        batch.map(async ([key, viText]) => {
+          let trans = await fetchSingleChunkNMT(viText, cleanCode);
+          // Hậu xử lý bằng Heritage Glossary
+          for (const [vTerm, tDict] of Object.entries(HERITAGE_GLOSSARY)) {
+            if (tDict[cleanCode] && trans.includes(vTerm)) {
+              trans = trans.replace(new RegExp(vTerm, 'g'), tDict[cleanCode]);
+            }
+          }
+          translatedBundle[key] = trans || viText;
+        })
+      );
+    }
+
+    // Cache trong 7 ngày
+    await cacheSet(cacheKey, translatedBundle, 7 * 24 * 3600);
+
+    res.json({ success: true, data: translatedBundle, cached: false });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi tạo gói từ điển: ' + err.message });
+  }
+});
+
 /**
  * POST /api/languages
  * Thêm một ngôn ngữ mới vào hệ thống
