@@ -424,8 +424,8 @@ export const AdminSettingsPage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* 2 Hàng song song: Tên rút gọn & Ký hiệu Emblem */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 18 }}>
+                {/* 2 Hàng song song: Tên rút gọn & Khẩu hiệu Tagline */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                       Tên rút gọn / Tên ngắn <span style={{ color: 'var(--primary)' }}>*</span>
@@ -454,155 +454,298 @@ export const AdminSettingsPage: React.FC = () => {
 
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      Biểu trưng (Emblem) <span style={{ color: 'var(--primary)' }}>*</span>
+                      Khẩu hiệu / Giới thiệu nhận diện (Tagline)
                     </label>
                     <input
                       type="text"
                       className="input-field"
-                      maxLength={6}
-                      value={brandingForm.emblemText}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, emblemText: e.target.value.toUpperCase() })}
-                      placeholder="BT, MT, VN"
-                      required
+                      value={brandingForm.tagline || ''}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, tagline: e.target.value })}
+                      placeholder="Ví dụ: Hệ thống Tour 360 Không gian Di sản"
                       style={{
                         width: '100%',
                         padding: '10px 14px',
                         fontSize: 13.5,
-                        fontWeight: 700,
-                        letterSpacing: '1px',
-                        textAlign: 'center',
                         backgroundColor: 'var(--bg-subtle)',
                         border: '1px solid var(--border-color)',
                         borderRadius: 'var(--radius-sm, 6px)',
-                        color: 'var(--accent-gold)'
+                        color: 'var(--text-main)'
                       }}
                     />
                     <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                      Ký tự hoa đại diện
+                      Hiển thị phụ đề dưới tên bảo tàng trên Sidebar.
                     </span>
                   </div>
                 </div>
 
-                {/* 3. Logo Bảo tàng (Tải lên file hoặc dán URL) */}
-                <div style={{ marginBottom: 20, padding: '16px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border-color)' }}>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 8 }}>
-                    Logo nhận diện Bảo tàng
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                    {/* Box hiển thị logo hoặc emblem */}
-                    <div
-                      style={{
-                        width: 68,
-                        height: 68,
-                        borderRadius: 10,
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-color)',
+                {/* 3. Bộ Nhận Diện Hình Ảnh: Logo chính thức & Biểu trưng chữ dự phòng */}
+                <div style={{
+                  marginBottom: 22,
+                  padding: '20px',
+                  background: 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Image size={17} style={{ color: 'var(--accent-gold)' }} />
+                        <span>Logo & Biểu tượng nhận diện</span>
+                      </div>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                        Hệ thống tự động ưu tiên <strong>Logo hình ảnh chính thức</strong>. Khi đã có logo, hệ thống giữ nguyên 100% chi tiết gốc và không vẽ đè chữ.
+                      </p>
+                    </div>
+
+                    {brandingForm.logoUrl ? (
+                      <span style={{
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        color: '#10B981',
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        padding: '4px 10px',
+                        borderRadius: 20,
+                        whiteSpace: 'nowrap',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        flexShrink: 0
-                      }}
-                    >
-                      {brandingForm.logoUrl ? (
-                        <img
-                          src={brandingForm.logoUrl}
-                          alt="Logo bảo tàng"
-                          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
-                        />
-                      ) : (
+                        gap: 5
+                      }}>
+                        <Check size={13} /> Đang áp dụng Logo hình ảnh
+                      </span>
+                    ) : (
+                      <span style={{
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        color: 'var(--accent-gold)',
+                        background: 'rgba(212, 168, 106, 0.12)',
+                        border: '1px solid rgba(212, 168, 106, 0.3)',
+                        padding: '4px 10px',
+                        borderRadius: 20,
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}>
+                        Đang dùng Biểu trưng chữ dự phòng
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Mục 1: Tải lên Logo chính thức (Ưu tiên số 1) */}
+                  <div style={{
+                    padding: '16px',
+                    borderRadius: 8,
+                    background: 'var(--bg-subtle)',
+                    border: brandingForm.logoUrl ? '1px solid rgba(16, 185, 129, 0.3)' : '1px dashed var(--border-color)',
+                    marginBottom: 16
+                  }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      1. Logo hình ảnh chính thức <span style={{ color: 'var(--accent-gold)', fontSize: 12, fontWeight: 500 }}>(Khuyên dùng cho Bảo tàng)</span>
+                    </label>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px 0' }}>
+                      Phù hợp với các logo có họa tiết, triện tròn hoặc con dấu cổ. Khuyên dùng tệp <strong>PNG trong suốt</strong> hoặc <strong>SVG</strong> để logo hiển thị thanh thoát, không bị viền cứng.
+                    </p>
+
+                    <input
+                      type="file"
+                      ref={logoInputRef}
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      onChange={handleLogoUpload}
+                      style={{ display: 'none' }}
+                    />
+
+                    {brandingForm.logoUrl ? (
+                      /* Khi ĐÃ CÓ LOGO: Hiển thị Logo thuần túy trên nền bàn cờ trong suốt, KHÔNG CHỮ VN, KHÔNG KHUNG ĐỎ */
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                         <div
                           style={{
-                            width: '100%',
-                            height: '100%',
-                            background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
+                            minWidth: 110,
+                            height: 76,
+                            padding: '8px 16px',
+                            borderRadius: 8,
+                            background: 'repeating-conic-gradient(rgba(255, 255, 255, 0.05) 0% 25%, rgba(0, 0, 0, 0.2) 0% 50%) 50% / 14px 14px',
+                            border: '1px solid var(--border-color)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontFamily: 'serif',
-                            fontWeight: 800,
-                            fontSize: 20,
-                            color: '#FFF8F0'
+                            overflow: 'hidden'
+                          }}
+                          title="Xem trước logo trên nền trong suốt (Checkerboard)"
+                        >
+                          <img
+                            src={brandingForm.logoUrl}
+                            alt="Logo bảo tàng"
+                            style={{ maxHeight: 60, maxWidth: 160, objectFit: 'contain' }}
+                          />
+                        </div>
+
+                        <div style={{ flex: 1, minWidth: 220 }}>
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => logoInputRef.current?.click()}
+                              disabled={uploadingLogo}
+                              className="btn btn-secondary btn-sm"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                            >
+                              <Upload size={14} />
+                              <span>{uploadingLogo ? 'Đang tải lên...' : 'Thay đổi logo khác'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleRemoveLogo}
+                              className="btn btn-secondary btn-sm"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#EF4444' }}
+                            >
+                              <Trash2 size={14} />
+                              <span>Gỡ bỏ logo (Dùng biểu trưng chữ)</span>
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input
+                              type="text"
+                              className="input-field"
+                              value={brandingForm.logoUrl}
+                              onChange={(e) => setBrandingForm({ ...brandingForm, logoUrl: e.target.value })}
+                              placeholder="URL ảnh logo (https://.../logo.png)"
+                              style={{
+                                flex: 1,
+                                padding: '7px 12px',
+                                fontSize: 12,
+                                backgroundColor: 'var(--bg-surface)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 4,
+                                color: 'var(--text-main)'
+                              }}
+                            />
+                            <a
+                              href={brandingForm.logoUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn btn-ghost btn-sm"
+                              style={{ padding: '6px 10px', fontSize: 11.5 }}
+                              title="Mở xem ảnh gốc"
+                            >
+                              <ExternalLink size={13} />
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Khi CHƯA CÓ LOGO: Khung tải ảnh dashed chuyên nghiệp, rõ ràng */
+                      <div>
+                        <div
+                          onClick={() => logoInputRef.current?.click()}
+                          style={{
+                            padding: '22px 20px',
+                            borderRadius: 8,
+                            border: '1px dashed var(--accent-gold)',
+                            background: 'rgba(212, 168, 106, 0.03)',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            marginBottom: 10
                           }}
                         >
-                          {brandingForm.emblemText || 'BT'}
+                          <Upload size={26} style={{ color: 'var(--accent-gold)', marginBottom: 8 }} />
+                          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                            {uploadingLogo ? 'Đang tải tệp ảnh lên máy chủ...' : 'Bấm vào đây để tải ảnh Logo bảo tàng từ máy tính'}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
+                            Hỗ trợ tệp PNG, SVG, JPG (Tối đa 5MB). Logo sẽ giữ nguyên 100% đường nét hoa văn & độ trong suốt.
+                          </div>
                         </div>
-                      )}
-                    </div>
 
-                    <div style={{ flex: 1, minWidth: 200 }}>
-                      <input
-                        type="file"
-                        ref={logoInputRef}
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        style={{ display: 'none' }}
-                      />
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={() => logoInputRef.current?.click()}
-                          disabled={uploadingLogo}
-                          className="btn btn-secondary btn-sm"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                        >
-                          <Upload size={14} />
-                          <span>{uploadingLogo ? 'Đang tải lên...' : 'Tải ảnh logo từ máy tính'}</span>
-                        </button>
-
-                        {brandingForm.logoUrl && (
-                          <button
-                            type="button"
-                            onClick={handleRemoveLogo}
-                            className="btn btn-secondary btn-sm"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#EF4444' }}
-                          >
-                            <Trash2 size={14} />
-                            <span>Gỡ logo (Dùng biểu trưng)</span>
-                          </button>
-                        )}
+                        <input
+                          type="text"
+                          className="input-field"
+                          value={brandingForm.logoUrl || ''}
+                          onChange={(e) => setBrandingForm({ ...brandingForm, logoUrl: e.target.value })}
+                          placeholder="Hoặc dán URL ảnh trực tiếp (https://.../logo.png)"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            fontSize: 12,
+                            backgroundColor: 'var(--bg-surface)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 4,
+                            color: 'var(--text-main)'
+                          }}
+                        />
                       </div>
-                      <input
-                        type="text"
-                        className="input-field"
-                        value={brandingForm.logoUrl || ''}
-                        onChange={(e) => setBrandingForm({ ...brandingForm, logoUrl: e.target.value })}
-                        placeholder="Hoặc dán URL ảnh trực tiếp (https://.../logo.png)"
+                    )}
+                  </div>
+
+                  {/* Mục 2: Biểu trưng chữ viết tắt (Emblem - Dự phòng) */}
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: 8,
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
+                        2. Biểu trưng chữ viết tắt (Emblem dự phòng)
+                      </label>
+                      <span style={{ fontSize: 11, color: brandingForm.logoUrl ? 'var(--text-muted)' : 'var(--accent-gold)', fontWeight: 600 }}>
+                        {brandingForm.logoUrl ? 'Đang ẩn (Dự phòng khi không có ảnh logo)' : 'Đang được sử dụng'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
+                      Chỉ dùng khi bảo tàng chưa kịp có file ảnh logo. Hệ thống tạo một huy hiệu hình vuông sang trọng với các chữ hoa viết tắt (Ví dụ: BT, MT, VN).
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div
                         style={{
-                          width: '100%',
-                          padding: '7px 12px',
-                          fontSize: 12,
-                          backgroundColor: 'var(--bg-surface)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: 4,
-                          color: 'var(--text-main)'
+                          width: 44,
+                          height: 44,
+                          borderRadius: 8,
+                          background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
+                          border: '1px solid var(--accent-gold)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontFamily: 'serif',
+                          fontWeight: 800,
+                          fontSize: 17,
+                          color: '#FFF8F0',
+                          flexShrink: 0,
+                          opacity: brandingForm.logoUrl ? 0.45 : 1
                         }}
-                      />
+                        title={brandingForm.logoUrl ? 'Biểu trưng này bị ẩn vì bảo tàng đã có Logo hình ảnh' : 'Biểu trưng đang hiển thị'}
+                      >
+                        {brandingForm.emblemText || 'BT'}
+                      </div>
+
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="text"
+                          className="input-field"
+                          maxLength={6}
+                          value={brandingForm.emblemText}
+                          onChange={(e) => setBrandingForm({ ...brandingForm, emblemText: e.target.value.toUpperCase() })}
+                          placeholder="Ví dụ: BT, MT, VN"
+                          required
+                          style={{
+                            maxWidth: 160,
+                            padding: '8px 12px',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            letterSpacing: '1.5px',
+                            textAlign: 'center',
+                            backgroundColor: 'var(--bg-surface)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-sm, 6px)',
+                            color: 'var(--accent-gold)'
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                {/* 4. Khẩu hiệu / Tagline */}
-                <div style={{ marginBottom: 18 }}>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Khẩu hiệu / Giới thiệu nhận diện (Tagline)
-                  </label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    value={brandingForm.tagline || ''}
-                    onChange={(e) => setBrandingForm({ ...brandingForm, tagline: e.target.value })}
-                    placeholder="Ví dụ: Hệ thống Tour 360 Không gian Di sản"
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      fontSize: 13.5,
-                      backgroundColor: 'var(--bg-subtle)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-sm, 6px)',
-                      color: 'var(--text-main)'
-                    }}
-                  />
                 </div>
 
                 {/* 5 Hàng song song: Tỉnh / Thành phố & Địa chỉ */}
@@ -791,19 +934,18 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   {brandingForm.logoUrl ? (
-                    <img
-                      src={brandingForm.logoUrl}
-                      alt=""
-                      style={{
-                        width: 38,
-                        height: 38,
-                        objectFit: 'contain',
-                        borderRadius: 8,
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        padding: 2,
-                        border: '1px solid var(--border-color)'
-                      }}
-                    />
+                    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img
+                        src={brandingForm.logoUrl}
+                        alt=""
+                        style={{
+                          maxHeight: 38,
+                          maxWidth: 48,
+                          objectFit: 'contain',
+                          display: 'block'
+                        }}
+                      />
+                    </div>
                   ) : (
                     <div className="museum-emblem">{brandingForm.emblemText || 'BT'}</div>
                   )}

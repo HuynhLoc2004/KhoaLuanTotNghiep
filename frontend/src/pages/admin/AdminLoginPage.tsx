@@ -163,19 +163,15 @@ export const AdminLoginPage: React.FC = () => {
         {/* Header danh tính bảo tàng */}
         <div className="login-card-header">
           {branding.logoUrl ? (
-            <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
               <img
                 src={branding.logoUrl}
                 alt={branding.shortName}
                 style={{
-                  width: 58,
-                  height: 58,
+                  maxHeight: 70,
+                  maxWidth: 200,
                   objectFit: 'contain',
-                  borderRadius: 12,
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  padding: 4,
-                  border: '1px solid var(--border-color)',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
+                  display: 'block'
                 }}
               />
             </div>
