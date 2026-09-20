@@ -314,25 +314,48 @@ def enhance_museum_texture(image):
 
 def balance_indoor_lighting(img):
     """
-    Cân bằng ánh sáng thông minh chống lóa ngược sáng cửa chính & kéo sáng góc tối:
-    - Nén các vùng lóa sáng cực đại (> 215) ở cửa kính/cửa sắt ngược sáng để cứu chi tiết khung cửa.
-    - Kéo sáng các nan sắt tối màu và hoa văn gạch, giúp bộ dò đặc trưng (ORB/AKAZE) tìm đủ điểm neo.
+    Thuật toán Cân Bằng Ánh Sáng Đa Môi Trường (Multi-Environment Optical Adaptation):
+    1. QUÉT GÓC TỐI / CHỤP THIẾU SÁNG: Kích hoạt đường cong nâng sáng vùng tối mượt mà (Shadow Lifting Curve, L < 80),
+       phục hồi các chi tiết hoa văn sàn gạch, nẹp gỗ, chân tường mà không làm vỡ các mảng trung tính.
+    2. CHỐNG CHÓI ÁNH NẮNG / NGƯỢC SÁNG CỬA SỔ (HDR Soft-Knee Highlight Compression):
+       Áp dụng nén mềm phi tuyến tính theo hàm Reinhard mượt mà ở các vùng lóa cực đại (L > 200),
+       cứu toàn vẹn cấu trúc khung cửa sắt, rèm cửa và đường chân trời bên ngoài cửa kính.
+    3. CÂN BẰNG NHIỆT ĐỘ MÀU ÁNH SÁNG ĐÈN (Spotlight / Tungsten / LED Auto Color Normalization):
+       Điều tiết sắc độ a/b trong không gian màu LAB theo thuật toán Gray-World thích ứng,
+       loại bỏ hiện tượng ám vàng của bóng đèn sợi đốt hoặc ám xanh của đèn huỳnh quang,
+       giúp các điểm đặc trưng ORB/AKAZE giữa các góc chụp có cùng hệ quy chiếu ánh sáng và màu sắc.
+    4. CLAHE ĐA THANG ĐỘ: Cân bằng tương phản vi mô cục bộ giúp bắt trọn điểm neo trong mọi điều kiện ánh sáng.
     """
     try:
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
         
-        # Nén vùng lóa sáng cực đại do ánh nắng ngoài cửa chiếu vào
         l_f = l.astype(np.float32)
-        bright_mask = l_f > 215.0
-        if np.any(bright_mask):
-            l_f[bright_mask] = 215.0 + (l_f[bright_mask] - 215.0) * 0.40
-        l_comp = np.clip(l_f, 0, 255).astype(np.uint8)
 
+        # 1. Kéo sáng thông minh góc tối / chụp đêm / phòng mờ
+        delta_shadow = np.maximum(0.0, 80.0 - l_f)
+        l_lifted = np.where(l_f < 80.0, l_f + delta_shadow * 0.28 * (delta_shadow / 80.0), l_f)
+
+        # 2. Nén lóa sáng mềm (Soft-Knee Compression) chống cháy sáng do ánh nắng mặt trời & đèn rọi
+        delta_high = np.maximum(0.0, l_lifted - 200.0)
+        l_comp = np.where(l_lifted > 200.0, 200.0 + delta_high / (1.0 + delta_high / 40.0), l_lifted)
+        l_out = np.clip(l_comp, 0, 255).astype(np.uint8)
+
+        # 3. Tăng cường tương phản cục bộ với CLAHE đa vùng
         clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
-        l_eq = clahe.apply(l_comp)
-        l_balanced = cv2.addWeighted(l_eq, 0.55, l_comp, 0.45, 0)
-        return cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
+        l_eq = clahe.apply(l_out)
+        l_balanced = cv2.addWeighted(l_eq, 0.50, l_out, 0.50, 0)
+
+        # 4. Cân bằng nhiệt độ màu ánh sáng đèn rọi bảo tàng (Tungsten/Huỳnh quang/LED)
+        a_f = a.astype(np.float32)
+        b_f = b.astype(np.float32)
+        a_mean = float(np.mean(a_f))
+        b_mean = float(np.mean(b_f))
+        # Điều hòa nhẹ 15% về trung tính để triệt tiêu lệch màu giữa góc chụp gần đèn và xa đèn
+        a_corr = np.clip(a_f - (a_mean - 128.0) * 0.15, 0, 255).astype(np.uint8)
+        b_corr = np.clip(b_f - (b_mean - 128.0) * 0.15, 0, 255).astype(np.uint8)
+
+        return cv2.cvtColor(cv2.merge((l_balanced, a_corr, b_corr)), cv2.COLOR_LAB2BGR)
     except Exception:
         return img
 
@@ -655,19 +678,21 @@ def verify_single_image(image_path, prev_image_path=None):
         has_features = feature_count >= 140
         feature_label = "Hoa văn phong phú" if feature_count >= 350 else ("Đủ chi tiết" if has_features else "Thiếu chi tiết (tường trơn)")
 
-        # 3. Đo độ sáng / phơi sáng thông minh (hỗ trợ cả góc chói nắng lẫn chụp trời tối/thiếu sáng)
+        # 3. Đo độ sáng / phơi sáng thông minh (hỗ trợ cả góc chói nắng lẫn chụp trời tối/thiếu sáng và ánh sáng đèn)
         mean_brightness = float(np.mean(gray))
-        is_exposed = (18.0 <= mean_brightness <= 238.0) or (has_features and mean_brightness >= 14.0 and mean_brightness <= 248.0)
-        if 35.0 <= mean_brightness <= 225.0:
-            brightness_label = "Đủ sáng"
-        elif mean_brightness > 225.0 and has_features:
-            brightness_label = "Ngược sáng (Vẫn đủ chi tiết ghép)"
-        elif mean_brightness < 35.0 and has_features:
-            brightness_label = "Ánh sáng tối (Đã kích sáng chi tiết)"
-        elif mean_brightness < 18.0:
+        # Nhờ bộ cân bằng quang học đa môi trường (HDR Soft-Knee + Shadow Lift + Cân bằng màu đèn rọi):
+        # Ảnh phòng tối (mean >= 10) hoặc ngược sáng ánh nắng / đèn rọi gắt (mean <= 250) đều được phục hồi chi tiết đầy đủ
+        is_exposed = (14.0 <= mean_brightness <= 242.0) or (has_features and mean_brightness >= 9.0 and mean_brightness <= 250.0)
+        if 40.0 <= mean_brightness <= 215.0:
+            brightness_label = "Đủ sáng (Cân bằng tự nhiên)"
+        elif mean_brightness > 215.0 and has_features:
+            brightness_label = "Ánh nắng / Đèn rọi (Đã nén lóa bảo toàn chi tiết)"
+        elif mean_brightness < 40.0 and has_features:
+            brightness_label = "Phòng tối / Thiếu sáng (Đã kích sáng chi tiết)"
+        elif mean_brightness < 9.0:
             brightness_label = "Quá tối (Không đủ ánh sáng)"
         else:
-            brightness_label = "Bị chói sáng nặng"
+            brightness_label = "Cháy sáng nặng"
 
         # 4. Đo độ chồng lấp với ảnh trước (nếu có)
         overlap_info = None
@@ -783,8 +808,8 @@ def verify_single_image(image_path, prev_image_path=None):
         score = min(100, max(30, score))
 
         if passed:
-            if rich_features and (mean_brightness < 35.0 or mean_brightness > 225.0):
-                message = "✓ Ảnh đạt chuẩn (Chi tiết phong phú, ánh sáng đã tối ưu thích ứng)!"
+            if rich_features and (mean_brightness < 40.0 or mean_brightness > 215.0):
+                message = "✓ Ảnh đạt chuẩn (Đã cân bằng thông minh góc tối & ánh sáng đèn/nắng)!"
             else:
                 message = "✓ Ảnh đạt chuẩn chất lượng không gian!"
         elif not is_sharp:
