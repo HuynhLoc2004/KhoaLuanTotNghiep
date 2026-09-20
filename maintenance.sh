@@ -67,18 +67,22 @@ EOF
         # 1. Xóa cờ trên host
         rm -f "$FLAG_FILE"
 
-        # 2. Cập nhật JSON
+        # 2. Cập nhật JSON giữ nguyên cấu hình đã cài đặt, chỉ đổi enabled: false
         NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
-        cat > "$JSON_FILE" << EOF
+        if [ -f "$JSON_FILE" ]; then
+            sed -i 's/"enabled": true/"enabled": false/g' "$JSON_FILE" 2>/dev/null || true
+        else
+            cat > "$JSON_FILE" << EOF
 {
   "enabled": false,
   "title": "Hệ Thống Đang Nâng Cấp & Bảo Trì",
-  "message": "Hệ thống đã phục hồi hoạt động bình thường.",
-  "estimatedMinutes": 0,
+  "message": "Bảo tàng Lịch sử TP. Hồ Chí Minh đang cập nhật cơ sở dữ liệu hiện vật và bảo trì định kỳ. Trình duyệt sẽ tự động kết nối lại khi hoàn tất.",
+  "estimatedMinutes": 30,
   "updatedAt": "$NOW",
   "updatedBy": "VPS Administrator (CLI)"
 }
 EOF
+        fi
 
         # 3. Xóa cờ trong Docker container
         if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "museum_frontend"; then

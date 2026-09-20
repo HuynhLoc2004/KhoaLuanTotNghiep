@@ -61,9 +61,23 @@ function readMaintenanceState(): MaintenanceConfig {
     }
   }
 
+  // Luôn bảo lưu thông điệp bảo trì và số phút ước tính hợp lệ, không để giá trị rỗng/0 ghi đè
+  const sanitizedTitle = jsonConfig?.title?.trim() || DEFAULT_CONFIG.title;
+  const sanitizedMessage =
+    !jsonConfig?.message || jsonConfig.message.includes('phục hồi hoạt động')
+      ? DEFAULT_CONFIG.message
+      : jsonConfig.message;
+  const sanitizedMinutes =
+    Number(jsonConfig?.estimatedMinutes) > 0
+      ? Number(jsonConfig?.estimatedMinutes)
+      : DEFAULT_CONFIG.estimatedMinutes;
+
   return {
     ...DEFAULT_CONFIG,
     ...(jsonConfig || {}),
+    title: sanitizedTitle,
+    message: sanitizedMessage,
+    estimatedMinutes: sanitizedMinutes,
     enabled: hasFlag || (jsonConfig?.enabled ?? false)
   };
 }
