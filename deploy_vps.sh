@@ -70,8 +70,12 @@ server {
     if (-f /var/www/museum/maintenance.flag) {
         set $maintenance 1;
     }
-    # Ngoại lệ: Không áp dụng bảo trì cho trang bảo trì, favicon, assets và healthcheck
-    if ($uri ~* "^/(maintenance\.html|favicon\.svg|icons\.svg|assets/|api/health)") {
+    # Ngoại lệ theo URI nội bộ (Redirect error_page sang maintenance.html, static assets, uploads, api)
+    if ($uri ~* "^/(maintenance\.html|favicon\.svg|icons\.svg|assets/|api/|uploads/)") {
+        set $maintenance 0;
+    }
+    # Ngoại lệ theo URL trình duyệt gốc (Cổng admin-login và admin không bị chặn)
+    if ($request_uri ~* "^/(maintenance\.html|favicon\.svg|icons\.svg|assets/|api/|uploads/|admin-login|admin)") {
         set $maintenance 0;
     }
     if ($maintenance = 1) {
