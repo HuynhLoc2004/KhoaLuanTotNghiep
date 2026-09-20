@@ -16,7 +16,9 @@ import { SystemBrandingProvider, useSystemBranding } from './context/SystemBrand
 
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
+import { AdminTranslationsPage } from './pages/admin/AdminTranslationsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { ClientTranslationProvider } from './context/ClientTranslationContext';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -492,6 +494,8 @@ const AppContent: React.FC = () => {
           />
         ) : currentTab === 'languages' ? (
           <AdminLanguagePage />
+        ) : currentTab === 'translations' ? (
+          <AdminTranslationsPage />
         ) : currentTab === 'settings' ? (
           <AdminSettingsPage />
         ) : (
@@ -524,9 +528,11 @@ export const App: React.FC = () => {
     <ThemeProvider>
       <ToastProvider>
         <SystemBrandingProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
+          <ClientTranslationProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </ClientTranslationProvider>
         </SystemBrandingProvider>
       </ToastProvider>
     </ThemeProvider>

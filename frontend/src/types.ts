@@ -78,7 +78,37 @@ export interface TopicItem {
   updatedAt?: string;
 }
 
-export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'languages' | 'analytics' | 'settings';
+export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'languages' | 'translations' | 'analytics' | 'settings';
+
+export interface TranslationKeyItem {
+  id: string;
+  _id?: string;
+  key: string;
+  namespace: 'common' | 'navigation' | 'tour360' | 'artifacts' | 'voiceAssistant' | 'modals' | 'alerts' | string;
+  defaultText: string;
+  description?: string;
+  translations: Record<string, string>;
+  isAiTranslated: Record<string, boolean>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TranslationStatItem {
+  code: string;
+  name: string;
+  nativeName: string;
+  flagIcon: string;
+  totalKeys: number;
+  translatedCount: number;
+  untranslatedCount: number;
+  percentage: number;
+}
+
+export interface TranslationStatsResponse {
+  success: boolean;
+  totalKeys: number;
+  stats: TranslationStatItem[];
+}
 
 export interface AuthUser {
   id: string;

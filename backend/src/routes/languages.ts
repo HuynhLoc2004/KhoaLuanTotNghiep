@@ -270,7 +270,7 @@ languagesRouter.delete('/:code', async (req: Request, res: Response) => {
 /**
  * Helper: Dịch một đoạn văn bản ngắn qua Neural Machine Translation (MyMemory)
  */
-async function fetchSingleChunkNMT(chunk: string, targetLang: string): Promise<string> {
+export async function fetchSingleChunkNMT(chunk: string, targetLang: string): Promise<string> {
   if (!chunk || !chunk.trim()) return '';
   const cleanLang = targetLang.toLowerCase().trim();
   try {
@@ -302,7 +302,7 @@ async function fetchSingleChunkNMT(chunk: string, targetLang: string): Promise<s
 /**
  * Helper: Dịch toàn diện đoạn văn bản dài, tự động chia tách câu thông minh
  */
-async function translateTextWithNMT(text: string, targetLang: string): Promise<string> {
+export async function translateTextWithNMT(text: string, targetLang: string): Promise<string> {
   if (!text || !text.trim()) return '';
   const cleanText = text.trim();
   const tLang = targetLang.toLowerCase().trim();

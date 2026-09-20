@@ -9,10 +9,12 @@ import { connectMongoDB } from './db/mongodb.js';
 import { stitchRouter } from './routes/stitch.js';
 import { mailRouter } from './routes/mail.js';
 import { languagesRouter } from './routes/languages.js';
+import { translationsRouter } from './routes/translations.js';
 import { topicsRouter } from './routes/topics.js';
 import { authRouter } from './routes/auth.js';
 import { systemRouter } from './routes/system.js';
 import { seedDefaultLanguages } from './models/Language.js';
+import { seedDefaultTranslations } from './models/Translation.js';
 import { seedDefaultRoles } from './models/Role.js';
 import { seedDefaultAdmin } from './models/User.js';
 import { getRedisStatus } from './services/redis.js';
@@ -130,6 +132,7 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/stitch', stitchRouter);
 app.use('/api/mail', mailRouter);
 app.use('/api/languages', languagesRouter);
+app.use('/api/translations', translationsRouter);
 app.use('/api/system', systemRouter);
 
 // Health check with real statuses
@@ -178,6 +181,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Connect Real Database and Start Server
 connectMongoDB().then(async () => {
   await seedDefaultLanguages();
+  await seedDefaultTranslations();
   await seedDefaultRoles();
   await seedDefaultAdmin();
   app.listen(PORT, () => {

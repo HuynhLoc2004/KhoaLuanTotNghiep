@@ -4,6 +4,7 @@ import { AdminTab, MuseumRoom } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useSystemBranding } from '../context/SystemBrandingContext';
+import { ClientLanguagePicker } from './ClientLanguagePicker';
 
 interface HeaderProps {
   currentTab: AdminTab;
@@ -18,6 +19,7 @@ const TAB_TITLES: Record<AdminTab, { label: string; parent?: string }> = {
   poc_stitching: { label: 'Xưởng Ghép Ảnh Toàn Cảnh 360°' },
   artifacts: { label: 'Hiện vật & Cổ vật di sản' },
   languages: { label: 'Quản trị Ngôn ngữ & Voice AI' },
+  translations: { label: 'Từ điển & Bản dịch Đa ngữ' },
   analytics: { label: 'Báo cáo & Thống kê' },
   settings: { label: 'Cấu hình hệ thống' }
 };
@@ -111,6 +113,9 @@ export const Header: React.FC<HeaderProps> = ({
           <ExternalLink size={13} />
           <span className="header-tour-label">Xem Tour Khách</span>
         </a>
+
+        {/* Nút chọn Ngôn ngữ hiển thị */}
+        <ClientLanguagePicker variant="full" />
 
         {/* Nút chuyển đổi Giao diện Tối / Sáng */}
         <button

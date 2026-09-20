@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, TranslationKeyItem, TranslationStatsResponse } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -392,5 +392,117 @@ export const api = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải lên file ảnh logo');
     return { url: json.data.url };
+  },
+
+  // === QUẢN TRỊ BẢN DỊCH & TỪ ĐIỂN ĐA NGÔN NGỮ (UNIVERSAL TRANSLATIONS) ===
+  async getTranslationBundle(langCode: string): Promise<Record<string, string>> {
+    const res = await fetch(`${API_BASE}/translations/bundle/${encodeURIComponent(langCode)}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải từ điển ngôn ngữ');
+    return json.data || {};
+  },
+
+  async getTranslationStats(): Promise<TranslationStatsResponse> {
+    const res = await fetch(`${API_BASE}/translations/stats?t=${Date.now()}`, {
+      headers: getAuthHeaders(true),
+      cache: 'no-store'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi nạp thống kê bản dịch');
+    return json;
+  },
+
+  async getTranslationKeys(params: {
+    page?: number;
+    limit?: number;
+    namespace?: string;
+    search?: string;
+    missingFor?: string;
+  } = {}): Promise<{ data: TranslationKeyItem[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    const query = new URLSearchParams();
+    if (params.page) query.append('page', params.page.toString());
+    if (params.limit) query.append('limit', params.limit.toString());
+    if (params.namespace && params.namespace !== 'all') query.append('namespace', params.namespace);
+    if (params.search && params.search.trim()) query.append('search', params.search.trim());
+    if (params.missingFor && params.missingFor !== 'all') query.append('missingFor', params.missingFor);
+
+    const res = await fetch(`${API_BASE}/translations/keys?${query.toString()}`, {
+      headers: getAuthHeaders(true),
+      cache: 'no-store'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi nạp danh sách từ khóa giao diện');
+    return { data: json.data, pagination: json.pagination };
+  },
+
+  async createTranslationKey(data: {
+    key: string;
+    namespace: string;
+    defaultText: string;
+    description?: string;
+    translations?: Record<string, string>;
+  }): Promise<TranslationKeyItem> {
+    const res = await fetch(`${API_BASE}/translations/keys`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi thêm từ khóa mới');
+    return json.data;
+  },
+
+  async updateTranslationKey(
+    id: string,
+    data: {
+      defaultText?: string;
+      description?: string;
+      namespace?: string;
+      translations?: Record<string, string>;
+    }
+  ): Promise<TranslationKeyItem> {
+    const res = await fetch(`${API_BASE}/translations/keys/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi lưu bản dịch');
+    return json.data;
+  },
+
+  async deleteTranslationKey(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/translations/keys/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi xóa từ khóa');
+  },
+
+  async singleTranslateKey(keyId: string, targetLang: string): Promise<{ key: string; targetLang: string; translatedText: string }> {
+    const res = await fetch(`${API_BASE}/translations/single-translate`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({ keyId, targetLang })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi dịch từ khóa tự động');
+    return json.data;
+  },
+
+  async batchTranslateKeys(data: {
+    targetLang: string;
+    namespace?: string;
+    overwrite?: boolean;
+  }): Promise<{ targetLang: string; totalKeys: number; translatedCount: number; skippedCount: number }> {
+    const res = await fetch(`${API_BASE}/translations/batch-translate`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi dịch đồng loạt');
+    return json.data;
   }
 };
