@@ -1012,10 +1012,10 @@ function normalizePanoUrl(rawUrl: string): string {
             <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
               <HardDrive size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
               <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                Chưa có không gian 360° nào trong thư viện
+                {t('stitching.noSpaceInLibrary', 'Chưa có không gian 360° nào trong thư viện')}
               </p>
               <p style={{ fontSize: '12.5px' }}>
-                Ảnh sau khi tạo thành công sẽ được tự động lưu trữ tại đây để bạn có thể xem lại hoặc liên kết vào gian phòng.
+                {t('stitching.libraryEmptyDesc', 'Ảnh sau khi tạo thành công sẽ được tự động lưu trữ tại đây để bạn có thể xem lại hoặc liên kết vào gian phòng.')}
               </p>
             </div>
           ) : (
@@ -1024,9 +1024,9 @@ function normalizePanoUrl(rawUrl: string): string {
                 {paginatedHistory.map((item, idx) => (
                   <div key={item.filename || idx} className="studio-history-card">
                     <div
-                      className="studio-history-thumb"
+                      className="studio-history-preview"
                       onClick={() => handleSelectHistoryPano(item)}
-                      title="Bấm để xoay xem toàn cảnh 360°"
+                      title={t('stitching.clickToViewPano', 'Nhấp để xem ảnh toàn cảnh 360° này')}
                     >
                       <img
                         src={item.url}
@@ -1040,7 +1040,7 @@ function normalizePanoUrl(rawUrl: string): string {
                       </div>
                       <div className="studio-history-overlay-hint">
                         <Eye size={13} />
-                        <span>Xoay xem 360°</span>
+                        <span>{t('stitching.rotateView', 'Xoay xem 360°')}</span>
                       </div>
                     </div>
 
@@ -1065,7 +1065,7 @@ function normalizePanoUrl(rawUrl: string): string {
                           style={{ flex: 1, justifyContent: 'center', fontWeight: 600, gap: 5 }}
                         >
                           <Eye size={13} />
-                          <span>Xem</span>
+                          <span>{t('common.view', 'Xem')}</span>
                         </button>
 
                         <button
@@ -1104,7 +1104,7 @@ function normalizePanoUrl(rawUrl: string): string {
                   setHistoryPage(1);
                 }}
                 pageSizeOptions={[6, 9, 12, 18, 24]}
-                itemLabel="không gian 360°"
+                itemLabel={t('stitching.spaceItemLabel', 'không gian 360°')}
               />
             </>
           )}

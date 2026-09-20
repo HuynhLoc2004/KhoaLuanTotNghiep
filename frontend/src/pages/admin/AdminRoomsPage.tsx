@@ -1251,7 +1251,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         }}
                       >
                         <Eye size={13} />
-                        <span>Xoay xem 360°</span>
+                        <span>{t('stitching.rotateView', 'Xoay xem 360°')}</span>
                       </div>
                     </div>
 
@@ -1299,14 +1299,14 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                           }}
                         >
                           <Plus size={14} />
-                          <span>Tạo Phòng</span>
+                          <span>{t('rooms.createRoomBtn', 'Tạo Phòng')}</span>
                         </button>
 
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleCopyLink(item.url)}
-                          title="Sao chép đường dẫn ảnh 360"
+                          title={t('common.copyLink', 'Sao chép đường dẫn ảnh 360')}
                         >
                           {copiedUrl === item.url ? <Check size={14} style={{ color: 'var(--success)' }} /> : <Copy size={14} />}
                         </button>

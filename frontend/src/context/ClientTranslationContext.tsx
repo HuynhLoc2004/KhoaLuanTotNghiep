@@ -18,17 +18,36 @@ const ClientTranslationContext = createContext<ClientTranslationContextType | un
 
 const STORAGE_LANG_KEY = 'museum_client_lang';
 const BUNDLE_STORAGE_PREFIX = 'museum_i18n_bundle_';
+const DYNAMIC_I18N_STORAGE_PREFIX = 'museum_dynamic_i18n_';
+const VIETNAMESE_REGEX = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/i;
+
+// Kiểm tra tính hợp lệ của bản dịch, loại bỏ các trường hợp dịch giả hoặc bị lặp lại tiếng Việt
+function isValidTranslation(trans: string | undefined | null, original: string, targetLang: string): string | null {
+  if (!trans) return null;
+  const tTrim = trans.trim();
+  const oTrim = original.trim();
+  if (!tTrim) return null;
+  // Nếu ngôn ngữ đích không phải tiếng Việt mà bản dịch giống hệt văn bản gốc, coi như chưa dịch
+  if (targetLang !== 'vi' && tTrim.toLowerCase() === oTrim.toLowerCase()) {
+    return null;
+  }
+  return trans;
+}
 
 // Bộ trợ giúp tra cứu cụm từ đa năng mở rộng (xử lý dấu câu, hai chấm, ngoặc đơn, đạn tròn, dấu gạch)
-export function lookupUniversalPhrase(raw: string, targetLang: 'en' | 'fr' | 'zh' | 'ja'): string | null {
+export function lookupUniversalPhrase(raw: string, targetLang: string): string | null {
   if (!raw) return null;
   const clean = raw.trim();
   if (!clean) return null;
 
+  const tLang = targetLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
+
   // 1. Khớp chính xác 100% trong từ điển cụm từ
   if (UNIVERSAL_PHRASE_MAP[clean]) {
     const item = UNIVERSAL_PHRASE_MAP[clean];
-    return item[targetLang] || item.en || null;
+    const trans = (item as any)[targetLang] || item[tLang] || item.en || null;
+    const valid = isValidTranslation(trans, clean, targetLang);
+    if (valid) return valid;
   }
 
   // 2. Xử lý dấu hai chấm ở cuối: "Mã phòng:" -> "Room Code:"
@@ -36,8 +55,9 @@ export function lookupUniversalPhrase(raw: string, targetLang: 'en' | 'fr' | 'zh
     const core = clean.slice(0, -1).trim();
     if (UNIVERSAL_PHRASE_MAP[core]) {
       const item = UNIVERSAL_PHRASE_MAP[core];
-      const trans = item[targetLang] || item.en;
-      return trans ? `${trans}:` : null;
+      const trans = (item as any)[targetLang] || item[tLang] || item.en;
+      const valid = isValidTranslation(trans, core, targetLang);
+      if (valid) return `${valid}:`;
     }
   }
 
@@ -46,8 +66,9 @@ export function lookupUniversalPhrase(raw: string, targetLang: 'en' | 'fr' | 'zh
     const core = clean.replace(/\.{3}$|…$/, '').trim();
     if (UNIVERSAL_PHRASE_MAP[core]) {
       const item = UNIVERSAL_PHRASE_MAP[core];
-      const trans = item[targetLang] || item.en;
-      return trans ? `${trans}...` : null;
+      const trans = (item as any)[targetLang] || item[tLang] || item.en;
+      const valid = isValidTranslation(trans, core, targetLang);
+      if (valid) return `${valid}...`;
     }
   }
 
@@ -56,8 +77,9 @@ export function lookupUniversalPhrase(raw: string, targetLang: 'en' | 'fr' | 'zh
     const core = clean.slice(1, -1).trim();
     if (UNIVERSAL_PHRASE_MAP[core]) {
       const item = UNIVERSAL_PHRASE_MAP[core];
-      const trans = item[targetLang] || item.en;
-      return trans ? `(${trans})` : null;
+      const trans = (item as any)[targetLang] || item[tLang] || item.en;
+      const valid = isValidTranslation(trans, core, targetLang);
+      if (valid) return `(${valid})`;
     }
   }
 
@@ -68,8 +90,9 @@ export function lookupUniversalPhrase(raw: string, targetLang: 'en' | 'fr' | 'zh
     const core = bulletMatch[2].trim();
     if (UNIVERSAL_PHRASE_MAP[core]) {
       const item = UNIVERSAL_PHRASE_MAP[core];
-      const trans = item[targetLang] || item.en;
-      return trans ? `${prefix}${trans}` : null;
+      const trans = (item as any)[targetLang] || item[tLang] || item.en;
+      const valid = isValidTranslation(trans, core, targetLang);
+      if (valid) return `${prefix}${valid}`;
     }
   }
 
@@ -121,6 +144,106 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       // Ignored
     }
   }, []);
+
+  // Bộ nhớ đệm bản dịch máy thời gian thực (NMT Cache) trong RAM & LocalStorage
+  const [autoTranslations, setAutoTranslations] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem(DYNAMIC_I18N_STORAGE_PREFIX + currentLang);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Đồng bộ lại autoTranslations mỗi khi chuyển đổi ngôn ngữ
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DYNAMIC_I18N_STORAGE_PREFIX + currentLang);
+      setAutoTranslations(raw ? JSON.parse(raw) : {});
+    } catch {
+      setAutoTranslations({});
+    }
+  }, [currentLang]);
+
+  // Hàng đợi dịch bất đồng bộ gom nhóm (batch queue)
+  const pendingQueueRef = React.useRef<Set<string>>(new Set());
+  const debounceTimerRef = React.useRef<any>(null);
+
+  const processQueue = useCallback(async () => {
+    if (pendingQueueRef.current.size === 0 || currentLang === 'vi') return;
+    const batch = Array.from(pendingQueueRef.current).slice(0, 40);
+    batch.forEach((txt) => pendingQueueRef.current.delete(txt));
+
+    try {
+      // 1. Gọi backend POST /api/languages/translate-batch
+      const res = await fetch(`${API_BASE}/languages/translate-batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetLang: currentLang, texts: batch })
+      });
+
+      let newDict: Record<string, string> = {};
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          newDict = json.data;
+        }
+      } else {
+        // 2. Client fallback sang Google GTX trực tiếp nếu kết nối backend gián đoạn
+        await Promise.all(
+          batch.map(async (txt) => {
+            try {
+              const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=${encodeURIComponent(currentLang)}&dt=t&q=${encodeURIComponent(txt)}`;
+              const r = await fetch(url);
+              if (r.ok) {
+                const data = await r.json();
+                if (Array.isArray(data) && Array.isArray(data[0])) {
+                  const tr = data[0].map((item: any) => item[0]).filter(Boolean).join('');
+                  if (tr && tr.trim() && tr.trim() !== txt.trim()) {
+                    newDict[txt] = tr.trim();
+                  }
+                }
+              }
+            } catch {
+              // Ignored
+            }
+          })
+        );
+      }
+
+      if (Object.keys(newDict).length > 0) {
+        setAutoTranslations((prev) => {
+          const merged = { ...prev, ...newDict };
+          try {
+            localStorage.setItem(DYNAMIC_I18N_STORAGE_PREFIX + currentLang, JSON.stringify(merged));
+          } catch {
+            // Ignored
+          }
+          return merged;
+        });
+      }
+    } catch (err) {
+      console.warn('[AutoTranslateQueue] Error processing translation batch:', err);
+    }
+  }, [currentLang]);
+
+  const enqueueForTranslation = useCallback((text: string) => {
+    if (!text || currentLang === 'vi') return;
+    const clean = text.trim();
+    if (clean.length < 2 || clean.length > 500) return;
+    if (!VIETNAMESE_REGEX.test(clean)) return;
+    if (autoTranslations[clean]) return;
+    if (pendingQueueRef.current.has(clean)) return;
+
+    pendingQueueRef.current.add(clean);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      processQueue();
+    }, 100);
+  }, [currentLang, autoTranslations, processQueue]);
 
   // Cơ chế quét và dịch tự động toàn diện các Text Node trong DOM (Hybrid i18n DOM Engine)
   // Bảo đảm 100% không bao giờ sót bất kỳ chữ tiếng Việt nào trên mọi trang, popup, modal
@@ -174,9 +297,11 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           input.setAttribute('data-i18n-orig-ph', origPh);
           (input as any).__i18nOrigPh = origPh;
         }
-        const trans = lookupUniversalPhrase(origPh, targetLang);
+        const trans = autoTranslations[origPh] || lookupUniversalPhrase(origPh, targetLang);
         if (trans && input.placeholder !== trans) {
           input.placeholder = trans;
+        } else if (!trans && VIETNAMESE_REGEX.test(origPh)) {
+          enqueueForTranslation(origPh);
         }
       });
 
@@ -189,9 +314,11 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           el.setAttribute('data-i18n-orig-title', origTitle);
           (el as any).__i18nOrigTitle = origTitle;
         }
-        const trans = lookupUniversalPhrase(origTitle, targetLang);
+        const trans = autoTranslations[origTitle] || lookupUniversalPhrase(origTitle, targetLang);
         if (trans && el.getAttribute('title') !== trans) {
           el.setAttribute('title', trans);
+        } else if (!trans && VIETNAMESE_REGEX.test(origTitle)) {
+          enqueueForTranslation(origTitle);
         }
       });
 
@@ -204,9 +331,11 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           el.setAttribute('data-i18n-orig-aria', origAria);
           (el as any).__i18nOrigAria = origAria;
         }
-        const trans = lookupUniversalPhrase(origAria, targetLang);
+        const trans = autoTranslations[origAria] || lookupUniversalPhrase(origAria, targetLang);
         if (trans && el.getAttribute('aria-label') !== trans) {
           el.setAttribute('aria-label', trans);
+        } else if (!trans && VIETNAMESE_REGEX.test(origAria)) {
+          enqueueForTranslation(origAria);
         }
       });
 
@@ -238,10 +367,10 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
         if (!text) return;
         const trimmed = text.trim();
 
-        // Khớp cụm từ trong UNIVERSAL_PHRASE_MAP
+        // Khớp cụm từ trong autoTranslations hoặc UNIVERSAL_PHRASE_MAP
         const isSingleChild = node.parentElement?.childNodes.length === 1;
         const origText = (node as any).__i18nOrig || (isSingleChild ? node.parentElement?.getAttribute('data-i18n-orig') : null) || trimmed;
-        const trans = lookupUniversalPhrase(origText, targetLang);
+        const trans = autoTranslations[origText] || lookupUniversalPhrase(origText, targetLang);
         if (trans && trans !== trimmed) {
           (node as any).__i18nOrig = origText;
           if (node.parentElement && isSingleChild && !node.parentElement.hasAttribute('data-i18n-orig')) {
@@ -249,6 +378,8 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           }
           node.textContent = text.replace(trimmed, trans);
           return;
+        } else if (!trans && VIETNAMESE_REGEX.test(origText) && origText.length >= 2) {
+          enqueueForTranslation(origText);
         }
 
         // Thay thế các biến động số lượng và nhãn linh hoạt
@@ -367,7 +498,7 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       clearInterval(safetyInterval);
       if (scanTimeout) clearTimeout(scanTimeout);
     };
-  }, [currentLang]);
+  }, [currentLang, autoTranslations, enqueueForTranslation]);
 
   // Tải danh sách các ngôn ngữ do Admin cấu hình kích hoạt
   const fetchActiveLanguages = useCallback(async () => {
@@ -434,34 +565,50 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     }
   };
 
-  // Tra cứu chuỗi dịch thuật siêu tốc O(1) kết hợp từ điển hệ thống và Universal Phrase Map
+  // Tra cứu chuỗi dịch thuật siêu tốc O(1) kết hợp từ điển hệ thống, Universal Phrase Map và NMT Cache
   const t = useCallback((key: string, fallback?: string): string => {
     if (currentLang === 'vi') {
       return DICTIONARY_VI[key] || fallback || key;
     }
+
+    // 1. Kiểm tra cache NMT động trong RAM/localStorage
+    if (autoTranslations[key]) {
+      return autoTranslations[key];
+    }
+    if (fallback && autoTranslations[fallback]) {
+      return autoTranslations[fallback];
+    }
+
+    // 2. Kiểm tra từ điển tĩnh đã nạp
     const currentDict = dictionaries[currentLang] || BUILTIN_DICTIONARIES[currentLang];
     if (currentDict && currentDict[key]) {
       return currentDict[key];
     }
-    const targetLang = currentLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
 
-    // 1. Tra cứu trực tiếp trong UNIVERSAL_PHRASE_MAP theo key
-    const transByKey = lookupUniversalPhrase(key, targetLang);
+    // 3. Tra cứu UNIVERSAL_PHRASE_MAP theo key
+    const transByKey = lookupUniversalPhrase(key, currentLang);
     if (transByKey) return transByKey;
 
-    // 2. Tra cứu trực tiếp trong UNIVERSAL_PHRASE_MAP theo fallback text
+    // 4. Tra cứu UNIVERSAL_PHRASE_MAP theo fallback text
     if (fallback) {
-      const transByFallback = lookupUniversalPhrase(fallback, targetLang);
+      const transByFallback = lookupUniversalPhrase(fallback, currentLang);
       if (transByFallback) return transByFallback;
     }
 
-    // 3. Fallback sang tiếng Anh trong dictionary tĩnh nếu có
+    // 5. Nếu chưa có, tự động đưa vào hàng đợi dịch máy siêu tốc
+    if (fallback && VIETNAMESE_REGEX.test(fallback)) {
+      enqueueForTranslation(fallback);
+    } else if (VIETNAMESE_REGEX.test(key)) {
+      enqueueForTranslation(key);
+    }
+
+    // 6. Fallback sang tiếng Anh trong dictionary tĩnh nếu có
     if (BUILTIN_DICTIONARIES.en && BUILTIN_DICTIONARIES.en[key]) {
       return BUILTIN_DICTIONARIES.en[key];
     }
     // Fallback sang tiếng Việt gốc hoặc chuỗi mặc định
     return DICTIONARY_VI[key] || fallback || key;
-  }, [currentLang, dictionaries]);
+  }, [currentLang, dictionaries, autoTranslations, enqueueForTranslation]);
 
   // Bản địa hóa nội dung động từ Database (Phòng, Hiện vật, Điểm neo)
   const localize = useCallback((item: any, field: string, fallback?: string): string => {
@@ -496,16 +643,21 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       return enVal;
     }
 
-    // 4. Tra cứu cụm từ trong UNIVERSAL_PHRASE_MAP theo nội dung gốc của trường
+    // 4. Tra cứu cụm từ trong autoTranslations hoặc UNIVERSAL_PHRASE_MAP theo nội dung gốc của trường
     const originalText = item[field];
     if (typeof originalText === 'string') {
-      const targetLang = currentLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
-      const mapTrans = lookupUniversalPhrase(originalText, targetLang);
+      if (autoTranslations[originalText]) {
+        return autoTranslations[originalText];
+      }
+      const mapTrans = lookupUniversalPhrase(originalText, currentLang);
       if (mapTrans) return mapTrans;
+      if (VIETNAMESE_REGEX.test(originalText)) {
+        enqueueForTranslation(originalText);
+      }
     }
 
     return item[field] || fallback || '';
-  }, [currentLang]);
+  }, [currentLang, autoTranslations, enqueueForTranslation]);
 
   const activeLanguageInfo = activeLanguages.find((l) => l.code.toLowerCase() === currentLang.toLowerCase()) || {
     code: currentLang,

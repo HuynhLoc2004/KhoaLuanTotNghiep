@@ -184,6 +184,18 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     zh: '添加新展厅',
     ja: '新規展示室を追加'
   },
+  'Thêm gian phòng trưng bày mới': {
+    en: 'Add New Exhibition Room',
+    fr: 'Ajouter une nouvelle salle d’exposition',
+    zh: '添加新展厅',
+    ja: '新規展示室を追加'
+  },
+  'Xoay xem 360°': {
+    en: 'Rotate to view 360°',
+    fr: 'Faire pivoter à 360°',
+    zh: '旋转浏览 360°',
+    ja: '360度回転して見る'
+  },
   'Quản lý chuyên đề': {
     en: 'Manage themes',
     fr: 'Gérer les thèmes',
@@ -3029,10 +3041,10 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     ja: 'Gian trưng bày P-05: Triều đại Nhà Nguyễn & Mỹ thuật Cung đình Huế (1802-1945). Trưng bày ngai vàng, long bào, sắc phong, đồ ngự dụng gốm sứ và bảo kiếm hoàng triều'
   },
   'Giới thiệu tổng quan': {
-    en: 'Giới thiệu tổng quan',
-    fr: 'Giới thiệu tổng quan',
-    zh: 'Giới thiệu tổng quan',
-    ja: 'Giới thiệu tổng quan'
+    en: 'General Introduction',
+    fr: 'Introduction générale',
+    zh: '展厅概述',
+    ja: '概要紹介'
   },
   'Giữ lại': {
     en: 'Giữ lại',
@@ -4571,16 +4583,16 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     ja: 'Tên chuyên đề mới *'
   },
   'Tên gian trưng bày': {
-    en: 'Tên gian trưng bày',
-    fr: 'Tên gian trưng bày',
-    zh: 'Tên gian trưng bày',
-    ja: 'Tên gian trưng bày'
+    en: 'Exhibition Room Name',
+    fr: 'Nom de la salle d’exposition',
+    zh: '展厅名称',
+    ja: '展示室名'
   },
   'Tên gian trưng bày *': {
-    en: 'Tên gian trưng bày *',
-    fr: 'Tên gian trưng bày *',
-    zh: 'Tên gian trưng bày *',
-    ja: 'Tên gian trưng bày *'
+    en: 'Exhibition Room Name *',
+    fr: 'Nom de la salle d’exposition *',
+    zh: '展厅名称 *',
+    ja: '展示室名 *'
   },
   'Tên rút gọn của bảo tàng không được để trống': {
     en: 'Tên rút gọn của bảo tàng không được để trống',
@@ -4661,16 +4673,16 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     ja: 'Tạm dừng quét'
   },
   'Tạo Phòng': {
-    en: 'Tạo Phòng',
-    fr: 'Tạo Phòng',
-    zh: 'Tạo Phòng',
-    ja: 'Tạo Phòng'
+    en: 'Create Room',
+    fr: 'Créer la salle',
+    zh: '创建展厅',
+    ja: '展示室を作成'
   },
   'Tạo gian phòng': {
-    en: 'Tạo gian phòng',
-    fr: 'Tạo gian phòng',
-    zh: 'Tạo gian phòng',
-    ja: 'Tạo gian phòng'
+    en: 'Create Exhibition Room',
+    fr: 'Créer la salle d’exposition',
+    zh: '创建展厅',
+    ja: '展示室を作成'
   },
   'Tạo không gian toàn cảnh từ ảnh PANO': {
     en: 'Tạo không gian toàn cảnh từ ảnh PANO',
@@ -5225,10 +5237,10 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     ja: 'https://... đường dẫn ảnh 360'
   },
   'không gian 360°': {
-    en: 'không gian 360°',
-    fr: 'không gian 360°',
-    zh: 'không gian 360°',
-    ja: 'không gian 360°'
+    en: '360° spaces',
+    fr: 'espaces 360°',
+    zh: '360°空间',
+    ja: '360度パノラマ空間'
   },
   'khỏi gian phòng này': {
     en: 'khỏi gian phòng này',
