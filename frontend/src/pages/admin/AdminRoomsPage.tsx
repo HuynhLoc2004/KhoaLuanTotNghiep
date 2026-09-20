@@ -632,6 +632,17 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 )}
 
                 <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowTopicModal(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  title="Quản lý danh sách chuyên đề / thời kỳ trưng bày"
+                >
+                  <Layers size={14} style={{ color: 'var(--accent-gold)' }} />
+                  <span>Quản lý chuyên đề</span>
+                </button>
+
+                <button
                   className="btn btn-secondary btn-sm"
                   onClick={fetchPanoramas}
                   disabled={loadingPanos}
@@ -642,17 +653,6 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 </button>
               </>
             )}
-
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setShowTopicModal(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-              title="Quản lý danh sách chuyên đề / thời kỳ trưng bày"
-            >
-              <Layers size={14} style={{ color: 'var(--accent-gold)' }} />
-              <span>Quản lý chuyên đề</span>
-            </button>
 
             <button
               className="btn btn-primary btn-sm"
