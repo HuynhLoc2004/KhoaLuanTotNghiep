@@ -92,9 +92,9 @@ export const PocStitchingPage: React.FC = () => {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
 
-  // Phân trang thư viện theo chuẩn chung của hệ thống Admin: 5 - 10 - 20 - 30 - 50
+  // Phân trang thư viện theo chuẩn lưới: 6 - 9 - 12 - 18 - 24
   const [historyPage, setHistoryPage] = useState(1);
-  const [historyPageSize, setHistoryPageSize] = useState(10);
+  const [historyPageSize, setHistoryPageSize] = useState(6);
 
   // Máy tính bỏ qua thuộc tính `capture`, nên nút chụp phải đổi sang luồng webcam
   const canUseNativeCapture = React.useMemo(() => supportsNativeCameraCapture(), []);
@@ -102,16 +102,30 @@ export const PocStitchingPage: React.FC = () => {
   const viewerSectionRef = useRef<HTMLDivElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (isManualRefresh = false) => {
     try {
       setLoadingHistory(true);
-      const res = await fetch(`${API_BASE}/stitch/history`);
+      // Gửi tham số chống cache để đảm bảo nhận 100% dữ liệu thực tế mới nhất từ đĩa cứng & DB
+      const res = await fetch(`${API_BASE}/stitch/history?_t=${Date.now()}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await res.json();
       if (data.success && Array.isArray(data.panoramas)) {
         setHistoryList(data.panoramas);
+        if (isManualRefresh) {
+          showToast(`Đã đồng bộ dữ liệu thật: ${data.panoramas.length} ảnh 360° sẵn sàng`, 'success');
+        }
+      } else if (isManualRefresh) {
+        showToast('Không thể tải danh sách ảnh 360° từ máy chủ.', 'error');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Lỗi tải lịch sử ảnh 360:', err);
+      if (isManualRefresh) {
+        showToast('Lỗi kết nối máy chủ khi làm mới dữ liệu: ' + (err.message || ''), 'error');
+      }
     } finally {
       setLoadingHistory(false);
     }
@@ -977,11 +991,13 @@ function normalizePanoUrl(rawUrl: string): string {
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={fetchHistory}
+            onClick={() => fetchHistory(true)}
             disabled={loadingHistory}
+            title="Tải lại danh sách ảnh 360° mới nhất từ máy chủ"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <RotateCw size={13} className={loadingHistory ? 'spin' : ''} />
-            <span>Làm mới</span>
+            <span>{loadingHistory ? 'Đang đồng bộ...' : 'Làm mới'}</span>
           </button>
         </div>
 
@@ -1009,7 +1025,7 @@ function normalizePanoUrl(rawUrl: string): string {
                     <div
                       className="studio-history-thumb"
                       onClick={() => handleSelectHistoryPano(item)}
-                      title="Bấm để xem trong trình xem 360°"
+                      title="Bấm để xoay xem toàn cảnh 360°"
                     >
                       <img
                         src={item.url}
@@ -1019,7 +1035,11 @@ function normalizePanoUrl(rawUrl: string): string {
                         }}
                       />
                       <div className="studio-history-badge">
-                        Equirectangular 360°
+                        4K Equirectangular 360°
+                      </div>
+                      <div className="studio-history-overlay-hint">
+                        <Eye size={13} />
+                        <span>Xoay xem 360°</span>
                       </div>
                     </div>
 
@@ -1041,9 +1061,9 @@ function normalizePanoUrl(rawUrl: string): string {
                           type="button"
                           className="btn btn-primary btn-sm"
                           onClick={() => handleSelectHistoryPano(item)}
-                          style={{ flex: 1, justifyContent: 'center' }}
+                          style={{ flex: 1, justifyContent: 'center', fontWeight: 600, gap: 5 }}
                         >
-                          <Eye size={12} />
+                          <Eye size={13} />
                           <span>Xem</span>
                         </button>
 
@@ -1051,10 +1071,10 @@ function normalizePanoUrl(rawUrl: string): string {
                           type="button"
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleCopyHistoryUrl(item.url)}
-                          title="Sao chép link"
+                          title="Sao chép link ảnh 360"
                           aria-label="Sao chép link ảnh 360 độ"
                         >
-                          {copiedHistoryUrl === item.url ? <Check size={12} /> : <Copy size={12} />}
+                          {copiedHistoryUrl === item.url ? <Check size={13} style={{ color: 'var(--success)' }} /> : <Copy size={13} />}
                         </button>
 
                         <button
@@ -1064,7 +1084,7 @@ function normalizePanoUrl(rawUrl: string): string {
                           title="Xóa khỏi máy chủ"
                           style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
@@ -1072,7 +1092,7 @@ function normalizePanoUrl(rawUrl: string): string {
                 ))}
               </div>
 
-              {/* PHÂN TRANG CHUẨN CỦA HỆ THỐNG: 5 - 10 - 20 - 30 - 50 */}
+              {/* PHÂN TRANG CHUẨN GRID CỦA HỆ THỐNG: 6 - 9 - 12 - 18 - 24 */}
               <Pagination
                 currentPage={historyPage}
                 totalItems={historyList.length}
@@ -1082,8 +1102,8 @@ function normalizePanoUrl(rawUrl: string): string {
                   setHistoryPageSize(newSize);
                   setHistoryPage(1);
                 }}
-                pageSizeOptions={[5, 10, 20, 30, 50]}
-                itemLabel="ảnh 360 độ"
+                pageSizeOptions={[6, 9, 12, 18, 24]}
+                itemLabel="không gian 360°"
               />
             </>
           )}
