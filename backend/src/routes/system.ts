@@ -1,8 +1,11 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import mongoose from 'mongoose';
 import { authenticate, requireAdmin, AuthRequest } from './auth.js';
-import { cacheGet, cacheSet, cacheDel, getRedisStatus } from '../services/redis.js';
+import { redisClient, cacheGet, cacheSet, cacheDel, getRedisStatus } from '../services/redis.js';
+import { RoomModel } from '../models/Room.js';
+import { PanoramaModel } from '../models/Panorama.js';
 import {
   SystemBranding,
   getSystemBrandingConfig,
@@ -32,6 +35,9 @@ interface MaintenanceConfig {
   estimatedMinutes: number;
   updatedAt: string;
   updatedBy: string;
+  startTime?: string;
+  expectedEndTime?: string;
+  remainingMinutes?: number;
 }
 
 const DEFAULT_CONFIG: MaintenanceConfig = {
@@ -40,7 +46,10 @@ const DEFAULT_CONFIG: MaintenanceConfig = {
   message: 'Bảo tàng Lịch sử TP. Hồ Chí Minh đang cập nhật dữ liệu hiện vật và bảo trì định kỳ. Trình duyệt sẽ tự động kết nối lại khi hoàn tất.',
   estimatedMinutes: 30,
   updatedAt: new Date().toISOString(),
-  updatedBy: 'Hệ thống'
+  updatedBy: 'Hệ thống',
+  startTime: new Date().toISOString(),
+  expectedEndTime: new Date(Date.now() + 30 * 60000).toISOString(),
+  remainingMinutes: 30
 };
 
 /**
@@ -78,13 +87,26 @@ function readMaintenanceState(): MaintenanceConfig {
       ? Number(jsonConfig?.estimatedMinutes)
       : DEFAULT_CONFIG.estimatedMinutes;
 
+  const updatedAt = jsonConfig?.updatedAt || DEFAULT_CONFIG.updatedAt;
+  const isEnabled = hasFlag || (jsonConfig?.enabled ?? false);
+  const updatedTime = new Date(updatedAt).getTime();
+  const validUpdatedTime = isNaN(updatedTime) ? Date.now() : updatedTime;
+  const expectedEndTime = new Date(validUpdatedTime + sanitizedMinutes * 60000).toISOString();
+  const remainingMinutes = isEnabled
+    ? Math.max(0, Math.ceil((new Date(expectedEndTime).getTime() - Date.now()) / 60000))
+    : sanitizedMinutes;
+
   return {
     ...DEFAULT_CONFIG,
     ...(jsonConfig || {}),
     title: sanitizedTitle,
     message: sanitizedMessage,
     estimatedMinutes: sanitizedMinutes,
-    enabled: hasFlag || (jsonConfig?.enabled ?? false)
+    enabled: isEnabled,
+    updatedAt,
+    startTime: new Date(validUpdatedTime).toISOString(),
+    expectedEndTime,
+    remainingMinutes
   };
 }
 
@@ -147,13 +169,21 @@ systemRouter.post('/maintenance', authenticate, requireAdmin, async (req: AuthRe
     const { enabled, title, message, estimatedMinutes } = req.body;
 
     const current = readMaintenanceState();
+    const nowIso = new Date().toISOString();
+    const estMin = Number(estimatedMinutes) > 0 ? Number(estimatedMinutes) : current.estimatedMinutes;
+    const isEn = Boolean(enabled);
+    const expEndIso = new Date(Date.now() + estMin * 60000).toISOString();
+
     const newConfig: MaintenanceConfig = {
-      enabled: Boolean(enabled),
+      enabled: isEn,
       title: (title && String(title).trim()) || current.title,
       message: (message && String(message).trim()) || current.message,
-      estimatedMinutes: Number(estimatedMinutes) > 0 ? Number(estimatedMinutes) : current.estimatedMinutes,
-      updatedAt: new Date().toISOString(),
-      updatedBy: req.user?.username || 'admin'
+      estimatedMinutes: estMin,
+      updatedAt: nowIso,
+      updatedBy: req.user?.username || 'admin',
+      startTime: nowIso,
+      expectedEndTime: expEndIso,
+      remainingMinutes: isEn ? estMin : 0
     };
 
     writeMaintenanceState(newConfig);
@@ -180,16 +210,59 @@ systemRouter.post('/maintenance', authenticate, requireAdmin, async (req: AuthRe
 
 /**
  * GET /api/system/info
- * Quản trị viên: Lấy thông số tài nguyên máy chủ và trạng thái kết nối
+ * Quản trị viên: Lấy thông số tài nguyên máy chủ và trạng thái kết nối thực tế (DB, Redis, Queue)
  */
 systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const memory = process.memoryUsage();
+
+    // 1. Kiểm tra cơ sở dữ liệu MongoDB thật 100%
+    const dbConnected = mongoose.connection.readyState === 1;
+    let dbPingMs = 0;
+    let roomsCount = 0;
+    let panoramasCount = 0;
+    if (dbConnected) {
+      try {
+        const startDb = performance.now();
+        await mongoose.connection.db?.admin().ping();
+        dbPingMs = Math.round(performance.now() - startDb);
+        roomsCount = await RoomModel.countDocuments();
+        panoramasCount = await PanoramaModel.countDocuments();
+      } catch {
+        dbPingMs = -1;
+      }
+    }
+
+    // 2. Kiểm tra bộ nhớ đệm Redis Cache thật 100%
     let redisConnected = false;
-    try {
+    let redisPingMs = 0;
+    let redisKeysCount = 0;
+    let redisMemoryHuman = '';
+    if (redisClient && redisClient.status === 'ready') {
+      try {
+        const startRedis = performance.now();
+        await redisClient.ping();
+        redisPingMs = Math.round(performance.now() - startRedis);
+        redisConnected = true;
+        redisKeysCount = await redisClient.dbsize();
+        const memInfo = await redisClient.info('memory');
+        const match = memInfo.match(/used_memory_human:([^\r\n]+)/);
+        if (match) redisMemoryHuman = match[1].trim();
+      } catch {
+        redisConnected = false;
+      }
+    } else {
       redisConnected = Boolean(getRedisStatus()?.connected);
-    } catch {
-      redisConnected = false;
+    }
+
+    // 3. Kiểm tra hàng đợi tác vụ (Stitching & Processing Queue) thật 100%
+    let queuePending = 0;
+    if (redisConnected && redisClient) {
+      try {
+        queuePending = await redisClient.llen('queue:stitching');
+      } catch {
+        queuePending = 0;
+      }
     }
 
     res.json({
@@ -203,7 +276,26 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
         memoryRssMb: Math.round(memory.rss / 1024 / 1024),
         memoryHeapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
         redisConnected,
-        environment: process.env.NODE_ENV || 'production'
+        environment: process.env.NODE_ENV || 'production',
+        database: {
+          connected: dbConnected,
+          name: mongoose.connection.name || 'museum',
+          roomsCount,
+          panoramasCount,
+          pingMs: dbPingMs
+        },
+        redis: {
+          connected: redisConnected,
+          keysCount: redisKeysCount,
+          pingMs: redisPingMs,
+          memoryUsedHuman: redisMemoryHuman || 'OK'
+        },
+        queue: {
+          name: 'stitching',
+          pendingJobs: queuePending,
+          status: queuePending > 0 ? 'processing' : 'ready'
+        },
+        publicIp: process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || '103.178.233.206'
       }
     });
   } catch (err: any) {

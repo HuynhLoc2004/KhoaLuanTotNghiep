@@ -122,6 +122,9 @@ export interface MaintenanceStatus {
   estimatedMinutes: number;
   updatedAt: string;
   updatedBy: string;
+  startTime?: string;
+  expectedEndTime?: string;
+  remainingMinutes?: number;
 }
 
 export interface SystemInfo {
@@ -134,6 +137,25 @@ export interface SystemInfo {
   memoryHeapUsedMb: number;
   redisConnected: boolean;
   environment: string;
+  database?: {
+    connected: boolean;
+    name: string;
+    roomsCount: number;
+    panoramasCount: number;
+    pingMs: number;
+  };
+  redis?: {
+    connected: boolean;
+    keysCount: number;
+    pingMs: number;
+    memoryUsedHuman?: string;
+  };
+  queue?: {
+    name: string;
+    pendingJobs: number;
+    status: string;
+  };
+  publicIp?: string;
 }
 
 export interface SystemBranding {

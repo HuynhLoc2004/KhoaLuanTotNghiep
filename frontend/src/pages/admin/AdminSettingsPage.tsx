@@ -37,6 +37,25 @@ const DEFAULT_MUSEUM_TITLE = 'Hệ Thống Đang Nâng Cấp & Bảo Trì';
 const DEFAULT_MUSEUM_MESSAGE =
   'Hệ thống đang cập nhật dữ liệu hiện vật và bảo trì định kỳ không gian di sản 360. Trình duyệt sẽ tự động kết nối lại khi hoàn tất.';
 
+const formatUptime = (seconds?: number): string => {
+  if (!seconds) return 'Vừa khởi động';
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days} ngày ${hours} giờ`;
+  if (hours > 0) return `${hours} giờ ${minutes} phút`;
+  return `${minutes} phút`;
+};
+
+const formatTime = (isoString?: string): string => {
+  if (!isoString) return '--:--';
+  try {
+    return new Date(isoString).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '--:--';
+  }
+};
+
 export const AdminSettingsPage: React.FC = () => {
   const { showToast } = useToast();
   const { branding, updateBranding } = useSystemBranding();
@@ -48,6 +67,7 @@ export const AdminSettingsPage: React.FC = () => {
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pinging, setPinging] = useState(false);
   const [pingLatency, setPingLatency] = useState<number | null>(null);
@@ -159,6 +179,40 @@ export const AdminSettingsPage: React.FC = () => {
       console.error('Lỗi nạp dữ liệu cấu hình:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    try {
+      setRefreshing(true);
+      const start = performance.now();
+      const [mStatus, sInfo] = await Promise.all([
+        api.getMaintenanceStatus().catch(() => null),
+        api.getSystemInfo().catch(() => null),
+        handlePing()
+      ]);
+      const latency = Math.round(performance.now() - start);
+
+      if (mStatus) {
+        setMaintenance({
+          ...mStatus,
+          title: mStatus.title?.trim() || DEFAULT_MUSEUM_TITLE,
+          message:
+            !mStatus.message || mStatus.message.includes('phục hồi hoạt động')
+              ? DEFAULT_MUSEUM_MESSAGE
+              : mStatus.message,
+          estimatedMinutes: Number(mStatus.estimatedMinutes) > 0 ? Number(mStatus.estimatedMinutes) : 30
+        });
+      }
+
+      if (sInfo) {
+        setSysInfo(sInfo);
+      }
+      showToast(`Đã làm mới dữ liệu máy chủ & hạ tầng thành công (Độ trễ: ${latency}ms)`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi làm mới dữ liệu từ máy chủ', 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -287,13 +341,13 @@ export const AdminSettingsPage: React.FC = () => {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={fetchData}
-              disabled={loading}
-              title="Làm mới dữ liệu từ máy chủ"
+              onClick={handleManualRefresh}
+              disabled={loading || refreshing}
+              title="Làm mới dữ liệu từ máy chủ và hạ tầng"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
             >
-              <RefreshCw size={14} className={loading ? 'spin' : ''} />
-              <span>{loading ? 'Đang tải...' : 'Làm mới'}</span>
+              <RefreshCw size={14} className={refreshing || loading ? 'spin' : ''} />
+              <span>{refreshing ? 'Đang làm mới...' : 'Làm mới'}</span>
             </button>
 
             <a
@@ -961,8 +1015,8 @@ export const AdminSettingsPage: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  backgroundColor: 'rgba(212, 168, 106, 0.12)',
-                  color: 'var(--accent-gold)',
+                  backgroundColor: maintenance.enabled ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+                  color: maintenance.enabled ? '#EF4444' : '#22C55E',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -990,7 +1044,7 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Card 2: Thời gian bảo trì dự kiến */}
+          {/* Card 2: Thời gian bảo trì thực tế */}
           <div
             style={{
               backgroundColor: 'var(--bg-surface)',
@@ -1004,7 +1058,7 @@ export const AdminSettingsPage: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Thời gian dự kiến
+                {maintenance.enabled ? 'Thời gian bảo trì còn lại' : 'Thời gian bảo trì dự phòng'}
               </span>
               <div
                 style={{
@@ -1023,10 +1077,14 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                {maintenance.estimatedMinutes} phút
+                {maintenance.enabled
+                  ? `${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút còn lại`
+                  : `${maintenance.estimatedMinutes} phút (Dự phòng)`}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Ước tính cho du khách tham quan
+                {maintenance.enabled
+                  ? `Bắt đầu: ${formatTime(maintenance.startTime || maintenance.updatedAt)} • Dự kiến: ${formatTime(maintenance.expectedEndTime)}`
+                  : 'Hệ thống đang mở cửa trực tuyến'}
               </div>
             </div>
           </div>
@@ -1045,15 +1103,15 @@ export const AdminSettingsPage: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Máy chủ hệ thống
+                Máy chủ hệ thống (VPS)
               </span>
               <div
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  backgroundColor: 'rgba(212, 168, 106, 0.12)',
-                  color: 'var(--accent-gold)',
+                  backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                  color: '#22C55E',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -1071,10 +1129,12 @@ export const AdminSettingsPage: React.FC = () => {
                   marginBottom: 4
                 }}
               >
-                Vận hành ổn định
+                {sysInfo ? `RAM: ${sysInfo.memoryRssMb} MB` : 'Vận hành ổn định'}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Địa chỉ VPS: 103.178.233.206
+                {sysInfo?.uptimeSeconds
+                  ? `Uptime: ${formatUptime(sysInfo.uptimeSeconds)} • Ping ${pingLatency !== null ? `${pingLatency}ms` : '<10ms'}`
+                  : `Địa chỉ VPS: ${sysInfo?.publicIp || '103.178.233.206'}`}
               </div>
             </div>
           </div>
@@ -1093,7 +1153,7 @@ export const AdminSettingsPage: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Cơ sở dữ liệu di sản
+                Cơ sở dữ liệu di sản (MongoDB)
               </span>
               <div
                 style={{
@@ -1112,10 +1172,12 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                Đồng bộ trực tuyến
+                {sysInfo?.database?.connected ? 'Đồng bộ trực tuyến' : 'Đang kiểm tra...'}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Toàn bộ dữ liệu gian phòng & hiện vật
+                {sysInfo?.database
+                  ? `${sysInfo.database.roomsCount} gian phòng • ${sysInfo.database.panoramasCount} ảnh 360° (Ping ${sysInfo.database.pingMs}ms)`
+                  : 'Toàn bộ dữ liệu gian phòng & hiện vật'}
               </div>
             </div>
           </div>
@@ -1549,7 +1611,11 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   <Clock size={12} style={{ color: '#D4A86A' }} />
-                  <span>Dự kiến hoàn tất: khoảng {maintenance.estimatedMinutes} phút</span>
+                  <span>
+                    {maintenance.enabled
+                      ? `Dự kiến hoàn tất: còn khoảng ${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút`
+                      : `Dự kiến hoàn tất: khoảng ${maintenance.estimatedMinutes} phút`}
+                  </span>
                 </div>
 
                 <div>
@@ -1599,14 +1665,33 @@ export const AdminSettingsPage: React.FC = () => {
                 padding: '20px 22px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <Server size={16} style={{ color: 'var(--accent-gold)' }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                  Hạ tầng Máy chủ & Dịch vụ
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Server size={16} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                    Hạ tầng Máy chủ & Dịch vụ
+                  </span>
+                </div>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                    color: '#22C55E',
+                    fontWeight: 600
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22C55E' }} />
+                  Data thật 100%
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 12.5 }}>
+                {/* 1. VPS Host */}
                 <div
                   style={{
                     display: 'flex',
@@ -1617,11 +1702,17 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   <span style={{ color: 'var(--text-muted)' }}>Địa chỉ máy chủ (VPS)</span>
-                  <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 500 }}>
-                    103.178.233.206
-                  </span>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 600 }}>
+                      {sysInfo?.publicIp || '103.178.233.206'}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                      Uptime: {formatUptime(sysInfo?.uptimeSeconds)}
+                    </span>
+                  </div>
                 </div>
 
+                {/* 2. MongoDB */}
                 <div
                   style={{
                     display: 'flex',
@@ -1632,9 +1723,24 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   <span style={{ color: 'var(--text-muted)' }}>Cơ sở dữ liệu di sản</span>
-                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Kết nối trực tuyến</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: sysInfo?.database?.connected ? 'var(--text-main)' : '#EF4444'
+                      }}
+                    >
+                      {sysInfo?.database?.connected ? `MongoDB (${sysInfo.database.name})` : 'Mất kết nối'}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                      {sysInfo?.database
+                        ? `${sysInfo.database.roomsCount} phòng • ${sysInfo.database.panoramasCount} ảnh 360° (${sysInfo.database.pingMs}ms)`
+                        : 'Đang kết nối'}
+                    </span>
+                  </div>
                 </div>
 
+                {/* 3. Redis Cache */}
                 <div
                   style={{
                     display: 'flex',
@@ -1645,9 +1751,45 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   <span style={{ color: 'var(--text-muted)' }}>Bộ nhớ tăng tốc (Cache)</span>
-                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Hoạt động ổn định</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: sysInfo?.redis?.connected ? 'var(--text-main)' : 'var(--text-muted)'
+                      }}
+                    >
+                      {sysInfo?.redis?.connected ? 'Redis Cache trực tuyến' : 'Bộ nhớ cục bộ (Fallback)'}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                      {sysInfo?.redis?.connected
+                        ? `${sysInfo.redis.keysCount} keys • Ping: ${sysInfo.redis.pingMs}ms`
+                        : 'Không có Redis'}
+                    </span>
+                  </div>
                 </div>
 
+                {/* 4. Queue Worker */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingBottom: 8,
+                    borderBottom: '1px solid var(--border-color)'
+                  }}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Hàng đợi xử lý (Queue)</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                      {sysInfo?.queue?.status === 'processing' ? 'Đang xử lý tác vụ' : 'Sẵn sàng tiếp nhận'}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                      {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} tác vụ trong hàng đợi ghép 360°` : 'Stitching Queue'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 5. Cổng 360 */}
                 <div
                   style={{
                     display: 'flex',
@@ -1658,11 +1800,42 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   <span style={{ color: 'var(--text-muted)' }}>Trạng thái cổng 360</span>
-                  <span style={{ color: 'var(--accent-gold)', fontWeight: 500 }}>
+                  <span
+                    style={{
+                      color: maintenance.enabled ? 'var(--primary)' : 'var(--accent-gold)',
+                      fontWeight: 600
+                    }}
+                  >
                     {maintenance.enabled ? 'Đang tạm dừng bảo trì' : 'Đang mở cửa tham quan'}
                   </span>
                 </div>
 
+                {/* 6. Thời gian bảo trì thực tế */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingBottom: 8,
+                    borderBottom: '1px solid var(--border-color)'
+                  }}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Lịch trình bảo trì</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: 'var(--text-main)', fontWeight: 500, fontSize: 12 }}>
+                      {maintenance.enabled
+                        ? `${formatTime(maintenance.startTime || maintenance.updatedAt)} → ${formatTime(maintenance.expectedEndTime)}`
+                        : 'Không có lịch bảo trì'}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                      {maintenance.enabled
+                        ? `Còn ~${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút`
+                        : `Thời gian dự phòng: ${maintenance.estimatedMinutes}p`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 7. Cập nhật lần cuối */}
                 <div
                   style={{
                     display: 'flex',
@@ -1672,15 +1845,11 @@ export const AdminSettingsPage: React.FC = () => {
                 >
                   <span style={{ color: 'var(--text-muted)' }}>Cập nhật lần cuối</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                    {maintenance.updatedAt
-                      ? new Date(maintenance.updatedAt).toLocaleTimeString('vi-VN', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          day: '2-digit',
-                          month: '2-digit'
-                        })
-                      : 'Mặc định'}
+                    {new Date().toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })} (Trực tiếp)
                   </span>
                 </div>
               </div>

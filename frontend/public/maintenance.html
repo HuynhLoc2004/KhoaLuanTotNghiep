@@ -158,6 +158,15 @@
     .btn-retry svg {
       width: 14px;
       height: 14px;
+      transition: transform 0.2s ease;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .spin {
+      animation: spin 0.75s linear infinite !important;
     }
 
     .status-hint {
@@ -235,14 +244,36 @@
   <script>
     let isChecking = false;
     let isOnline = false;
+    let currentMaintenance = null;
 
     const mainTitle = document.getElementById('mainTitle');
     const mainDesc = document.getElementById('mainDesc');
     const timeText = document.getElementById('timeText');
     const statusHint = document.getElementById('statusHint');
     const btnManualRetry = document.getElementById('btnManualRetry');
+    const retryIcon = btnManualRetry.querySelector('svg');
 
-    // Đọc thông tin bảo trì & nhận diện bảo tàng thực tế từ máy chủ (Data thật)
+    function updateTimeDisplay() {
+      if (!currentMaintenance) return;
+      const startTime = new Date(currentMaintenance.startTime || currentMaintenance.updatedAt).getTime();
+      const estMinutes = Number(currentMaintenance.estimatedMinutes) || 30;
+      const validStart = isNaN(startTime) ? Date.now() : startTime;
+      const expectedEndTime = new Date(validStart + estMinutes * 60000);
+
+      const remainingMs = expectedEndTime.getTime() - Date.now();
+      const remainingMinutes = Math.ceil(remainingMs / 60000);
+
+      const startStr = new Date(validStart).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      const endStr = expectedEndTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+      if (remainingMinutes > 0) {
+        timeText.textContent = `Dự kiến hoàn tất trong khoảng ${remainingMinutes} phút (${startStr} - ${endStr})`;
+      } else {
+        timeText.textContent = `Hệ thống đang hoàn thiện những khâu cuối cùng (${startStr} - ${endStr})`;
+      }
+    }
+
+    // Đọc thông tin bảo trì & nhận diện bảo tàng thực tế từ máy chủ (Data thật 100%)
     async function loadConfig() {
       try {
         const [mRes, bRes] = await Promise.all([
@@ -252,12 +283,10 @@
 
         const data = await mRes.json();
         if (data && data.success && data.maintenance) {
-          const m = data.maintenance;
-          if (m.title) mainTitle.textContent = m.title;
-          if (m.message) mainDesc.textContent = m.message;
-          if (m.estimatedMinutes && m.estimatedMinutes > 0) {
-            timeText.textContent = `Dự kiến hoàn tất trong khoảng ${m.estimatedMinutes} phút`;
-          }
+          currentMaintenance = data.maintenance;
+          if (currentMaintenance.title) mainTitle.textContent = currentMaintenance.title;
+          if (currentMaintenance.message) mainDesc.textContent = currentMaintenance.message;
+          updateTimeDisplay();
         }
 
         if (bRes && bRes.ok) {
@@ -293,9 +322,12 @@
     }
 
     // Kiểm tra tín hiệu máy chủ để tự động reload
-    async function pingHealth() {
+    async function pingHealth(isManual = false) {
       if (isChecking || isOnline) return;
       isChecking = true;
+      if (isManual && retryIcon) {
+        retryIcon.classList.add('spin');
+      }
 
       try {
         const [healthRes, homeRes] = await Promise.all([
@@ -305,25 +337,36 @@
 
         if (healthRes.ok && homeRes.status === 200) {
           isOnline = true;
-          statusHint.textContent = 'Máy chủ đã sẵn sàng. Đang chuyển tiếp...';
+          statusHint.textContent = 'Máy chủ đã sẵn sàng! Đang chuyển tiếp về trang chính...';
           setTimeout(() => {
             window.location.href = '/';
-          }, 600);
+          }, 500);
+        } else if (isManual) {
+          statusHint.textContent = 'Hệ thống vẫn đang trong tiến trình bảo trì. Xin quý khách vui lòng đợi giây lát.';
+          await loadConfig();
         }
       } catch {
-        // Tự động kiểm tra tiếp ở chu kỳ sau
+        if (isManual) {
+          statusHint.textContent = 'Đang kiểm tra kết nối với máy chủ...';
+        }
       } finally {
         isChecking = false;
+        if (isManual && retryIcon) {
+          setTimeout(() => {
+            retryIcon.classList.remove('spin');
+          }, 400);
+        }
       }
     }
 
     loadConfig();
-    pingHealth();
-    setInterval(pingHealth, 3000);
+    pingHealth(false);
+    setInterval(updateTimeDisplay, 10000);
+    setInterval(() => pingHealth(false), 3000);
 
     btnManualRetry.addEventListener('click', () => {
-      statusHint.textContent = 'Đang kiểm tra kết nối...';
-      pingHealth();
+      statusHint.textContent = 'Đang kiểm tra kết nối thực tế...';
+      pingHealth(true);
     });
   </script>
 </body>
