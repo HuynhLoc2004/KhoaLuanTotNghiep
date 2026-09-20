@@ -44,22 +44,40 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [showConfirmDeleteLang, setShowConfirmDeleteLang] = useState(false);
 
-  // Tải danh mục ngôn ngữ Active trực tiếp từ Database
+  // Tải danh mục ngôn ngữ từ Database:
+  // Tải toàn bộ ngôn ngữ (kể cả active và inactive), đồng thời đảm bảo:
+  // 1. Mọi ngôn ngữ đang active được hiển thị
+  // 2. Bất kỳ ngôn ngữ nào mà phòng này HIỆN ĐANG CÓ DỮ LIỆU (kể cả đã bị Admin tắt như 'ja')
+  //    cũng ĐƯỢC HIỂN THỊ để Admin có thể kiểm tra và bấm "Gỡ bỏ khỏi phòng"
   useEffect(() => {
     let isMounted = true;
-    async function loadActiveLanguages() {
+    async function loadLanguagesForEditor() {
       try {
         setIsLoadingLangs(true);
-        const data = await api.getActiveLanguages();
-        if (isMounted) {
-          setLanguages(data);
-          if (data.length > 0 && !data.some((l: any) => l.code === 'vi')) {
-            // Đảm bảo luôn có tab Tiếng Việt đầu tiên
-            setLanguages([
-              { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flagIcon: 'VI', isDefault: true, isActive: true, order: 1 },
-              ...data
-            ]);
+        const data = await api.getLanguages();
+        if (isMounted && Array.isArray(data)) {
+          const existingCodes = new Set(Object.keys(translations || {}));
+          existingCodes.add('vi');
+
+          // Lấy tất cả ngôn ngữ active HOẶC các ngôn ngữ đang có dữ liệu trong phòng này
+          const visibleLangs = data.filter(
+            (lang: any) => lang.isActive || existingCodes.has(lang.code)
+          );
+
+          if (!visibleLangs.some((l: any) => l.code === 'vi')) {
+            visibleLangs.unshift({
+              code: 'vi',
+              name: 'Vietnamese',
+              nativeName: 'Tiếng Việt',
+              flagIcon: 'VI',
+              isDefault: true,
+              isActive: true,
+              order: 1
+            });
           }
+
+          visibleLangs.sort((a: any, b: any) => (a.order || 99) - (b.order || 99));
+          setLanguages(visibleLangs);
         }
       } catch (err: any) {
         console.warn('Lỗi tải danh mục ngôn ngữ:', err.message);
@@ -67,11 +85,11 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
         if (isMounted) setIsLoadingLangs(false);
       }
     }
-    loadActiveLanguages();
+    loadLanguagesForEditor();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [translations]);
 
   // Lấy dữ liệu của tab hiện hành (hoặc tạo mới nếu chưa có)
   const currentTranslation: RoomTranslation = translations[activeTab] || {
@@ -253,6 +271,22 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
                   Gốc
                 </span>
               )}
+              {!lang.isActive && lang.code !== 'vi' && (
+                <span
+                  style={{
+                    fontSize: '9.5px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: 'var(--error)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '1px 5px',
+                    borderRadius: 3,
+                    fontWeight: 600
+                  }}
+                  title="Ngôn ngữ này đã bị tắt trong trang Quản trị Ngôn ngữ"
+                >
+                  Đã tắt
+                </span>
+              )}
               {lang.code !== 'vi' && hasContent && (
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />
               )}
@@ -396,6 +430,29 @@ export const LocalizedTabEditor: React.FC<LocalizedTabEditorProps> = ({
               )}
             </div>
           </div>
+
+          {/* Cảnh báo nếu ngôn ngữ này đã bị tắt trong hệ thống */}
+          {!languages.find(l => l.code === activeTab)?.isActive && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '12px',
+                color: 'var(--error)',
+                lineHeight: 1.5
+              }}
+            >
+              <AlertCircle size={15} style={{ flexShrink: 0 }} />
+              <span>
+                Ngôn ngữ <strong>[{activeTab.toUpperCase()}]</strong> này hiện đã bị tắt hoạt động trong trang Quản trị Ngôn ngữ & Voice AI. Du khách sẽ không thấy và không nghe được ngôn ngữ này trong Tour. Bạn có thể bấm nút <strong>"Gỡ bỏ ngôn ngữ này khỏi phòng"</strong> ở trên để dọn dẹp sạch dữ liệu cũ.
+              </span>
+            </div>
+          )}
 
           {/* Form trường dữ liệu bản dịch */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

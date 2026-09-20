@@ -29,16 +29,16 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { api, API_BASE } from '../../services/api';
 import { useToast } from '../../components/Toast';
 
-const LANGUAGE_META: Record<string, { label: string; flag: string }> = {
-  vi: { label: 'Tiếng Việt', flag: '🇻🇳' },
-  en: { label: 'English', flag: '🇬🇧' },
-  ja: { label: '日本語', flag: '🇯🇵' },
-  th: { label: 'ไทย', flag: '🇹🇭' },
-  fr: { label: 'Français', flag: '🇫🇷' },
-  zh: { label: '中文', flag: '🇨🇳' },
-  ko: { label: '한국어', flag: '🇰🇷' },
-  de: { label: 'Deutsch', flag: '🇩🇪' },
-  es: { label: 'Español', flag: '🇪🇸' }
+const LANGUAGE_META: Record<string, { label: string; code: string }> = {
+  vi: { label: 'Tiếng Việt', code: 'VI' },
+  en: { label: 'English', code: 'EN' },
+  ja: { label: '日本語', code: 'JA' },
+  th: { label: 'ไทย', code: 'TH' },
+  fr: { label: 'Français', code: 'FR' },
+  zh: { label: '中文', code: 'ZH' },
+  ko: { label: '한국어', code: 'KO' },
+  de: { label: 'Deutsch', code: 'DE' },
+  es: { label: 'Español', code: 'ES' }
 };
 
 interface AdminPanoramaStudioProps {
@@ -70,6 +70,19 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
+  // Danh mục ngôn ngữ đang Active trong hệ thống
+  const [activeLanguages, setActiveLanguages] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getActiveLanguages().then((langs) => {
+      if (isMounted && Array.isArray(langs)) {
+        setActiveLanguages(langs);
+      }
+    }).catch(console.warn);
+    return () => { isMounted = false; };
+  }, []);
+
   // Voice AI Audio Guide Widget State
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [voiceLang, setVoiceLang] = useState('');
@@ -83,10 +96,12 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     return trimmed.endsWith('.mp3') || trimmed.endsWith('.ogg') || trimmed.endsWith('.wav') || trimmed.includes('/uploads/audio/') || trimmed.includes('actions.google.com');
   };
 
-  // Danh mục ngôn ngữ THỰC TẾ 100% ĐÃ CÓ FILE ÂM THANH .MP3 trong Database của gian phòng này
-  // TUYỆT ĐỐI KHÔNG MOCK: Chỉ hiển thị ngôn ngữ nào mà Admin đã bấm tạo file âm thanh thật và lưu vào DB
+  // Danh mục ngôn ngữ THỰC TẾ:
+  // 1. Phải có file âm thanh thật .mp3 trong Database của phòng này
+  // 2. TUYỆT ĐỐI KHÔNG HIỂN THỊ NẾU ADMIN ĐÃ TẮT HOẠT ĐỘNG (isActive === false) trong hệ thống
   const availableVoiceLangs = useMemo(() => {
     const langs: Array<{ code: string; label: string; flag: string; audioUrl: string; script?: string }> = [];
+    const activeMap = new Map(activeLanguages.map((l: any) => [l.code.toLowerCase(), l]));
 
     // Kiểm tra tiếng Việt: CHỈ THÊM NẾU CÓ FILE ÂM THANH THẬT TRONG DB
     const viAudio = currentRoom.translations?.vi?.audioUrl || (currentRoom as any).audioUrl;
@@ -94,21 +109,31 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
       langs.push({
         code: 'vi',
         label: 'Tiếng Việt',
-        flag: '🇻🇳',
+        flag: 'VI',
         audioUrl: viAudio.trim(),
         script: currentRoom.translations?.vi?.narrationScript || currentRoom.aiScript || ''
       });
     }
 
-    // Kiểm tra các ngôn ngữ khác trong room.translations: CHỈ THÊM NẾU ĐÃ CÓ FILE MP3 THẬT
+    // Kiểm tra các ngôn ngữ khác: Chỉ thêm nếu có file MP3 THẬT VÀ ĐANG ACTIVE TRONG HỆ THỐNG
     if (currentRoom.translations) {
       for (const [code, trans] of Object.entries(currentRoom.translations)) {
-        if (code !== 'vi' && trans && isAudioFileUrl(trans.audioUrl)) {
-          const meta = LANGUAGE_META[code.toLowerCase()] || { label: code.toUpperCase(), flag: '🌐' };
+        const cleanCode = code.toLowerCase();
+        if (cleanCode === 'vi') continue;
+
+        // Bỏ qua nếu Admin đã tắt hoạt động ngôn ngữ này trong trang Quản trị Ngôn ngữ
+        if (activeLanguages.length > 0 && !activeMap.has(cleanCode)) {
+          continue;
+        }
+
+        if (trans && isAudioFileUrl(trans.audioUrl)) {
+          const dbLang = activeMap.get(cleanCode);
+          const meta = LANGUAGE_META[cleanCode];
+          const label = dbLang?.nativeName || meta?.label || cleanCode.toUpperCase();
           langs.push({
-            code: code.toLowerCase(),
-            label: meta.label,
-            flag: meta.flag,
+            code: cleanCode,
+            label,
+            flag: cleanCode.toUpperCase(),
             audioUrl: (trans.audioUrl as string).trim(),
             script: trans.narrationScript || ''
           });
@@ -117,7 +142,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     }
 
     return langs;
-  }, [currentRoom]);
+  }, [currentRoom, activeLanguages]);
 
   // Đồng bộ voiceLang với ngôn ngữ đầu tiên có file thật trong DB
   useEffect(() => {
@@ -425,8 +450,8 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                 {/* Chọn hoặc hiển thị ngôn ngữ */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {availableVoiceLangs.length === 1 ? (
-                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#EDE5DF', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span>{availableVoiceLangs[0].flag}</span>
+                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#EDE5DF', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Globe size={13} style={{ color: 'var(--accent-gold)' }} />
                       <span className="studio-voice-lang-label">{availableVoiceLangs[0].label}</span>
                     </span>
                   ) : (
@@ -444,7 +469,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                     >
                       {availableVoiceLangs.map((lang) => (
                         <option key={lang.code} value={lang.code} style={{ background: '#1A1715', color: '#FFF' }}>
-                          {lang.flag} {lang.label}
+                          [{lang.code.toUpperCase()}] {lang.label}
                         </option>
                       ))}
                     </select>
