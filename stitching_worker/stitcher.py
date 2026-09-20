@@ -467,17 +467,17 @@ def run_stitch(image_paths, output_path, target_width=0):
             pass
         try:
             # Registration resolution:
-            # Dùng 0.60 Mpx để bắt trọn đường nét hoa văn gạch, nan cửa và chi tiết nhỏ mà vẫn đối sánh siêu tốc
-            reg_resol = 0.52 if num_images > 36 else 0.60
+            # Nâng lên 0.88 Mpx (hoặc 0.75 Mpx khi số ảnh > 36) để quét siêu chi tiết và đối sánh điểm ảnh chính xác từng milimet:
+            # Nhận diện rõ dây điện mảnh trên tường, đường chỉ ron gạch men, hoa văn hoa gió và nẹp cửa
+            reg_resol = 0.75 if num_images > 36 else 0.88
             s.setRegistrationResol(reg_resol)
         except Exception:
             pass
         try:
             # Seam estimation resolution:
-            # Nâng lên 0.25 Mpx (thay vì 0.15 Mpx quá thấp) để bộ tìm vết cắt GraphCut
-            # nhận diện rõ ranh giới đồ vật nhỏ (chân nến, nan cửa sổ, dây điện) và đi vòng qua,
-            # triệt tiêu hoàn toàn lỗi cắt xuyên qua đồ vật gây nhân đôi bóng ma!
-            s.setSeamEstimationResol(0.25)
+            # Nâng lên 0.32 Mpx để đồ thị cắt đường viền ghép (GraphCut Seam) nhận diện rõ cả dây điện mảnh và nẹp tường,
+            # tự động uốn lượn vết cắt qua mảng tường phẳng thay vì cắt ngang qua dây điện hoặc nẹp cửa!
+            s.setSeamEstimationResol(0.32)
         except Exception:
             pass
         try:
@@ -496,22 +496,22 @@ def run_stitch(image_paths, output_path, target_width=0):
     # Tuyệt đối KHÔNG hạ conf < 0.10 để không bao giờ ghép sai hình học gây choáng váng!
     if num_total <= 16:
         candidate_schemes = [
-            (optimal_paths, 2600, 0.20, "Độ nét cao 4K & Khóa góc chuẩn (Conf 0.20, MaxDim 2600px)"),
-            (optimal_paths, 2200, 0.14, "Cân bằng ánh sáng phòng & nắng (Conf 0.14, MaxDim 2200px)"),
-            (sorted_paths, 1800, 0.10, "Độ nhạy cao bảo toàn hình học (Conf 0.10, MaxDim 1800px)")
+            (optimal_paths, 2800, 0.20, "Độ nét cao 4K & Khóa góc chuẩn (Conf 0.20, MaxDim 2800px)"),
+            (optimal_paths, 2400, 0.14, "Cân bằng ánh sáng phòng & nắng (Conf 0.14, MaxDim 2400px)"),
+            (sorted_paths, 2000, 0.10, "Độ nhạy cao bảo toàn hình học (Conf 0.10, MaxDim 2000px)")
         ]
     elif num_total <= 32:
         candidate_schemes = [
-            (optimal_paths, 2400, 0.22, "Chuỗi góc chuẩn 4K (Conf 0.22, MaxDim 2400px)"),
-            (optimal_paths, 2000, 0.15, "Tăng cường độ nhạy chi tiết (Conf 0.15, MaxDim 2000px)"),
-            (optimal_paths, 1600, 0.10, "Độ nhạy cao bảo toàn hình học (Conf 0.10, MaxDim 1600px)")
+            (optimal_paths, 2600, 0.22, "Chuỗi góc chuẩn 4K (Conf 0.22, MaxDim 2600px)"),
+            (optimal_paths, 2200, 0.15, "Tăng cường độ nhạy chi tiết (Conf 0.15, MaxDim 2200px)"),
+            (optimal_paths, 1800, 0.10, "Độ nhạy cao bảo toàn hình học (Conf 0.10, MaxDim 1800px)")
         ]
     else:
         # Chùm ảnh lớn (50 - 100+ ảnh): Xử lý qua chuỗi quang học 36-44 keyframe siêu nét
         candidate_schemes = [
-            (optimal_paths, 2200, 0.20, f"Chùm ảnh lớn ({num_total} ảnh) - Chuỗi quang học 4K (Conf 0.20, MaxDim 2200px)"),
-            (optimal_paths, 1800, 0.14, f"Chùm ảnh lớn ({num_total} ảnh) - Tăng nhạy chi tiết không gian (Conf 0.14, MaxDim 1800px)"),
-            (optimal_paths, 1500, 0.10, f"Chùm ảnh lớn ({num_total} ảnh) - Quét vét bảo toàn hình học (Conf 0.10, MaxDim 1500px)")
+            (optimal_paths, 2400, 0.20, f"Chùm ảnh lớn ({num_total} ảnh) - Chuỗi quang học 4K (Conf 0.20, MaxDim 2400px)"),
+            (optimal_paths, 2000, 0.14, f"Chùm ảnh lớn ({num_total} ảnh) - Tăng nhạy chi tiết không gian (Conf 0.14, MaxDim 2000px)"),
+            (optimal_paths, 1600, 0.10, f"Chùm ảnh lớn ({num_total} ảnh) - Quét vét bảo toàn hình học (Conf 0.10, MaxDim 1600px)")
         ]
 
     best_pano = None
