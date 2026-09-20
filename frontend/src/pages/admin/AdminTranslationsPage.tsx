@@ -26,6 +26,7 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination, DEFAULT_PAGE_SIZE_OPTIONS } from '../../components/Pagination';
+import { useSystemBranding } from '../../context/SystemBrandingContext';
 
 const NAMESPACES = [
   { id: 'all', label: 'Tất cả phân mục' },
@@ -40,14 +41,7 @@ const NAMESPACES = [
 
 export const AdminTranslationsPage: React.FC = () => {
   const { showToast } = useToast();
-  const toast = useMemo(
-    () => ({
-      success: (msg: string) => showToast(msg, 'success'),
-      error: (msg: string) => showToast(msg, 'error'),
-      info: (msg: string) => showToast(msg, 'info')
-    }),
-    [showToast]
-  );
+  const { branding } = useSystemBranding();
 
   // State dữ liệu
   const [keys, setKeys] = useState<TranslationKeyItem[]>([]);
@@ -109,7 +103,6 @@ export const AdminTranslationsPage: React.FC = () => {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
           setActiveLanguages(json.data);
-          // Mặc định chọn ngôn ngữ đích đầu tiên khác tiếng Việt
           const nonVi = json.data.find((l: LanguageItem) => l.code !== 'vi');
           if (nonVi && !selectedTargetLang) {
             setSelectedTargetLang(nonVi.code);
@@ -150,14 +143,13 @@ export const AdminTranslationsPage: React.FC = () => {
       setTotalPages(res.pagination.totalPages || 1);
       setTotalFilteredItems(res.pagination.total || 0);
     } catch (err: any) {
-      toast.error(err.message || 'Lỗi tải danh sách từ khóa');
+      showToast(err.message || 'Lỗi tải danh sách từ khóa', 'error');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [page, pageSize, selectedNamespace, search, onlyUntranslated, selectedTargetLang, toast]);
+  }, [page, pageSize, selectedNamespace, search, onlyUntranslated, selectedTargetLang, showToast]);
 
-  // Khởi động trang
   useEffect(() => {
     fetchActiveLanguages();
     fetchStats();
@@ -171,7 +163,7 @@ export const AdminTranslationsPage: React.FC = () => {
   const handleRefreshAll = async () => {
     setIsRefreshing(true);
     await Promise.all([fetchStats(), fetchActiveLanguages(), fetchKeys()]);
-    toast.success('Đã cập nhật dữ liệu từ điển mới nhất');
+    showToast('Đã cập nhật dữ liệu từ điển mới nhất', 'success');
   };
 
   // Thông tin ngôn ngữ đích đang chọn
@@ -215,11 +207,11 @@ export const AdminTranslationsPage: React.FC = () => {
         translations: updatedTranslations
       });
 
-      toast.success(`Đã lưu bản dịch cho "${item.key}"`);
+      showToast(`Đã lưu bản dịch cho "${item.key}"`, 'success');
       setInlineEditingId(null);
       await Promise.all([fetchKeys(), fetchStats()]);
     } catch (err: any) {
-      toast.error(err.message || 'Lỗi lưu bản dịch');
+      showToast(err.message || 'Lỗi lưu bản dịch', 'error');
     }
   };
 
@@ -228,13 +220,13 @@ export const AdminTranslationsPage: React.FC = () => {
     setSingleTranslatingKeyId(item.id || item._id!);
     try {
       const res = await api.singleTranslateKey(item.id || item._id!, selectedTargetLang);
-      toast.success(`Đã dịch AI thành công khóa "${item.key}"`);
+      showToast(`Đã dịch AI thành công khóa "${item.key}"`, 'success');
       if (inlineEditingId === (item.id || item._id!)) {
         setInlineEditText(res.translatedText);
       }
       await Promise.all([fetchKeys(), fetchStats()]);
     } catch (err: any) {
-      toast.error(err.message || 'Lỗi dịch tự động');
+      showToast(err.message || 'Lỗi dịch tự động', 'error');
     } finally {
       setSingleTranslatingKeyId(null);
     }
@@ -244,7 +236,7 @@ export const AdminTranslationsPage: React.FC = () => {
   const handleExecuteBatchTranslate = async () => {
     setBatchModalOpen(false);
     setBatchTranslating(true);
-    toast.info(`Đang kích hoạt dịch AI đồng loạt sang ${activeTargetLangInfo.nativeName}... Vui lòng đợi trong giây lát.`);
+    showToast(`Đang dịch AI đồng loạt sang ${activeTargetLangInfo.nativeName}...`, 'info');
 
     try {
       const res = await api.batchTranslateKeys({
@@ -253,12 +245,13 @@ export const AdminTranslationsPage: React.FC = () => {
         overwrite: batchOverwrite
       });
 
-      toast.success(
-        `Hoàn tất dịch AI đồng loạt! Đã bổ sung ${res.translatedCount} từ khóa (${res.skippedCount} từ khóa giữ nguyên).`
+      showToast(
+        `Hoàn tất dịch AI đồng loạt! Đã cập nhật ${res.translatedCount} từ khóa (${res.skippedCount} từ khóa giữ nguyên).`,
+        'success'
       );
       await Promise.all([fetchKeys(), fetchStats()]);
     } catch (err: any) {
-      toast.error(err.message || 'Lỗi dịch AI đồng loạt');
+      showToast(err.message || 'Lỗi dịch AI đồng loạt', 'error');
     } finally {
       setBatchTranslating(false);
     }
@@ -296,7 +289,7 @@ export const AdminTranslationsPage: React.FC = () => {
   const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.key.trim() || !formData.defaultText.trim()) {
-      toast.error('Vui lòng điền đủ Mã từ khóa và Chuỗi gốc tiếng Việt');
+      showToast('Vui lòng điền đủ Mã từ khóa và Chuỗi gốc tiếng Việt', 'warning');
       return;
     }
 
@@ -309,7 +302,7 @@ export const AdminTranslationsPage: React.FC = () => {
           description: formData.description.trim(),
           translations: formData.translations
         });
-        toast.success(`Đã thêm từ khóa "${formData.key}" vào từ điển di sản`);
+        showToast(`Đã thêm từ khóa "${formData.key}" vào từ điển`, 'success');
       } else if (selectedKeyForEdit) {
         await api.updateTranslationKey(selectedKeyForEdit.id || selectedKeyForEdit._id!, {
           namespace: formData.namespace,
@@ -317,13 +310,13 @@ export const AdminTranslationsPage: React.FC = () => {
           description: formData.description.trim(),
           translations: formData.translations
         });
-        toast.success(`Đã cập nhật từ khóa "${selectedKeyForEdit.key}"`);
+        showToast(`Đã cập nhật từ khóa "${selectedKeyForEdit.key}"`, 'success');
       }
 
       setIsModalOpen(false);
       await Promise.all([fetchKeys(), fetchStats()]);
     } catch (err: any) {
-      toast.error(err.message || 'Lỗi lưu từ khóa');
+      showToast(err.message || 'Lỗi lưu từ khóa', 'error');
     }
   };
 
@@ -332,223 +325,288 @@ export const AdminTranslationsPage: React.FC = () => {
     if (!keyToDelete) return;
     try {
       await api.deleteTranslationKey(keyToDelete.id || keyToDelete._id!);
-      toast.success(`Đã xóa từ khóa "${keyToDelete.key}"`);
+      showToast(`Đã xóa từ khóa "${keyToDelete.key}"`, 'success');
       setDeleteConfirmOpen(false);
       setKeyToDelete(null);
       await Promise.all([fetchKeys(), fetchStats()]);
     } catch (err: any) {
-      toast.error(err.message || 'Lỗi xóa từ khóa');
+      showToast(err.message || 'Lỗi xóa từ khóa', 'error');
     }
   };
 
+  // Chiều cao bảng cố định chống co rút khi chuyển trang
+  const tableMinHeight = useMemo(() => {
+    const rowsToReserve = Math.min(pageSize, Math.max(keys.length, 1));
+    return `${rowsToReserve * 72 + 46}px`;
+  }, [pageSize, keys.length]);
+
   return (
-    <div className="admin-page-container p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      {/* 1. Header & Tiêu đề trang */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-stone-900/70 border border-stone-800/80 rounded-2xl p-5 backdrop-blur-md shadow-xl">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+    <div className="admin-content" style={{ overscrollBehaviorY: 'contain' }}>
+      <div className="lang-management-page">
+        {/* 1. HEADER ROW */}
+        <div className="lang-header-row">
+          <div className="lang-header-title-group">
+            <div className="lang-header-icon-badge">
               <Languages size={22} />
             </div>
-            <h1 className="text-xl md:text-2xl font-bold text-stone-100 tracking-tight">
-              Quản trị Bản dịch & Từ điển Đa ngôn ngữ
-            </h1>
-          </div>
-          <p className="text-xs md:text-sm text-stone-400 max-w-3xl">
-            Chuẩn hóa 100% văn bản giao diện website Client, nút bấm, hướng dẫn 360°, thông báo và Voice AI. Tự động đồng bộ hóa đa ngôn ngữ không góc chết.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            type="button"
-            onClick={handleRefreshAll}
-            disabled={isRefreshing}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold border border-stone-700 transition-all disabled:opacity-50"
-            title="Làm mới dữ liệu từ điển"
-          >
-            <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-            <span>Làm mới</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setBatchModalOpen(true)}
-            disabled={batchTranslating || selectedTargetLang === 'vi'}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 text-xs font-bold shadow-md shadow-amber-900/30 transition-all disabled:opacity-50"
-            title={`Dịch AI toàn bộ từ khóa sang ${activeTargetLangInfo.nativeName}`}
-          >
-            <Sparkles size={14} className={batchTranslating ? 'animate-spin' : ''} />
-            <span>1-Click Dịch AI ({activeTargetLangInfo.code.toUpperCase()})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleOpenCreateModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-white text-stone-900 text-xs font-bold shadow-sm transition-all"
-          >
-            <Plus size={14} />
-            <span>Thêm từ khóa</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Ribbon Thẻ Thống kê & Thanh chọn Ngôn ngữ đích */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Card 1: Tổng số từ khóa */}
-        <div className="bg-stone-900/60 border border-stone-800 rounded-2xl p-4 flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
-            <BookOpen size={20} />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-stone-100">{totalKeysCount}</div>
-            <div className="text-xs text-stone-400 font-medium">Tổng từ khóa cốt lõi</div>
-          </div>
-        </div>
-
-        {/* Card 2: Ngôn ngữ đang chọn & Tỉ lệ bao phủ */}
-        <div className="bg-stone-900/60 border border-stone-800 rounded-2xl p-4 flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0 text-xl">
-            {activeTargetLangInfo.flagIcon || '🌐'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-300 uppercase truncate">
-                {activeTargetLangInfo.nativeName}
-              </span>
-              <span className="text-xs font-extrabold text-stone-200">
-                {currentTargetStat.percentage}%
-              </span>
-            </div>
-            <div className="w-full bg-stone-800 h-2 rounded-full overflow-hidden mt-1.5">
-              <div
-                className={`h-full transition-all duration-500 ${
-                  currentTargetStat.percentage >= 100
-                    ? 'bg-emerald-500'
-                    : currentTargetStat.percentage >= 80
-                    ? 'bg-amber-500'
-                    : 'bg-rose-500'
-                }`}
-                style={{ width: `${currentTargetStat.percentage}%` }}
-              />
-            </div>
-            <div className="text-[10px] text-stone-400 mt-1 flex justify-between">
-              <span>Đã dịch: {currentTargetStat.translatedCount}</span>
-              <span>Chưa dịch: {currentTargetStat.untranslatedCount}</span>
+            <div>
+              <h1 className="lang-header-title">
+                Quản trị Bản dịch & Từ điển Đa ngôn ngữ
+              </h1>
+              <p className="lang-header-desc">
+                Đồng bộ hóa 100% nội dung giao diện website Client, nút bấm, hướng dẫn 360°, thông báo và Voice AI.
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Card 3: Độ hoàn thiện đồng bộ */}
-        <div className="bg-stone-900/60 border border-stone-800 rounded-2xl p-4 flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-stone-100">
-              {stats.filter((s) => s.percentage >= 95).length} / {stats.length}
-            </div>
-            <div className="text-xs text-stone-400 font-medium">Ngôn ngữ đạt chuẩn 100%</div>
-          </div>
-        </div>
-
-        {/* Card 4: Cơ chế Fallback an toàn */}
-        <div className="bg-stone-900/60 border border-stone-800 rounded-2xl p-4 flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 shrink-0">
-            <Layers size={20} />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-stone-200 uppercase tracking-wide">
-              3-Tier Fallback
-            </div>
-            <div className="text-[11px] text-stone-400 leading-tight mt-0.5">
-              Ngôn ngữ đích → Tiếng Anh (en) → Tiếng Việt (vi). Không bao giờ rỗng key.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Thanh Chuyển đổi Ngôn ngữ đích dạng Tabs */}
-      <div className="bg-stone-900/80 border border-stone-800/90 rounded-2xl p-2 flex items-center gap-1.5 overflow-x-auto custom-scrollbar">
-        <span className="text-xs font-bold uppercase text-stone-400 px-3 py-1 flex items-center gap-1.5 shrink-0">
-          <Globe size={13} />
-          Xem bản dịch:
-        </span>
-        {activeLanguages.map((lang) => {
-          const isSelected = lang.code.toLowerCase() === selectedTargetLang.toLowerCase();
-          const langStat = stats.find((s) => s.code.toLowerCase() === lang.code.toLowerCase());
-          const percent = langStat?.percentage ?? 0;
-
-          return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <button
-              key={lang.code}
               type="button"
-              onClick={() => {
-                setSelectedTargetLang(lang.code.toLowerCase());
-                setInlineEditingId(null);
-                setPage(1);
-              }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
-                isSelected
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                  : 'bg-stone-800/60 text-stone-300 hover:bg-stone-800 border border-transparent'
-              }`}
+              className="btn btn-secondary btn-sm"
+              onClick={handleRefreshAll}
+              disabled={isRefreshing || loading}
+              title="Làm mới dữ liệu từ máy chủ"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              <span>{lang.flagIcon || '🌐'}</span>
-              <span className="font-semibold">{lang.nativeName}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  percent >= 100
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : percent >= 80
-                    ? 'bg-amber-500/20 text-amber-400'
-                    : 'bg-rose-500/20 text-rose-400'
-                }`}
-              >
-                {percent}%
-              </span>
+              <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
+              <span>Làm mới</span>
             </button>
-          );
-        })}
-      </div>
 
-      {/* 4. Bộ lọc & Tìm kiếm & Phân trang */}
-      <div className="bg-stone-900/70 border border-stone-800 rounded-2xl p-4 space-y-3">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          {/* Ô tìm kiếm */}
-          <div className="relative w-full md:w-80">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <input
-              type="text"
-              placeholder="Tìm theo mã khóa, tiếng Việt, chú thích..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="w-full pl-9 pr-8 py-2 rounded-xl bg-stone-800/80 border border-stone-700 text-stone-200 text-xs placeholder-stone-500 focus:outline-none focus:border-amber-500"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white"
-              >
-                <X size={13} />
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setBatchModalOpen(true)}
+              disabled={batchTranslating || selectedTargetLang === 'vi'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              title={`Dịch AI toàn bộ từ khóa sang ${activeTargetLangInfo.nativeName}`}
+            >
+              <Sparkles size={14} className={batchTranslating ? 'spin' : ''} />
+              <span>1-Click Dịch AI ({activeTargetLangInfo.code.toUpperCase()})</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleOpenCreateModal}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent-gold)' }}
+            >
+              <Plus size={15} />
+              <span>Thêm từ khóa</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 2. HERITAGE STATS BANNER */}
+        <div className="heritage-stats-banner">
+          {/* Cột 1: Tổng số từ khóa */}
+          <div className="heritage-stat-col" style={{ flex: 1 }}>
+            <div className="heritage-stat-header">
+              <span className="heritage-stat-icon-wrapper">
+                <BookOpen size={15} />
+              </span>
+              <span className="heritage-stat-title">Từ khóa Cốt lõi Hệ thống</span>
+            </div>
+            <div className="heritage-stat-body">
+              <div className="heritage-stat-metric">
+                <span className="heritage-stat-number">{totalKeysCount}</span>
+                <span className="heritage-stat-unit">từ khóa giao diện</span>
+              </div>
+              <div className="heritage-stat-sub">
+                Đồng bộ hóa các thành phần trên toàn bộ website
+              </div>
+            </div>
           </div>
 
-          {/* Chọn phân mục (Namespace) */}
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-            <Filter size={14} className="text-stone-400 shrink-0 hidden md:block" />
+          {/* Cột 2: Tiến độ ngôn ngữ đang chọn */}
+          <div className="heritage-stat-col" style={{ flex: 1.2 }}>
+            <div className="heritage-stat-header">
+              <span className="heritage-stat-icon-wrapper" style={{ fontSize: 15 }}>
+                {activeTargetLangInfo.flagIcon || '🌐'}
+              </span>
+              <span className="heritage-stat-title">
+                Độ phủ: {activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})
+              </span>
+            </div>
+            <div className="heritage-stat-body">
+              <div className="heritage-stat-metric">
+                <span className="heritage-stat-number">{currentTargetStat.percentage}%</span>
+                <span className="heritage-stat-unit">
+                  ({currentTargetStat.translatedCount}/{totalKeysCount} từ đã dịch)
+                </span>
+              </div>
+              <div className="lang-progress-bar" style={{ marginTop: 6 }}>
+                <div
+                  className="lang-progress-fill"
+                  style={{
+                    width: `${currentTargetStat.percentage}%`,
+                    background:
+                      currentTargetStat.percentage >= 100
+                        ? '#10B981'
+                        : currentTargetStat.percentage >= 80
+                        ? 'var(--accent-gold)'
+                        : '#EF4444'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Cột 3: Số ngôn ngữ hoàn thiện */}
+          <div className="heritage-stat-col" style={{ flex: 1 }}>
+            <div className="heritage-stat-header">
+              <span className="heritage-stat-icon-wrapper">
+                <ShieldCheck size={15} />
+              </span>
+              <span className="heritage-stat-title">Chuẩn Quốc tế 100%</span>
+            </div>
+            <div className="heritage-stat-body">
+              <div className="heritage-stat-metric">
+                <span className="heritage-stat-number">
+                  {stats.filter((s) => s.percentage >= 95).length}/{stats.length}
+                </span>
+                <span className="heritage-stat-unit">ngôn ngữ hoàn tất</span>
+              </div>
+              <div className="heritage-stat-sub">
+                Sẵn sàng đón tiếp khách tham quan đa quốc gia
+              </div>
+            </div>
+          </div>
+
+          {/* Cột 4: Cơ chế Fallback an toàn */}
+          <div className="heritage-stat-col" style={{ flex: 1.1, borderRight: 'none' }}>
+            <div className="heritage-stat-header">
+              <span className="heritage-stat-icon-wrapper">
+                <Layers size={15} />
+              </span>
+              <span className="heritage-stat-title">Cơ chế 3-Tier Fallback</span>
+            </div>
+            <div className="heritage-stat-body">
+              <div className="heritage-stat-metric">
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)' }}>
+                  {selectedTargetLang.toUpperCase()} → EN → VI
+                </span>
+              </div>
+              <div className="heritage-stat-sub">
+                An toàn tuyệt đối, không bao giờ để rỗng nhãn
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. THANH CHUYỂN ĐỔI NGÔN NGỮ ĐÍCH DẠNG TABS */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            overflowX: 'auto',
+            padding: '10px 14px',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)'
+          }}
+        >
+          <span
+            style={{
+              fontSize: '11.5px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              flexShrink: 0
+            }}
+          >
+            <Globe size={13} />
+            Xem ngôn ngữ:
+          </span>
+          {activeLanguages.map((lang) => {
+            const isSelected = lang.code.toLowerCase() === selectedTargetLang.toLowerCase();
+            const langStat = stats.find((s) => s.code.toLowerCase() === lang.code.toLowerCase());
+            const percent = langStat?.percentage ?? 0;
+
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => {
+                  setSelectedTargetLang(lang.code.toLowerCase());
+                  setInlineEditingId(null);
+                  setPage(1);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: isSelected ? '1px solid var(--accent-gold)' : '1px solid transparent',
+                  background: isSelected ? 'rgba(212, 168, 106, 0.15)' : 'var(--bg-subtle)',
+                  color: isSelected ? 'var(--accent-gold)' : 'var(--text-main)',
+                  fontWeight: isSelected ? 600 : 500,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.18s ease'
+                }}
+              >
+                <span style={{ fontSize: 15 }}>{lang.flagIcon || '🌐'}</span>
+                <span>{lang.nativeName}</span>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: 999,
+                    background: percent >= 100 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(212, 168, 106, 0.2)',
+                    color: percent >= 100 ? '#10B981' : 'var(--accent-gold)'
+                  }}
+                >
+                  {percent}%
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 4. TOOLBAR: TÌM KIẾM & BỘ LỌC */}
+        <div className="lang-toolbar-card">
+          <div className="lang-toolbar-controls">
+            {/* Ô tìm kiếm */}
+            <div className="lang-search-wrapper">
+              <Search size={15} className="lang-search-icon" />
+              <input
+                type="text"
+                placeholder="Tìm theo mã khóa, tiếng Việt hoặc chú thích..."
+                className="lang-search-input"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  className="lang-search-clear"
+                  onClick={() => setSearch('')}
+                  title="Xóa tìm kiếm"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Chọn phân mục */}
             <select
+              className="lang-filter-select"
               value={selectedNamespace}
               onChange={(e) => {
                 setSelectedNamespace(e.target.value);
                 setPage(1);
               }}
-              className="px-3 py-2 rounded-xl bg-stone-800/80 border border-stone-700 text-stone-200 text-xs focus:outline-none focus:border-amber-500"
             >
               {NAMESPACES.map((ns) => (
                 <option key={ns.id} value={ns.id}>
@@ -557,9 +615,23 @@ export const AdminTranslationsPage: React.FC = () => {
               ))}
             </select>
 
-            {/* Checkbox chỉ hiện từ khóa chưa dịch */}
+            {/* Lọc từ khóa chưa dịch */}
             {selectedTargetLang !== 'vi' && (
-              <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-800/60 border border-stone-700/80 text-xs text-stone-300 cursor-pointer hover:bg-stone-800 select-none shrink-0">
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: '12.5px',
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  background: 'var(--bg-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  userSelect: 'none'
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={onlyUntranslated}
@@ -567,460 +639,498 @@ export const AdminTranslationsPage: React.FC = () => {
                     setOnlyUntranslated(e.target.checked);
                     setPage(1);
                   }}
-                  className="rounded border-stone-600 text-amber-500 focus:ring-amber-500/30"
+                  style={{ accentColor: 'var(--accent-gold)', width: 14, height: 14 }}
                 />
-                <span>Chỉ hiện khóa chưa dịch ({activeTargetLangInfo.code.toUpperCase()})</span>
+                <span>Chỉ hiện từ khóa chưa dịch ({activeTargetLangInfo.code.toUpperCase()})</span>
               </label>
             )}
           </div>
+
+          <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+            Tìm thấy <strong>{totalFilteredItems}</strong> từ khóa phù hợp
+          </div>
         </div>
-      </div>
 
-      {/* 5. Bảng Dữ liệu Từ điển Giao diện */}
-      <div className="bg-stone-900/80 border border-stone-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-stone-300">
-            <thead className="bg-stone-950/70 border-b border-stone-800 uppercase tracking-wider text-[11px] text-stone-400">
-              <tr>
-                <th className="px-4 py-3.5 font-bold w-1/4">Mã Khóa (Key) & Phân mục</th>
-                <th className="px-4 py-3.5 font-bold w-1/3">Tiếng Việt Gốc (vi)</th>
-                <th className="px-4 py-3.5 font-bold w-1/3">
-                  Bản dịch: {activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})
-                </th>
-                <th className="px-4 py-3.5 font-bold text-right w-24">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-800/60">
-              {loading ? (
+        {/* 5. BẢNG DỮ LIỆU TỪ ĐIỂN */}
+        <div className="lang-table-card">
+          <div className="lang-table-scroll" style={{ minHeight: tableMinHeight }}>
+            <table className="lang-table">
+              <thead>
                 <tr>
-                  <td colSpan={4} className="text-center py-16 text-stone-400">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <RefreshCw size={24} className="animate-spin text-amber-400" />
-                      <span>Đang nạp dữ liệu từ điển di sản...</span>
-                    </div>
-                  </td>
+                  <th style={{ width: '26%' }}>Mã Khóa (Key) & Phân mục</th>
+                  <th style={{ width: '32%' }}>Tiếng Việt Gốc (vi)</th>
+                  <th style={{ width: '32%' }}>
+                    Bản dịch: {activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})
+                  </th>
+                  <th style={{ width: '10%', textAlign: 'right' }}>Thao tác</th>
                 </tr>
-              ) : keys.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="text-center py-16 text-stone-400">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <AlertCircle size={28} className="text-stone-500" />
-                      <p className="font-semibold text-stone-300">Không tìm thấy từ khóa phù hợp</p>
-                      <p className="text-xs text-stone-500">
-                        Thử điều chỉnh từ khóa tìm kiếm hoặc bỏ chọn lọc chưa dịch
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                keys.map((item) => {
-                  const currentTrans = item.translations?.[selectedTargetLang] || '';
-                  const isAi = Boolean(item.isAiTranslated?.[selectedTargetLang]);
-                  const hasTrans = currentTrans.trim().length > 0;
-                  const isInlineEditing = inlineEditingId === (item.id || item._id);
+              </thead>
+              <tbody className="lang-page-transition">
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                      <RefreshCw size={24} className="spin" style={{ margin: '0 auto 8px', color: 'var(--accent-gold)' }} />
+                      <div>Đang nạp từ điển di sản...</div>
+                    </td>
+                  </tr>
+                ) : keys.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                      <AlertCircle size={28} style={{ margin: '0 auto 8px', color: 'var(--text-muted)' }} />
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Không tìm thấy từ khóa phù hợp</div>
+                      <div style={{ fontSize: '12px' }}>Thử điều chỉnh từ khóa tìm kiếm hoặc phân mục</div>
+                    </td>
+                  </tr>
+                ) : (
+                  keys.map((item) => {
+                    const currentTrans = item.translations?.[selectedTargetLang] || '';
+                    const isAi = Boolean(item.isAiTranslated?.[selectedTargetLang]);
+                    const hasTrans = currentTrans.trim().length > 0;
+                    const isInlineEditing = inlineEditingId === (item.id || item._id);
 
-                  return (
-                    <tr
-                      key={item.id || item._id}
-                      className="hover:bg-stone-800/40 transition-colors group"
-                    >
-                      {/* Cột 1: Mã Khóa & Phân mục */}
-                      <td className="px-4 py-3 align-top">
-                        <div className="space-y-1">
-                          <div className="font-mono font-bold text-amber-300 text-[11.5px] break-all">
+                    return (
+                      <tr key={item.id || item._id}>
+                        {/* Cột 1: Mã khóa */}
+                        <td style={{ verticalAlign: 'top', padding: '12px 18px' }}>
+                          <div style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-gold)', fontSize: '12px', wordBreak: 'break-all' }}>
                             {item.key}
                           </div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="px-2 py-0.5 rounded-md bg-stone-800 text-[10px] text-stone-400 font-medium border border-stone-700/60">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                            <span
+                              style={{
+                                fontSize: '10.5px',
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                background: 'var(--bg-subtle)',
+                                color: 'var(--text-muted)',
+                                border: '1px solid var(--border-color)'
+                              }}
+                            >
                               {item.namespace}
                             </span>
                             {item.description && (
-                              <span
-                                className="text-[11px] text-stone-500 truncate max-w-[200px]"
-                                title={item.description}
-                              >
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }} title={item.description}>
                                 • {item.description}
                               </span>
                             )}
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Cột 2: Tiếng Việt Gốc */}
-                      <td className="px-4 py-3 align-top">
-                        <div className="text-stone-200 font-medium leading-relaxed break-words">
+                        {/* Cột 2: Tiếng Việt gốc */}
+                        <td style={{ verticalAlign: 'top', padding: '12px 18px', color: 'var(--text-main)', lineHeight: 1.5 }}>
                           {item.defaultText}
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Cột 3: Bản dịch ngôn ngữ đang chọn */}
-                      <td className="px-4 py-3 align-top">
-                        {isInlineEditing ? (
-                          <div className="space-y-2">
-                            <input
-                              type="text"
-                              value={inlineEditText}
-                              onChange={(e) => setInlineEditText(e.target.value)}
-                              placeholder={`Nhập bản dịch ${activeTargetLangInfo.nativeName}...`}
-                              className="w-full px-3 py-1.5 rounded-lg bg-stone-950 border border-amber-500/60 text-stone-100 text-xs focus:outline-none"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveInline(item);
-                                if (e.key === 'Escape') setInlineEditingId(null);
-                              }}
-                            />
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleSaveInline(item)}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-stone-950 text-[11px] font-bold"
-                              >
-                                <Check size={12} />
-                                Lưu
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setInlineEditingId(null)}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px]"
-                              >
-                                <X size={12} />
-                                Hủy
-                              </button>
+                        {/* Cột 3: Bản dịch ngôn ngữ đang chọn */}
+                        <td style={{ verticalAlign: 'top', padding: '12px 18px' }}>
+                          {isInlineEditing ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={inlineEditText}
+                                onChange={(e) => setInlineEditText(e.target.value)}
+                                placeholder={`Nhập bản dịch ${activeTargetLangInfo.nativeName}...`}
+                                autoFocus
+                                style={{ fontSize: '12.5px', padding: '6px 10px' }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveInline(item);
+                                  if (e.key === 'Escape') setInlineEditingId(null);
+                                }}
+                              />
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => handleSaveInline(item)}
+                                  style={{ padding: '4px 10px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: 4 }}
+                                >
+                                  <Check size={12} />
+                                  <span>Lưu</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => setInlineEditingId(null)}
+                                  style={{ padding: '4px 10px', fontSize: '11.5px' }}
+                                >
+                                  Hủy
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-1.5">
-                            {hasTrans ? (
-                              <div className="text-stone-100 font-medium leading-relaxed break-words">
-                                {currentTrans}
-                              </div>
-                            ) : (
-                              <div className="text-rose-400/80 italic text-xs flex items-center gap-1">
-                                <AlertCircle size={13} />
-                                <span>Chưa có bản dịch</span>
-                              </div>
+                          ) : (
+                            <div>
+                              {hasTrans ? (
+                                <div style={{ color: 'var(--text-main)', lineHeight: 1.5, fontWeight: 500 }}>
+                                  {currentTrans}
+                                </div>
+                              ) : (
+                                <div style={{ color: 'var(--error)', fontStyle: 'italic', fontSize: '12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <AlertCircle size={13} />
+                                  <span>Chưa có bản dịch</span>
+                                </div>
+                              )}
+
+                              {hasTrans && (
+                                <div style={{ marginTop: 4 }}>
+                                  {isAi ? (
+                                    <span
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                        fontSize: '10px',
+                                        padding: '1px 6px',
+                                        borderRadius: 4,
+                                        background: 'rgba(59, 130, 246, 0.15)',
+                                        color: '#60A5FA',
+                                        border: '1px solid rgba(59, 130, 246, 0.3)'
+                                      }}
+                                    >
+                                      <Sparkles size={10} />
+                                      AI Dịch
+                                    </span>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                        fontSize: '10px',
+                                        padding: '1px 6px',
+                                        borderRadius: 4,
+                                        background: 'rgba(16, 185, 129, 0.15)',
+                                        color: '#10B981',
+                                        border: '1px solid rgba(16, 185, 129, 0.3)'
+                                      }}
+                                    >
+                                      <CheckCircle2 size={10} />
+                                      Đã duyệt
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Cột 4: Thao tác */}
+                        <td style={{ verticalAlign: 'top', padding: '12px 18px', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                            {selectedTargetLang !== 'vi' && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => handleSingleTranslate(item)}
+                                disabled={singleTranslatingKeyId === (item.id || item._id)}
+                                title="Dịch tự động từ khóa này"
+                                style={{ padding: '6px 8px' }}
+                              >
+                                <Wand2
+                                  size={13}
+                                  className={singleTranslatingKeyId === (item.id || item._id) ? 'spin' : ''}
+                                  style={{ color: 'var(--accent-gold)' }}
+                                />
+                              </button>
                             )}
 
-                            {/* Badges trạng thái */}
-                            <div className="flex items-center gap-2">
-                              {hasTrans ? (
-                                isAi ? (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                                    <Sparkles size={10} />
-                                    AI Dịch
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                    <CheckCircle2 size={10} />
-                                    Đã duyệt
-                                  </span>
-                                )
-                              ) : null}
-                            </div>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Cột 4: Thao tác */}
-                      <td className="px-4 py-3 align-top text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Nút dịch AI cho từ khóa này */}
-                          {selectedTargetLang !== 'vi' && (
                             <button
                               type="button"
-                              onClick={() => handleSingleTranslate(item)}
-                              disabled={singleTranslatingKeyId === (item.id || item._id)}
-                              className="p-1.5 rounded-lg bg-stone-800/80 hover:bg-amber-500/20 text-stone-300 hover:text-amber-300 border border-stone-700 transition-all disabled:opacity-50"
-                              title="Dịch tự động bằng AI"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                setInlineEditingId(item.id || item._id!);
+                                setInlineEditText(currentTrans);
+                              }}
+                              title="Chỉnh sửa nhanh"
+                              style={{ padding: '6px 8px' }}
                             >
-                              <Wand2
-                                size={14}
-                                className={
-                                  singleTranslatingKeyId === (item.id || item._id)
-                                    ? 'animate-spin text-amber-400'
-                                    : ''
-                                }
-                              />
+                              <Edit2 size={13} />
                             </button>
-                          )}
 
-                          {/* Nút sửa nhanh inline */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setInlineEditingId(item.id || item._id!);
-                              setInlineEditText(currentTrans);
-                            }}
-                            className="p-1.5 rounded-lg bg-stone-800/80 hover:bg-stone-700 text-stone-300 hover:text-white border border-stone-700 transition-all"
-                            title="Chỉnh sửa bản dịch"
-                          >
-                            <Edit2 size={14} />
-                          </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleOpenEditModal(item)}
+                              title="Chỉnh sửa đa ngữ"
+                              style={{ padding: '6px 8px' }}
+                            >
+                              <Layers size={13} />
+                            </button>
 
-                          {/* Nút mở modal chỉnh sửa chi tiết */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(item)}
-                            className="p-1.5 rounded-lg bg-stone-800/80 hover:bg-stone-700 text-stone-300 hover:text-white border border-stone-700 transition-all hidden md:inline-flex"
-                            title="Sửa chi tiết đa ngữ"
-                          >
-                            <Layers size={14} />
-                          </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                setKeyToDelete(item);
+                                setDeleteConfirmOpen(true);
+                              }}
+                              title="Xóa từ khóa"
+                              style={{ color: 'var(--error)', padding: '6px 8px' }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
-                          {/* Nút xóa */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setKeyToDelete(item);
-                              setDeleteConfirmOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg bg-stone-800/80 hover:bg-rose-500/20 text-stone-400 hover:text-rose-400 border border-stone-700 transition-all"
-                            title="Xóa từ khóa này"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+          {/* Phân trang chuẩn hệ thống [6, 9, 12, 18, 24] */}
+          <Pagination
+            currentPage={page}
+            totalItems={totalFilteredItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(1);
+            }}
+            pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+            itemLabel="từ khóa"
+          />
         </div>
 
-        {/* Phân trang chuẩn hệ thống [6, 9, 12, 18, 24] */}
-        {totalFilteredItems > 0 && (
-          <div className="p-4 border-t border-stone-800/80 bg-stone-950/40">
-            <Pagination
-              currentPage={page}
-              totalItems={totalFilteredItems}
-              pageSize={pageSize}
-              onPageChange={(newPage) => setPage(newPage)}
-              onPageSizeChange={(newSize) => {
-                setPageSize(newSize);
-                setPage(1);
-              }}
-              pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
-              itemLabel="từ khóa"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* 6. Modal Tạo mới / Sửa chi tiết từ khóa */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-5 custom-scrollbar">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
-                  <Languages size={20} />
-                </div>
-                <h2 className="text-lg font-bold text-stone-100">
-                  {modalMode === 'create' ? 'Thêm Từ Khóa Giao Diện Mới' : `Chỉnh Sửa Từ Khóa: ${formData.key}`}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="text-stone-400 hover:text-stone-200"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveModal} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 6. MODAL TẠO MỚI / SỬA CHI TIẾT */}
+        {isModalOpen && (
+          <div className="modal-backdrop" style={{ zIndex: 1200 }}>
+            <div className="modal-card" style={{ maxWidth: 640 }}>
+              <div className="modal-header">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    Mã khóa (Key identifier) *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.key}
-                    onChange={(e) => setFormData({ ...formData, key: e.target.value })}
-                    disabled={modalMode === 'edit'}
-                    placeholder="vd: tour.rotateHint hoặc nav.home"
-                    className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-stone-700 text-stone-100 text-xs font-mono focus:outline-none focus:border-amber-500 disabled:opacity-60"
-                    required
-                  />
-                  <p className="text-[10px] text-stone-500 mt-1">
-                    Đặt theo định dạng namespace.action (chỉ chữ thường, dấu chấm)
+                  <h2 className="modal-title">
+                    {modalMode === 'create' ? 'Thêm từ khóa giao diện mới' : `Chỉnh sửa từ khóa: ${formData.key}`}
+                  </h2>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                    Thiết lập định danh và văn bản đa ngôn ngữ phục vụ website
                   </p>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    Phân mục (Namespace) *
-                  </label>
-                  <select
-                    value={formData.namespace}
-                    onChange={(e) => setFormData({ ...formData, namespace: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-stone-700 text-stone-100 text-xs focus:outline-none focus:border-amber-500"
-                  >
-                    {NAMESPACES.filter((n) => n.id !== 'all').map((ns) => (
-                      <option key={ns.id} value={ns.id}>
-                        {ns.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-300 mb-1">
-                  Chuỗi gốc Tiếng Việt (Default Vietnamese Text) *
-                </label>
-                <input
-                  type="text"
-                  value={formData.defaultText}
-                  onChange={(e) => setFormData({ ...formData, defaultText: e.target.value })}
-                  placeholder="Nhập câu tiếng Việt chuẩn..."
-                  className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-stone-700 text-stone-100 text-xs focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-300 mb-1">
-                  Mô tả / Ngữ cảnh sử dụng
-                </label>
-                <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Hướng dẫn ngữ cảnh cho người biên dịch hoặc AI..."
-                  className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-stone-700 text-stone-100 text-xs focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              {/* Danh sách các ngôn ngữ để điền bản dịch */}
-              <div className="space-y-2 pt-2 border-t border-stone-800">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wide">
-                  Bản dịch theo các ngôn ngữ kích hoạt
-                </span>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-56 overflow-y-auto p-1 custom-scrollbar">
-                  {activeLanguages
-                    .filter((l) => l.code !== 'vi')
-                    .map((lang) => (
-                      <div key={lang.code} className="space-y-1">
-                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-300">
-                          <span>{lang.flagIcon || '🌐'}</span>
-                          <span>{lang.nativeName} ({lang.code.toUpperCase()})</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.translations[lang.code] || ''}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              translations: {
-                                ...formData.translations,
-                                [lang.code]: e.target.value
-                              }
-                            })
-                          }
-                          placeholder={`Bản dịch ${lang.name}...`}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-stone-100 text-xs focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-stone-800">
                 <button
                   type="button"
+                  className="modal-close-btn"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold"
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                 >
-                  Hủy bỏ
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveModal}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="form-group">
+                      <label className="form-label">
+                        Mã khóa (Key identifier) <span style={{ color: 'var(--error)' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        disabled={modalMode === 'edit'}
+                        value={formData.key}
+                        onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+                        placeholder="vd: tour.rotateHint"
+                        required
+                        style={{ fontFamily: 'monospace' }}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">
+                        Phân mục (Namespace) <span style={{ color: 'var(--error)' }}>*</span>
+                      </label>
+                      <select
+                        className="form-control"
+                        value={formData.namespace}
+                        onChange={(e) => setFormData({ ...formData, namespace: e.target.value })}
+                      >
+                        {NAMESPACES.filter((n) => n.id !== 'all').map((ns) => (
+                          <option key={ns.id} value={ns.id}>
+                            {ns.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Chuỗi gốc Tiếng Việt (vi) <span style={{ color: 'var(--error)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={formData.defaultText}
+                      onChange={(e) => setFormData({ ...formData, defaultText: e.target.value })}
+                      placeholder="Nhập chuỗi tiếng Việt chuẩn..."
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Mô tả / Ngữ cảnh sử dụng</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Hướng dẫn ngữ cảnh cho biên dịch viên hoặc AI..."
+                    />
+                  </div>
+
+                  {/* Danh sách các ngôn ngữ */}
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 10, textTransform: 'uppercase' }}>
+                      Bản dịch theo các ngôn ngữ kích hoạt
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
+                      {activeLanguages
+                        .filter((l) => l.code !== 'vi')
+                        .map((lang) => (
+                          <div key={lang.code} className="form-group" style={{ margin: 0 }}>
+                            <label className="form-label" style={{ fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>{lang.flagIcon || '🌐'}</span>
+                              <span>{lang.nativeName} ({lang.code.toUpperCase()})</span>
+                            </label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={formData.translations[lang.code] || ''}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  translations: {
+                                    ...formData.translations,
+                                    [lang.code]: e.target.value
+                                  }
+                                })
+                              }
+                              placeholder={`Bản dịch ${lang.name}...`}
+                              style={{ fontSize: '12.5px' }}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setIsModalOpen(false)}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <Save size={14} />
+                    <span>{modalMode === 'create' ? 'Tạo từ khóa' : 'Lưu thay đổi'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 7. MODAL XÁC NHẬN DỊCH AI ĐỒNG LOẠT */}
+        {batchModalOpen && (
+          <div className="modal-backdrop" style={{ zIndex: 1200 }}>
+            <div className="modal-card" style={{ maxWidth: 480 }}>
+              <div className="modal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="lang-header-icon-badge" style={{ width: 36, height: 36 }}>
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <h2 className="modal-title">Dịch AI Đồng Loạt (1-Click)</h2>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                      Đích đến: <strong style={{ color: 'var(--accent-gold)' }}>{activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})</strong>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBatchModalOpen(false)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.5, margin: 0 }}>
+                  Mô hình Neural Translation sẽ tự động dịch các từ khóa giao diện sang tiếng {activeTargetLangInfo.nativeName}.
+                </p>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    padding: '10px 12px',
+                    background: 'var(--bg-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    id="chkBatchOverwrite"
+                    checked={batchOverwrite}
+                    onChange={(e) => setBatchOverwrite(e.target.checked)}
+                    style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                  />
+                  <label htmlFor="chkBatchOverwrite" style={{ fontSize: '12.5px', color: 'var(--text-main)', cursor: 'pointer' }}>
+                    <div style={{ fontWeight: 600 }}>Dịch đè lên cả các từ khóa đã có bản dịch</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
+                      (Mặc định bỏ chọn để chỉ dịch các từ khóa còn trống)
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setBatchModalOpen(false)}
+                >
+                  Hủy
                 </button>
                 <button
-                  type="submit"
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold shadow-md shadow-amber-900/30"
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleExecuteBatchTranslate}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  <Save size={14} />
-                  <span>{modalMode === 'create' ? 'Tạo từ khóa' : 'Lưu thay đổi'}</span>
+                  <Sparkles size={14} />
+                  <span>Bắt đầu dịch ngay</span>
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 7. Modal Xác nhận Dịch AI Đồng Loạt (Batch Translate) */}
-      {batchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3 text-amber-400">
-              <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30">
-                <Sparkles size={24} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-stone-100">
-                  Dịch AI Đồng Loạt (1-Click NMT)
-                </h3>
-                <p className="text-xs text-stone-400">
-                  Ngôn ngữ đích: <span className="text-amber-300 font-bold">{activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})</span>
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs text-stone-300 leading-relaxed">
-              Hệ thống sẽ tự động sử dụng mô hình dịch máy thông minh để dịch toàn bộ từ khóa giao diện chưa có bản dịch sang tiếng {activeTargetLangInfo.nativeName}.
-            </p>
-
-            <label className="flex items-start gap-2.5 p-3 rounded-xl bg-stone-800/60 border border-stone-700 text-xs text-stone-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={batchOverwrite}
-                onChange={(e) => setBatchOverwrite(e.target.checked)}
-                className="mt-0.5 rounded border-stone-600 text-amber-500 focus:ring-amber-500/30"
-              />
-              <div className="space-y-0.5">
-                <span className="font-semibold text-stone-200">Dịch đè lên cả các từ khóa đã có sẵn bản dịch</span>
-                <p className="text-[10px] text-stone-400">
-                  (Nếu bỏ chọn, hệ thống chỉ dịch những từ khóa hiện đang để trống)
-                </p>
-              </div>
-            </label>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setBatchModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                onClick={handleExecuteBatchTranslate}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 text-xs font-bold shadow-md shadow-amber-900/30"
-              >
-                <Sparkles size={14} />
-                <span>Bắt đầu dịch ngay</span>
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 8. Modal Xác nhận Xóa từ khóa */}
-      <ConfirmModal
-        isOpen={deleteConfirmOpen}
-        title="Xóa từ khóa giao diện"
-        message={`Bạn có chắc chắn muốn xóa từ khóa "${keyToDelete?.key}" khỏi từ điển hệ thống? Các trang Client đang dùng khóa này sẽ tự động hiển thị chuỗi fallback.`}
-        confirmText="Xóa vĩnh viễn"
-        cancelText="Hủy bỏ"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => {
-          setDeleteConfirmOpen(false);
-          setKeyToDelete(null);
-        }}
-      />
+        {/* 8. MODAL XÁC NHẬN XÓA */}
+        <ConfirmModal
+          isOpen={deleteConfirmOpen}
+          title="Xóa từ khóa giao diện"
+          message={`Bạn có chắc chắn muốn xóa từ khóa "${keyToDelete?.key}" khỏi từ điển hệ thống?`}
+          type="danger"
+          confirmText="Xóa vĩnh viễn"
+          cancelText="Hủy bỏ"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => {
+            setDeleteConfirmOpen(false);
+            setKeyToDelete(null);
+          }}
+        />
+      </div>
     </div>
   );
 };
