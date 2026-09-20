@@ -3927,3 +3927,292 @@
     font-size: 19px;
   }
 }
+
+/* ==========================================================================
+   POC Stitching UI & Webcam Modal Styles
+   ========================================================================== */
+
+.btn:disabled,
+.btn:disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.studio-action-btn:disabled,
+.studio-action-btn:disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: var(--shadow-sm);
+  background-color: var(--bg-surface);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+/* Thanh tóm tắt số lượng ảnh đã nạp */
+.studio-frame-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--text-main);
+  padding: 8px 12px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.studio-frame-summary-count strong {
+  color: var(--primary);
+}
+
+/* Ghi chú ngữ cảnh thiết bị / chất lượng ảnh */
+.studio-device-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* Lưới ảnh thu gọn: giới hạn chiều cao để nút thao tác luôn nằm trong tầm với */
+.studio-frame-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-right: 4px;
+}
+
+.studio-frame-cell {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-subtle);
+}
+
+.studio-frame-cell.is-passed {
+  border-color: var(--success-border);
+}
+
+.studio-frame-cell.is-failed {
+  border-color: var(--error);
+  box-shadow: inset 0 0 0 2px var(--error);
+}
+
+.studio-frame-cell.is-failed img {
+  opacity: 0.72;
+}
+
+.studio-frame-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.studio-frame-cell.is-checking img {
+  opacity: 0.45;
+}
+
+.studio-frame-index {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  min-width: 17px;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 17px;
+  color: var(--primary-text);
+  background-color: rgba(42, 27, 20, 0.72);
+  border-radius: 3px;
+}
+
+.studio-frame-checking {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-gold);
+}
+
+.studio-frame-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--primary-text);
+  background-color: rgba(42, 27, 20, 0.72);
+  border: none;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.studio-frame-cell:hover .studio-frame-remove,
+.studio-frame-remove:focus-visible {
+  opacity: 1;
+}
+
+.studio-frame-remove:hover {
+  background-color: var(--error);
+}
+
+.studio-frame-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0;
+}
+
+@media (hover: none) {
+  .studio-frame-remove {
+    opacity: 1;
+  }
+}
+
+/* Lớp phủ tiến trình khi thuật toán đang ghép ảnh */
+.studio-viewer-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 28px;
+  text-align: center;
+  background-color: var(--bg-surface);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.studio-overlay-stage {
+  max-width: 420px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-main);
+}
+
+.studio-overlay-note {
+  max-width: 380px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.studio-overlay-steps {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.studio-overlay-dot {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--border-color);
+  transition: background-color 0.3s ease;
+}
+
+.studio-overlay-dot.is-done {
+  background-color: var(--accent-gold);
+}
+
+@media (max-width: 768px) {
+  .studio-frame-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: 240px;
+    gap: 6px;
+  }
+
+  .studio-viewer-overlay {
+    padding: 24px 18px;
+    gap: 12px;
+  }
+
+  .studio-overlay-stage {
+    font-size: 13px;
+  }
+}
+
+/* Modal chụp ảnh bằng webcam máy tính */
+.webcam-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-subtle);
+}
+
+.webcam-stage video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.webcam-shot-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 12px 2px 4px;
+}
+
+.webcam-shot {
+  position: relative;
+  flex: 0 0 auto;
+  width: 82px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.webcam-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.webcam-shot button {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--primary-text);
+  background-color: rgba(42, 27, 20, 0.72);
+  border: none;
+  border-radius: 3px;
+  transition: background-color 0.15s ease;
+}
+
+.webcam-shot button:hover {
+  background-color: var(--error);
+}
+

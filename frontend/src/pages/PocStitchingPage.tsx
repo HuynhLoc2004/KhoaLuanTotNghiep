@@ -1,36 +1,36 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Upload,
   Layers,
   Sparkles,
-  CheckCircle2,
   AlertTriangle,
   Loader2,
   Trash2,
   Globe,
-  ArrowRight,
-  Info,
   Camera,
   ExternalLink,
-  Download,
-  Cloud,
   Eye,
   Check,
-  XCircle,
   RotateCw,
   HelpCircle,
   Copy,
   History,
   Clock,
   HardDrive,
-  ChevronDown,
-  ChevronUp
+  Monitor
 } from 'lucide-react';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../services/api';
 import { useToast } from '../components/Toast';
 import { ShootingGuideModal } from '../components/ShootingGuideModal';
+import { WebcamCaptureModal } from '../components/WebcamCaptureModal';
 import { Pagination } from '../components/Pagination';
+import { copyTextToClipboard } from '../utils/clipboard';
+import { supportsNativeCameraCapture } from '../utils/device';
+
+/** Số tấm ảnh thuật toán cần để phủ trọn một vòng 360 độ (hỗ trợ linh hoạt từ chùm ít góc 8-12 ảnh đến 16-24 ảnh). */
+const FRAME_TARGET_MIN = 8;
+const FRAME_TARGET_MAX = 24;
 
 interface StitchedHistoryItem {
   filename: string;
@@ -90,8 +90,14 @@ export const PocStitchingPage: React.FC = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [copiedHistoryUrl, setCopiedHistoryUrl] = useState<string | null>(null);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
+
+  // Phân trang thư viện theo chuẩn chung của hệ thống Admin: 5 - 10 - 20 - 30 - 50
   const [historyPage, setHistoryPage] = useState(1);
-  const HISTORY_PAGE_SIZE = 6;
+  const [historyPageSize, setHistoryPageSize] = useState(10);
+
+  // Máy tính bỏ qua thuộc tính `capture`, nên nút chụp phải đổi sang luồng webcam
+  const canUseNativeCapture = React.useMemo(() => supportsNativeCameraCapture(), []);
 
   const viewerSectionRef = useRef<HTMLDivElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
@@ -147,9 +153,14 @@ function normalizePanoUrl(rawUrl: string): string {
     }, 150);
   };
 
-  const handleCopyHistoryUrl = (url: string) => {
-    navigator.clipboard.writeText(url);
+  const handleCopyHistoryUrl = async (url: string) => {
+    const ok = await copyTextToClipboard(normalizePanoUrl(url));
+    if (!ok) {
+      showToast('Trình duyệt không cho phép sao chép. Vui lòng bấm "Mở ảnh gốc" rồi chép từ thanh địa chỉ.', 'error');
+      return;
+    }
     setCopiedHistoryUrl(url);
+    showToast('Đã sao chép link ảnh 360 độ', 'success');
     setTimeout(() => setCopiedHistoryUrl(null), 2500);
   };
 
@@ -280,13 +291,26 @@ function normalizePanoUrl(rawUrl: string): string {
       return;
     }
 
-    // Nếu chọn nhiều ảnh từ Album: đưa vào quy trình thẩm định Python từng tấm theo chuỗi liên tục
+    await verifyFrameSequence(files, 'album');
+  };
+
+  // Ảnh chụp bằng webcam máy tính đi qua đúng quy trình thẩm định như ảnh album
+  const handleWebcamCaptured = async (files: File[]) => {
+    if (files.length === 0) return;
+    await verifyFrameSequence(files, 'webcam');
+  };
+
+  /**
+   * Nạp lần lượt từng tấm lên server để Python thẩm định chất lượng và độ chồng lấp
+   * so với tấm liền trước. Giữ nguyên thứ tự để thuật toán ghép đúng chuỗi góc quay.
+   */
+  const verifyFrameSequence = async (files: File[], prefix: string) => {
     setErrorMsg(null);
     let prevServerPath: string | undefined = [...verifiedFrames].reverse().find((f) => f.serverPath)?.serverPath;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const frameId = `album_${Date.now()}_${i}`;
+      const frameId = `${prefix}_${Date.now()}_${i}`;
       const previewUrl = URL.createObjectURL(file);
       const newFrame: VerifiedFrame = {
         id: frameId,
@@ -391,11 +415,13 @@ function normalizePanoUrl(rawUrl: string): string {
 
   // 3. THỰC THI TẠO KHÔNG GIAN 360° (OPENCV NATURAL FLAT PERSPECTIVE)
   const handleExecuteStitch = async () => {
-    const validVerified = verifiedFrames.filter((f) => f.evaluation?.passed !== false);
-    const totalCount = validVerified.length + batchFiles.length;
+    // Luôn gửi trọn vẹn toàn bộ chuỗi khung hình người dùng đã nạp để đảm bảo chuỗi quang học liên tục 360°,
+    // không tự ý loại bỏ khung hình nào gây đứt gãy hoặc hở mảng không gian giữa chừng.
+    const framesToStitch = verifiedFrames.length > 0 ? verifiedFrames : [];
+    const totalCount = framesToStitch.length + batchFiles.length;
 
     if (totalCount < 1) {
-      setErrorMsg('Vui lòng chụp ít nhất 1 ảnh PANO toàn cảnh hoặc chùm ảnh đạt chuẩn (khuyên dùng 8–12 góc).');
+      setErrorMsg('Vui lòng chụp ít nhất 1 ảnh PANO toàn cảnh hoặc chùm ảnh góc (khuyên dùng 8–12 góc hoặc 16–24 góc).');
       return;
     }
 
@@ -406,12 +432,12 @@ function normalizePanoUrl(rawUrl: string): string {
     const formData = new FormData();
 
     // Ưu tiên nạp các serverPath đã được server lưu sẵn từ bước thẩm định
-    const serverPaths = validVerified.map((f) => f.serverPath).filter(Boolean);
-    if (serverPaths.length === validVerified.length && serverPaths.length > 0) {
+    const serverPaths = framesToStitch.map((f) => f.serverPath).filter(Boolean);
+    if (serverPaths.length === framesToStitch.length && serverPaths.length > 0) {
       formData.append('serverPaths', JSON.stringify(serverPaths));
     } else {
-      // Nếu có frame chưa lưu serverPath, gửi trực tiếp toàn bộ file ảnh hợp lệ
-      validVerified.forEach((frame, index) => {
+      // Nếu có frame chưa lưu serverPath, gửi trực tiếp toàn bộ file ảnh trong chuỗi
+      framesToStitch.forEach((frame, index) => {
         formData.append('images', frame.file, `frame_${String(index).padStart(4, '0')}_${frame.file.name}`);
       });
     }
@@ -485,10 +511,9 @@ function normalizePanoUrl(rawUrl: string): string {
   const failedCount = verifiedFrames.filter((f) => f.evaluation && !f.evaluation.passed).length;
   const totalFrames = verifiedFrames.length + batchFiles.length;
 
-  const totalHistoryPages = Math.ceil(historyList.length / HISTORY_PAGE_SIZE);
   const paginatedHistory = historyList.slice(
-    (historyPage - 1) * HISTORY_PAGE_SIZE,
-    historyPage * HISTORY_PAGE_SIZE
+    (historyPage - 1) * historyPageSize,
+    historyPage * historyPageSize
   );
 
   return (
@@ -533,25 +558,38 @@ function normalizePanoUrl(rawUrl: string): string {
             </div>
 
             <div className="studio-card-body">
-              {/* Action Buttons: Chụp camera & Chọn ảnh */}
+              {/* Nguồn ảnh: điện thoại dùng camera gốc, máy tính dùng webcam qua WebRTC */}
               <div className="studio-upload-actions">
-                <label className="studio-action-btn primary">
-                  <Camera size={20} />
-                  <span>
-                    {verifiedFrames.length === 0
-                      ? 'Chụp camera'
-                      : `Góc tiếp (#${verifiedFrames.length + 1})`}
-                  </span>
-                  <input
-                    ref={nativeCameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    style={{ display: 'none' }}
-                    onChange={handleNativeCapture}
+                {canUseNativeCapture ? (
+                  <label className="studio-action-btn primary">
+                    <Camera size={20} />
+                    <span>
+                      {verifiedFrames.length === 0
+                        ? 'Chụp camera'
+                        : `Góc tiếp (#${verifiedFrames.length + 1})`}
+                    </span>
+                    <input
+                      ref={nativeCameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      style={{ display: 'none' }}
+                      onChange={handleNativeCapture}
+                      disabled={isProcessing}
+                    />
+                  </label>
+                ) : (
+                  <button
+                    type="button"
+                    className="studio-action-btn primary"
+                    onClick={() => setIsWebcamModalOpen(true)}
                     disabled={isProcessing}
-                  />
-                </label>
+                    title="Máy tính không mở được camera sau của điện thoại. Nút này chụp bằng webcam của máy."
+                  >
+                    <Monitor size={20} />
+                    <span>Chụp bằng webcam</span>
+                  </button>
+                )}
 
                 <label className="studio-action-btn">
                   <Upload size={20} />
@@ -567,6 +605,13 @@ function normalizePanoUrl(rawUrl: string): string {
                 </label>
               </div>
 
+              {!canUseNativeCapture && (
+                <p className="studio-device-note">
+                  Bạn đang dùng máy tính. Chụp trực tiếp từng góc cho chất lượng tốt nhất trên điện thoại; trên máy
+                  tính hãy chụp bằng webcam hoặc tải sẵn bộ ảnh lên qua nút "Chọn từ máy".
+                </p>
+              )}
+
               {/* Guide Button opening slide-up modal */}
               <button
                 type="button"
@@ -577,11 +622,11 @@ function normalizePanoUrl(rawUrl: string): string {
                 <span>Hướng dẫn cách chụp ảnh 360° chuẩn</span>
               </button>
 
-              {/* Status summary if frames present */}
+              {/* Thanh tóm tắt số lượng, luôn hiển thị ở đầu khối để không phải cuộn tìm */}
               {totalFrames > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12.5px', padding: '8px 12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                  <span>
-                    Tổng số ảnh: <strong>{totalFrames}</strong>
+                <div className="studio-frame-summary">
+                  <span className="studio-frame-summary-count">
+                    Đã nạp: <strong>{totalFrames}</strong> / {FRAME_TARGET_MIN} - {FRAME_TARGET_MAX} ảnh
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {passedCount > 0 && (
@@ -598,69 +643,56 @@ function normalizePanoUrl(rawUrl: string): string {
                 </div>
               )}
 
-              {/* Nút Tạo Không Gian Trên Cùng (Hiển thị ngay khi có ảnh, không bị ẩn dưới danh sách trên điện thoại) */}
-              {totalFrames >= 1 && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleExecuteStitch}
-                  disabled={isProcessing}
-                  style={{ width: '100%', justifyContent: 'center', padding: '11px 16px', fontWeight: 600 }}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 size={16} className="spin" />
-                      <span>Đang ghép nối toàn cảnh 360°...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={16} />
-                      <span>Tạo không gian toàn cảnh 360° ({totalFrames} ảnh)</span>
-                    </>
-                  )}
-                </button>
+              {/* Lưới ảnh thu gọn, giới hạn chiều cao để nút thao tác không bị đẩy xuống đáy trang */}
+              {verifiedFrames.length > 0 && (
+                <div className="studio-frame-grid">
+                  {verifiedFrames.map((frame, idx) => {
+                    const state = frame.isVerifying
+                      ? 'checking'
+                      : frame.evaluation
+                        ? frame.evaluation.passed
+                          ? 'passed'
+                          : 'failed'
+                        : 'checking';
+                    const statusText = frame.isVerifying
+                      ? 'Đang kiểm tra chất lượng'
+                      : frame.evaluation
+                        ? `${frame.evaluation.passed ? 'Đạt chuẩn' : 'Chưa đạt'} - ${frame.evaluation.score ?? 0} điểm. ${frame.evaluation.message ?? ''}`
+                        : '';
+                    return (
+                      <div
+                        key={frame.id}
+                        className={`studio-frame-cell is-${state}`}
+                        title={`Góc nhìn ${idx + 1}. ${statusText}`}
+                      >
+                        <img src={frame.previewUrl} alt={`Góc nhìn ${idx + 1}`} />
+                        <span className="studio-frame-index">{idx + 1}</span>
+                        {frame.isVerifying && (
+                          <span className="studio-frame-checking">
+                            <Loader2 size={13} className="spin" />
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVerifiedFrame(frame.id)}
+                          disabled={isProcessing}
+                          className="studio-frame-remove"
+                          title={`Xóa góc nhìn ${idx + 1}`}
+                          aria-label={`Xóa góc nhìn ${idx + 1}`}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
 
-              {/* Frame list */}
-              {verifiedFrames.length > 0 && (
-                <div className="studio-frame-list">
-                  {verifiedFrames.map((frame, idx) => (
-                    <div key={frame.id} className="studio-frame-item">
-                      <img src={frame.previewUrl} alt={`Góc ${idx + 1}`} className="studio-frame-thumb" />
-                      <div className="studio-frame-info">
-                        <div className="studio-frame-name">Góc nhìn #{idx + 1}</div>
-                        <div className="studio-frame-meta">
-                          {frame.isVerifying ? (
-                            <span style={{ color: 'var(--info)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Loader2 size={12} className="spin" /> Đang kiểm tra chất lượng...
-                            </span>
-                          ) : frame.evaluation ? (
-                            <>
-                              <span style={{ color: frame.evaluation.passed ? 'var(--success)' : 'var(--error)', fontWeight: 600 }}>
-                                {frame.evaluation.passed ? 'Đạt chuẩn' : 'Chưa đạt'} ({frame.evaluation.score ?? 0}đ)
-                              </span>
-                              {frame.evaluation.checks?.features ? (
-                                <span>• {frame.evaluation.checks.features.count} điểm đặc trưng</span>
-                              ) : frame.evaluation.message ? (
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>• {frame.evaluation.message}</span>
-                              ) : null}
-                            </>
-                          ) : null}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveVerifiedFrame(frame.id)}
-                        disabled={isProcessing}
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '3px 6px', border: 'none', color: 'var(--text-muted)' }}
-                        title="Xóa góc này"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              {failedCount > 0 && (
+                <p className="studio-device-note">
+                  Có {failedCount} góc chưa đạt chuẩn. Di chuột vào ô ảnh để xem lý do, nên chụp lại những góc đó
+                  trước khi ghép để tránh hở mảng.
+                </p>
               )}
 
               {/* Batch previews if 1 pano or batch */}
@@ -677,49 +709,26 @@ function normalizePanoUrl(rawUrl: string): string {
                 </div>
               )}
 
-              {/* Processing Progress Status */}
-              {isProcessing && (
-                <div style={{
-                  padding: '12px 14px',
-                  backgroundColor: 'var(--bg-subtle)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                  <Loader2 size={18} className="spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
-                      {currentStep <= 1 && 'Đang kiểm tra và tải ảnh lên...'}
-                      {currentStep === 2 && 'Đang phân tích các điểm nối giữa các góc ảnh...'}
-                      {currentStep === 3 && 'Đang căn chỉnh và dựng hình cầu 360°...'}
-                      {currentStep >= 4 && 'Đang hoàn thiện và tối ưu hóa không gian...'}
-                    </div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                      Quá trình có thể mất vài giây, vui lòng không tắt trang...
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Stitch trigger button */}
+              {/* Nút ghép: tiến trình chi tiết hiển thị bằng lớp phủ trên khối xem trước bên phải */}
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={handleExecuteStitch}
                 disabled={isProcessing || totalFrames < 1}
-                style={{ width: '100%', justifyContent: 'center', padding: '11px 16px' }}
+                style={{ width: '100%', justifyContent: 'center', padding: '11px 16px', fontWeight: 600 }}
               >
                 {isProcessing ? (
                   <>
                     <Loader2 size={16} className="spin" />
-                    <span>Đang ghép nối toàn cảnh 360°...</span>
+                    <span>Đang ghép nối toàn cảnh 360 độ...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles size={16} />
-                    <span>Tạo không gian toàn cảnh 360°</span>
+                    <span>
+                      Tạo không gian toàn cảnh 360 độ
+                      {totalFrames > 0 ? ` (${totalFrames} ảnh)` : ''}
+                    </span>
                   </>
                 )}
               </button>
@@ -762,11 +771,15 @@ function normalizePanoUrl(rawUrl: string): string {
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!stitchResult.panoramaUrl) return;
-                      navigator.clipboard.writeText(stitchResult.panoramaUrl);
+                      const ok = await copyTextToClipboard(stitchResult.panoramaUrl);
+                      if (!ok) {
+                        showToast('Trình duyệt không cho phép sao chép. Vui lòng bấm "Mở ảnh gốc" rồi chép từ thanh địa chỉ.', 'error');
+                        return;
+                      }
                       setCopiedUrl(true);
-                      showToast('Đã sao chép link ảnh 360°', 'success');
+                      showToast('Đã sao chép link ảnh 360 độ', 'success');
                       setTimeout(() => setCopiedUrl(false), 2000);
                     }}
                     style={{ whiteSpace: 'nowrap' }}
@@ -790,6 +803,29 @@ function normalizePanoUrl(rawUrl: string): string {
             </div>
 
             <div className="studio-viewer-container">
+              {isProcessing && (
+                <div className="studio-viewer-overlay" role="status" aria-live="polite">
+                  <Loader2 size={40} className="spin" style={{ color: 'var(--accent-gold)' }} />
+                  <div className="studio-overlay-stage">
+                    {currentStep <= 1 && 'Đang tải ảnh lên máy chủ...'}
+                    {currentStep === 2 && 'Đang phân tích điểm đặc trưng và cân bằng ánh sáng trong nhà...'}
+                    {currentStep === 3 && 'Đang tính ma trận biến đổi và ghép nối toàn cảnh bằng OpenCV...'}
+                    {currentStep >= 4 && 'Đang hòa trộn biên ảnh và lưu vào kho di sản số...'}
+                  </div>
+                  <div className="studio-overlay-note">
+                    Quá trình có thể mất vài giây. Vui lòng không tắt hoặc tải lại trang.
+                  </div>
+                  <div className="studio-overlay-steps" aria-hidden="true">
+                    {[1, 2, 3, 4].map((step) => (
+                      <span
+                        key={step}
+                        className={`studio-overlay-dot ${currentStep >= step ? 'is-done' : ''}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {stitchResult ? (
                 <Pannellum360Viewer
                   panoramaUrl={stitchResult.panoramaUrl}
@@ -918,11 +954,9 @@ function normalizePanoUrl(rawUrl: string): string {
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            handleCopyHistoryUrl(item.url);
-                            showToast('Đã sao chép link ảnh 360°', 'success');
-                          }}
+                          onClick={() => handleCopyHistoryUrl(item.url)}
                           title="Sao chép link"
+                          aria-label="Sao chép link ảnh 360 độ"
                         >
                           {copiedHistoryUrl === item.url ? <Check size={12} /> : <Copy size={12} />}
                         </button>
@@ -942,14 +976,19 @@ function normalizePanoUrl(rawUrl: string): string {
                 ))}
               </div>
 
-              {historyList.length > HISTORY_PAGE_SIZE && (
-                <Pagination
-                  currentPage={historyPage}
-                  totalItems={historyList.length}
-                  pageSize={HISTORY_PAGE_SIZE}
-                  onPageChange={setHistoryPage}
-                />
-              )}
+              {/* PHÂN TRANG CHUẨN CỦA HỆ THỐNG: 5 - 10 - 20 - 30 - 50 */}
+              <Pagination
+                currentPage={historyPage}
+                totalItems={historyList.length}
+                pageSize={historyPageSize}
+                onPageChange={setHistoryPage}
+                onPageSizeChange={(newSize) => {
+                  setHistoryPageSize(newSize);
+                  setHistoryPage(1);
+                }}
+                pageSizeOptions={[5, 10, 20, 30, 50]}
+                itemLabel="ảnh 360 độ"
+              />
             </>
           )}
         </div>
@@ -960,7 +999,8 @@ function normalizePanoUrl(rawUrl: string): string {
         <div className="mobile-stitch-sticky-bar">
           <div className="mobile-stitch-info">
             <span className="mobile-stitch-count">
-              <Camera size={14} /> <strong>{totalFrames}</strong> ảnh đã nạp
+              <Camera size={14} />
+              <strong>{totalFrames}</strong>/{FRAME_TARGET_MIN}-{FRAME_TARGET_MAX} ảnh
             </span>
             {passedCount > 0 && <span className="badge badge-success" style={{ fontSize: 11 }}>{passedCount} đạt chuẩn</span>}
           </div>
@@ -979,7 +1019,7 @@ function normalizePanoUrl(rawUrl: string): string {
             ) : (
               <>
                 <Sparkles size={15} />
-                <span>Ghép 360° ngay</span>
+                <span>Ghép 360 độ ngay</span>
               </>
             )}
           </button>
@@ -990,6 +1030,14 @@ function normalizePanoUrl(rawUrl: string): string {
       <ShootingGuideModal
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
+      />
+
+      {/* Chụp bằng webcam - chỉ dùng trên máy tính, nơi camera gốc không mở được */}
+      <WebcamCaptureModal
+        isOpen={isWebcamModalOpen}
+        onClose={() => setIsWebcamModalOpen(false)}
+        onCaptured={handleWebcamCaptured}
+        startIndex={verifiedFrames.length}
       />
       </div>
     </div>
