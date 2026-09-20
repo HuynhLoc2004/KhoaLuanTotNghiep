@@ -1116,7 +1116,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 setRoomPageSize(newSize);
                 setRoomPage(1);
               }}
-              pageSizeOptions={viewMode === 'grid' ? [6, 9, 12, 18, 24] : [5, 10, 20, 30, 50]}
+              pageSizeOptions={[6, 9, 12, 18, 24]}
               itemLabel="gian phòng"
             />
           </>
