@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { authenticate, requireAdmin, AuthRequest } from './auth.js';
-import { cacheGet, cacheSet, cacheDel } from '../services/redis.js';
+import { cacheGet, cacheSet, cacheDel, getRedisStatus } from '../services/redis.js';
 
 export const systemRouter = Router();
 
@@ -171,3 +171,41 @@ systemRouter.post('/maintenance', authenticate, requireAdmin, async (req: AuthRe
     });
   }
 });
+
+/**
+ * GET /api/system/info
+ * Quản trị viên: Lấy thông số tài nguyên máy chủ và trạng thái kết nối
+ */
+systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const memory = process.memoryUsage();
+    let redisConnected = false;
+    try {
+      redisConnected = Boolean(getRedisStatus()?.connected);
+    } catch {
+      redisConnected = false;
+    }
+
+    res.json({
+      success: true,
+      info: {
+        serverTime: new Date().toISOString(),
+        uptimeSeconds: Math.floor(process.uptime()),
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        memoryRssMb: Math.round(memory.rss / 1024 / 1024),
+        memoryHeapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+        redisConnected,
+        environment: process.env.NODE_ENV || 'production'
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi đọc thông tin hệ thống',
+      error: err.message
+    });
+  }
+});
+

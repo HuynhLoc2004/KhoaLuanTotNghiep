@@ -123,3 +123,16 @@ export interface MaintenanceStatus {
   updatedAt: string;
   updatedBy: string;
 }
+
+export interface SystemInfo {
+  serverTime: string;
+  uptimeSeconds: number;
+  nodeVersion: string;
+  platform: string;
+  arch: string;
+  memoryRssMb: number;
+  memoryHeapUsedMb: number;
+  redisConnected: boolean;
+  environment: string;
+}
+

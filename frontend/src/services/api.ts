@@ -341,5 +341,15 @@ export const api = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi cập nhật chế độ bảo trì');
     return json.maintenance;
+  },
+
+  async getSystemInfo(): Promise<import('../types').SystemInfo> {
+    const res = await fetch(`${API_BASE}/system/info?t=${Date.now()}`, {
+      headers: getAuthHeaders(true),
+      cache: 'no-store'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải thông số hệ thống');
+    return json.info;
   }
 };
