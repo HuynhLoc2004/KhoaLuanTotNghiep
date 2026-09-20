@@ -17,6 +17,11 @@ echo -e "${CYAN}================================================================
 # 1. KÍCH HOẠT CHẾ ĐỘ BẢO TRÌ NGAY LẬP TỨC
 echo -e "\n${AMBER}>>> [1/5] Kích hoạt cờ bảo trì hệ thống (Maintenance Mode)...${NC}"
 
+# Tạo cờ cho thư mục volume mount
+mkdir -p maintenance_flag
+touch maintenance_flag/maintenance.flag
+echo "✓ Đã tạo cờ bảo trì (maintenance_flag/maintenance.flag)"
+
 # Tạo cờ cho Nginx container nếu Docker đang chạy
 if docker ps --format '{{.Names}}' | grep -q "museum_frontend"; then
     docker exec museum_frontend touch /usr/share/nginx/html/maintenance.flag 2>/dev/null || true
@@ -99,8 +104,11 @@ fi
 # 5. TẮT CỜ BẢO TRÌ - PHỤC HỒI HOẠT ĐỘNG
 echo -e "\n${AMBER}>>> [5/5] Gỡ bỏ cờ bảo trì & Phục hồi hệ thống...${NC}"
 
+rm -f maintenance_flag/maintenance.flag || true
+
 if docker ps --format '{{.Names}}' | grep -q "museum_frontend"; then
     docker exec museum_frontend rm -f /usr/share/nginx/html/maintenance.flag 2>/dev/null || true
+    docker exec museum_frontend rm -f /var/www/maintenance/maintenance.flag 2>/dev/null || true
     echo "✓ Đã gỡ bỏ cờ bảo trì Docker container"
 fi
 

@@ -72,6 +72,7 @@ services:
     volumes:
       - certbot_data:/var/www/certbot
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./maintenance_flag:/var/www/maintenance
 
 volumes:
   mongo_data:
