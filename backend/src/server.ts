@@ -32,6 +32,9 @@ app.use(cors({
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
+import fs from 'fs';
+import { PanoramaModel } from './models/Panorama.js';
+
 // Serve static uploads with explicit CORS for WebGL & Canvas textures
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads'), {
   setHeaders: (res) => {
@@ -40,6 +43,84 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   }
 }));
+
+// Fallback tự phục hồi ảnh 360° nếu chưa có trên ổ đĩa cục bộ
+// Tự động kiểm tra và stream trực tiếp từ Cloudflare R2 / Cloudinary, đồng thời lưu cache đĩa cục bộ vĩnh viễn
+app.get('/uploads/:filename', async (req, res, next) => {
+  const filename = req.params.filename;
+  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return next();
+  }
+
+  const localPath = path.join(process.cwd(), 'public', 'uploads', filename);
+  if (fs.existsSync(localPath)) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    return res.sendFile(localPath);
+  }
+
+  // 1. Kiểm tra trên Cloudflare R2 CDN Storage
+  const r2PublicDomain = process.env.R2_PUBLIC_DOMAIN || 'https://pub-bb1eeff16fd349f2abb33e4e71fe1ae7.r2.dev';
+  const r2Candidates = [
+    `${r2PublicDomain}/panoramas_360/${filename}`,
+    `${r2PublicDomain}/${filename}`
+  ];
+
+  for (const candidateUrl of r2Candidates) {
+    try {
+      const response = await fetch(candidateUrl);
+      if (response.ok) {
+        const buffer = Buffer.from(await response.arrayBuffer());
+
+        // Ghi lưu cache cục bộ để các lần truy cập sau được phục vụ tức thì
+        try {
+          const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+          if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+          fs.writeFileSync(localPath, buffer);
+        } catch (writeErr) {
+          console.warn('[Uploads Fallback Cache Write Error]:', writeErr);
+        }
+
+        const contentType = response.headers.get('content-type') || (filename.endsWith('.png') ? 'image/png' : 'image/jpeg');
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        return res.send(buffer);
+      }
+    } catch {
+      // Ignored
+    }
+  }
+
+  // 2. Kiểm tra trong cơ sở dữ liệu MongoDB (Collection Panoramas)
+  try {
+    const pano = await PanoramaModel.findOne({ filename }).lean();
+    if (pano) {
+      const remoteUrl = pano.r2Url || pano.cloudinaryUrl;
+      if (remoteUrl && remoteUrl.startsWith('http')) {
+        const response = await fetch(remoteUrl);
+        if (response.ok) {
+          const buffer = Buffer.from(await response.arrayBuffer());
+          try {
+            const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+            if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+            fs.writeFileSync(localPath, buffer);
+          } catch {}
+          res.setHeader('Content-Type', 'image/jpeg');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          return res.send(buffer);
+        }
+      }
+    }
+  } catch {}
+
+  next();
+});
 
 // API routes
 app.use('/api/auth', authRouter);
