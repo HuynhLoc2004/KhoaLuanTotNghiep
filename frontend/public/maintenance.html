@@ -3,30 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hệ Thống Đang Nâng Cấp & Khởi Động Lại | Bảo tàng Lịch sử TP.HCM</title>
+  <title>Thông Báo Bảo Trì | Bảo tàng Lịch sử TP. Hồ Chí Minh</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <!-- Google Fonts: Be Vietnam Pro -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg-base: #0B0D13;
-      --bg-card: #131722;
-      --bg-card-subtle: #1A1F2C;
-      --border-color: #262B3B;
-      --border-accent: rgba(140, 45, 25, 0.4);
+      --bg-page: #1A1715;
+      --bg-surface: #24201D;
+      --bg-subtle: #2C2723;
+      --border-color: #362F29;
       --primary: #8C2D19;
-      --primary-hover: #A3351E;
-      --primary-glow: rgba(140, 45, 25, 0.25);
-      --text-main: #F3F4F6;
-      --text-muted: #9CA3AF;
-      --text-subtle: #6B7280;
-      --accent-amber: #D97706;
-      --accent-green: #10B981;
-      --radius-lg: 16px;
+      --accent-gold: #D4A86A;
+      --text-main: #EDE5DF;
+      --text-muted: #A3978C;
+      --text-subtle: #7A6F65;
+      --radius-sm: 6px;
       --radius-md: 10px;
-      --radius-full: 9999px;
     }
 
     * {
@@ -36,8 +30,8 @@
     }
 
     body {
-      font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: var(--bg-base);
+      font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-page);
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
@@ -45,187 +39,94 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      position: relative;
-      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Ambient heritage background glows */
-    .bg-ambient {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 700px;
-      height: 700px;
-      background: radial-gradient(circle, rgba(140, 45, 25, 0.12) 0%, rgba(11, 13, 19, 0) 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      position: relative;
-      z-index: 1;
-      max-width: 580px;
+    .card {
+      max-width: 520px;
       width: 100%;
-      background: var(--bg-card);
+      background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 44px 36px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius-md);
+      padding: 36px 32px;
       text-align: center;
-      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
-    /* Header Badge with pulsating dot */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      background: rgba(217, 119, 6, 0.12);
-      border: 1px solid rgba(217, 119, 6, 0.3);
-      border-radius: var(--radius-full);
-      font-size: 12px;
-      font-weight: 600;
-      color: #FBBF24;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 24px;
-    }
-
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: #FBBF24;
-      box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
-      }
-      70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 8px rgba(251, 191, 36, 0);
-      }
-      100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
-      }
-    }
-
-    /* Landmark Icon Container */
-    .icon-wrapper {
-      width: 76px;
-      height: 76px;
-      margin: 0 auto 20px;
-      background: linear-gradient(135deg, rgba(140, 45, 25, 0.25), rgba(26, 31, 44, 0.8));
-      border: 1px solid var(--border-accent);
-      border-radius: 20px;
+    /* Biểu tượng Bảo tàng chuẩn nhận diện */
+    .museum-emblem {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, var(--primary) 0%, #6E2212 100%);
+      color: var(--accent-gold);
+      border: 1px solid rgba(212, 168, 106, 0.45);
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #F87171;
-      box-shadow: 0 8px 24px var(--primary-glow);
-      position: relative;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
-    .icon-wrapper svg {
-      width: 38px;
-      height: 38px;
-    }
-
-    .museum-label {
-      font-size: 13px;
+    .org-title {
+      font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.06em;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: var(--accent-gold);
       margin-bottom: 8px;
     }
 
     h1 {
-      font-size: 24px;
-      font-weight: 700;
-      line-height: 1.35;
-      color: var(--text-main);
-      margin-bottom: 12px;
-      letter-spacing: -0.01em;
-    }
-
-    p.description {
-      font-size: 14.5px;
-      line-height: 1.6;
-      color: var(--text-muted);
-      margin-bottom: 28px;
-    }
-
-    /* Live Status Panel */
-    .status-panel {
-      background: var(--bg-card-subtle);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 16px 20px;
-      margin-bottom: 28px;
-      text-align: left;
-    }
-
-    .status-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 13px;
-      padding: 6px 0;
-    }
-
-    .status-row:not(:last-child) {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    }
-
-    .status-title {
-      color: var(--text-subtle);
-      font-weight: 500;
-    }
-
-    .status-val {
+      font-size: 20px;
       font-weight: 600;
-      display: flex;
+      color: var(--text-main);
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+
+    .divider {
+      width: 48px;
+      height: 1px;
+      background-color: var(--border-color);
+      margin: 0 auto 16px;
+    }
+
+    .description {
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+    }
+
+    /* Khối thông tin thời gian nhã nhặn */
+    .time-info {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: var(--text-main);
+      font-size: 12.5px;
+      color: var(--text-subtle);
+      margin-bottom: 24px;
+      padding: 6px 14px;
+      background-color: var(--bg-subtle);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
     }
 
-    .status-val.connecting {
-      color: #FBBF24;
-    }
-
-    .status-val.ready {
-      color: var(--accent-green);
-    }
-
-    /* Spinner */
-    .spinner {
+    .time-info svg {
       width: 14px;
       height: 14px;
-      border: 2px solid rgba(251, 191, 36, 0.25);
-      border-top-color: #FBBF24;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      color: var(--accent-gold);
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Button Actions */
     .actions {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
     .btn-retry {
@@ -233,102 +134,73 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: var(--primary);
-      color: #FFFFFF;
+      background-color: var(--bg-subtle);
+      color: var(--text-main);
       font-family: inherit;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 12px 28px;
-      border-radius: var(--radius-md);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 24px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
       cursor: pointer;
-      transition: all 0.2s ease;
-      width: 100%;
-      box-shadow: 0 4px 14px var(--primary-glow);
+      transition: all 0.15s ease;
     }
 
     .btn-retry:hover {
-      background: var(--primary-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px var(--primary-glow);
-    }
-
-    .btn-retry:active {
-      transform: translateY(0);
+      background-color: #38312B;
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
     }
 
     .btn-retry svg {
-      width: 16px;
-      height: 16px;
-      transition: transform 0.4s ease;
+      width: 14px;
+      height: 14px;
     }
 
-    .btn-retry:hover svg {
-      transform: rotate(180deg);
-    }
-
-    .auto-reload-notice {
-      font-size: 12.5px;
+    .status-hint {
+      font-size: 12px;
       color: var(--text-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
     }
 
     footer {
       margin-top: 24px;
-      font-size: 12px;
+      font-size: 11.5px;
       color: var(--text-subtle);
       text-align: center;
+      line-height: 1.6;
+    }
+
+    footer a {
+      color: var(--text-subtle);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    footer a:hover {
+      color: var(--accent-gold);
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <div class="bg-ambient"></div>
+  <div class="card">
+    <!-- Emblem chuẩn của Bảo tàng -->
+    <div class="museum-emblem">BT</div>
 
-  <div class="container">
-    <div class="badge">
-      <span class="pulse-dot" id="pulseDot"></span>
-      <span id="badgeText">Nâng cấp & Khởi động lại</span>
-    </div>
+    <div class="org-title">Bảo tàng Lịch sử TP. Hồ Chí Minh</div>
+    <h1 id="mainTitle">Hệ Thống Đang Nâng Cấp & Bảo Trì</h1>
+    <div class="divider"></div>
 
-    <div class="icon-wrapper">
-      <!-- Landmark Museum SVG Icon -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="21" x2="21" y2="21"></line>
-        <line x1="6" y1="21" x2="6" y2="10"></line>
-        <line x1="10" y1="21" x2="10" y2="10"></line>
-        <line x1="14" y1="21" x2="14" y2="10"></line>
-        <line x1="18" y1="21" x2="18" y2="10"></line>
-        <path d="M2 10h20"></path>
-        <path d="m12 2 10 8H2l10-8z"></path>
-      </svg>
-    </div>
-
-    <div class="museum-label">Bảo tàng Lịch sử TP. Hồ Chí Minh</div>
-    <h1 id="mainTitle">Hệ Thống Đang Nâng Cấp & Khởi Động Lại</h1>
     <p class="description" id="mainDesc">
-      Hệ thống Tour 360 & Quản lý Di sản đang đồng bộ cơ sở dữ liệu và nạp gói cập nhật phiên bản mới.
-      Vui lòng chờ trong giây lát, trình duyệt sẽ tự động kết nối lại khi máy chủ hoàn tất.
+      Hệ thống Tour 360 và Không gian Di sản đang được nâng cấp để phục vụ quý khách tốt hơn. Quý khách vui lòng quay lại sau ít phút.
     </p>
 
-    <div class="status-panel">
-      <div class="status-row">
-        <span class="status-title">Tiến trình</span>
-        <span class="status-val" id="processStatus">Đồng bộ mã nguồn & khởi động VPS</span>
-      </div>
-      <div class="status-row">
-        <span class="status-title">Trạng thái máy chủ</span>
-        <span class="status-val connecting" id="serverState">
-          <span class="spinner" id="stateSpinner"></span>
-          <span id="stateText">Đang kiểm tra...</span>
-        </span>
-      </div>
-      <div class="status-row">
-        <span class="status-title">Cơ chế tải lại</span>
-        <span class="status-val" style="color: var(--text-muted);">Tự động chuyển tiếp (mỗi 3s)</span>
-      </div>
+    <div class="time-info" id="timeInfoWrapper">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span id="timeText">Dự kiến hoàn tất trong khoảng 30 phút</span>
     </div>
 
     <div class="actions">
@@ -336,121 +208,81 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
         </svg>
-        <span>Thử kết nối lại ngay</span>
+        <span>Thử kết nối lại</span>
       </button>
 
-      <div class="auto-reload-notice" id="timerNotice">
-        Đang thăm dò tín hiệu máy chủ sau <span id="countdown">3</span>s...
-      </div>
+      <span class="status-hint" id="statusHint">
+        Hệ thống sẽ tự động chuyển tiếp khi dịch vụ sẵn sàng.
+      </span>
     </div>
   </div>
 
   <footer>
-    <div>Đề tài Tốt nghiệp 2026 • Hệ thống Tour 360 Không gian Di sản Bảo tàng Lịch sử TP.HCM</div>
-    <div style="margin-top: 8px;">
-      <a href="/admin-login" style="color: var(--text-subtle); text-decoration: none; font-size: 11.5px; opacity: 0.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
-        Quản trị viên đăng nhập kiểm thử →
-      </a>
+    <div>Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</div>
+    <div style="margin-top: 6px;">
+      <a href="/admin-login">Quản trị viên đăng nhập</a>
     </div>
   </footer>
 
   <script>
-    let countdownSec = 3;
     let isChecking = false;
     let isOnline = false;
 
-    const stateText = document.getElementById('stateText');
-    const stateSpinner = document.getElementById('stateSpinner');
-    const serverState = document.getElementById('serverState');
-    const countdownEl = document.getElementById('countdown');
+    const mainTitle = document.getElementById('mainTitle');
+    const mainDesc = document.getElementById('mainDesc');
+    const timeText = document.getElementById('timeText');
+    const statusHint = document.getElementById('statusHint');
     const btnManualRetry = document.getElementById('btnManualRetry');
-    const pulseDot = document.getElementById('pulseDot');
-    const badgeText = document.getElementById('badgeText');
-    const timerNotice = document.getElementById('timerNotice');
 
-    // Nạp thông tin lý do bảo trì tùy chỉnh nếu có từ API
-    async function loadMaintenanceInfo() {
+    // Đọc thông tin bảo trì thực tế từ máy chủ (Data thật)
+    async function loadConfig() {
       try {
         const res = await fetch('/api/system/maintenance?t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
         if (data && data.success && data.maintenance) {
           const m = data.maintenance;
-          if (m.title) document.getElementById('mainTitle').textContent = m.title;
-          if (m.message) document.getElementById('mainDesc').textContent = m.message;
-          if (m.estimatedMinutes) {
-            document.getElementById('processStatus').textContent = `Dự kiến hoàn tất trong ~${m.estimatedMinutes} phút`;
+          if (m.title) mainTitle.textContent = m.title;
+          if (m.message) mainDesc.textContent = m.message;
+          if (m.estimatedMinutes && m.estimatedMinutes > 0) {
+            timeText.textContent = `Dự kiến hoàn tất trong khoảng ${m.estimatedMinutes} phút`;
           }
         }
       } catch {
-        // Ignored
+        // Giữ nguyên nội dung mặc định nếu máy chủ đang khởi động lại
       }
     }
-    loadMaintenanceInfo();
 
+    // Kiểm tra tín hiệu máy chủ để tự động reload
     async function pingHealth() {
       if (isChecking || isOnline) return;
       isChecking = true;
 
       try {
-        stateText.textContent = 'Đang kiểm tra tín hiệu...';
+        const [healthRes, homeRes] = await Promise.all([
+          fetch('/api/health?t=' + Date.now(), { cache: 'no-store' }).catch(() => ({ ok: false })),
+          fetch('/?check_ready=' + Date.now(), { method: 'HEAD', cache: 'no-store' }).catch(() => ({ status: 503 }))
+        ]);
 
-        // 1. Kiểm tra API Backend
-        const healthRes = await fetch('/api/health?t=' + Date.now(), {
-          cache: 'no-store',
-          headers: { 'Accept': 'application/json' }
-        });
-
-        // 2. Kiểm tra xem cờ bảo trì ở Nginx đã được gỡ bỏ chưa
-        const homeRes = await fetch('/?check_ready=' + Date.now(), {
-          method: 'HEAD',
-          cache: 'no-store'
-        });
-
-        // Nếu cả backend 200 và home không phải 503 (bảo trì)
         if (healthRes.ok && homeRes.status === 200) {
           isOnline = true;
-          serverState.className = 'status-val ready';
-          stateSpinner.style.display = 'none';
-          stateText.textContent = 'Máy chủ đã sẵn sàng!';
-          pulseDot.style.backgroundColor = '#10B981';
-          badgeText.textContent = 'Hoàn tất cập nhật';
-          timerNotice.textContent = 'Đang chuyển tiếp về trang chủ...';
-
+          statusHint.textContent = 'Máy chủ đã sẵn sàng. Đang chuyển tiếp...';
           setTimeout(() => {
             window.location.href = '/';
-          }, 800);
-          return;
-        } else {
-          serverState.className = 'status-val connecting';
-          stateSpinner.style.display = 'inline-block';
-          stateText.textContent = 'Máy chủ đang khởi động lại...';
+          }, 600);
         }
-      } catch (err) {
-        serverState.className = 'status-val connecting';
-        stateSpinner.style.display = 'inline-block';
-        stateText.textContent = 'Đang đợi dịch vụ kích hoạt...';
+      } catch {
+        // Tự động kiểm tra tiếp ở chu kỳ sau
       } finally {
         isChecking = false;
       }
     }
 
-    // Interval countdown
-    setInterval(() => {
-      if (isOnline) return;
-      countdownSec--;
-      if (countdownSec <= 0) {
-        countdownSec = 3;
-        pingHealth();
-      }
-      if (countdownEl) countdownEl.textContent = countdownSec;
-    }, 1000);
-
-    // Initial check
+    loadConfig();
     pingHealth();
+    setInterval(pingHealth, 3000);
 
-    // Manual Retry Button
     btnManualRetry.addEventListener('click', () => {
-      countdownSec = 3;
+      statusHint.textContent = 'Đang kiểm tra kết nối...';
       pingHealth();
     });
   </script>
