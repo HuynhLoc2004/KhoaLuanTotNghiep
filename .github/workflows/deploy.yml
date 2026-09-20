@@ -30,6 +30,8 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 30m
+          timeout: 60s
           script_stop: false
           script: |
             exec 2>&1
@@ -77,14 +79,16 @@ jobs:
               git pull origin "$TARGET_BRANCH" || true
             fi
 
-            # Đảm bảo Docker daemon dùng DNS ổn định (Google DNS / Cloudflare) chống TLS handshake timeout
-            if [ ! -f /etc/docker/daemon.json ] || ! grep -q "8.8.8.8" /etc/docker/daemon.json 2>/dev/null; then
-              echo ">>> Tối ưu hóa DNS cho Docker daemon (8.8.8.8, 1.1.1.1)..."
-              mkdir -p /etc/docker
-              echo '{"dns": ["8.8.8.8", "1.1.1.1"]}' > /etc/docker/daemon.json
-              systemctl restart docker || true
-              sleep 3
-            fi
+            # Cấu hình DNS phân giải quốc tế (Google & Cloudflare) cho VPS & Docker daemon chống nghẽn mạng quốc tế
+            echo ">>> Cập nhật DNS Google & Cloudflare cho Docker daemon..."
+            mkdir -p /etc/docker
+            cat << 'EOF' > /etc/docker/daemon.json
+{
+  "dns": ["8.8.8.8", "1.1.1.1", "8.8.4.4"]
+}
+EOF
+            systemctl reload docker 2>/dev/null || systemctl restart docker 2>/dev/null || true
+            sleep 2
 
             echo ">>> [3/4] Build & Khởi chạy các container Docker (Zero-Downtime Background Build)..."
             if docker compose version &>/dev/null; then
@@ -95,17 +99,31 @@ jobs:
 
             echo ">>> Sử dụng lệnh Docker: $COMPOSE_CMD"
             
-            # Thử build với cơ chế tự động thử lại 3 lần nếu mạng Docker Hub quốc tế chập chờn
+            # Ưu tiên sử dụng base image đã cache sẵn trên VPS (DOCKER_BUILDKIT=0),
+            # tránh việc BuildKit bắt buộc phải kết nối ra registry-1.docker.io gây TLS handshake timeout khi mạng quốc tế chập chờn
+            export DOCKER_BUILDKIT=0
+            export COMPOSE_DOCKER_CLI_BUILD=0
+
             DEPLOY_SUCCESS=false
             for attempt in 1 2 3; do
               echo ">>> Thực thi deploy (Lần $attempt/3)..."
+              if [ $attempt -eq 2 ]; then
+                echo ">>> Thử lại lần 2 với chế độ BuildKit chuẩn..."
+                unset DOCKER_BUILDKIT
+                unset COMPOSE_DOCKER_CLI_BUILD
+              elif [ $attempt -eq 3 ]; then
+                echo ">>> Thử lại lần 3 với cờ legacy..."
+                export DOCKER_BUILDKIT=0
+                export COMPOSE_DOCKER_CLI_BUILD=0
+              fi
+
               if $COMPOSE_CMD up -d --build --remove-orphans; then
                 DEPLOY_SUCCESS=true
                 echo ">>> Deploy thành công ở lần thử $attempt!"
                 break
               fi
-              echo "⚠️ Lần thử $attempt thất bại do mạng Docker Hub timeout, nghỉ 5s rồi thử lại..."
-              sleep 5
+              echo "⚠️ Lần thử $attempt thất bại do mạng Docker Hub quốc tế chập chờn, thử lại sau 3s..."
+              sleep 3
             done
 
             if [ "$DEPLOY_SUCCESS" != "true" ]; then
