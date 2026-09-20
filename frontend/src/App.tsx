@@ -8,7 +8,7 @@ import { AdminPanoramaStudio } from './pages/admin/AdminPanoramaStudio';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { MuseumRoom, AdminTab } from './types';
 import { api } from './services/api';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Landmark } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -62,10 +62,34 @@ const AppContent: React.FC = () => {
   // Xử lý deep link: Quét QR hoặc mở liên kết ?room=CODE hoặc ?room=ID
   useEffect(() => {
     const handleCheckRoomUrl = () => {
-      if (rooms.length === 0) return;
       const params = new URLSearchParams(window.location.search);
       const roomQuery = params.get('room');
-      if (!roomQuery) return;
+
+      // Kiểm tra nếu người dùng vừa thực hiện F5 / Reload trang
+      let isReload = false;
+      try {
+        const navEntries = performance.getEntriesByType('navigation');
+        if (navEntries.length > 0) {
+          isReload = (navEntries[0] as PerformanceNavigationTiming).type === 'reload';
+        }
+      } catch {
+        // Fallback
+      }
+
+      // Xoá ngay tham số ?room khỏi thanh địa chỉ trình duyệt
+      // để khi người dùng F5 / refresh trang không bị kẹt vĩnh viễn vào Studio
+      if (roomQuery) {
+        try {
+          window.history.replaceState({}, '', window.location.pathname);
+        } catch {
+          // Ignored
+        }
+      }
+
+      // Nếu là thao tác F5 / Reload hoặc không có query hoặc chưa có phòng, giữ nguyên trang quản lý
+      if (isReload || !roomQuery || rooms.length === 0) {
+        return;
+      }
 
       const matched = rooms.find(
         (r) =>
@@ -85,17 +109,10 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handleCheckRoomUrl);
   }, [rooms]);
 
-  // Open Studio for a room
+  // Open Studio for a room (không chèn ?room vào URL để tránh kẹt F5)
   const handleOpenStudio = (room: MuseumRoom) => {
     setActiveRoom(room);
     setCurrentTab('studio');
-    try {
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set('room', room.code || room.id);
-      window.history.pushState({}, '', newUrl.toString());
-    } catch {
-      // Ignored
-    }
   };
 
   // Back from Studio to Rooms list
@@ -103,9 +120,7 @@ const AppContent: React.FC = () => {
     setActiveRoom(null);
     setCurrentTab('rooms');
     try {
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('room');
-      window.history.pushState({}, '', newUrl.toString());
+      window.history.replaceState({}, '', window.location.pathname);
     } catch {
       // Ignored
     }
@@ -148,13 +163,6 @@ const AppContent: React.FC = () => {
     );
     if (target) {
       setActiveRoom(target);
-      try {
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set('room', target.code || target.id);
-        window.history.pushState({}, '', newUrl.toString());
-      } catch {
-        // Ignored
-      }
     } else {
       showToast(`Không tìm thấy phòng đích (Mã phòng: ${targetRoomId})`, 'warning');
     }
@@ -166,8 +174,20 @@ const AppContent: React.FC = () => {
   if (isAuthLoading) {
     return (
       <div className="admin-auth-loading">
-        <div className="heritage-emblem-spin">🏛️</div>
-        <Loader2 size={30} className="spin" style={{ color: 'var(--accent-gold)' }} />
+        <div style={{
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 4
+        }}>
+          <Landmark size={22} style={{ color: 'var(--primary)' }} />
+        </div>
+        <Loader2 size={26} className="spin" style={{ color: 'var(--primary)' }} />
         <div className="auth-loading-title">BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH</div>
         <p className="auth-loading-text">Đang xác thực bảo mật hệ thống quản trị...</p>
       </div>
@@ -195,7 +215,14 @@ const AppContent: React.FC = () => {
         onClose={() => setIsSidebarOpen(false)}
         onTabChange={(tab) => {
           setCurrentTab(tab);
-          if (tab !== 'studio') setActiveRoom(null);
+          if (tab !== 'studio') {
+            setActiveRoom(null);
+            try {
+              window.history.replaceState({}, '', window.location.pathname);
+            } catch {
+              // Ignored
+            }
+          }
         }}
         roomCount={rooms.length}
       />
