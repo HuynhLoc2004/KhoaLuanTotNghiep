@@ -181,7 +181,44 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Quản lý trạng thái trượt ra / trượt vô của thanh Sidebar (Hỗ trợ cả Desktop & Mobile)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('admin_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const handleToggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setIsMobileSidebarOpen((prev) => !prev);
+    } else {
+      setIsSidebarCollapsed((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem('admin_sidebar_collapsed', String(next));
+        } catch {
+          // Ignored
+        }
+        return next;
+      });
+    }
+  };
+
+  // Phím tắt Ctrl + B / Cmd + B để trượt thanh điều hướng ra / vô
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        handleToggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Màn hình chờ xác thực phiên đăng nhập
   if (isAuthLoading) {
@@ -213,19 +250,20 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="admin-app">
+    <div className={`admin-app ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Mobile Backdrop Overlay */}
-      {isSidebarOpen && (
+      {isMobileSidebarOpen && (
         <div
           className="sidebar-overlay"
-          onClick={() => setIsSidebarOpen(false)}
+          onClick={() => setIsMobileSidebarOpen(false)}
         />
       )}
 
       <Sidebar
         currentTab={currentTab}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+        onToggle={handleToggleSidebar}
         onTabChange={(tab) => {
           setCurrentTab(tab);
           if (tab !== 'studio') {
@@ -245,7 +283,7 @@ const AppContent: React.FC = () => {
           currentTab={currentTab}
           activeRoom={activeRoom}
           onBackToRooms={handleBackToRooms}
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onToggleSidebar={handleToggleSidebar}
         />
 
         {loading ? (

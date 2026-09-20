@@ -38,11 +38,12 @@ export const Header: React.FC<HeaderProps> = ({
         {onToggleSidebar && (
           <button
             type="button"
-            className="mobile-hamburger-btn"
+            className="header-sidebar-toggle-btn"
             onClick={onToggleSidebar}
-            aria-label="Mở menu điều hướng"
+            title="Ẩn / Hiện thanh điều hướng (Ctrl + B)"
+            aria-label="Mở hoặc thu gọn thanh điều hướng"
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
         )}
 

@@ -1,5 +1,4 @@
-import React from 'react';
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages } from 'lucide-react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose } from 'lucide-react';
 import { AdminTab } from '../types';
 
 interface SidebarProps {
@@ -8,6 +7,7 @@ interface SidebarProps {
   roomCount: number;
   isOpen?: boolean;
   onClose?: () => void;
+  onToggle?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -15,11 +15,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onTabChange,
   roomCount,
   isOpen = false,
-  onClose
+  onClose,
+  onToggle
 }) => {
   const handleItemClick = (tab: AdminTab) => {
     onTabChange(tab);
-    if (onClose) onClose();
+    // Chỉ tự động đóng menu trên màn hình nhỏ di động
+    if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) {
+      onClose();
+    }
   };
 
   return (
@@ -30,8 +34,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <h1>Bảo tàng Lịch sử</h1>
           <p>TP. Hồ Chí Minh • Quản trị</p>
         </div>
+        {onToggle && (
+          <button
+            type="button"
+            className="sidebar-toggle-btn"
+            onClick={onToggle}
+            title="Thu gọn thanh điều hướng (Ctrl + B)"
+            aria-label="Thu gọn thanh điều hướng"
+          >
+            <PanelLeftClose size={18} />
+          </button>
+        )}
         {onClose && (
           <button
+            type="button"
             className="sidebar-close-btn"
             onClick={onClose}
             aria-label="Đóng menu"

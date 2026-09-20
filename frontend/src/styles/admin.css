@@ -15,6 +15,18 @@
   flex-direction: column;
   flex-shrink: 0;
   z-index: 20;
+  transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.28s ease;
+  will-change: margin-left, opacity;
+}
+
+/* Khi thu gọn trên Desktop: trượt mượt mà ra ngoài về bên trái */
+.admin-app.sidebar-collapsed .admin-sidebar {
+  margin-left: -260px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .sidebar-header {
@@ -1256,17 +1268,64 @@
    RESPONSIVE DESIGN (MOBILES, TABLETS & SMALL SCREENS)
    ============================================================================== */
 
-.mobile-hamburger-btn {
-  display: none;
-  background: none;
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-  padding: 6px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
+.header-sidebar-toggle-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 }
+
+.header-sidebar-toggle-btn:hover {
+  background: var(--bg-surface);
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.sidebar-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm, 5px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--accent-gold);
+  border-color: var(--border-color);
+}
+
+.mobile-hamburger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
 
 .sidebar-close-btn {
   display: none;
