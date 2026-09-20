@@ -4216,3 +4216,428 @@
   background-color: var(--error);
 }
 
+/* ==========================================================================
+   ADMIN SETTINGS & MULTI-MUSEUM RESPONSIVE STYLES
+   ========================================================================== */
+
+.settings-page-content {
+  overscroll-behavior-y: contain;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.settings-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Header bar */
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.settings-header-title-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.settings-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md, 8px);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.settings-header-text {
+  min-width: 0;
+}
+
+.settings-header-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.settings-header-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.settings-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Tab Navigation */
+.settings-tab-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 14px;
+}
+
+.settings-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.settings-tab-btn .tab-label-short {
+  display: none;
+}
+
+/* 2-Column Main Layout */
+.settings-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  gap: 24px;
+  align-items: start;
+}
+
+/* Form Card */
+.settings-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  padding: 24px 26px;
+  box-sizing: border-box;
+}
+
+.settings-form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.settings-form-row-city-addr {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.settings-form-row-3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.settings-form-field {
+  margin-bottom: 18px;
+}
+
+.settings-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  gap: 12px;
+}
+
+/* Logo Upload Section */
+.settings-logo-section {
+  margin-bottom: 22px;
+  padding: 18px 20px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-color);
+  box-sizing: border-box;
+}
+
+.settings-logo-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Right Sticky Preview */
+.settings-preview-col {
+  box-sizing: border-box;
+}
+
+.settings-preview-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 20px;
+  box-sizing: border-box;
+}
+
+.settings-standee-box {
+  background-color: #F7F4EE;
+  color: #1A110B;
+  border-radius: 8px;
+  padding: 14px 12px;
+  text-align: center;
+  border: 1px solid #D4A86A;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Tab 2: Metrics Grid */
+.settings-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.settings-metric-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+/* Tab 2: Maintenance Toggle Row */
+.settings-maintenance-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  background-color: var(--bg-subtle);
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-color);
+  margin-bottom: 22px;
+  box-sizing: border-box;
+}
+
+/* Tab 2: Preset Minutes Row */
+.settings-presets-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.settings-presets-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* Tab 2: Telemetry List */
+.settings-telemetry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
+}
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE BREAKPOINTS FOR SETTINGS PAGE
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .settings-main-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .settings-preview-card {
+    position: static;
+  }
+
+  .settings-form-row-3col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .settings-header-title {
+    font-size: 17px;
+  }
+
+  .settings-header-desc {
+    font-size: 12px;
+  }
+
+  .settings-header-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .settings-header-actions .btn {
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .settings-tab-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+  }
+
+  .settings-tab-btn {
+    padding: 9px 8px;
+    font-size: 12px;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+    min-height: 42px;
+  }
+
+  .settings-tab-btn .tab-label-desktop {
+    display: none;
+  }
+
+  .settings-tab-btn .tab-label-short {
+    display: inline;
+  }
+
+  .settings-card {
+    padding: 16px 14px;
+  }
+
+  .settings-form-row-2col,
+  .settings-form-row-city-addr,
+  .settings-form-row-3col {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .settings-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .settings-header-actions {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .settings-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .settings-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .settings-form-actions button,
+  .settings-form-actions .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 14px !important;
+  }
+
+  .settings-maintenance-toggle-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 12px;
+  }
+
+  .settings-presets-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .settings-presets-buttons {
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    width: 100%;
+    gap: 6px;
+  }
+
+  .settings-presets-buttons button {
+    text-align: center;
+    padding: 8px 4px !important;
+  }
+
+  .settings-telemetry-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding-bottom: 10px;
+  }
+
+  .settings-telemetry-row > div:last-child {
+    text-align: left !important;
+    width: 100%;
+  }
+
+  .settings-logo-preview-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 420px) {
+  .settings-tab-nav {
+    grid-template-columns: 1fr;
+  }
+}
+

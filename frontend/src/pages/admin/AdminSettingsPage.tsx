@@ -288,48 +288,19 @@ export const AdminSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-content" style={{ overscrollBehaviorY: 'contain' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 40 }}>
+    <div className="admin-content settings-page-content">
+      <div className="settings-container">
         {/* HEADER BAR TRANG NHÃ THEO CHUẨN BẢO TÀNG */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 16,
-            marginBottom: 24
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 'var(--radius-md, 8px)',
-                backgroundColor: 'var(--bg-subtle)',
-                border: '1px solid var(--border-color)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--primary)'
-              }}
-            >
+        <div className="settings-header">
+          <div className="settings-header-title-box">
+            <div className="settings-header-icon">
               <SlidersHorizontal size={22} />
             </div>
-            <div>
-              <h1
-                style={{
-                  fontSize: 20,
-                  fontWeight: 600,
-                  color: 'var(--text-main)',
-                  margin: '0 0 4px 0',
-                  lineHeight: 1.3
-                }}
-              >
+            <div className="settings-header-text">
+              <h1 className="settings-header-title">
                 Cấu hình Hệ thống & Đa Bảo Tàng
               </h1>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+              <p className="settings-header-desc">
                 {settingsTab === 'branding'
                   ? 'Quản lý danh tính, logo, biểu trưng và thông tin liên hệ đa bảo tàng. Tự động đồng bộ 100% dữ liệu thật trên toàn hệ thống.'
                   : 'Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.'}
@@ -337,7 +308,7 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div className="settings-header-actions">
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -358,7 +329,7 @@ export const AdminSettingsPage: React.FC = () => {
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
             >
               <Globe size={14} />
-              <span>Cổng tham quan khách</span>
+              <span>Cổng tham quan</span>
             </a>
 
             <a
@@ -375,73 +346,36 @@ export const AdminSettingsPage: React.FC = () => {
         </div>
 
         {/* THANH ĐIỀU HƯỚNG TAB: NHẬN DIỆN THƯƠNG HIỆU & BẢO TRÌ HỆ THỐNG */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            marginBottom: 24,
-            borderBottom: '1px solid var(--border-color)',
-            paddingBottom: 14
-          }}
-        >
+        <div className="settings-tab-nav">
           <button
             type="button"
             onClick={() => setSettingsTab('branding')}
-            className={`btn ${settingsTab === 'branding' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              fontSize: 13.5,
-              fontWeight: 600,
-              borderRadius: 'var(--radius-sm, 6px)'
-            }}
+            className={`btn settings-tab-btn ${settingsTab === 'branding' ? 'btn-primary' : 'btn-secondary'}`}
           >
             <Building2 size={16} />
-            <span>Nhận Diện & Đa Bảo Tàng (Multi-Museum)</span>
+            <span className="tab-label-desktop">Nhận Diện & Đa Bảo Tàng (Multi-Museum)</span>
+            <span className="tab-label-short">Nhận Diện Bảo Tàng</span>
           </button>
 
           <button
             type="button"
             onClick={() => setSettingsTab('maintenance')}
-            className={`btn ${settingsTab === 'maintenance' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              fontSize: 13.5,
-              fontWeight: 600,
-              borderRadius: 'var(--radius-sm, 6px)'
-            }}
+            className={`btn settings-tab-btn ${settingsTab === 'maintenance' ? 'btn-primary' : 'btn-secondary'}`}
           >
             <SlidersHorizontal size={16} />
-            <span>Vận Hành & Bảo Trì Hệ Thống</span>
+            <span className="tab-label-desktop">Vận Hành & Bảo Trì Hệ Thống</span>
+            <span className="tab-label-short">Vận Hành & Bảo Trì</span>
           </button>
         </div>
 
         {settingsTab === 'branding' ? (
           /* TAB 1: CẤU HÌNH NHẬN DIỆN THƯƠNG HIỆU & ĐA BẢO TÀNG */
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 0.75fr)',
-              gap: 24,
-              alignItems: 'start'
-            }}
-          >
+          <div className="settings-main-grid">
             {/* CỘT TRÁI: FORM CẤU HÌNH NHẬN DIỆN BẢO TÀNG */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <form
                 onSubmit={handleSaveBranding}
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  padding: '24px 26px'
-                }}
+                className="settings-card"
               >
                 <div style={{ marginBottom: 20 }}>
                   <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
@@ -453,7 +387,7 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
 
                 {/* 1. Tên đầy đủ của bảo tàng */}
-                <div style={{ marginBottom: 18 }}>
+                <div className="settings-form-field">
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                     Tên đầy đủ của bảo tàng <span style={{ color: 'var(--primary)' }}>*</span>
                   </label>
@@ -466,6 +400,7 @@ export const AdminSettingsPage: React.FC = () => {
                     required
                     style={{
                       width: '100%',
+                      boxSizing: 'border-box',
                       padding: '10px 14px',
                       fontSize: 13.5,
                       backgroundColor: 'var(--bg-subtle)',
@@ -480,7 +415,7 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
 
                 {/* 2 Hàng song song: Tên rút gọn & Khẩu hiệu Tagline */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
+                <div className="settings-form-row-2col">
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                       Tên rút gọn / Tên ngắn <span style={{ color: 'var(--primary)' }}>*</span>
@@ -494,6 +429,7 @@ export const AdminSettingsPage: React.FC = () => {
                       required
                       style={{
                         width: '100%',
+                        boxSizing: 'border-box',
                         padding: '10px 14px',
                         fontSize: 13.5,
                         backgroundColor: 'var(--bg-subtle)',
@@ -519,6 +455,7 @@ export const AdminSettingsPage: React.FC = () => {
                       placeholder="Ví dụ: Hệ thống Tour 360 Không gian Di sản"
                       style={{
                         width: '100%',
+                        boxSizing: 'border-box',
                         padding: '10px 14px',
                         fontSize: 13.5,
                         backgroundColor: 'var(--bg-subtle)',
@@ -534,13 +471,7 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
 
                 {/* 3. Logo nhận diện thương hiệu */}
-                <div style={{
-                  marginBottom: 22,
-                  padding: '18px 20px',
-                  background: 'var(--bg-surface)',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  border: '1px solid var(--border-color)'
-                }}>
+                <div className="settings-logo-section">
                   <div style={{ marginBottom: 12 }}>
                     <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 2 }}>
                       Logo nhận diện bảo tàng
@@ -560,7 +491,7 @@ export const AdminSettingsPage: React.FC = () => {
 
                   {brandingForm.logoUrl ? (
                     /* Khi đã có logo: Hiển thị logo và các nút thao tác gọn gàng, không màu mè */
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                    <div className="settings-logo-preview-row">
                       <div
                         style={{
                           width: 130,
@@ -583,7 +514,7 @@ export const AdminSettingsPage: React.FC = () => {
                         />
                       </div>
 
-                      <div style={{ flex: 1, minWidth: 220 }}>
+                      <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                           <button
                             type="button"
@@ -647,7 +578,7 @@ export const AdminSettingsPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                           Hoặc ký tự viết tắt tạm thời:
                         </span>
@@ -677,7 +608,7 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
 
                 {/* 5 Hàng song song: Tỉnh / Thành phố & Địa chỉ */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginBottom: 18 }}>
+                <div className="settings-form-row-city-addr">
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                       Tỉnh / Thành phố
@@ -690,6 +621,7 @@ export const AdminSettingsPage: React.FC = () => {
                       placeholder="TP. Hồ Chí Minh, Hà Nội, Huế, ..."
                       style={{
                         width: '100%',
+                        boxSizing: 'border-box',
                         padding: '10px 14px',
                         fontSize: 13.5,
                         backgroundColor: 'var(--bg-subtle)',
@@ -712,6 +644,7 @@ export const AdminSettingsPage: React.FC = () => {
                       placeholder="Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
                       style={{
                         width: '100%',
+                        boxSizing: 'border-box',
                         padding: '10px 14px',
                         fontSize: 13.5,
                         backgroundColor: 'var(--bg-subtle)',
@@ -724,7 +657,7 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
 
                 {/* 6 Hàng song song: Hotline, Email liên hệ, Tên người gửi mail */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 16, marginBottom: 24 }}>
+                <div className="settings-form-row-3col">
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                       Hotline liên hệ
@@ -737,6 +670,7 @@ export const AdminSettingsPage: React.FC = () => {
                       placeholder="(028) 3829 8146"
                       style={{
                         width: '100%',
+                        boxSizing: 'border-box',
                         padding: '10px 14px',
                         fontSize: 13,
                         backgroundColor: 'var(--bg-subtle)',
@@ -759,6 +693,7 @@ export const AdminSettingsPage: React.FC = () => {
                       placeholder="contact@museum.vn"
                       style={{
                         width: '100%',
+                        boxSizing: 'border-box',
                         padding: '10px 14px',
                         fontSize: 13,
                         backgroundColor: 'var(--bg-subtle)',
@@ -781,6 +716,7 @@ export const AdminSettingsPage: React.FC = () => {
                       placeholder="Bảo Tàng Lịch Sử TP.HCM"
                       style={{
                         width: '100%',
+                        boxSizing: 'border-box',
                         padding: '10px 14px',
                         fontSize: 13,
                         backgroundColor: 'var(--bg-subtle)',
@@ -793,7 +729,7 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
 
                 {/* Nút hành động Lưu & Khôi phục */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
+                <div className="settings-form-actions">
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -834,20 +770,8 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             {/* CỘT PHẢI: KHUNG XEM TRƯỚC TRỰC QUAN GỌN GÀNG (LIVE PREVIEW) */}
-            <div>
-              <div
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  padding: '18px 20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 14,
-                  position: 'sticky',
-                  top: 20
-                }}
-              >
+            <div className="settings-preview-col">
+              <div className="settings-preview-card">
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-main)', marginBottom: 2 }}>
                     Xem trước trực quan
@@ -986,26 +910,9 @@ export const AdminSettingsPage: React.FC = () => {
           /* TAB 2: VẬN HÀNH & BẢO TRÌ HỆ THỐNG */
           <>
         {/* 4 THẺ METRICS / TỔNG QUAN HỆ THỐNG */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: 16,
-            marginBottom: 24
-          }}
-        >
+        <div className="settings-metrics-grid">
           {/* Card 1: Trạng thái Vận hành Cổng Tham Quan */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md, 8px)',
-              padding: '18px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
+          <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
                 Cổng tham quan Tour 360
@@ -1045,17 +952,7 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           {/* Card 2: Thời gian bảo trì thực tế */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md, 8px)',
-              padding: '18px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
+          <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
                 {maintenance.enabled ? 'Thời gian bảo trì còn lại' : 'Thời gian bảo trì dự phòng'}
@@ -1090,17 +987,7 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           {/* Card 3: Hạ tầng Máy chủ */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md, 8px)',
-              padding: '18px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
+          <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
                 Máy chủ hệ thống (VPS)
@@ -1140,17 +1027,7 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           {/* Card 4: Dữ liệu di sản */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md, 8px)',
-              padding: '18px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
+          <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
                 Cơ sở dữ liệu di sản (MongoDB)
@@ -1184,25 +1061,11 @@ export const AdminSettingsPage: React.FC = () => {
         </div>
 
         {/* PHẦN NỘI DUNG CHÍNH: BỐ CỤC 2 CỘT CÂN XỨNG (60% - 40%) */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 0.75fr)',
-            gap: 24,
-            alignItems: 'start'
-          }}
-        >
+        <div className="settings-main-grid">
           {/* CỘT TRÁI: BẢNG ĐIỀU KHIỂN BẢO TRÌ & BIỂU MẪU CẤU HÌNH */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Card Form Chính */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md, 8px)',
-                padding: '24px 26px'
-              }}
-            >
+            <div className="settings-card">
               {/* Tiêu đề mục */}
               <div style={{ marginBottom: 20 }}>
                 <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
@@ -1214,18 +1077,7 @@ export const AdminSettingsPage: React.FC = () => {
               </div>
 
               {/* Hàng chuyển mạch BẬT / TẮT */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '16px 18px',
-                  backgroundColor: 'var(--bg-subtle)',
-                  borderRadius: 'var(--radius-sm, 6px)',
-                  border: '1px solid var(--border-color)',
-                  marginBottom: 22
-                }}
-              >
+              <div className="settings-maintenance-toggle-row">
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 2 }}>
                     {maintenance.enabled ? 'Chế độ bảo trì: ĐANG BẬT' : 'Chế độ bảo trì: ĐANG TẮT'}
@@ -1328,42 +1180,44 @@ export const AdminSettingsPage: React.FC = () => {
                   >
                     Thời gian dự kiến hoàn tất
                   </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <input
-                      type="number"
-                      min="1"
-                      max="1440"
-                      value={maintenance.estimatedMinutes}
-                      onChange={(e) =>
-                        setMaintenance({
-                          ...maintenance,
-                          estimatedMinutes: parseInt(e.target.value) || 30
-                        })
-                      }
-                      style={{
-                        width: 120,
-                        boxSizing: 'border-box',
-                        backgroundColor: 'var(--bg-subtle)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-sm, 5px)',
-                        padding: '9px 12px',
-                        color: 'var(--text-main)',
-                        fontSize: 13.5,
-                        fontFamily: 'inherit'
-                      }}
-                      required
-                    />
-                    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>phút</span>
+                  <div className="settings-presets-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1440"
+                        value={maintenance.estimatedMinutes}
+                        onChange={(e) =>
+                          setMaintenance({
+                            ...maintenance,
+                            estimatedMinutes: parseInt(e.target.value) || 30
+                          })
+                        }
+                        style={{
+                          width: 110,
+                          boxSizing: 'border-box',
+                          backgroundColor: 'var(--bg-subtle)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: 'var(--radius-sm, 5px)',
+                          padding: '9px 12px',
+                          color: 'var(--text-main)',
+                          fontSize: 13.5,
+                          fontFamily: 'inherit'
+                        }}
+                        required
+                      />
+                      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>phút</span>
+                    </div>
 
                     {/* Các nút chọn nhanh thời gian */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                    <div className="settings-presets-buttons">
                       {[15, 30, 60, 120].map((mins) => (
                         <button
                           key={mins}
                           type="button"
                           onClick={() => setPresetMinutes(mins)}
                           style={{
-                            padding: '5px 10px',
+                            padding: '6px 12px',
                             fontSize: 12,
                             borderRadius: 'var(--radius-sm, 5px)',
                             backgroundColor:
@@ -1423,8 +1277,8 @@ export const AdminSettingsPage: React.FC = () => {
                   />
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="settings-form-actions">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <button
                       type="submit"
                       className="btn btn-primary"
@@ -1469,388 +1323,322 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           {/* CỘT PHẢI: MÔ PHỎNG THỜI GIAN THỰC (LIVE PREVIEW) & THÔNG SỐ HẠ TẦNG */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Box Live Preview thu nhỏ */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md, 8px)',
-                padding: '20px 22px'
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 16
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Eye size={16} style={{ color: 'var(--accent-gold)' }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                    Mô phỏng Giao diện Khách
-                  </span>
-                </div>
-                <span
+          <div className="settings-preview-col">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Box Live Preview thu nhỏ */}
+              <div className="settings-card" style={{ padding: '20px 22px' }}>
+                <div
                   style={{
-                    fontSize: 11,
-                    padding: '2px 8px',
-                    borderRadius: 4,
-                    backgroundColor: 'var(--bg-subtle)',
-                    color: 'var(--text-muted)'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 16
                   }}
                 >
-                  Thời gian thực
-                </span>
-              </div>
-
-              {/* Khung mô phỏng đúng chuẩn thiết kế Bảo tàng */}
-              <div
-                style={{
-                  backgroundColor: '#1A1715',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-sm, 6px)',
-                  padding: '24px 18px',
-                  textAlign: 'center',
-                  boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.3)'
-                }}
-              >
-                {/* Emblem */}
-                {branding.logoUrl ? (
-                  <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
-                    <img
-                      src={branding.logoUrl}
-                      alt=""
-                      style={{ maxHeight: 42, maxWidth: 100, objectFit: 'contain' }}
-                    />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Eye size={16} style={{ color: 'var(--accent-gold)' }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                      Mô phỏng Giao diện Khách
+                    </span>
                   </div>
-                ) : (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      backgroundColor: 'var(--bg-subtle)',
+                      color: 'var(--text-muted)'
+                    }}
+                  >
+                    Thời gian thực
+                  </span>
+                </div>
+
+                {/* Khung mô phỏng đúng chuẩn thiết kế Bảo tàng */}
+                <div
+                  style={{
+                    backgroundColor: '#1A1715',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    padding: '24px 18px',
+                    textAlign: 'center',
+                    boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  {/* Emblem */}
+                  {branding.logoUrl ? (
+                    <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
+                      <img
+                        src={branding.logoUrl}
+                        alt=""
+                        style={{ maxHeight: 42, maxWidth: 100, objectFit: 'contain' }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        margin: '0 auto 12px',
+                        background: 'linear-gradient(135deg, #8C2D19 0%, #6E2212 100%)',
+                        color: '#D4A86A',
+                        border: '1px solid rgba(212, 168, 106, 0.45)',
+                        borderRadius: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 14,
+                        fontWeight: 800,
+                        letterSpacing: 0.5
+                      }}
+                    >
+                      {branding.emblemText || 'BT'}
+                    </div>
+                  )}
+
                   <div
                     style={{
-                      width: 38,
-                      height: 38,
-                      margin: '0 auto 12px',
-                      background: 'linear-gradient(135deg, #8C2D19 0%, #6E2212 100%)',
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      letterSpacing: 1.2,
+                      textTransform: 'uppercase',
                       color: '#D4A86A',
-                      border: '1px solid rgba(212, 168, 106, 0.45)',
-                      borderRadius: 6,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 14,
-                      fontWeight: 800,
-                      letterSpacing: 0.5
+                      marginBottom: 6
                     }}
                   >
-                    {branding.emblemText || 'BT'}
+                    {branding.museumName?.toUpperCase() || 'BẢO TÀNG'}
                   </div>
-                )}
 
-                <div
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                    letterSpacing: 1.2,
-                    textTransform: 'uppercase',
-                    color: '#D4A86A',
-                    marginBottom: 6
-                  }}
-                >
-                  {branding.museumName?.toUpperCase() || 'BẢO TÀNG'}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 600,
-                    color: '#EDE5DF',
-                    marginBottom: 10,
-                    lineHeight: 1.35
-                  }}
-                >
-                  {maintenance.title || DEFAULT_MUSEUM_TITLE}
-                </div>
-
-                <div
-                  style={{
-                    width: 36,
-                    height: 1,
-                    backgroundColor: '#362F29',
-                    margin: '0 auto 12px'
-                  }}
-                />
-
-                <p
-                  style={{
-                    fontSize: 12,
-                    lineHeight: 1.55,
-                    color: '#A3978C',
-                    margin: '0 0 16px 0',
-                    maxHeight: 120,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
-                  {maintenance.message || DEFAULT_MUSEUM_MESSAGE}
-                </p>
-
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    fontSize: 11.5,
-                    color: '#A3978C',
-                    padding: '4px 10px',
-                    backgroundColor: '#24201D',
-                    borderRadius: 4,
-                    border: '1px solid #362F29',
-                    marginBottom: 14
-                  }}
-                >
-                  <Clock size={12} style={{ color: '#D4A86A' }} />
-                  <span>
-                    {maintenance.enabled
-                      ? `Dự kiến hoàn tất: còn khoảng ${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút`
-                      : `Dự kiến hoàn tất: khoảng ${maintenance.estimatedMinutes} phút`}
-                  </span>
-                </div>
-
-                <div>
-                  <span
+                  <div
                     style={{
-                      display: 'inline-block',
-                      padding: '6px 16px',
-                      fontSize: 11.5,
-                      fontWeight: 500,
-                      borderRadius: 4,
-                      backgroundColor: '#2C2723',
+                      fontSize: 15,
+                      fontWeight: 600,
                       color: '#EDE5DF',
-                      border: '1px solid #362F29'
+                      marginBottom: 10,
+                      lineHeight: 1.35
                     }}
                   >
-                    Thử kết nối lại
-                  </span>
-                </div>
-              </div>
+                    {maintenance.title || DEFAULT_MUSEUM_TITLE}
+                  </div>
 
-              <div style={{ marginTop: 12, textAlign: 'center' }}>
-                <a
-                  href="/maintenance.html"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--accent-gold)',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}
-                >
-                  <span>Mở xem toàn màn hình</span>
-                  <ExternalLink size={12} />
-                </a>
-              </div>
-            </div>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 1,
+                      backgroundColor: '#362F29',
+                      margin: '0 auto 12px'
+                    }}
+                  />
 
-            {/* Box Thông số Hạ tầng Di sản */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md, 8px)',
-                padding: '20px 22px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Server size={16} style={{ color: 'var(--accent-gold)' }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                    Hạ tầng Máy chủ & Dịch vụ
-                  </span>
-                </div>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    fontSize: 11,
-                    padding: '2px 8px',
-                    borderRadius: 4,
-                    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                    color: '#22C55E',
-                    fontWeight: 600
-                  }}
-                >
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22C55E' }} />
-                  Data thật 100%
-                </span>
-              </div>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 1.55,
+                      color: '#A3978C',
+                      margin: '0 0 16px 0',
+                      maxHeight: 120,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {maintenance.message || DEFAULT_MUSEUM_MESSAGE}
+                  </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 12.5 }}>
-                {/* 1. VPS Host */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: 8,
-                    borderBottom: '1px solid var(--border-color)'
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>Địa chỉ máy chủ (VPS)</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 600 }}>
-                      {sysInfo?.publicIp || '103.178.233.206'}
-                    </span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                      Uptime: {formatUptime(sysInfo?.uptimeSeconds)}
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontSize: 11.5,
+                      color: '#A3978C',
+                      padding: '4px 10px',
+                      backgroundColor: '#24201D',
+                      borderRadius: 4,
+                      border: '1px solid #362F29',
+                      marginBottom: 14
+                    }}
+                  >
+                    <Clock size={12} style={{ color: '#D4A86A' }} />
+                    <span>
+                      {maintenance.enabled
+                        ? `Dự kiến hoàn tất: còn khoảng ${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút`
+                        : `Dự kiến hoàn tất: khoảng ${maintenance.estimatedMinutes} phút`}
                     </span>
                   </div>
-                </div>
 
-                {/* 2. MongoDB */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: 8,
-                    borderBottom: '1px solid var(--border-color)'
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>Cơ sở dữ liệu di sản</span>
-                  <div style={{ textAlign: 'right' }}>
+                  <div>
                     <span
                       style={{
-                        fontWeight: 600,
-                        color: sysInfo?.database?.connected ? 'var(--text-main)' : '#EF4444'
+                        display: 'inline-block',
+                        padding: '6px 16px',
+                        fontSize: 11.5,
+                        fontWeight: 500,
+                        borderRadius: 4,
+                        backgroundColor: '#2C2723',
+                        color: '#EDE5DF',
+                        border: '1px solid #362F29'
                       }}
                     >
-                      {sysInfo?.database?.connected ? `MongoDB (${sysInfo.database.name})` : 'Mất kết nối'}
-                    </span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                      {sysInfo?.database
-                        ? `${sysInfo.database.roomsCount} phòng • ${sysInfo.database.panoramasCount} ảnh 360° (${sysInfo.database.pingMs}ms)`
-                        : 'Đang kết nối'}
+                      Thử kết nối lại
                     </span>
                   </div>
                 </div>
 
-                {/* 3. Redis Cache */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: 8,
-                    borderBottom: '1px solid var(--border-color)'
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>Bộ nhớ tăng tốc (Cache)</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: sysInfo?.redis?.connected ? 'var(--text-main)' : 'var(--text-muted)'
-                      }}
-                    >
-                      {sysInfo?.redis?.connected ? 'Redis Cache trực tuyến' : 'Bộ nhớ cục bộ (Fallback)'}
-                    </span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                      {sysInfo?.redis?.connected
-                        ? `${sysInfo.redis.keysCount} keys • Ping: ${sysInfo.redis.pingMs}ms`
-                        : 'Không có Redis'}
+                <div style={{ marginTop: 12, textAlign: 'center' }}>
+                  <a
+                    href="/maintenance.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--accent-gold)',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <span>Mở xem toàn màn hình</span>
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+              </div>
+
+              {/* Box Thông số Hạ tầng Di sản */}
+              <div className="settings-card" style={{ padding: '20px 22px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Server size={16} style={{ color: 'var(--accent-gold)' }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                      Hạ tầng Máy chủ & Dịch vụ
                     </span>
                   </div>
-                </div>
-
-                {/* 4. Queue Worker */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: 8,
-                    borderBottom: '1px solid var(--border-color)'
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>Hàng đợi xử lý (Queue)</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
-                      {sysInfo?.queue?.status === 'processing' ? 'Đang xử lý tác vụ' : 'Sẵn sàng tiếp nhận'}
-                    </span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                      {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} tác vụ trong hàng đợi ghép 360°` : 'Stitching Queue'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 5. Cổng 360 */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: 8,
-                    borderBottom: '1px solid var(--border-color)'
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>Trạng thái cổng 360</span>
                   <span
                     style={{
-                      color: maintenance.enabled ? 'var(--primary)' : 'var(--accent-gold)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontSize: 11,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                      color: '#22C55E',
                       fontWeight: 600
                     }}
                   >
-                    {maintenance.enabled ? 'Đang tạm dừng bảo trì' : 'Đang mở cửa tham quan'}
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22C55E' }} />
+                    Data thật 100%
                   </span>
                 </div>
 
-                {/* 6. Thời gian bảo trì thực tế */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: 8,
-                    borderBottom: '1px solid var(--border-color)'
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>Lịch trình bảo trì</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ color: 'var(--text-main)', fontWeight: 500, fontSize: 12 }}>
-                      {maintenance.enabled
-                        ? `${formatTime(maintenance.startTime || maintenance.updatedAt)} → ${formatTime(maintenance.expectedEndTime)}`
-                        : 'Không có lịch bảo trì'}
-                    </span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                      {maintenance.enabled
-                        ? `Còn ~${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút`
-                        : `Thời gian dự phòng: ${maintenance.estimatedMinutes}p`}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 12.5 }}>
+                  {/* 1. VPS Host */}
+                  <div className="settings-telemetry-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Địa chỉ máy chủ (VPS)</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 600 }}>
+                        {sysInfo?.publicIp || '103.178.233.206'}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                        Uptime: {formatUptime(sysInfo?.uptimeSeconds)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 2. MongoDB */}
+                  <div className="settings-telemetry-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Cơ sở dữ liệu di sản</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color: sysInfo?.database?.connected ? 'var(--text-main)' : '#EF4444'
+                        }}
+                      >
+                        {sysInfo?.database?.connected ? `MongoDB (${sysInfo.database.name})` : 'Mất kết nối'}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                        {sysInfo?.database
+                          ? `${sysInfo.database.roomsCount} phòng • ${sysInfo.database.panoramasCount} ảnh 360° (${sysInfo.database.pingMs}ms)`
+                          : 'Đang kết nối'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 3. Redis Cache */}
+                  <div className="settings-telemetry-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Bộ nhớ tăng tốc (Cache)</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color: sysInfo?.redis?.connected ? 'var(--text-main)' : 'var(--text-muted)'
+                        }}
+                      >
+                        {sysInfo?.redis?.connected ? 'Redis Cache trực tuyến' : 'Bộ nhớ cục bộ (Fallback)'}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                        {sysInfo?.redis?.connected
+                          ? `${sysInfo.redis.keysCount} keys • Ping: ${sysInfo.redis.pingMs}ms`
+                          : 'Không có Redis'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4. Queue Worker */}
+                  <div className="settings-telemetry-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Hàng đợi xử lý (Queue)</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                        {sysInfo?.queue?.status === 'processing' ? 'Đang xử lý tác vụ' : 'Sẵn sàng tiếp nhận'}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                        {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} tác vụ trong hàng đợi ghép 360°` : 'Stitching Queue'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 5. Cổng 360 */}
+                  <div className="settings-telemetry-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Trạng thái cổng 360</span>
+                    <span
+                      style={{
+                        color: maintenance.enabled ? 'var(--primary)' : 'var(--accent-gold)',
+                        fontWeight: 600
+                      }}
+                    >
+                      {maintenance.enabled ? 'Đang tạm dừng bảo trì' : 'Đang mở cửa tham quan'}
                     </span>
                   </div>
-                </div>
 
-                {/* 7. Cập nhật lần cuối */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span style={{ color: 'var(--text-muted)' }}>Cập nhật lần cuối</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                    {new Date().toLocaleTimeString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit'
-                    })} (Trực tiếp)
-                  </span>
+                  {/* 6. Thời gian bảo trì thực tế */}
+                  <div className="settings-telemetry-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Lịch trình bảo trì</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ color: 'var(--text-main)', fontWeight: 500, fontSize: 12 }}>
+                        {maintenance.enabled
+                          ? `${formatTime(maintenance.startTime || maintenance.updatedAt)} → ${formatTime(maintenance.expectedEndTime)}`
+                          : 'Không có lịch bảo trì'}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                        {maintenance.enabled
+                          ? `Còn ~${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút`
+                          : `Thời gian dự phòng: ${maintenance.estimatedMinutes}p`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 7. Cập nhật lần cuối */}
+                  <div className="settings-telemetry-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Cập nhật lần cuối</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                      {new Date().toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })} (Trực tiếp)
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
