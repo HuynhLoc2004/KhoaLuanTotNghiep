@@ -93,7 +93,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 }) => {
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
-  const { t, localize } = useClientTranslation();
+  const { t, localize, currentLang } = useClientTranslation();
   const [activeSubTab, setActiveSubTab] = useState<'rooms' | 'gallery'>('rooms');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showNewModal, setShowNewModal] = useState(false);
@@ -841,7 +841,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       <div className="room-badge-code">{room.code}</div>
                       <div className="room-badge-hotspots">
                         <MapPin size={11} />
-                        <span>{room.hotspots?.length || 0} điểm neo</span>
+                        <span>{room.hotspots?.length || 0} {t('rooms.anchorPoints', 'điểm neo')}</span>
                       </div>
                     </div>
 
@@ -1615,13 +1615,15 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <QrCode size={18} style={{ color: 'var(--primary)' }} />
-                <h2 className="modal-title">Mã QR Tham Quan: {selectedQrRoom.name}</h2>
+                <h2 className="modal-title">
+                  {t('rooms.qrModalTitle', 'Mã QR Tham Quan')}: {localize(selectedQrRoom, 'name', selectedQrRoom.name)}
+                </h2>
               </div>
               <button
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setShowQrModal(false)}
-                aria-label="Đóng"
+                aria-label={t('common.close', 'Đóng')}
               >
                 <X size={18} />
               </button>
@@ -1640,13 +1642,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   </div>
                 )}
                 <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#8C2D19', marginBottom: 6 }}>
-                  {branding.museumName?.toUpperCase() || 'BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH'}
+                  {currentLang === 'vi' ? (branding.museumName?.toUpperCase() || 'BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH') : t('nav.museumTitle', 'Museum of History in Ho Chi Minh City').toUpperCase()}
                 </div>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: '#1A110B', marginBottom: 4, lineHeight: 1.3 }}>
-                  {selectedQrRoom.name}
+                  {localize(selectedQrRoom, 'name', selectedQrRoom.name)}
                 </div>
                 <div style={{ fontSize: '12px', color: '#6B584C', marginBottom: 16 }}>
-                  Mã phòng: <strong>{selectedQrRoom.code}</strong> • {selectedQrRoom.period}
+                  {t('rooms.roomCode', 'Mã phòng')}: <strong>{selectedQrRoom.code}</strong> • {localize(selectedQrRoom, 'period', selectedQrRoom.period)}
                 </div>
 
                 <div style={{ width: 190, height: 190, margin: '0 auto 16px', padding: 8, background: '#FFFFFF', border: '2px solid #D4A86A', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
@@ -1658,10 +1660,10 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 </div>
 
                 <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A110B', marginBottom: 3 }}>
-                  Quét mã để tham quan không gian 360°
+                  {t('rooms.scanToExplore', 'Quét mã để tham quan không gian 360°')}
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#8C7769', letterSpacing: '0.2px' }}>
-                  Scan to explore 360° virtual tour
+                  {t('rooms.scanToExploreSub', 'Scan to explore 360° virtual tour')}
                 </div>
               </div>
 
@@ -1677,13 +1679,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   onClick={() => {
                     const link = `${window.location.origin}/?room=${selectedQrRoom.code || selectedQrRoom.id}`;
                     navigator.clipboard.writeText(link);
-                    showToast('Đã sao chép liên kết tham quan', 'success');
+                    showToast(t('rooms.copiedLink', 'Đã sao chép liên kết tham quan'), 'success');
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, padding: '4px 8px' }}
-                  title="Sao chép liên kết vào bộ nhớ tạm"
+                  title={t('common.copy', 'Sao chép')}
                 >
                   <Copy size={12} />
-                  <span>Sao chép</span>
+                  <span>{t('common.copy', 'Sao chép')}</span>
                 </button>
               </div>
             </div>
@@ -1699,7 +1701,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   <Printer size={14} />
-                  <span>In Standee</span>
+                  <span>{t('rooms.printStandee', 'In Standee')}</span>
                 </button>
                 <button
                   type="button"
@@ -1709,10 +1711,10 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     onOpenStudio(selectedQrRoom);
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  title="Mở ngay không gian 360° của phòng này"
+                  title={t('rooms.enter360', 'Vào phòng 360°')}
                 >
                   <ExternalLink size={14} />
-                  <span>Vào phòng 360°</span>
+                  <span>{t('rooms.enter360', 'Vào phòng 360°')}</span>
                 </button>
               </div>
 
@@ -1721,7 +1723,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 className="btn btn-primary"
                 onClick={() => setShowQrModal(false)}
               >
-                <span>Đóng</span>
+                <span>{t('common.close', 'Đóng')}</span>
               </button>
             </div>
           </div>

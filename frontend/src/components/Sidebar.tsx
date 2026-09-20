@@ -21,7 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   roomCount
 }) => {
   const { branding } = useSystemBranding();
-  const { t } = useClientTranslation();
+  const { t, currentLang } = useClientTranslation();
 
   const handleItemClick = (tab: AdminTab) => {
     onTabChange(tab);
@@ -59,8 +59,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
           <div className="sidebar-title">
-            <span>{branding.shortName || branding.museumName}</span>
-            <span className="sidebar-sub">TP. Hồ Chí Minh • Quản trị</span>
+            <span>{currentLang === 'vi' ? (branding.shortName || branding.museumName) : t('nav.breadcrumbMuseum', 'History Museum')}</span>
+            <span className="sidebar-sub">{currentLang === 'vi' ? 'TP. Hồ Chí Minh • Quản trị' : t('nav.adminRole', 'Administrator')}</span>
           </div>
         </div>
 
@@ -153,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="sidebar-footer">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <Landmark size={14} style={{ color: 'var(--primary)' }} />
-          <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Đề tài Tốt nghiệp 2026</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{t('common.thesisTitle', 'Đề tài Tốt nghiệp 2026')}</span>
         </div>
         <div>{t('common.thesisFooter', 'Hệ thống Tour 360 Không gian Di sản')}</div>
       </div>

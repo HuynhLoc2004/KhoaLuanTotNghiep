@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { branding } = useSystemBranding();
-  const { t, localize } = useClientTranslation();
+  const { t, localize, currentLang } = useClientTranslation();
 
   const getTabLabel = (tab: AdminTab): string => {
     switch (tab) {
@@ -65,7 +65,9 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <Landmark size={14} className="breadcrumb-museum-icon" />
             )}
-            <span className="breadcrumb-museum-name">{branding.shortName || branding.museumName || t('nav.breadcrumbMuseum', 'Bảo tàng Lịch sử')}</span>
+            <span className="breadcrumb-museum-name">
+              {currentLang === 'vi' ? (branding.shortName || branding.museumName || t('nav.breadcrumbMuseum', 'Bảo tàng Lịch sử')) : t('nav.breadcrumbMuseum', 'History Museum')}
+            </span>
           </div>
 
           <ChevronRight size={13} className="breadcrumb-divider" />

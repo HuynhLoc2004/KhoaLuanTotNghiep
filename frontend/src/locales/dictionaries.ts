@@ -76,6 +76,15 @@ export const DICTIONARY_VI: LocaleDictionary = {
   'rooms.thScans': 'Lượt quét QR',
   'rooms.thActions': 'Thao tác',
 
+  // QR Standee Modal
+  'rooms.qrModalTitle': 'Mã QR Tham Quan',
+  'rooms.roomCode': 'Mã phòng',
+  'rooms.scanToExplore': 'Quét mã để tham quan không gian 360°',
+  'rooms.scanToExploreSub': 'Scan to explore 360° virtual tour',
+  'rooms.copiedLink': 'Đã sao chép liên kết tham quan',
+  'rooms.printStandee': 'In Standee',
+  'rooms.enter360': 'Vào phòng 360°',
+
   // Pagination
   'pagination.showing': 'Hiển thị',
   'pagination.to': '-',
@@ -95,15 +104,36 @@ export const DICTIONARY_VI: LocaleDictionary = {
   'studio.editHotspot': 'Sửa điểm neo',
   'studio.deleteHotspot': 'Xóa điểm neo',
 
+  // POC Stitching / Tạo ảnh 360°
+  'stitching.title': 'Tạo & Ghép Ảnh Toàn Cảnh 360°',
+  'stitching.desc': 'Chụp trực tiếp bằng camera điện thoại hoặc tải lên chùm ảnh góc để ghép thành không gian tham quan 360° hoàn chỉnh.',
+  'stitching.inputSource': 'Nguồn ảnh đầu vào',
+  'stitching.clearPhotos': 'Xóa ảnh',
+  'stitching.captureCamera': 'Chụp camera',
+  'stitching.captureWebcam': 'Chụp bằng webcam',
+  'stitching.uploadFiles': 'Chọn từ máy',
+  'stitching.pcHint': 'Bạn đang dùng máy tính. Chụp trực tiếp từng góc cho chất lượng tốt nhất trên điện thoại; trên máy tính hãy chụp bằng webcam hoặc tải sẵn bộ ảnh lên qua nút "Chọn từ máy".',
+  'stitching.shootingGuide': 'Hướng dẫn cách chụp ảnh 360° chuẩn',
+  'stitching.stitchBtn': 'Tạo không gian toàn cảnh 360 độ',
+  'stitching.loadSample': 'Nạp ảnh mẫu 360° chuẩn',
+  'stitching.previewTitle': 'Trình xem trước không gian 360°',
+  'stitching.noSpace': 'Chưa có không gian 360° được tải',
+  'stitching.noSpaceDesc': 'Chụp trực tiếp bằng điện thoại, tải ảnh PANO lên từ bảng điều khiển bên trái, hoặc bấm xem thử không gian mẫu để làm quen giao diện.',
+  'stitching.viewSample': 'Xem thử không gian mẫu',
+  'stitching.viewGuide': 'Xem hướng dẫn chụp',
+  'stitching.libraryTitle': 'Thư viện không gian 360° đã tạo',
+
   // Common UI
   'common.confirm': 'Xác nhận',
   'common.cancel': 'Hủy bỏ',
   'common.save': 'Lưu lại',
   'common.close': 'Đóng',
+  'common.copy': 'Sao chép',
   'common.loading': 'Đang tải dữ liệu không gian bảo tàng...',
   'common.refresh': 'Làm mới',
   'common.emptyData': 'Chưa có dữ liệu phù hợp',
   'common.items': 'mục',
+  'common.thesisTitle': 'Đề tài Tốt nghiệp 2026',
   'common.thesisFooter': 'Đề tài Tốt nghiệp 2026 • Hệ thống Tour 360 Không gian Di sản'
 };
 
@@ -156,11 +186,11 @@ export const DICTIONARY_EN: LocaleDictionary = {
   'rooms.statusNoAi': 'AI Not Configured',
   'rooms.viewGrid': 'Grid',
   'rooms.viewTable': 'Table',
-  'rooms.explore360': '360 Editorial',
-  'rooms.narration': 'Explanation',
+  'rooms.explore360': '360 Studio',
+  'rooms.narration': 'Narration',
   'rooms.qrCode': 'QR Code',
-  'rooms.edit': 'Fix',
-  'rooms.delete': 'Erase',
+  'rooms.edit': 'Edit',
+  'rooms.delete': 'Delete',
   'rooms.anchorPoints': 'anchor points',
   'rooms.notConfigured': 'Not yet configured',
   'rooms.aiEnabled': 'Audio enabled',
@@ -176,6 +206,15 @@ export const DICTIONARY_EN: LocaleDictionary = {
   'rooms.thNarration': 'Audio & Voice',
   'rooms.thScans': 'QR Scans',
   'rooms.thActions': 'Actions',
+
+  // QR Standee Modal
+  'rooms.qrModalTitle': 'Tour QR Code',
+  'rooms.roomCode': 'Room Code',
+  'rooms.scanToExplore': 'Scan QR to explore 360° virtual tour',
+  'rooms.scanToExploreSub': 'Scan QR code with your phone to explore space',
+  'rooms.copiedLink': 'Copied tour link to clipboard',
+  'rooms.printStandee': 'Print Standee',
+  'rooms.enter360': 'Enter 360° Room',
 
   // Pagination
   'pagination.showing': 'Showing',
@@ -196,15 +235,36 @@ export const DICTIONARY_EN: LocaleDictionary = {
   'studio.editHotspot': 'Edit Hotspot',
   'studio.deleteHotspot': 'Delete Hotspot',
 
+  // POC Stitching / Tạo ảnh 360°
+  'stitching.title': 'Create & Stitch 360° Panorama',
+  'stitching.desc': 'Capture directly using phone camera or upload angle photos to stitch into a complete 360° virtual tour space.',
+  'stitching.inputSource': 'Input Photo Source',
+  'stitching.clearPhotos': 'Clear Photos',
+  'stitching.captureCamera': 'Camera Capture',
+  'stitching.captureWebcam': 'Webcam Capture',
+  'stitching.uploadFiles': 'Upload from Device',
+  'stitching.pcHint': 'You are using a computer. Capture each angle directly on phone for best quality; on computer, please use webcam or upload a photo set via "Upload from Device".',
+  'stitching.shootingGuide': 'Standard 360° Shooting Guide',
+  'stitching.stitchBtn': 'Stitch 360° Panorama',
+  'stitching.loadSample': 'Load Sample 360° Panorama',
+  'stitching.previewTitle': '360° Space Preview',
+  'stitching.noSpace': 'No 360° Space Loaded',
+  'stitching.noSpaceDesc': 'Capture directly on phone, upload a PANO image from the left panel, or preview sample space to get familiar with the UI.',
+  'stitching.viewSample': 'View Sample Space',
+  'stitching.viewGuide': 'View Shooting Guide',
+  'stitching.libraryTitle': 'Created 360° Space Library',
+
   // Common UI
   'common.confirm': 'Confirm',
   'common.cancel': 'Cancel',
   'common.save': 'Save',
   'common.close': 'Close',
+  'common.copy': 'Copy',
   'common.loading': 'Loading museum space data...',
   'common.refresh': 'Refresh',
   'common.emptyData': 'No matching data found',
   'common.items': 'items',
+  'common.thesisTitle': 'Graduation Thesis 2026',
   'common.thesisFooter': 'Graduation Thesis Topic 2026 • Heritage Space 360 Tour System'
 };
 

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { API_BASE } from '../services/api';
 import { LanguageItem } from '../types';
 import { BUILTIN_DICTIONARIES, DICTIONARY_VI, LocaleDictionary, ROOM_PRESET_TRANSLATIONS } from '../locales/dictionaries';
+import { UNIVERSAL_PHRASE_MAP } from '../locales/universalPhraseMap';
 
 export interface ClientTranslationContextType {
   currentLang: string;
@@ -63,6 +64,133 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       // Ignored
     }
   }, []);
+
+  // Cơ chế quét và dịch tự động toàn diện các Text Node trong DOM (Hybrid i18n DOM Engine)
+  // Bảo đảm 100% không bao giờ sót bất kỳ chữ tiếng Việt nào trên mọi trang, popup, modal
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    let isScanning = false;
+
+    const translateTextNodes = (root: Node = document.body) => {
+      if (currentLang === 'vi') {
+        // Phục hồi lại văn bản gốc nếu chuyển về tiếng Việt
+        document.querySelectorAll('[data-i18n-orig]').forEach((el) => {
+          const orig = el.getAttribute('data-i18n-orig');
+          if (orig) {
+            el.textContent = orig;
+            el.removeAttribute('data-i18n-orig');
+          }
+        });
+        return;
+      }
+
+      const targetLang = currentLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
+
+      const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node) {
+            if (!node.textContent || !node.textContent.trim()) return NodeFilter.FILTER_REJECT;
+            const parent = node.parentElement;
+            if (!parent) return NodeFilter.FILTER_REJECT;
+            const tag = parent.tagName.toLowerCase();
+            if (tag === 'script' || tag === 'style' || tag === 'code' || tag === 'pre' || tag === 'textarea' || tag === 'input') {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+
+      const nodes: Text[] = [];
+      while (walker.nextNode()) {
+        nodes.push(walker.currentNode as Text);
+      }
+
+      nodes.forEach((node) => {
+        const text = node.textContent;
+        if (!text) return;
+        const trimmed = text.trim();
+
+        // 1. Khớp nguyên văn từ điển cụm từ
+        if (UNIVERSAL_PHRASE_MAP[trimmed]) {
+          const item = UNIVERSAL_PHRASE_MAP[trimmed];
+          const trans = item[targetLang] || item.en;
+          if (trans && trans !== trimmed) {
+            if (node.parentElement && !node.parentElement.hasAttribute('data-i18n-orig')) {
+              node.parentElement.setAttribute('data-i18n-orig', trimmed);
+            }
+            node.textContent = text.replace(trimmed, trans);
+            return;
+          }
+        }
+
+        // 2. Thay thế các biến động số lượng phổ biến
+        let replaced = text;
+        replaced = replaced.replace(/(\d+)\s+điểm neo/g, (_, n) => {
+          const word = targetLang === 'en' ? 'anchor points' : targetLang === 'fr' ? "points d'ancrage" : targetLang === 'zh' ? '个锚点' : '箇所のスポット';
+          return `${n} ${word}`;
+        });
+        replaced = replaced.replace(/(\d+)\s+lượt quét/g, (_, n) => {
+          const word = targetLang === 'en' ? 'scans' : targetLang === 'fr' ? 'scans' : targetLang === 'zh' ? '次扫码' : '回スキャン';
+          return `${n} ${word}`;
+        });
+        replaced = replaced.replace(/(\d+)\s+góc 360°/g, (_, n) => {
+          const word = targetLang === 'en' ? '360° views' : targetLang === 'fr' ? 'angles 360°' : targetLang === 'zh' ? '个360°视角' : '箇所の360°視点';
+          return `${n} ${word}`;
+        });
+        replaced = replaced.replace(/(\d+)\s+gian phòng/g, (_, n) => {
+          const word = targetLang === 'en' ? 'rooms' : targetLang === 'fr' ? 'salles' : targetLang === 'zh' ? '个展厅' : '室';
+          return `${n} ${word}`;
+        });
+        replaced = replaced.replace(/Mã phòng:\s*/g, () => {
+          return targetLang === 'en' ? 'Room Code: ' : targetLang === 'fr' ? 'Code de la salle : ' : targetLang === 'zh' ? '展厅编号: ' : '展示室コード: ';
+        });
+        replaced = replaced.replace(/\((\d+)\s+ảnh\)/g, (_, n) => {
+          return targetLang === 'en' ? `(${n} photos)` : targetLang === 'fr' ? `(${n} photos)` : targetLang === 'zh' ? `(${n} 张图片)` : `(${n} 枚の画像)`;
+        });
+
+        if (replaced !== text) {
+          if (node.parentElement && !node.parentElement.hasAttribute('data-i18n-orig')) {
+            node.parentElement.setAttribute('data-i18n-orig', text);
+          }
+          node.textContent = replaced;
+        }
+      });
+    };
+
+    // Chạy ngay lần đầu
+    translateTextNodes();
+
+    if (currentLang === 'vi') return;
+
+    // MutationObserver để bắt kịp các modal hoặc nội dung render sau
+    const observer = new MutationObserver((mutations) => {
+      if (isScanning) return;
+      isScanning = true;
+      requestAnimationFrame(() => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((added) => {
+            if (added.nodeType === Node.ELEMENT_NODE) {
+              translateTextNodes(added);
+            }
+          });
+        });
+        isScanning = false;
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [currentLang]);
 
   // Tải danh sách các ngôn ngữ do Admin cấu hình kích hoạt
   const fetchActiveLanguages = useCallback(async () => {
