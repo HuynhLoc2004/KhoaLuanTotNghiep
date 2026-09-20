@@ -439,70 +439,89 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
   return (
     <div className="admin-content">
-      {/* KPI Cards: Thống kê thời gian thực từ Database */}
-      <div className="stats-grid">
-        {/* Card 1: Tổng gian phòng */}
-        <div className="stat-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="stat-title">Gian phòng Tour 360</div>
-            <Compass size={15} style={{ color: 'var(--accent-gold)' }} />
+      {/* BĂNG THỐNG KÊ DI SẢN: Thiết kế độc bản, trang trọng, xóa bỏ hoàn toàn phong cách AI SaaS */}
+      <div className="heritage-stats-banner">
+        {/* Mục 1: Không gian Gian phòng Tour 360 */}
+        <div className="heritage-stat-col">
+          <div className="heritage-stat-header">
+            <span className="heritage-stat-icon-wrapper">
+              <Compass size={15} />
+            </span>
+            <span className="heritage-stat-title">Gian phòng Trưng bày</span>
           </div>
-          <div className="stat-value" style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-            <span>{publishedCount}/{rooms.length}</span>
-            <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>phòng</span>
-          </div>
-          <div style={{ marginTop: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginBottom: 3 }}>
-              <span>Tiến độ số hóa</span>
-              <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{digitizationPercent}%</span>
+          <div className="heritage-stat-body">
+            <div className="heritage-stat-metric">
+              <span className="heritage-stat-number">{publishedCount}</span>
+              <span className="heritage-stat-denom">/{rooms.length}</span>
+              <span className="heritage-stat-unit">không gian</span>
             </div>
-            <div style={{ width: '100%', height: 4, background: 'var(--bg-subtle)', borderRadius: 99, overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${digitizationPercent}%`,
-                  height: '100%',
-                  background: 'linear-gradient(90deg, var(--accent-gold) 0%, #E5B268 100%)',
-                  borderRadius: 99,
-                  transition: 'width 0.4s ease'
-                }}
-              />
+            <div className="heritage-stat-sub">
+              <span>Số hóa {digitizationPercent}%</span>
+              <span className="heritage-stat-dot">•</span>
+              <span>Sẵn sàng đón khách</span>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Điểm neo tương tác Hotspots */}
-        <div className="stat-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="stat-title">Điểm neo hiện vật</div>
-            <MapPin size={15} style={{ color: 'var(--accent-gold)' }} />
+        {/* Mục 2: Cổ vật & Điểm neo Hiện vật */}
+        <div className="heritage-stat-col">
+          <div className="heritage-stat-header">
+            <span className="heritage-stat-icon-wrapper">
+              <MapPin size={15} />
+            </span>
+            <span className="heritage-stat-title">Hiện vật & Điểm khảo cứu</span>
           </div>
-          <div className="stat-value">{totalHotspots}</div>
-          <div className="stat-desc">Định vị hiện vật & dẫn hướng</div>
+          <div className="heritage-stat-body">
+            <div className="heritage-stat-metric">
+              <span className="heritage-stat-number">{totalHotspots}</span>
+              <span className="heritage-stat-unit">tọa độ di sản</span>
+            </div>
+            <div className="heritage-stat-sub">
+              <span>Định vị tư liệu & dẫn hướng tour 360</span>
+            </div>
+          </div>
         </div>
 
-        {/* Card 3: Thuyết minh AI & Trợ lý ảo */}
-        <div className="stat-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="stat-title">Thuyết minh AI</div>
-            <Sparkles size={15} style={{ color: 'var(--accent-gold)' }} />
+        {/* Mục 3: Thuyết minh Chuyên khảo */}
+        <div className="heritage-stat-col">
+          <div className="heritage-stat-header">
+            <span className="heritage-stat-icon-wrapper">
+              <BookOpen size={15} />
+            </span>
+            <span className="heritage-stat-title">Thuyết minh Di sản</span>
           </div>
-          <div className="stat-value" style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-            <span>{aiRoomsCount}</span>
-            <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>phòng</span>
+          <div className="heritage-stat-body">
+            <div className="heritage-stat-metric">
+              <span className="heritage-stat-number">{aiRoomsCount}</span>
+              <span className="heritage-stat-denom">/{rooms.length}</span>
+              <span className="heritage-stat-unit">chuyên khảo</span>
+            </div>
+            <div className="heritage-stat-sub">
+              <span>Biên tập tư liệu lịch sử & âm thanh bản xứ</span>
+            </div>
           </div>
-          <div className="stat-desc">Đã kích hoạt AI Voice & RAG</div>
         </div>
 
-        {/* Card 4: Tương tác quét QR thực địa */}
-        <div className="stat-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="stat-title">Tương tác QR thực tế</div>
-            <QrCode size={15} style={{ color: 'var(--accent-gold)' }} />
+        {/* Mục 4: Khách tham quan quét mã Standee */}
+        <div className="heritage-stat-col" style={{ borderRight: 'none' }}>
+          <div className="heritage-stat-header">
+            <span className="heritage-stat-icon-wrapper">
+              <QrCode size={15} />
+            </span>
+            <span className="heritage-stat-title">Tương tác Thực địa</span>
           </div>
-          <div className="stat-value">{totalQrScans.toLocaleString('vi-VN')}</div>
-          <div className="stat-desc">Lượt khách quét tại phòng trưng bày</div>
+          <div className="heritage-stat-body">
+            <div className="heritage-stat-metric">
+              <span className="heritage-stat-number">{totalQrScans.toLocaleString('vi-VN')}</span>
+              <span className="heritage-stat-unit">lượt quét</span>
+            </div>
+            <div className="heritage-stat-sub">
+              <span>Du khách quét mã tại gian trưng bày</span>
+            </div>
+          </div>
         </div>
       </div>
+
 
       {/* Main Panel */}
       <div className="panel">

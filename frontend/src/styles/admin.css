@@ -437,6 +437,136 @@
   margin-top: 3px;
 }
 
+/* ==============================================================================
+   HERITAGE STATS BANNER (BĂNG TỔNG QUAN DI SẢN ĐỘC BẢN - CHUẨN BẢO TÀNG)
+   Thiết kế nguyên khối trang nhã, xóa bỏ hoàn toàn phong cách AI SaaS 4 hộp rời rạc
+   ============================================================================== */
+.heritage-stats-banner {
+  display: flex;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-top: 3px solid var(--accent-gold);
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.heritage-stat-col {
+  flex: 1;
+  padding: 16px 22px;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  background: transparent;
+  transition: background-color 0.18s ease;
+}
+
+.heritage-stat-col:last-child {
+  border-right: none;
+}
+
+.heritage-stat-col:hover {
+  background-color: var(--bg-subtle);
+}
+
+.heritage-stat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heritage-stat-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-subtle);
+  color: var(--accent-gold);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.heritage-stat-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heritage-stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heritage-stat-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.heritage-stat-number {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--heading-color);
+  line-height: 1.15;
+  font-feature-settings: "tnum";
+}
+
+.heritage-stat-denom {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.heritage-stat-unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.heritage-stat-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heritage-stat-dot {
+  opacity: 0.5;
+  font-size: 10px;
+}
+
+@media (max-width: 960px) {
+  .heritage-stats-banner {
+    flex-direction: column;
+  }
+  .heritage-stat-col {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 14px 18px;
+  }
+  .heritage-stat-col:last-child {
+    border-bottom: none;
+  }
+}
+
 /* Rooms Table / Cards */
 .panel {
   background-color: var(--bg-surface);

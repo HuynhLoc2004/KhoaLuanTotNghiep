@@ -415,79 +415,75 @@ export const AdminLanguagePage: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI METRIC CARDS */}
-        <div className="lang-kpi-grid">
-          {/* CARD 1: TỔNG NGÔN NGỮ */}
-          <div className="lang-kpi-card">
-            <div className="lang-kpi-top">
-              <span className="lang-kpi-label">Tổng ngôn ngữ hệ thống</span>
-              <div className="lang-kpi-icon-pill" style={{ background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)' }}>
-                <Languages size={17} />
+        {/* BĂNG TỔNG QUAN ĐA NGỮ DI SẢN: Thiết kế độc bản, trang trọng, loại bỏ các thẻ AI rời rạc */}
+        <div className="heritage-stats-banner">
+          {/* Mục 1: Danh mục Ngôn ngữ Quốc tế */}
+          <div className="heritage-stat-col" style={{ flex: 1.2 }}>
+            <div className="heritage-stat-header">
+              <span className="heritage-stat-icon-wrapper">
+                <Languages size={15} />
+              </span>
+              <span className="heritage-stat-title">Ngôn ngữ Phục vụ Khách Quốc tế</span>
+            </div>
+            <div className="heritage-stat-body">
+              <div className="heritage-stat-metric">
+                <span className="heritage-stat-number">{languages.length}</span>
+                <span className="heritage-stat-unit">quốc gia & vùng lãnh thổ</span>
+              </div>
+              <div className="heritage-stat-sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                {languages.slice(0, 7).map((l) => (
+                  <span key={l.code} title={`${l.nativeName} (${l.name})`} style={{ fontSize: 14 }}>
+                    {l.flagIcon}
+                  </span>
+                ))}
+                {languages.length > 7 && (
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>+{languages.length - 7}</span>
+                )}
               </div>
             </div>
-            <div className="lang-kpi-val">
-              <span>{languages.length}</span>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>quốc gia</span>
-            </div>
-            <span className="lang-kpi-sub">
-              Sẵn sàng bản dịch thuyết minh & âm thanh AI
-            </span>
           </div>
 
-          {/* CARD 2: ĐANG HIỂN THỊ TRÊN CLIENT */}
-          <div className="lang-kpi-card">
-            <div className="lang-kpi-top">
-              <span className="lang-kpi-label">Đang hiển thị trên Client</span>
-              <div className="lang-kpi-icon-pill" style={{ background: 'rgba(140, 45, 25, 0.12)', color: 'var(--primary)' }}>
-                <Eye size={17} />
+          {/* Mục 2: Tỷ lệ hiển thị trên Client */}
+          <div className="heritage-stat-col" style={{ flex: 1 }}>
+            <div className="heritage-stat-header">
+              <span className="heritage-stat-icon-wrapper">
+                <Eye size={15} />
+              </span>
+              <span className="heritage-stat-title">Đang Mở Cổng Tham quan</span>
+            </div>
+            <div className="heritage-stat-body">
+              <div className="heritage-stat-metric">
+                <span className="heritage-stat-number">{activeCount}</span>
+                <span className="heritage-stat-denom">/{languages.length}</span>
+                <span className="heritage-stat-unit">ngôn ngữ ({activePercent}%)</span>
+              </div>
+              <div className="heritage-stat-sub">
+                <span>Khách tham quan tự do chuyển đổi trên tour 360</span>
               </div>
             </div>
-            <div className="lang-kpi-val">
-              <span>{activeCount}</span>
-              <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)' }}>/ {languages.length}</span>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', marginLeft: 'auto' }}>
-                {activePercent}%
-              </span>
-            </div>
-            <div className="lang-progress-bar">
-              <div className="lang-progress-fill" style={{ width: `${activePercent}%` }} />
-            </div>
-            <span className="lang-kpi-sub">
-              Khách tham quan có thể lựa chọn tự do
-            </span>
           </div>
 
-          {/* CARD 3: VOICE AI ENGINE */}
-          <div className="lang-kpi-card">
-            <div className="lang-kpi-top">
-              <span className="lang-kpi-label">Voice AI Engine</span>
-              <div className="lang-kpi-icon-pill" style={{ background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)' }}>
-                <Volume2 size={17} />
+          {/* Mục 3: Chuẩn thuyết minh di sản */}
+          <div className="heritage-stat-col" style={{ flex: 1.1, borderRight: 'none' }}>
+            <div className="heritage-stat-header">
+              <span className="heritage-stat-icon-wrapper">
+                <Volume2 size={15} />
+              </span>
+              <span className="heritage-stat-title">Chuẩn Thuyết minh Di sản</span>
+            </div>
+            <div className="heritage-stat-body">
+              <div className="heritage-stat-metric">
+                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent-gold)' }}>
+                  Ngữ điệu Bản xứ Chuẩn Sử học
+                </span>
               </div>
-            </div>
-            <div className="lang-kpi-val" style={{ fontSize: '20px' }}>
-              <span>Pre-rendered Studio</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  background: 'rgba(212, 168, 106, 0.12)',
-                  color: 'var(--accent-gold)',
-                  border: '1px solid rgba(212, 168, 106, 0.25)',
-                  padding: '2px 8px',
-                  borderRadius: 4
-                }}
-              >
-                Độ trễ 0ms
-              </span>
-              <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                Chuẩn ngữ điệu sử học
-              </span>
+              <div className="heritage-stat-sub">
+                <span>Được thẩm định chuyên sâu cho Bảo tàng Lịch sử TP.HCM</span>
+              </div>
             </div>
           </div>
         </div>
+
 
         {/* AUDIO PLAYER BANNER NẾU ĐANG NGHE THỬ */}
         {previewAudio && (
