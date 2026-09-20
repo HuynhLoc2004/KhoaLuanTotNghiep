@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useClientTranslation } from '../context/ClientTranslationContext';
 
 export const DEFAULT_PAGE_SIZE_OPTIONS = [6, 9, 12, 18, 24];
 
@@ -23,9 +24,11 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageSizeChange,
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   className = '',
-  itemLabel = 'mục',
+  itemLabel,
   hideOnSinglePage = false
 }) => {
+  const { t } = useClientTranslation();
+  const label = itemLabel || t('common.items') || 'mục';
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   if (totalItems <= 0) return null;
@@ -60,21 +63,21 @@ export const Pagination: React.FC<PaginationProps> = ({
     <div className={`pagination-container ${className}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
         <div className="pagination-info">
-          Hiển thị <strong>{startItem}</strong> - <strong>{endItem}</strong> trên tổng số <strong>{totalItems}</strong> {itemLabel}
+          {t('pagination.showing')} <strong>{startItem}</strong> - <strong>{endItem}</strong> {t('pagination.of')} <strong>{totalItems}</strong> {label}
         </div>
 
         {onPageSizeChange && (
           <div className="pagination-size-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Mỗi trang:</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t('pagination.perPage')}</span>
             <select
               className="pagination-size-select"
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              aria-label="Chọn số lượng hiển thị trên mỗi trang"
+              aria-label={t('pagination.perPage')}
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>
-                  {opt} / trang
+                  {opt} {t('pagination.unit')}
                 </option>
               ))}
             </select>
@@ -88,10 +91,10 @@ export const Pagination: React.FC<PaginationProps> = ({
           className="pagination-btn nav-btn"
           disabled={currentPage === 1}
           onClick={() => onPageChange(currentPage - 1)}
-          aria-label="Trang trước"
+          aria-label={t('pagination.prev')}
         >
           <ChevronLeft size={16} />
-          <span className="pagination-btn-label">Trước</span>
+          <span className="pagination-btn-label">{t('pagination.prev')}</span>
         </button>
 
         <div className="pagination-pages">
@@ -118,9 +121,9 @@ export const Pagination: React.FC<PaginationProps> = ({
           className="pagination-btn nav-btn"
           disabled={currentPage === totalPages}
           onClick={() => onPageChange(currentPage + 1)}
-          aria-label="Trang tiếp"
+          aria-label={t('pagination.next')}
         >
-          <span className="pagination-btn-label">Sau</span>
+          <span className="pagination-btn-label">{t('pagination.next')}</span>
           <ChevronRight size={16} />
         </button>
       </div>

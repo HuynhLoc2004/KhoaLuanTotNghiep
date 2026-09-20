@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../services/api';
 import { LanguageItem } from '../types';
-import { BUILTIN_DICTIONARIES, DICTIONARY_VI, LocaleDictionary } from '../locales/dictionaries';
+import { BUILTIN_DICTIONARIES, DICTIONARY_VI, LocaleDictionary, ROOM_PRESET_TRANSLATIONS } from '../locales/dictionaries';
 
 export interface ClientTranslationContextType {
   currentLang: string;
@@ -152,12 +152,28 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     if (currentLang === 'vi') {
       return item[field] || fallback || '';
     }
-    // Ưu tiên đọc bản dịch đã lưu trong Document của phòng/hiện vật
+
+    // 1. Ưu tiên đọc bản dịch đã lưu trong Document của phòng/hiện vật trong MongoDB
     const translatedVal = item.translations?.[currentLang]?.[field];
     if (translatedVal && typeof translatedVal === 'string' && translatedVal.trim()) {
       return translatedVal;
     }
-    // Fallback sang tiếng Anh nếu có
+
+    // 2. Tra cứu kho bản dịch chuẩn học thuật di sản theo mã phòng (P-101, P-102, P-103...)
+    if (item.code) {
+      const codeClean = String(item.code).trim();
+      const presetTrans = ROOM_PRESET_TRANSLATIONS[codeClean]?.[currentLang]?.[field as 'name' | 'period' | 'description'];
+      if (presetTrans && typeof presetTrans === 'string' && presetTrans.trim()) {
+        return presetTrans;
+      }
+      // Fallback sang tiếng Anh của preset nếu ngôn ngữ hiện tại chưa có
+      const presetEn = ROOM_PRESET_TRANSLATIONS[codeClean]?.en?.[field as 'name' | 'period' | 'description'];
+      if (presetEn && typeof presetEn === 'string' && presetEn.trim()) {
+        return presetEn;
+      }
+    }
+
+    // 3. Fallback sang tiếng Anh nếu có trong translations
     const enVal = item.translations?.en?.[field];
     if (enVal && typeof enVal === 'string' && enVal.trim()) {
       return enVal;
