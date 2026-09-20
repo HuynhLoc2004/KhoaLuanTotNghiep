@@ -3953,20 +3953,49 @@
 /* Thanh tóm tắt số lượng ảnh đã nạp */
 .studio-frame-summary {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
   font-size: 12.5px;
   color: var(--text-main);
-  padding: 8px 12px;
+  padding: 10px 12px;
   background-color: var(--bg-subtle);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
 }
 
+.studio-frame-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .studio-frame-summary-count strong {
   color: var(--primary);
+}
+
+.studio-frame-progress-bar {
+  width: 100%;
+  height: 5px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.studio-frame-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.35s ease, background-color 0.35s ease;
+}
+
+.studio-frame-progress-hint {
+  font-size: 11.5px;
+  line-height: 1.45;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 /* Ghi chú ngữ cảnh thiết bị / chất lượng ảnh */
@@ -3977,15 +4006,15 @@
   color: var(--text-muted);
 }
 
-/* Lưới ảnh thu gọn: giới hạn chiều cao để nút thao tác luôn nằm trong tầm với */
+/* Lưới ảnh thu gọn responsive tự động dàn đều cột, không bị chèn nút lên ảnh */
 .studio-frame-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
   gap: 8px;
-  max-height: 280px;
+  max-height: 290px;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  padding-right: 4px;
+  padding: 2px 4px 4px 2px;
 }
 
 .studio-frame-cell {
@@ -3995,6 +4024,8 @@
   overflow: hidden;
   border: 1px solid var(--border-color);
   background-color: var(--bg-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
 .studio-frame-cell.is-passed {
@@ -4024,16 +4055,22 @@
 .studio-frame-index {
   position: absolute;
   left: 4px;
-  bottom: 4px;
-  min-width: 17px;
+  top: 4px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
-  text-align: center;
-  font-size: 10.5px;
-  font-weight: 600;
-  line-height: 17px;
-  color: var(--primary-text);
-  background-color: rgba(42, 27, 20, 0.72);
-  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background-color: rgba(18, 12, 10, 0.82);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  pointer-events: none;
 }
 
 .studio-frame-checking {
@@ -4043,6 +4080,8 @@
   align-items: center;
   justify-content: center;
   color: var(--accent-gold);
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 3;
 }
 
 .studio-frame-remove {
@@ -4052,16 +4091,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 19px;
-  height: 19px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   cursor: pointer;
-  color: var(--primary-text);
-  background-color: rgba(42, 27, 20, 0.72);
+  color: #fff;
+  background-color: rgba(18, 12, 10, 0.82);
+  backdrop-filter: blur(4px);
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   opacity: 0;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+  z-index: 2;
 }
 
 .studio-frame-cell:hover .studio-frame-remove,
@@ -4071,6 +4112,7 @@
 
 .studio-frame-remove:hover {
   background-color: var(--error);
+  transform: scale(1.08);
 }
 
 .studio-frame-remove:disabled {
@@ -4080,7 +4122,7 @@
 
 @media (hover: none) {
   .studio-frame-remove {
-    opacity: 1;
+    opacity: 0.85;
   }
 }
 
@@ -4136,8 +4178,8 @@
 
 @media (max-width: 768px) {
   .studio-frame-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    max-height: 240px;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    max-height: 250px;
     gap: 6px;
   }
 

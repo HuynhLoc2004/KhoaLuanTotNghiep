@@ -446,8 +446,12 @@ function normalizePanoUrl(rawUrl: string): string {
     const totalCount = framesToStitch.length + batchFiles.length;
 
     if (totalCount < 1) {
-      setErrorMsg('Vui lòng chụp ít nhất 1 ảnh PANO toàn cảnh hoặc chùm ảnh góc (khuyên dùng 8–12 góc hoặc 16–24 góc).');
+      setErrorMsg('Vui lòng chọn ít nhất 1 ảnh PANO toàn cảnh hoặc chùm ảnh góc (khuyên dùng 16–36 góc để phủ trọn 360°).');
       return;
+    }
+
+    if (totalCount > 1 && totalCount < 8 && batchFiles.length === 0) {
+      showToast(`Lưu ý: Bạn mới nạp ${totalCount} ảnh góc (~${totalCount * 22}°). Để tạo không gian 360° trọn vẹn không bị méo, nên nạp đủ 16–36 ảnh hoặc 1 ảnh PANO!`, 'warning');
     }
 
     setIsProcessing(true);
@@ -650,29 +654,85 @@ function normalizePanoUrl(rawUrl: string): string {
               {/* Thanh tóm tắt số lượng, luôn hiển thị ở đầu khối để không phải cuộn tìm */}
               {totalFrames > 0 && (
                 <div className="studio-frame-summary">
-                  <span className="studio-frame-summary-count">
-                    Đã nạp: <strong>{totalFrames}</strong> ảnh
-                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginLeft: 6, fontWeight: 'normal' }}>
-                      (Hỗ trợ từ 3 đến 100+ ảnh)
+                  <div className="studio-frame-summary-header">
+                    <span className="studio-frame-summary-count">
+                      Đã nạp: <strong>{totalFrames}</strong> ảnh
                     </span>
-                  </span>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {passedCount > 0 && (
-                      <span className="badge badge-success" style={{ fontSize: '11px' }}>
-                        {passedCount} đạt chuẩn
-                      </span>
-                    )}
-                    {totalFrames >= 36 && (
-                      <span className="badge" style={{ fontSize: '11px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
-                        Chùm lớn: Tự động tối ưu quang học
-                      </span>
-                    )}
-                    {failedCount > 0 && (
-                      <span className="badge badge-warning" style={{ fontSize: '11px' }}>
-                        {failedCount} cần chụp lại
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {batchFiles.length === 1 && (
+                        <span className="badge badge-success" style={{ fontSize: '11px' }}>
+                          Ảnh PANO 360° sẵn sàng
+                        </span>
+                      )}
+                      {passedCount > 0 && batchFiles.length !== 1 && (
+                        <span className="badge badge-success" style={{ fontSize: '11px' }}>
+                          {passedCount} đạt chuẩn
+                        </span>
+                      )}
+                      {totalFrames >= 36 && (
+                        <span className="badge" style={{ fontSize: '11px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                          Chùm lớn: Tự động tối ưu 4K
+                        </span>
+                      )}
+                      {failedCount > 0 && (
+                        <span className="badge badge-warning" style={{ fontSize: '11px' }}>
+                          {failedCount} cần chụp lại
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Thanh tiến trình đo độ phủ 360° theo số lượng góc chụp */}
+                  {batchFiles.length === 1 ? (
+                    <div className="studio-frame-progress-hint" style={{ color: 'var(--success)' }}>
+                      <Check size={14} />
+                      <span>Ảnh Panorama góc rộng 360° đã sẵn sàng tạo không gian hoàn chỉnh.</span>
+                    </div>
+                  ) : totalFrames < 12 ? (
+                    <>
+                      <div className="studio-frame-progress-bar">
+                        <div
+                          className="studio-frame-progress-fill"
+                          style={{
+                            width: `${Math.min(100, Math.round((totalFrames / 16) * 100))}%`,
+                            backgroundColor: 'var(--accent-gold)'
+                          }}
+                        />
+                      </div>
+                      <div className="studio-frame-progress-hint" style={{ color: 'var(--warning-text, #f59e0b)' }}>
+                        <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>
+                          Mới quét được ~{Math.round((totalFrames / 16) * 100)}% vòng tròn (góc hẹp ~{totalFrames * 22}°). Khuyên dùng 16 – 36 ảnh để phủ kín gian phòng, hoặc tải 1 ảnh PANO.
+                        </span>
+                      </div>
+                    </>
+                  ) : totalFrames <= 36 ? (
+                    <>
+                      <div className="studio-frame-progress-bar">
+                        <div
+                          className="studio-frame-progress-fill"
+                          style={{ width: '100%', backgroundColor: 'var(--success)' }}
+                        />
+                      </div>
+                      <div className="studio-frame-progress-hint" style={{ color: 'var(--success)' }}>
+                        <Check size={14} />
+                        <span>Số lượng ảnh lý tưởng để phủ kín trọn vẹn vòng tròn 360° gian phòng.</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="studio-frame-progress-bar">
+                        <div
+                          className="studio-frame-progress-fill"
+                          style={{ width: '100%', backgroundColor: '#38bdf8' }}
+                        />
+                      </div>
+                      <div className="studio-frame-progress-hint" style={{ color: '#38bdf8' }}>
+                        <Sparkles size={14} />
+                        <span>Chùm ảnh dày ({totalFrames} ảnh): Hệ thống tự động chọn 36–44 góc chủ chốt 4K tối ưu tốc độ & chống tràn RAM.</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -759,8 +819,11 @@ function normalizePanoUrl(rawUrl: string): string {
                   <>
                     <Sparkles size={16} />
                     <span>
-                      Tạo không gian toàn cảnh 360 độ
-                      {totalFrames > 0 ? ` (${totalFrames} ảnh)` : ''}
+                      {totalFrames === 1 && batchFiles.length === 1
+                        ? 'Tạo không gian toàn cảnh từ ảnh PANO'
+                        : totalFrames > 0 && totalFrames < 12
+                          ? `Ghép góc nhìn bán phần (${totalFrames}/16 góc)`
+                          : `Tạo không gian toàn cảnh 360 độ (${totalFrames} ảnh)`}
                     </span>
                   </>
                 )}
@@ -1035,7 +1098,11 @@ function normalizePanoUrl(rawUrl: string): string {
               <Camera size={14} />
               <strong>{totalFrames}</strong> ảnh
             </span>
-            {passedCount > 0 && <span className="badge badge-success" style={{ fontSize: 11 }}>{passedCount} đạt</span>}
+            {totalFrames < 12 && batchFiles.length !== 1 ? (
+              <span className="badge badge-warning" style={{ fontSize: 10.5 }}>Chưa đủ góc 360°</span>
+            ) : (
+              <span className="badge badge-success" style={{ fontSize: 10.5 }}>{passedCount} đạt</span>
+            )}
           </div>
           <button
             type="button"
@@ -1052,7 +1119,11 @@ function normalizePanoUrl(rawUrl: string): string {
             ) : (
               <>
                 <Sparkles size={15} />
-                <span>Ghép 360 độ ngay</span>
+                <span>
+                  {totalFrames < 12 && batchFiles.length !== 1
+                    ? `Ghép góc hẹp (${totalFrames} ảnh)`
+                    : 'Ghép 360 độ ngay'}
+                </span>
               </>
             )}
           </button>

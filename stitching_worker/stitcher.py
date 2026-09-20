@@ -315,17 +315,17 @@ def enhance_museum_texture(image):
 
 def balance_indoor_lighting(img):
     """
-    Thuật toán Cân Bằng Ánh Sáng Đa Môi Trường (Multi-Environment Optical Adaptation):
-    1. QUÉT GÓC TỐI / CHỤP THIẾU SÁNG: Kích hoạt đường cong nâng sáng vùng tối mượt mà (Shadow Lifting Curve, L < 80),
-       phục hồi các chi tiết hoa văn sàn gạch, nẹp gỗ, chân tường mà không làm vỡ các mảng trung tính.
-    2. CHỐNG CHÓI ÁNH NẮNG / NGƯỢC SÁNG CỬA SỔ (HDR Soft-Knee Highlight Compression):
-       Áp dụng nén mềm phi tuyến tính theo hàm Reinhard mượt mà ở các vùng lóa cực đại (L > 200),
-       cứu toàn vẹn cấu trúc khung cửa sắt, rèm cửa và đường chân trời bên ngoài cửa kính.
-    3. CÂN BẰNG NHIỆT ĐỘ MÀU ÁNH SÁNG ĐÈN (Spotlight / Tungsten / LED Auto Color Normalization):
-       Điều tiết sắc độ a/b trong không gian màu LAB theo thuật toán Gray-World thích ứng,
-       loại bỏ hiện tượng ám vàng của bóng đèn sợi đốt hoặc ám xanh của đèn huỳnh quang,
-       giúp các điểm đặc trưng ORB/AKAZE giữa các góc chụp có cùng hệ quy chiếu ánh sáng và màu sắc.
-    4. CLAHE ĐA THANG ĐỘ: Cân bằng tương phản vi mô cục bộ giúp bắt trọn điểm neo trong mọi điều kiện ánh sáng.
+    Thuật toán Cân Bằng Ánh Sáng Đa Môi Trường Nâng Cao (Advanced Multi-Environment Optical Adaptation):
+    1. PHÒNG TỐI / GÓC THIẾU SÁNG: Áp dụng đường cong nâng sáng mượt mà (Smooth Shadow Gamma Lift),
+       nâng mạnh vùng tối sâu (L < 115) để L=15 -> ~52, L=30 -> ~60, làm hiện rõ mạch gạch men, hoa văn chân tường,
+       nẹp gỗ và chi tiết đồ đạc, giúp bộ dò đặc trưng ORB/AKAZE bắt trọn hàng trăm điểm neo mà không sinh nhiễu hạt.
+    2. NẮNG CHÓI CHANH / NGƯỢC SÁNG CỬA CHÍNH (HDR Soft-Knee Highlight Compression):
+       Nén mềm phi tuyến tính theo hàm Reinhard ở vùng lóa sáng cực đại (L > 190),
+       cứu toàn vẹn cấu trúc khung cửa sắt, cành cây, chậu hoa ngoài sân nắng mà không bị cháy trắng 255.
+    3. TĂNG CƯỜNG TƯƠNG PHẢN ĐA THANG ĐỘ (Dual-Scale CLAHE):
+       Kết hợp lưới vi mô (8, 8) và lưới đại thể (16, 16) để bắt trọn cả chi tiết bề mặt nhỏ lẫn hình khối không gian.
+    4. CÂN BẰNG NHIỆT ĐỘ MÀU ÁNH SÁNG ĐÈN (Spotlight / Tungsten / Daylight Auto-Correction):
+       Khử ám vàng/xanh của bóng đèn trần và đèn rọi, chuẩn hóa hệ màu LAB về cùng một quy chiếu giữa các góc nhìn.
     """
     try:
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
@@ -333,28 +333,36 @@ def balance_indoor_lighting(img):
         
         l_f = l.astype(np.float32)
 
-        # 1. Kéo sáng thông minh góc tối / chụp đêm / phòng mờ
-        delta_shadow = np.maximum(0.0, 80.0 - l_f)
-        l_lifted = np.where(l_f < 80.0, l_f + delta_shadow * 0.28 * (delta_shadow / 80.0), l_f)
+        # 1. Kéo sáng thông minh góc tối / phòng mờ
+        shadow_mask = l_f < 115.0
+        shadow_factor = np.maximum(0.0, (115.0 - l_f) / 115.0)
+        # Nâng sáng mượt mà, tối đa +44 đơn vị sáng tại L=0, tắt dần về L=115
+        lift = 44.0 * np.power(shadow_factor, 1.35)
+        l_lifted = np.where(shadow_mask, l_f + lift, l_f)
 
-        # 2. Nén lóa sáng mềm (Soft-Knee Compression) chống cháy sáng do ánh nắng mặt trời & đèn rọi
-        delta_high = np.maximum(0.0, l_lifted - 200.0)
-        l_comp = np.where(l_lifted > 200.0, 200.0 + delta_high / (1.0 + delta_high / 40.0), l_lifted)
+        # 2. Nén lóa sáng mềm (Soft-Knee Compression) chống cháy sáng ngoài cửa nắng & đèn rọi
+        delta_high = np.maximum(0.0, l_lifted - 190.0)
+        l_comp = np.where(l_lifted > 190.0, 190.0 + delta_high / (1.0 + delta_high / 55.0), l_lifted)
         l_out = np.clip(l_comp, 0, 255).astype(np.uint8)
 
-        # 3. Tăng cường tương phản cục bộ với CLAHE đa vùng
-        clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
-        l_eq = clahe.apply(l_out)
-        l_balanced = cv2.addWeighted(l_eq, 0.50, l_out, 0.50, 0)
+        # 3. Tăng cường tương phản cục bộ 2 tầng (Dual-Scale CLAHE)
+        clahe_fine = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
+        clahe_broad = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(16, 16))
+        l_fine = clahe_fine.apply(l_out)
+        l_broad = clahe_broad.apply(l_out)
+        
+        l_balanced = (l_fine.astype(np.float32) * 0.45 +
+                      l_broad.astype(np.float32) * 0.25 +
+                      l_out.astype(np.float32) * 0.30)
+        l_balanced = np.clip(l_balanced, 0, 255).astype(np.uint8)
 
-        # 4. Cân bằng nhiệt độ màu ánh sáng đèn rọi bảo tàng (Tungsten/Huỳnh quang/LED)
+        # 4. Cân bằng nhiệt độ màu ánh sáng đèn rọi và ánh nắng (Color Constancy)
         a_f = a.astype(np.float32)
         b_f = b.astype(np.float32)
         a_mean = float(np.mean(a_f))
         b_mean = float(np.mean(b_f))
-        # Điều hòa nhẹ 15% về trung tính để triệt tiêu lệch màu giữa góc chụp gần đèn và xa đèn
-        a_corr = np.clip(a_f - (a_mean - 128.0) * 0.15, 0, 255).astype(np.uint8)
-        b_corr = np.clip(b_f - (b_mean - 128.0) * 0.15, 0, 255).astype(np.uint8)
+        a_corr = np.clip(a_f - (a_mean - 128.0) * 0.18, 0, 255).astype(np.uint8)
+        b_corr = np.clip(b_f - (b_mean - 128.0) * 0.18, 0, 255).astype(np.uint8)
 
         return cv2.cvtColor(cv2.merge((l_balanced, a_corr, b_corr)), cv2.COLOR_LAB2BGR)
     except Exception:
@@ -406,26 +414,27 @@ def run_stitch(image_paths, output_path, target_width=0):
                 "detail": f"Lỗi xử lý ảnh PANO: {str(e)}"
             }
 
-    # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img48)
+    # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img100)
     sorted_paths = sorted(image_paths, key=natural_sort_key)
     num_total = len(sorted_paths)
 
-    def select_optimal_keyframes(paths, max_target=36):
+    def select_optimal_keyframes(paths, max_target=44):
         """
         Chắt lọc chuỗi khung hình đại diện quanh quỹ đạo xoay 360°:
-        - Với chùm ít ảnh (<= 16 ảnh): Giữ nguyên 100% tất cả các góc chụp để bảo toàn tối đa không gian.
-        - Với chùm vừa (17 - 35 ảnh): Loại bỏ các khung hình trùng lặp đứng yên tại chỗ (< 0.8% khác biệt), giữ 20-30 ảnh.
-        - Với chùm lớn (36 - 120 ảnh, ví dụ 50 - 100 ảnh):
+        - Với chùm ảnh tiêu chuẩn (<= 32 ảnh): GIỮ NGUYÊN 100% TẤT CẢ CÁC GÓC CHỤP.
+          Bảo toàn trọn vẹn chuỗi quang học và độ chồng lấp 60%-70% giữa 2 ảnh kề nhau,
+          triệt tiêu hoàn toàn hiện tượng méo góc nhìn / choáng váng do thiếu điểm ghép!
+        - Với chùm ảnh dày (33 - 120 ảnh, ví dụ 50 - 100 ảnh):
           1. Đọc thumbnail grayscale siêu nhẹ (160x120) tốn <2MB RAM cho 100 ảnh.
-          2. Loại bỏ các khung hình đứng yên trùng góc (diff < 1.2%).
+          2. Loại bỏ các khung hình đứng yên trùng góc (diff < 1.0%).
           3. Áp dụng Cumulative Motion Sampling (lấy mẫu tích lũy theo biến thiên quang học):
-             Chia đều tổng lượng biến thiên chuyển động quanh vòng tròn để chọn ra chính xác 30 - 36
-             khung hình chủ chốt với độ chồng lấp lý tưởng 50% - 65%.
+             Chia đều tổng lượng biến thiên chuyển động quanh vòng tròn để chọn ra 36 - 44
+             khung hình chủ chốt liên tục với độ chồng lấp đồng đều lý tưởng 60% - 70%.
           4. Luôn ghim khung hình đầu tiên (paths[0]) và khung hình cuối cùng (paths[-1]) để đảm bảo
              khép kín trọn vẹn chuỗi quang học vòng tròn 360°.
         """
         n = len(paths)
-        if n <= 16:
+        if n <= 32:
             return paths
 
         # Đọc thumbnail grayscale siêu nhẹ cho từng ảnh
@@ -440,8 +449,8 @@ def run_stitch(image_paths, output_path, target_width=0):
             except Exception:
                 pass
 
-        if len(valid_paths) <= 16:
-            return paths
+        if len(valid_paths) <= 32:
+            return valid_paths
 
         # 1. Tính biến thiên chuyển động liên tiếp giữa các khung hình kề nhau
         motion_diffs = [0.0]
@@ -449,21 +458,20 @@ def run_stitch(image_paths, output_path, target_width=0):
             d = float(np.mean(cv2.absdiff(thumbs[i - 1], thumbs[i])))
             motion_diffs.append(d)
 
-        # 2. Lọc sơ bộ các khung hình đứng yên trùng lặp (trừ frame đầu và cuối)
-        threshold = 1.2 if n >= 40 else 0.8
+        # 2. Lọc các khung hình đứng yên trùng lặp (trừ frame đầu và cuối)
+        threshold = 1.0
         filtered_paths = [valid_paths[0]]
         filtered_diffs = [motion_diffs[0]]
 
         for i in range(1, len(valid_paths) - 1):
-            # Nếu chênh lệch quá bé (< threshold) thì người dùng bấm trùng góc hoặc lia quá chậm
-            if motion_diffs[i] >= threshold or n <= 24:
+            if motion_diffs[i] >= threshold:
                 filtered_paths.append(valid_paths[i])
                 filtered_diffs.append(motion_diffs[i])
 
         filtered_paths.append(valid_paths[-1])
         filtered_diffs.append(max(0.1, motion_diffs[-1]))
 
-        target_limit = min(max_target, 36)
+        target_limit = min(max_target, 44)
         if len(filtered_paths) <= target_limit:
             return filtered_paths
 
@@ -472,7 +480,6 @@ def run_stitch(image_paths, output_path, target_width=0):
         total_motion = cum_motion[-1]
 
         if total_motion <= 1e-3:
-            # Trường hợp chuyển động quá ít, lấy đều theo chỉ số
             indices = np.linspace(0, len(filtered_paths) - 1, target_limit, dtype=int)
             return [filtered_paths[idx] for idx in indices]
 
@@ -513,69 +520,49 @@ def run_stitch(image_paths, output_path, target_width=0):
             pass
         try:
             # Registration resolution:
-            # Khi num_images > 28 (chùm ảnh 30 - 100 ảnh): đặt 0.45 Mpx để đối sánh đặc trưng siêu tốc, giảm 60% RAM trên VPS.
-            # Khi num_images từ 16 - 28: đặt 0.52 Mpx.
-            # Khi ít ảnh (<16): đặt 0.62 Mpx để khai thác tối đa độ nét vi mô.
-            if num_images > 28:
-                reg_resol = 0.45
-            elif num_images >= 16:
-                reg_resol = 0.52
-            else:
-                reg_resol = 0.62
+            # Dùng 0.55 Mpx để bắt trọn đường nét hoa văn gạch và nan cửa mà vẫn đối sánh siêu tốc
+            reg_resol = 0.50 if num_images > 36 else 0.58
             s.setRegistrationResol(reg_resol)
         except Exception:
             pass
         try:
             # Seam estimation resolution:
-            # Đặt ở mức tối ưu 0.12 - 0.15 Mpx để triệt tiêu hoàn toàn nghẽn GraphCut min-cut max-flow trên VPS.
-            seam_resol = 0.12 if num_images > 28 else 0.15
-            s.setSeamEstimationResol(seam_resol)
+            # 0.15 Mpx tối ưu đường cắt ghép tinh tế dọc gờ tường, chống nghẽn GraphCut
+            s.setSeamEstimationResol(0.15)
         except Exception:
             pass
         try:
-            # cv2.INTER_LINEAR: Nội suy tuyến tính chuẩn công nghiệp trong ghép ảnh Panorama,
-            # nhanh hơn gấp 3.5 lần so với INTER_CUBIC mà không làm suy giảm độ nét không gian.
+            # cv2.INTER_LINEAR: Nội suy tuyến tính chuẩn công nghiệp trong ghép ảnh Panorama
             s.setInterpolationFlags(cv2.INTER_LINEAR)
         except Exception:
             pass
         return s
 
     # Chuẩn bị danh sách khung hình đại diện tối ưu
-    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=36)
+    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=44)
     print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã chắt lọc chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
 
     # Chiến lược ghép thích ứng thông minh:
-    # 1. Nếu ít ảnh (<= 12 ảnh): Khoảng cách góc chụp lớn hơn nên diện tích gối đầu hẹp hơn.
-    #    Khởi đầu với độ nhạy conf 0.14 và MaxDim 1350px để bắt trọn liên kết ngay lượt đầu tiên.
-    # 2. Nếu chùm ảnh tiêu chuẩn (13 - 24 ảnh): Khởi đầu với Conf 0.18 và MaxDim 1250px.
-    # 3. Nếu chùm ảnh lớn (25 - 40 ảnh): Khởi đầu với Conf 0.18 và MaxDim 1150px.
-    # 4. Nếu chùm ảnh siêu lớn (41 - 100+ ảnh):
-    #    LUÔN dùng optimal_paths (30-36 keyframe) phân bổ đều theo chuyển động quang học.
-    #    Tuyệt đối không nạp cả 100 ảnh thô cùng lúc vào OpenCV để chống OOM tràn RAM và hoàn tất trong ~15-25s.
-    if num_total <= 12:
+    # Bảo toàn độ phân giải cao max_dim = 2400 - 2800px để không mất điểm ảnh nào.
+    # Tuyệt đối KHÔNG hạ conf < 0.10 để không bao giờ ghép sai hình học gây choáng váng!
+    if num_total <= 16:
         candidate_schemes = [
-            (optimal_paths, 1350, 0.14, "Tối ưu chùm ảnh ít góc (Conf 0.14, MaxDim 1350px)"),
-            (optimal_paths, 1150, 0.08, "Độ nhạy cao cho ảnh ít góc (Conf 0.08, MaxDim 1150px)"),
-            (sorted_paths, 950, 0.03, "Quét vét nhạy sáng tối đa (Conf 0.03, MaxDim 950px)")
+            (optimal_paths, 2600, 0.20, "Độ nét cao 4K & Khóa góc chuẩn (Conf 0.20, MaxDim 2600px)"),
+            (optimal_paths, 2200, 0.14, "Cân bằng ánh sáng phòng & nắng (Conf 0.14, MaxDim 2200px)"),
+            (sorted_paths, 1800, 0.10, "Độ nhạy cao bảo toàn hình học (Conf 0.10, MaxDim 1800px)")
         ]
-    elif num_total <= 24:
+    elif num_total <= 32:
         candidate_schemes = [
-            (optimal_paths, 1250, 0.18, "Cân bằng tốc độ & Độ nét cao (Conf 0.18, MaxDim 1250px)"),
-            (optimal_paths, 1100, 0.12, "Tăng cường độ nhạy trong phòng (Conf 0.12, MaxDim 1100px)"),
-            (optimal_paths, 950, 0.04, "Quét vét độ nhạy cao (Conf 0.04, MaxDim 950px)")
-        ]
-    elif num_total <= 40:
-        candidate_schemes = [
-            (optimal_paths, 1150, 0.18, "Tốc độ cao & Gối đầu dày (Conf 0.18, MaxDim 1150px)"),
-            (optimal_paths, 1000, 0.12, "Tăng cường độ nhạy phòng kín (Conf 0.12, MaxDim 1000px)"),
-            (optimal_paths, 900, 0.05, "Quét vét độ nhạy cao (Conf 0.05, MaxDim 900px)")
+            (optimal_paths, 2400, 0.22, "Chuỗi góc chuẩn 4K (Conf 0.22, MaxDim 2400px)"),
+            (optimal_paths, 2000, 0.15, "Tăng cường độ nhạy chi tiết (Conf 0.15, MaxDim 2000px)"),
+            (optimal_paths, 1600, 0.10, "Độ nhạy cao bảo toàn hình học (Conf 0.10, MaxDim 1600px)")
         ]
     else:
-        # Chùm ảnh lớn (50 - 100+ ảnh): Xử lý qua chuỗi quang học chắt lọc 30-36 ảnh, giải phóng RAM
+        # Chùm ảnh lớn (50 - 100+ ảnh): Xử lý qua chuỗi quang học 36-44 keyframe siêu nét
         candidate_schemes = [
-            (optimal_paths, 1100, 0.16, f"Chùm ảnh lớn ({num_total} ảnh) - Chuỗi quang học tốc độ cao (Conf 0.16, MaxDim 1100px)"),
-            (optimal_paths, 1000, 0.10, f"Chùm ảnh lớn ({num_total} ảnh) - Tăng nhạy chi tiết không gian (Conf 0.10, MaxDim 1000px)"),
-            (optimal_paths, 900, 0.04, f"Chùm ảnh lớn ({num_total} ảnh) - Quét vét toàn cảnh nhạy cao (Conf 0.04, MaxDim 900px)")
+            (optimal_paths, 2200, 0.20, f"Chùm ảnh lớn ({num_total} ảnh) - Chuỗi quang học 4K (Conf 0.20, MaxDim 2200px)"),
+            (optimal_paths, 1800, 0.14, f"Chùm ảnh lớn ({num_total} ảnh) - Tăng nhạy chi tiết không gian (Conf 0.14, MaxDim 1800px)"),
+            (optimal_paths, 1500, 0.10, f"Chùm ảnh lớn ({num_total} ảnh) - Quét vét bảo toàn hình học (Conf 0.10, MaxDim 1500px)")
         ]
 
     best_pano = None
