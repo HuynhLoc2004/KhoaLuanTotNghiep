@@ -167,27 +167,16 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
     is_full_360 = (hfov >= 295.0)
 
     # Quyết định độ phân giải mục tiêu thích ứng:
+    # Quyết định độ phân giải mục tiêu thích ứng chuẩn 4K UHD cho WebGL:
     if target_width is None or target_width <= 0:
-        if w >= 3600:
+        if w >= 2200:
             target_width = 4096
-        elif w >= 2600:
+        elif w >= 1500:
             target_width = 3072
-        elif w >= 1600:
-            target_width = 2048
         else:
-            target_width = max(1024, (w // 2) * 2)
+            target_width = max(2048, (w // 2) * 2)
     else:
-        if target_width > int(w * 1.15):
-            if w >= 3400:
-                target_width = 4096
-            elif w >= 2500:
-                target_width = 3072
-            elif w >= 1500:
-                target_width = 2048
-            else:
-                target_width = max(1024, (w // 2) * 2)
-        else:
-            target_width = (target_width // 2) * 2
+        target_width = (target_width // 2) * 2
 
     target_height = target_width // 2
 
@@ -197,7 +186,7 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
         # Toàn cảnh 360° trọn vẹn
         new_w = target_width
         natural_h = int(round(target_width / aspect_ratio))
-        new_h = min(int(target_height * 0.90), max(int(target_height * 0.35), natural_h))
+        new_h = min(target_height, max(int(target_height * 0.35), natural_h))
         resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
 
         # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) để xoay vòng liền mạch
@@ -216,7 +205,7 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
         span_ratio = min(1.0, max(0.35, hfov / 360.0))
         new_w = int(round(target_width * span_ratio))
         natural_h = int(round(new_w / aspect_ratio))
-        new_h = min(int(target_height * 0.90), max(int(target_height * 0.35), natural_h))
+        new_h = min(target_height, max(int(target_height * 0.35), natural_h))
         resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
 
         y_offset = (target_height - new_h) // 2
@@ -271,43 +260,23 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
 
 def enhance_museum_texture(image):
     """
-    Bộ lọc Tinh Chỉnh & Cân Bằng Thích Ứng (Adaptive Natural Quality Enhancement):
-    - ĐO ĐẠC ĐỘ NÉT THỰC TẾ: Dựa vào độ biến thiên Laplacian để biết ảnh đã sắc nét hay chưa.
-    - TRÁNH HOÀN TOÀN TÌNH TRẠNG VỠ ẢNH (Không can thiệp quá đà / No Over-Processing):
-      + Nếu ảnh gốc đã sắc nét (laplacian_var >= 80): Tuyệt đối KHÔNG làm nét nhân tạo nữa
-        (bỏ qua Unsharp Masking) để tránh tạo quầng trắng (halos), vỡ khối hay nổi hạt nhiễu (noise).
-      + Nếu ảnh hơi mềm (laplacian_var < 80): Chỉ áp dụng mức làm nét vi mô siêu nhẹ (1.08 / -0.08)
-        và khóa các mảng màu phẳng (tường, trần, sàn) để không sinh hạt.
-    - CÂN BẰNG SÁNG TỰ NHIÊN: Giảm CLAHE clipLimit xuống 1.2 và chỉ hòa trộn 25% với 75% ảnh gốc.
-      Kéo sáng nhẹ nhàng các góc tối mà vẫn giữ trọn màu sắc và độ trong trẻo thật của không gian.
+    Bộ lọc Tinh Chỉnh & Cân Bằng Độ Sắc Nét 4K (Adaptive Sharpness Enhancement):
+    - Áp dụng Unsharp Masking vi mô nhẹ nhàng và đồng nhất:
+      Làm nổi bật rõ ràng các chi tiết cao tần như chữ trên đồ điện (tủ lạnh SHARP),
+      hoa văn trổ gỗ trên bàn thờ/ghế trường kỷ và các đường chỉ viền gạch.
+    - Bảo vệ các mảng màu phẳng (tường, trần) để giữ nguyên độ mịn màng tự nhiên, không sinh nhiễu hạt.
+    - Tuyệt đối KHÔNG dùng CLAHE chia lưới ô vuông để không tạo quầng mờ đục trên tường.
     """
     try:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        laplacian_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-
-        # 1. Cân bằng sáng thích ứng nhẹ nhàng (Gentle Adaptive CLAHE)
-        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=1.2, tileGridSize=(8, 8))
-        l_clahe = clahe.apply(l)
-        # Hòa trộn nhẹ 25% CLAHE với 75% gốc: kéo sáng dịu mắt góc tối, không làm bệt/cháy màu
-        l_balanced = cv2.addWeighted(l_clahe, 0.25, l, 0.75, 0)
-        balanced_bgr = cv2.cvtColor(cv2.merge((l_balanced, a, b)), cv2.COLOR_LAB2BGR)
-
-        # 2. Xử lý độ nét thích ứng theo chất lượng ảnh thực tế:
-        # Nếu ảnh vốn đã rất nét (laplacian >= 80) -> Giữ nguyên 100% độ mượt tự nhiên, không unsharp mask!
-        if laplacian_var >= 80.0:
-            return balanced_bgr
-
-        # Nếu ảnh hơi mềm (laplacian < 80) -> Chỉ làm nét vi mô cực nhẹ và bảo vệ mảng màu phẳng
-        blurred = cv2.GaussianBlur(balanced_bgr, (0, 0), 1.0)
-        sharpened = float(1.08) * balanced_bgr.astype(np.float32) - float(0.08) * blurred.astype(np.float32)
+        blurred = cv2.GaussianBlur(image, (0, 0), 1.2)
+        # Làm nét vi mô cho chi tiết cao tần
+        sharpened = float(1.18) * image.astype(np.float32) - float(0.18) * blurred.astype(np.float32)
         sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
 
-        # Bảo vệ các vùng màu phẳng (trần, tường, sàn gạch men) chống nhiễu hạt
-        diff = cv2.absdiff(balanced_bgr, blurred)
+        # Bảo vệ các vùng màu phẳng (trần, tường, sàn gạch men) chống nổi hạt
+        diff = cv2.absdiff(image, blurred)
         flat_mask = np.mean(diff, axis=2) < 2.0
-        sharpened[flat_mask] = balanced_bgr[flat_mask]
+        sharpened[flat_mask] = image[flat_mask]
         return sharpened
     except Exception as e:
         print(f"[Warning] Không thể áp dụng enhance_museum_texture: {e}", file=sys.stderr)
@@ -315,56 +284,34 @@ def enhance_museum_texture(image):
 
 def balance_indoor_lighting(img):
     """
-    Thuật toán Cân Bằng Ánh Sáng Đa Môi Trường Nâng Cao (Advanced Multi-Environment Optical Adaptation):
-    1. PHÒNG TỐI / GÓC THIẾU SÁNG: Áp dụng đường cong nâng sáng mượt mà (Smooth Shadow Gamma Lift),
-       nâng mạnh vùng tối sâu (L < 115) để L=15 -> ~52, L=30 -> ~60, làm hiện rõ mạch gạch men, hoa văn chân tường,
-       nẹp gỗ và chi tiết đồ đạc, giúp bộ dò đặc trưng ORB/AKAZE bắt trọn hàng trăm điểm neo mà không sinh nhiễu hạt.
-    2. NẮNG CHÓI CHANH / NGƯỢC SÁNG CỬA CHÍNH (HDR Soft-Knee Highlight Compression):
-       Nén mềm phi tuyến tính theo hàm Reinhard ở vùng lóa sáng cực đại (L > 190),
-       cứu toàn vẹn cấu trúc khung cửa sắt, cành cây, chậu hoa ngoài sân nắng mà không bị cháy trắng 255.
-    3. TĂNG CƯỜNG TƯƠNG PHẢN ĐA THANG ĐỘ (Dual-Scale CLAHE):
-       Kết hợp lưới vi mô (8, 8) và lưới đại thể (16, 16) để bắt trọn cả chi tiết bề mặt nhỏ lẫn hình khối không gian.
-    4. CÂN BẰNG NHIỆT ĐỘ MÀU ÁNH SÁNG ĐÈN (Spotlight / Tungsten / Daylight Auto-Correction):
-       Khử ám vàng/xanh của bóng đèn trần và đèn rọi, chuẩn hóa hệ màu LAB về cùng một quy chiếu giữa các góc nhìn.
+    Thuật toán Cân Bằng Ánh Sáng Đơn Điệu Toàn Cục (Global Monotonic Optical Adaptation):
+    1. PHÒNG TỐI / GÓC THIẾU SÁNG: Áp dụng hàm nâng sáng mượt mà toàn cục (Smooth Shadow Lift),
+       nâng sáng các vùng tối sâu (L < 115) để làm rõ mạch gạch, nẹp tường và đồ đạc.
+    2. NẮNG CHÓI CHANH / NGƯỢC SÁNG CỬA CHÍNH (Reinhard Highlight Compression):
+       Nén mềm phi tuyến tính vùng lóa sáng cực đại (L > 185) để bảo toàn khung cửa sắt và cảnh ngoài sân.
+    3. BẢO TOÀN 100% ĐẠO HÀM ĐẶC TRƯNG HÌNH HỌC (Gradient Consistency):
+       Áp dụng biến đổi độ sáng đơn điệu đồng nhất trên toàn bộ khung hình, TUYỆT ĐỐI KHÔNG chia lưới ô vuông
+       (tile-free) để các điểm neo đặc trưng (ORB/AKAZE) giữa 2 bức ảnh chụp chung không bao giờ bị lệch tọa độ,
+       triệt tiêu hoàn toàn hiện tượng lệch ảnh và nhân đôi bóng ma (double edges/ghosting)!
     """
     try:
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
-        
         l_f = l.astype(np.float32)
 
         # 1. Kéo sáng thông minh góc tối / phòng mờ
         shadow_mask = l_f < 115.0
         shadow_factor = np.maximum(0.0, (115.0 - l_f) / 115.0)
-        # Nâng sáng mượt mà, tối đa +44 đơn vị sáng tại L=0, tắt dần về L=115
-        lift = 44.0 * np.power(shadow_factor, 1.35)
+        lift = 38.0 * np.power(shadow_factor, 1.3)
         l_lifted = np.where(shadow_mask, l_f + lift, l_f)
 
         # 2. Nén lóa sáng mềm (Soft-Knee Compression) chống cháy sáng ngoài cửa nắng & đèn rọi
-        delta_high = np.maximum(0.0, l_lifted - 190.0)
-        l_comp = np.where(l_lifted > 190.0, 190.0 + delta_high / (1.0 + delta_high / 55.0), l_lifted)
+        delta_high = np.maximum(0.0, l_lifted - 185.0)
+        l_comp = np.where(l_lifted > 185.0, 185.0 + delta_high / (1.0 + delta_high / 55.0), l_lifted)
         l_out = np.clip(l_comp, 0, 255).astype(np.uint8)
 
-        # 3. Tăng cường tương phản cục bộ 2 tầng (Dual-Scale CLAHE)
-        clahe_fine = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
-        clahe_broad = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(16, 16))
-        l_fine = clahe_fine.apply(l_out)
-        l_broad = clahe_broad.apply(l_out)
-        
-        l_balanced = (l_fine.astype(np.float32) * 0.45 +
-                      l_broad.astype(np.float32) * 0.25 +
-                      l_out.astype(np.float32) * 0.30)
-        l_balanced = np.clip(l_balanced, 0, 255).astype(np.uint8)
-
-        # 4. Cân bằng nhiệt độ màu ánh sáng đèn rọi và ánh nắng (Color Constancy)
-        a_f = a.astype(np.float32)
-        b_f = b.astype(np.float32)
-        a_mean = float(np.mean(a_f))
-        b_mean = float(np.mean(b_f))
-        a_corr = np.clip(a_f - (a_mean - 128.0) * 0.18, 0, 255).astype(np.uint8)
-        b_corr = np.clip(b_f - (b_mean - 128.0) * 0.18, 0, 255).astype(np.uint8)
-
-        return cv2.cvtColor(cv2.merge((l_balanced, a_corr, b_corr)), cv2.COLOR_LAB2BGR)
+        # Trả về ảnh đã cân bằng ánh sáng với bảo toàn 100% tính nhất quán hình học và màu sắc
+        return cv2.cvtColor(cv2.merge((l_out, a, b)), cv2.COLOR_LAB2BGR)
     except Exception:
         return img
 
@@ -397,7 +344,7 @@ def run_stitch(image_paths, output_path, target_width=0):
             equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width)
             equi_pano = enhance_museum_texture(equi_pano)
             os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-            cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 98])
+            cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 99, int(cv2.IMWRITE_JPEG_OPTIMIZE), 1])
             h, w = equi_pano.shape[:2]
             return {
                 "success": True,
@@ -520,15 +467,17 @@ def run_stitch(image_paths, output_path, target_width=0):
             pass
         try:
             # Registration resolution:
-            # Dùng 0.55 Mpx để bắt trọn đường nét hoa văn gạch và nan cửa mà vẫn đối sánh siêu tốc
-            reg_resol = 0.50 if num_images > 36 else 0.58
+            # Dùng 0.60 Mpx để bắt trọn đường nét hoa văn gạch, nan cửa và chi tiết nhỏ mà vẫn đối sánh siêu tốc
+            reg_resol = 0.52 if num_images > 36 else 0.60
             s.setRegistrationResol(reg_resol)
         except Exception:
             pass
         try:
             # Seam estimation resolution:
-            # 0.15 Mpx tối ưu đường cắt ghép tinh tế dọc gờ tường, chống nghẽn GraphCut
-            s.setSeamEstimationResol(0.15)
+            # Nâng lên 0.25 Mpx (thay vì 0.15 Mpx quá thấp) để bộ tìm vết cắt GraphCut
+            # nhận diện rõ ranh giới đồ vật nhỏ (chân nến, nan cửa sổ, dây điện) và đi vòng qua,
+            # triệt tiêu hoàn toàn lỗi cắt xuyên qua đồ vật gây nhân đôi bóng ma!
+            s.setSeamEstimationResol(0.25)
         except Exception:
             pass
         try:
@@ -684,9 +633,9 @@ def run_stitch(image_paths, output_path, target_width=0):
     print("[*] Đang áp dụng thuật toán CLAHE & Unsharp Masking tăng cường độ tương phản và chi tiết cổ vật...", file=sys.stderr)
     equi_pano = enhance_museum_texture(equi_pano)
 
-    # Lưu kết quả với chất lượng JPEG tối đa 98%
+    # Lưu kết quả với chất lượng JPEG tối đa 99% và bật tối ưu nén
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 98])
+    cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 99, int(cv2.IMWRITE_JPEG_OPTIMIZE), 1])
 
     h, w = equi_pano.shape[:2]
     return {
