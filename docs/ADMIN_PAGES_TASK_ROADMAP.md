@@ -51,6 +51,7 @@
 | 5 | **Quản lý Hiện vật & Cổ vật** | `AdminArtifactsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
 | 6 | **Báo cáo & Thống kê Lượt xem** | `AdminAnalyticsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
 | 7 | **Cấu hình Tham số Hệ thống** | `AdminSettingsPage.tsx` | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | 📋 Cần tạo | `CHƯA THỰC HIỆN` |
+| 8 | **Quản lý Tài khoản & Phân quyền** | `AdminUsersPage.tsx` | 📋 Cần tạo | 📋 5-10-20-30-50 | 📋 Vàng đồng chuẩn | 📋 Bảng + Thẻ mobile | `LẬP KẾ HOẠCH` |
 
 ---
 
@@ -206,6 +207,19 @@
   - [ ] Tab Thông tin Bảo tàng: Tên hiển thị, địa chỉ, giờ mở cửa, lời chào mở đầu Tour.
   - [ ] Tab Voice AI & Cloud: Cấu hình khóa API Google Cloud TTS, Cloudinary/Cloudflare R2 storage.
   - [ ] Tab Sao lưu & Phục hồi dữ liệu: Xuất file backup dữ liệu Tour 360 phòng hờ sự cố.
+
+---
+
+### 8. Quản lý Tài khoản & Phân quyền Người dùng (User Management & Role Access Control)
+- **File**: `frontend/src/pages/admin/AdminUsersPage.tsx`
+- **Mục tiêu đạt được**:
+  - Bảo vệ tuyệt đối phân hệ Quản trị: Chỉ Super Admin duy nhất (`huynhtanlocpp09@gmail.com`) hoặc tài khoản được cấp quyền `admin` mới được vào Dashboard Quản trị. Mọi email/tài khoản khác chỉ được chuyển hướng về trang Client khách tham quan.
+  - Phân quyền động: Cho phép Super Admin xem danh sách người dùng đăng nhập/đăng ký, cấp quyền `admin`, `editor`, `staff` hoặc thu hồi về tài khoản `visitor` (khách thường).
+- **Kế hoạch xây dựng**:
+  - [ ] Thẻ thống kê: Tổng tài khoản, Quản trị viên (Admin), Biên tập viên (Editor), Khách tham quan (Client).
+  - [ ] Bảng danh sách tài khoản chuẩn phân trang 5-10-20-30-50 kèm bộ lọc vai trò và ô tìm kiếm.
+  - [ ] Modal cấp quyền / chuyển đổi vai trò (Role Assignment) có mật khẩu hoặc xác thực OTP an toàn của Super Admin.
+  - [ ] Khóa an toàn: Không cho phép tự xóa hoặc hạ quyền của chính Super Admin (`huynhtanlocpp09@gmail.com`).
 
 ---
 
