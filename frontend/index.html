@@ -17,7 +17,7 @@
   <body>
     <div id="root"></div>
     <!-- Cổng dịch tự động đa ngôn ngữ cho Client -->
-    <div id="google_translate_element" style="display:none;"></div>
+    <div id="google_translate_element" style="display:none; visibility:hidden; width:0; height:0; overflow:hidden;"></div>
     <script type="text/javascript">
       function googleTranslateElementInit() {
         if (window.google && window.google.translate) {
@@ -27,6 +27,35 @@
           }, 'google_translate_element');
         }
       }
+
+      // Giữ cố định vị trí đỉnh trang, triệt tiêu 100% thanh banner iframe của Google
+      (function() {
+        function suppressGoogleBanner() {
+          if (document.body) {
+            if (document.body.style.top && document.body.style.top !== '0px') {
+              document.body.style.top = '0px';
+            }
+            if (document.body.style.position === 'relative') {
+              document.body.style.position = 'static';
+            }
+          }
+          var frames = document.querySelectorAll('body > .skiptranslate, iframe[id*=":"], .goog-te-banner-frame');
+          for (var i = 0; i < frames.length; i++) {
+            var f = frames[i];
+            if (f.id !== 'google_translate_element') {
+              f.style.setProperty('display', 'none', 'important');
+              f.style.setProperty('visibility', 'hidden', 'important');
+              f.style.setProperty('height', '0px', 'important');
+              f.style.setProperty('width', '0px', 'important');
+              f.style.setProperty('opacity', '0', 'important');
+              f.style.setProperty('pointer-events', 'none', 'important');
+            }
+          }
+        }
+        var obs = new MutationObserver(suppressGoogleBanner);
+        obs.observe(document.documentElement, { attributes: true, childList: true, subtree: true });
+        window.addEventListener('load', suppressGoogleBanner);
+      })();
     </script>
     <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <script type="module" src="/src/main.tsx"></script>

@@ -4713,27 +4713,51 @@
   }
 }
 
-/* Ẩn hoàn toàn banner và thanh công cụ của Google Translate để giữ giao diện di sản chuẩn */
-.goog-te-banner-frame.skiptranslate,
-iframe.goog-te-banner-frame,
+/* Ẩn vĩnh viễn và triệt để 100% tất cả banner, thanh công cụ, iframe của Google Translate */
+body > .skiptranslate,
+.skiptranslate,
+.goog-te-banner-frame,
+.goog-te-banner,
 .goog-te-balloon-frame,
-#goog-gt-tt {
+#goog-gt-tt,
+#goog-gt-vt,
+.goog-tooltip,
+.goog-tooltip:hover,
+.goog-text-highlight,
+iframe[id^=":"][id$=".container"],
+iframe[class*="goog"],
+iframe[class*="VIpgJd"],
+div[class*="VIpgJd"],
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf-ti6hGc,
+.VIpgJd-ZVi9od-xl07Ob-Oxf5Fd {
   display: none !important;
   visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  z-index: -9999 !important;
 }
 
 body {
   top: 0px !important;
   position: static !important;
-}
-
-.goog-text-highlight {
-  background: none !important;
-  box-shadow: none !important;
+  margin-top: 0px !important;
 }
 
 #google_translate_element {
   display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
 }
 
 
