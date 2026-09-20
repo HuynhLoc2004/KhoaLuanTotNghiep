@@ -82,11 +82,7 @@ jobs:
             # Cấu hình DNS phân giải quốc tế (Google & Cloudflare) cho VPS & Docker daemon chống nghẽn mạng quốc tế
             echo ">>> Cập nhật DNS Google & Cloudflare cho Docker daemon..."
             mkdir -p /etc/docker
-            cat << 'EOF' > /etc/docker/daemon.json
-{
-  "dns": ["8.8.8.8", "1.1.1.1", "8.8.4.4"]
-}
-EOF
+            echo '{"dns": ["8.8.8.8", "1.1.1.1", "8.8.4.4"]}' > /etc/docker/daemon.json
             systemctl reload docker 2>/dev/null || systemctl restart docker 2>/dev/null || true
             sleep 2
 
