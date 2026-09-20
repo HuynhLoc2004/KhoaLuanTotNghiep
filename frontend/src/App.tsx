@@ -17,12 +17,13 @@ import { SystemBrandingProvider, useSystemBranding } from './context/SystemBrand
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
-import { ClientTranslationProvider } from './context/ClientTranslationContext';
+import { ClientTranslationProvider, useClientTranslation } from './context/ClientTranslationContext';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { branding } = useSystemBranding();
   const { showToast } = useToast();
+  const { t } = useClientTranslation();
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<MuseumRoom | null>(null);
@@ -398,7 +399,7 @@ const AppContent: React.FC = () => {
                     display: 'inline-block'
                   }}
                 />
-                MÁY CHỦ ĐANG KHỞI ĐỘNG LẠI HOẶC BẢO TRÌ
+                {t('app.maintenanceBadge', 'MÁY CHỦ ĐANG KHỞI ĐỘNG LẠI HOẶC BẢO TRÌ')}
               </div>
 
               <div
@@ -426,7 +427,7 @@ const AppContent: React.FC = () => {
                   marginBottom: 10
                 }}
               >
-                Hệ Thống Đang Nâng Cấp & Khởi Động Lại
+                {t('app.maintenanceTitle', 'Hệ Thống Đang Nâng Cấp & Khởi Động Lại')}
               </h2>
 
               <p
@@ -438,8 +439,7 @@ const AppContent: React.FC = () => {
                   maxWidth: 420
                 }}
               >
-                Máy chủ vừa được triển khai mã nguồn mới hoặc đang khởi động lại dịch vụ.
-                Trang sẽ tự động đồng bộ và nạp lại dữ liệu ngay khi hệ thống trực tuyến.
+                {t('app.maintenanceDesc', 'Máy chủ vừa được triển khai mã nguồn mới hoặc đang khởi động lại dịch vụ. Trang sẽ tự động đồng bộ và nạp lại dữ liệu ngay khi hệ thống trực tuyến.')}
               </p>
 
               <div
@@ -453,7 +453,7 @@ const AppContent: React.FC = () => {
                 }}
               >
                 <Loader2 size={16} className="spin" />
-                <span>Đang tự động thăm dò tín hiệu máy chủ (mỗi 3s)...</span>
+                <span>{t('app.pollingServer', 'Đang tự động thăm dò tín hiệu máy chủ (mỗi 3s)...')}</span>
               </div>
 
               <button
@@ -469,7 +469,7 @@ const AppContent: React.FC = () => {
                 }}
               >
                 <RefreshCw size={16} />
-                Thử kết nối lại ngay
+                {t('app.reconnectNow', 'Thử kết nối lại ngay')}
               </button>
             </div>
           </div>
@@ -499,18 +499,18 @@ const AppContent: React.FC = () => {
           <div className="admin-content">
             <div className="panel" style={{ padding: 40, textAlign: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--primary)' }}>
-                {currentTab === 'artifacts' && 'Quản lý Hiện vật & Cổ vật di sản'}
-                {currentTab === 'analytics' && 'Báo cáo & Thống kê lượt tham quan Tour 360'}
+                {currentTab === 'artifacts' && t('app.artifactsFallbackTitle', 'Quản lý Hiện vật & Cổ vật di sản')}
+                {currentTab === 'analytics' && t('app.analyticsFallbackTitle', 'Báo cáo & Thống kê lượt tham quan Tour 360')}
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                Chức năng này đang liên kết trực tiếp với dữ liệu Tour 360 hiện hành của Bảo tàng.
+                {t('app.fallbackDesc', 'Chức năng này đang liên kết trực tiếp với dữ liệu Tour 360 hiện hành của Bảo tàng.')}
               </p>
               <button
                 className="btn btn-primary"
                 onClick={() => setCurrentTab('rooms')}
                 style={{ marginTop: 16 }}
               >
-                Trở về Quản lý Tour 360
+                {t('app.backToRooms', 'Trở về Quản lý Tour 360')}
               </button>
             </div>
           </div>

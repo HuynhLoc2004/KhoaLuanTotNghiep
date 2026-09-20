@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, HelpCircle, Info, X } from 'lucide-react';
+import { useClientTranslation } from '../context/ClientTranslationContext';
 
 export interface ConfirmModalProps {
   isOpen: boolean;
@@ -16,12 +17,16 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   title,
   message,
-  confirmText = 'Xác nhận',
-  cancelText = 'Hủy bỏ',
+  confirmText,
+  cancelText,
   type = 'warning',
   onConfirm,
   onCancel
 }) => {
+  const { t } = useClientTranslation();
+  const effectiveConfirmText = confirmText || t('common.confirm', 'Xác nhận');
+  const effectiveCancelText = cancelText || t('common.cancel', 'Hủy bỏ');
+
   if (!isOpen) return null;
 
   const getIcon = () => {
@@ -81,7 +86,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             className="btn btn-secondary btn-sm"
             onClick={onCancel}
           >
-            <span>{cancelText}</span>
+            <span>{effectiveCancelText}</span>
           </button>
           <button
             type="button"
@@ -90,7 +95,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               onConfirm();
             }}
           >
-            <span>{confirmText}</span>
+            <span>{effectiveConfirmText}</span>
           </button>
         </div>
       </div>
