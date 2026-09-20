@@ -6,18 +6,13 @@ import {
   RefreshCw,
   Sparkles,
   Check,
-  AlertCircle,
   Edit2,
   Trash2,
   Save,
   X,
-  Filter,
   Globe,
   BookOpen,
-  CheckCircle2,
-  HelpCircle,
   Layers,
-  ArrowRight,
   ShieldCheck,
   Wand2
 } from 'lucide-react';
@@ -26,7 +21,6 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination, DEFAULT_PAGE_SIZE_OPTIONS } from '../../components/Pagination';
-import { useSystemBranding } from '../../context/SystemBrandingContext';
 
 const NAMESPACES = [
   { id: 'all', label: 'Tất cả phân mục' },
@@ -41,7 +35,6 @@ const NAMESPACES = [
 
 export const AdminTranslationsPage: React.FC = () => {
   const { showToast } = useToast();
-  const { branding } = useSystemBranding();
 
   // State dữ liệu
   const [keys, setKeys] = useState<TranslationKeyItem[]>([]);
@@ -62,7 +55,6 @@ export const AdminTranslationsPage: React.FC = () => {
   const [onlyUntranslated, setOnlyUntranslated] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(12);
-  const [totalPages, setTotalPages] = useState<number>(1);
   const [totalFilteredItems, setTotalFilteredItems] = useState<number>(0);
 
   // Chỉnh sửa inline nhanh
@@ -140,7 +132,6 @@ export const AdminTranslationsPage: React.FC = () => {
       });
 
       setKeys(res.data || []);
-      setTotalPages(res.pagination.totalPages || 1);
       setTotalFilteredItems(res.pagination.total || 0);
     } catch (err: any) {
       showToast(err.message || 'Lỗi tải danh sách từ khóa', 'error');
@@ -163,7 +154,7 @@ export const AdminTranslationsPage: React.FC = () => {
   const handleRefreshAll = async () => {
     setIsRefreshing(true);
     await Promise.all([fetchStats(), fetchActiveLanguages(), fetchKeys()]);
-    showToast('Đã cập nhật dữ liệu từ điển mới nhất', 'success');
+    showToast('Đã làm mới danh mục từ khóa', 'info');
   };
 
   // Thông tin ngôn ngữ đích đang chọn
@@ -220,7 +211,7 @@ export const AdminTranslationsPage: React.FC = () => {
     setSingleTranslatingKeyId(item.id || item._id!);
     try {
       const res = await api.singleTranslateKey(item.id || item._id!, selectedTargetLang);
-      showToast(`Đã dịch AI thành công khóa "${item.key}"`, 'success');
+      showToast(`Đã dịch xong khóa "${item.key}"`, 'success');
       if (inlineEditingId === (item.id || item._id!)) {
         setInlineEditText(res.translatedText);
       }
@@ -232,11 +223,11 @@ export const AdminTranslationsPage: React.FC = () => {
     }
   };
 
-  // Kích hoạt dịch đồng loạt 1-Click Batch AI
+  // Kích hoạt dịch đồng loạt
   const handleExecuteBatchTranslate = async () => {
     setBatchModalOpen(false);
     setBatchTranslating(true);
-    showToast(`Đang dịch AI đồng loạt sang ${activeTargetLangInfo.nativeName}...`, 'info');
+    showToast(`Đang dịch tự động sang ${activeTargetLangInfo.nativeName}...`, 'info');
 
     try {
       const res = await api.batchTranslateKeys({
@@ -246,12 +237,12 @@ export const AdminTranslationsPage: React.FC = () => {
       });
 
       showToast(
-        `Hoàn tất dịch AI đồng loạt! Đã cập nhật ${res.translatedCount} từ khóa (${res.skippedCount} từ khóa giữ nguyên).`,
+        `Hoàn tất: Đã bổ sung ${res.translatedCount} từ khóa (${res.skippedCount} từ khóa giữ nguyên).`,
         'success'
       );
       await Promise.all([fetchKeys(), fetchStats()]);
     } catch (err: any) {
-      showToast(err.message || 'Lỗi dịch AI đồng loạt', 'error');
+      showToast(err.message || 'Lỗi dịch tự động', 'error');
     } finally {
       setBatchTranslating(false);
     }
@@ -302,7 +293,7 @@ export const AdminTranslationsPage: React.FC = () => {
           description: formData.description.trim(),
           translations: formData.translations
         });
-        showToast(`Đã thêm từ khóa "${formData.key}" vào từ điển`, 'success');
+        showToast(`Đã thêm từ khóa "${formData.key}"`, 'success');
       } else if (selectedKeyForEdit) {
         await api.updateTranslationKey(selectedKeyForEdit.id || selectedKeyForEdit._id!, {
           namespace: formData.namespace,
@@ -334,16 +325,10 @@ export const AdminTranslationsPage: React.FC = () => {
     }
   };
 
-  // Chiều cao bảng cố định chống co rút khi chuyển trang
-  const tableMinHeight = useMemo(() => {
-    const rowsToReserve = Math.min(pageSize, Math.max(keys.length, 1));
-    return `${rowsToReserve * 72 + 46}px`;
-  }, [pageSize, keys.length]);
-
   return (
     <div className="admin-content" style={{ overscrollBehaviorY: 'contain' }}>
       <div className="lang-management-page">
-        {/* 1. HEADER ROW */}
+        {/* 1. TIÊU ĐỀ TRANG & HÀNH ĐỘNG */}
         <div className="lang-header-row">
           <div className="lang-header-title-group">
             <div className="lang-header-icon-badge">
@@ -354,7 +339,7 @@ export const AdminTranslationsPage: React.FC = () => {
                 Quản trị Bản dịch & Từ điển Đa ngôn ngữ
               </h1>
               <p className="lang-header-desc">
-                Đồng bộ hóa 100% nội dung giao diện website Client, nút bấm, hướng dẫn 360°, thông báo và Voice AI.
+                Chuẩn hóa và đồng bộ hóa các chuỗi văn bản giao diện website và thuyết minh di sản.
               </p>
             </div>
           </div>
@@ -365,30 +350,32 @@ export const AdminTranslationsPage: React.FC = () => {
               className="btn btn-secondary btn-sm"
               onClick={handleRefreshAll}
               disabled={isRefreshing || loading}
-              title="Làm mới dữ liệu từ máy chủ"
+              title="Làm mới dữ liệu"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
               <span>Làm mới</span>
             </button>
 
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setBatchModalOpen(true)}
-              disabled={batchTranslating || selectedTargetLang === 'vi'}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              title={`Dịch AI toàn bộ từ khóa sang ${activeTargetLangInfo.nativeName}`}
-            >
-              <Sparkles size={14} className={batchTranslating ? 'spin' : ''} />
-              <span>1-Click Dịch AI ({activeTargetLangInfo.code.toUpperCase()})</span>
-            </button>
+            {selectedTargetLang !== 'vi' && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setBatchModalOpen(true)}
+                disabled={batchTranslating}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                title={`Dịch tự động các từ khóa sang ${activeTargetLangInfo.nativeName}`}
+              >
+                <Sparkles size={14} className={batchTranslating ? 'spin' : ''} />
+                <span>Dịch tự động {activeTargetLangInfo.nativeName}</span>
+              </button>
+            )}
 
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary btn-sm"
               onClick={handleOpenCreateModal}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent-gold)' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Plus size={15} />
               <span>Thêm từ khóa</span>
@@ -396,311 +383,286 @@ export const AdminTranslationsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. HERITAGE STATS BANNER */}
+        {/* 2. BĂNG THỐNG KÊ DI SẢN CHUẨN MỰC */}
         <div className="heritage-stats-banner">
           {/* Cột 1: Tổng số từ khóa */}
-          <div className="heritage-stat-col" style={{ flex: 1 }}>
+          <div className="heritage-stat-col">
             <div className="heritage-stat-header">
               <span className="heritage-stat-icon-wrapper">
                 <BookOpen size={15} />
               </span>
-              <span className="heritage-stat-title">Từ khóa Cốt lõi Hệ thống</span>
+              <span className="heritage-stat-title">Từ khóa Giao diện</span>
             </div>
             <div className="heritage-stat-body">
               <div className="heritage-stat-metric">
                 <span className="heritage-stat-number">{totalKeysCount}</span>
-                <span className="heritage-stat-unit">từ khóa giao diện</span>
+                <span className="heritage-stat-unit">thuật ngữ</span>
               </div>
               <div className="heritage-stat-sub">
-                Đồng bộ hóa các thành phần trên toàn bộ website
+                <span>Đồng bộ hóa các thành phần website</span>
               </div>
             </div>
           </div>
 
           {/* Cột 2: Tiến độ ngôn ngữ đang chọn */}
-          <div className="heritage-stat-col" style={{ flex: 1.2 }}>
+          <div className="heritage-stat-col">
             <div className="heritage-stat-header">
-              <span className="heritage-stat-icon-wrapper" style={{ fontSize: 15 }}>
-                {activeTargetLangInfo.flagIcon || '🌐'}
+              <span className="heritage-stat-icon-wrapper">
+                <Globe size={15} />
               </span>
-              <span className="heritage-stat-title">
-                Độ phủ: {activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})
-              </span>
+              <span className="heritage-stat-title">Tiến độ: {activeTargetLangInfo.nativeName}</span>
             </div>
             <div className="heritage-stat-body">
               <div className="heritage-stat-metric">
-                <span className="heritage-stat-number">{currentTargetStat.percentage}%</span>
-                <span className="heritage-stat-unit">
-                  ({currentTargetStat.translatedCount}/{totalKeysCount} từ đã dịch)
-                </span>
+                <span className="heritage-stat-number">{currentTargetStat.translatedCount}</span>
+                <span className="heritage-stat-denom">/{totalKeysCount}</span>
+                <span className="heritage-stat-unit">đã dịch ({currentTargetStat.percentage}%)</span>
               </div>
-              <div className="lang-progress-bar" style={{ marginTop: 6 }}>
-                <div
-                  className="lang-progress-fill"
-                  style={{
-                    width: `${currentTargetStat.percentage}%`,
-                    background:
-                      currentTargetStat.percentage >= 100
-                        ? '#10B981'
-                        : currentTargetStat.percentage >= 80
-                        ? 'var(--accent-gold)'
-                        : '#EF4444'
-                  }}
-                />
+              <div className="heritage-stat-sub">
+                <span>
+                  {currentTargetStat.untranslatedCount > 0
+                    ? `Còn ${currentTargetStat.untranslatedCount} từ chưa dịch`
+                    : 'Đã hoàn tất đầy đủ'}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Cột 3: Số ngôn ngữ hoàn thiện */}
-          <div className="heritage-stat-col" style={{ flex: 1 }}>
+          {/* Cột 3: Số ngôn ngữ kích hoạt */}
+          <div className="heritage-stat-col">
             <div className="heritage-stat-header">
               <span className="heritage-stat-icon-wrapper">
                 <ShieldCheck size={15} />
               </span>
-              <span className="heritage-stat-title">Chuẩn Quốc tế 100%</span>
+              <span className="heritage-stat-title">Ngôn ngữ Hoạt động</span>
             </div>
             <div className="heritage-stat-body">
               <div className="heritage-stat-metric">
-                <span className="heritage-stat-number">
-                  {stats.filter((s) => s.percentage >= 95).length}/{stats.length}
-                </span>
-                <span className="heritage-stat-unit">ngôn ngữ hoàn tất</span>
+                <span className="heritage-stat-number">{activeLanguages.length}</span>
+                <span className="heritage-stat-unit">ngôn ngữ</span>
               </div>
               <div className="heritage-stat-sub">
-                Sẵn sàng đón tiếp khách tham quan đa quốc gia
+                <span>Sẵn sàng phục vụ khách tham quan</span>
               </div>
             </div>
           </div>
 
           {/* Cột 4: Cơ chế Fallback an toàn */}
-          <div className="heritage-stat-col" style={{ flex: 1.1, borderRight: 'none' }}>
+          <div className="heritage-stat-col" style={{ borderRight: 'none' }}>
             <div className="heritage-stat-header">
               <span className="heritage-stat-icon-wrapper">
                 <Layers size={15} />
               </span>
-              <span className="heritage-stat-title">Cơ chế 3-Tier Fallback</span>
+              <span className="heritage-stat-title">Phân tầng Fallback</span>
             </div>
             <div className="heritage-stat-body">
               <div className="heritage-stat-metric">
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)' }}>
+                <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--primary)' }}>
                   {selectedTargetLang.toUpperCase()} → EN → VI
                 </span>
               </div>
               <div className="heritage-stat-sub">
-                An toàn tuyệt đối, không bao giờ để rỗng nhãn
+                <span>Không bao giờ bị lỗi hiển thị</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 3. THANH CHUYỂN ĐỔI NGÔN NGỮ ĐÍCH DẠNG TABS */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            overflowX: 'auto',
-            padding: '10px 14px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-lg)'
-          }}
-        >
-          <span
+        {/* 3. KHỐI NỘI DUNG CHÍNH (PANEL) */}
+        <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
+          {/* THANH CHUYỂN TAB NGÔN NGỮ ĐÍCH TRANG TRỌNG */}
+          <div
             style={{
-              fontSize: '11.5px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              color: 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              flexShrink: 0
+              borderBottom: '1px solid var(--border-color)',
+              padding: '10px 16px',
+              background: 'var(--bg-subtle)',
+              gap: 8,
+              overflowX: 'auto'
             }}
           >
-            <Globe size={13} />
-            Xem ngôn ngữ:
-          </span>
-          {activeLanguages.map((lang) => {
-            const isSelected = lang.code.toLowerCase() === selectedTargetLang.toLowerCase();
-            const langStat = stats.find((s) => s.code.toLowerCase() === lang.code.toLowerCase());
-            const percent = langStat?.percentage ?? 0;
-
-            return (
-              <button
-                key={lang.code}
-                type="button"
-                onClick={() => {
-                  setSelectedTargetLang(lang.code.toLowerCase());
-                  setInlineEditingId(null);
-                  setPage(1);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  padding: '6px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  border: isSelected ? '1px solid var(--accent-gold)' : '1px solid transparent',
-                  background: isSelected ? 'rgba(212, 168, 106, 0.15)' : 'var(--bg-subtle)',
-                  color: isSelected ? 'var(--accent-gold)' : 'var(--text-main)',
-                  fontWeight: isSelected ? 600 : 500,
-                  fontSize: '12.5px',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'all 0.18s ease'
-                }}
-              >
-                <span style={{ fontSize: 15 }}>{lang.flagIcon || '🌐'}</span>
-                <span>{lang.nativeName}</span>
-                <span
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                marginRight: 4,
+                flexShrink: 0
+              }}
+            >
+              Ngôn ngữ:
+            </span>
+            {activeLanguages.map((lang) => {
+              const isSelected = lang.code.toLowerCase() === selectedTargetLang.toLowerCase();
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => {
+                    setSelectedTargetLang(lang.code.toLowerCase());
+                    setInlineEditingId(null);
+                    setPage(1);
+                  }}
                   style={{
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: 999,
-                    background: percent >= 100 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(212, 168, 106, 0.2)',
-                    color: percent >= 100 ? '#10B981' : 'var(--accent-gold)'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid ' + (isSelected ? 'var(--border-color)' : 'transparent'),
+                    fontWeight: isSelected ? 600 : 400,
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    background: isSelected ? 'var(--bg-surface)' : 'transparent',
+                    color: isSelected ? 'var(--primary)' : 'var(--text-muted)',
+                    boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  {percent}%
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                  <span style={{ fontSize: '13px' }}>{lang.flagIcon || '🌐'}</span>
+                  <span>{lang.nativeName}</span>
+                </button>
+              );
+            })}
+          </div>
 
-        {/* 4. TOOLBAR: TÌM KIẾM & BỘ LỌC */}
-        <div className="lang-toolbar-card">
-          <div className="lang-toolbar-controls">
-            {/* Ô tìm kiếm */}
-            <div className="lang-search-wrapper">
-              <Search size={15} className="lang-search-icon" />
-              <input
-                type="text"
-                placeholder="Tìm theo mã khóa, tiếng Việt hoặc chú thích..."
-                className="lang-search-input"
-                value={search}
+          {/* THANH TÌM KIẾM & BỘ LỌC */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 18px',
+              borderBottom: '1px solid var(--border-color)',
+              flexWrap: 'wrap',
+              gap: 12
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, flexWrap: 'wrap' }}>
+              {/* Ô tìm kiếm */}
+              <div className="lang-search-wrapper" style={{ minWidth: 260, maxWidth: 360 }}>
+                <Search size={14} className="lang-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Tìm từ khóa hoặc tiếng Việt..."
+                  className="lang-search-input"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    className="lang-search-clear"
+                    onClick={() => setSearch('')}
+                    title="Xóa tìm kiếm"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Chọn phân mục */}
+              <select
+                className="lang-filter-select"
+                value={selectedNamespace}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  setSelectedNamespace(e.target.value);
                   setPage(1);
                 }}
-              />
-              {search && (
-                <button
-                  type="button"
-                  className="lang-search-clear"
-                  onClick={() => setSearch('')}
-                  title="Xóa tìm kiếm"
+              >
+                {NAMESPACES.map((ns) => (
+                  <option key={ns.id} value={ns.id}>
+                    {ns.label}
+                  </option>
+                ))}
+              </select>
+
+              {/* Lọc từ khóa chưa dịch */}
+              {selectedTargetLang !== 'vi' && (
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '12.5px',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
                 >
-                  <X size={14} />
-                </button>
+                  <input
+                    type="checkbox"
+                    checked={onlyUntranslated}
+                    onChange={(e) => {
+                      setOnlyUntranslated(e.target.checked);
+                      setPage(1);
+                    }}
+                    style={{ accentColor: 'var(--primary)', width: 14, height: 14 }}
+                  />
+                  <span>Chỉ hiện từ chưa dịch ({activeTargetLangInfo.nativeName})</span>
+                </label>
               )}
             </div>
 
-            {/* Chọn phân mục */}
-            <select
-              className="lang-filter-select"
-              value={selectedNamespace}
-              onChange={(e) => {
-                setSelectedNamespace(e.target.value);
-                setPage(1);
-              }}
-            >
-              {NAMESPACES.map((ns) => (
-                <option key={ns.id} value={ns.id}>
-                  {ns.label}
-                </option>
-              ))}
-            </select>
-
-            {/* Lọc từ khóa chưa dịch */}
-            {selectedTargetLang !== 'vi' && (
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: '12.5px',
-                  color: 'var(--text-main)',
-                  cursor: 'pointer',
-                  padding: '6px 10px',
-                  background: 'var(--bg-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-color)',
-                  userSelect: 'none'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={onlyUntranslated}
-                  onChange={(e) => {
-                    setOnlyUntranslated(e.target.checked);
-                    setPage(1);
-                  }}
-                  style={{ accentColor: 'var(--accent-gold)', width: 14, height: 14 }}
-                />
-                <span>Chỉ hiện từ khóa chưa dịch ({activeTargetLangInfo.code.toUpperCase()})</span>
-              </label>
-            )}
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              Tìm thấy <strong>{totalFilteredItems}</strong> từ khóa phù hợp
+            </div>
           </div>
 
-          <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-            Tìm thấy <strong>{totalFilteredItems}</strong> từ khóa phù hợp
-          </div>
-        </div>
-
-        {/* 5. BẢNG DỮ LIỆU TỪ ĐIỂN */}
-        <div className="lang-table-card">
-          <div className="lang-table-scroll" style={{ minHeight: tableMinHeight }}>
+          {/* BẢNG DỮ LIỆU TỪ ĐIỂN */}
+          <div className="lang-table-scroll">
             <table className="lang-table">
               <thead>
                 <tr>
-                  <th style={{ width: '26%' }}>Mã Khóa (Key) & Phân mục</th>
+                  <th style={{ width: '28%' }}>Mã Khóa & Phân mục</th>
                   <th style={{ width: '32%' }}>Tiếng Việt Gốc (vi)</th>
-                  <th style={{ width: '32%' }}>
-                    Bản dịch: {activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})
-                  </th>
-                  <th style={{ width: '10%', textAlign: 'right' }}>Thao tác</th>
+                  <th style={{ width: '28%' }}>Bản dịch: {activeTargetLangInfo.nativeName}</th>
+                  <th style={{ width: '12%', textAlign: 'right' }}>Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="lang-page-transition">
+              <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-                      <RefreshCw size={24} className="spin" style={{ margin: '0 auto 8px', color: 'var(--accent-gold)' }} />
-                      <div>Đang nạp từ điển di sản...</div>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
+                      <RefreshCw size={20} className="spin" style={{ margin: '0 auto 8px', color: 'var(--primary)' }} />
+                      <div style={{ fontSize: '13px' }}>Đang nạp dữ liệu từ điển...</div>
                     </td>
                   </tr>
                 ) : keys.length === 0 ? (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-                      <AlertCircle size={28} style={{ margin: '0 auto 8px', color: 'var(--text-muted)' }} />
-                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Không tìm thấy từ khóa phù hợp</div>
-                      <div style={{ fontSize: '12px' }}>Thử điều chỉnh từ khóa tìm kiếm hoặc phân mục</div>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
+                      <div style={{ fontWeight: 500, color: 'var(--text-main)', fontSize: '13px' }}>
+                        Không có từ khóa nào
+                      </div>
+                      <div style={{ fontSize: '12px', marginTop: 4 }}>
+                        Thử điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   keys.map((item) => {
                     const currentTrans = item.translations?.[selectedTargetLang] || '';
-                    const isAi = Boolean(item.isAiTranslated?.[selectedTargetLang]);
                     const hasTrans = currentTrans.trim().length > 0;
                     const isInlineEditing = inlineEditingId === (item.id || item._id);
 
                     return (
                       <tr key={item.id || item._id}>
-                        {/* Cột 1: Mã khóa */}
+                        {/* Cột 1: Mã từ khóa & phân mục (Dùng typography chuẩn của hệ thống, không dùng monospace thô) */}
                         <td style={{ verticalAlign: 'top', padding: '12px 18px' }}>
-                          <div style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-gold)', fontSize: '12px', wordBreak: 'break-all' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '13px', lineHeight: 1.4 }}>
                             {item.key}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                             <span
                               style={{
-                                fontSize: '10.5px',
-                                padding: '2px 6px',
-                                borderRadius: 4,
+                                fontSize: '11px',
+                                padding: '1px 6px',
+                                borderRadius: 'var(--radius-sm)',
                                 background: 'var(--bg-subtle)',
                                 color: 'var(--text-muted)',
                                 border: '1px solid var(--border-color)'
@@ -709,7 +671,7 @@ export const AdminTranslationsPage: React.FC = () => {
                               {item.namespace}
                             </span>
                             {item.description && (
-                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }} title={item.description}>
+                              <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }} title={item.description}>
                                 • {item.description}
                               </span>
                             )}
@@ -717,7 +679,7 @@ export const AdminTranslationsPage: React.FC = () => {
                         </td>
 
                         {/* Cột 2: Tiếng Việt gốc */}
-                        <td style={{ verticalAlign: 'top', padding: '12px 18px', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                        <td style={{ verticalAlign: 'top', padding: '12px 18px', color: 'var(--text-main)', fontSize: '13px', lineHeight: 1.5 }}>
                           {item.defaultText}
                         </td>
 
@@ -743,7 +705,7 @@ export const AdminTranslationsPage: React.FC = () => {
                                   type="button"
                                   className="btn btn-primary btn-sm"
                                   onClick={() => handleSaveInline(item)}
-                                  style={{ padding: '4px 10px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: 4 }}
+                                  style={{ padding: '3px 8px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: 4 }}
                                 >
                                   <Check size={12} />
                                   <span>Lưu</span>
@@ -752,7 +714,7 @@ export const AdminTranslationsPage: React.FC = () => {
                                   type="button"
                                   className="btn btn-secondary btn-sm"
                                   onClick={() => setInlineEditingId(null)}
-                                  style={{ padding: '4px 10px', fontSize: '11.5px' }}
+                                  style={{ padding: '3px 8px', fontSize: '11.5px' }}
                                 >
                                   Hủy
                                 </button>
@@ -761,60 +723,19 @@ export const AdminTranslationsPage: React.FC = () => {
                           ) : (
                             <div>
                               {hasTrans ? (
-                                <div style={{ color: 'var(--text-main)', lineHeight: 1.5, fontWeight: 500 }}>
+                                <div style={{ color: 'var(--text-main)', fontSize: '13px', lineHeight: 1.5 }}>
                                   {currentTrans}
                                 </div>
                               ) : (
-                                <div style={{ color: 'var(--error)', fontStyle: 'italic', fontSize: '12px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <AlertCircle size={13} />
-                                  <span>Chưa có bản dịch</span>
-                                </div>
-                              )}
-
-                              {hasTrans && (
-                                <div style={{ marginTop: 4 }}>
-                                  {isAi ? (
-                                    <span
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 4,
-                                        fontSize: '10px',
-                                        padding: '1px 6px',
-                                        borderRadius: 4,
-                                        background: 'rgba(59, 130, 246, 0.15)',
-                                        color: '#60A5FA',
-                                        border: '1px solid rgba(59, 130, 246, 0.3)'
-                                      }}
-                                    >
-                                      <Sparkles size={10} />
-                                      AI Dịch
-                                    </span>
-                                  ) : (
-                                    <span
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 4,
-                                        fontSize: '10px',
-                                        padding: '1px 6px',
-                                        borderRadius: 4,
-                                        background: 'rgba(16, 185, 129, 0.15)',
-                                        color: '#10B981',
-                                        border: '1px solid rgba(16, 185, 129, 0.3)'
-                                      }}
-                                    >
-                                      <CheckCircle2 size={10} />
-                                      Đã duyệt
-                                    </span>
-                                  )}
+                                <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '12.5px' }}>
+                                  Chưa có bản dịch
                                 </div>
                               )}
                             </div>
                           )}
                         </td>
 
-                        {/* Cột 4: Thao tác */}
+                        {/* Cột 4: Thao tác (gọn gàng, thanh lịch) */}
                         <td style={{ verticalAlign: 'top', padding: '12px 18px', textAlign: 'right' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                             {selectedTargetLang !== 'vi' && (
@@ -824,12 +745,12 @@ export const AdminTranslationsPage: React.FC = () => {
                                 onClick={() => handleSingleTranslate(item)}
                                 disabled={singleTranslatingKeyId === (item.id || item._id)}
                                 title="Dịch tự động từ khóa này"
-                                style={{ padding: '6px 8px' }}
+                                style={{ padding: '5px 8px' }}
                               >
                                 <Wand2
                                   size={13}
                                   className={singleTranslatingKeyId === (item.id || item._id) ? 'spin' : ''}
-                                  style={{ color: 'var(--accent-gold)' }}
+                                  style={{ color: 'var(--primary)' }}
                                 />
                               </button>
                             )}
@@ -841,8 +762,8 @@ export const AdminTranslationsPage: React.FC = () => {
                                 setInlineEditingId(item.id || item._id!);
                                 setInlineEditText(currentTrans);
                               }}
-                              title="Chỉnh sửa nhanh"
-                              style={{ padding: '6px 8px' }}
+                              title="Sửa bản dịch"
+                              style={{ padding: '5px 8px' }}
                             >
                               <Edit2 size={13} />
                             </button>
@@ -851,8 +772,8 @@ export const AdminTranslationsPage: React.FC = () => {
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenEditModal(item)}
-                              title="Chỉnh sửa đa ngữ"
-                              style={{ padding: '6px 8px' }}
+                              title="Chỉnh sửa chi tiết"
+                              style={{ padding: '5px 8px' }}
                             >
                               <Layers size={13} />
                             </button>
@@ -865,7 +786,7 @@ export const AdminTranslationsPage: React.FC = () => {
                                 setDeleteConfirmOpen(true);
                               }}
                               title="Xóa từ khóa"
-                              style={{ color: 'var(--error)', padding: '6px 8px' }}
+                              style={{ padding: '5px 8px' }}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -880,24 +801,26 @@ export const AdminTranslationsPage: React.FC = () => {
           </div>
 
           {/* Phân trang chuẩn hệ thống [6, 9, 12, 18, 24] */}
-          <Pagination
-            currentPage={page}
-            totalItems={totalFilteredItems}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              setPage(1);
-            }}
-            pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
-            itemLabel="từ khóa"
-          />
+          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-color)' }}>
+            <Pagination
+              currentPage={page}
+              totalItems={totalFilteredItems}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+              itemLabel="từ khóa"
+            />
+          </div>
         </div>
 
-        {/* 6. MODAL TẠO MỚI / SỬA CHI TIẾT */}
+        {/* MODAL TẠO MỚI / SỬA CHI TIẾT */}
         {isModalOpen && (
           <div className="modal-backdrop" style={{ zIndex: 1200 }}>
-            <div className="modal-card" style={{ maxWidth: 640 }}>
+            <div className="modal-card" style={{ maxWidth: 580 }}>
               <div className="modal-header">
                 <div>
                   <h2 className="modal-title">
@@ -922,7 +845,7 @@ export const AdminTranslationsPage: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">
-                        Mã khóa (Key identifier) <span style={{ color: 'var(--error)' }}>*</span>
+                        Mã khóa <span style={{ color: 'var(--primary)' }}>*</span>
                       </label>
                       <input
                         type="text"
@@ -932,13 +855,12 @@ export const AdminTranslationsPage: React.FC = () => {
                         onChange={(e) => setFormData({ ...formData, key: e.target.value })}
                         placeholder="vd: tour.rotateHint"
                         required
-                        style={{ fontFamily: 'monospace' }}
                       />
                     </div>
 
                     <div className="form-group">
                       <label className="form-label">
-                        Phân mục (Namespace) <span style={{ color: 'var(--error)' }}>*</span>
+                        Phân mục <span style={{ color: 'var(--primary)' }}>*</span>
                       </label>
                       <select
                         className="form-control"
@@ -956,7 +878,7 @@ export const AdminTranslationsPage: React.FC = () => {
 
                   <div className="form-group">
                     <label className="form-label">
-                      Chuỗi gốc Tiếng Việt (vi) <span style={{ color: 'var(--error)' }}>*</span>
+                      Chuỗi gốc Tiếng Việt (vi) <span style={{ color: 'var(--primary)' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -975,23 +897,23 @@ export const AdminTranslationsPage: React.FC = () => {
                       className="form-control"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Hướng dẫn ngữ cảnh cho biên dịch viên hoặc AI..."
+                      placeholder="Hướng dẫn ngữ cảnh cho biên dịch viên..."
                     />
                   </div>
 
                   {/* Danh sách các ngôn ngữ */}
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 10, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)', marginBottom: 10 }}>
                       Bản dịch theo các ngôn ngữ kích hoạt
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxHeight: 200, overflowY: 'auto', paddingRight: 4 }}>
                       {activeLanguages
                         .filter((l) => l.code !== 'vi')
                         .map((lang) => (
                           <div key={lang.code} className="form-group" style={{ margin: 0 }}>
                             <label className="form-label" style={{ fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span>{lang.flagIcon || '🌐'}</span>
-                              <span>{lang.nativeName} ({lang.code.toUpperCase()})</span>
+                              <span>{lang.nativeName}</span>
                             </label>
                             <input
                               type="text"
@@ -1007,7 +929,7 @@ export const AdminTranslationsPage: React.FC = () => {
                                 })
                               }
                               placeholder={`Bản dịch ${lang.name}...`}
-                              style={{ fontSize: '12.5px' }}
+                              style={{ fontSize: '12px' }}
                             />
                           </div>
                         ))}
@@ -1037,21 +959,16 @@ export const AdminTranslationsPage: React.FC = () => {
           </div>
         )}
 
-        {/* 7. MODAL XÁC NHẬN DỊCH AI ĐỒNG LOẠT */}
+        {/* MODAL XÁC NHẬN DỊCH AI ĐỒNG LOẠT */}
         {batchModalOpen && (
           <div className="modal-backdrop" style={{ zIndex: 1200 }}>
-            <div className="modal-card" style={{ maxWidth: 480 }}>
+            <div className="modal-card" style={{ maxWidth: 440 }}>
               <div className="modal-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div className="lang-header-icon-badge" style={{ width: 36, height: 36 }}>
-                    <Sparkles size={18} />
-                  </div>
-                  <div>
-                    <h2 className="modal-title">Dịch AI Đồng Loạt (1-Click)</h2>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                      Đích đến: <strong style={{ color: 'var(--accent-gold)' }}>{activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})</strong>
-                    </p>
-                  </div>
+                <div>
+                  <h2 className="modal-title">Dịch tự động đồng loạt</h2>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                    Ngôn ngữ đích: <strong style={{ color: 'var(--primary)' }}>{activeTargetLangInfo.nativeName} ({activeTargetLangInfo.code.toUpperCase()})</strong>
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -1062,9 +979,9 @@ export const AdminTranslationsPage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <p style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.5, margin: 0 }}>
-                  Mô hình Neural Translation sẽ tự động dịch các từ khóa giao diện sang tiếng {activeTargetLangInfo.nativeName}.
+                  Hệ thống sẽ tự động dịch các từ khóa giao diện sang tiếng {activeTargetLangInfo.nativeName}.
                 </p>
 
                 <div
@@ -1074,7 +991,7 @@ export const AdminTranslationsPage: React.FC = () => {
                     gap: 10,
                     padding: '10px 12px',
                     background: 'var(--bg-subtle)',
-                    borderRadius: 'var(--radius-md)',
+                    borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-color)'
                   }}
                 >
@@ -1083,12 +1000,12 @@ export const AdminTranslationsPage: React.FC = () => {
                     id="chkBatchOverwrite"
                     checked={batchOverwrite}
                     onChange={(e) => setBatchOverwrite(e.target.checked)}
-                    style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                    style={{ marginTop: 2, accentColor: 'var(--primary)' }}
                   />
-                  <label htmlFor="chkBatchOverwrite" style={{ fontSize: '12.5px', color: 'var(--text-main)', cursor: 'pointer' }}>
+                  <label htmlFor="chkBatchOverwrite" style={{ fontSize: '12px', color: 'var(--text-main)', cursor: 'pointer' }}>
                     <div style={{ fontWeight: 600 }}>Dịch đè lên cả các từ khóa đã có bản dịch</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
-                      (Mặc định bỏ chọn để chỉ dịch các từ khóa còn trống)
+                      (Mặc định bỏ chọn để chỉ dịch những từ khóa còn trống)
                     </div>
                   </label>
                 </div>
@@ -1109,14 +1026,14 @@ export const AdminTranslationsPage: React.FC = () => {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   <Sparkles size={14} />
-                  <span>Bắt đầu dịch ngay</span>
+                  <span>Bắt đầu dịch</span>
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* 8. MODAL XÁC NHẬN XÓA */}
+        {/* MODAL XÁC NHẬN XÓA */}
         <ConfirmModal
           isOpen={deleteConfirmOpen}
           title="Xóa từ khóa giao diện"
