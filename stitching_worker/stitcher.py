@@ -18,7 +18,11 @@ import re
 import cv2
 import numpy as np
 import gc
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFile
+
+# Cho phép nạp ảnh bị cắt cụt (truncated) mà không làm sập luồng xử lý
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 
 # Đảm bảo stdout/stderr luôn dùng UTF-8 trên Windows để không bị lỗi UnicodeEncodeError
 if sys.platform == "win32":
@@ -357,7 +361,8 @@ def run_stitch(image_paths, output_path, target_width=0):
                 "outputPath": output_path,
                 "width": w,
                 "height": h,
-                "aspectRatio": "2:1",
+                "aspectRatio": 2.0,
+                "aspectRatioStr": "2:1",
                 "message": "Đã chuẩn hóa ảnh Pano điện thoại thành toàn cảnh 360° Equirectangular 2:1 thành công."
             }
         except Exception as e:
@@ -371,23 +376,20 @@ def run_stitch(image_paths, output_path, target_width=0):
     sorted_paths = sorted(image_paths, key=natural_sort_key)
     num_total = len(sorted_paths)
 
-    def select_optimal_keyframes(paths, max_target=18):
+    def select_optimal_keyframes(paths, max_target=36):
         """
         Chắt lọc chuỗi khung hình đại diện quanh quỹ đạo xoay 360°:
-        - Với chùm ảnh tiêu chuẩn (<= 18 ảnh): GIỮ NGUYÊN 100% TẤT CẢ CÁC GÓC CHỤP.
-          Bảo toàn trọn vẹn chuỗi quang học và độ chồng lấp 50%-70% giữa 2 ảnh kề nhau.
-        - Với chùm ảnh dày (19 - 100+ ảnh, ví dụ 29 ảnh của người dùng):
+        - Với chùm ảnh tiêu chuẩn (<= 36 ảnh): GIỮ NGUYÊN 100% TẤT CẢ CÁC GÓC CHỤP.
+          Bảo toàn trọn vẹn chuỗi quang học và độ chồng lấp 40%-60% giữa 2 ảnh kề nhau.
+        - Với chùm ảnh rất dày (> 36 ảnh):
           1. Đọc thumbnail grayscale siêu nhẹ (160x120) tốn <2MB RAM.
           2. Loại bỏ các khung hình đứng yên trùng góc (diff < 1.0%).
           3. Áp dụng Cumulative Motion Sampling: Chia đều tổng lượng biến thiên chuyển động
-             quanh vòng tròn để chọn ra 16 - 18 khung hình chủ chốt tối ưu.
-             -> Giảm số cặp so khớp từ 406 cặp xuống ~136 cặp (giảm 66% tải CPU),
-             -> Xử lý chỉ mất 12-18s, loại bỏ 100% nguy cơ lỗi Timeout 504 Gateway Timeout!
-             -> Loại bỏ tích lũy sai số xoay trục (rotational drift) giúp ảnh phẳng đứng không bị cong võng.
+             quanh vòng tròn để chọn ra tối đa 36 khung hình chủ chốt tối ưu.
           4. Luôn ghim khung hình đầu tiên (paths[0]) và khung hình cuối cùng (paths[-1]).
         """
         n = len(paths)
-        if n <= 18:
+        if n <= 36:
             return paths
 
         # Đọc thumbnail grayscale siêu nhẹ cho từng ảnh
@@ -402,7 +404,7 @@ def run_stitch(image_paths, output_path, target_width=0):
             except Exception:
                 pass
 
-        if len(valid_paths) <= 18:
+        if len(valid_paths) <= 36:
             return valid_paths
 
         # 1. Tính biến thiên chuyển động liên tiếp giữa các khung hình kề nhau
@@ -424,7 +426,7 @@ def run_stitch(image_paths, output_path, target_width=0):
         filtered_paths.append(valid_paths[-1])
         filtered_diffs.append(max(0.1, motion_diffs[-1]))
 
-        target_limit = min(max_target, 18)
+        target_limit = min(max_target, 36)
         if len(filtered_paths) <= target_limit:
             return filtered_paths
 
@@ -459,12 +461,11 @@ def run_stitch(image_paths, output_path, target_width=0):
 
     cv2.ocl.setUseOpenCL(False)
 
-    def build_stitcher(confidence=0.18, num_images=20):
+    def build_stitcher(confidence=0.14, wave_correction=True, reg_resol=0.65):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
-            # BẬT wave correction: Cân bằng đường chân trời, giữ vách tường, cửa sổ và trần nhà
-            # luôn thẳng đứng tự nhiên, triệt tiêu hoàn toàn lỗi cong võng
-            s.setWaveCorrection(True)
+            # Cân bằng đường chân trời, giữ vách tường, cửa sổ và trần nhà thẳng đứng
+            s.setWaveCorrection(wave_correction)
         except Exception:
             pass
         try:
@@ -472,9 +473,8 @@ def run_stitch(image_paths, output_path, target_width=0):
         except Exception:
             pass
         try:
-            # Registration resolution 0.60 Mpx: Tối ưu hoá tốc độ so khớp điểm ảnh < 15-20s,
-            # đảm bảo không bao giờ bị Gateway Timeout (504) đồng thời nhận diện chuẩn xác chi tiết
-            s.setRegistrationResol(0.60)
+            # Registration resolution: Tinh chỉnh độ phân giải so khớp điểm ảnh
+            s.setRegistrationResol(reg_resol)
         except Exception:
             pass
         try:
@@ -490,49 +490,52 @@ def run_stitch(image_paths, output_path, target_width=0):
         return s
 
     # Chuẩn bị danh sách khung hình đại diện tối ưu
-    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=18)
-    print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã chắt lọc chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
+    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=36)
+    print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã xác lập chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
 
-    # Chiến lược ghép thích ứng thông minh:
-    # Max dimension 2048px bảo toàn 100% độ sắc nét chuẩn 4K cho WebGL mà xử lý siêu tốc.
-    if num_total <= 16:
-        candidate_schemes = [
-            (optimal_paths, 2048, 0.20, "Góc chuẩn 4K (Conf 0.20, MaxDim 2048px)"),
-            (optimal_paths, 1800, 0.14, "Cân bằng chi tiết không gian (Conf 0.14, MaxDim 1800px)"),
-            (sorted_paths, 1600, 0.10, "Bảo toàn hình học (Conf 0.10, MaxDim 1600px)")
-        ]
-    else:
-        # Số ảnh >= 17 (chùm 20 - 30+ ảnh):
-        candidate_schemes = [
-            (optimal_paths, 2048, 0.18, f"Chuỗi quang học tối ưu ({len(optimal_paths)} keyframes) - 4K (Conf 0.18, MaxDim 2048px)"),
-            (optimal_paths, 1800, 0.12, f"Chuỗi quang học tối ưu ({len(optimal_paths)} keyframes) - Tăng nhạy (Conf 0.12, MaxDim 1800px)"),
-            (optimal_paths, 1500, 0.10, f"Chuỗi quang học tối ưu ({len(optimal_paths)} keyframes) - Quét vét (Conf 0.10, MaxDim 1500px)")
-        ]
+    # Hệ thống 5 tầng thích ứng siêu nhạy (Adaptive 5-Tier Stitching Cascade)
+    candidate_schemes = [
+        # Tầng 1 (4K Ultra Sharp): 2048px, Conf 0.14, RegResol 0.65 Mpx, WaveCorrection=True
+        (optimal_paths, 2048, 0.14, True, 0.65, f"Tầng 1 - Sắc nét 4K ({len(optimal_paths)} ảnh, Conf 0.14, MaxDim 2048px, RegResol 0.65)"),
+        # Tầng 2 (High Texture Preservation): 1800px, Conf 0.10, RegResol 0.85 Mpx, WaveCorrection=True
+        (optimal_paths, 1800, 0.10, True, 0.85, f"Tầng 2 - Bảo tồn chi tiết không gian ({len(optimal_paths)} ảnh, Conf 0.10, MaxDim 1800px, RegResol 0.85)"),
+        # Tầng 3 (Anti-Tilt / Difficult Pitch): 1600px, Conf 0.07, RegResol 0.80 Mpx, WaveCorrection=False (cứu góc chụp nghiêng tay)
+        (optimal_paths, 1600, 0.07, False, 0.80, f"Tầng 3 - Cứu góc chụp nghiêng tay ({len(optimal_paths)} ảnh, Conf 0.07, MaxDim 1600px, WaveCorr=False)"),
+        # Tầng 4 (Low-Contrast Rescue): 1400px, Conf 0.04, RegResol 0.90 Mpx, WaveCorrection=False (cứu phòng thiếu sáng/tường trơn)
+        (optimal_paths, 1400, 0.04, False, 0.90, f"Tầng 4 - Cứu phòng thiếu sáng/tường trơn ({len(optimal_paths)} ảnh, Conf 0.04, MaxDim 1400px, WaveCorr=False)")
+    ]
+
+    # Tầng 5 (Full-Set Fallback): Nếu chùm ảnh > 36 ảnh bị lọc bớt, thử lại với 100% ảnh gốc
+    if num_total > len(optimal_paths):
+        candidate_schemes.append(
+            (sorted_paths, 1600, 0.08, True, 0.70, f"Tầng 5 - Toàn bộ ảnh gốc dự phòng ({num_total} ảnh, Conf 0.08, MaxDim 1600px)")
+        )
 
     best_pano = None
     best_status = -1
     best_used = ()
     best_hfov = None
     best_score = -1
+    best_failure_stat = None
 
-    for (cur_paths, max_dim, conf, desc) in candidate_schemes:
-        print(f"[*] Thử nghiệm ghép: {desc} với {len(cur_paths)} ảnh...", file=sys.stderr)
+    for (cur_paths, max_dim, conf, wave_corr, reg_resol, desc) in candidate_schemes:
+        print(f"[*] Thử nghiệm ghép: {desc}...", file=sys.stderr)
         images = []
-        load_ok = True
         for p in cur_paths:
             if not os.path.exists(p):
-                load_ok = False
-                break
+                print(f"[Warning] Bỏ qua file không tồn tại: {p}", file=sys.stderr)
+                continue
             try:
                 img = load_and_orient_image(p, max_dim=max_dim)
                 # Luôn cân bằng ánh sáng và nén lóa sáng ngược sáng để bảo toàn chi tiết cửa chính & góc tối
                 img = balance_indoor_lighting(img)
                 images.append(img)
-            except Exception:
-                load_ok = False
-                break
+            except Exception as img_err:
+                print(f"[Warning] Bỏ qua ảnh lỗi đọc {p}: {img_err}", file=sys.stderr)
+                continue
 
-        if not load_ok or len(images) < 2:
+        if len(images) < 2:
+            print(f"[Warning] Không đủ ảnh hợp lệ ({len(images)} ảnh) để ghép cho tầng này.", file=sys.stderr)
             try:
                 del images
                 gc.collect()
@@ -540,7 +543,7 @@ def run_stitch(image_paths, output_path, target_width=0):
                 pass
             continue
 
-        s = build_stitcher(confidence=conf, num_images=len(images))
+        s = build_stitcher(confidence=conf, wave_correction=wave_corr, reg_resol=reg_resol)
         cur_stat, cur_pano = s.stitch(images)
         cur_used = s.component() if hasattr(s, 'component') else ()
 
@@ -584,6 +587,8 @@ def run_stitch(image_paths, output_path, target_width=0):
                 print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
                 break
         else:
+            if best_failure_stat is None or cur_stat != -1:
+                best_failure_stat = cur_stat
             print(f"[!] Lượt ghép chưa đạt (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Tiếp tục thử phương án tiếp theo...", file=sys.stderr)
             try:
                 del images
@@ -591,11 +596,11 @@ def run_stitch(image_paths, output_path, target_width=0):
             except Exception:
                 pass
 
-    status = best_status
+    status = best_status if best_status != -1 else (best_failure_stat if best_failure_stat is not None else cv2.Stitcher_ERR_NEED_MORE_IMGS)
     stitched = best_pano
     used_imgs = best_used
 
-    print(f"[*] Kết quả ghép OpenCV tốt nhất: Mã={status}, Số ảnh thực tế kết nối: {len(used_imgs)} ảnh, HFOV ước tính: {best_hfov if best_hfov else 0:.1f}°.", file=sys.stderr)
+    print(f"[*] Kết quả ghép OpenCV: Mã={status}, Số ảnh thực tế kết nối: {len(used_imgs)} ảnh, HFOV ước tính: {best_hfov if best_hfov else 0:.1f}°.", file=sys.stderr)
 
     STATUS_MAP = {
         cv2.Stitcher_OK: "OK",
@@ -604,18 +609,18 @@ def run_stitch(image_paths, output_path, target_width=0):
         cv2.Stitcher_ERR_CAMERA_PARAMS_ADJUST_FAIL: "ERR_CAMERA_PARAMS_ADJUST_FAIL"
     }
 
-    status_name = STATUS_MAP.get(status, f"UNKNOWN_ERROR_{status}")
+    status_name = STATUS_MAP.get(status, f"ERR_STITCH_{status}")
 
     if status != cv2.Stitcher_OK or stitched is None:
         error_details = {
-            "ERR_NEED_MORE_IMGS": "Không đủ ảnh hoặc độ chồng lấp (overlap) giữa các ảnh quá ít. Khi chụp bằng điện thoại, hai ảnh kề nhau cần có ít nhất 30%-40% cảnh chung.",
-            "ERR_HOMOGRAPHY_EST_FAIL": "Không thể ước lượng ma trận tương đồng (Homography). Nguyên nhân thường do cảnh thiếu hoa văn nhận diện hoặc ảnh bị nhòe mờ khi lia máy nhanh.",
-            "ERR_CAMERA_PARAMS_ADJUST_FAIL": "Không thể hiệu chỉnh thông số thấu kính máy ảnh giữa các bức ảnh."
+            "ERR_NEED_MORE_IMGS": "Không đủ độ chồng lấp (overlap) giữa các khung hình liên tiếp. Khi quay/chụp trong gian phòng bảo tàng, hai bức ảnh kề nhau cần chứa ít nhất 30%-40% khung cảnh chung và di chuyển góc quay mượt mà.",
+            "ERR_HOMOGRAPHY_EST_FAIL": "Không thể thiết lập ma trận tương đồng (Homography). Thường xuất hiện khi lia máy quá nhanh làm nhòe ảnh, hoặc chụp vào vùng tường quá trơn thiếu chi tiết hoa văn.",
+            "ERR_CAMERA_PARAMS_ADJUST_FAIL": "Không thể hiệu chỉnh thông số quang học của thấu kính máy ảnh giữa các bức ảnh do tiêu cự zoom thay đổi đột ngột khi chụp."
         }
         return {
             "success": False,
             "error": status_name,
-            "detail": error_details.get(status_name, "Lỗi không xác định trong quá trình ghép ảnh của OpenCV.")
+            "detail": error_details.get(status_name, "Thuật toán ghép ảnh chưa thể kết nối đầy đủ các bức ảnh do thiếu điểm tương đồng thị giác hoặc góc chụp lệch nhiều.")
         }
 
     print("[*] Ghép ảnh thành công! Đang cắt sạch viền đen và nắn chỉnh Equirectangular 2:1...", file=sys.stderr)
@@ -638,7 +643,8 @@ def run_stitch(image_paths, output_path, target_width=0):
         "outputPath": output_path,
         "width": w,
         "height": h,
-        "aspectRatio": "2:1",
+        "aspectRatio": 2.0,
+        "aspectRatioStr": "2:1",
         "message": "Đã tạo thành công ảnh toàn cảnh 360° Equirectangular chuẩn WebGL siêu nét."
     }
 

@@ -99,6 +99,198 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
   return null;
 }
 
+// Bộ từ điển ánh xạ cụm từ linh hoạt đa ngôn ngữ (chống bị ép tiếng Nhật cho các ngôn ngữ khác)
+function getDynamicCountPhrase(patternKey: string, lang: string, paramA: string | number, paramB?: string | number): string {
+  const cleanLang = lang.toLowerCase().trim();
+  const PHRASE_DICTIONARY: Record<string, Record<string, (a: any, b?: any) => string>> = {
+    anchorPoints: {
+      en: (n) => `${n} anchor points`,
+      fr: (n) => `${n} points d'ancrage`,
+      zh: (n) => `${n} 个锚点`,
+      ja: (n) => `${n} 箇所のスポット`,
+      ko: (n) => `${n}개 앵커 포인트`,
+      es: (n) => `${n} puntos de anclaje`,
+      de: (n) => `${n} Ankerpunkte`,
+      ru: (n) => `${n} точек привязки`,
+      th: (n) => `${n} จุดเชื่อมโยง`,
+      it: (n) => `${n} punti di ancoraggio`
+    },
+    scans: {
+      en: (n) => `${n} scans`,
+      fr: (n) => `${n} scans`,
+      zh: (n) => `${n} 次扫码`,
+      ja: (n) => `${n} 回スキャン`,
+      ko: (n) => `${n}회 스캔`,
+      es: (n) => `${n} escaneos`,
+      de: (n) => `${n} Scans`,
+      ru: (n) => `${n} сканирований`,
+      th: (n) => `${n} ครั้งการสแกน`,
+      it: (n) => `${n} scansioni`
+    },
+    views360: {
+      en: (n) => `${n} 360° views`,
+      fr: (n) => `${n} angles 360°`,
+      zh: (n) => `${n} 个360°视角`,
+      ja: (n) => `${n} 箇所の360°視点`,
+      ko: (n) => `${n}개 360° 뷰`,
+      es: (n) => `${n} vistas 360°`,
+      de: (n) => `${n} 360°-Ansichten`,
+      ru: (n) => `${n} панорам 360°`,
+      th: (n) => `${n} มุมมอง 360°`,
+      it: (n) => `${n} viste 360°`
+    },
+    rooms: {
+      en: (n) => `${n} rooms`,
+      fr: (n) => `${n} salles`,
+      zh: (n) => `${n} 个展厅`,
+      ja: (n) => `${n} 室`,
+      ko: (n) => `${n}개 전시실`,
+      es: (n) => `${n} salas`,
+      de: (n) => `${n} Räume`,
+      ru: (n) => `${n} залов`,
+      th: (n) => `${n} ห้องจัดแสดง`,
+      it: (n) => `${n} sale`
+    },
+    countries: {
+      en: (n) => `${n} countries & territories`,
+      fr: (n) => `${n} pays & territoires`,
+      zh: (n) => `${n} 个国家与地区`,
+      ja: (n) => `${n} 国・地域の言語`,
+      ko: (n) => `${n}개 국가 및 영토`,
+      es: (n) => `${n} países y territorios`,
+      de: (n) => `${n} Länder & Regionen`,
+      ru: (n) => `${n} стран и территорий`,
+      th: (n) => `${n} ประเทศและดินแดน`,
+      it: (n) => `${n} paesi e territori`
+    },
+    languagesRatio: {
+      en: (a, b) => `${a} / ${b} languages`,
+      fr: (a, b) => `${a} / ${b} langues`,
+      zh: (a, b) => `${a} / ${b} 种语言`,
+      ja: (a, b) => `${a} / ${b} 言語`,
+      ko: (a, b) => `${a} / ${b} 개 언어`,
+      es: (a, b) => `${a} / ${b} idiomas`,
+      de: (a, b) => `${a} / ${b} Sprachen`,
+      ru: (a, b) => `${a} / ${b} языков`,
+      th: (a, b) => `${a} / ${b} ภาษา`,
+      it: (a, b) => `${a} / ${b} lingue`
+    },
+    foundLanguages: {
+      en: (a, b) => `Found ${a} / ${b} languages`,
+      fr: (a, b) => `Trouvé ${a} / ${b} langues`,
+      zh: (a, b) => `已找到 ${a} / ${b} 种语言`,
+      ja: (a, b) => `検索結果 ${a} / ${b} 言語`,
+      ko: (a, b) => `${a} / ${b}개 언어 검색됨`,
+      es: (a, b) => `Encontrados ${a} / ${b} idiomas`,
+      de: (a, b) => `${a} / ${b} Sprachen gefunden`,
+      ru: (a, b) => `Найдено ${a} / ${b} языков`,
+      th: (a, b) => `พบ ${a} / ${b} ภาษา`,
+      it: (a, b) => `Trovate ${a} / ${b} lingue`
+    },
+    speedProvider: {
+      en: (spd, prov) => `Speed: ${spd}x | Provider: ${prov}`,
+      fr: (spd, prov) => `Vitesse : ${spd}x | Fournisseur : ${prov}`,
+      zh: (spd, prov) => `语速：${spd}x | 服务商：${prov}`,
+      ja: (spd, prov) => `速度：${spd}x | プロバイダー：${prov}`,
+      ko: (spd, prov) => `속도: ${spd}x | 제공자: ${prov}`,
+      es: (spd, prov) => `Velocidad: ${spd}x | Proveedor: ${prov}`,
+      de: (spd, prov) => `Geschwindigkeit: ${spd}x | Anbieter: ${prov}`,
+      ru: (spd, prov) => `Скорость: ${spd}x | Провайдер: ${prov}`,
+      th: (spd, prov) => `ความเร็ว: ${spd}x | ผู้ให้บริการ: ${prov}`,
+      it: (spd, prov) => `Velocità: ${spd}x | Provider: ${prov}`
+    },
+    intlName: {
+      en: (name) => `International name: ${name}`,
+      fr: (name) => `Nom international : ${name}`,
+      zh: (name) => `国际通用名：${name}`,
+      ja: (name) => `国際表記：${name}`,
+      ko: (name) => `국제 명칭: ${name}`,
+      es: (name) => `Nombre internacional: ${name}`,
+      de: (name) => `Internationaler Name: ${name}`,
+      ru: (name) => `Международное название: ${name}`,
+      th: (name) => `ชื่อสากล: ${name}`,
+      it: (name) => `Nome internazionale: ${name}`
+    },
+    playingVoiceSample: {
+      en: (name) => `Playing AI Voice sample: ${name}`,
+      fr: (name) => `Lecture de l’échantillon vocal IA : ${name}`,
+      zh: (name) => `正在播放AI语音示例：${name}`,
+      ja: (name) => `AI音声サンプルを再生中：${name}`,
+      ko: (name) => `AI 음성 샘플 재생 중: ${name}`,
+      es: (name) => `Reproduciendo muestra de voz IA: ${name}`,
+      de: (name) => `KI-Sprachprobe wird abgespielt: ${name}`,
+      ru: (name) => `Воспроизведение образца голоса ИИ: ${name}`,
+      th: (name) => `กำลังเล่นตัวอย่างเสียง AI: ${name}`,
+      it: (name) => `Riproduzione campione vocale AI: ${name}`
+    },
+    allStatuses: {
+      en: (n) => `All statuses (${n})`,
+      fr: (n) => `Tous les statuts (${n})`,
+      zh: (n) => `所有状态 (${n})`,
+      ja: (n) => `すべてのステータス (${n})`,
+      ko: (n) => `모든 상태 (${n})`,
+      es: (n) => `Todos los estados (${n})`,
+      de: (n) => `Alle Status (${n})`,
+      ru: (n) => `Все статусы (${n})`,
+      th: (n) => `ทุกสถานะ (${n})`,
+      it: (n) => `Tutti gli stati (${n})`
+    },
+    visibleOnClient: {
+      en: (n) => `Visible on Client (${n})`,
+      fr: (n) => `Visible pour les visiteurs (${n})`,
+      zh: (n) => `客户端显示中 (${n})`,
+      ja: (n) => `クライアント表示中 (${n})`,
+      ko: (n) => `클라이언트에 표시 중 (${n})`,
+      es: (n) => `Visible en el cliente (${n})`,
+      de: (n) => `Auf Client sichtbar (${n})`,
+      ru: (n) => `Отображается на клиенте (${n})`,
+      th: (n) => `แสดงบนฝั่งผู้ใช้ (${n})`,
+      it: (n) => `Visibile sul Client (${n})`
+    },
+    temporarilyHidden: {
+      en: (n) => `Temporarily hidden (${n})`,
+      fr: (n) => `Désactivé temporairement (${n})`,
+      zh: (n) => `已暂停显示 (${n})`,
+      ja: (n) => `一時停止中 (${n})`,
+      ko: (n) => `일시 숨김 (${n})`,
+      es: (n) => `Oculto temporalmente (${n})`,
+      de: (n) => `Vorübergehend ausgeblendet (${n})`,
+      ru: (n) => `Временно скрыто (${n})`,
+      th: (n) => `ซ่อนชั่วคราว (${n})`,
+      it: (n) => `Temporaneamente nascosto (${n})`
+    },
+    roomCode: {
+      en: () => 'Room Code: ',
+      fr: () => 'Code de la salle : ',
+      zh: () => '展厅编号: ',
+      ja: () => '展示室コード: ',
+      ko: () => '전시실 코드: ',
+      es: () => 'Código de sala: ',
+      de: () => 'Raumcode: ',
+      ru: () => 'Код зала: ',
+      th: () => 'รหัสห้อง: ',
+      it: () => 'Codice sala: '
+    },
+    photosCount: {
+      en: (n) => `(${n} photos)`,
+      fr: (n) => `(${n} photos)`,
+      zh: (n) => `(${n} 张图片)`,
+      ja: (n) => `(${n} 枚の画像)`,
+      ko: (n) => `(${n}장 사진)`,
+      es: (n) => `(${n} fotos)`,
+      de: (n) => `(${n} Fotos)`,
+      ru: (n) => `(${n} фото)`,
+      th: (n) => `(${n} รูป)`,
+      it: (n) => `(${n} foto)`
+    }
+  };
+
+  const pattern = PHRASE_DICTIONARY[patternKey];
+  if (!pattern) return String(paramA);
+  const fn = pattern[cleanLang] || pattern.en;
+  return fn(paramA, paramB);
+}
+
 export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Đọc đồng bộ ngay từ frame đầu tiên để không bao giờ bị FOUT giật chữ
   const [currentLang, setCurrentLang] = useState<string>(() => {
@@ -189,19 +381,24 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           newDict = json.data;
         }
       } else {
-        // 2. Client fallback sang Google GTX trực tiếp nếu kết nối backend gián đoạn
+        // 2. Client fallback sang Google dict-chrome-ex trực tiếp (CORS: *, hỗ trợ 100+ ngôn ngữ, không bị rate-limit 429)
         await Promise.all(
           batch.map(async (txt) => {
             try {
-              const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=${encodeURIComponent(currentLang)}&dt=t&q=${encodeURIComponent(txt)}`;
+              const url = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=${encodeURIComponent(currentLang)}&q=${encodeURIComponent(txt)}`;
               const r = await fetch(url);
               if (r.ok) {
                 const data = await r.json();
-                if (Array.isArray(data) && Array.isArray(data[0])) {
-                  const tr = data[0].map((item: any) => item[0]).filter(Boolean).join('');
-                  if (tr && tr.trim() && tr.trim() !== txt.trim()) {
-                    newDict[txt] = tr.trim();
+                let tr = '';
+                if (Array.isArray(data) && data.length > 0) {
+                  if (typeof data[0] === 'string') {
+                    tr = data[0].trim();
+                  } else if (Array.isArray(data[0])) {
+                    tr = data[0].map((item: any) => (Array.isArray(item) ? item[0] : item)).filter(Boolean).join('').trim();
                   }
+                }
+                if (tr && tr !== txt.trim()) {
+                  newDict[txt] = tr;
                 }
               }
             } catch {
@@ -300,6 +497,9 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
         const trans = autoTranslations[origPh] || lookupUniversalPhrase(origPh, targetLang);
         if (trans && input.placeholder !== trans) {
           input.placeholder = trans;
+        }
+        if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[origPh] && VIETNAMESE_REGEX.test(origPh)) {
+          enqueueForTranslation(origPh);
         } else if (!trans && VIETNAMESE_REGEX.test(origPh)) {
           enqueueForTranslation(origPh);
         }
@@ -317,6 +517,9 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
         const trans = autoTranslations[origTitle] || lookupUniversalPhrase(origTitle, targetLang);
         if (trans && el.getAttribute('title') !== trans) {
           el.setAttribute('title', trans);
+        }
+        if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[origTitle] && VIETNAMESE_REGEX.test(origTitle)) {
+          enqueueForTranslation(origTitle);
         } else if (!trans && VIETNAMESE_REGEX.test(origTitle)) {
           enqueueForTranslation(origTitle);
         }
@@ -334,6 +537,9 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
         const trans = autoTranslations[origAria] || lookupUniversalPhrase(origAria, targetLang);
         if (trans && el.getAttribute('aria-label') !== trans) {
           el.setAttribute('aria-label', trans);
+        }
+        if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[origAria] && VIETNAMESE_REGEX.test(origAria)) {
+          enqueueForTranslation(origAria);
         } else if (!trans && VIETNAMESE_REGEX.test(origAria)) {
           enqueueForTranslation(origAria);
         }
@@ -377,6 +583,9 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
             node.parentElement.setAttribute('data-i18n-orig', origText);
           }
           node.textContent = text.replace(trimmed, trans);
+          if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[origText] && VIETNAMESE_REGEX.test(origText)) {
+            enqueueForTranslation(origText);
+          }
           return;
         } else if (!trans && VIETNAMESE_REGEX.test(origText) && origText.length >= 2) {
           enqueueForTranslation(origText);
@@ -384,66 +593,21 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
 
         // Thay thế các biến động số lượng và nhãn linh hoạt
         let replaced = text;
-        replaced = replaced.replace(/(\d+)\s+điểm neo/g, (_, n) => {
-          const word = targetLang === 'en' ? 'anchor points' : targetLang === 'fr' ? "points d'ancrage" : targetLang === 'zh' ? '个锚点' : '箇所のスポット';
-          return `${n} ${word}`;
-        });
-        replaced = replaced.replace(/(\d+)\s+lượt quét/g, (_, n) => {
-          const word = targetLang === 'en' ? 'scans' : targetLang === 'fr' ? 'scans' : targetLang === 'zh' ? '次扫码' : '回スキャン';
-          return `${n} ${word}`;
-        });
-        replaced = replaced.replace(/(\d+)\s+góc 360°/g, (_, n) => {
-          const word = targetLang === 'en' ? '360° views' : targetLang === 'fr' ? 'angles 360°' : targetLang === 'zh' ? '个360°视角' : '箇所の360°視点';
-          return `${n} ${word}`;
-        });
-        replaced = replaced.replace(/(\d+)\s+gian phòng/g, (_, n) => {
-          const word = targetLang === 'en' ? 'rooms' : targetLang === 'fr' ? 'salles' : targetLang === 'zh' ? '个展厅' : '室';
-          return `${n} ${word}`;
-        });
-        replaced = replaced.replace(/(\d+)\s+quốc gia & vùng lãnh thổ/g, (_, n) => {
-          const word = targetLang === 'en' ? 'countries & territories' : targetLang === 'fr' ? 'pays & territoires' : targetLang === 'zh' ? '个国家与地区' : '国・地域の言語';
-          return `${n} ${word}`;
-        });
-        replaced = replaced.replace(/(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => {
-          const word = targetLang === 'en' ? 'languages' : targetLang === 'fr' ? 'langues' : targetLang === 'zh' ? '种语言' : '言語';
-          return `${a} / ${b} ${word}`;
-        });
-        replaced = replaced.replace(/Tìm thấy\s+(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => {
-          const prefix = targetLang === 'en' ? 'Found' : targetLang === 'fr' ? 'Trouvé' : targetLang === 'zh' ? '已找到' : '検索結果';
-          const word = targetLang === 'en' ? 'languages' : targetLang === 'fr' ? 'langues' : targetLang === 'zh' ? '种语言' : '言語';
-          return `${prefix} ${a} / ${b} ${word}`;
-        });
-        replaced = replaced.replace(/Tốc độ:\s*([\d.]+)x\s*\|\s*Nhà cung cấp:\s*(.*)/g, (_, spd, prov) => {
-          const spdWord = targetLang === 'en' ? 'Speed:' : targetLang === 'fr' ? 'Vitesse :' : targetLang === 'zh' ? '语速：' : '速度：';
-          const provWord = targetLang === 'en' ? 'Provider:' : targetLang === 'fr' ? 'Fournisseur :' : targetLang === 'zh' ? '服务商：' : 'プロバイダー：';
-          return `${spdWord} ${spd}x | ${provWord} ${prov}`;
-        });
-        replaced = replaced.replace(/Tên quốc tế:\s*(.*)/g, (_, name) => {
-          const prefix = targetLang === 'en' ? 'International name: ' : targetLang === 'fr' ? 'Nom international : ' : targetLang === 'zh' ? '国际通用名：' : '国際表記：';
-          return `${prefix}${name}`;
-        });
-        replaced = replaced.replace(/Đang phát mẫu giọng đọc AI:\s*(.*)/g, (_, name) => {
-          const prefix = targetLang === 'en' ? 'Playing AI Voice sample: ' : targetLang === 'fr' ? 'Lecture de l’échantillon vocal IA : ' : targetLang === 'zh' ? '正在播放AI语音示例：' : 'AI音声サンプルを再生中：';
-          return `${prefix}${name}`;
-        });
-        replaced = replaced.replace(/Tất cả trạng thái\s*\((\d+)\)/g, (_, n) => {
-          const label = targetLang === 'en' ? 'All statuses' : targetLang === 'fr' ? 'Tous les statuts' : targetLang === 'zh' ? '所有状态' : 'すべてのステータス';
-          return `${label} (${n})`;
-        });
-        replaced = replaced.replace(/Đang hiển thị trên Client\s*\((\d+)\)/g, (_, n) => {
-          const label = targetLang === 'en' ? 'Visible on Client' : targetLang === 'fr' ? 'Visible pour les visiteurs' : targetLang === 'zh' ? '客户端显示中' : 'クライアント表示中';
-          return `${label} (${n})`;
-        });
-        replaced = replaced.replace(/Đang tạm tắt\s*\((\d+)\)/g, (_, n) => {
-          const label = targetLang === 'en' ? 'Temporarily hidden' : targetLang === 'fr' ? 'Désactivé temporairement' : targetLang === 'zh' ? '已暂停显示' : '一時停止中';
-          return `${label} (${n})`;
-        });
-        replaced = replaced.replace(/Mã phòng:\s*/g, () => {
-          return targetLang === 'en' ? 'Room Code: ' : targetLang === 'fr' ? 'Code de la salle : ' : targetLang === 'zh' ? '展厅编号: ' : '展示室コード: ';
-        });
-        replaced = replaced.replace(/\((\d+)\s+ảnh\)/g, (_, n) => {
-          return targetLang === 'en' ? `(${n} photos)` : targetLang === 'fr' ? `(${n} photos)` : targetLang === 'zh' ? `(${n} 张图片)` : `(${n} 枚の画像)`;
-        });
+        replaced = replaced.replace(/(\d+)\s+điểm neo/g, (_, n) => getDynamicCountPhrase('anchorPoints', currentLang, n));
+        replaced = replaced.replace(/(\d+)\s+lượt quét/g, (_, n) => getDynamicCountPhrase('scans', currentLang, n));
+        replaced = replaced.replace(/(\d+)\s+góc 360°/g, (_, n) => getDynamicCountPhrase('views360', currentLang, n));
+        replaced = replaced.replace(/(\d+)\s+gian phòng/g, (_, n) => getDynamicCountPhrase('rooms', currentLang, n));
+        replaced = replaced.replace(/(\d+)\s+quốc gia & vùng lãnh thổ/g, (_, n) => getDynamicCountPhrase('countries', currentLang, n));
+        replaced = replaced.replace(/(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => getDynamicCountPhrase('languagesRatio', currentLang, a, b));
+        replaced = replaced.replace(/Tìm thấy\s+(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => getDynamicCountPhrase('foundLanguages', currentLang, a, b));
+        replaced = replaced.replace(/Tốc độ:\s*([\d.]+)x\s*\|\s*Nhà cung cấp:\s*(.*)/g, (_, spd, prov) => getDynamicCountPhrase('speedProvider', currentLang, spd, prov));
+        replaced = replaced.replace(/Tên quốc tế:\s*(.*)/g, (_, name) => getDynamicCountPhrase('intlName', currentLang, name));
+        replaced = replaced.replace(/Đang phát mẫu giọng đọc AI:\s*(.*)/g, (_, name) => getDynamicCountPhrase('playingVoiceSample', currentLang, name));
+        replaced = replaced.replace(/Tất cả trạng thái\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('allStatuses', currentLang, n));
+        replaced = replaced.replace(/Đang hiển thị trên Client\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('visibleOnClient', currentLang, n));
+        replaced = replaced.replace(/Đang tạm tắt\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('temporarilyHidden', currentLang, n));
+        replaced = replaced.replace(/Mã phòng:\s*/g, () => getDynamicCountPhrase('roomCode', currentLang, ''));
+        replaced = replaced.replace(/\((\d+)\s+ảnh\)/g, (_, n) => getDynamicCountPhrase('photosCount', currentLang, n));
 
         if (replaced !== text) {
           if (node.parentElement && !node.parentElement.hasAttribute('data-i18n-orig')) {
@@ -587,12 +751,22 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
 
     // 3. Tra cứu UNIVERSAL_PHRASE_MAP theo key
     const transByKey = lookupUniversalPhrase(key, currentLang);
-    if (transByKey) return transByKey;
+    if (transByKey) {
+      if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[key] && VIETNAMESE_REGEX.test(key)) {
+        enqueueForTranslation(key);
+      }
+      return transByKey;
+    }
 
     // 4. Tra cứu UNIVERSAL_PHRASE_MAP theo fallback text
     if (fallback) {
       const transByFallback = lookupUniversalPhrase(fallback, currentLang);
-      if (transByFallback) return transByFallback;
+      if (transByFallback) {
+        if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[fallback] && VIETNAMESE_REGEX.test(fallback)) {
+          enqueueForTranslation(fallback);
+        }
+        return transByFallback;
+      }
     }
 
     // 5. Nếu chưa có, tự động đưa vào hàng đợi dịch máy siêu tốc
@@ -650,7 +824,12 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
         return autoTranslations[originalText];
       }
       const mapTrans = lookupUniversalPhrase(originalText, currentLang);
-      if (mapTrans) return mapTrans;
+      if (mapTrans) {
+        if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[originalText] && VIETNAMESE_REGEX.test(originalText)) {
+          enqueueForTranslation(originalText);
+        }
+        return mapTrans;
+      }
       if (VIETNAMESE_REGEX.test(originalText)) {
         enqueueForTranslation(originalText);
       }
@@ -659,11 +838,31 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     return item[field] || fallback || '';
   }, [currentLang, autoTranslations, enqueueForTranslation]);
 
+  const NATIVE_LANG_META: Record<string, { nativeName: string; flagIcon: string; name: string }> = {
+    vi: { nativeName: 'Tiếng Việt', flagIcon: '🇻🇳', name: 'Tiếng Việt' },
+    en: { nativeName: 'English', flagIcon: '🇬🇧', name: 'English' },
+    fr: { nativeName: 'Français', flagIcon: '🇫🇷', name: 'French' },
+    zh: { nativeName: '中文 (简体)', flagIcon: '🇨🇳', name: 'Chinese' },
+    ja: { nativeName: '日本語', flagIcon: '🇯🇵', name: 'Japanese' },
+    ko: { nativeName: '한국어', flagIcon: '🇰🇷', name: 'Korean' },
+    es: { nativeName: 'Español', flagIcon: '🇪🇸', name: 'Spanish' },
+    de: { nativeName: 'Deutsch', flagIcon: '🇩🇪', name: 'German' },
+    ru: { nativeName: 'Русский', flagIcon: '🇷🇺', name: 'Russian' },
+    th: { nativeName: 'ไทย', flagIcon: '🇹🇭', name: 'Thai' },
+    it: { nativeName: 'Italiano', flagIcon: '🇮🇹', name: 'Italian' }
+  };
+
+  const metaFallback = NATIVE_LANG_META[currentLang] || {
+    nativeName: currentLang.toUpperCase(),
+    flagIcon: '🌐',
+    name: currentLang.toUpperCase()
+  };
+
   const activeLanguageInfo = activeLanguages.find((l) => l.code.toLowerCase() === currentLang.toLowerCase()) || {
     code: currentLang,
-    name: currentLang.toUpperCase(),
-    nativeName: currentLang === 'vi' ? 'Tiếng Việt' : currentLang === 'en' ? 'English' : currentLang === 'fr' ? 'Français' : currentLang.toUpperCase(),
-    flagIcon: currentLang === 'vi' ? '🇻🇳' : currentLang === 'en' ? '🇬🇧' : currentLang === 'fr' ? '🇫🇷' : currentLang === 'zh' ? '🇨🇳' : currentLang === 'ja' ? '🇯🇵' : '🌐',
+    name: metaFallback.name,
+    nativeName: metaFallback.nativeName,
+    flagIcon: metaFallback.flagIcon,
     isDefault: currentLang === 'vi',
     isActive: true,
     order: 1

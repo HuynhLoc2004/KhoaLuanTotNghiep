@@ -445,13 +445,42 @@ languagesRouter.delete('/:code', async (req: Request, res: Response) => {
 });
 
 /**
- * Helper: Dịch một đoạn văn bản ngắn qua Neural Machine Translation (MyMemory)
+ * Helper: Dịch một đoạn văn bản ngắn qua Neural Machine Translation
+ * 1. Google Translate dict-chrome-ex (phản hồi 200 tức thì, hỗ trợ 100+ ngôn ngữ, không bị rate-limit)
+ * 2. MyMemory Translated API
+ * 3. Google GTX fallback
  */
 export async function fetchSingleChunkNMT(chunk: string, targetLang: string): Promise<string> {
   if (!chunk || !chunk.trim()) return '';
   const cleanLang = targetLang.toLowerCase().trim();
 
-  // 1. Thử MyMemory
+  // 1. Thử Google Translate dict-chrome-ex (siêu tốc, ổn định, hỗ trợ hơn 100+ ngôn ngữ, không bị lỗi 429 gtx)
+  try {
+    const chromeExUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=${encodeURIComponent(cleanLang)}&q=${encodeURIComponent(chunk.trim())}`;
+    const chromeExRes = await fetch(chromeExUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Referer': 'https://translate.google.com/'
+      },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (chromeExRes.ok) {
+      const data: any = await chromeExRes.json();
+      if (Array.isArray(data) && data.length > 0) {
+        if (typeof data[0] === 'string' && data[0].trim()) {
+          return data[0].trim();
+        }
+        if (Array.isArray(data[0]) && typeof data[0][0] === 'string' && data[0][0].trim()) {
+          return data[0].map((item: any) => (Array.isArray(item) ? item[0] : item)).filter(Boolean).join('');
+        }
+      }
+    }
+  } catch (exErr: any) {
+    // Chuyển tiếp fallback
+  }
+
+  // 2. Thử MyMemory API
   try {
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk.trim())}&langpair=vi|${encodeURIComponent(cleanLang)}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
@@ -471,13 +500,18 @@ export async function fetchSingleChunkNMT(chunk: string, targetLang: string): Pr
       }
     }
   } catch (err: any) {
-    // Fallback sang Google GTX
+    // Chuyển tiếp fallback
   }
 
-  // 2. Fallback Google Translate GTX (siêu tốc, ổn định, hỗ trợ hơn 100+ ngôn ngữ)
+  // 3. Fallback Google Translate GTX
   try {
-    const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=${encodeURIComponent(cleanLang)}&dt=t&q=${encodeURIComponent(chunk.trim())}`;
-    const gtxRes = await fetch(gtxUrl, { signal: AbortSignal.timeout(5000) });
+    const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(cleanLang)}&dt=t&q=${encodeURIComponent(chunk.trim())}`;
+    const gtxRes = await fetch(gtxUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+      },
+      signal: AbortSignal.timeout(5000)
+    });
     if (gtxRes.ok) {
       const gtxData: any = await gtxRes.json();
       if (Array.isArray(gtxData) && Array.isArray(gtxData[0])) {

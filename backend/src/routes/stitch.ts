@@ -259,19 +259,12 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
     if (isClosed || res.headersSent) return;
     isClosed = true;
 
-    // Dọn dẹp các file ảnh gốc tạm thời sau khi xử lý xong (chỉ xóa job folder riêng biệt, TUYỆT ĐỐI KHÔNG XÓA VERIFY_DIR)
+    // Dọn dẹp các file ảnh gốc tạm thời sau khi xử lý xong (chỉ xóa job folder riêng biệt của batch upload)
     try {
       if (imagePaths.length > 0) {
         const jobFolder = path.dirname(imagePaths[0]);
         if (jobFolder !== VERIFY_DIR && jobFolder !== TEMP_DIR && fs.existsSync(jobFolder)) {
           fs.rmSync(jobFolder, { recursive: true, force: true });
-        } else {
-          // Nếu là các file trong VERIFY_DIR thì chỉ xóa từng file tạm đã ghép xong
-          for (const p of imagePaths) {
-            try {
-              if (fs.existsSync(p)) fs.unlinkSync(p);
-            } catch (_) {}
-          }
         }
       }
     } catch (cleanErr) {
@@ -357,7 +350,7 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
               r2Url: cloudR2Url || '',
               width: result.width || 4096,
               height: result.height || 2048,
-              aspectRatio: result.aspectRatio || 2.0,
+              aspectRatio: typeof result.aspectRatio === 'number' ? result.aspectRatio : 2.0,
               sizeBytes: stats ? stats.size : 0,
               inputFramesCount: imagePaths.length,
               status: 'ready',
@@ -369,7 +362,7 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
                 enhancedAt: new Date()
               }
             },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
           );
           console.log(`[Stitch API] Đã lưu thông tin ảnh 360 vào MongoDB (Collection: panoramas, ID: ${panoDoc?.id})`);
         } catch (dbErr: any) {
