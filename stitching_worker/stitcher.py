@@ -340,6 +340,7 @@ def evaluate_panorama_flatness(pano):
     - Quét viền trên y_top(x) và viền dưới y_bottom(x) của vùng pixel thực tế (khác 0).
     - Tính độ võng/cong (curvature/bowing) và độ lệch dạng vòm cung parabol.
     - Trả về điểm flatness từ 0.0 (cong vênh, hình cầu vồng/vòm cung méo mó) đến 1.0 (phẳng, thẳng đứng chuẩn kiến trúc).
+    - Phạt triệt để (về 0.02) các trường hợp bị uốn lượn thành vòm cung cầu vồng (arch_deflection > 0.13 hoặc span > 0.40).
     """
     try:
         h, w = pano.shape[:2]
@@ -356,7 +357,7 @@ def evaluate_panorama_flatness(pano):
                 bottoms.append(indices[-1])
                 
         if len(tops) < 15:
-            return 0.7
+            return 0.70
             
         tops = np.array(tops, dtype=np.float32)
         bottoms = np.array(bottoms, dtype=np.float32)
@@ -368,8 +369,13 @@ def evaluate_panorama_flatness(pano):
         edge_avg = (tops[0] + tops[-1]) / 2.0
         arch_deflection = abs(tops[mid_idx] - edge_avg) / float(h)
         
-        penalty = (top_span * 0.45) + (bottom_span * 0.35) + (arch_deflection * 0.85)
-        flatness_score = max(0.0, min(1.0, 1.0 - penalty))
+        # Nếu có độ lệch vòm cung cầu vồng lớn (horseshoe arch) hoặc viền xé chéo quá 38% chiều cao:
+        # Lập tức đánh rớt phương án này về 0.02 để bảo vệ 100% độ phẳng kiến trúc!
+        if arch_deflection > 0.13 or top_span > 0.38 or bottom_span > 0.38:
+            return 0.02
+            
+        penalty = (top_span * 0.45) + (bottom_span * 0.35) + (arch_deflection * 1.50)
+        flatness_score = max(0.05, min(1.0, 1.0 - penalty))
         return flatness_score
     except Exception:
         return 0.75
@@ -505,11 +511,11 @@ def run_stitch(image_paths, output_path, target_width=0):
 
     cv2.ocl.setUseOpenCL(False)
 
-    def build_stitcher(confidence=0.12, wave_correction=False, reg_resol=0.85):
+    def build_stitcher(confidence=0.35, wave_correction=False, reg_resol=0.85):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
-            # Wave correction: False giữ nguyên độ thẳng tự nhiên cho ảnh chụp đa tầng/nghiêng máy
-            s.setWaveCorrection(wave_correction)
+            # Wave correction: BẮT BUỘC False. Tuyệt đối không bật WaveCorrection vì sẽ bẻ cong ảnh đa tầng thành vòm cung cầu vồng
+            s.setWaveCorrection(False)
         except Exception:
             pass
         try:
@@ -522,8 +528,8 @@ def run_stitch(image_paths, output_path, target_width=0):
         except Exception:
             pass
         try:
-            # Seam estimation resolution 0.20 Mpx: Đồ thị GraphCut phân định biên ghép chính xác và mượt mà
-            s.setSeamEstimationResol(0.20)
+            # Seam estimation resolution 0.25 Mpx: Đồ thị GraphCut phân định biên ghép chính xác và mượt mà
+            s.setSeamEstimationResol(0.25)
         except Exception:
             pass
         try:
@@ -533,31 +539,81 @@ def run_stitch(image_paths, output_path, target_width=0):
             pass
         return s
 
+    def extract_horizon_keyframes(paths):
+        """
+        Tự động nhận diện và trích xuất hàng ảnh Đường Chân Trời (Middle / Horizon Row):
+        - Khi người dùng chụp đa tầng (nóc / giữa / sàn) ngoài trời:
+          + Ảnh chụp ngửa lên nóc: nửa trên chứa nhiều mảng sáng (mái tôn, trời), thiếu đường biên thẳng đứng ở trung tâm.
+          + Ảnh chụp chúc xuống sàn: nửa dưới tối hoặc chứa ron gạch mặt đất.
+          + Ảnh chụp tầng giữa: chứa đầy đủ góc tường, khung cửa sổ, đồ đạc ngang tầm mắt (độ phong phú biên cạnh dọc Sobel cao nhất).
+        - Trích xuất chùm ảnh tầng giữa để làm mỏ neo không gian (Horizon Anchor),
+          bảo đảm luôn ghép được một vòng tròn 360° phẳng lỳ chuẩn kiến trúc (như phòng khách).
+        """
+        if len(paths) <= 12:
+            return paths
+
+        scored_paths = []
+        for p in paths:
+            try:
+                thumb = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
+                if thumb is None:
+                    continue
+                thumb = cv2.resize(thumb, (120, 90))
+                h, w = thumb.shape
+
+                # Tính gradient thẳng đứng (Sobel X) ở 50% trung tâm độ cao ảnh
+                center_strip = thumb[int(h * 0.25):int(h * 0.75), :]
+                sobel_x = cv2.Sobel(center_strip, cv2.CV_32F, 1, 0, ksize=3)
+                vertical_edge_power = float(np.mean(np.abs(sobel_x)))
+
+                # Cân bằng độ sáng giữa nửa trên và nửa dưới
+                top_half = float(np.mean(thumb[:h//2, :]))
+                bot_half = float(np.mean(thumb[h//2:, :]))
+                balance_diff = abs(top_half - bot_half)
+
+                score = vertical_edge_power - (balance_diff * 0.15)
+                scored_paths.append((score, p))
+            except Exception:
+                pass
+
+        if len(scored_paths) < 10:
+            return paths
+
+        # Lấy các ảnh có điểm horizon cao nhất (khoảng 65% tổng số ảnh)
+        scored_paths.sort(key=lambda x: x[0], reverse=True)
+        target_count = max(10, int(len(scored_paths) * 0.65))
+        selected_set = set(p for _, p in scored_paths[:target_count])
+
+        horizon_paths = [p for p in paths if p in selected_set]
+        return horizon_paths if len(horizon_paths) >= 8 else paths
+
     # Chuẩn bị danh sách khung hình đại diện tối ưu
-    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=60)
-    print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã xác lập chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
+    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=80)
+    horizon_paths = extract_horizon_keyframes(sorted_paths)
+    print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã xác lập chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục (Phát hiện {len(horizon_paths)} ảnh trục chân trời).", file=sys.stderr)
 
     # Hệ thống Đa Tầng Thích Ứng Toàn Diện (Universal Adaptive Multi-Tier Cascade)
-    # Ưu tiên WaveCorr=False để chống 100% hiện tượng vòm cung uốn cong khi chụp đa tầng (nóc/giữa/sàn) & cam xoay nghiêng:
+    # BẢO VỆ 100% ĐỘ PHẲNG KIẾN TRÚC: WaveCorr=False trên toàn bộ các tầng để chống triệt để hiện tượng vòm cung cầu vồng
     candidate_schemes = [
-        # Tầng 1 (Multi-Row & Natural Horizon 4K): WaveCorr=False, RegResol 0.85 Mpx, Conf 0.12, MaxDim 2048px
-        (optimal_paths, 2048, 0.12, False, 0.85, f"Tầng 1 - Chuẩn phẳng tự nhiên đa góc 4K ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.12, RegResol 0.85)"),
-        # Tầng 2 (0.5x Ultra-Wide & High Parallax Rescue): WaveCorr=False, RegResol 0.92 Mpx, Conf 0.07, MaxDim 1800px
-        (optimal_paths, 1800, 0.07, False, 0.92, f"Tầng 2 - Cứu ảnh x0.5 góc siêu rộng & nghiêng nóc/sàn ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.07, RegResol 0.92)"),
-        # Tầng 3 (Horizon-Stabilized Panorama): WaveCorr=True, RegResol 0.80 Mpx, Conf 0.10, MaxDim 1800px
-        (optimal_paths, 1800, 0.10, True, 0.80, f"Tầng 3 - Cân bằng đường chân trời ngang ({len(optimal_paths)} ảnh, WaveCorr=True, Conf 0.10, RegResol 0.80)"),
-        # Tầng 4 (Extreme Lighting / Deep Shadow & Glare Rescue): WaveCorr=False, RegResol 0.95 Mpx, Conf 0.04, MaxDim 1500px
-        (optimal_paths, 1500, 0.04, False, 0.95, f"Tầng 4 - Cứu ảnh ngược sáng & chênh lệch nắng râm ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.04, RegResol 0.95)"),
+        # Tầng 1 (Multi-Row High-Fidelity 4K): WaveCorr=False, RegResol 0.85 Mpx, Conf 0.45, MaxDim 2048px
+        (optimal_paths, 2048, 0.45, False, 0.85, f"Tầng 1 - Chuẩn phẳng tự nhiên đa góc 4K ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.45, RegResol 0.85)"),
+        # Tầng 2 (Ultra-Wide 0.5x Multi-Row): WaveCorr=False, RegResol 0.92 Mpx, Conf 0.35, MaxDim 1800px
+        (optimal_paths, 1800, 0.35, False, 0.92, f"Tầng 2 - Cân bằng đa góc x0.5 góc siêu rộng ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.35, RegResol 0.92)"),
+        # Tầng 3 (Flexible Multi-Angle Rescue): WaveCorr=False, RegResol 0.78 Mpx, Conf 0.28, MaxDim 1600px
+        (optimal_paths, 1600, 0.28, False, 0.78, f"Tầng 3 - Cứu cánh đa tầng chống rách mép ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.28, RegResol 0.78)"),
     ]
 
-    # Tầng 5 & 6 (Full-Set Fallbacks)
+    # Tầng 4 (Full-Set Fallback): Toàn bộ ảnh gốc nếu số ảnh lớn
     if num_total > len(optimal_paths):
         candidate_schemes.append(
-            (sorted_paths, 1600, 0.07, False, 0.85, f"Tầng 5 - Toàn bộ ảnh gốc đa góc ({num_total} ảnh, WaveCorr=False, Conf 0.07, MaxDim 1600px)")
+            (sorted_paths, 1600, 0.32, False, 0.85, f"Tầng 4 - Toàn bộ ảnh gốc đa góc ({num_total} ảnh, WaveCorr=False, Conf 0.32, MaxDim 1600px)")
         )
-    candidate_schemes.append(
-        (sorted_paths, 1400, 0.03, False, 0.75, f"Tầng 6 - Cứu cánh tối đa toàn bộ ảnh ({num_total} ảnh, WaveCorr=False, Conf 0.03, MaxDim 1400px)")
-    )
+
+    # Tầng 5 (Horizon Anchor Ring): Cứu cánh tầng giữa chuẩn phẳng 100% cho cảnh chụp nóc/sàn quá xa nhau
+    if len(horizon_paths) < len(optimal_paths) and len(horizon_paths) >= 8:
+        candidate_schemes.append(
+            (horizon_paths, 1800, 0.35, False, 0.88, f"Tầng 5 - Mỏ neo đường chân trời 360° chuẩn phẳng ({len(horizon_paths)} ảnh tầng giữa, WaveCorr=False, Conf 0.35)")
+        )
 
     best_pano = None
     best_status = -1
@@ -597,6 +653,21 @@ def run_stitch(image_paths, output_path, target_width=0):
         cur_used = s.component() if hasattr(s, 'component') else ()
 
         if cur_stat == cv2.Stitcher_OK and cur_pano is not None:
+            # Đo độ phẳng và chống vòm cung cầu vồng (Anti-Arch Filter)
+            flatness = evaluate_panorama_flatness(cur_pano)
+
+            # NẾU BỊ UỐN CONG THÀNH VÒM CUNG CẦU VỒNG (HORSESHOE ARCH):
+            # Tuyệt đối không chấp nhận, loại bỏ ngay lập tức để bảo vệ chuẩn phẳng kiến trúc!
+            if flatness < 0.40:
+                print(f"[!] Bị uốn cong hình vòm cung/vortex (Độ phẳng chỉ đạt {flatness*100:.1f}%). Loại bỏ phương án này để bảo vệ chuẩn phẳng kiến trúc!", file=sys.stderr)
+                try:
+                    del images
+                    del cur_pano
+                    gc.collect()
+                except Exception:
+                    pass
+                continue
+
             # Ước tính góc quét ngang thực tế (HFOV) từ tiêu cự camera
             estimated_hfov = None
             try:
@@ -613,9 +684,8 @@ def run_stitch(image_paths, output_path, target_width=0):
                 estimated_hfov = min(360.0, max(50.0, ar * 52.0))
 
             used_ratio = len(cur_used) / float(len(images))
-            flatness = evaluate_panorama_flatness(cur_pano)
-            # Tính điểm chất lượng toàn diện kết hợp độ phủ và độ phẳng chân trời (Anti-Arch Score)
-            score = (used_ratio * 120.0) + min(160.0, estimated_hfov * 0.5) + (flatness * 140.0)
+            # Tính điểm chất lượng toàn diện: Độ phẳng chân trời là tiêu chí ưu tiên cao nhất (Flatness First)
+            score = (used_ratio * 100.0) + min(150.0, estimated_hfov * 0.45) + (flatness * 180.0)
 
             print(f"[✓] Ghép thành công {len(cur_used)}/{len(images)} ảnh (HFOV ~{estimated_hfov:.1f}°, Độ phẳng: {flatness*100:.1f}%, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
 
@@ -635,10 +705,10 @@ def run_stitch(image_paths, output_path, target_width=0):
                 pass
 
             # Chỉ dừng sớm nếu ĐỒNG THỜI:
-            # 1. Kết nối >= 80% ảnh
+            # 1. Kết nối >= 75% ảnh
             # 2. HFOV >= 260°
-            # 3. Độ phẳng >= 0.82 (Tuyệt đối không dừng nếu bị vòm cung uốn cong)
-            if used_ratio >= 0.80 and estimated_hfov >= 260.0 and flatness >= 0.82:
+            # 3. Độ phẳng >= 0.70 (Tuyệt đối không dừng nếu bị vòm cung uốn cong)
+            if used_ratio >= 0.75 and estimated_hfov >= 260.0 and flatness >= 0.70:
                 print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc và chuẩn phẳng! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
                 break
         else:
