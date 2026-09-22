@@ -2,10 +2,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IHotspot {
   id: string;
-  type: 'navigation' | 'info';
+  type: 'navigation' | 'info' | 'artifact';
   title: string;
   description?: string;
   targetRoomId?: string;
+  artifactId?: string;
   pitch: number;
   yaw: number;
 }
@@ -50,10 +51,11 @@ export interface IRoom extends Document {
 
 const HotspotSchema = new Schema<IHotspot>({
   id: { type: String, required: true },
-  type: { type: String, enum: ['navigation', 'info'], default: 'navigation' },
+  type: { type: String, enum: ['navigation', 'info', 'artifact'], default: 'navigation' },
   title: { type: String, required: true },
   description: { type: String, default: '' },
   targetRoomId: { type: String },
+  artifactId: { type: String, ref: 'Artifact' },
   pitch: { type: Number, required: true },
   yaw: { type: Number, required: true }
 }, { _id: false });
@@ -104,5 +106,9 @@ const RoomSchema = new Schema<IRoom>({
     }
   }
 });
+
+RoomSchema.index({ code: 1 });
+RoomSchema.index({ orderIndex: 1 });
+RoomSchema.index({ active: 1 });
 
 export const RoomModel = mongoose.model<IRoom>('MuseumRoom', RoomSchema);

@@ -3,9 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import mongoose from 'mongoose';
 import { authenticate, requireAdmin, AuthRequest } from './auth.js';
-import { redisClient, cacheGet, cacheSet, cacheDel, getRedisStatus } from '../services/redis.js';
+import { redisClient, cacheGet, cacheSet, cacheDel, getRedisStatus, getQueueLength } from '../services/redis.js';
 import { RoomModel } from '../models/Room.js';
 import { PanoramaModel } from '../models/Panorama.js';
+import { ArtifactModel } from '../models/Artifact.js';
 import {
   SystemBranding,
   getSystemBrandingConfig,
@@ -221,6 +222,7 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
     let dbPingMs = 0;
     let roomsCount = 0;
     let panoramasCount = 0;
+    let artifactsCount = 0;
     if (dbConnected) {
       try {
         const startDb = performance.now();
@@ -228,6 +230,7 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
         dbPingMs = Math.round(performance.now() - startDb);
         roomsCount = await RoomModel.countDocuments();
         panoramasCount = await PanoramaModel.countDocuments();
+        artifactsCount = await ArtifactModel.countDocuments();
       } catch {
         dbPingMs = -1;
       }
@@ -255,15 +258,9 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
       redisConnected = Boolean(getRedisStatus()?.connected);
     }
 
-    // 3. Kiểm tra hàng đợi tác vụ (Stitching & Processing Queue) thật 100%
-    let queuePending = 0;
-    if (redisConnected && redisClient) {
-      try {
-        queuePending = await redisClient.llen('queue:stitching');
-      } catch {
-        queuePending = 0;
-      }
-    }
+    // 3. Kiểm tra hàng đợi tác vụ độc lập (Stitching Queue & 3D Reconstruction Queue) thật 100%
+    const stitchingQueuePending = await getQueueLength('stitching');
+    const artifact3dQueuePending = await getQueueLength('artifact_3d');
 
     res.json({
       success: true,
@@ -282,6 +279,7 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
           name: mongoose.connection.name || 'museum',
           roomsCount,
           panoramasCount,
+          artifactsCount,
           pingMs: dbPingMs
         },
         redis: {
@@ -292,8 +290,20 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
         },
         queue: {
           name: 'stitching',
-          pendingJobs: queuePending,
-          status: queuePending > 0 ? 'processing' : 'ready'
+          pendingJobs: stitchingQueuePending,
+          status: stitchingQueuePending > 0 ? 'processing' : 'ready'
+        },
+        queues: {
+          stitching: {
+            name: 'queue:stitching',
+            pendingJobs: stitchingQueuePending,
+            status: stitchingQueuePending > 0 ? 'processing' : 'ready'
+          },
+          artifact3d: {
+            name: 'queue:artifact_3d',
+            pendingJobs: artifact3dQueuePending,
+            status: artifact3dQueuePending > 0 ? 'processing' : 'ready'
+          }
         },
         publicIp: process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || '103.178.233.206'
       }

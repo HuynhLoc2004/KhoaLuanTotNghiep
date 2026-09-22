@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { RoomModel, IRoom, IHotspot } from '../models/Room.js';
-import { cacheGet, cacheSet, cacheDel } from '../services/redis.js';
+import { ArtifactModel } from '../models/Artifact.js';
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 
 export const roomsRouter = Router();
 
@@ -10,7 +11,7 @@ const getId = (param: unknown): string => {
   return String(param || '');
 };
 
-// GET all rooms (with Redis cache acceleration)
+// GET all rooms (with Redis cache acceleration - TTL 300s)
 roomsRouter.get('/', async (req: Request, res: Response) => {
   try {
     const cachedRooms = await cacheGet<IRoom[]>('rooms:all');
@@ -26,14 +27,21 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET single room
+// GET single room (with Redis cache acceleration - TTL 600s)
 roomsRouter.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
+    const cacheKey = `rooms:detail:${id}`;
+    const cached = await cacheGet<IRoom>(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached, fromCache: true });
+    }
+
     const room = await RoomModel.findOne({ id }).lean();
     if (!room) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng này' });
     }
+    await cacheSet(cacheKey, room, 600); // 10 minutes TTL
     res.json({ success: true, data: room });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -112,14 +120,18 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
     Object.assign(room, restFields);
 
     const updated = await room.save();
-    await cacheDel('rooms:all');
+    await Promise.all([
+      cacheDel('rooms:all'),
+      cacheDel(`rooms:detail:${id}`),
+      cacheDel(`rooms:detail:${room.id}`)
+    ]);
     res.json({ success: true, data: updated.toJSON() });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// DELETE room
+// DELETE room (Xóa phòng thật + gỡ liên kết hiện vật + dọn dẹp cache)
 roomsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
@@ -127,8 +139,24 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (result.deletedCount === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
-    await cacheDel('rooms:all');
-    res.json({ success: true, message: 'Đã xóa gian phòng khỏi cơ sở dữ liệu' });
+
+    // Chặt chẽ quan hệ dữ liệu: Gỡ bỏ liên kết phòng khỏi các hiện vật thuộc gian phòng này
+    try {
+      await ArtifactModel.updateMany(
+        { roomId: id },
+        { $unset: { roomId: 1, roomCode: 1 } }
+      );
+    } catch (relErr) {
+      console.warn('[Rooms] Lỗi dọn dẹp liên kết hiện vật:', relErr);
+    }
+
+    await Promise.all([
+      cacheDel('rooms:all'),
+      cacheDel(`rooms:detail:${id}`),
+      cacheDelPattern('artifacts:*')
+    ]);
+
+    res.json({ success: true, message: 'Đã xóa gian phòng và dọn dẹp liên kết cơ sở dữ liệu' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -138,7 +166,7 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
 roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
-    const { type, title, description, targetRoomId, pitch, yaw } = req.body;
+    const { type, title, description, targetRoomId, artifactId, pitch, yaw } = req.body;
     if (pitch === undefined || yaw === undefined) {
       return res.status(400).json({ success: false, message: 'Tọa độ pitch và yaw là bắt buộc' });
     }
@@ -149,6 +177,7 @@ roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
       title: title || 'Điểm liên kết',
       description: description || '',
       targetRoomId,
+      artifactId,
       pitch: Number(pitch),
       yaw: Number(yaw)
     };
@@ -162,7 +191,11 @@ roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
 
     room.hotspots.push(newHs);
     await room.save();
-    await cacheDel('rooms:all');
+    await Promise.all([
+      cacheDel('rooms:all'),
+      cacheDel(`rooms:detail:${id}`),
+      cacheDel(`rooms:detail:${room.id}`)
+    ]);
 
     res.status(201).json({ success: true, data: newHs, room });
   } catch (err: any) {
@@ -190,7 +223,11 @@ roomsRouter.put('/:id/hotspots/:hotspotId', async (req: Request, res: Response) 
 
     Object.assign(hs, req.body);
     await room.save();
-    await cacheDel('rooms:all');
+    await Promise.all([
+      cacheDel('rooms:all'),
+      cacheDel(`rooms:detail:${id}`),
+      cacheDel(`rooms:detail:${room.id}`)
+    ]);
 
     res.json({ success: true, data: hs, room });
   } catch (err: any) {
@@ -215,7 +252,11 @@ roomsRouter.delete('/:id/hotspots/:hotspotId', async (req: Request, res: Respons
       (h) => h.id !== hotspotId && (h as any)._id?.toString() !== hotspotId
     );
     await room.save();
-    await cacheDel('rooms:all');
+    await Promise.all([
+      cacheDel('rooms:all'),
+      cacheDel(`rooms:detail:${id}`),
+      cacheDel(`rooms:detail:${room.id}`)
+    ]);
 
     res.json({ success: true, message: 'Đã xóa hotspot khỏi cơ sở dữ liệu', room });
   } catch (err: any) {

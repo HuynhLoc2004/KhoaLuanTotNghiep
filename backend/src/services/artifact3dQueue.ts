@@ -3,6 +3,13 @@ import path from 'path';
 import crypto from 'crypto';
 import { spawn } from 'child_process';
 import { ArtifactModel } from '../models/Artifact';
+import {
+  cacheGet,
+  cacheSet,
+  cacheDelPattern,
+  pushJobToQueue,
+  popJobFromQueue
+} from './redis';
 
 const PYTHON_PATH = process.env.PYTHON_PATH || (process.platform === 'win32'
   ? 'C:\\Users\\HUYNH TAN LOC\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
@@ -20,7 +27,7 @@ if (!fs.existsSync(MODELS_3D_DIR)) {
   fs.mkdirSync(MODELS_3D_DIR, { recursive: true });
 }
 
-interface IQueueJob {
+export interface I3DJobData {
   jobId: string;
   artifactId: string;
   imagePath: string;
@@ -31,12 +38,10 @@ interface IQueueJob {
   createdAt: number;
 }
 
-// In-memory Job Queue & Hash Cache
-const jobQueue: IQueueJob[] = [];
-let isProcessingQueue = false;
-
-// Cache: hash -> { model3dUrl, metadata }
-const modelCache = new Map<string, { model3dUrl: string; metadata: any }>();
+// Fallback in-memory queue & local jobs tracker
+const memoryJobs: I3DJobData[] = [];
+let isWorkerRunning = false;
+let isConsumerLoopStarted = false;
 
 function computeFileHash(filePath: string): string {
   try {
@@ -48,7 +53,7 @@ function computeFileHash(filePath: string): string {
 }
 
 /**
- * Thêm một tác vụ dựng 3D vào hàng đợi bất đồng bộ
+ * Thêm một tác vụ dựng 3D vào hàng đợi bất đồng bộ (Queue: artifact_3d)
  */
 export async function enqueue3DReconstruction(
   artifactId: string,
@@ -56,31 +61,41 @@ export async function enqueue3DReconstruction(
   depthScale = 0.35,
   resolution = 160
 ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string }> {
-  // 1. Kiểm tra cache dựa trên SHA256 của ảnh đầu vào
+  // 1. Kiểm tra cache dựa trên SHA256 của ảnh đầu vào (TTL 30 ngày)
   const fileHash = computeFileHash(imagePath);
-  if (modelCache.has(fileHash)) {
-    const cached = modelCache.get(fileHash)!;
-    console.log(`[3D Queue] Tìm thấy trong Cache cho mã băm ${fileHash.substring(0, 10)}... Trả về ngay lập tức.`);
-    await ArtifactModel.findByIdAndUpdate(artifactId, {
-      model3dUrl: cached.model3dUrl,
-      processingStatus: 'completed',
-      processingError: '',
-      modelMetadata: {
-        ...cached.metadata,
-        inputImageSha256: fileHash
-      }
-    });
-    return { jobId: `cached_${fileHash.substring(0, 8)}`, cached: true, model3dUrl: cached.model3dUrl };
+  const cacheKey = `artifact:3d_cache:${fileHash}`;
+
+  const cached = await cacheGet<{ model3dUrl: string; metadata: any }>(cacheKey);
+  if (cached && cached.model3dUrl) {
+    // Kiểm tra xem file vật lý có thực sự tồn tại trên ổ cứng VPS hay không
+    const localGlbFilename = path.basename(cached.model3dUrl);
+    const localGlbPath = path.join(MODELS_3D_DIR, localGlbFilename);
+
+    if (fs.existsSync(localGlbPath)) {
+      console.log(`[3D Queue] Tìm thấy trong Cache cho mã băm ${fileHash.substring(0, 10)}... Trả về ngay lập tức.`);
+      await ArtifactModel.findByIdAndUpdate(artifactId, {
+        model3dUrl: cached.model3dUrl,
+        processingStatus: 'completed',
+        processingError: '',
+        modelMetadata: {
+          ...cached.metadata,
+          inputImageSha256: fileHash
+        }
+      });
+      await cacheDelPattern('artifacts:*');
+      return { jobId: `cached_${fileHash.substring(0, 8)}`, cached: true, model3dUrl: cached.model3dUrl };
+    }
   }
 
-  // 2. Tạo Job ID mới và đánh dấu trạng thái processing
+  // 2. Tạo Job ID mới và đánh dấu trạng thái processing trong MongoDB thật
   const jobId = `job_3d_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   await ArtifactModel.findByIdAndUpdate(artifactId, {
     processingStatus: 'processing',
     processingError: ''
   });
+  await cacheDelPattern('artifacts:*');
 
-  const job: IQueueJob = {
+  const job: I3DJobData = {
     jobId,
     artifactId,
     imagePath,
@@ -90,118 +105,166 @@ export async function enqueue3DReconstruction(
     createdAt: Date.now()
   };
 
-  jobQueue.push(job);
-  console.log(`[3D Queue] Đã đưa tác vụ ${jobId} vào hàng đợi (Tổng đang chờ: ${jobQueue.length})`);
+  // Đẩy vào Redis Queue; nếu Redis chưa kết nối, đẩy vào bộ nhớ RAM
+  const pushedToRedis = await pushJobToQueue('artifact_3d', job);
+  if (!pushedToRedis) {
+    memoryJobs.push(job);
+  }
 
-  // Kích hoạt luồng xử lý nền
-  processNextJob();
+  console.log(`[3D Queue] Đã đưa tác vụ ${jobId} vào hàng đợi (Redis: ${pushedToRedis ? 'Yes' : 'Memory Fallback'})`);
+
+  // Kích hoạt Consumer Worker nếu chưa chạy
+  triggerWorker();
 
   return { jobId, cached: false };
 }
 
 /**
- * Xử lý tuần tự các tác vụ trong hàng đợi nền (FIFO)
+ * Worker Consumer xử lý công việc từ Queue
  */
-async function processNextJob() {
-  if (isProcessingQueue) return;
-  const job = jobQueue.find(j => j.status === 'pending');
-  if (!job) return;
-
-  isProcessingQueue = true;
-  job.status = 'processing';
-
+async function processSingleJob(job: I3DJobData): Promise<void> {
   const outFilename = `model_3d_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.glb`;
   const outGlbPath = path.join(MODELS_3D_DIR, outFilename);
   const model3dUrl = `/uploads/artifacts/models_3d/${outFilename}`;
 
-  console.log(`[3D Queue] Bắt đầu xử lý Job ${job.jobId} cho hiện vật ${job.artifactId}...`);
+  console.log(`[3D Consumer] Đang chạy tác vụ dựng 3D cho hiện vật: ${job.artifactId}...`);
 
-  const args = [
-    ARTIFACT_SCRIPT,
-    '--image', job.imagePath,
-    '--output', outGlbPath,
-    '--depth-scale', String(job.depthScale),
-    '--resolution', String(job.resolution)
-  ];
+  return new Promise<void>((resolve) => {
+    const args = [
+      ARTIFACT_SCRIPT,
+      '--image', job.imagePath,
+      '--output', outGlbPath,
+      '--depth-scale', String(job.depthScale),
+      '--resolution', String(job.resolution)
+    ];
 
-  const py = spawn(PYTHON_PATH, args);
-  let stdoutData = '';
-  let stderrData = '';
+    const py = spawn(PYTHON_PATH, args);
+    let stdoutData = '';
+    let stderrData = '';
 
-  py.stdout.on('data', (d) => { stdoutData += d.toString(); });
-  py.stderr.on('data', (d) => {
-    stderrData += d.toString();
-    console.log(`[Python 3D Worker Log]: ${d.toString().trim()}`);
-  });
+    py.stdout.on('data', (d) => { stdoutData += d.toString(); });
+    py.stderr.on('data', (d) => {
+      stderrData += d.toString();
+      console.log(`[Python 3D Worker Log]: ${d.toString().trim()}`);
+    });
 
-  py.on('close', async (code) => {
-    isProcessingQueue = false;
+    py.on('close', async (code) => {
+      if (code === 0 && fs.existsSync(outGlbPath)) {
+        let parsed: any = {};
+        try {
+          parsed = JSON.parse(stdoutData.trim());
+        } catch {
+          parsed = {};
+        }
 
-    if (code === 0 && fs.existsSync(outGlbPath)) {
-      let parsed: any = {};
-      try {
-        parsed = JSON.parse(stdoutData.trim());
-      } catch {
-        parsed = {};
+        const fileHash = computeFileHash(job.imagePath);
+        const metadata = {
+          vertices: parsed.vertices || 0,
+          faces: parsed.faces || 0,
+          sizeBytes: parsed.sizeBytes || fs.statSync(outGlbPath).size,
+          width: parsed.dimensions?.width || 0,
+          height: parsed.dimensions?.height || 0,
+          depth: parsed.dimensions?.depth || 0,
+          generatedAt: new Date(),
+          inputImageSha256: fileHash
+        };
+
+        // Lưu vào Redis Cache với TTL 30 ngày (2,592,000 giây)
+        const cacheKey = `artifact:3d_cache:${fileHash}`;
+        await cacheSet(cacheKey, { model3dUrl, metadata }, 86400 * 30);
+
+        // Cập nhật MongoDB thật
+        await ArtifactModel.findByIdAndUpdate(job.artifactId, {
+          model3dUrl,
+          processingStatus: 'completed',
+          processingError: '',
+          modelMetadata: metadata
+        });
+
+        // Xóa cache danh sách để dashboard admin hiển thị ngay
+        await cacheDelPattern('artifacts:*');
+
+        job.status = 'completed';
+        console.log(`[3D Consumer] Hoàn tất xuất sắc Job ${job.jobId}! Model URL: ${model3dUrl}`);
+      } else {
+        const errMsg = stderrData || stdoutData || 'Không thể tạo file mô hình 3D';
+        job.status = 'failed';
+        job.error = errMsg;
+
+        await ArtifactModel.findByIdAndUpdate(job.artifactId, {
+          processingStatus: 'failed',
+          processingError: errMsg
+        });
+        await cacheDelPattern('artifacts:*');
+        console.error(`[3D Consumer] Thất bại Job ${job.jobId}:`, errMsg);
       }
+      resolve();
+    });
 
-      const fileHash = computeFileHash(job.imagePath);
-      const metadata = {
-        vertices: parsed.vertices || 0,
-        faces: parsed.faces || 0,
-        sizeBytes: parsed.sizeBytes || fs.statSync(outGlbPath).size,
-        width: parsed.dimensions?.width || 0,
-        height: parsed.dimensions?.height || 0,
-        depth: parsed.dimensions?.depth || 0,
-        generatedAt: new Date(),
-        inputImageSha256: fileHash
-      };
-
-      // Lưu vào Cache
-      modelCache.set(fileHash, { model3dUrl, metadata });
-
-      // Cập nhật MongoDB
-      await ArtifactModel.findByIdAndUpdate(job.artifactId, {
-        model3dUrl,
-        processingStatus: 'completed',
-        processingError: '',
-        modelMetadata: metadata
-      });
-
-      job.status = 'completed';
-      console.log(`[3D Queue] Hoàn tất Job ${job.jobId} xuất sắc! Model lưu tại: ${model3dUrl}`);
-    } else {
-      const errMsg = stderrData || stdoutData || 'Không thể tạo file mô hình 3D';
+    py.on('error', async (err) => {
       job.status = 'failed';
-      job.error = errMsg;
-
+      job.error = err.message;
       await ArtifactModel.findByIdAndUpdate(job.artifactId, {
         processingStatus: 'failed',
-        processingError: errMsg
+        processingError: err.message
       });
-      console.error(`[3D Queue] Thất bại Job ${job.jobId}:`, errMsg);
-    }
-
-    // Tiếp tục xử lý job kế tiếp nếu còn trong hàng đợi
-    setTimeout(processNextJob, 500);
-  });
-
-  py.on('error', async (err) => {
-    isProcessingQueue = false;
-    job.status = 'failed';
-    job.error = err.message;
-    await ArtifactModel.findByIdAndUpdate(job.artifactId, {
-      processingStatus: 'failed',
-      processingError: err.message
+      await cacheDelPattern('artifacts:*');
+      console.error(`[3D Consumer] Lỗi tiến trình Python:`, err.message);
+      resolve();
     });
-    console.error(`[3D Queue] Lỗi tiến trình Python:`, err.message);
-    setTimeout(processNextJob, 500);
   });
+}
+
+/**
+ * Vòng lặp Consumer kiểm tra hàng đợi (Redis Queue hoặc Memory Queue)
+ */
+async function triggerWorker() {
+  if (isWorkerRunning) return;
+  isWorkerRunning = true;
+
+  try {
+    while (true) {
+      // 1. Thử lấy job từ Redis Queue
+      let job = await popJobFromQueue('artifact_3d');
+
+      // 2. Nếu Redis không có job, lấy từ memory queue
+      if (!job && memoryJobs.length > 0) {
+        job = memoryJobs.shift();
+      }
+
+      if (!job) {
+        break; // Hết việc, tạm dừng worker
+      }
+
+      await processSingleJob(job);
+      await new Promise(r => setTimeout(r, 200)); // Nghỉ 200ms giữa các job
+    }
+  } catch (err: any) {
+    console.error('[3D Consumer Worker Loop Error]:', err.message);
+  } finally {
+    isWorkerRunning = false;
+  }
+}
+
+/**
+ * Khởi động background consumer lặp định kỳ kiểm tra hàng đợi
+ */
+export function startArtifact3DConsumer() {
+  if (isConsumerLoopStarted) return;
+  isConsumerLoopStarted = true;
+  console.log('[3D Queue Consumer] Đã kích hoạt tiến trình lắng nghe hàng đợi 3D (queue:artifact_3d)');
+  setInterval(() => {
+    if (!isWorkerRunning) {
+      triggerWorker();
+    }
+  }, 3000);
 }
 
 /**
  * Tra cứu trạng thái tác vụ
  */
-export function getJobStatus(jobId: string) {
-  return jobQueue.find(j => j.jobId === jobId);
+export async function getJobStatus(jobId: string) {
+  const mem = memoryJobs.find(j => j.jobId === jobId);
+  if (mem) return mem;
+  return null;
 }

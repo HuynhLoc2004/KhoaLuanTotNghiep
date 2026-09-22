@@ -17,6 +17,7 @@ import { seedDefaultLanguages } from './models/Language.js';
 import { seedDefaultRoles } from './models/Role.js';
 import { seedDefaultAdmin } from './models/User.js';
 import { getRedisStatus } from './services/redis.js';
+import { startArtifact3DConsumer } from './services/artifact3dQueue.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
 dotenv.config();
@@ -30,8 +31,8 @@ app.use(cors({
   allowedHeaders: ['*']
 }));
 
-app.use(express.json({ limit: '15mb' }));
-app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 import fs from 'fs';
 import { PanoramaModel } from './models/Panorama.js';
@@ -182,6 +183,10 @@ connectMongoDB().then(async () => {
   await seedDefaultLanguages();
   await seedDefaultRoles();
   await seedDefaultAdmin();
+
+  // Khởi động Worker Consumer lắng nghe hàng đợi xử lý 3D
+  startArtifact3DConsumer();
+
   app.listen(PORT, () => {
     console.log(`[Bảo tàng Lịch sử TP.HCM API] Máy chủ chạy tại http://localhost:${PORT}`);
   });

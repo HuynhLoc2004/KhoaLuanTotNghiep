@@ -86,11 +86,36 @@ export const cacheDel = async (key: string): Promise<boolean> => {
 };
 
 /**
- * Đẩy công việc vào hàng đợi (Task Queue)
+ * Xóa cache theo mẫu (pattern) ví dụ: "artifacts:*", "rooms:*"
+ */
+export const cacheDelPattern = async (pattern: string): Promise<boolean> => {
+  if (!redisClient || !isRedisConnected) return false;
+  try {
+    const stream = redisClient.scanStream({
+      match: pattern,
+      count: 100
+    });
+
+    stream.on('data', async (keys: string[]) => {
+      if (keys.length && redisClient) {
+        const pipeline = redisClient.pipeline();
+        keys.forEach((key) => pipeline.del(key));
+        await pipeline.exec();
+      }
+    });
+
+    return true;
+  } catch (err: any) {
+    console.warn(`[Redis cacheDelPattern Error for ${pattern}]:`, err.message);
+    return false;
+  }
+};
+
+/**
+ * Đẩy công việc vào hàng đợi (Task Queue - FIFO: RPush)
  */
 export const pushJobToQueue = async (queueName: string, jobData: any): Promise<boolean> => {
   if (!redisClient || !isRedisConnected) {
-    console.log(`[Queue Fallback] Thực thi tác vụ '${queueName}' trực tiếp do không có Redis.`);
     return false;
   }
   try {
@@ -103,6 +128,33 @@ export const pushJobToQueue = async (queueName: string, jobData: any): Promise<b
   } catch (err: any) {
     console.warn(`[Queue Push Error]:`, err.message);
     return false;
+  }
+};
+
+/**
+ * Lấy công việc từ hàng đợi (Task Queue - FIFO: LPop)
+ */
+export const popJobFromQueue = async (queueName: string): Promise<any | null> => {
+  if (!redisClient || !isRedisConnected) return null;
+  try {
+    const item = await redisClient.lpop(`queue:${queueName}`);
+    if (!item) return null;
+    return JSON.parse(item);
+  } catch (err: any) {
+    console.warn(`[Queue Pop Error]:`, err.message);
+    return null;
+  }
+};
+
+/**
+ * Đếm số lượng công việc còn lại trong hàng đợi
+ */
+export const getQueueLength = async (queueName: string): Promise<number> => {
+  if (!redisClient || !isRedisConnected) return 0;
+  try {
+    return await redisClient.llen(`queue:${queueName}`);
+  } catch {
+    return 0;
   }
 };
 

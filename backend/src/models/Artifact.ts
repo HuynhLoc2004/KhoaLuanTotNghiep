@@ -25,6 +25,9 @@ export interface IArtifact extends Document {
   id: string;
   code: string;
   name: string;
+  roomId?: string;
+  roomCode?: string;
+  topicId?: string;
   category: string;
   period: string;
   origin: string;
@@ -50,7 +53,10 @@ const ArtifactSchema = new Schema<IArtifact>(
   {
     code: { type: String, required: true, unique: true, index: true },
     name: { type: String, required: true, trim: true },
-    category: { type: String, default: 'Cổ vật di sản', trim: true },
+    roomId: { type: String, ref: 'Room', index: true },
+    roomCode: { type: String, index: true },
+    topicId: { type: String, ref: 'Topic', index: true },
+    category: { type: String, default: 'Cổ vật di sản', trim: true, index: true },
     period: { type: String, default: 'Thời cổ', trim: true },
     origin: { type: String, default: 'Bảo tàng Lịch sử TP.HCM', trim: true },
     description: { type: String, default: '' },
@@ -61,7 +67,7 @@ const ArtifactSchema = new Schema<IArtifact>(
     audioNarrationUrl: { type: String, default: '' },
     voiceLanguage: { type: String, default: 'vi' },
     qrCodeUrl: { type: String, default: '' },
-    status: { type: String, enum: ['active', 'archived', 'draft'], default: 'active' },
+    status: { type: String, enum: ['active', 'archived', 'draft'], default: 'active', index: true },
     processingStatus: { type: String, enum: ['idle', 'processing', 'completed', 'failed'], default: 'idle' },
     processingError: { type: String, default: '' },
     modelMetadata: {

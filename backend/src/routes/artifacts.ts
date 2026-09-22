@@ -3,8 +3,10 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { ArtifactModel } from '../models/Artifact';
+import { RoomModel } from '../models/Room';
 import { generateQRCodeBuffer, generateQRCodeDataURL } from '../services/qr';
 import { enqueue3DReconstruction, getJobStatus } from '../services/artifact3dQueue';
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis';
 
 export const artifactsRouter = Router();
 
@@ -55,11 +57,11 @@ const uploadModel = multer({
 
 /**
  * GET /api/artifacts
- * Danh sách toàn bộ hiện vật có bộ lọc theo danh mục, trạng thái và tìm kiếm
+ * Danh sách toàn bộ hiện vật có bộ lọc theo danh mục, trạng thái và tìm kiếm (Có Redis cache TTL 300s)
  */
 artifactsRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const { category, search, status } = req.query;
+    const { category, search, status, roomId } = req.query;
     const filter: any = {};
 
     if (category && category !== 'all') {
@@ -67,6 +69,9 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
     }
     if (status && status !== 'all') {
       filter.status = status;
+    }
+    if (roomId) {
+      filter.roomId = roomId;
     }
     if (search && typeof search === 'string') {
       const q = search.trim();
@@ -77,12 +82,23 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
       ];
     }
 
-    const items = await ArtifactModel.find(filter).sort({ orderIndex: 1, createdAt: -1 });
-    res.json({
+    const cacheKey = `artifacts:list:${JSON.stringify({ category, search, status, roomId })}`;
+    const cached = await cacheGet<any>(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, fromCache: true });
+    }
+
+    const items = await ArtifactModel.find(filter).sort({ orderIndex: 1, createdAt: -1 }).lean();
+    const result = {
       success: true,
       count: items.length,
       data: items
-    });
+    };
+
+    // TTL 300s (5 phút)
+    await cacheSet(cacheKey, result, 300);
+
+    res.json(result);
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi tải danh sách hiện vật: ' + err.message });
   }
@@ -90,11 +106,17 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
 
 /**
  * GET /api/artifacts/:id
- * Chi tiết một hiện vật kèm tự động tạo mã QR nếu chưa có
+ * Chi tiết một hiện vật kèm tự động tạo mã QR nếu chưa có (Có Redis cache TTL 600s)
  */
 artifactsRouter.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
+    const cacheKey = `artifacts:item:${id}`;
+    const cached = await cacheGet<any>(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached, fromCache: true });
+    }
+
     let item = await ArtifactModel.findById(id);
     if (!item) {
       item = await ArtifactModel.findOne({ code: id });
@@ -117,7 +139,10 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
       }
     }
 
-    res.json({ success: true, data: item });
+    const data = item.toJSON();
+    await cacheSet(cacheKey, data, 600); // 10 phút TTL
+
+    res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi lấy chi tiết hiện vật: ' + err.message });
   }
@@ -125,11 +150,11 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
 
 /**
  * POST /api/artifacts
- * Tạo mới một hiện vật
+ * Tạo mới một hiện vật (Đồng bộ MongoDB thật & xóa cache ngay)
  */
 artifactsRouter.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, code, category, period, origin, description, dimensions, images, thumbnailUrl, model3dUrl, audioNarrationUrl, voiceLanguage } = req.body;
+    const { name, code, category, period, origin, description, dimensions, images, thumbnailUrl, model3dUrl, audioNarrationUrl, voiceLanguage, roomId, roomCode, topicId } = req.body;
     if (!name || !code) {
       return res.status(400).json({ success: false, message: 'Tên và Mã hiện vật là bắt buộc' });
     }
@@ -143,6 +168,9 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
     const created = await ArtifactModel.create({
       name: name.trim(),
       code: code.trim(),
+      roomId: roomId || undefined,
+      roomCode: roomCode || undefined,
+      topicId: topicId || undefined,
       category: category || 'Cổ vật di sản',
       period: period || 'Thời cổ',
       origin: origin || 'Bảo tàng Lịch sử TP.HCM',
@@ -166,6 +194,9 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
       await created.save();
     } catch {}
 
+    // Xóa cache danh sách để phản ánh dữ liệu mới lập tức
+    await cacheDelPattern('artifacts:*');
+
     res.status(201).json({ success: true, data: created });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi tạo hiện vật: ' + err.message });
@@ -174,7 +205,7 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
 
 /**
  * PUT /api/artifacts/:id
- * Cập nhật thông tin hiện vật
+ * Cập nhật thông tin hiện vật (Đồng bộ MongoDB thật & xóa cache ngay)
  */
 artifactsRouter.put('/:id', async (req: Request, res: Response) => {
   try {
@@ -183,6 +214,14 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để cập nhật' });
     }
+
+    // Xóa cache chi tiết và cache danh sách
+    await Promise.all([
+      cacheDelPattern('artifacts:*'),
+      cacheDel(`artifacts:item:${id}`),
+      cacheDel(`artifacts:item:${updated.code}`)
+    ]);
+
     res.json({ success: true, data: updated });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi cập nhật hiện vật: ' + err.message });
@@ -191,7 +230,7 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/artifacts/:id
- * Xóa hiện vật
+ * Xóa hiện vật thật 100% trong MongoDB + dọn dẹp file 3D + liên kết Hotspot + xóa cache
  */
 artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
@@ -200,7 +239,35 @@ artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để xóa' });
     }
-    res.json({ success: true, message: 'Đã xóa hiện vật thành công' });
+
+    // 1. Dọn dẹp file 3D trên đĩa
+    if (deleted.model3dUrl && deleted.model3dUrl.includes('/uploads/artifacts/models_3d/')) {
+      const filename = path.basename(deleted.model3dUrl);
+      const filePath = path.join(ARTIFACTS_UPLOAD_DIR, 'models_3d', filename);
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch {}
+      }
+    }
+
+    // 2. Chặt chẽ quan hệ dữ liệu: Gỡ bỏ hotspot liên kết trong RoomModel
+    try {
+      await RoomModel.updateMany(
+        { 'hotspots.artifactId': id },
+        { $pull: { hotspots: { artifactId: id } } }
+      );
+    } catch (relErr) {
+      console.warn('[Artifacts] Lỗi dọn dẹp liên kết hotspot:', relErr);
+    }
+
+    // 3. Xóa cache
+    await Promise.all([
+      cacheDelPattern('artifacts:*'),
+      cacheDel(`artifacts:item:${id}`),
+      cacheDel(`artifacts:item:${deleted.code}`),
+      cacheDel('rooms:all')
+    ]);
+
+    res.json({ success: true, message: 'Đã xóa hiện vật và dọn dẹp liên kết thành công' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi xóa hiện vật: ' + err.message });
   }
