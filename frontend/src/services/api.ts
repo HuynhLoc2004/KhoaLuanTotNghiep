@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -393,5 +393,117 @@ export const api = {
     if (!json.success) throw new Error(json.message || 'Lỗi tải lên file ảnh logo');
     return { url: json.data.url };
   },
+
+  // === QUẢN TRỊ HIỆN VẬT & MÔ PHỎNG 3D CỔ VẬT (ARTIFACTS & 3D RECONSTRUCTION) ===
+  async getArtifacts(params?: { category?: string; search?: string; status?: string }): Promise<Artifact[]> {
+    const query = new URLSearchParams();
+    if (params?.category) query.append('category', params.category);
+    if (params?.search) query.append('search', params.search);
+    if (params?.status) query.append('status', params.status);
+
+    const res = await fetch(`${API_BASE}/artifacts?${query.toString()}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách hiện vật');
+    return json.data;
+  },
+
+  async getArtifact(id: string): Promise<Artifact> {
+    const res = await fetch(`${API_BASE}/artifacts/${id}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải chi tiết hiện vật');
+    return json.data;
+  },
+
+  async createArtifact(artifact: Partial<Artifact>): Promise<Artifact> {
+    const res = await fetch(`${API_BASE}/artifacts`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(artifact)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tạo hiện vật mới');
+    return json.data;
+  },
+
+  async updateArtifact(id: string, patch: Partial<Artifact>): Promise<Artifact> {
+    const res = await fetch(`${API_BASE}/artifacts/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(patch)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật hiện vật');
+    return json.data;
+  },
+
+  async deleteArtifact(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/artifacts/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi xóa hiện vật');
+  },
+
+  async uploadArtifactImage(file: File): Promise<{ url: string; filename: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = getAuthHeaders(false);
+
+    const res = await fetch(`${API_BASE}/artifacts/upload-image`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải ảnh hiện vật');
+    return json.data;
+  },
+
+  async uploadArtifactModel(file: File): Promise<{ url: string; filename: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = getAuthHeaders(false);
+
+    const res = await fetch(`${API_BASE}/artifacts/upload-model`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải file 3D');
+    return json.data;
+  },
+
+  async generate3DArtifact(
+    id: string,
+    options?: { imageUrl?: string; depthScale?: number; resolution?: number }
+  ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string; status: string }> {
+    const res = await fetch(`${API_BASE}/artifacts/${id}/generate-3d`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(options || {})
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi kích hoạt tiến trình dựng 3D');
+    return json.data;
+  },
+
+  async getArtifact3DStatus(id: string): Promise<{
+    artifactId: string;
+    processingStatus: 'idle' | 'processing' | 'completed' | 'failed';
+    processingError?: string;
+    model3dUrl?: string;
+    modelMetadata?: any;
+  }> {
+    const res = await fetch(`${API_BASE}/artifacts/${id}/3d-status`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi kiểm tra trạng thái 3D');
+    return json.data;
+  },
+
+  getArtifactQRDownloadUrl(id: string): string {
+    return `${API_BASE}/artifacts/${id}/qr-download`;
+  }
 
 };

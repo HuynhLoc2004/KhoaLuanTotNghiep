@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import './styles/theme.css';
 import './styles/admin.css';
+import './styles/artifacts.css';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { AdminRoomsPage } from './pages/admin/AdminRoomsPage';
 import { AdminPanoramaStudio } from './pages/admin/AdminPanoramaStudio';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { AdminArtifactsPage } from './pages/admin/AdminArtifactsPage';
+import { PublicArtifactView } from './pages/public/PublicArtifactView';
 import { MuseumRoom, AdminTab } from './types';
 import { api } from './services/api';
 import { Loader2, AlertCircle, Landmark, RefreshCw } from 'lucide-react';
@@ -30,6 +33,21 @@ const AppContent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLagging, setIsLagging] = useState(false);
+
+  // Kiểm tra nếu khách truy cập trực tiếp trang Hiện vật 3D (Quét mã QR hoặc URL /artifact/ID hoặc ?artifact=ID)
+  const [publicArtifactId, setPublicArtifactId] = useState<string | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('artifact');
+      if (q) return q;
+      const path = window.location.pathname;
+      if (path.startsWith('/artifact/')) {
+        const seg = path.split('/artifact/')[1];
+        if (seg) return seg.split('/')[0];
+      }
+    } catch {}
+    return null;
+  });
 
   // Fetch all rooms from API
   const fetchRooms = async () => {
@@ -223,6 +241,21 @@ const AppContent: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Khách tham quan quét mã QR xem Hiện vật 3D trực tiếp (Không yêu cầu đăng nhập quản trị viên)
+  if (publicArtifactId) {
+    return (
+      <PublicArtifactView
+        artifactId={publicArtifactId}
+        onBackToTour={() => {
+          setPublicArtifactId(null);
+          try {
+            window.history.replaceState({}, '', '/');
+          } catch {}
+        }}
+      />
+    );
+  }
 
   // Màn hình chờ xác thực phiên đăng nhập
   if (isAuthLoading) {
@@ -491,6 +524,8 @@ const AppContent: React.FC = () => {
             onRoomUpdated={handleRoomUpdated}
             onDeleteRoom={handleDeleteRoom}
           />
+        ) : currentTab === 'artifacts' ? (
+          <AdminArtifactsPage />
         ) : currentTab === 'languages' ? (
           <AdminLanguagePage />
         ) : currentTab === 'settings' ? (
@@ -499,7 +534,6 @@ const AppContent: React.FC = () => {
           <div className="admin-content">
             <div className="panel" style={{ padding: 40, textAlign: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--primary)' }}>
-                {currentTab === 'artifacts' && t('app.artifactsFallbackTitle', 'Quản lý Hiện vật & Cổ vật di sản')}
                 {currentTab === 'analytics' && t('app.analyticsFallbackTitle', 'Báo cáo & Thống kê lượt tham quan Tour 360')}
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>

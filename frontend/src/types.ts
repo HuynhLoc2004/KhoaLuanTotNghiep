@@ -175,4 +175,49 @@ export interface SystemBranding {
   updatedBy?: string;
 }
 
+export interface ArtifactTranslation {
+  name?: string;
+  period?: string;
+  category?: string;
+  origin?: string;
+  description?: string;
+  audioNarrationUrl?: string;
+}
+
+export interface ArtifactMetadata {
+  vertices?: number;
+  faces?: number;
+  sizeBytes?: number;
+  width?: number;
+  height?: number;
+  depth?: number;
+  generatedAt?: string;
+  inputImageSha256?: string;
+}
+
+export interface Artifact {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  period: string;
+  origin: string;
+  description: string;
+  dimensions?: string;
+  images: string[];
+  thumbnailUrl: string;
+  model3dUrl?: string;
+  audioNarrationUrl?: string;
+  voiceLanguage?: string;
+  qrCodeUrl?: string;
+  status: 'active' | 'archived' | 'draft';
+  processingStatus: 'idle' | 'processing' | 'completed' | 'failed';
+  processingError?: string;
+  modelMetadata?: ArtifactMetadata;
+  translations?: Record<string, ArtifactTranslation>;
+  orderIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
