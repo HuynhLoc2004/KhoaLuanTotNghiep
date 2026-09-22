@@ -831,15 +831,8 @@ export const AdminArtifactsPage: React.FC = () => {
             </button>
           </div>
         ) : viewMode === 'grid' ? (
-          /* Grid View Mode */
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: 18,
-              padding: '20px'
-            }}
-          >
+          /* Grid View Mode - Đồng bộ 100% với AdminRoomsPage */
+          <div className="rooms-grid">
             {paginatedArtifacts.map((art) => {
               const has3D = !!art.model3dUrl;
               const isProcessing = art.processingStatus === 'processing';
@@ -853,132 +846,157 @@ export const AdminArtifactsPage: React.FC = () => {
               const transCount = art.translations ? Object.keys(art.translations).length : 0;
 
               return (
-                <div key={art.id} className="artifact-card">
-                  {/* Khung ảnh thumbnail */}
-                  <div className="artifact-thumbnail-wrapper">
+                <div key={art.id} className="room-card">
+                  {/* Khung ảnh thumbnail chuẩn mực 135px */}
+                  <div className="room-thumbnail-wrapper">
                     {fullImgUrl ? (
-                      <img src={fullImgUrl} alt={art.name} className="artifact-thumbnail" />
+                      <img src={fullImgUrl} alt={art.name} className="room-thumbnail" />
                     ) : (
-                      <ImageIcon size={36} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.08) 0%, rgba(140, 45, 25, 0.08) 100%)'
+                        }}
+                      >
+                        <Landmark size={24} style={{ color: 'var(--accent-gold)', opacity: 0.7 }} />
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Chưa tải ảnh tư liệu</span>
+                      </div>
                     )}
 
-                    {/* Mã định danh */}
-                    <span className="artifact-badge-code">{art.code}</span>
+                    {/* Mã định danh di sản */}
+                    <div className="room-badge-code">{art.code}</div>
 
-                    {/* Huy hiệu 3D */}
-                    <div className="artifact-badge-status">
+                    {/* Huy hiệu trạng thái 3D */}
+                    <div className="room-badge-hotspots">
                       {has3D ? (
-                        <span className="badge-3d-ready">
-                          <Box size={11} />
-                          3D Sẵn sàng
-                        </span>
-                      ) : isProcessing ? (
-                        <span className="badge-3d-processing">
-                          <Loader2 size={11} className="spin" />
-                          Đang dựng 3D
-                        </span>
+                        <>
+                          <Sparkles size={11} />
+                          <span>Mô hình 3D</span>
+                        </>
                       ) : (
-                        <span className="badge-3d-none">Ảnh 2D</span>
+                        <>
+                          <ImageIcon size={11} />
+                          <span>Ảnh 2D</span>
+                        </>
                       )}
                     </div>
                   </div>
 
                   {/* Thông tin cổ vật */}
-                  <div className="artifact-info">
-                    <div className="artifact-period">
-                      {art.period || art.category || 'Cổ vật di sản'}
-                    </div>
-
-                    <h4 className="artifact-name" title={art.name}>
-                      {art.name}
-                    </h4>
-
-                    {(art.origin || art.dimensions) && (
-                      <div className="artifact-meta-text">
-                        <MapPin size={11} style={{ flexShrink: 0 }} />
-                        <span>{art.origin || 'Bảo tàng Lịch sử TP.HCM'}</span>
-                        {art.dimensions && <span>• {art.dimensions}</span>}
-                      </div>
-                    )}
-
-                    <p className="artifact-desc" title={art.description}>
-                      {art.description || 'Chưa có thông tin khảo cứu lịch sử cho cổ vật này.'}
-                    </p>
-                  </div>
-
-                  {/* Thanh tác vụ */}
-                  <div className="artifact-actions">
-                    {/* Tác vụ chính: 3D */}
-                    {has3D ? (
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        style={{ width: '100%', justifyContent: 'center' }}
-                        onClick={() => handleOpenViewer(art)}
-                      >
-                        <RotateCw size={13} style={{ marginRight: 6 }} />
-                        <span>Xem 3D Đĩa Xoay 360°</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        style={{ width: '100%', justifyContent: 'center' }}
-                        onClick={() => handleOpenGenerate3D(art)}
-                        disabled={isProcessing}
-                      >
-                        <Sparkles size={13} style={{ marginRight: 6, color: 'var(--accent-gold)' }} />
-                        <span>{isProcessing ? 'Đang dựng 3D...' : 'Khởi tạo mô hình 3D'}</span>
-                      </button>
-                    )}
-
-                    {/* Tác vụ Thuyết minh & Voice AI Đa Ngôn Ngữ */}
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6 }}
-                      onClick={() => handleOpenVoiceModal(art)}
-                    >
-                      <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
-                      <span>Thuyết minh & Voice AI</span>
-                      {transCount > 0 && (
-                        <span style={{ fontSize: '10.5px', background: 'var(--accent-gold-light)', color: 'var(--accent-gold)', padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>
-                          {transCount} ngôn ngữ
+                  <div className="room-info">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.4px', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {art.period || art.category || 'Cổ vật di sản'}
+                      </span>
+                      {transCount > 0 ? (
+                        <span style={{ fontSize: '10.5px', color: 'var(--accent-gold)', background: 'rgba(212, 168, 106, 0.12)', border: '1px solid rgba(212, 168, 106, 0.28)', padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          <Volume2 size={10} />
+                          <span>{transCount} ngôn ngữ</span>
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          Chưa có voice
                         </span>
                       )}
-                    </button>
+                    </div>
 
-                    {/* Các nút phụ: Mã QR, Sửa, Xóa */}
-                    <div className="artifact-actions-secondary">
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleOpenQR(art)}
-                        title="Xem và in thẻ Standee QR trưng bày"
-                      >
-                        <QrCode size={13} style={{ marginRight: 4 }} />
-                        <span>Mã QR</span>
-                      </button>
+                    <div className="room-name" title={art.name}>{art.name}</div>
+                    <div className="room-desc" title={art.description}>{art.description || 'Chưa có thông tin tư liệu khảo cứu cho hiện vật này.'}</div>
 
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleEdit(art)}
-                        title="Chỉnh sửa thông tin hiện vật"
-                      >
-                        <Edit3 size={13} style={{ marginRight: 4 }} />
-                        <span>Sửa</span>
-                      </button>
+                    {/* Thông số phụ từ DB */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', padding: '6px 0', borderTop: '1px dashed var(--border-color)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <MapPin size={11} style={{ color: 'var(--accent-gold)' }} />
+                        <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{art.origin || 'Bảo tàng Lịch sử TP.HCM'}</span>
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Tag size={11} />
+                        <span>{art.category || 'Hiện vật'}</span>
+                      </span>
+                    </div>
 
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleDelete(art.id, art.name)}
-                        title="Xóa hiện vật khỏi sổ lưu trữ"
-                        style={{ color: 'var(--error)' }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                    {/* Action buttons 2 hàng chuẩn mực, không bị dồn ép hay xếp 3 hàng dọc */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 8, marginTop: 'auto', borderTop: '1px solid var(--border-color)' }}>
+                      {/* Hàng 1: Hai nút chức năng chính */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {has3D ? (
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleOpenViewer(art)}
+                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
+                            title="Xem mô hình 3D xoay 360° trên đĩa ngọc"
+                          >
+                            <RotateCw size={13} />
+                            <span>Xem 3D 360°</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleOpenGenerate3D(art)}
+                            disabled={isProcessing}
+                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
+                            title="Khởi tạo mô hình 3D từ ảnh chụp"
+                          >
+                            {isProcessing ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+                            <span>{isProcessing ? 'Đang dựng...' : 'Dựng 3D AI'}</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleOpenVoiceModal(art)}
+                          style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
+                          title="Quản lý thuyết minh & Voice AI đa ngôn ngữ"
+                        >
+                          <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
+                          <span>Thuyết minh</span>
+                        </button>
+                      </div>
+
+                      {/* Hàng 2: Nút công cụ phụ */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          title="Xem và in thẻ Standee QR trưng bày"
+                          onClick={() => handleOpenQR(art)}
+                          style={{ flex: 1, justifyContent: 'center', padding: '4px 6px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                        >
+                          <QrCode size={12} />
+                          <span>Mã QR</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          title="Chỉnh sửa thông tin hiện vật"
+                          onClick={() => handleEdit(art)}
+                          style={{ padding: '4px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                        >
+                          <Edit3 size={12} />
+                          <span>Sửa</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          title="Xóa hiện vật khỏi sổ lưu trữ"
+                          onClick={() => handleDelete(art.id, art.name)}
+                          style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--error)' }}
+                        >
+                          <Trash2 size={12} />
+                          <span>Xóa</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
