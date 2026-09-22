@@ -510,6 +510,11 @@ function normalizePanoUrl(rawUrl: string): string {
       try {
         json = await res.json();
       } catch (_) {
+        if (res.status === 504) {
+          throw new Error('Máy chủ phản hồi mã lỗi HTTP 504 (Gateway Timeout): Quá trình ghép mất nhiều thời gian hơn quy định. Hệ thống đã tối ưu thuật toán chắt lọc khung hình đại diện — bạn có thể bấm thử lại hoặc chọn chùm 16–24 ảnh để ghép nhanh nhất!');
+        } else if (res.status === 502 || res.status === 503) {
+          throw new Error(`Máy chủ đang bận xử lý hoặc tạm thời ngắt kết nối (HTTP ${res.status}). Vui lòng đợi trong giây lát rồi thử lại.`);
+        }
         throw new Error(`Máy chủ phản hồi mã lỗi HTTP ${res.status}`);
       }
 

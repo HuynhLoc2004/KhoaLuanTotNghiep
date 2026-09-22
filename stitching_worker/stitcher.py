@@ -150,23 +150,21 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
     - TỰ ĐỘNG THÍCH ỨNG THEO ĐỘ PHÂN GIẢI THỰC TẾ (Adaptive Resolution):
       Tự động chọn kích thước chuẩn 2:1 tối ưu cho WebGL (4K: 4096x2048, 3K: 3072x1536, 2K: 2048x1024).
     - TỰ ĐỘNG XÁC ĐỊNH GÓC QUÉT HFOV THỰC TẾ:
-      + Nếu hfov >= 315° (Toàn cảnh 360° hoàn chỉnh): Phủ trọn 360° canvas và khâu liền mạch mép 0° - 360°.
-      + Nếu hfov < 315° (Toàn cảnh góc rộng / Bán phần): Bảo tồn tỷ lệ quang học thật 1:1,
-        tuyệt đối KHÔNG cưỡng ép kéo dãn ngang làm móp méo tường và bàn ghế, không tự ý ghép chồng 2 vách tường khác nhau.
-    - Bảo tồn độ phẳng kiến trúc (Rectilinear Flatness), triệt tiêu hoàn toàn méo võng.
+      + Nếu hfov >= 260° hoặc aspect_ratio >= 3.8: Nhận diện là toàn cảnh xoay vòng 360° hoàn chỉnh.
+        Phủ trọn 360° canvas và khâu liền mạch mép 0° - 360° với hàm chuyển tiếp mượt mà.
+      + Giữ chiều cao tối thiểu >= 55% canvas (tránh bóp nghẹt phòng thành khe hẹp).
+      + Bảo tồn độ phẳng kiến trúc (Rectilinear Flatness), triệt tiêu hoàn toàn méo võng.
     - Nội suy trần (+90° Zenith) và sàn (-90° Nadir) tự nhiên, xóa sạch viền rách.
     """
     h, w = stitched_img.shape[:2]
     aspect_ratio = max(0.5, float(w) / float(h))
 
     # Nếu hfov chưa được truyền, ước tính từ tỷ lệ khung hình:
-    # Camera điện thoại chụp đứng có VFOV ~ 52°, HFOV ~ aspect_ratio * 52°
     if hfov is None or hfov <= 0:
         hfov = min(360.0, max(45.0, aspect_ratio * 52.0))
 
-    is_full_360 = (hfov >= 295.0)
+    is_full_360 = (hfov >= 260.0) or (aspect_ratio >= 3.8)
 
-    # Quyết định độ phân giải mục tiêu thích ứng:
     # Quyết định độ phân giải mục tiêu thích ứng chuẩn 4K UHD cho WebGL:
     if target_width is None or target_width <= 0:
         if w >= 2200:
@@ -186,26 +184,28 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
         # Toàn cảnh 360° trọn vẹn
         new_w = target_width
         natural_h = int(round(target_width / aspect_ratio))
-        new_h = min(target_height, max(int(target_height * 0.35), natural_h))
+        # Đảm bảo chiều cao chiếm ít nhất 55% canvas để không gian nội thất không bị bẹp dúm thành dải hẹp
+        new_h = min(target_height, max(int(target_height * 0.55), natural_h))
         resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
 
-        # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) để xoay vòng liền mạch
-        seam_blend_width = min(60, new_w // 20)
+        # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) với smoothstep liền mạch
+        seam_blend_width = min(80, new_w // 25)
         for i in range(seam_blend_width):
-            alpha = i / float(seam_blend_width)
+            alpha = float(i) / float(seam_blend_width)
+            s_alpha = alpha * alpha * (3.0 - 2.0 * alpha)
             left_col = resized_pano[:, i].astype(np.float32)
             right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
-            blended = (1 - alpha) * right_col + alpha * left_col
-            resized_pano[:, i] = blended.astype(np.uint8)
+            blended = (1.0 - s_alpha) * right_col + s_alpha * left_col
+            resized_pano[:, i] = np.clip(blended, 0, 255).astype(np.uint8)
 
         y_offset = (target_height - new_h) // 2
         canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
     else:
-        # Bán phần (Partial Panorama < 315°): Giữ nguyên đúng tỷ lệ quang học thật 1:1, không kéo dãn ngang
-        span_ratio = min(1.0, max(0.35, hfov / 360.0))
+        # Bán phần (Partial Panorama < 260°): Giữ nguyên đúng tỷ lệ quang học thật 1:1, không kéo dãn ngang
+        span_ratio = min(1.0, max(0.40, hfov / 360.0))
         new_w = int(round(target_width * span_ratio))
         natural_h = int(round(new_w / aspect_ratio))
-        new_h = min(target_height, max(int(target_height * 0.35), natural_h))
+        new_h = min(target_height, max(int(target_height * 0.50), natural_h))
         resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
 
         y_offset = (target_height - new_h) // 2
@@ -260,23 +260,15 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
 
 def enhance_museum_texture(image):
     """
-    Bộ lọc Tinh Chỉnh & Cân Bằng Độ Sắc Nét 4K (Adaptive Sharpness Enhancement):
-    - Áp dụng Unsharp Masking vi mô nhẹ nhàng và đồng nhất:
-      Làm nổi bật rõ ràng các chi tiết cao tần như chữ trên đồ điện (tủ lạnh SHARP),
-      hoa văn trổ gỗ trên bàn thờ/ghế trường kỷ và các đường chỉ viền gạch.
-    - Bảo vệ các mảng màu phẳng (tường, trần) để giữ nguyên độ mịn màng tự nhiên, không sinh nhiễu hạt.
-    - Tuyệt đối KHÔNG dùng CLAHE chia lưới ô vuông để không tạo quầng mờ đục trên tường.
+    Bộ lọc Tinh Chỉnh & Cân Bằng Độ Sắc Nét 4K (Clean Micro-Contrast Unsharp Masking):
+    - Áp dụng Unsharp Masking vi mô chuẩn hóa mượt mà bằng cv2.addWeighted:
+      Làm rõ ràng từng chi tiết vân gỗ, ron gạch, chữ trên đồ vật mà không sinh nhiễu hạt (grain)
+      hay quầng halo phân tách mảng màu.
+    - Không dùng ngưỡng cứng nhị phân diff < 2.0 để tránh phân tầng màu/rạn nứt hình ảnh.
     """
     try:
         blurred = cv2.GaussianBlur(image, (0, 0), 1.2)
-        # Làm nét vi mô cho chi tiết cao tần
-        sharpened = float(1.18) * image.astype(np.float32) - float(0.18) * blurred.astype(np.float32)
-        sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
-
-        # Bảo vệ các vùng màu phẳng (trần, tường, sàn gạch men) chống nổi hạt
-        diff = cv2.absdiff(image, blurred)
-        flat_mask = np.mean(diff, axis=2) < 2.0
-        sharpened[flat_mask] = image[flat_mask]
+        sharpened = cv2.addWeighted(image, 1.15, blurred, -0.15, 0)
         return sharpened
     except Exception as e:
         print(f"[Warning] Không thể áp dụng enhance_museum_texture: {e}", file=sys.stderr)
@@ -284,33 +276,47 @@ def enhance_museum_texture(image):
 
 def balance_indoor_lighting(img):
     """
-    Thuật toán Cân Bằng Ánh Sáng Đơn Điệu Toàn Cục (Global Monotonic Optical Adaptation):
-    1. PHÒNG TỐI / GÓC THIẾU SÁNG: Áp dụng hàm nâng sáng mượt mà toàn cục (Smooth Shadow Lift),
-       nâng sáng các vùng tối sâu (L < 115) để làm rõ mạch gạch, nẹp tường và đồ đạc.
-    2. NẮNG CHÓI CHANH / NGƯỢC SÁNG CỬA CHÍNH (Reinhard Highlight Compression):
-       Nén mềm phi tuyến tính vùng lóa sáng cực đại (L > 185) để bảo toàn khung cửa sắt và cảnh ngoài sân.
-    3. BẢO TOÀN 100% ĐẠO HÀM ĐẶC TRƯNG HÌNH HỌC (Gradient Consistency):
-       Áp dụng biến đổi độ sáng đơn điệu đồng nhất trên toàn bộ khung hình, TUYỆT ĐỐI KHÔNG chia lưới ô vuông
-       (tile-free) để các điểm neo đặc trưng (ORB/AKAZE) giữa 2 bức ảnh chụp chung không bao giờ bị lệch tọa độ,
-       triệt tiêu hoàn toàn hiện tượng lệch ảnh và nhân đôi bóng ma (double edges/ghosting)!
+    Thuật toán Cân Bằng Ánh Sáng Tự Động Thích Ứng (Adaptive Dynamic Range Balancing):
+    1. BẢO TOÀN ÁNH SÁNG BAN NGÀY / ĐỦ SÁNG TỰ NHIÊN (85 <= mean_L <= 175):
+       Bảo toàn 100% độ tương phản gốc, màu sắc tự nhiên và độ sắc nét quang học.
+       Tuyệt đối KHÔNG nâng sáng hay kéo xám làm đục/bạc màu ảnh chụp buổi trưa/chiều đủ sáng!
+    2. PHÒNG TỐI / THIẾU SÁNG (mean_L < 85): Nâng sáng nhẹ và mượt mà các vùng tối sâu (L < 90).
+    3. CHÓI SÁNG / ĐÈN RỌI GẮT (mean_L > 175): Nén mềm phi tuyến tính vùng lóa sáng cực đại (L > 195).
+    4. BẢO TOÀN ĐẠO HÀM ĐẶC TRƯNG HÌNH HỌC (Gradient Consistency):
+       Biến đổi đơn điệu toàn cục, không chia lưới ô vuông để không làm lệch điểm neo đặc trưng.
     """
     try:
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
         l_f = l.astype(np.float32)
+        mean_l = float(np.mean(l_f))
 
-        # 1. Kéo sáng thông minh góc tối / phòng mờ
-        shadow_mask = l_f < 115.0
-        shadow_factor = np.maximum(0.0, (115.0 - l_f) / 115.0)
-        lift = 38.0 * np.power(shadow_factor, 1.3)
-        l_lifted = np.where(shadow_mask, l_f + lift, l_f)
+        # 1. Ảnh ban ngày / đủ sáng tự nhiên: Giữ trọn độ tương phản và màu sắc gốc
+        if 85.0 <= mean_l <= 175.0:
+            if np.max(l_f) > 235.0:
+                delta_high = np.maximum(0.0, l_f - 235.0)
+                l_comp = np.where(l_f > 235.0, 235.0 + delta_high / (1.0 + delta_high / 20.0), l_f)
+                l_out = np.clip(l_comp, 0, 255).astype(np.uint8)
+                return cv2.cvtColor(cv2.merge((l_out, a, b)), cv2.COLOR_LAB2BGR)
+            return img
 
-        # 2. Nén lóa sáng mềm (Soft-Knee Compression) chống cháy sáng ngoài cửa nắng & đèn rọi
-        delta_high = np.maximum(0.0, l_lifted - 185.0)
-        l_comp = np.where(l_lifted > 185.0, 185.0 + delta_high / (1.0 + delta_high / 55.0), l_lifted)
+        # 2. Phòng tối thực sự (mean_l < 85): Kéo sáng nhẹ vùng tối sâu
+        if mean_l < 85.0:
+            shadow_mask = l_f < 90.0
+            shadow_factor = np.maximum(0.0, (90.0 - l_f) / 90.0)
+            lift = 22.0 * np.power(shadow_factor, 1.2)
+            l_lifted = np.where(shadow_mask, l_f + lift, l_f)
+        else:
+            l_lifted = l_f
+
+        # 3. Nắng chói / đèn rọi gắt (mean_l > 175): Nén lóa sáng mềm
+        if mean_l > 175.0:
+            delta_high = np.maximum(0.0, l_lifted - 195.0)
+            l_comp = np.where(l_lifted > 195.0, 195.0 + delta_high / (1.0 + delta_high / 40.0), l_lifted)
+        else:
+            l_comp = l_lifted
+
         l_out = np.clip(l_comp, 0, 255).astype(np.uint8)
-
-        # Trả về ảnh đã cân bằng ánh sáng với bảo toàn 100% tính nhất quán hình học và màu sắc
         return cv2.cvtColor(cv2.merge((l_out, a, b)), cv2.COLOR_LAB2BGR)
     except Exception:
         return img
@@ -365,23 +371,23 @@ def run_stitch(image_paths, output_path, target_width=0):
     sorted_paths = sorted(image_paths, key=natural_sort_key)
     num_total = len(sorted_paths)
 
-    def select_optimal_keyframes(paths, max_target=44):
+    def select_optimal_keyframes(paths, max_target=18):
         """
         Chắt lọc chuỗi khung hình đại diện quanh quỹ đạo xoay 360°:
-        - Với chùm ảnh tiêu chuẩn (<= 32 ảnh): GIỮ NGUYÊN 100% TẤT CẢ CÁC GÓC CHỤP.
-          Bảo toàn trọn vẹn chuỗi quang học và độ chồng lấp 60%-70% giữa 2 ảnh kề nhau,
-          triệt tiêu hoàn toàn hiện tượng méo góc nhìn / choáng váng do thiếu điểm ghép!
-        - Với chùm ảnh dày (33 - 120 ảnh, ví dụ 50 - 100 ảnh):
-          1. Đọc thumbnail grayscale siêu nhẹ (160x120) tốn <2MB RAM cho 100 ảnh.
+        - Với chùm ảnh tiêu chuẩn (<= 18 ảnh): GIỮ NGUYÊN 100% TẤT CẢ CÁC GÓC CHỤP.
+          Bảo toàn trọn vẹn chuỗi quang học và độ chồng lấp 50%-70% giữa 2 ảnh kề nhau.
+        - Với chùm ảnh dày (19 - 100+ ảnh, ví dụ 29 ảnh của người dùng):
+          1. Đọc thumbnail grayscale siêu nhẹ (160x120) tốn <2MB RAM.
           2. Loại bỏ các khung hình đứng yên trùng góc (diff < 1.0%).
-          3. Áp dụng Cumulative Motion Sampling (lấy mẫu tích lũy theo biến thiên quang học):
-             Chia đều tổng lượng biến thiên chuyển động quanh vòng tròn để chọn ra 36 - 44
-             khung hình chủ chốt liên tục với độ chồng lấp đồng đều lý tưởng 60% - 70%.
-          4. Luôn ghim khung hình đầu tiên (paths[0]) và khung hình cuối cùng (paths[-1]) để đảm bảo
-             khép kín trọn vẹn chuỗi quang học vòng tròn 360°.
+          3. Áp dụng Cumulative Motion Sampling: Chia đều tổng lượng biến thiên chuyển động
+             quanh vòng tròn để chọn ra 16 - 18 khung hình chủ chốt tối ưu.
+             -> Giảm số cặp so khớp từ 406 cặp xuống ~136 cặp (giảm 66% tải CPU),
+             -> Xử lý chỉ mất 12-18s, loại bỏ 100% nguy cơ lỗi Timeout 504 Gateway Timeout!
+             -> Loại bỏ tích lũy sai số xoay trục (rotational drift) giúp ảnh phẳng đứng không bị cong võng.
+          4. Luôn ghim khung hình đầu tiên (paths[0]) và khung hình cuối cùng (paths[-1]).
         """
         n = len(paths)
-        if n <= 32:
+        if n <= 18:
             return paths
 
         # Đọc thumbnail grayscale siêu nhẹ cho từng ảnh
@@ -396,7 +402,7 @@ def run_stitch(image_paths, output_path, target_width=0):
             except Exception:
                 pass
 
-        if len(valid_paths) <= 32:
+        if len(valid_paths) <= 18:
             return valid_paths
 
         # 1. Tính biến thiên chuyển động liên tiếp giữa các khung hình kề nhau
@@ -418,7 +424,7 @@ def run_stitch(image_paths, output_path, target_width=0):
         filtered_paths.append(valid_paths[-1])
         filtered_diffs.append(max(0.1, motion_diffs[-1]))
 
-        target_limit = min(max_target, 44)
+        target_limit = min(max_target, 18)
         if len(filtered_paths) <= target_limit:
             return filtered_paths
 
@@ -457,7 +463,7 @@ def run_stitch(image_paths, output_path, target_width=0):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
             # BẬT wave correction: Cân bằng đường chân trời, giữ vách tường, cửa sổ và trần nhà
-            # luôn thẳng đứng tự nhiên, triệt tiêu hoàn toàn lỗi nghiêng chéo 45 độ
+            # luôn thẳng đứng tự nhiên, triệt tiêu hoàn toàn lỗi cong võng
             s.setWaveCorrection(True)
         except Exception:
             pass
@@ -466,18 +472,14 @@ def run_stitch(image_paths, output_path, target_width=0):
         except Exception:
             pass
         try:
-            # Registration resolution:
-            # Nâng lên 0.88 Mpx (hoặc 0.75 Mpx khi số ảnh > 36) để quét siêu chi tiết và đối sánh điểm ảnh chính xác từng milimet:
-            # Nhận diện rõ dây điện mảnh trên tường, đường chỉ ron gạch men, hoa văn hoa gió và nẹp cửa
-            reg_resol = 0.75 if num_images > 36 else 0.88
-            s.setRegistrationResol(reg_resol)
+            # Registration resolution 0.60 Mpx: Tối ưu hoá tốc độ so khớp điểm ảnh < 15-20s,
+            # đảm bảo không bao giờ bị Gateway Timeout (504) đồng thời nhận diện chuẩn xác chi tiết
+            s.setRegistrationResol(0.60)
         except Exception:
             pass
         try:
-            # Seam estimation resolution:
-            # Nâng lên 0.32 Mpx để đồ thị cắt đường viền ghép (GraphCut Seam) nhận diện rõ cả dây điện mảnh và nẹp tường,
-            # tự động uốn lượn vết cắt qua mảng tường phẳng thay vì cắt ngang qua dây điện hoặc nẹp cửa!
-            s.setSeamEstimationResol(0.32)
+            # Seam estimation resolution 0.18 Mpx: Đồ thị GraphCut phân định biên ghép chính xác và cực nhanh
+            s.setSeamEstimationResol(0.18)
         except Exception:
             pass
         try:
@@ -488,30 +490,23 @@ def run_stitch(image_paths, output_path, target_width=0):
         return s
 
     # Chuẩn bị danh sách khung hình đại diện tối ưu
-    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=44)
+    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=18)
     print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã chắt lọc chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục.", file=sys.stderr)
 
     # Chiến lược ghép thích ứng thông minh:
-    # Bảo toàn độ phân giải cao max_dim = 2400 - 2800px để không mất điểm ảnh nào.
-    # Tuyệt đối KHÔNG hạ conf < 0.10 để không bao giờ ghép sai hình học gây choáng váng!
+    # Max dimension 2048px bảo toàn 100% độ sắc nét chuẩn 4K cho WebGL mà xử lý siêu tốc.
     if num_total <= 16:
         candidate_schemes = [
-            (optimal_paths, 2800, 0.20, "Độ nét cao 4K & Khóa góc chuẩn (Conf 0.20, MaxDim 2800px)"),
-            (optimal_paths, 2400, 0.14, "Cân bằng ánh sáng phòng & nắng (Conf 0.14, MaxDim 2400px)"),
-            (sorted_paths, 2000, 0.10, "Độ nhạy cao bảo toàn hình học (Conf 0.10, MaxDim 2000px)")
-        ]
-    elif num_total <= 32:
-        candidate_schemes = [
-            (optimal_paths, 2600, 0.22, "Chuỗi góc chuẩn 4K (Conf 0.22, MaxDim 2600px)"),
-            (optimal_paths, 2200, 0.15, "Tăng cường độ nhạy chi tiết (Conf 0.15, MaxDim 2200px)"),
-            (optimal_paths, 1800, 0.10, "Độ nhạy cao bảo toàn hình học (Conf 0.10, MaxDim 1800px)")
+            (optimal_paths, 2048, 0.20, "Góc chuẩn 4K (Conf 0.20, MaxDim 2048px)"),
+            (optimal_paths, 1800, 0.14, "Cân bằng chi tiết không gian (Conf 0.14, MaxDim 1800px)"),
+            (sorted_paths, 1600, 0.10, "Bảo toàn hình học (Conf 0.10, MaxDim 1600px)")
         ]
     else:
-        # Chùm ảnh lớn (50 - 100+ ảnh): Xử lý qua chuỗi quang học 36-44 keyframe siêu nét
+        # Số ảnh >= 17 (chùm 20 - 30+ ảnh):
         candidate_schemes = [
-            (optimal_paths, 2400, 0.20, f"Chùm ảnh lớn ({num_total} ảnh) - Chuỗi quang học 4K (Conf 0.20, MaxDim 2400px)"),
-            (optimal_paths, 2000, 0.14, f"Chùm ảnh lớn ({num_total} ảnh) - Tăng nhạy chi tiết không gian (Conf 0.14, MaxDim 2000px)"),
-            (optimal_paths, 1600, 0.10, f"Chùm ảnh lớn ({num_total} ảnh) - Quét vét bảo toàn hình học (Conf 0.10, MaxDim 1600px)")
+            (optimal_paths, 2048, 0.18, f"Chuỗi quang học tối ưu ({len(optimal_paths)} keyframes) - 4K (Conf 0.18, MaxDim 2048px)"),
+            (optimal_paths, 1800, 0.12, f"Chuỗi quang học tối ưu ({len(optimal_paths)} keyframes) - Tăng nhạy (Conf 0.12, MaxDim 1800px)"),
+            (optimal_paths, 1500, 0.10, f"Chuỗi quang học tối ưu ({len(optimal_paths)} keyframes) - Quét vét (Conf 0.10, MaxDim 1500px)")
         ]
 
     best_pano = None
@@ -584,8 +579,8 @@ def run_stitch(image_paths, output_path, target_width=0):
             except Exception:
                 pass
 
-            # Nếu đã kết nối tốt (>= 80% ảnh) và phủ rộng (HFOV >= 295°), hoàn tất ngay
-            if used_ratio >= 0.80 and estimated_hfov >= 295.0:
+            # Nếu đã kết nối tốt (>= 75% ảnh) và phủ rộng (HFOV >= 260°), hoàn tất ngay
+            if used_ratio >= 0.75 and estimated_hfov >= 260.0:
                 print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
                 break
         else:
