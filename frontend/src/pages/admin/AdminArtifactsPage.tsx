@@ -26,10 +26,18 @@ import {
   Tag,
   Landmark,
   Share2,
-  Check
+  Check,
+  Printer,
+  Copy,
+  Play,
+  Languages,
+  BookOpen,
+  Mic,
+  Info,
+  Globe
 } from 'lucide-react';
 import { api, API_ROOT } from '../../services/api';
-import { Artifact } from '../../types';
+import { Artifact, LanguageItem } from '../../types';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { Pagination } from '../../components/Pagination';
 import { useToast } from '../../components/Toast';
@@ -39,9 +47,10 @@ import { useClientTranslation } from '../../context/ClientTranslationContext';
 export const AdminArtifactsPage: React.FC = () => {
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
-  const { t } = useClientTranslation();
+  const { t, currentLang } = useClientTranslation();
 
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [languages, setLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -60,14 +69,26 @@ export const AdminArtifactsPage: React.FC = () => {
   const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
   const [activeViewerArtifact, setActiveViewerArtifact] = useState<Artifact | null>(null);
 
+  // Standee QR Modal
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [activeQRArtifact, setActiveQRArtifact] = useState<Artifact | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
 
+  // 3D Generation Modal
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [generatingArtifact, setGeneratingArtifact] = useState<Artifact | null>(null);
   const [depthScale, setDepthScale] = useState(0.35);
   const [isProcessing3D, setIsProcessing3D] = useState(false);
+
+  // Multilingual Voice AI Drawer / Modal
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [activeVoiceArtifact, setActiveVoiceArtifact] = useState<Artifact | null>(null);
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState<string>('vi');
+  const [voiceName, setVoiceName] = useState<string>('');
+  const [voicePeriod, setVoicePeriod] = useState<string>('');
+  const [voiceScript, setVoiceScript] = useState<string>('');
+  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [isGeneratingTts, setIsGeneratingTts] = useState(false);
+  const [isSavingVoice, setIsSavingVoice] = useState(false);
 
   // Polling ref cho các job 3D đang chạy
   const pollingTimerRef = useRef<any>(null);
@@ -84,8 +105,25 @@ export const AdminArtifactsPage: React.FC = () => {
     }
   };
 
+  const fetchLanguages = async () => {
+    try {
+      const data = await api.getLanguages();
+      setLanguages(data.filter((l) => l.isActive));
+    } catch {
+      // Fallback default languages
+      setLanguages([
+        { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flagIcon: '🇻🇳', isDefault: true, isActive: true, order: 1 },
+        { code: 'en', name: 'English', nativeName: 'English', flagIcon: '🇬🇧', isDefault: false, isActive: true, order: 2 },
+        { code: 'fr', name: 'French', nativeName: 'Français', flagIcon: '🇫🇷', isDefault: false, isActive: true, order: 3 },
+        { code: 'zh', name: 'Chinese', nativeName: '中文', flagIcon: '🇨🇳', isDefault: false, isActive: true, order: 4 },
+        { code: 'ja', name: 'Japanese', nativeName: '日本語', flagIcon: '🇯🇵', isDefault: false, isActive: true, order: 5 }
+      ]);
+    }
+  };
+
   useEffect(() => {
     fetchArtifacts();
+    fetchLanguages();
   }, []);
 
   // Polling tự động khi có hiện vật đang trong trạng thái 'processing'
@@ -164,7 +202,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const totalArtifacts = artifacts.length;
   const with3DCount = artifacts.filter((a) => !!a.model3dUrl).length;
   const percent3D = totalArtifacts > 0 ? Math.round((with3DCount / totalArtifacts) * 100) : 0;
-  const withAudioCount = artifacts.filter((a) => !!a.audioNarrationUrl).length;
+  const withAudioCount = artifacts.filter((a) => !!a.audioNarrationUrl || (a.translations && Object.values(a.translations).some((t) => !!t.audioNarrationUrl))).length;
   const withQrCount = artifacts.filter((a) => !!a.qrCodeUrl).length;
 
   const handleCreateNew = () => {
@@ -302,13 +340,171 @@ export const AdminArtifactsPage: React.FC = () => {
     }
   };
 
+  // Sao chép liên kết có cơ chế Fallback tương thích 100% với HTTP (IP VPS)
   const handleCopyLink = (text: string) => {
+    let copied = false;
     try {
-      navigator.clipboard.writeText(text);
-      setCopiedLink(true);
-      showToast('Đã sao chép liên kết vào bộ nhớ tạm', 'success');
-      setTimeout(() => setCopiedLink(false), 2000);
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text);
+        copied = true;
+      }
     } catch {}
+
+    if (!copied) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        textArea.style.top = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        copied = true;
+      } catch {}
+    }
+
+    if (copied) {
+      showToast('Đã sao chép liên kết tham quan: ' + text, 'success');
+    } else {
+      showToast('Vui lòng chọn và nhấn Ctrl+C để sao chép liên kết', 'info');
+    }
+  };
+
+  // === QUẢN TRỊ THUYẾT MINH & VOICE AI ĐA NGÔN NGỮ ===
+  const handleOpenVoiceModal = (artifact: Artifact) => {
+    setActiveVoiceArtifact(artifact);
+    const initialLang = 'vi';
+    setSelectedVoiceLang(initialLang);
+
+    const trans = artifact.translations?.[initialLang];
+    setVoiceName(trans?.name || artifact.name);
+    setVoicePeriod(trans?.period || artifact.period);
+    setVoiceScript(trans?.narrationScript || trans?.description || artifact.description || '');
+    setPreviewAudioUrl(trans?.audioNarrationUrl || artifact.audioNarrationUrl || null);
+
+    setIsVoiceModalOpen(true);
+  };
+
+  const handleSwitchVoiceLanguage = (langCode: string) => {
+    if (!activeVoiceArtifact) return;
+    setSelectedVoiceLang(langCode);
+
+    if (langCode === 'vi') {
+      const trans = activeVoiceArtifact.translations?.vi;
+      setVoiceName(trans?.name || activeVoiceArtifact.name);
+      setVoicePeriod(trans?.period || activeVoiceArtifact.period);
+      setVoiceScript(trans?.narrationScript || trans?.description || activeVoiceArtifact.description || '');
+      setPreviewAudioUrl(trans?.audioNarrationUrl || activeVoiceArtifact.audioNarrationUrl || null);
+    } else {
+      const trans = activeVoiceArtifact.translations?.[langCode];
+      setVoiceName(trans?.name || '');
+      setVoicePeriod(trans?.period || '');
+      setVoiceScript(trans?.narrationScript || trans?.description || '');
+      setPreviewAudioUrl(trans?.audioNarrationUrl || null);
+    }
+  };
+
+  const handleLoadPresetKnowledge = () => {
+    if (!activeVoiceArtifact) return;
+    const museumTitle = branding.museumName || 'Bảo tàng Lịch sử TP.HCM';
+
+    if (selectedVoiceLang === 'vi') {
+      const script = `Kính chào quý khách đến chiêm ngưỡng hiện vật ${activeVoiceArtifact.name}. Cổ vật có niên đại thuộc ${activeVoiceArtifact.period || 'thời kỳ cổ'}, được sưu tầm và bảo tồn tại ${activeVoiceArtifact.origin || museumTitle}. Đây là di sản văn hóa quý giá minh chứng cho đỉnh cao nghệ thuật tạo tác và dòng chảy lịch sử dân tộc.`;
+      setVoiceScript(script);
+      if (!voiceName) setVoiceName(activeVoiceArtifact.name);
+      if (!voicePeriod) setVoicePeriod(activeVoiceArtifact.period);
+      showToast('Đã nạp lời đọc gợi ý tiếng Việt', 'info');
+    } else if (selectedVoiceLang === 'en') {
+      const script = `Welcome to the exhibition of ${voiceName || activeVoiceArtifact.name}. Dating back to ${voicePeriod || activeVoiceArtifact.period || 'ancient times'} and preserved at ${activeVoiceArtifact.origin || museumTitle}, this precious heritage artifact exemplifies artistic excellence and rich historical significance.`;
+      setVoiceScript(script);
+      if (!voiceName) setVoiceName(activeVoiceArtifact.name);
+      if (!voicePeriod) setVoicePeriod(activeVoiceArtifact.period);
+      showToast('Loaded English narration suggestion', 'info');
+    } else if (selectedVoiceLang === 'fr') {
+      const script = `Bienvenue à l'exposition de ${voiceName || activeVoiceArtifact.name}. Datant de ${voicePeriod || activeVoiceArtifact.period || 'l\'époque ancienne'} et conservé au Musée d'Histoire de Hô Chi Minh-Ville, ce trésor patrimonial inestimable témoigne de l'excellence artistique et de l'histoire séculaire.`;
+      setVoiceScript(script);
+      showToast('Suggestion en français chargée', 'info');
+    } else if (selectedVoiceLang === 'zh') {
+      const script = `欢迎莅临参观${voiceName || activeVoiceArtifact.name}。该文物源自${voicePeriod || activeVoiceArtifact.period || '古代'}，珍藏于胡志明市历史博物馆，展现了深厚的历史文化底蕴与精湛的传统工艺。`;
+      setVoiceScript(script);
+      showToast('已加载中文语音解说建议', 'info');
+    } else {
+      const script = `Welcome to the exhibition of ${activeVoiceArtifact.name}. Dating back to ${activeVoiceArtifact.period}, preserved at ${museumTitle}.`;
+      setVoiceScript(script);
+      showToast('Đã nạp văn bản gợi ý', 'info');
+    }
+  };
+
+  const handleGenerateVoiceAudio = async () => {
+    if (!voiceScript.trim()) {
+      showToast('Vui lòng nhập lời đọc thuyết minh trước khi tạo giọng đọc Voice AI', 'error');
+      return;
+    }
+    if (!activeVoiceArtifact) return;
+
+    try {
+      setIsGeneratingTts(true);
+      const res = await api.generateTtsAudio({
+        text: voiceScript.trim(),
+        langCode: selectedVoiceLang,
+        roomCode: activeVoiceArtifact.code
+      });
+
+      const fullUrl = res.audioUrl.startsWith('http')
+        ? res.audioUrl
+        : `${API_ROOT}${res.audioUrl}`;
+
+      setPreviewAudioUrl(fullUrl);
+      showToast(`Đã xuất bản giọng đọc Voice AI (${selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi tạo giọng đọc Voice AI', 'error');
+    } finally {
+      setIsGeneratingTts(false);
+    }
+  };
+
+  const handleSaveVoiceNarration = async () => {
+    if (!activeVoiceArtifact) return;
+
+    try {
+      setIsSavingVoice(true);
+      const existingTranslations = activeVoiceArtifact.translations || {};
+
+      const updatedTranslations = {
+        ...existingTranslations,
+        [selectedVoiceLang]: {
+          ...(existingTranslations[selectedVoiceLang] || {}),
+          name: voiceName.trim() || activeVoiceArtifact.name,
+          period: voicePeriod.trim() || activeVoiceArtifact.period,
+          narrationScript: voiceScript.trim(),
+          description: voiceScript.trim(),
+          audioNarrationUrl: previewAudioUrl || existingTranslations[selectedVoiceLang]?.audioNarrationUrl || ''
+        }
+      };
+
+      const patchPayload: Partial<Artifact> = {
+        translations: updatedTranslations
+      };
+
+      if (selectedVoiceLang === 'vi' && previewAudioUrl) {
+        patchPayload.audioNarrationUrl = previewAudioUrl;
+      }
+
+      const updated = await api.updateArtifact(activeVoiceArtifact.id, patchPayload);
+
+      // Cập nhật state cục bộ
+      setActiveVoiceArtifact(updated);
+      setArtifacts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+
+      showToast(`Đã lưu thuyết minh và đồng bộ Voice AI (${selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi lưu thuyết minh', 'error');
+    } finally {
+      setIsSavingVoice(false);
+    }
   };
 
   return (
@@ -320,12 +516,12 @@ export const AdminArtifactsPage: React.FC = () => {
             Hiện vật & Cổ vật di sản
           </h2>
           <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-            Quản lý hồ sơ hiện vật, tư liệu khảo cứu, số hóa mô hình 3D tương tác và xuất thẻ QR trưng bày.
+            Quản lý danh mục cổ vật, tư liệu khảo cứu, số hóa mô hình 3D tương tác và xuất thẻ QR trưng bày.
           </p>
         </div>
       </div>
 
-      {/* BĂNG THỐNG KÊ DI SẢN (HERITAGE STATS BANNER) - Đồng bộ 100% với AdminRoomsPage */}
+      {/* BĂNG THỐNG KÊ DI SẢN (HERITAGE STATS BANNER) */}
       <div className="heritage-stats-banner">
         {/* Cột 1: Tổng số Cổ vật */}
         <div className="heritage-stat-col">
@@ -654,6 +850,8 @@ export const AdminArtifactsPage: React.FC = () => {
                   : `${API_ROOT}${imgUrl.startsWith('/') ? '' : '/'}${imgUrl}`
                 : null;
 
+              const transCount = art.translations ? Object.keys(art.translations).length : 0;
+
               return (
                 <div key={art.id} className="artifact-card">
                   {/* Khung ảnh thumbnail */}
@@ -710,7 +908,7 @@ export const AdminArtifactsPage: React.FC = () => {
 
                   {/* Thanh tác vụ */}
                   <div className="artifact-actions">
-                    {/* Tác vụ chính */}
+                    {/* Tác vụ chính: 3D */}
                     {has3D ? (
                       <button
                         type="button"
@@ -734,13 +932,29 @@ export const AdminArtifactsPage: React.FC = () => {
                       </button>
                     )}
 
-                    {/* Các nút phụ */}
+                    {/* Tác vụ Thuyết minh & Voice AI Đa Ngôn Ngữ */}
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={() => handleOpenVoiceModal(art)}
+                    >
+                      <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
+                      <span>Thuyết minh & Voice AI</span>
+                      {transCount > 0 && (
+                        <span style={{ fontSize: '10.5px', background: 'var(--accent-gold-light)', color: 'var(--accent-gold)', padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>
+                          {transCount} ngôn ngữ
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Các nút phụ: Mã QR, Sửa, Xóa */}
                     <div className="artifact-actions-secondary">
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleOpenQR(art)}
-                        title="Xem và tải mã QR trưng bày"
+                        title="Xem và in thẻ Standee QR trưng bày"
                       >
                         <QrCode size={13} style={{ marginRight: 4 }} />
                         <span>Mã QR</span>
@@ -782,7 +996,7 @@ export const AdminArtifactsPage: React.FC = () => {
                   <th>Tên hiện vật & Xuất xứ</th>
                   <th>Niên đại & Chuyên đề</th>
                   <th style={{ width: 140 }}>Trạng thái 3D</th>
-                  <th style={{ width: 110 }}>Thuyết minh</th>
+                  <th style={{ width: 130 }}>Thuyết minh AI</th>
                   <th style={{ width: 190, textAlign: 'right' }}>Thao tác</th>
                 </tr>
               </thead>
@@ -796,6 +1010,8 @@ export const AdminArtifactsPage: React.FC = () => {
                       ? imgUrl
                       : `${API_ROOT}${imgUrl.startsWith('/') ? '' : '/'}${imgUrl}`
                     : null;
+
+                  const transCount = art.translations ? Object.keys(art.translations).length : 0;
 
                   return (
                     <tr key={art.id}>
@@ -842,15 +1058,15 @@ export const AdminArtifactsPage: React.FC = () => {
                         )}
                       </td>
                       <td>
-                        {art.audioNarrationUrl ? (
-                          <span style={{ fontSize: '11.5px', color: 'var(--success-text)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <Volume2 size={12} /> Đã có
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                            Chưa có
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => handleOpenVoiceModal(art)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 8px' }}
+                        >
+                          <Volume2 size={12} style={{ color: 'var(--accent-gold)' }} />
+                          <span>{transCount > 0 ? `${transCount} ngôn ngữ` : 'Thêm voice'}</span>
+                        </button>
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: 6 }}>
@@ -878,7 +1094,7 @@ export const AdminArtifactsPage: React.FC = () => {
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenQR(art)}
-                            title="Mã QR tra cứu"
+                            title="Thẻ Standee QR"
                           >
                             <QrCode size={13} />
                           </button>
@@ -1206,14 +1422,14 @@ export const AdminArtifactsPage: React.FC = () => {
               }}
             >
               <a
-                href={`/?artifact=${activeViewerArtifact.id}`}
+                href={`/?artifact=${activeViewerArtifact.code || activeViewerArtifact.id}`}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-secondary btn-sm"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
                 <ExternalLink size={13} />
-                <span>Xem trang công cộng (Giao diện Quét QR)</span>
+                <span>Mở trang xem công cộng (Quét QR)</span>
               </a>
 
               <button
@@ -1360,16 +1576,16 @@ export const AdminArtifactsPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-          MODAL 4: XUẤT MÃ QR TRƯNG BÀY
+          MODAL 4: XUẤT THẺ STANDEE QR BẢO TÀNG (Đồng bộ 100% với AdminRoomsPage)
           ========================================================================= */}
       {isQRModalOpen && activeQRArtifact && (
         <div className="modal-backdrop" style={{ zIndex: 1250 }}>
-          <div className="modal-card" style={{ maxWidth: 420 }}>
+          <div className="modal-card" style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <QrCode size={16} style={{ color: 'var(--accent-gold)' }} />
-                <h2 className="modal-title" style={{ fontSize: '15px', margin: 0 }}>
-                  Thẻ Mã QR Tra Cứu Trưng Bày
+                <QrCode size={18} style={{ color: 'var(--primary)' }} />
+                <h2 className="modal-title" style={{ fontSize: '16px', margin: 0 }}>
+                  Thẻ QR Tham Quan: {activeQRArtifact.name}
                 </h2>
               </div>
               <button
@@ -1382,60 +1598,379 @@ export const AdminArtifactsPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="modal-body" style={{ textAlign: 'center', padding: '24px 20px' }}>
-              {/* Thẻ QR trắng tinh khiết có bóng đổ */}
-              <div
-                style={{
-                  background: '#ffffff',
-                  padding: 16,
-                  borderRadius: 12,
-                  display: 'inline-block',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--shadow-md)',
-                  marginBottom: 16
-                }}
-              >
-                <img
-                  src={activeQRArtifact.qrCodeUrl || api.getArtifactQRDownloadUrl(activeQRArtifact.id)}
-                  alt={`QR ${activeQRArtifact.code}`}
-                  style={{ width: 200, height: 200, display: 'block' }}
-                />
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <h4 style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
+            <div className="modal-body" style={{ maxHeight: '75vh', overflowY: 'auto', padding: '20px' }}>
+              {/* Standee Print Preview Card - Chuẩn Bảo Tàng */}
+              <div className="standee-print-card" style={{ padding: '28px 20px', borderRadius: 16 }}>
+                {branding.logoUrl && (
+                  <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center', height: 46, alignItems: 'center' }}>
+                    <img
+                      src={branding.logoUrl}
+                      alt=""
+                      style={{ maxHeight: 44, maxWidth: 160, width: 'auto', height: 'auto', objectFit: 'contain' }}
+                    />
+                  </div>
+                )}
+                <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', color: '#8C2D19', marginBottom: 6 }}>
+                  {currentLang === 'vi' ? (branding.museumName?.toUpperCase() || 'BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH') : 'MUSEUM OF HISTORY IN HO CHI MINH CITY'}
+                </div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1A110B', marginBottom: 4, lineHeight: 1.3 }}>
                   {activeQRArtifact.name}
-                </h4>
-                <div style={{ fontSize: '12px', color: 'var(--accent-gold)', fontWeight: 600 }}>
-                  Mã số: {activeQRArtifact.code} • {activeQRArtifact.period || activeQRArtifact.category}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6B584C', marginBottom: 16 }}>
+                  Mã hiện vật: <strong>{activeQRArtifact.code}</strong> • {activeQRArtifact.period || activeQRArtifact.category}
+                </div>
+
+                {/* Khung QR vuông vức cân xứng tuyệt đối, viền vàng hoàng gia */}
+                <div
+                  style={{
+                    width: 190,
+                    height: 190,
+                    margin: '0 auto 16px',
+                    padding: 8,
+                    background: '#FFFFFF',
+                    border: '2px solid #D4A86A',
+                    borderRadius: 14,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
+                  }}
+                >
+                  <img
+                    src={
+                      activeQRArtifact.qrCodeUrl ||
+                      `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${window.location.origin}/?artifact=${activeQRArtifact.code || activeQRArtifact.id}`)}`
+                    }
+                    alt={`QR Code ${activeQRArtifact.name}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                  />
+                </div>
+
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A110B', marginBottom: 3 }}>
+                  Quét mã để chiêm ngưỡng mô hình 3D 360° & nghe thuyết minh
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#8C7769', letterSpacing: '0.2px' }}>
+                  Scan to explore 360° 3D artifact & audio tour
                 </div>
               </div>
 
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                Du khách dùng camera điện thoại quét mã QR trên bảng thông tin để mở ngay mô hình 3D và nghe thuyết minh Di sản.
-              </p>
+              {/* Đường dẫn trực tiếp & nút sao chép (Hỗ trợ 100% HTTP/HTTPS) */}
+              <div
+                style={{
+                  marginTop: 14,
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 8,
+                  padding: '9px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8
+                }}
+              >
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)', marginRight: 5 }}>Link:</span>
+                  <code style={{ color: 'var(--primary)', fontSize: '11.5px' }}>
+                    {`${window.location.origin}/?artifact=${activeQRArtifact.code || activeQRArtifact.id}`}
+                  </code>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-xs"
+                  onClick={() =>
+                    handleCopyLink(`${window.location.origin}/?artifact=${activeQRArtifact.code || activeQRArtifact.id}`)
+                  }
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, padding: '4px 8px' }}
+                  title="Sao chép liên kết"
+                >
+                  <Copy size={12} />
+                  <span>Sao chép</span>
+                </button>
+              </div>
             </div>
 
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '12px 20px', display: 'flex', justifyContent: 'center', gap: 10 }}>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderTop: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => window.print()}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Printer size={14} />
+                  <span>In Standee</span>
+                </button>
+
+                <a
+                  href={api.getArtifactQRDownloadUrl(activeQRArtifact.id)}
+                  download={`QR_${activeQRArtifact.code}.png`}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                >
+                  <Download size={14} />
+                  <span>Tải ảnh QR</span>
+                </a>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => setIsQRModalOpen(false)}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 5: THUYẾT MINH & VOICE AI ĐA NGÔN NGỮ (ĐỒNG BỘ VỚI HỆ THỐNG)
+          ========================================================================= */}
+      {isVoiceModalOpen && activeVoiceArtifact && (
+        <div className="modal-backdrop" style={{ zIndex: 1250 }}>
+          <div className="modal-card" style={{ maxWidth: 660, width: '100%' }}>
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    backgroundColor: 'rgba(212, 168, 106, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--accent-gold)'
+                  }}
+                >
+                  <Volume2 size={18} />
+                </div>
+                <div>
+                  <h2 className="modal-title" style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
+                    Thuyết minh & Voice AI: {activeVoiceArtifact.name}
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>
+                    Mã hiện vật: <strong style={{ color: 'var(--heading-color)' }}>{activeVoiceArtifact.code}</strong> • {activeVoiceArtifact.period || activeVoiceArtifact.category}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setIsVoiceModalOpen(false)}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Thanh Tab Ngôn Ngữ Đồng Bộ Từ DB */}
+            <div
+              style={{
+                display: 'flex',
+                borderBottom: '1px solid var(--border-color)',
+                background: 'var(--bg-subtle)',
+                overflowX: 'auto',
+                padding: '4px 8px 0 8px',
+                gap: 4
+              }}
+            >
+              {languages.map((lang) => {
+                const isSelected = selectedVoiceLang === lang.code;
+                const hasVoice =
+                  lang.code === 'vi'
+                    ? !!(activeVoiceArtifact.audioNarrationUrl || activeVoiceArtifact.translations?.vi?.audioNarrationUrl)
+                    : !!activeVoiceArtifact.translations?.[lang.code]?.audioNarrationUrl;
+
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => handleSwitchVoiceLanguage(lang.code)}
+                    style={{
+                      padding: '8px 14px',
+                      background: isSelected ? 'var(--bg-surface)' : 'transparent',
+                      border: '1px solid ' + (isSelected ? 'var(--border-color)' : 'transparent'),
+                      borderBottom: isSelected ? '2px solid var(--accent-gold)' : '2px solid transparent',
+                      borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
+                      fontWeight: isSelected ? 700 : 500,
+                      fontSize: '12.5px',
+                      color: isSelected ? 'var(--accent-gold)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>{lang.flagIcon || '🌐'}</span>
+                    <span>{lang.nativeName}</span>
+                    {hasVoice && (
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          background: 'var(--success)',
+                          display: 'inline-block'
+                        }}
+                        title="Đã có file âm thanh Voice AI"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Modal Body */}
+            <div className="modal-body" style={{ maxHeight: 'calc(80vh - 150px)', overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Thông tin giải thích */}
+              <div
+                style={{
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-color)',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '12.5px',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.55
+                }}
+              >
+                <div style={{ fontWeight: 600, color: 'var(--heading-color)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Info size={14} style={{ color: 'var(--accent-gold)' }} />
+                  <span>Thuyết minh tự động cho khách tham quan:</span>
+                </div>
+                Khi du khách quét mã QR hoặc bấm xem mô hình 3D trên điện thoại, hệ thống sẽ tự động phát lời thuyết minh giọng đọc của ngôn ngữ tương ứng để dẫn hướng du khách chiêm ngưỡng cổ vật.
+              </div>
+
+              {/* Tên và Niên đại dịch */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600, fontSize: '12.5px' }}>
+                    Tên hiện vật ({selectedVoiceLang.toUpperCase()})
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={voiceName}
+                    onChange={(e) => setVoiceName(e.target.value)}
+                    placeholder="Tên hiện vật bản ngữ..."
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600, fontSize: '12.5px' }}>
+                    Niên đại / Chuyên đề ({selectedVoiceLang.toUpperCase()})
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={voicePeriod}
+                    onChange={(e) => setVoicePeriod(e.target.value)}
+                    placeholder="Thời kỳ, triều đại..."
+                  />
+                </div>
+              </div>
+
+              {/* Lời đọc thuyết minh */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '12.5px' }}>
+                    Lời đọc thuyết minh ({selectedVoiceLang.toUpperCase()})
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleLoadPresetKnowledge}
+                    style={{ fontSize: '11.5px', padding: '3px 10px' }}
+                  >
+                    <RotateCw size={11} style={{ marginRight: 4 }} />
+                    <span>Nạp lời đọc mẫu</span>
+                  </button>
+                </div>
+
+                <textarea
+                  rows={5}
+                  className="form-control"
+                  style={{ width: '100%', fontSize: '13px', lineHeight: 1.6, resize: 'vertical' }}
+                  value={voiceScript}
+                  onChange={(e) => setVoiceScript(e.target.value)}
+                  placeholder="Nhập lời chào và câu chuyện lịch sử tự động phát khi khách chiêm ngưỡng cổ vật 3D..."
+                />
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
+                  {voiceScript.length} ký tự
+                </div>
+              </div>
+
+              {/* Audio Player nghe thử */}
+              {previewAudioUrl && (
+                <div
+                  style={{
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
+                    padding: '12px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8
+                  }}
+                >
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Volume2 size={14} />
+                    <span>Bản nghe thử giọng đọc Voice AI ({selectedVoiceLang.toUpperCase()}):</span>
+                  </div>
+                  <audio controls key={previewAudioUrl} style={{ width: '100%', height: 36 }}>
+                    <source src={previewAudioUrl} />
+                    Trình duyệt không hỗ trợ thẻ audio.
+                  </audio>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              className="modal-footer"
+              style={{
+                borderTop: '1px solid var(--border-color)',
+                padding: '12px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => handleCopyLink(`${window.location.origin}/?artifact=${activeQRArtifact.id}`)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                onClick={() => setIsVoiceModalOpen(false)}
               >
-                {copiedLink ? <Check size={13} style={{ color: 'var(--success-text)' }} /> : <Share2 size={13} />}
-                <span>{copiedLink ? 'Đã sao chép' : 'Sao chép liên kết'}</span>
+                Đóng
               </button>
 
-              <a
-                href={api.getArtifactQRDownloadUrl(activeQRArtifact.id)}
-                download={`QR_${activeQRArtifact.code}.png`}
-                className="btn btn-primary btn-sm"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-              >
-                <Download size={13} />
-                <span>Tải ảnh QR (In ấn)</span>
-              </a>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleGenerateVoiceAudio}
+                  disabled={isGeneratingTts || !voiceScript.trim()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {isGeneratingTts ? <RotateCw size={13} className="spin" /> : <Play size={13} />}
+                  <span>{isGeneratingTts ? 'Đang tạo âm thanh...' : 'Tạo giọng đọc (Voice AI)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSaveVoiceNarration}
+                  disabled={isSavingVoice}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {isSavingVoice ? <RotateCw size={13} className="spin" /> : <Check size={13} />}
+                  <span>{isSavingVoice ? 'Đang lưu...' : 'Lưu thuyết minh'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -23,7 +23,7 @@ import {
   Check
 } from 'lucide-react';
 import { api, API_ROOT } from '../../services/api';
-import { Artifact } from '../../types';
+import { Artifact, LanguageItem } from '../../types';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 
@@ -38,6 +38,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 }) => {
   const { branding } = useSystemBranding();
   const [artifact, setArtifact] = useState<Artifact | null>(null);
+  const [systemLanguages, setSystemLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,8 +86,14 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       try {
         setLoading(true);
         setError(null);
-        const data = await api.getArtifact(targetId);
+        const [data, langs] = await Promise.all([
+          api.getArtifact(targetId),
+          api.getLanguages().catch(() => [] as LanguageItem[])
+        ]);
         setArtifact(data);
+        if (langs && langs.length > 0) {
+          setSystemLanguages(langs.filter((l) => l.isActive));
+        }
         if (data.voiceLanguage) {
           setSelectedLanguage(data.voiceLanguage);
         }
@@ -136,6 +143,26 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
     audio.addEventListener('ended', onEnded);
 
+    // Tự động phát thuyết minh khi du khách quét mã QR xem cổ vật
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsPlayingAudio(true);
+        })
+        .catch(() => {
+          // Trình duyệt di động hạn chế autoplay khi chưa có cử chỉ người dùng
+          setIsPlayingAudio(false);
+          const handleFirstTouch = () => {
+            audio.play().then(() => setIsPlayingAudio(true)).catch(() => {});
+            window.removeEventListener('click', handleFirstTouch);
+            window.removeEventListener('touchstart', handleFirstTouch);
+          };
+          window.addEventListener('click', handleFirstTouch, { once: true });
+          window.addEventListener('touchstart', handleFirstTouch, { once: true });
+        });
+    }
+
     return () => {
       audio.pause();
       audio.removeEventListener('timeupdate', onTimeUpdate);
@@ -175,12 +202,34 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   };
 
   const handleCopyLink = () => {
+    const text = window.location.href;
+    let copied = false;
     try {
-      navigator.clipboard.writeText(window.location.href);
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text);
+        copied = true;
+      }
+    } catch {}
+
+    if (!copied) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        textArea.style.top = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        copied = true;
+      } catch {}
+    }
+
+    if (copied) {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
-    } catch {
-      // Fallback
     }
   };
 
@@ -191,7 +240,12 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   }, [artifact, selectedLanguage]);
 
   const displayName = activeTranslation?.name || artifact?.name || '';
-  const displayDescription = activeTranslation?.description || artifact?.description || '';
+  const displayPeriod = activeTranslation?.period || artifact?.period || '';
+  const displayDescription =
+    activeTranslation?.narrationScript ||
+    activeTranslation?.description ||
+    artifact?.description ||
+    '';
 
   if (loading) {
     return (
@@ -245,30 +299,49 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         <div className="header-right">
           {/* Language Switcher */}
           <div className="lang-selector-group">
-            <button
-              className={`lang-btn ${selectedLanguage === 'vi' ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage('vi')}
-            >
-              VI
-            </button>
-            <button
-              className={`lang-btn ${selectedLanguage === 'en' ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage('en')}
-            >
-              EN
-            </button>
-            <button
-              className={`lang-btn ${selectedLanguage === 'fr' ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage('fr')}
-            >
-              FR
-            </button>
-            <button
-              className={`lang-btn ${selectedLanguage === 'zh' ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage('zh')}
-            >
-              ZH
-            </button>
+            {systemLanguages.length > 0 ? (
+              systemLanguages.map((lang) => {
+                const hasVoice =
+                  lang.code === 'vi'
+                    ? !!(artifact.audioNarrationUrl || artifact.translations?.vi?.audioNarrationUrl)
+                    : !!artifact.translations?.[lang.code]?.audioNarrationUrl;
+
+                return (
+                  <button
+                    key={lang.code}
+                    className={`lang-btn ${selectedLanguage === lang.code ? 'active' : ''}`}
+                    onClick={() => setSelectedLanguage(lang.code)}
+                    title={`${lang.nativeName} (${lang.name})`}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <span>{lang.flagIcon || lang.code.toUpperCase()}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 600 }}>{lang.code.toUpperCase()}</span>
+                    {hasVoice && (
+                      <span
+                        style={{
+                          width: 5,
+                          height: 5,
+                          borderRadius: '50%',
+                          backgroundColor: '#10B981',
+                          display: 'inline-block'
+                        }}
+                        title="Có giọng đọc Voice AI"
+                      />
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              ['vi', 'en', 'fr', 'zh'].map((code) => (
+                <button
+                  key={code}
+                  className={`lang-btn ${selectedLanguage === code ? 'active' : ''}`}
+                  onClick={() => setSelectedLanguage(code)}
+                >
+                  {code.toUpperCase()}
+                </button>
+              ))
+            )}
           </div>
 
           <button
@@ -341,10 +414,10 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           {/* Category & Status Badges */}
           <div className="meta-badge-row">
             <span className="category-pill">{artifact.category}</span>
-            {artifact.period && (
+            {displayPeriod && (
               <span className="period-pill">
                 <Calendar size={13} />
-                {artifact.period}
+                {displayPeriod}
               </span>
             )}
             {artifact.origin && (
@@ -370,15 +443,16 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                     <div className="guide-label">Thuyết minh giọng đọc Di sản AI</div>
                     <div className="guide-lang-sub">
                       Ngôn ngữ:{' '}
-                      {selectedLanguage === 'vi'
-                        ? 'Tiếng Việt (Chuẩn miền Nam)'
-                        : selectedLanguage === 'en'
-                        ? 'English (International)'
-                        : selectedLanguage === 'fr'
-                        ? 'Français'
-                        : selectedLanguage === 'zh'
-                        ? '中文 (Mandarin)'
-                        : selectedLanguage.toUpperCase()}
+                      {systemLanguages.find((l) => l.code === selectedLanguage)?.nativeName ||
+                        (selectedLanguage === 'vi'
+                          ? 'Tiếng Việt'
+                          : selectedLanguage === 'en'
+                          ? 'English'
+                          : selectedLanguage === 'fr'
+                          ? 'Français'
+                          : selectedLanguage === 'zh'
+                          ? '中文'
+                          : selectedLanguage.toUpperCase())}
                     </div>
                   </div>
                 </div>
@@ -441,7 +515,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
               </div>
               <div className="spec-item">
                 <span className="spec-label">Niên đại lịch sử</span>
-                <span className="spec-val">{artifact.period || 'Chưa cập nhật'}</span>
+                <span className="spec-val">{displayPeriod || artifact.period || 'Chưa cập nhật'}</span>
               </div>
               <div className="spec-item">
                 <span className="spec-label">Nguồn gốc phát hiện</span>

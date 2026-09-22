@@ -181,6 +181,7 @@ export interface ArtifactTranslation {
   category?: string;
   origin?: string;
   description?: string;
+  narrationScript?: string;
   audioNarrationUrl?: string;
 }
 

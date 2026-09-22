@@ -427,3 +427,113 @@
     font-size: 20px;
   }
 }
+
+/* ==============================================================================
+   MODAL QR CHIA SẺ TRONG PUBLIC VIEW
+   ============================================================================== */
+.artifact-qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.artifact-qr-modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 16px);
+  max-width: 440px;
+  width: 100%;
+  padding: 28px 24px;
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-xl);
+}
+
+.artifact-qr-modal-card .modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.artifact-qr-modal-card .modal-close-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-main);
+}
+
+.qr-card-header .gold-icon {
+  color: var(--accent-gold);
+  margin-bottom: 8px;
+}
+
+.qr-card-header h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--heading-color);
+  margin: 0 0 6px 0;
+}
+
+.qr-card-header p {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.qr-image-wrapper {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 16px auto;
+  padding: 10px;
+  background: #ffffff;
+  border: 2px solid var(--accent-gold);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.qr-image-wrapper .qr-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.qr-artifact-meta {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.qr-artifact-meta strong {
+  font-size: 15px;
+  color: var(--heading-color);
+}
+
+.qr-artifact-meta span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.qr-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}

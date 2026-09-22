@@ -6,6 +6,7 @@ export interface IArtifactTranslation {
   category?: string;
   origin?: string;
   description?: string;
+  narrationScript?: string;
   audioNarrationUrl?: string;
 }
 
