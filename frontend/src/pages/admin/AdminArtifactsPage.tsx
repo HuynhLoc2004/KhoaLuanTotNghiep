@@ -43,6 +43,7 @@ import { Pagination } from '../../components/Pagination';
 import { useToast } from '../../components/Toast';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const AdminArtifactsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -89,6 +90,21 @@ export const AdminArtifactsPage: React.FC = () => {
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [isGeneratingTts, setIsGeneratingTts] = useState(false);
   const [isSavingVoice, setIsSavingVoice] = useState(false);
+
+  // Heritage Confirm Dialog
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   // Polling ref cho các job 3D đang chạy
   const pollingTimerRef = useRef<any>(null);
@@ -229,15 +245,24 @@ export const AdminArtifactsPage: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa hồ sơ hiện vật "${name}" khỏi sổ đăng ký bảo tàng?`)) return;
-    try {
-      await api.deleteArtifact(id);
-      showToast(`Đã xóa hiện vật "${name}" thành công`, 'success');
-      fetchArtifacts();
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi khi xóa hiện vật', 'error');
-    }
+  const handleDelete = (id: string, name: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa hồ sơ hiện vật',
+      message: `Bạn có chắc chắn muốn xóa hồ sơ hiện vật "${name}" khỏi sổ đăng ký bảo tàng? Mọi điểm liên kết trong gian phòng 360° cũng sẽ được tự động giải phóng. Thao tác này không thể hoàn tác.`,
+      type: 'danger',
+      confirmText: 'Xóa vĩnh viễn',
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        try {
+          await api.deleteArtifact(id);
+          showToast(`Đã xóa hiện vật "${name}" thành công`, 'success');
+          fetchArtifacts();
+        } catch (err: any) {
+          showToast(err.message || 'Lỗi khi xóa hiện vật', 'error');
+        }
+      }
+    });
   };
 
   const handleSaveArtifact = async (e: React.FormEvent) => {
@@ -1993,6 +2018,17 @@ export const AdminArtifactsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Custom Heritage Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        confirmText={confirmDialog.confirmText}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

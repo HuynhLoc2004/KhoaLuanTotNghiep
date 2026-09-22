@@ -28,6 +28,7 @@ import { Pagination } from '../components/Pagination';
 import { copyTextToClipboard } from '../utils/clipboard';
 import { supportsNativeCameraCapture } from '../utils/device';
 import { useClientTranslation } from '../context/ClientTranslationContext';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 /** Cấu hình hỗ trợ số lượng ảnh linh hoạt từ 3 ảnh đến 100+ ảnh */
 const FRAME_RECOMMENDED_MIN = 12;
@@ -93,6 +94,21 @@ export const PocStitchingPage: React.FC = () => {
   const [copiedHistoryUrl, setCopiedHistoryUrl] = useState<string | null>(null);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
+
+  // Custom Heritage Confirm Modal
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   // Phân trang thư viện theo chuẩn lưới: 6 - 9 - 12 - 18 - 24
   const [historyPage, setHistoryPage] = useState(1);
@@ -180,25 +196,34 @@ function normalizePanoUrl(rawUrl: string): string {
     setTimeout(() => setCopiedHistoryUrl(null), 2500);
   };
 
-  const handleDeleteHistoryPano = async (filename: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn không gian 360° "${filename}" khỏi máy chủ?`)) return;
-    try {
-      const res = await fetch(`${API_BASE}/stitch/panoramas/${encodeURIComponent(filename)}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (data.success) {
-        setHistoryList((prev) => prev.filter((p) => p.filename !== filename));
-        if (stitchResult && stitchResult.filename === filename) {
-          setStitchResult(null);
+  const handleDeleteHistoryPano = (filename: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa không gian 360°',
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn không gian 360° "${filename}" khỏi máy chủ? Thao tác này không thể hoàn tác.`,
+      type: 'danger',
+      confirmText: 'Xóa vĩnh viễn',
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch(`${API_BASE}/stitch/panoramas/${encodeURIComponent(filename)}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+          if (data.success) {
+            setHistoryList((prev) => prev.filter((p) => p.filename !== filename));
+            if (stitchResult && stitchResult.filename === filename) {
+              setStitchResult(null);
+            }
+            showToast('Đã xóa không gian 360° thành công', 'success');
+          } else {
+            showToast(data.message || 'Lỗi khi xóa ảnh', 'error');
+          }
+        } catch (err: any) {
+          showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
         }
-        showToast('Đã xóa không gian 360° thành công', 'success');
-      } else {
-        showToast(data.message || 'Lỗi khi xóa ảnh', 'error');
       }
-    } catch (err: any) {
-      showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
-    }
+    });
   };
 
 
@@ -1184,6 +1209,17 @@ function normalizePanoUrl(rawUrl: string): string {
         onClose={() => setIsWebcamModalOpen(false)}
         onCaptured={handleWebcamCaptured}
         startIndex={verifiedFrames.length}
+      />
+
+      {/* Custom Heritage Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        confirmText={confirmDialog.confirmText}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
       />
       </div>
     </div>

@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Edit2, Check, RotateCw, Layers, AlertCircle, HelpCircl
 import { TopicItem } from '../types';
 import { api } from '../services/api';
 import { useToast } from './Toast';
+import { ConfirmModal } from './ConfirmModal';
 
 interface TopicManagementModalProps {
   isOpen: boolean;
@@ -31,6 +32,21 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Custom Heritage Confirm Modal
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   const fetchTopics = async () => {
     try {
@@ -123,25 +139,31 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
   };
 
   // Xóa chuyên đề
-  const handleDelete = async (t: TopicItem) => {
+  const handleDelete = (t: TopicItem) => {
     if (t.roomCount && t.roomCount > 0) {
       showToast(`Không thể xóa chuyên đề "${t.name}" vì đang có ${t.roomCount} gian phòng trực thuộc`, 'warning');
       return;
     }
 
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa chuyên đề "${t.name}" khỏi hệ thống?`)) {
-      return;
-    }
-
-    try {
-      await api.deleteTopic(t.id);
-      showToast(`Đã xóa chuyên đề "${t.name}"`, 'success');
-      const updatedList = topics.filter((item) => item.id !== t.id);
-      setTopics(updatedList);
-      if (onTopicsUpdated) onTopicsUpdated(updatedList);
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi xóa chuyên đề', 'error');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa chuyên đề trưng bày',
+      message: `Bạn có chắc chắn muốn xóa chuyên đề "${t.name}" khỏi hệ thống? Thao tác này không thể hoàn tác.`,
+      type: 'danger',
+      confirmText: 'Xóa vĩnh viễn',
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        try {
+          await api.deleteTopic(t.id);
+          showToast(`Đã xóa chuyên đề "${t.name}"`, 'success');
+          const updatedList = topics.filter((item) => item.id !== t.id);
+          setTopics(updatedList);
+          if (onTopicsUpdated) onTopicsUpdated(updatedList);
+        } catch (err: any) {
+          showToast(err.message || 'Lỗi xóa chuyên đề', 'error');
+        }
+      }
+    });
   };
 
   return (
@@ -384,6 +406,17 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Custom Heritage Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        confirmText={confirmDialog.confirmText}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };
