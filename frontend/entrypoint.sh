@@ -21,4 +21,9 @@ else
     fi
 fi
 
+# Tích hợp MIME types cho mô hình 3D (.glb, .gltf) vào hệ thống Nginx chuẩn
+if [ -f /etc/nginx/mime.types ] && ! grep -q "model/gltf-binary" /etc/nginx/mime.types; then
+    sed -i 's/}/    model\/gltf-binary glb;\n    model\/gltf+json gltf;\n}/' /etc/nginx/mime.types
+fi
+
 exec nginx -g "daemon off;"

@@ -37,12 +37,17 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 import fs from 'fs';
 import { PanoramaModel } from './models/Panorama.js';
 
-// Serve static uploads with explicit CORS for WebGL & Canvas textures
+// Serve static uploads with explicit CORS for WebGL & Canvas textures and 3D models
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads'), {
-  setHeaders: (res) => {
+  setHeaders: (res, filePath) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    if (filePath.endsWith('.glb')) {
+      res.setHeader('Content-Type', 'model/gltf-binary');
+    } else if (filePath.endsWith('.gltf')) {
+      res.setHeader('Content-Type', 'model/gltf+json');
+    }
   }
 }));
 
