@@ -1029,13 +1029,29 @@ function normalizePanoUrl(rawUrl: string): string {
                 {paginatedHistory.map((item, idx) => (
                   <div key={item.filename || idx} className="studio-history-card">
                     <div
-                      className="studio-history-preview"
+                      className="studio-history-thumb studio-history-preview"
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '180px',
+                        maxHeight: '200px',
+                        aspectRatio: '16 / 9',
+                        overflow: 'hidden',
+                        backgroundColor: '#120b07',
+                        cursor: 'pointer'
+                      }}
                       onClick={() => handleSelectHistoryPano(item)}
                       title={t('stitching.clickToViewPano', 'Nhấp để xem ảnh toàn cảnh 360° này')}
                     >
                       <img
                         src={item.url}
                         alt={item.filename}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
                         }}
