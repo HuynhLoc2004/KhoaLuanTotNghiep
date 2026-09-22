@@ -4,6 +4,8 @@ import { AdminTab, MuseumRoom } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useSystemBranding } from '../context/SystemBrandingContext';
+import { ClientLanguagePicker } from './ClientLanguagePicker';
+import { useClientTranslation } from '../context/ClientTranslationContext';
 
 interface HeaderProps {
   currentTab: AdminTab;
@@ -11,16 +13,6 @@ interface HeaderProps {
   onBackToRooms?: () => void;
   onToggleSidebar?: () => void;
 }
-
-const TAB_TITLES: Record<AdminTab, { label: string; parent?: string }> = {
-  rooms: { label: 'Gian trưng bày & Tour 360' },
-  studio: { label: 'Biên tập Hotspot 360°', parent: 'Gian trưng bày & Tour 360' },
-  poc_stitching: { label: 'Xưởng Ghép Ảnh Toàn Cảnh 360°' },
-  artifacts: { label: 'Hiện vật & Cổ vật di sản' },
-  languages: { label: 'Quản trị Ngôn ngữ & Voice AI' },
-  analytics: { label: 'Báo cáo & Thống kê' },
-  settings: { label: 'Cấu hình hệ thống' }
-};
 
 export const Header: React.FC<HeaderProps> = ({
   currentTab,
@@ -31,7 +23,20 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { branding } = useSystemBranding();
-  const currentTabInfo = TAB_TITLES[currentTab] || { label: 'Bảng Điều Khiển' };
+  const { t, localize, currentLang } = useClientTranslation();
+
+  const getTabLabel = (tab: AdminTab): string => {
+    switch (tab) {
+      case 'rooms': return t('nav.rooms', 'Gian trưng bày & Tour 360');
+      case 'studio': return t('nav.studio', 'Biên tập Hotspot 360°');
+      case 'poc_stitching': return t('nav.pocStitching', 'Xưởng Ghép Ảnh Toàn Cảnh 360°');
+      case 'artifacts': return t('nav.artifacts', 'Hiện vật & Cổ vật di sản');
+      case 'languages': return t('nav.languages', 'Quản trị Ngôn ngữ & Voice AI');
+      case 'analytics': return t('nav.analytics', 'Báo cáo & Thống kê');
+      case 'settings': return t('nav.settings', 'Cấu hình hệ thống');
+      default: return t('nav.dashboard', 'Bảng Điều Khiển');
+    }
+  };
 
   return (
     <header className="admin-header">
@@ -60,7 +65,9 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <Landmark size={14} className="breadcrumb-museum-icon" />
             )}
-            <span className="breadcrumb-museum-name">{branding.shortName || branding.museumName}</span>
+            <span className="breadcrumb-museum-name">
+              {currentLang === 'vi' ? (branding.shortName || branding.museumName || t('nav.breadcrumbMuseum', 'Bảo tàng Lịch sử')) : t('nav.breadcrumbMuseum', 'History Museum')}
+            </span>
           </div>
 
           <ChevronRight size={13} className="breadcrumb-divider" />
@@ -72,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   className="breadcrumb-mobile-back"
                   onClick={onBackToRooms}
-                  title="Quay lại danh sách phòng"
+                  title={t('rooms.prev', 'Quay lại danh sách phòng')}
                   aria-label="Quay lại danh sách phòng"
                 >
                   <ArrowLeft size={16} />
@@ -83,16 +90,16 @@ export const Header: React.FC<HeaderProps> = ({
                 className="breadcrumb-link"
                 onClick={onBackToRooms}
               >
-                Gian trưng bày & Tour 360
+                {t('nav.rooms', 'Gian trưng bày & Tour 360')}
               </button>
               <ChevronRight size={13} className="breadcrumb-divider" />
               <span className="breadcrumb-active" title={activeRoom.name}>
-                {activeRoom.name}
+                {localize(activeRoom, 'name', activeRoom.name)}
               </span>
             </>
           ) : (
             <span className="breadcrumb-active">
-              {currentTabInfo.label}
+              {getTabLabel(currentTab)}
             </span>
           )}
         </nav>
@@ -106,18 +113,21 @@ export const Header: React.FC<HeaderProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           className="header-tour-link"
-          title="Mở giao diện khách tham quan trong tab mới"
+          title={t('nav.viewTour', 'Mở giao diện khách tham quan trong tab mới')}
         >
           <ExternalLink size={13} />
-          <span className="header-tour-label">Xem Tour Khách</span>
+          <span className="header-tour-label">{t('nav.viewTour', 'Xem Tour Khách')}</span>
         </a>
+
+        {/* Nút chọn Ngôn ngữ hiển thị */}
+        <ClientLanguagePicker variant="full" />
 
         {/* Nút chuyển đổi Giao diện Tối / Sáng */}
         <button
           type="button"
           onClick={toggleTheme}
           className="header-theme-btn"
-          title={theme === 'dark' ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối'}
+          title={theme === 'dark' ? t('nav.themeLight', 'Chuyển sang giao diện Sáng') : t('nav.themeDark', 'Chuyển sang giao diện Tối')}
           aria-label="Chuyển chế độ màu"
         >
           {theme === 'dark' ? (
@@ -139,9 +149,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="header-user-name">
               {user?.fullName && !user.fullName.includes('Bảo tàng Lịch sử')
                 ? user.fullName
-                : `Ban Quản trị ${branding.shortName}`}
+                : t('nav.adminTitle', `Ban Quản trị ${branding.shortName || 'Bảo tàng Lịch sử'}`)}
             </span>
-            <span className="header-user-role">{user?.role === 'admin' ? 'Quản trị viên (Admin)' : user?.role || 'Admin'}</span>
+            <span className="header-user-role">
+              {user?.role === 'admin' ? t('nav.adminRole', 'Quản trị viên (Admin)') : (user?.role || 'Admin')}
+            </span>
           </div>
         </div>
 

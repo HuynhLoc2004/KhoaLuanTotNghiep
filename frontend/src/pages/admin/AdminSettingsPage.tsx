@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { MaintenanceStatus, SystemInfo, SystemBranding } from '../../types';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { useClientTranslation } from '../../context/ClientTranslationContext';
 import {
   SlidersHorizontal,
   Globe,
@@ -59,6 +60,7 @@ const formatTime = (isoString?: string): string => {
 export const AdminSettingsPage: React.FC = () => {
   const { showToast } = useToast();
   const { branding, updateBranding } = useSystemBranding();
+  const { t } = useClientTranslation();
 
   const [settingsTab, setSettingsTab] = useState<'branding' | 'maintenance'>('branding');
   const [brandingForm, setBrandingForm] = useState<SystemBranding>(branding);
@@ -298,12 +300,12 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
             <div className="settings-header-text">
               <h1 className="settings-header-title">
-                Cấu hình Hệ thống & Đa Bảo Tàng
+                {t('settings.title', 'Cấu hình Hệ thống & Đa Bảo Tàng')}
               </h1>
               <p className="settings-header-desc">
                 {settingsTab === 'branding'
-                  ? 'Quản lý danh tính, logo, biểu trưng và thông tin liên hệ đa bảo tàng. Tự động đồng bộ 100% dữ liệu thật trên toàn hệ thống.'
-                  : 'Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.'}
+                  ? t('settings.descBranding', 'Quản lý danh tính, logo, biểu trưng và thông tin liên hệ đa bảo tàng. Tự động đồng bộ 100% dữ liệu thật trên toàn hệ thống.')
+                  : t('settings.descMaintenance', 'Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.')}
               </p>
             </div>
           </div>
@@ -314,11 +316,11 @@ export const AdminSettingsPage: React.FC = () => {
               className="btn btn-secondary btn-sm"
               onClick={handleManualRefresh}
               disabled={loading || refreshing}
-              title="Làm mới dữ liệu từ máy chủ và hạ tầng"
+              title={t('common.refresh', 'Làm mới')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
             >
               <RefreshCw size={14} className={refreshing || loading ? 'spin' : ''} />
-              <span>{refreshing ? 'Đang làm mới...' : 'Làm mới'}</span>
+              <span>{refreshing ? t('common.refreshing', 'Đang làm mới...') : t('common.refresh', 'Làm mới')}</span>
             </button>
 
             <a
@@ -329,7 +331,7 @@ export const AdminSettingsPage: React.FC = () => {
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
             >
               <Globe size={14} />
-              <span>Cổng tham quan</span>
+              <span>{t('settings.portal', 'Cổng tham quan')}</span>
             </a>
 
             <a
@@ -340,7 +342,7 @@ export const AdminSettingsPage: React.FC = () => {
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
             >
               <ExternalLink size={14} />
-              <span>Trang thông báo</span>
+              <span>{t('settings.noticePage', 'Trang thông báo')}</span>
             </a>
           </div>
         </div>
@@ -353,8 +355,8 @@ export const AdminSettingsPage: React.FC = () => {
             className={`btn settings-tab-btn ${settingsTab === 'branding' ? 'btn-primary' : 'btn-secondary'}`}
           >
             <Building2 size={16} />
-            <span className="tab-label-desktop">Nhận Diện & Đa Bảo Tàng (Multi-Museum)</span>
-            <span className="tab-label-short">Nhận Diện Bảo Tàng</span>
+            <span className="tab-label-desktop">{t('settings.tabBranding', 'Nhận Diện & Đa Bảo Tàng (Multi-Museum)')}</span>
+            <span className="tab-label-short">{t('settings.tabBrandingShort', 'Nhận Diện Bảo Tàng')}</span>
           </button>
 
           <button
@@ -363,8 +365,8 @@ export const AdminSettingsPage: React.FC = () => {
             className={`btn settings-tab-btn ${settingsTab === 'maintenance' ? 'btn-primary' : 'btn-secondary'}`}
           >
             <SlidersHorizontal size={16} />
-            <span className="tab-label-desktop">Vận Hành & Bảo Trì Hệ Thống</span>
-            <span className="tab-label-short">Vận Hành & Bảo Trì</span>
+            <span className="tab-label-desktop">{t('settings.tabMaintenance', 'Vận Hành & Bảo Trì Hệ Thống')}</span>
+            <span className="tab-label-short">{t('settings.tabMaintenanceShort', 'Vận Hành & Bảo Trì')}</span>
           </button>
         </div>
 
@@ -379,24 +381,24 @@ export const AdminSettingsPage: React.FC = () => {
               >
                 <div style={{ marginBottom: 20 }}>
                   <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
-                    Cấu Hình Nhận Diện Đa Bảo Tàng
+                    {t('settings.cardBrandingTitle', 'Cấu Hình Nhận Diện Đa Bảo Tàng')}
                   </h2>
                   <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: 0 }}>
-                    Hệ thống tự do chuyển đổi danh tính của bất kỳ bảo tàng nào. Khi lưu, toàn bộ Header, Sidebar, Login, Email và Standee sẽ lập tức đồng bộ theo dữ liệu thật.
+                    {t('settings.cardBrandingDesc', 'Hệ thống tự do chuyển đổi danh tính của bất kỳ bảo tàng nào. Khi lưu, toàn bộ Header, Sidebar, Login, Email và Standee sẽ lập tức đồng bộ theo dữ liệu thật.')}
                   </p>
                 </div>
 
                 {/* 1. Tên đầy đủ của bảo tàng */}
                 <div className="settings-form-field">
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Tên đầy đủ của bảo tàng <span style={{ color: 'var(--primary)' }}>*</span>
+                    {t('settings.museumName', 'Tên đầy đủ của bảo tàng')} <span style={{ color: 'var(--primary)' }}>*</span>
                   </label>
                   <input
                     type="text"
                     className="input-field"
                     value={brandingForm.museumName}
                     onChange={(e) => setBrandingForm({ ...brandingForm, museumName: e.target.value })}
-                    placeholder="Ví dụ: Bảo tàng Lịch sử Thành phố Hồ Chí Minh, Bảo tàng Mỹ thuật, ..."
+                    placeholder={t('settings.museumNamePlaceholder', 'Ví dụ: Bảo tàng Lịch sử Thành phố Hồ Chí Minh, Bảo tàng Mỹ thuật, ...')}
                     required
                     style={{
                       width: '100%',
@@ -410,7 +412,7 @@ export const AdminSettingsPage: React.FC = () => {
                     }}
                   />
                   <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                    Hiển thị trang trọng trên Cổng Đăng Nhập, Thẻ Standee QR, Trang Thông Báo và Tiêu đề Tour 360.
+                    {t('settings.museumNameDesc', 'Hiển thị trang trọng trên Cổng Đăng Nhập, Thẻ Standee QR, Trang Thông Báo và Tiêu đề Tour 360.')}
                   </span>
                 </div>
 
@@ -418,14 +420,14 @@ export const AdminSettingsPage: React.FC = () => {
                 <div className="settings-form-row-2col">
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      Tên rút gọn / Tên ngắn <span style={{ color: 'var(--primary)' }}>*</span>
+                      {t('settings.shortName', 'Tên rút gọn / Tên ngắn')} <span style={{ color: 'var(--primary)' }}>*</span>
                     </label>
                     <input
                       type="text"
                       className="input-field"
                       value={brandingForm.shortName}
                       onChange={(e) => setBrandingForm({ ...brandingForm, shortName: e.target.value })}
-                      placeholder="Ví dụ: Bảo tàng Lịch sử, Bảo tàng Mỹ thuật"
+                      placeholder={t('settings.shortNamePlaceholder', 'Ví dụ: Bảo tàng Lịch sử, Bảo tàng Mỹ thuật')}
                       required
                       style={{
                         width: '100%',
@@ -439,20 +441,20 @@ export const AdminSettingsPage: React.FC = () => {
                       }}
                     />
                     <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                      Hiển thị trên Sidebar, Header Breadcrumb, Nắp đáy sàn 360 (Nadir).
+                      {t('settings.shortNameDesc', 'Hiển thị trên Sidebar, Header Breadcrumb, Nắp đáy sàn 360 (Nadir).')}
                     </span>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      Khẩu hiệu / Giới thiệu nhận diện (Tagline)
+                      {t('settings.tagline', 'Khẩu hiệu / Giới thiệu nhận diện (Tagline)')}
                     </label>
                     <input
                       type="text"
                       className="input-field"
                       value={brandingForm.tagline || ''}
                       onChange={(e) => setBrandingForm({ ...brandingForm, tagline: e.target.value })}
-                      placeholder="Ví dụ: Hệ thống Tour 360 Không gian Di sản"
+                      placeholder={t('settings.taglinePlaceholder', 'Ví dụ: Hệ thống Tour 360 Không gian Di sản')}
                       style={{
                         width: '100%',
                         boxSizing: 'border-box',
@@ -465,7 +467,7 @@ export const AdminSettingsPage: React.FC = () => {
                       }}
                     />
                     <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                      Hiển thị phụ đề dưới tên bảo tàng trên Sidebar.
+                      {t('settings.taglineDesc', 'Hiển thị phụ đề dưới tên bảo tàng trên Sidebar.')}
                     </span>
                   </div>
                 </div>
@@ -474,10 +476,10 @@ export const AdminSettingsPage: React.FC = () => {
                 <div className="settings-logo-section">
                   <div style={{ marginBottom: 12 }}>
                     <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 2 }}>
-                      Logo nhận diện bảo tàng
+                      {t('settings.logo', 'Logo nhận diện bảo tàng')}
                     </label>
                     <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                      Khuyên dùng tệp ảnh PNG trong suốt hoặc SVG để giữ trọn vẹn hoa văn, họa tiết cổ kính.
+                      {t('settings.logoDesc', 'Khuyên dùng tệp ảnh PNG trong suốt hoặc SVG để giữ trọn vẹn hoa văn, họa tiết cổ kính.')}
                     </span>
                   </div>
 
@@ -522,7 +524,7 @@ export const AdminSettingsPage: React.FC = () => {
                             disabled={uploadingLogo}
                             className="btn btn-secondary btn-sm"
                           >
-                            <span>{uploadingLogo ? 'Đang tải lên...' : 'Đổi ảnh logo'}</span>
+                            <span>{uploadingLogo ? t('settings.uploadingLogo', 'Đang tải lên...') : t('settings.changeLogo', 'Đổi ảnh logo')}</span>
                           </button>
 
                           <button
@@ -531,7 +533,7 @@ export const AdminSettingsPage: React.FC = () => {
                             className="btn btn-secondary btn-sm"
                             style={{ color: '#EF4444' }}
                           >
-                            <span>Gỡ logo</span>
+                            <span>{t('settings.removeLogo', 'Gỡ logo')}</span>
                           </button>
                         </div>
 
@@ -571,16 +573,16 @@ export const AdminSettingsPage: React.FC = () => {
                         }}
                       >
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                          {uploadingLogo ? 'Đang tải tệp ảnh lên máy chủ...' : 'Bấm vào đây để tải ảnh Logo từ máy tính'}
+                          {uploadingLogo ? t('settings.uploadingLogoServer', 'Đang tải tệp ảnh lên máy chủ...') : t('settings.clickUploadLogo', 'Bấm vào đây để tải ảnh Logo từ máy tính')}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                          PNG, SVG, JPG (Tối đa 5MB)
+                          {t('settings.logoLimit', 'PNG, SVG, JPG (Tối đa 5MB)')}
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                          Hoặc ký tự viết tắt tạm thời:
+                          {t('settings.orEmblem', 'Hoặc ký tự viết tắt tạm thời:')}
                         </span>
                         <input
                           type="text"
@@ -611,14 +613,14 @@ export const AdminSettingsPage: React.FC = () => {
                 <div className="settings-form-row-city-addr">
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      Tỉnh / Thành phố
+                      {t('settings.city', 'Tỉnh / Thành phố')}
                     </label>
                     <input
                       type="text"
                       className="input-field"
                       value={brandingForm.city || ''}
                       onChange={(e) => setBrandingForm({ ...brandingForm, city: e.target.value })}
-                      placeholder="TP. Hồ Chí Minh, Hà Nội, Huế, ..."
+                      placeholder={t('settings.cityPlaceholder', 'TP. Hồ Chí Minh, Hà Nội, Huế, ...')}
                       style={{
                         width: '100%',
                         boxSizing: 'border-box',
@@ -634,14 +636,14 @@ export const AdminSettingsPage: React.FC = () => {
 
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      Địa chỉ trụ sở bảo tàng
+                      {t('settings.headquartersAddress', 'Địa chỉ trụ sở bảo tàng')}
                     </label>
                     <input
                       type="text"
                       className="input-field"
                       value={brandingForm.address || ''}
                       onChange={(e) => setBrandingForm({ ...brandingForm, address: e.target.value })}
-                      placeholder="Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
+                      placeholder={t('settings.addressPlaceholder', 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh')}
                       style={{
                         width: '100%',
                         boxSizing: 'border-box',
@@ -660,7 +662,7 @@ export const AdminSettingsPage: React.FC = () => {
                 <div className="settings-form-row-3col">
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      Hotline liên hệ
+                      {t('settings.hotline', 'Hotline liên hệ')}
                     </label>
                     <input
                       type="text"
@@ -683,7 +685,7 @@ export const AdminSettingsPage: React.FC = () => {
 
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      Email liên hệ
+                      {t('settings.contactEmail', 'Email liên hệ')}
                     </label>
                     <input
                       type="email"
@@ -706,7 +708,7 @@ export const AdminSettingsPage: React.FC = () => {
 
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      Tên người gửi Email (From)
+                      {t('settings.emailSenderFrom', 'Tên người gửi Email (From)')}
                     </label>
                     <input
                       type="text"
@@ -737,7 +739,7 @@ export const AdminSettingsPage: React.FC = () => {
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     <RotateCcw size={14} />
-                    <span>Khôi phục mẫu chuẩn</span>
+                    <span>{t('settings.resetDefault', 'Khôi phục mẫu chuẩn')}</span>
                   </button>
 
                   <button
@@ -756,12 +758,12 @@ export const AdminSettingsPage: React.FC = () => {
                     {savingBranding ? (
                       <>
                         <RefreshCw size={15} className="spin" />
-                        <span>Đang lưu và đồng bộ...</span>
+                        <span>{t('settings.savingBrandingBtn', 'Đang lưu và đồng bộ...')}</span>
                       </>
                     ) : (
                       <>
                         <Check size={16} />
-                        <span>Lưu Cấu Hình Nhận Diện Bảo Tàng</span>
+                        <span>{t('settings.saveBrandingBtn', 'Lưu Cấu Hình Nhận Diện Bảo Tàng')}</span>
                       </>
                     )}
                   </button>
@@ -774,10 +776,10 @@ export const AdminSettingsPage: React.FC = () => {
               <div className="settings-preview-card">
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-main)', marginBottom: 2 }}>
-                    Xem trước trực quan
+                    {t('settings.livePreview', 'Xem trước trực quan')}
                   </div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    Cập nhật đồng bộ theo dữ liệu bạn vừa nhập
+                    {t('settings.livePreviewSub', 'Cập nhật đồng bộ theo dữ liệu bạn vừa nhập')}
                   </div>
                 </div>
 
@@ -791,7 +793,7 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
-                    Thanh điều hướng & Breadcrumb
+                    {t('settings.previewNav', 'Thanh điều hướng & Breadcrumb')}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 10, borderBottom: '1px solid var(--border-color)' }}>
@@ -815,21 +817,21 @@ export const AdminSettingsPage: React.FC = () => {
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {brandingForm.shortName || 'Tên Bảo Tàng'}
+                        {brandingForm.shortName || t('settings.previewDefaultName', 'Tên Bảo Tàng')}
                       </div>
                       <div style={{ fontSize: 10.5, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {brandingForm.city ? `${brandingForm.city} • Quản trị` : (brandingForm.tagline || 'Quản trị')}
+                        {brandingForm.city ? `${brandingForm.city} • ${t('settings.previewAdminLabel', 'Quản trị')}` : (brandingForm.tagline || t('settings.previewAdminLabel', 'Quản trị'))}
                       </div>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, fontSize: 11 }}>
                     <div style={{ color: 'var(--text-muted)' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{brandingForm.shortName || 'Bảo tàng'}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{brandingForm.shortName || t('settings.previewMuseumFallback', 'Bảo tàng')}</span>
                       <span> › Tour 360</span>
                     </div>
                     <div style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>
-                      Ban Quản trị {brandingForm.shortName || 'Bảo tàng'}
+                      {t('settings.previewAdminBoard', 'Ban Quản trị')} {brandingForm.shortName || t('settings.previewMuseumFallback', 'Bảo tàng')}
                     </div>
                   </div>
                 </div>
@@ -844,7 +846,7 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
-                    Thẻ Standee QR Thực địa
+                    {t('settings.previewStandee', 'Thẻ Standee QR Thực địa')}
                   </div>
 
                   <div
@@ -867,18 +869,18 @@ export const AdminSettingsPage: React.FC = () => {
                       </div>
                     )}
                     <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.8px', color: '#8C2D19', textTransform: 'uppercase', marginBottom: 3 }}>
-                      {brandingForm.museumName?.toUpperCase() || 'TÊN BẢO TÀNG'}
+                      {brandingForm.museumName?.toUpperCase() || t('settings.previewMuseumUpper', 'TÊN BẢO TÀNG')}
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-                      Gian P-01: Không Gian Trưng Bày Di Sản
+                      {t('settings.previewSampleRoom', 'Gian P-01: Không Gian Trưng Bày Di Sản')}
                     </div>
                     <div style={{ width: 68, height: 68, margin: '0 auto 8px', background: '#FFFFFF', padding: 4, borderRadius: 6, border: '1px solid #D4A86A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <div style={{ width: '100%', height: '100%', background: '#24201D', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontSize: 9.5, fontWeight: 600, borderRadius: 4 }}>
-                        QR 360°
+                        {t('settings.previewQR', 'QR 360°')}
                       </div>
                     </div>
                     <div style={{ fontSize: 9.5, color: '#6B584C', lineHeight: 1.35 }}>
-                      {brandingForm.address || 'Địa chỉ bảo tàng'}
+                      {brandingForm.address || t('settings.previewAddressFallback', 'Địa chỉ bảo tàng')}
                     </div>
                   </div>
                 </div>
@@ -894,13 +896,13 @@ export const AdminSettingsPage: React.FC = () => {
                   }}
                 >
                   <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
-                    Thư Email Tự Động (SMTP)
+                    {t('settings.previewEmail', 'Thư Email Tự Động (SMTP)')}
                   </div>
                   <div style={{ marginBottom: 3, color: 'var(--text-muted)' }}>
-                    Người gửi: <strong style={{ color: 'var(--text-main)' }}>{brandingForm.emailSenderName || brandingForm.shortName || 'Bảo tàng'} &lt;smtp@museum.vn&gt;</strong>
+                    {t('settings.previewSender', 'Người gửi:')} <strong style={{ color: 'var(--text-main)' }}>{brandingForm.emailSenderName || brandingForm.shortName || t('settings.previewMuseumFallback', 'Bảo tàng')} &lt;smtp@museum.vn&gt;</strong>
                   </div>
                   <div style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>
-                    [{brandingForm.shortName || 'Bảo tàng'} 360°] Ghép hoàn tất không gian di sản
+                    [{brandingForm.shortName || t('settings.previewMuseumFallback', 'Bảo tàng')} 360°] {t('settings.previewEmailSubject', 'Ghép hoàn tất không gian di sản')}
                   </div>
                 </div>
               </div>
@@ -915,7 +917,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Cổng tham quan Tour 360
+                {t('settings.metricPortal', 'Cổng tham quan Tour 360')}
               </span>
               <div
                 style={{
@@ -941,12 +943,12 @@ export const AdminSettingsPage: React.FC = () => {
                   marginBottom: 4
                 }}
               >
-                {maintenance.enabled ? 'Tạm dừng đón khách' : 'Mở cửa đón khách'}
+                {maintenance.enabled ? t('settings.metricPortalClosed', 'Tạm dừng đón khách') : t('settings.metricPortalOpen', 'Mở cửa đón khách')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {maintenance.enabled
-                  ? 'Khách thấy thông báo bảo trì nâng cấp'
-                  : 'Sẵn sàng phục vụ khách tham quan'}
+                  ? t('settings.metricPortalClosedDesc', 'Khách thấy thông báo bảo trì nâng cấp')
+                  : t('settings.metricPortalOpenDesc', 'Sẵn sàng phục vụ khách tham quan')}
               </div>
             </div>
           </div>
@@ -955,7 +957,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                {maintenance.enabled ? 'Thời gian bảo trì còn lại' : 'Thời gian bảo trì dự phòng'}
+                {maintenance.enabled ? t('settings.metricTimeRemaining', 'Thời gian bảo trì còn lại') : t('settings.metricTimeBackup', 'Thời gian bảo trì dự phòng')}
               </span>
               <div
                 style={{
@@ -975,13 +977,13 @@ export const AdminSettingsPage: React.FC = () => {
             <div>
               <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
                 {maintenance.enabled
-                  ? `${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút còn lại`
-                  : `${maintenance.estimatedMinutes} phút (Dự phòng)`}
+                  ? `${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} ${t('settings.minsRemaining', 'phút còn lại')}`
+                  : `${maintenance.estimatedMinutes} ${t('settings.minsBackup', 'phút (Dự phòng)')}`}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {maintenance.enabled
-                  ? `Bắt đầu: ${formatTime(maintenance.startTime || maintenance.updatedAt)} • Dự kiến: ${formatTime(maintenance.expectedEndTime)}`
-                  : 'Hệ thống đang mở cửa trực tuyến'}
+                  ? `${t('settings.startAt', 'Bắt đầu:')} ${formatTime(maintenance.startTime || maintenance.updatedAt)} • ${t('settings.expectedAt', 'Dự kiến:')} ${formatTime(maintenance.expectedEndTime)}`
+                  : t('settings.systemOnline', 'Hệ thống đang mở cửa trực tuyến')}
               </div>
             </div>
           </div>
@@ -990,7 +992,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Máy chủ hệ thống (VPS)
+                {t('settings.metricServer', 'Máy chủ hệ thống (VPS)')}
               </span>
               <div
                 style={{
@@ -1016,12 +1018,12 @@ export const AdminSettingsPage: React.FC = () => {
                   marginBottom: 4
                 }}
               >
-                {sysInfo ? `RAM: ${sysInfo.memoryRssMb} MB` : 'Vận hành ổn định'}
+                {sysInfo ? `RAM: ${sysInfo.memoryRssMb} MB` : t('settings.operatingStable', 'Vận hành ổn định')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {sysInfo?.uptimeSeconds
                   ? `Uptime: ${formatUptime(sysInfo.uptimeSeconds)} • Ping ${pingLatency !== null ? `${pingLatency}ms` : '<10ms'}`
-                  : `Địa chỉ VPS: ${sysInfo?.publicIp || '103.178.233.206'}`}
+                  : `${t('settings.vpsAddressLabel', 'Địa chỉ VPS:')} ${sysInfo?.publicIp || '103.178.233.206'}`}
               </div>
             </div>
           </div>
@@ -1030,7 +1032,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Cơ sở dữ liệu di sản (MongoDB)
+                {t('settings.metricDatabase', 'Cơ sở dữ liệu di sản (MongoDB)')}
               </span>
               <div
                 style={{
@@ -1049,12 +1051,12 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                {sysInfo?.database?.connected ? 'Đồng bộ trực tuyến' : 'Đang kiểm tra...'}
+                {sysInfo?.database?.connected ? t('settings.dbSynced', 'Đồng bộ trực tuyến') : t('settings.dbChecking', 'Đang kiểm tra...')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {sysInfo?.database
-                  ? `${sysInfo.database.roomsCount} gian phòng • ${sysInfo.database.panoramasCount} ảnh 360° (Ping ${sysInfo.database.pingMs}ms)`
-                  : 'Toàn bộ dữ liệu gian phòng & hiện vật'}
+                  ? `${sysInfo.database.roomsCount} ${t('settings.roomsWord', 'gian phòng')} • ${sysInfo.database.panoramasCount} ${t('settings.panosWord', 'ảnh 360°')} (Ping ${sysInfo.database.pingMs}ms)`
+                  : t('settings.dbAllData', 'Toàn bộ dữ liệu gian phòng & hiện vật')}
               </div>
             </div>
           </div>
@@ -1069,10 +1071,10 @@ export const AdminSettingsPage: React.FC = () => {
               {/* Tiêu đề mục */}
               <div style={{ marginBottom: 20 }}>
                 <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
-                  Điều khiển Chế độ Bảo trì
+                  {t('settings.controlTitle', 'Điều khiển Chế độ Bảo trì')}
                 </h2>
                 <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: 0 }}>
-                  Chủ động bật khi cần đại tu dữ liệu hoặc nâng cấp không gian tham quan di sản.
+                  {t('settings.controlDesc', 'Chủ động bật khi cần đại tu dữ liệu hoặc nâng cấp không gian tham quan di sản.')}
                 </p>
               </div>
 
@@ -1080,12 +1082,12 @@ export const AdminSettingsPage: React.FC = () => {
               <div className="settings-maintenance-toggle-row">
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 2 }}>
-                    {maintenance.enabled ? 'Chế độ bảo trì: ĐANG BẬT' : 'Chế độ bảo trì: ĐANG TẮT'}
+                    {maintenance.enabled ? t('settings.modeOn', 'Chế độ bảo trì: ĐANG BẬT') : t('settings.modeOff', 'Chế độ bảo trì: ĐANG TẮT')}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                     {maintenance.enabled
-                      ? 'Khách tham quan vãng lai sẽ được dẫn tới trang thông báo bảo trì.'
-                      : 'Hệ thống đang mở cửa đón khách tham quan bình thường.'}
+                      ? t('settings.modeOnDesc', 'Khách tham quan vãng lai sẽ được dẫn tới trang thông báo bảo trì.')
+                      : t('settings.modeOffDesc', 'Hệ thống đang mở cửa đón khách tham quan bình thường.')}
                   </div>
                 </div>
 
@@ -1098,7 +1100,7 @@ export const AdminSettingsPage: React.FC = () => {
                       color: maintenance.enabled ? 'var(--primary)' : 'var(--text-muted)'
                     }}
                   >
-                    {maintenance.enabled ? 'BẬT' : 'TẮT'}
+                    {maintenance.enabled ? t('settings.badgeOn', 'BẬT') : t('settings.badgeOff', 'TẮT')}
                   </span>
                   <button
                     type="button"
@@ -1146,13 +1148,13 @@ export const AdminSettingsPage: React.FC = () => {
                       marginBottom: 6
                     }}
                   >
-                    Tiêu đề thông báo gửi khách
+                    {t('settings.labelNoticeTitle', 'Tiêu đề thông báo gửi khách')}
                   </label>
                   <input
                     type="text"
                     value={maintenance.title}
                     onChange={(e) => setMaintenance({ ...maintenance, title: e.target.value })}
-                    placeholder="VD: Hệ Thống Đang Nâng Cấp & Bảo Trì"
+                    placeholder={t('settings.noticePlaceholder', 'VD: Hệ Thống Đang Nâng Cấp & Bảo Trì')}
                     style={{
                       width: '100%',
                       boxSizing: 'border-box',
@@ -1178,7 +1180,7 @@ export const AdminSettingsPage: React.FC = () => {
                       marginBottom: 6
                     }}
                   >
-                    Thời gian dự kiến hoàn tất
+                    {t('settings.labelEstTime', 'Thời gian dự kiến hoàn tất')}
                   </label>
                   <div className="settings-presets-row">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1206,7 +1208,7 @@ export const AdminSettingsPage: React.FC = () => {
                         }}
                         required
                       />
-                      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>phút</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('settings.unitMins', 'phút')}</span>
                     </div>
 
                     {/* Các nút chọn nhanh thời gian */}
@@ -1253,13 +1255,13 @@ export const AdminSettingsPage: React.FC = () => {
                       marginBottom: 6
                     }}
                   >
-                    Lời nhắn gửi khách tham quan
+                    {t('settings.labelMessage', 'Lời nhắn gửi khách tham quan')}
                   </label>
                   <textarea
                     rows={4}
                     value={maintenance.message}
                     onChange={(e) => setMaintenance({ ...maintenance, message: e.target.value })}
-                    placeholder="Nhập thông điệp bảo trì trang nhã..."
+                    placeholder={t('settings.messagePlaceholder', 'Nhập thông điệp bảo trì trang nhã...')}
                     style={{
                       width: '100%',
                       boxSizing: 'border-box',
@@ -1293,7 +1295,7 @@ export const AdminSettingsPage: React.FC = () => {
                       }}
                     >
                       {saving ? <RefreshCw size={14} className="spin" /> : <Check size={15} />}
-                      <span>Lưu & Áp dụng</span>
+                      <span>{t('settings.btnSaveApply', 'Lưu & Áp dụng')}</span>
                     </button>
 
                     <button
@@ -1310,12 +1312,12 @@ export const AdminSettingsPage: React.FC = () => {
                       title="Phục hồi nội dung chuẩn của Bảo tàng"
                     >
                       <RotateCcw size={13} />
-                      <span>Đặt lại mẫu chuẩn</span>
+                      <span>{t('settings.btnResetDefault', 'Đặt lại mẫu chuẩn')}</span>
                     </button>
                   </div>
 
                   <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    Tự động đồng bộ lên VPS & Nginx
+                    {t('settings.syncVPS', 'Tự động đồng bộ lên VPS & Nginx')}
                   </span>
                 </div>
               </form>
@@ -1338,7 +1340,7 @@ export const AdminSettingsPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Eye size={16} style={{ color: 'var(--accent-gold)' }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                      Mô phỏng Giao diện Khách
+                      {t('settings.previewGuest', 'Mô phỏng Giao diện Khách')}
                     </span>
                   </div>
                   <span
@@ -1350,7 +1352,7 @@ export const AdminSettingsPage: React.FC = () => {
                       color: 'var(--text-muted)'
                     }}
                   >
-                    Thời gian thực
+                    {t('settings.realtime', 'Thời gian thực')}
                   </span>
                 </div>
 
@@ -1406,7 +1408,7 @@ export const AdminSettingsPage: React.FC = () => {
                       marginBottom: 6
                     }}
                   >
-                    {branding.museumName?.toUpperCase() || 'BẢO TÀNG'}
+                    {branding.museumName?.toUpperCase() || t('settings.previewMuseumUpper', 'BẢO TÀNG')}
                   </div>
 
                   <div
@@ -1461,8 +1463,8 @@ export const AdminSettingsPage: React.FC = () => {
                     <Clock size={12} style={{ color: '#D4A86A' }} />
                     <span>
                       {maintenance.enabled
-                        ? `Dự kiến hoàn tất: còn khoảng ${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút`
-                        : `Dự kiến hoàn tất: khoảng ${maintenance.estimatedMinutes} phút`}
+                        ? `${t('settings.expectedCompleteRemaining', 'Dự kiến hoàn tất: còn khoảng')} ${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} ${t('settings.unitMins', 'phút')}`
+                        : `${t('settings.expectedComplete', 'Dự kiến hoàn tất: khoảng')} ${maintenance.estimatedMinutes} ${t('settings.unitMins', 'phút')}`}
                     </span>
                   </div>
 
@@ -1479,7 +1481,7 @@ export const AdminSettingsPage: React.FC = () => {
                         border: '1px solid #362F29'
                       }}
                     >
-                      Thử kết nối lại
+                      {t('settings.retryConnect', 'Thử kết nối lại')}
                     </span>
                   </div>
                 </div>
@@ -1498,7 +1500,7 @@ export const AdminSettingsPage: React.FC = () => {
                       gap: 4
                     }}
                   >
-                    <span>Mở xem toàn màn hình</span>
+                    <span>{t('settings.viewFullscreen', 'Mở xem toàn màn hình')}</span>
                     <ExternalLink size={12} />
                   </a>
                 </div>
@@ -1510,7 +1512,7 @@ export const AdminSettingsPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Server size={16} style={{ color: 'var(--accent-gold)' }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                      Hạ tầng Máy chủ & Dịch vụ
+                      {t('settings.serverInfra', 'Hạ tầng Máy chủ & Dịch vụ')}
                     </span>
                   </div>
                   <span
@@ -1527,14 +1529,14 @@ export const AdminSettingsPage: React.FC = () => {
                     }}
                   >
                     <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22C55E' }} />
-                    Data thật 100%
+                    {t('settings.realData', 'Data thật 100%')}
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 12.5 }}>
                   {/* 1. VPS Host */}
                   <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>Địa chỉ máy chủ (VPS)</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.vpsAddress', 'Địa chỉ máy chủ (VPS)')}</span>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 600 }}>
                         {sysInfo?.publicIp || '103.178.233.206'}
@@ -1547,7 +1549,7 @@ export const AdminSettingsPage: React.FC = () => {
 
                   {/* 2. MongoDB */}
                   <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>Cơ sở dữ liệu di sản</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.heritageDb', 'Cơ sở dữ liệu di sản')}</span>
                     <div style={{ textAlign: 'right' }}>
                       <span
                         style={{
@@ -1555,19 +1557,19 @@ export const AdminSettingsPage: React.FC = () => {
                           color: sysInfo?.database?.connected ? 'var(--text-main)' : '#EF4444'
                         }}
                       >
-                        {sysInfo?.database?.connected ? `MongoDB (${sysInfo.database.name})` : 'Mất kết nối'}
+                        {sysInfo?.database?.connected ? `MongoDB (${sysInfo.database.name})` : t('settings.dbDisconnected', 'Mất kết nối')}
                       </span>
                       <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
                         {sysInfo?.database
-                          ? `${sysInfo.database.roomsCount} phòng • ${sysInfo.database.panoramasCount} ảnh 360° (${sysInfo.database.pingMs}ms)`
-                          : 'Đang kết nối'}
+                          ? `${sysInfo.database.roomsCount} ${t('settings.roomsWordShort', 'phòng')} • ${sysInfo.database.panoramasCount} ${t('settings.panosWord', 'ảnh 360°')} (${sysInfo.database.pingMs}ms)`
+                          : t('settings.dbConnected', 'Đang kết nối')}
                       </span>
                     </div>
                   </div>
 
                   {/* 3. Redis Cache */}
                   <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>Bộ nhớ tăng tốc (Cache)</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.cacheMemory', 'Bộ nhớ tăng tốc (Cache)')}</span>
                     <div style={{ textAlign: 'right' }}>
                       <span
                         style={{
@@ -1575,68 +1577,68 @@ export const AdminSettingsPage: React.FC = () => {
                           color: sysInfo?.redis?.connected ? 'var(--text-main)' : 'var(--text-muted)'
                         }}
                       >
-                        {sysInfo?.redis?.connected ? 'Redis Cache trực tuyến' : 'Bộ nhớ cục bộ (Fallback)'}
+                        {sysInfo?.redis?.connected ? t('settings.redisOnline', 'Redis Cache trực tuyến') : t('settings.redisFallback', 'Bộ nhớ cục bộ (Fallback)')}
                       </span>
                       <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
                         {sysInfo?.redis?.connected
                           ? `${sysInfo.redis.keysCount} keys • Ping: ${sysInfo.redis.pingMs}ms`
-                          : 'Không có Redis'}
+                          : t('settings.noRedis', 'Không có Redis')}
                       </span>
                     </div>
                   </div>
 
                   {/* 4. Queue Worker */}
                   <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>Hàng đợi xử lý (Queue)</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.queueProcessing', 'Hàng đợi xử lý (Queue)')}</span>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
-                        {sysInfo?.queue?.status === 'processing' ? 'Đang xử lý tác vụ' : 'Sẵn sàng tiếp nhận'}
+                        {sysInfo?.queue?.status === 'processing' ? t('settings.queueActive', 'Đang xử lý tác vụ') : t('settings.queueReady', 'Sẵn sàng tiếp nhận')}
                       </span>
                       <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} tác vụ trong hàng đợi ghép 360°` : 'Stitching Queue'}
+                        {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} ${t('settings.queueTasksWord', 'tác vụ trong hàng đợi ghép 360°')}` : 'Stitching Queue'}
                       </span>
                     </div>
                   </div>
 
                   {/* 5. Cổng 360 */}
                   <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>Trạng thái cổng 360</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.portalStatus', 'Trạng thái cổng 360')}</span>
                     <span
                       style={{
                         color: maintenance.enabled ? 'var(--primary)' : 'var(--accent-gold)',
                         fontWeight: 600
                       }}
                     >
-                      {maintenance.enabled ? 'Đang tạm dừng bảo trì' : 'Đang mở cửa tham quan'}
+                      {maintenance.enabled ? t('settings.portalPaused', 'Đang tạm dừng bảo trì') : t('settings.portalOpen', 'Đang mở cửa tham quan')}
                     </span>
                   </div>
 
                   {/* 6. Thời gian bảo trì thực tế */}
                   <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>Lịch trình bảo trì</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.maintenanceSchedule', 'Lịch trình bảo trì')}</span>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ color: 'var(--text-main)', fontWeight: 500, fontSize: 12 }}>
                         {maintenance.enabled
                           ? `${formatTime(maintenance.startTime || maintenance.updatedAt)} → ${formatTime(maintenance.expectedEndTime)}`
-                          : 'Không có lịch bảo trì'}
+                          : t('settings.noSchedule', 'Không có lịch bảo trì')}
                       </span>
                       <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
                         {maintenance.enabled
-                          ? `Còn ~${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} phút`
-                          : `Thời gian dự phòng: ${maintenance.estimatedMinutes}p`}
+                          ? `${t('settings.approxRemaining', 'Còn ~')}${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} ${t('settings.unitMins', 'phút')}`
+                          : `${t('settings.backupTimeLabel', 'Thời gian dự phòng:')} ${maintenance.estimatedMinutes}p`}
                       </span>
                     </div>
                   </div>
 
                   {/* 7. Cập nhật lần cuối */}
                   <div className="settings-telemetry-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Cập nhật lần cuối</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.lastUpdate', 'Cập nhật lần cuối')}</span>
                     <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                       {new Date().toLocaleTimeString('vi-VN', {
                         hour: '2-digit',
                         minute: '2-digit',
                         second: '2-digit'
-                      })} (Trực tiếp)
+                      })} {t('settings.liveTag', '(Trực tiếp)')}
                     </span>
                   </div>
                 </div>

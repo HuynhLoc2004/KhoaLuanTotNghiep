@@ -22,6 +22,7 @@ import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination } from '../../components/Pagination';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { useClientTranslation } from '../../context/ClientTranslationContext';
 
 export interface LanguagePreset {
   code: string;
@@ -61,6 +62,7 @@ export const GLOBAL_LANGUAGE_PRESETS: LanguagePreset[] = [
 export const AdminLanguagePage: React.FC = () => {
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
+  const { t, currentLang } = useClientTranslation();
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -385,10 +387,10 @@ export const AdminLanguagePage: React.FC = () => {
             </div>
             <div>
               <h1 className="lang-header-title">
-                Quản trị Danh mục Ngôn ngữ & Voice AI
+                {t('langPage.title', 'Quản trị Danh mục Ngôn ngữ & Voice AI')}
               </h1>
               <p className="lang-header-desc">
-                Hệ thống Đa ngôn ngữ Động: Khách tham quan Client chỉ có quyền chọn các ngôn ngữ được Admin kích hoạt tại đây.
+                {t('langPage.desc', 'Hệ thống Đa ngôn ngữ Động: Khách tham quan Client chỉ có quyền chọn các ngôn ngữ được Admin kích hoạt tại đây.')}
               </p>
             </div>
           </div>
@@ -399,11 +401,11 @@ export const AdminLanguagePage: React.FC = () => {
               className="btn btn-secondary btn-sm"
               onClick={handleRefresh}
               disabled={isRefreshing || loading}
-              title="Làm mới dữ liệu từ máy chủ"
+              title={t('common.refresh', 'Làm mới')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
-              <span>{isRefreshing ? 'Đang làm mới...' : 'Làm mới'}</span>
+              <span>{isRefreshing ? t('common.refreshing', 'Đang làm mới...') : t('common.refresh', 'Làm mới')}</span>
             </button>
 
             <button
@@ -413,7 +415,7 @@ export const AdminLanguagePage: React.FC = () => {
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Plus size={15} />
-              <span>Thêm ngôn ngữ mới</span>
+              <span>{t('langPage.addLang', 'Thêm ngôn ngữ mới')}</span>
             </button>
           </div>
         </div>
@@ -426,12 +428,12 @@ export const AdminLanguagePage: React.FC = () => {
               <span className="heritage-stat-icon-wrapper">
                 <Languages size={15} />
               </span>
-              <span className="heritage-stat-title">Ngôn ngữ Phục vụ Khách Quốc tế</span>
+              <span className="heritage-stat-title">{t('langPage.statServingTitle', 'Ngôn ngữ Phục vụ Khách Quốc tế')}</span>
             </div>
             <div className="heritage-stat-body">
               <div className="heritage-stat-metric">
                 <span className="heritage-stat-number">{languages.length}</span>
-                <span className="heritage-stat-unit">quốc gia & vùng lãnh thổ</span>
+                <span className="heritage-stat-unit">{t('langPage.statServingUnit', 'quốc gia & vùng lãnh thổ')}</span>
               </div>
               <div className="heritage-stat-sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                 {languages.slice(0, 7).map((l) => (
@@ -452,16 +454,16 @@ export const AdminLanguagePage: React.FC = () => {
               <span className="heritage-stat-icon-wrapper">
                 <Eye size={15} />
               </span>
-              <span className="heritage-stat-title">Đang Mở Cổng Tham quan</span>
+              <span className="heritage-stat-title">{t('langPage.statActiveTitle', 'Đang Mở Cổng Tham quan')}</span>
             </div>
             <div className="heritage-stat-body">
               <div className="heritage-stat-metric">
                 <span className="heritage-stat-number">{activeCount}</span>
                 <span className="heritage-stat-denom">/{languages.length}</span>
-                <span className="heritage-stat-unit">ngôn ngữ ({activePercent}%)</span>
+                <span className="heritage-stat-unit">{t('langPage.statActiveUnit', 'ngôn ngữ')} ({activePercent}%)</span>
               </div>
               <div className="heritage-stat-sub">
-                <span>Khách tham quan tự do chuyển đổi trên tour 360</span>
+                <span>{t('langPage.statActiveSub', 'Khách tham quan tự do chuyển đổi trên tour 360')}</span>
               </div>
             </div>
           </div>
@@ -472,16 +474,16 @@ export const AdminLanguagePage: React.FC = () => {
               <span className="heritage-stat-icon-wrapper">
                 <Volume2 size={15} />
               </span>
-              <span className="heritage-stat-title">Chuẩn Thuyết minh Di sản</span>
+              <span className="heritage-stat-title">{t('langPage.statHeritageTitle', 'Chuẩn Thuyết minh Di sản')}</span>
             </div>
             <div className="heritage-stat-body">
               <div className="heritage-stat-metric">
                 <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent-gold)' }}>
-                  Ngữ điệu Bản xứ Chuẩn Sử học
+                  {t('langPage.statHeritageValue', 'Ngữ điệu Bản xứ Chuẩn Sử học')}
                 </span>
               </div>
               <div className="heritage-stat-sub">
-                <span>Được thẩm định chuyên sâu cho {branding.shortName || 'Bảo tàng'}</span>
+                <span>{t('langPage.statHeritageSub', 'Được thẩm định chuyên sâu cho')} {branding.shortName || 'History Museum'}</span>
               </div>
             </div>
           </div>
@@ -501,10 +503,10 @@ export const AdminLanguagePage: React.FC = () => {
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>{previewAudio.flag}</span>
-                  <span>Đang phát mẫu giọng đọc AI: {previewAudio.langName}</span>
+                  <span>{t('langPage.playingSample', 'Đang phát mẫu giọng đọc AI:')} {previewAudio.langName}</span>
                 </div>
                 <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                  Kiểm tra ngữ điệu, nhịp độ và sự lưu loát của bản ghi âm
+                  {t('langPage.playingSampleDesc', 'Kiểm tra ngữ điệu, nhịp độ và sự lưu loát của bản ghi âm')}
                 </div>
               </div>
             </div>
@@ -517,17 +519,17 @@ export const AdminLanguagePage: React.FC = () => {
                 src={previewAudio.url}
                 style={{ height: 36, maxWidth: 360, width: '100%' }}
               >
-                Trình duyệt không hỗ trợ audio.
+                {t('langPage.browserNoAudio', 'Trình duyệt không hỗ trợ audio.')}
               </audio>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => setPreviewAudio(null)}
-                title="Đóng phát âm"
+                title={t('common.close', 'Đóng')}
                 style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
               >
                 <X size={14} />
-                <span style={{ fontSize: '12px' }}>Tắt</span>
+                <span style={{ fontSize: '12px' }}>{t('common.close', 'Tắt')}</span>
               </button>
             </div>
           </div>
@@ -541,7 +543,7 @@ export const AdminLanguagePage: React.FC = () => {
               <Search size={15} className="lang-search-icon" />
               <input
                 type="text"
-                placeholder="Tìm theo tên tiếng Việt, bản xứ hoặc mã ISO (vi, en, fr...)"
+                placeholder={t('langPage.searchPlaceholder', 'Tìm theo tên tiếng Việt, bản xứ hoặc mã ISO (vi, en, fr...)')}
                 className="lang-search-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -551,7 +553,7 @@ export const AdminLanguagePage: React.FC = () => {
                   type="button"
                   className="lang-search-clear"
                   onClick={() => setSearchQuery('')}
-                  title="Xóa tìm kiếm"
+                  title={t('langPage.clearSearch', 'Xóa tìm kiếm')}
                 >
                   <X size={14} />
                 </button>
@@ -564,14 +566,14 @@ export const AdminLanguagePage: React.FC = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
             >
-              <option value="all">Tất cả trạng thái ({languages.length})</option>
-              <option value="active">Đang hiển thị trên Client ({activeCount})</option>
-              <option value="inactive">Đang tạm tắt ({languages.length - activeCount})</option>
+              <option value="all">{t('langPage.filterAll', 'Tất cả trạng thái')} ({languages.length})</option>
+              <option value="active">{t('langPage.filterActive', 'Đang hiển thị trên Client')} ({activeCount})</option>
+              <option value="inactive">{t('langPage.filterInactive', 'Đang tạm tắt')} ({languages.length - activeCount})</option>
             </select>
           </div>
 
           <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-            Tìm thấy <strong>{filteredLanguages.length}</strong> / <strong>{languages.length}</strong> ngôn ngữ
+            {t('langPage.found', 'Tìm thấy')} <strong>{filteredLanguages.length}</strong> / <strong>{languages.length}</strong> {t('langPage.statActiveUnit', 'ngôn ngữ')}
           </div>
         </div>
 
@@ -581,10 +583,10 @@ export const AdminLanguagePage: React.FC = () => {
             <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
               <Languages size={36} style={{ color: 'var(--border-dark)', margin: '0 auto 12px' }} />
               <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--heading-color)', marginBottom: 6 }}>
-                Không tìm thấy ngôn ngữ phù hợp
+                {t('langPage.emptyTitle', 'Không tìm thấy ngôn ngữ phù hợp')}
               </div>
               <p style={{ fontSize: '13px', maxWidth: 420, margin: '0 auto 16px' }}>
-                Không có ngôn ngữ nào khớp với từ khóa tìm kiếm & bộ lọc hiện tại. Vui lòng thử lại.
+                {t('langPage.emptyDesc', 'Không có ngôn ngữ nào khớp với từ khóa tìm kiếm & bộ lọc hiện tại. Vui lòng thử lại.')}
               </p>
               {(searchQuery || statusFilter !== 'all') && (
                 <button
@@ -595,7 +597,7 @@ export const AdminLanguagePage: React.FC = () => {
                     setStatusFilter('all');
                   }}
                 >
-                  Đặt lại bộ lọc
+                  {t('langPage.resetFilter', 'Đặt lại bộ lọc')}
                 </button>
               )}
             </div>
@@ -606,11 +608,11 @@ export const AdminLanguagePage: React.FC = () => {
                 <table className="lang-table">
                   <thead>
                     <tr>
-                      <th style={{ width: 85, textAlign: 'center' }}>Cờ & ISO</th>
-                      <th style={{ minWidth: 160 }}>Ngôn ngữ bản xứ</th>
-                      <th style={{ minWidth: 260 }}>Cấu hình Giọng đọc AI</th>
-                      <th style={{ width: 170, textAlign: 'center' }}>Trực tuyến (Client)</th>
-                      <th style={{ width: 190, textAlign: 'right', whiteSpace: 'nowrap' }}>Thao tác</th>
+                      <th style={{ width: 85, textAlign: 'center' }}>{t('langPage.thFlag', 'Cờ & ISO')}</th>
+                      <th style={{ minWidth: 160 }}>{t('langPage.thNative', 'Ngôn ngữ bản xứ')}</th>
+                      <th style={{ minWidth: 260 }}>{t('langPage.thVoice', 'Cấu hình Giọng đọc AI')}</th>
+                      <th style={{ width: 170, textAlign: 'center' }}>{t('langPage.thOnline', 'Trực tuyến (Client)')}</th>
+                      <th style={{ width: 190, textAlign: 'right', whiteSpace: 'nowrap' }}>{t('langPage.thActions', 'Thao tác')}</th>
                     </tr>
                   </thead>
                   <tbody key={currentPage} className="lang-page-transition">
@@ -644,12 +646,12 @@ export const AdminLanguagePage: React.FC = () => {
                                     letterSpacing: '0.2px'
                                   }}
                                 >
-                                  Gốc mặc định
+                                  {t('langPage.defaultRoot', 'Gốc mặc định')}
                                 </span>
                               )}
                             </div>
                             <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                              Tên quốc tế: {lang.name}
+                              {t('langPage.intName', 'Tên quốc tế:')} {lang.name}
                             </span>
                           </div>
                         </td>
@@ -661,10 +663,10 @@ export const AdminLanguagePage: React.FC = () => {
                               <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
                               <span style={{ fontWeight: 600 }}>{lang.ttsVoiceConfig?.voiceName || 'Google Neural2'}</span>
                               <span style={{ color: 'var(--border-dark)' }}>•</span>
-                              <span>{lang.ttsVoiceConfig?.gender === 'male' ? 'Nam' : 'Nữ'}</span>
+                              <span>{lang.ttsVoiceConfig?.gender === 'male' ? t('langPage.voiceMale', 'Nam') : t('langPage.voiceFemale', 'Nữ')}</span>
                             </div>
                             <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>
-                              Tốc độ: {lang.ttsVoiceConfig?.speed || 1.0}x | Nhà cung cấp: Google Cloud TTS
+                              {t('langPage.speed', 'Tốc độ:')} {lang.ttsVoiceConfig?.speed || 1.0}x | {t('langPage.provider', 'Nhà cung cấp:')} Google Cloud TTS
                             </span>
                           </div>
                         </td>
@@ -676,10 +678,10 @@ export const AdminLanguagePage: React.FC = () => {
                             className={`lang-status-badge ${lang.isActive ? 'active' : 'inactive'}`}
                             onClick={() => handleToggleActive(lang)}
                             disabled={lang.isDefault}
-                            title={lang.isDefault ? 'Ngôn ngữ gốc tiếng Việt luôn được kích hoạt mặc định' : 'Bấm để bật / tắt hiển thị trên trang khách tham quan'}
+                            title={lang.isDefault ? t('langPage.toggleDefaultTooltip', 'Ngôn ngữ gốc tiếng Việt luôn được kích hoạt mặc định') : t('langPage.toggleCustomTooltip', 'Bấm để bật / tắt hiển thị trên trang khách tham quan')}
                           >
                             <span className="lang-status-dot" />
-                            <span>{lang.isActive ? 'Đang hiển thị' : 'Đang tạm tắt'}</span>
+                            <span>{lang.isActive ? t('langPage.showingOnline', 'Đang hiển thị') : t('langPage.hiddenOffline', 'Đang tạm tắt')}</span>
                           </button>
                         </td>
 
@@ -691,7 +693,7 @@ export const AdminLanguagePage: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleTestVoice(lang)}
                               disabled={testingCode === lang.code}
-                              title="Nghe thử âm thanh thuyết minh AI"
+                              title={t('langPage.testVoice', 'Nghe thử âm thanh thuyết minh AI')}
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -706,7 +708,7 @@ export const AdminLanguagePage: React.FC = () => {
                               ) : (
                                 <Play size={13} />
                               )}
-                              <span>Thử giọng</span>
+                              <span>{t('langPage.testVoice', 'Thử giọng')}</span>
                             </button>
 
                             {!lang.isDefault && (
@@ -714,7 +716,7 @@ export const AdminLanguagePage: React.FC = () => {
                                 type="button"
                                 className="btn btn-secondary btn-sm"
                                 onClick={() => handleDeleteLanguage(lang)}
-                                title="Xóa ngôn ngữ khỏi hệ thống"
+                                title={t('langPage.deleteTooltip', 'Xóa ngôn ngữ khỏi hệ thống')}
                                 style={{
                                   width: 32,
                                   height: 32,
@@ -766,7 +768,7 @@ export const AdminLanguagePage: React.FC = () => {
                             borderRadius: 4
                           }}
                         >
-                          Mặc định
+                          {t('langPage.defaultRoot', 'Mặc định')}
                         </span>
                       )}
                     </div>
@@ -774,7 +776,7 @@ export const AdminLanguagePage: React.FC = () => {
                     <div style={{ background: 'var(--bg-subtle)', padding: '8px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-muted)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
-                        <span>Giọng: <strong>{lang.ttsVoiceConfig?.voiceName || 'Google Neural2'}</strong> ({lang.ttsVoiceConfig?.gender === 'male' ? 'Nam' : 'Nữ'})</span>
+                        <span>Voice: <strong>{lang.ttsVoiceConfig?.voiceName || 'Google Neural2'}</strong> ({lang.ttsVoiceConfig?.gender === 'male' ? t('langPage.voiceMale', 'Nam') : t('langPage.voiceFemale', 'Nữ')})</span>
                       </div>
                     </div>
 
@@ -784,9 +786,10 @@ export const AdminLanguagePage: React.FC = () => {
                         className={`lang-status-badge ${lang.isActive ? 'active' : 'inactive'}`}
                         onClick={() => handleToggleActive(lang)}
                         disabled={lang.isDefault}
+                        title={lang.isDefault ? t('langPage.toggleDefaultTooltip', 'Ngôn ngữ gốc tiếng Việt luôn được kích hoạt mặc định') : t('langPage.toggleCustomTooltip', 'Bấm để bật / tắt hiển thị trên trang khách tham quan')}
                       >
                         <span className="lang-status-dot" />
-                        <span>{lang.isActive ? 'Đang hiển thị' : 'Đang tạm tắt'}</span>
+                        <span>{lang.isActive ? t('langPage.showingOnline', 'Đang hiển thị') : t('langPage.hiddenOffline', 'Đang tạm tắt')}</span>
                       </button>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -795,6 +798,7 @@ export const AdminLanguagePage: React.FC = () => {
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleTestVoice(lang)}
                           disabled={testingCode === lang.code}
+                          title={t('langPage.testVoice', 'Nghe thử âm thanh thuyết minh AI')}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                         >
                           {testingCode === lang.code ? (
@@ -802,7 +806,7 @@ export const AdminLanguagePage: React.FC = () => {
                           ) : (
                             <Play size={13} />
                           )}
-                          <span>Thử giọng</span>
+                          <span>{t('langPage.testVoice', 'Thử giọng')}</span>
                         </button>
 
                         {!lang.isDefault && (
@@ -810,6 +814,7 @@ export const AdminLanguagePage: React.FC = () => {
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleDeleteLanguage(lang)}
+                            title={t('langPage.deleteTooltip', 'Xóa ngôn ngữ khỏi hệ thống')}
                             style={{ color: 'var(--error)', padding: '6px 8px' }}
                           >
                             <Trash2 size={14} />
@@ -832,7 +837,7 @@ export const AdminLanguagePage: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 pageSizeOptions={[6, 9, 12, 18, 24]}
-                itemLabel="ngôn ngữ"
+                itemLabel={t('langPage.statActiveUnit', 'ngôn ngữ')}
               />
             </>
           )}
@@ -844,16 +849,16 @@ export const AdminLanguagePage: React.FC = () => {
             <div className="modal-card" style={{ maxWidth: 520 }}>
               <div className="modal-header">
                 <div>
-                  <h2 className="modal-title">Thêm ngôn ngữ mới</h2>
+                  <h2 className="modal-title">{t('langPage.modalAddTitle', 'Thêm ngôn ngữ mới')}</h2>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                    Thiết lập ngôn ngữ hiển thị và cấu hình giọng đọc thuyết minh
+                    {t('langPage.modalAddDesc', 'Thiết lập ngôn ngữ hiển thị và cấu hình giọng đọc thuyết minh')}
                   </p>
                 </div>
                 <button
                   type="button"
                   className="modal-close-btn"
                   onClick={() => setShowAddModal(false)}
-                  title="Đóng"
+                  title={t('common.close', 'Đóng')}
                 >
                   <X size={18} />
                 </button>
@@ -863,18 +868,18 @@ export const AdminLanguagePage: React.FC = () => {
                 <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {/* Danh mục mẫu chọn nhanh */}
                   <div className="form-group">
-                    <label className="form-label">Chọn ngôn ngữ mẫu (Tùy chọn)</label>
+                    <label className="form-label">{t('langPage.selectPreset', 'Chọn ngôn ngữ mẫu (Tùy chọn)')}</label>
                     <select
                       className="form-control"
                       value={selectedPresetCode}
                       onChange={(e) => handleApplyPreset(e.target.value)}
                     >
-                      <option value="">-- Chọn mẫu để tự động điền (hoặc tự nhập thông tin bên dưới) --</option>
+                      <option value="">{t('langPage.presetPlaceholder', '-- Chọn mẫu để tự động điền (hoặc tự nhập thông tin bên dưới) --')}</option>
                       {GLOBAL_LANGUAGE_PRESETS.map((p) => {
                         const exists = languages.some((l) => l.code === p.code);
                         return (
                           <option key={p.code} value={p.code} disabled={exists}>
-                            {p.flagIcon} {p.label} ({p.nativeName} - {p.name}) {exists ? '— [Đã có]' : ''}
+                            {p.flagIcon} {p.label} ({p.nativeName} - {p.name}) {exists ? '— [' + (currentLang === 'vi' ? 'Đã có' : 'Active') + ']' : ''}
                           </option>
                         );
                       })}
@@ -885,7 +890,7 @@ export const AdminLanguagePage: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">
-                        Mã ISO <span style={{ color: 'var(--error)' }}>*</span>
+                        {t('langPage.isoCode', 'Mã ISO')} <span style={{ color: 'var(--error)' }}>*</span>
                       </label>
                       <input
                         type="text"
@@ -908,7 +913,7 @@ export const AdminLanguagePage: React.FC = () => {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Biểu tượng cờ (Emoji)</label>
+                      <label className="form-label">{t('langPage.flagEmoji', 'Biểu tượng cờ (Emoji)')}</label>
                       <input
                         type="text"
                         className="form-control"
@@ -922,7 +927,7 @@ export const AdminLanguagePage: React.FC = () => {
                   {/* Tên bản xứ */}
                   <div className="form-group">
                     <label className="form-label">
-                      Tên bản xứ <span style={{ color: 'var(--error)' }}>*</span>
+                      {t('langPage.nativeName', 'Tên bản xứ')} <span style={{ color: 'var(--error)' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -945,7 +950,7 @@ export const AdminLanguagePage: React.FC = () => {
                   {/* Tên tiếng Anh */}
                   <div className="form-group">
                     <label className="form-label">
-                      Tên quốc tế (Tiếng Anh) <span style={{ color: 'var(--error)' }}>*</span>
+                      {t('langPage.intNameLabel', 'Tên quốc tế (Tiếng Anh)')} <span style={{ color: 'var(--error)' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -968,7 +973,7 @@ export const AdminLanguagePage: React.FC = () => {
                   {/* Giọng đọc TTS & Giới tính */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 12 }}>
                     <div className="form-group">
-                      <label className="form-label">Mã giọng đọc (TTS Voice)</label>
+                      <label className="form-label">{t('langPage.ttsVoiceCode', 'Mã giọng đọc (TTS Voice)')}</label>
                       <input
                         type="text"
                         className="form-control"
@@ -979,14 +984,14 @@ export const AdminLanguagePage: React.FC = () => {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Giới tính giọng</label>
+                      <label className="form-label">{t('langPage.voiceGender', 'Giới tính giọng')}</label>
                       <select
                         className="form-control"
                         value={newGender}
                         onChange={(e) => setNewGender(e.target.value as any)}
                       >
-                        <option value="female">Nữ</option>
-                        <option value="male">Nam</option>
+                        <option value="female">{t('langPage.voiceFemale', 'Nữ')}</option>
+                        <option value="male">{t('langPage.voiceMale', 'Nam')}</option>
                       </select>
                     </div>
                   </div>
@@ -1001,7 +1006,7 @@ export const AdminLanguagePage: React.FC = () => {
                       style={{ width: 16, height: 16, accentColor: 'var(--accent-gold)', cursor: 'pointer' }}
                     />
                     <label htmlFor="chkIsActive" style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--text-main)', userSelect: 'none' }}>
-                      Kích hoạt hiển thị cho khách tham quan (Client)
+                      {t('langPage.enableClient', 'Kích hoạt hiển thị cho khách tham quan (Client)')}
                     </label>
                   </div>
                 </div>
@@ -1013,7 +1018,7 @@ export const AdminLanguagePage: React.FC = () => {
                     onClick={() => setShowAddModal(false)}
                     disabled={submitting}
                   >
-                    Hủy
+                    {t('common.cancel', 'Hủy')}
                   </button>
                   <button
                     type="submit"
@@ -1022,7 +1027,7 @@ export const AdminLanguagePage: React.FC = () => {
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     {submitting && <RotateCw size={14} className="spin" />}
-                    <span>Lưu ngôn ngữ</span>
+                    <span>{t('langPage.saveLang', 'Lưu ngôn ngữ')}</span>
                   </button>
                 </div>
               </form>
@@ -1033,10 +1038,10 @@ export const AdminLanguagePage: React.FC = () => {
         {/* CONFIRM MODAL */}
         <ConfirmModal
           isOpen={confirmDialog.isOpen}
-          title={confirmDialog.title}
-          message={confirmDialog.message}
+          title={confirmDialog.title || t('langPage.confirmDeleteTitle', 'Xác nhận xóa ngôn ngữ')}
+          message={confirmDialog.message || t('langPage.confirmDeleteMsg', 'Bạn có chắc chắn muốn xóa ngôn ngữ này khỏi hệ thống?')}
           type="danger"
-          confirmText="Xác nhận xóa"
+          confirmText={t('common.confirmDelete', 'Xác nhận xóa')}
           onConfirm={confirmDialog.onConfirm}
           onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
         />

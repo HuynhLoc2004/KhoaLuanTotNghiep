@@ -392,5 +392,6 @@ export const api = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải lên file ảnh logo');
     return { url: json.data.url };
-  }
+  },
+
 };

@@ -1,30 +1,31 @@
 import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose } from 'lucide-react';
 import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
+import { useClientTranslation } from '../context/ClientTranslationContext';
 
 interface SidebarProps {
   currentTab: AdminTab;
+  isOpen: boolean;
+  onClose: () => void;
+  onToggle: () => void;
   onTabChange: (tab: AdminTab) => void;
   roomCount: number;
-  isOpen?: boolean;
-  onClose?: () => void;
-  onToggle?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
-  onTabChange,
-  roomCount,
-  isOpen = false,
+  isOpen,
   onClose,
-  onToggle
+  onToggle,
+  onTabChange,
+  roomCount
 }) => {
   const { branding } = useSystemBranding();
+  const { t, currentLang } = useClientTranslation();
 
   const handleItemClick = (tab: AdminTab) => {
     onTabChange(tab);
-    // Chỉ tự động đóng menu trên màn hình nhỏ di động
-    if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) {
+    if (window.innerWidth <= 768) {
       onClose();
     }
   };
@@ -32,51 +33,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
-        {branding.logoUrl ? (
-          <div className="museum-logo-wrapper" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, overflow: 'hidden' }}>
+        <div className="sidebar-brand">
+          {branding.logoUrl ? (
             <img
               src={branding.logoUrl}
-              alt={branding.shortName}
-              style={{
-                maxHeight: '100%',
-                maxWidth: '100%',
-                width: 'auto',
-                height: 'auto',
-                objectFit: 'contain',
-                display: 'block'
-              }}
+              alt=""
+              style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4 }}
             />
+          ) : (
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 4,
+                background: 'var(--primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFF8F0',
+                fontSize: 12,
+                fontWeight: 700
+              }}
+            >
+              {branding.emblemText || 'BT'}
+            </div>
+          )}
+          <div className="sidebar-title" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--heading-color)', lineHeight: 1.25 }}>
+              {currentLang === 'vi' ? (branding.shortName || branding.museumName) : t('nav.breadcrumbMuseum', 'History Museum')}
+            </span>
+            <span className="sidebar-sub" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              {currentLang === 'vi' ? 'TP. Hồ Chí Minh • Quản trị' : 'Ho Chi Minh City • Admin'}
+            </span>
           </div>
-        ) : (
-          <div className="museum-emblem">{branding.emblemText || 'BT'}</div>
-        )}
-        <div className="sidebar-title" style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={branding.shortName}>
-            {branding.shortName}
-          </h1>
-          <p style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={branding.city ? `${branding.city} • Quản trị` : branding.tagline}>
-            {branding.city ? `${branding.city} • Quản trị` : (branding.tagline || 'Quản trị')}
-          </p>
         </div>
-        {onToggle && (
+
+        <button
+          type="button"
+          className="sidebar-collapse-btn desktop-only"
+          onClick={onToggle}
+          title="Thu gọn / Mở rộng menu (Ctrl + B)"
+          aria-label="Thu gọn hoặc mở rộng thanh điều hướng"
+        >
+          <PanelLeftClose size={16} />
+        </button>
+
+        {isOpen && (
           <button
             type="button"
-            className="sidebar-toggle-btn"
-            onClick={onToggle}
-            title="Thu gọn thanh điều hướng (Ctrl + B)"
-            aria-label="Thu gọn thanh điều hướng"
-          >
-            <PanelLeftClose size={18} />
-          </button>
-        )}
-        {onClose && (
-          <button
-            type="button"
-            className="sidebar-close-btn"
+            className="sidebar-close-btn mobile-only"
             onClick={onClose}
-            aria-label="Đóng menu"
+            title="Đóng menu"
+            aria-label="Đóng thanh điều hướng"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         )}
       </div>
@@ -87,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('rooms')}
         >
           <Compass size={16} />
-          <span>Gian trưng bày & Tour 360</span>
+          <span>{t('nav.rooms', 'Gian trưng bày & Tour 360')}</span>
           <span
             style={{
               marginLeft: 'auto',
@@ -108,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('poc_stitching')}
         >
           <Camera size={16} />
-          <span>Tạo ảnh toàn cảnh 360°</span>
+          <span>{t('nav.pocStitching', 'Tạo ảnh toàn cảnh 360°')}</span>
         </button>
 
         <button
@@ -116,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('artifacts')}
         >
           <Box size={16} />
-          <span>Hiện vật & Cổ vật di sản</span>
+          <span>{t('nav.artifacts', 'Hiện vật & Cổ vật di sản')}</span>
         </button>
 
         <button
@@ -124,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('languages')}
         >
           <Languages size={16} />
-          <span>Quản trị Ngôn ngữ & Voice AI</span>
+          <span>{t('nav.languages', 'Quản trị Ngôn ngữ & Voice AI')}</span>
         </button>
 
         <button
@@ -132,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('analytics')}
         >
           <BarChart3 size={16} />
-          <span>Báo cáo & Thống kê</span>
+          <span>{t('nav.analytics', 'Báo cáo & Thống kê')}</span>
         </button>
 
         <button
@@ -140,16 +150,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('settings')}
         >
           <Settings size={16} />
-          <span>Cấu hình hệ thống</span>
+          <span>{t('nav.settings', 'Cấu hình hệ thống')}</span>
         </button>
       </nav>
 
       <div className="sidebar-footer">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <Landmark size={14} style={{ color: 'var(--primary)' }} />
-          <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Đề tài Tốt nghiệp 2026</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{t('common.thesisTitle', 'Đề tài Tốt nghiệp 2026')}</span>
         </div>
-        <div>Hệ thống Tour 360 Không gian Di sản</div>
+        <div>{t('common.thesisFooter', 'Hệ thống Tour 360 Không gian Di sản')}</div>
       </div>
     </aside>
   );

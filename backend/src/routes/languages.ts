@@ -153,6 +153,183 @@ languagesRouter.get('/active', async (req: Request, res: Response) => {
   }
 });
 
+const BASE_UI_BUNDLE: Record<string, string> = {
+  'nav.museumTitle': 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
+  'nav.adminTitle': 'Ban Quản trị Bảo tàng Lịch sử',
+  'nav.adminRole': 'Quản trị viên (Admin)',
+  'nav.breadcrumbMuseum': 'Bảo tàng Lịch sử',
+  'nav.viewTour': 'Xem Tour Khách',
+  'nav.rooms': 'Gian trưng bày & Tour 360',
+  'nav.pocStitching': 'Tạo ảnh toàn cảnh 360°',
+  'nav.artifacts': 'Hiện vật & Cổ vật di sản',
+  'nav.languages': 'Quản trị Ngôn ngữ & Voice AI',
+  'nav.analytics': 'Báo cáo & Thống kê',
+  'nav.settings': 'Cấu hình hệ thống',
+  'nav.themeLight': 'Chuyển sang giao diện Sáng',
+  'nav.themeDark': 'Chuyển sang giao diện Tối',
+  'rooms.title': 'Gian trưng bày & Tour 360',
+  'rooms.desc': 'Quản trị không gian toàn cảnh 360°, điểm neo di sản và thiết lập điểm nhìn đầu tiên.',
+  'rooms.tabRooms': 'Gian trưng bày',
+  'rooms.tabStorage': 'Kho ảnh toàn cảnh 360°',
+  'rooms.addRoom': 'Thêm gian phòng mới',
+  'rooms.exportStandee': 'Xuất gói Standee QR',
+  'rooms.searchPlaceholder': 'Tìm theo tên phòng, mã P-01, P-05...',
+  'rooms.allThemes': 'Tất cả chủ đề',
+  'rooms.allStatuses': 'Tất cả trạng thái',
+  'rooms.statusActive': 'Đang hoạt động',
+  'rooms.statusInactive': 'Tạm ẩn',
+  'rooms.showing': 'Hiển thị',
+  'rooms.of': 'trên tổng số',
+  'rooms.roomsCount': 'phòng',
+  'rooms.perPage': 'Mỗi trang:',
+  'rooms.pageUnit': '/ trang',
+  'rooms.prev': 'Trước',
+  'rooms.next': 'Sau',
+  'rooms.explore360': 'Biên tập 360°',
+  'rooms.narration': 'Thuyết minh',
+  'rooms.qrCode': 'Mã QR',
+  'rooms.edit': 'Sửa',
+  'rooms.delete': 'Xóa',
+  'rooms.anchorPoints': 'điểm neo',
+  'rooms.notConfigured': 'Chưa cấu hình điểm nhìn',
+  'rooms.angle360': 'góc 360°',
+  'rooms.scans': 'lượt quét',
+  'rooms.statSpaces': 'không gian',
+  'rooms.statReady': 'Sẵn sàng đón khách tham quan',
+  'rooms.statCoordinates': 'tọa độ di sản',
+  'rooms.statGuidance': 'Định vị liên hoàn & dẫn tour 360',
+  'rooms.statMonographs': 'chuyên khảo',
+  'rooms.statAudio': 'Biên tập tài liệu sử & âm thanh bản ngữ',
+  'rooms.statVisitorScan': 'Khách tham quan quét mã QR tại gian trưng bày',
+  'studio.backToRooms': 'Gian trưng bày & Tour 360',
+  'studio.save': 'Lưu cấu hình không gian',
+  'studio.setInitialView': 'Đặt góc nhìn ban đầu',
+  'studio.addHotspot': 'Thêm điểm neo di sản',
+  'studio.hotspotNav': 'Điểm chuyển tiếp phòng',
+  'studio.hotspotInfo': 'Điểm thuyết minh hiện vật',
+  'studio.editHotspot': 'Sửa điểm neo',
+  'studio.deleteHotspot': 'Xóa điểm neo',
+  'common.confirm': 'Xác nhận',
+  'common.cancel': 'Hủy bỏ',
+  'common.save': 'Lưu lại',
+  'common.close': 'Đóng',
+  'common.loading': 'Đang tải dữ liệu không gian bảo tàng...',
+  'common.refresh': 'Làm mới',
+  'common.emptyData': 'Chưa có dữ liệu phù hợp',
+  'common.thesisFooter': 'Đề tài Tốt nghiệp 2026 • Hệ thống Tour 360 Không gian Di sản'
+};
+
+/**
+ * GET /api/languages/bundle/:code
+ * Tải gói từ điển i18n cho một ngôn ngữ bất kỳ
+ * Tự động dịch bằng NMT + áp dụng Heritage Glossary và lưu đệm vào Redis
+ */
+languagesRouter.get('/bundle/:code', async (req: Request, res: Response) => {
+  try {
+    const cleanCode = String(req.params.code).toLowerCase().trim();
+    if (cleanCode === 'vi') {
+      return res.json({ success: true, data: BASE_UI_BUNDLE });
+    }
+
+    const cacheKey = `cache:bundle:${cleanCode}`;
+    const cached = await cacheGet<Record<string, string>>(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached, cached: true });
+    }
+
+    const translatedBundle: Record<string, string> = {};
+    const entries = Object.entries(BASE_UI_BUNDLE);
+
+    // Dịch theo lô nhỏ để tối ưu tốc độ và không gây nghẽn
+    for (let i = 0; i < entries.length; i += 6) {
+      const batch = entries.slice(i, i + 6);
+      await Promise.all(
+        batch.map(async ([key, viText]) => {
+          let trans = await fetchSingleChunkNMT(viText, cleanCode);
+          // Hậu xử lý bằng Heritage Glossary
+          for (const [vTerm, tDict] of Object.entries(HERITAGE_GLOSSARY)) {
+            if (tDict[cleanCode] && trans.includes(vTerm)) {
+              trans = trans.replace(new RegExp(vTerm, 'g'), tDict[cleanCode]);
+            }
+          }
+          translatedBundle[key] = trans || viText;
+        })
+      );
+    }
+
+    // Cache trong 7 ngày
+    await cacheSet(cacheKey, translatedBundle, 7 * 24 * 3600);
+
+    res.json({ success: true, data: translatedBundle, cached: false });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi tạo gói từ điển: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/languages/translate-batch
+ * Dịch một mảng các cụm từ UI/văn bản sang ngôn ngữ đích (targetLang)
+ * Có Redis cache và áp dụng chuẩn thuật ngữ Heritage Glossary bảo tàng
+ */
+languagesRouter.post('/translate-batch', async (req: Request, res: Response) => {
+  try {
+    const { targetLang, texts } = req.body;
+    if (!targetLang || !Array.isArray(texts) || texts.length === 0) {
+      return res.status(400).json({ success: false, message: 'Thiếu targetLang hoặc mảng texts' });
+    }
+
+    const cleanLang = String(targetLang).toLowerCase().trim();
+    if (cleanLang === 'vi') {
+      const identity: Record<string, string> = {};
+      for (const t of texts) {
+        identity[t] = t;
+      }
+      return res.json({ success: true, data: identity });
+    }
+
+    const uniqueTexts = Array.from(new Set(texts.map((t) => String(t).trim()))).filter(Boolean);
+    const results: Record<string, string> = {};
+    const uncachedTexts: string[] = [];
+
+    // 1. Kiểm tra cache Redis trước
+    for (const text of uniqueTexts) {
+      const textHash = Buffer.from(text).toString('base64').slice(0, 48);
+      const cacheKey = `cache:nmt:${cleanLang}:${textHash}`;
+      const cached = await cacheGet<string>(cacheKey);
+      if (cached) {
+        results[text] = cached;
+      } else {
+        uncachedTexts.push(text);
+      }
+    }
+
+    // 2. Dịch các cụm từ chưa có trong cache
+    if (uncachedTexts.length > 0) {
+      // Giới hạn tối đa 40 cụm từ mỗi request để phản hồi siêu tốc
+      const toTranslate = uncachedTexts.slice(0, 40);
+      await Promise.all(
+        toTranslate.map(async (text) => {
+          let trans = await fetchSingleChunkNMT(text, cleanLang);
+          // Hậu xử lý bằng Heritage Glossary
+          for (const [vTerm, tDict] of Object.entries(HERITAGE_GLOSSARY)) {
+            if (tDict[cleanLang] && trans.includes(vTerm)) {
+              trans = trans.replace(new RegExp(vTerm, 'g'), tDict[cleanLang]);
+            }
+          }
+          results[text] = trans || text;
+          const textHash = Buffer.from(text).toString('base64').slice(0, 48);
+          const cacheKey = `cache:nmt:${cleanLang}:${textHash}`;
+          await cacheSet(cacheKey, results[text], 7 * 24 * 3600);
+        })
+      );
+    }
+
+    res.json({ success: true, data: results });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi dịch hàng loạt: ' + err.message });
+  }
+});
+
 /**
  * POST /api/languages
  * Thêm một ngôn ngữ mới vào hệ thống
@@ -270,39 +447,57 @@ languagesRouter.delete('/:code', async (req: Request, res: Response) => {
 /**
  * Helper: Dịch một đoạn văn bản ngắn qua Neural Machine Translation (MyMemory)
  */
-async function fetchSingleChunkNMT(chunk: string, targetLang: string): Promise<string> {
+export async function fetchSingleChunkNMT(chunk: string, targetLang: string): Promise<string> {
   if (!chunk || !chunk.trim()) return '';
   const cleanLang = targetLang.toLowerCase().trim();
+
+  // 1. Thử MyMemory
   try {
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk.trim())}&langpair=vi|${encodeURIComponent(cleanLang)}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const data: any = await res.json();
       if (data?.responseData?.translatedText) {
         let result: string = data.responseData.translatedText;
-        // Decode các thực thể HTML nếu có
         result = result
           .replace(/&#39;/g, "'")
           .replace(/&quot;/g, '"')
           .replace(/&amp;/g, '&')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>');
-        // Bỏ qua nếu là chuỗi cảnh báo quota
-        if (!result.toLowerCase().startsWith('mymemory warning') && !result.toLowerCase().includes('quota exceeded')) {
+        if (!result.toLowerCase().startsWith('mymemory warning') && !result.toLowerCase().includes('quota exceeded') && result.trim() !== chunk.trim()) {
           return result;
         }
       }
     }
   } catch (err: any) {
-    console.warn('[NMT chunk translate error]:', err.message);
+    // Fallback sang Google GTX
   }
+
+  // 2. Fallback Google Translate GTX (siêu tốc, ổn định, hỗ trợ hơn 100+ ngôn ngữ)
+  try {
+    const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=${encodeURIComponent(cleanLang)}&dt=t&q=${encodeURIComponent(chunk.trim())}`;
+    const gtxRes = await fetch(gtxUrl, { signal: AbortSignal.timeout(5000) });
+    if (gtxRes.ok) {
+      const gtxData: any = await gtxRes.json();
+      if (Array.isArray(gtxData) && Array.isArray(gtxData[0])) {
+        const trans = gtxData[0].map((item: any) => item[0]).filter(Boolean).join('');
+        if (trans && trans.trim()) {
+          return trans;
+        }
+      }
+    }
+  } catch (gtxErr: any) {
+    console.warn('[Google GTX fallback error]:', gtxErr.message);
+  }
+
   return chunk;
 }
 
 /**
  * Helper: Dịch toàn diện đoạn văn bản dài, tự động chia tách câu thông minh
  */
-async function translateTextWithNMT(text: string, targetLang: string): Promise<string> {
+export async function translateTextWithNMT(text: string, targetLang: string): Promise<string> {
   if (!text || !text.trim()) return '';
   const cleanText = text.trim();
   const tLang = targetLang.toLowerCase().trim();

@@ -27,6 +27,7 @@ import { WebcamCaptureModal } from '../components/WebcamCaptureModal';
 import { Pagination } from '../components/Pagination';
 import { copyTextToClipboard } from '../utils/clipboard';
 import { supportsNativeCameraCapture } from '../utils/device';
+import { useClientTranslation } from '../context/ClientTranslationContext';
 
 /** Cấu hình hỗ trợ số lượng ảnh linh hoạt từ 3 ảnh đến 100+ ảnh */
 const FRAME_RECOMMENDED_MIN = 12;
@@ -75,6 +76,7 @@ interface StitchResult {
 
 export const PocStitchingPage: React.FC = () => {
   const { showToast } = useToast();
+  const { t } = useClientTranslation();
   // Danh sách các khung hình chụp từ camera điện thoại đã/đang được thẩm định
   const [verifiedFrames, setVerifiedFrames] = useState<VerifiedFrame[]>([]);
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
@@ -567,10 +569,10 @@ function normalizePanoUrl(rawUrl: string): string {
         <div className="studio-title-group">
           <h2>
             <Camera size={20} />
-            Tạo & Ghép Ảnh Toàn Cảnh 360°
+            {t('stitching.title', 'Tạo & Ghép Ảnh Toàn Cảnh 360°')}
           </h2>
           <p>
-            Chụp trực tiếp bằng camera điện thoại hoặc tải lên chùm ảnh góc để ghép thành không gian tham quan 360° hoàn chỉnh.
+            {t('stitching.desc', 'Chụp trực tiếp bằng camera điện thoại hoặc tải lên chùm ảnh góc để ghép thành không gian tham quan 360° hoàn chỉnh.')}
           </p>
         </div>
       </div>
@@ -584,7 +586,7 @@ function normalizePanoUrl(rawUrl: string): string {
             <div className="studio-card-header">
               <span className="studio-card-title">
                 <Layers size={16} />
-                Nguồn ảnh đầu vào
+                {t('stitching.inputSource', 'Nguồn ảnh đầu vào')}
               </span>
               {totalFrames > 0 && (
                 <button
@@ -595,7 +597,7 @@ function normalizePanoUrl(rawUrl: string): string {
                   style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
                 >
                   <Trash2 size={13} />
-                  <span>Xóa ảnh</span>
+                  <span>{t('stitching.clearPhotos', 'Xóa ảnh')}</span>
                 </button>
               )}
             </div>
@@ -608,8 +610,8 @@ function normalizePanoUrl(rawUrl: string): string {
                     <Camera size={20} />
                     <span>
                       {verifiedFrames.length === 0
-                        ? 'Chụp camera'
-                        : `Góc tiếp (#${verifiedFrames.length + 1})`}
+                        ? t('stitching.captureCamera', 'Chụp camera')
+                        : `${t('stitching.captureCamera', 'Góc tiếp')} (#${verifiedFrames.length + 1})`}
                     </span>
                     <input
                       ref={nativeCameraInputRef}
@@ -627,16 +629,16 @@ function normalizePanoUrl(rawUrl: string): string {
                     className="studio-action-btn primary"
                     onClick={() => setIsWebcamModalOpen(true)}
                     disabled={isProcessing}
-                    title="Máy tính không mở được camera sau của điện thoại. Nút này chụp bằng webcam của máy."
+                    title={t('stitching.captureWebcam', 'Chụp bằng webcam')}
                   >
                     <Monitor size={20} />
-                    <span>Chụp bằng webcam</span>
+                    <span>{t('stitching.captureWebcam', 'Chụp bằng webcam')}</span>
                   </button>
                 )}
 
                 <label className="studio-action-btn">
                   <Upload size={20} />
-                  <span>Chọn từ máy</span>
+                  <span>{t('stitching.uploadFiles', 'Chọn từ máy')}</span>
                   <input
                     type="file"
                     multiple
@@ -650,8 +652,7 @@ function normalizePanoUrl(rawUrl: string): string {
 
               {!canUseNativeCapture && (
                 <p className="studio-device-note">
-                  Bạn đang dùng máy tính. Chụp trực tiếp từng góc cho chất lượng tốt nhất trên điện thoại; trên máy
-                  tính hãy chụp bằng webcam hoặc tải sẵn bộ ảnh lên qua nút "Chọn từ máy".
+                  {t('stitching.pcHint', 'Bạn đang dùng máy tính. Chụp trực tiếp từng góc cho chất lượng tốt nhất trên điện thoại; trên máy tính hãy chụp bằng webcam hoặc tải sẵn bộ ảnh lên qua nút "Chọn từ máy".')}
                 </p>
               )}
 
@@ -662,7 +663,7 @@ function normalizePanoUrl(rawUrl: string): string {
                 onClick={() => setIsGuideModalOpen(true)}
               >
                 <HelpCircle size={15} style={{ color: 'var(--accent-gold)' }} />
-                <span>Hướng dẫn cách chụp ảnh 360° chuẩn</span>
+                <span>{t('stitching.shootingGuide', 'Hướng dẫn cách chụp ảnh 360° chuẩn')}</span>
               </button>
 
               {/* Thanh tóm tắt số lượng, luôn hiển thị ở đầu khối để không phải cuộn tìm */}
@@ -851,7 +852,7 @@ function normalizePanoUrl(rawUrl: string): string {
                 style={{ width: '100%', justifyContent: 'center' }}
               >
                 <Eye size={15} />
-                <span>Nạp ảnh mẫu 360° chuẩn</span>
+                <span>{t('stitching.loadSample', 'Nạp ảnh mẫu 360° chuẩn')}</span>
               </button>
 
               {/* Error message */}
@@ -869,10 +870,10 @@ function normalizePanoUrl(rawUrl: string): string {
         <div className="studio-viewer-col" ref={viewerSectionRef}>
           <div className="studio-card">
             <div className="studio-card-header" style={{ flexWrap: 'wrap', gap: 10 }}>
-              <span className="studio-card-title" style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={stitchResult ? stitchResult.filename : 'Trình xem trước không gian 360°'}>
+              <span className="studio-card-title" style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={stitchResult ? stitchResult.filename : t('stitching.previewTitle', 'Trình xem trước không gian 360°')}>
                 <Globe size={16} style={{ flexShrink: 0 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {stitchResult ? stitchResult.filename : 'Trình xem trước không gian 360°'}
+                  {stitchResult ? stitchResult.filename : t('stitching.previewTitle', 'Trình xem trước không gian 360°')}
                 </span>
               </span>
 
@@ -948,10 +949,10 @@ function normalizePanoUrl(rawUrl: string): string {
                     <Globe size={26} />
                   </div>
                   <div className="studio-empty-title">
-                    Chưa có không gian 360° được tải
+                    {t('stitching.noSpace', 'Chưa có không gian 360° được tải')}
                   </div>
                   <div className="studio-empty-desc">
-                    Chụp trực tiếp bằng điện thoại, tải ảnh PANO lên từ bảng điều khiển bên trái, hoặc bấm xem thử không gian mẫu để làm quen giao diện.
+                    {t('stitching.noSpaceDesc', 'Chụp trực tiếp bằng điện thoại, tải ảnh PANO lên từ bảng điều khiển bên trái, hoặc bấm xem thử không gian mẫu để làm quen giao diện.')}
                   </div>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
                     <button
@@ -960,7 +961,7 @@ function normalizePanoUrl(rawUrl: string): string {
                       onClick={handleLoadDemoPano}
                     >
                       <Eye size={14} />
-                      <span>Xem thử không gian mẫu</span>
+                      <span>{t('stitching.viewSample', 'Xem thử không gian mẫu')}</span>
                     </button>
                     <button
                       type="button"
@@ -968,7 +969,7 @@ function normalizePanoUrl(rawUrl: string): string {
                       onClick={() => setIsGuideModalOpen(true)}
                     >
                       <HelpCircle size={14} />
-                      <span>Xem hướng dẫn chụp</span>
+                      <span>{t('stitching.viewGuide', 'Xem hướng dẫn chụp')}</span>
                     </button>
                   </div>
                 </div>
@@ -984,7 +985,7 @@ function normalizePanoUrl(rawUrl: string): string {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <History size={16} style={{ color: 'var(--primary)' }} />
             <h3 className="panel-title">
-              Thư viện không gian 360° đã tạo ({historyList.length})
+              {t('stitching.libraryTitle', 'Thư viện không gian 360° đã tạo')} ({historyList.length})
             </h3>
           </div>
 
@@ -993,11 +994,11 @@ function normalizePanoUrl(rawUrl: string): string {
             className="btn btn-secondary btn-sm"
             onClick={() => fetchHistory(true)}
             disabled={loadingHistory}
-            title="Tải lại danh sách ảnh 360° mới nhất từ máy chủ"
+            title={t('common.refresh', 'Làm mới')}
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <RotateCw size={13} className={loadingHistory ? 'spin' : ''} />
-            <span>{loadingHistory ? 'Đang đồng bộ...' : 'Làm mới'}</span>
+            <span>{loadingHistory ? t('common.loading', 'Đang đồng bộ...') : t('common.refresh', 'Làm mới')}</span>
           </button>
         </div>
 
@@ -1011,10 +1012,10 @@ function normalizePanoUrl(rawUrl: string): string {
             <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
               <HardDrive size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
               <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                Chưa có không gian 360° nào trong thư viện
+                {t('stitching.noSpaceInLibrary', 'Chưa có không gian 360° nào trong thư viện')}
               </p>
               <p style={{ fontSize: '12.5px' }}>
-                Ảnh sau khi tạo thành công sẽ được tự động lưu trữ tại đây để bạn có thể xem lại hoặc liên kết vào gian phòng.
+                {t('stitching.libraryEmptyDesc', 'Ảnh sau khi tạo thành công sẽ được tự động lưu trữ tại đây để bạn có thể xem lại hoặc liên kết vào gian phòng.')}
               </p>
             </div>
           ) : (
@@ -1023,9 +1024,9 @@ function normalizePanoUrl(rawUrl: string): string {
                 {paginatedHistory.map((item, idx) => (
                   <div key={item.filename || idx} className="studio-history-card">
                     <div
-                      className="studio-history-thumb"
+                      className="studio-history-preview"
                       onClick={() => handleSelectHistoryPano(item)}
-                      title="Bấm để xoay xem toàn cảnh 360°"
+                      title={t('stitching.clickToViewPano', 'Nhấp để xem ảnh toàn cảnh 360° này')}
                     >
                       <img
                         src={item.url}
@@ -1039,7 +1040,7 @@ function normalizePanoUrl(rawUrl: string): string {
                       </div>
                       <div className="studio-history-overlay-hint">
                         <Eye size={13} />
-                        <span>Xoay xem 360°</span>
+                        <span>{t('stitching.rotateView', 'Xoay xem 360°')}</span>
                       </div>
                     </div>
 
@@ -1064,7 +1065,7 @@ function normalizePanoUrl(rawUrl: string): string {
                           style={{ flex: 1, justifyContent: 'center', fontWeight: 600, gap: 5 }}
                         >
                           <Eye size={13} />
-                          <span>Xem</span>
+                          <span>{t('common.view', 'Xem')}</span>
                         </button>
 
                         <button
@@ -1103,7 +1104,7 @@ function normalizePanoUrl(rawUrl: string): string {
                   setHistoryPage(1);
                 }}
                 pageSizeOptions={[6, 9, 12, 18, 24]}
-                itemLabel="không gian 360°"
+                itemLabel={t('stitching.spaceItemLabel', 'không gian 360°')}
               />
             </>
           )}

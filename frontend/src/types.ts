@@ -80,6 +80,8 @@ export interface TopicItem {
 
 export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'languages' | 'analytics' | 'settings';
 
+
+
 export interface AuthUser {
   id: string;
   username: string;

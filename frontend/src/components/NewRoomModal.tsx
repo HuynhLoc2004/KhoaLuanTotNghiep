@@ -3,6 +3,7 @@ import { X, Upload, Loader2, Image as ImageIcon, Layers } from 'lucide-react';
 import { MuseumRoom, TopicItem } from '../types';
 import { api } from '../services/api';
 import { TopicManagementModal } from './TopicManagementModal';
+import { useClientTranslation } from '../context/ClientTranslationContext';
 
 interface NewRoomModalProps {
   onClose: () => void;
@@ -17,6 +18,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
   initialPanoramaUrl,
   panoramas = []
 }) => {
+  const { t } = useClientTranslation();
   const [code, setCode] = useState(`P-${100 + Math.floor(Math.random() * 900)}`);
   const [name, setName] = useState('');
   const [period, setPeriod] = useState('');
@@ -52,7 +54,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
       const res = await api.uploadPanorama(file);
       setPanoramaUrl(res.url);
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải ảnh lên');
+      setError(err.message || t('rooms.uploadError', 'Lỗi khi tải ảnh lên'));
     } finally {
       setUploading(false);
     }
@@ -61,7 +63,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !panoramaUrl.trim()) {
-      setError('Vui lòng nhập tên gian phòng và cung cấp ảnh Panorama 360');
+      setError(t('rooms.fillRequiredFields', 'Vui lòng nhập tên gian phòng và cung cấp ảnh Panorama 360'));
       return;
     }
 
@@ -80,7 +82,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
       });
       onCreated(created);
     } catch (err: any) {
-      setError(err.message || 'Lỗi thêm gian phòng mới');
+      setError(err.message || t('rooms.createError', 'Lỗi thêm gian phòng mới'));
       setLoading(false);
     }
   };
@@ -90,13 +92,13 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
       <div className="modal-card" style={{ maxWidth: 540 }}>
         <div className="modal-header">
           <h2 className="modal-title" style={{ fontSize: '17px', margin: 0 }}>
-            Thêm gian phòng trưng bày mới
+            {t('rooms.addNewRoomTitle', 'Thêm gian phòng trưng bày mới')}
           </h2>
           <button
             type="button"
             className="modal-close-btn"
             onClick={onClose}
-            aria-label="Đóng"
+            aria-label={t('common.close', 'Đóng')}
           >
             <X size={18} />
           </button>
@@ -121,7 +123,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
 
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
               <div className="form-group">
-                <label className="form-label">Mã phòng *</label>
+                <label className="form-label">{t('rooms.roomCode', 'Mã phòng')} *</label>
                 <input
                   type="text"
                   className="form-control"
@@ -133,13 +135,13 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Tên gian trưng bày *</label>
+                <label className="form-label">{t('rooms.roomName', 'Tên gian trưng bày')} *</label>
                 <input
                   type="text"
                   className="form-control"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ví dụ: Gian Văn hóa Óc Eo..."
+                  placeholder={t('rooms.roomNamePlaceholder', 'Ví dụ: Gian Văn hóa Óc Eo...')}
                   required
                 />
               </div>
@@ -147,16 +149,16 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
 
             <div className="form-group">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label className="form-label" style={{ margin: 0 }}>Chuyên đề trưng bày *</label>
+                <label className="form-label" style={{ margin: 0 }}>{t('rooms.exhibitionTopic', 'Chuyên đề trưng bày')} *</label>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => setShowTopicModal(true)}
                   style={{ fontSize: '11px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                  title="Quản lý và thêm mới chuyên đề"
+                  title={t('rooms.manageTopicsTitle', 'Quản lý và thêm mới chuyên đề')}
                 >
                   <Layers size={12} style={{ color: 'var(--accent-gold)' }} />
-                  <span>Quản lý chuyên đề</span>
+                  <span>{t('rooms.manageTopics', 'Quản lý chuyên đề')}</span>
                 </button>
               </div>
               <select
@@ -165,31 +167,31 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                 onChange={(e) => setPeriod(e.target.value)}
                 required
               >
-                <option value="">-- Chọn chuyên đề trưng bày --</option>
-                {topics.map((t) => (
-                  <option key={t.id} value={t.name}>{t.name}</option>
+                <option value="">{t('rooms.selectTopic', '-- Chọn chuyên đề trưng bày --')}</option>
+                {topics.map((tItem) => (
+                  <option key={tItem.id} value={tItem.name}>{tItem.name}</option>
                 ))}
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Giới thiệu tổng quan</label>
+              <label className="form-label">{t('rooms.generalIntro', 'Giới thiệu tổng quan')}</label>
               <textarea
                 className="form-control"
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Mô tả tóm tắt nội dung, hiện vật trưng bày trong gian phòng..."
+                placeholder={t('rooms.generalIntroPlaceholder', 'Mô tả tóm tắt nội dung, hiện vật trưng bày trong gian phòng...')}
                 style={{ resize: 'vertical' }}
               />
             </div>
 
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Ảnh toàn cảnh 360° (Equirectangular 2:1) *</span>
+                <span>{t('rooms.panoramaLabel', 'Ảnh toàn cảnh 360° (Equirectangular 2:1)')} *</span>
                 {panoramaUrl && (
                   <span style={{ fontSize: 11.5, color: 'var(--accent-gold)', fontWeight: 600 }}>
-                    Đã nạp ảnh
+                    {t('rooms.imageLoaded', 'Đã nạp ảnh')}
                   </span>
                 )}
               </label>
@@ -208,7 +210,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                       }
                     }}
                   >
-                    <option value="">-- Chọn ảnh toàn cảnh có sẵn trong Kho 360° ({panoramas.length} ảnh) --</option>
+                    <option value="">-- {t('rooms.selectFromExistingPano', 'Chọn ảnh toàn cảnh có sẵn trong Kho 360°')} ({panoramas.length}) --</option>
                     {panoramas.map((p, idx) => (
                       <option key={p.filename || idx} value={p.url}>
                         {p.filename} {p.date ? `(${p.date})` : ''}
@@ -225,7 +227,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                   className="form-control"
                   value={panoramaUrl}
                   onChange={(e) => setPanoramaUrl(e.target.value)}
-                  placeholder="Dán đường dẫn ảnh 360° (Cloudinary, Cloudflare R2, URL trực tiếp)..."
+                  placeholder={t('rooms.panoramaUrlPlaceholder', 'Dán đường dẫn ảnh 360° (Cloudinary, Cloudflare R2, URL trực tiếp)...')}
                   style={{ fontSize: 12.5, flex: 1 }}
                   required
                 />
@@ -243,7 +245,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                   }}
                 >
                   <Upload size={14} />
-                  <span>{uploading ? 'Đang tải...' : 'Tải tệp ảnh'}</span>
+                  <span>{uploading ? t('common.uploading', 'Đang tải...') : t('rooms.uploadImageBtn', 'Tải tệp ảnh')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -257,7 +259,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
               {uploading && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', color: 'var(--text-muted)', marginTop: 6 }}>
                   <Loader2 size={13} className="spin" />
-                  <span>Đang tải ảnh lên máy chủ...</span>
+                  <span>{t('rooms.uploadingToServer', 'Đang tải ảnh lên máy chủ...')}</span>
                 </div>
               )}
 
@@ -270,13 +272,13 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                   <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(15, 23, 42, 0.8)', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>
-                    Xem trước ảnh cầu 360°
+                    {t('rooms.preview360Spherical', 'Xem trước ảnh cầu 360°')}
                   </div>
                   <button
                     type="button"
                     onClick={() => setPanoramaUrl('')}
                     style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239, 68, 68, 0.85)', color: '#FFFFFF', border: 'none', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    title="Xóa ảnh này"
+                    title={t('common.deleteImage', 'Xóa ảnh này')}
                   >
                     <X size={12} />
                   </button>
@@ -287,16 +289,16 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
 
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
-              Hủy bỏ
+              {t('common.cancel', 'Hủy bỏ')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading || uploading}>
               {loading ? (
                 <>
                   <Loader2 size={14} className="spin" />
-                  <span>Đang lưu...</span>
+                  <span>{t('common.saving', 'Đang lưu...')}</span>
                 </>
               ) : (
-                'Tạo gian phòng'
+                t('rooms.createRoomBtn', 'Tạo gian phòng')
               )}
             </button>
           </div>
