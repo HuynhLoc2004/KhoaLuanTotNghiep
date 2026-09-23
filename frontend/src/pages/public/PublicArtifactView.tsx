@@ -371,17 +371,15 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                 modelUrl={
                   artifact.model3dUrl.startsWith('http')
                     ? artifact.model3dUrl
-                    : `${API_ROOT}${artifact.model3dUrl}`
+                    : `${API_ROOT}${artifact.model3dUrl.startsWith('/') ? '' : '/'}${artifact.model3dUrl}`
                 }
                 artifactName={displayName}
                 autoRotateSpeed={0.8}
                 audioNarrationUrl={activeAudioUrl || undefined}
+                translations={artifact.translations}
+                autoPlayAudio={true}
                 height="100%"
               />
-              <div className="stage-badge">
-                <Sparkles size={14} className="sparkle-icon" />
-                <span>MÔ PHỎNG 3D XOAY 360° ĐĨA NGỌC NERO MARQUINA</span>
-              </div>
             </div>
           ) : (
             <div className="artifact-static-hero">

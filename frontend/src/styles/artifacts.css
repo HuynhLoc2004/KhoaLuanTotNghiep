@@ -98,34 +98,192 @@
 }
 
 .public-artifact-header {
-  height: 60px;
+  min-height: 56px;
+  height: 56px;
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 16px;
   position: sticky;
   top: 0;
   z-index: 50;
   box-shadow: var(--shadow-sm);
+  gap: 10px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.back-btn:hover {
+  background: var(--bg-surface);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.divider-vertical {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-color);
+  flex-shrink: 0;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.museum-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--heading-color);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.artifact-code-badge {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--accent-gold);
+  background: var(--accent-gold-light, rgba(212, 168, 106, 0.12));
+  border: 1px solid var(--accent-gold-border, rgba(212, 168, 106, 0.3));
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.lang-selector-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  max-width: 320px;
+  padding: 2px;
+  scrollbar-width: none;
+}
+
+.lang-selector-group::-webkit-scrollbar {
+  display: none;
+}
+
+.lang-btn {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.lang-btn:hover {
+  border-color: var(--accent-gold);
+  color: var(--heading-color);
+}
+
+.lang-btn.active {
+  background: var(--accent-gold-light, rgba(212, 168, 106, 0.15));
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.action-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.action-icon-btn:hover {
+  background: var(--bg-surface);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
 }
 
 .public-artifact-main {
   flex: 1;
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 56px);
+  width: 100%;
 }
 
 .artifact-visual-stage {
   position: sticky;
-  top: 60px;
-  height: calc(100vh - 60px);
-  background-color: #0E0B09;
+  top: 56px;
+  height: calc(100vh - 56px);
+  background-color: #0c0e14;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.turntable-360-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.stage-badge {
+  display: none;
 }
 
 .artifact-info-sidebar {
@@ -270,17 +428,59 @@
 
 @media (max-width: 1024px) {
   .public-artifact-main {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
   }
   .artifact-visual-stage {
     position: relative;
     top: 0;
+    width: 100%;
     height: 480px;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
   }
   .artifact-info-sidebar {
     padding: 24px 20px 48px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .public-artifact-header {
+    height: 52px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .back-btn {
+    padding: 6px 8px;
+  }
+  .back-btn .back-text {
+    display: none;
+  }
+  .divider-vertical {
+    display: none;
+  }
+  .museum-name {
+    max-width: 120px;
+    font-size: 11px;
+  }
+  .lang-selector-group {
+    max-width: 150px;
+  }
+  .lang-btn {
+    padding: 3px 6px;
+    font-size: 10.5px;
+  }
+  .action-icon-btn {
+    width: 30px;
+    height: 30px;
+  }
+  .artifact-visual-stage {
+    height: 420px;
+  }
+  .artifact-info-sidebar {
+    padding: 20px 16px 40px 16px;
+    gap: 18px;
   }
 }
 
@@ -293,6 +493,52 @@
   }
   .artifact-title {
     font-size: 20px;
+  }
+  .specifications-box,
+  .description-box,
+  .photo-gallery-section {
+    padding: 14px 16px;
+  }
+  .turntable-header-info {
+    max-width: calc(100% - 170px) !important;
+  }
+  .turntable-stats-badge {
+    display: none !important;
+  }
+  .turntable-toolbar {
+    gap: 4px !important;
+    top: 10px !important;
+    right: 10px !important;
+  }
+  .turntable-toolbar button {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  .turntable-audio-bar {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    padding: 6px 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .museum-name {
+    display: none;
+  }
+  .lang-selector-group {
+    max-width: 120px;
+  }
+  .artifact-visual-stage {
+    height: 340px;
+  }
+  .artifact-title {
+    font-size: 18px;
+  }
+  .turntable-header-info {
+    max-width: calc(100% - 150px) !important;
+    left: 10px !important;
+    top: 10px !important;
   }
 }
 

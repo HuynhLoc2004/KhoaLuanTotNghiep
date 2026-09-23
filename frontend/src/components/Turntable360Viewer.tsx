@@ -298,21 +298,30 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
 
     animFrameIdRef.current = requestAnimationFrame(animate);
 
-    // Responsive Resize Handler
+    // Responsive Resize Handler (ResizeObserver + Window Listener)
     const handleResize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
       const newWidth = containerRef.current.clientWidth;
-      const newHeight = typeof height === 'number' ? height : containerRef.current.clientHeight || 520;
+      const newHeight = containerRef.current.clientHeight || (typeof height === 'number' ? height : 520);
+      if (newWidth === 0 || newHeight === 0) return;
 
       cameraRef.current.aspect = newWidth / newHeight;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(newWidth, newHeight);
     };
 
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (resizeObserver) resizeObserver.disconnect();
       if (animFrameIdRef.current) {
         cancelAnimationFrame(animFrameIdRef.current);
       }
@@ -575,45 +584,50 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
 
       {/* Header Info Overlay */}
       <div
+        className="turntable-header-info"
         style={{
           position: 'absolute',
-          top: 14,
-          left: 16,
+          top: 12,
+          left: 14,
           display: 'flex',
           flexDirection: 'column',
           gap: 3,
           pointerEvents: 'none',
-          zIndex: 10
+          zIndex: 10,
+          maxWidth: 'calc(100% - 175px)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <span
             style={{
               fontSize: '0.72rem',
               fontWeight: 600,
               letterSpacing: '0.04em',
-              padding: '3px 10px',
+              padding: '3px 8px',
               borderRadius: 16,
               background: 'rgba(212, 168, 106, 0.15)',
               color: 'var(--accent-gold, #d4a86a)',
               border: '1px solid rgba(212, 168, 106, 0.3)',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 5
+              gap: 4,
+              whiteSpace: 'nowrap'
             }}
           >
-            <Box size={13} />
-            Không gian trưng bày 3D
+            <Box size={12} />
+            Không gian 3D
           </span>
           {modelStats && (
             <span
+              className="turntable-stats-badge"
               style={{
-                fontSize: '0.7rem',
+                fontSize: '0.68rem',
                 color: 'rgba(255, 255, 255, 0.65)',
                 background: 'rgba(0, 0, 0, 0.5)',
-                padding: '3px 8px',
+                padding: '2px 7px',
                 borderRadius: 12,
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                whiteSpace: 'nowrap'
               }}
             >
               {modelStats.faces.toLocaleString()} mặt lưới
@@ -622,11 +636,14 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         </div>
         <h3
           style={{
-            margin: '4px 0 0 0',
-            fontSize: '1.15rem',
+            margin: '3px 0 0 0',
+            fontSize: '1.05rem',
             fontWeight: 600,
             color: '#ffffff',
-            textShadow: '0 2px 6px rgba(0, 0, 0, 0.8)'
+            textShadow: '0 2px 6px rgba(0, 0, 0, 0.8)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
           }}
         >
           {artifactName}
@@ -634,9 +651,12 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         <p
           style={{
             margin: 0,
-            fontSize: '0.8rem',
+            fontSize: '0.76rem',
             color: 'rgba(255, 255, 255, 0.65)',
-            textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)'
+            textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
           }}
         >
           {artifactPeriod}
@@ -763,14 +783,18 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         <div
           style={{
             position: 'absolute',
-            top: 16,
-            right: 16,
-            background: 'rgba(239, 68, 68, 0.9)',
+            top: 50,
+            left: 12,
+            right: 12,
+            background: 'rgba(220, 38, 38, 0.92)',
+            backdropFilter: 'blur(8px)',
             color: '#fff',
-            padding: '8px 14px',
-            borderRadius: 6,
-            fontSize: '0.8rem',
-            zIndex: 20
+            padding: '7px 12px',
+            borderRadius: 8,
+            fontSize: '0.78rem',
+            zIndex: 25,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            textAlign: 'center'
           }}
         >
           {modelError}
@@ -779,12 +803,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
 
       {/* Thanh Công Cụ Điều Khiển (Góc phải trên) */}
       <div
+        className="turntable-toolbar"
         style={{
           position: 'absolute',
-          top: 14,
-          right: 14,
+          top: 12,
+          right: 12,
           display: 'flex',
-          gap: 6,
+          gap: 5,
           zIndex: 10
         }}
       >
@@ -907,16 +932,17 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
       {/* Thanh Phát Audio Thuyết Minh */}
       {fullAudioUrl && (
         <div
+          className="turntable-audio-bar"
           style={{
             position: 'absolute',
-            bottom: 14,
-            left: 16,
-            right: 16,
-            background: 'rgba(15, 18, 26, 0.9)',
+            bottom: 12,
+            left: 14,
+            right: 14,
+            background: 'rgba(15, 18, 26, 0.92)',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: 10,
-            padding: '8px 14px',
+            padding: '8px 12px',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -1029,8 +1055,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           style={{
             position: 'absolute',
             bottom: 12,
-            left: 0,
-            right: 0,
+            left: 12,
+            right: 12,
             display: 'flex',
             justifyContent: 'center',
             pointerEvents: 'none'
@@ -1038,16 +1064,17 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         >
           <span
             style={{
-              fontSize: '0.72rem',
-              color: 'rgba(255, 255, 255, 0.6)',
-              background: 'rgba(15, 18, 26, 0.75)',
-              padding: '4px 14px',
+              fontSize: '0.7rem',
+              color: 'rgba(255, 255, 255, 0.65)',
+              background: 'rgba(15, 18, 26, 0.8)',
+              padding: '4px 12px',
               borderRadius: 16,
-              backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
+              backdropFilter: 'blur(6px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              textAlign: 'center'
             }}
           >
-            Kéo chuột để xoay 360° • Cuộn để phóng to / thu nhỏ
+            Chạm & xoay 360° • Cuộn / chụm để phóng to
           </span>
         </div>
       )}
