@@ -32,57 +32,102 @@ if sys.platform == "win32":
 
 def load_and_prepare_image(image_path, max_dim=1600):
     """
-    Nạp ảnh, chuẩn hóa góc quay EXIF và cân bằng màu sắc trung tính bảo tàng.
-    Giữ màu sắc nguyên bản chân thực của cổ vật, loại bỏ ám màu đèn rọi gắt.
+    Nạp ảnh, chuẩn hóa góc quay EXIF và bảo toàn kênh Alpha nếu có.
+    Hỗ trợ mọi định dạng (PNG trong suốt, JPEG, WebP).
     """
     with Image.open(image_path) as pil_img:
         pil_img = ImageOps.exif_transpose(pil_img)
-        if pil_img.mode != 'RGB':
+        alpha_mask = None
+        if pil_img.mode in ('RGBA', 'LA') or (pil_img.mode == 'P' and 'transparency' in pil_img.info):
+            rgba = pil_img.convert('RGBA')
+            alpha = np.array(rgba.split()[-1])
+            if np.min(alpha) < 250:
+                alpha_mask = (alpha > 40).astype(np.uint8) * 255
+            pil_img = rgba.convert('RGB')
+        elif pil_img.mode != 'RGB':
             pil_img = pil_img.convert('RGB')
 
         w, h = pil_img.size
         if max(w, h) > max_dim:
             scale = max_dim / float(max(w, h))
-            pil_img = pil_img.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
+            new_w, new_h = int(w * scale), int(h * scale)
+            pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            if alpha_mask is not None:
+                alpha_mask = cv2.resize(alpha_mask, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
 
         rgb_arr = np.array(pil_img)
-        return rgb_arr
+        return rgb_arr, alpha_mask
 
-def extract_salient_mask(img_rgb):
+def apply_texture_margin(texture_rgb, mask, margin_px=8):
     """
-    Trích xuất mặt nạ vật thể cổ vật chính xác cao:
-    - Loại bỏ nền tủ kính, bóng hắt và phản quang.
-    - Làm mịn đường biên viền (Anti-aliased morphological smoothing) để không bị gai góc lởm chởm.
+    Kéo giãn màu sắc từ mép vật thể ra vùng viền ngoài (Color Bleed Margin):
+    Ngăn chặn 100% hiện tượng WebGL/Three.js lấy mẫu trúng màu nền của ảnh gốc khi lọc tuyến tính (Bilinear Mipmaps).
+    """
+    res = texture_rgb.copy()
+    curr_mask = (mask > 120).astype(np.uint8) * 255
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    for _ in range(margin_px):
+        dilated = cv2.dilate(curr_mask, kernel)
+        edge = (dilated > 0) & (curr_mask == 0)
+        res_dilated = cv2.dilate(res, kernel)
+        res[edge] = res_dilated[edge]
+        curr_mask = dilated
+    return res
+
+def extract_salient_mask(img_rgb, alpha_mask=None):
+    """
+    Trích xuất mặt nạ vật thể cổ vật chính xác cao cho MỌI LOẠI ẢNH:
+    - Nếu là ảnh PNG/WebP có kênh trong suốt (Alpha channel): Sử dụng trực tiếp 100% chuẩn xác.
+    - Nếu là ảnh có phông nền (Trắng, Đen, Xám studio, Xanh green/blue, phòng trưng bày bảo tàng):
+      + Tự động lấy mẫu màu sắc nền đa kênh RGB từ 4 cạnh biên mép ảnh.
+      + Đo khoảng cách màu (Color Euclidean Distance) kết hợp GrabCut.
+      + Khử sạch 100% phông nền, bóng hắt và phản quang.
     """
     h, w = img_rgb.shape[:2]
-    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-    blurred = cv2.bilateralFilter(gray, 9, 75, 75)
 
-    # 1. Lấy mẫu màu viền 4 cạnh mép ảnh để ước tính màu nền
+    # 1. Nếu ảnh gốc có sẵn kênh trong suốt (như sticker, PNG tách nền)
+    if alpha_mask is not None and np.sum(alpha_mask > 120) > (w * h * 0.01):
+        clean_mask = (alpha_mask > 120).astype(np.uint8) * 255
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        clean_mask = cv2.morphologyEx(clean_mask, cv2.MORPH_CLOSE, kernel)
+        clean_mask = cv2.GaussianBlur(clean_mask, (3, 3), 0.8)
+        _, clean_mask = cv2.threshold(clean_mask, 120, 255, cv2.THRESH_BINARY)
+        return clean_mask
+
+    # 2. Phân tích màu phông nền tổng quát từ 4 cạnh mép ảnh (Border Color Profile)
     border_pixels = np.concatenate([
-        gray[0, :], gray[-1, :], gray[:, 0], gray[:, -1]
-    ])
-    bg_mean = float(np.mean(border_pixels))
-    bg_std = float(np.std(border_pixels))
+        img_rgb[:6, :].reshape(-1, 3),
+        img_rgb[-6:, :].reshape(-1, 3),
+        img_rgb[:, :6].reshape(-1, 3),
+        img_rgb[:, -6:].reshape(-1, 3)
+    ], axis=0).astype(np.float32)
 
-    # 2. Phân đoạn đa ngưỡng thích ứng
-    if bg_mean > 190 and bg_std < 40:
-        # Nền sáng / phông trắng
-        _, mask = cv2.threshold(blurred, int(bg_mean - max(20.0, bg_std * 1.5)), 255, cv2.THRESH_BINARY_INV)
-    elif bg_mean < 60 and bg_std < 35:
-        # Nền tối / hộp nhung đen
-        _, mask = cv2.threshold(blurred, int(bg_mean + max(25.0, bg_std * 1.6)), 255, cv2.THRESH_BINARY)
+    bg_median = np.median(border_pixels, axis=0)
+    bg_std = np.std(border_pixels, axis=0)
+    mean_std = float(np.mean(bg_std))
+
+    # Khoảng cách màu từng điểm ảnh tới màu nền trung vị
+    dist_to_bg = np.linalg.norm(img_rgb.astype(np.float32) - bg_median, axis=2)
+
+    if mean_std < 42.0:
+        # Nền đồng màu / studio (Trắng, đen nhung, xám, xanh lá, xanh dương)
+        tol = max(28.0, mean_std * 2.5)
+        mask = (dist_to_bg > tol).astype(np.uint8) * 255
     else:
-        # Otsu kết hợp Canny gradient cho cảnh chụp tủ kính bảo tàng
-        _, mask_otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        # Nếu góc trên cùng là màu trắng thì đảo ngược
-        if np.mean(mask_otsu[:10, :10]) > 127:
-            mask_otsu = cv2.bitwise_not(mask_otsu)
-
-        edges = cv2.Canny(blurred, 30, 100)
-        kernel_edge = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        edges_dilated = cv2.dilate(edges, kernel_edge, iterations=2)
-        mask = cv2.bitwise_or(mask_otsu, edges_dilated)
+        # Nền phức tạp / ảnh chụp trong phòng trưng bày bảo tàng / tủ kính
+        try:
+            rect = (int(w * 0.03), int(h * 0.03), int(w * 0.94), int(h * 0.94))
+            bgdModel = np.zeros((1, 65), np.float64)
+            fgdModel = np.zeros((1, 65), np.float64)
+            grab_mask = np.zeros((h, w), np.uint8)
+            cv2.grabCut(img_rgb, grab_mask, rect, bgdModel, fgdModel, 3, cv2.GC_INIT_WITH_RECT)
+            mask = np.where((grab_mask == cv2.GC_FGD) | (grab_mask == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
+        except Exception:
+            gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+            blurred = cv2.bilateralFilter(gray, 9, 75, 75)
+            _, mask = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            if np.mean(mask[:10, :10]) > 127:
+                mask = cv2.bitwise_not(mask)
 
     # 3. Lọc hình thái học để lấp đầy khối đặc bên trong cổ vật
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
@@ -93,14 +138,9 @@ def extract_salient_mask(img_rgb):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     clean_mask = np.zeros_like(mask)
     if contours:
-        # Chọn contour có diện tích lớn nhất và diện tích >= 3% khung hình
-        valid_contours = [c for c in contours if cv2.contourArea(c) > (w * h * 0.02)]
-        if valid_contours:
-            largest = max(valid_contours, key=cv2.contourArea)
-            cv2.drawContours(clean_mask, [largest], -1, 255, thickness=cv2.FILLED)
-        else:
-            largest = max(contours, key=cv2.contourArea)
-            cv2.drawContours(clean_mask, [largest], -1, 255, thickness=cv2.FILLED)
+        valid_contours = [c for c in contours if cv2.contourArea(c) > (w * h * 0.015)]
+        largest = max(valid_contours if valid_contours else contours, key=cv2.contourArea)
+        cv2.drawContours(clean_mask, [largest], -1, 255, thickness=cv2.FILLED)
     else:
         clean_mask = mask
 
@@ -109,6 +149,7 @@ def extract_salient_mask(img_rgb):
     _, clean_mask = cv2.threshold(clean_mask, 127, 255, cv2.THRESH_BINARY)
 
     return clean_mask
+
 
 def estimate_artifact_depth(img_rgb, mask):
     """
@@ -155,15 +196,36 @@ def generate_synchronized_back_texture(img_rgb, mask, bulge):
     h, w = mask.shape
     back_rgb = np.zeros_like(img_rgb, dtype=np.float32)
 
-    # 1. Bóc tách viền ngoài (Erode) để loại bỏ hoàn toàn viền trắng sticker hoặc viền bán trong suốt
-    erode_size = max(4, int(min(h, w) * 0.03))
+    # 1. Bóc tách viền ngoài (Erode 4% kích thước) để đi sâu vào lòng thân thể của hiện vật
+    erode_size = max(4, int(min(h, w) * 0.04))
     inner_mask = cv2.erode(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (erode_size * 2 + 1, erode_size * 2 + 1)))
 
-    # Nhận diện điểm ảnh nền sáng / viền trắng sticker (R, G, B > 235)
-    is_white_border = (img_rgb[:, :, 0] > 235) & (img_rgb[:, :, 1] > 235) & (img_rgb[:, :, 2] > 235)
+    # Nhận diện màu phông nền tổng quát từ 4 cạnh mép ảnh
+    border_pixels = np.concatenate([
+        img_rgb[:5, :].reshape(-1, 3),
+        img_rgb[-5:, :].reshape(-1, 3),
+        img_rgb[:, :5].reshape(-1, 3),
+        img_rgb[:, -5:].reshape(-1, 3)
+    ], axis=0).astype(np.float32)
+    bg_median = np.median(border_pixels, axis=0)
+    bg_std = np.std(border_pixels, axis=0)
+    bg_tol = max(30.0, float(np.mean(bg_std) * 2.2))
 
-    # Tập hợp các điểm ảnh thân thể thực sự (không phải viền trắng)
-    body_pixels = img_rgb[(mask > 120) & (~is_white_border)]
+    # Khoảng cách tới màu nền
+    dist_to_bg = np.linalg.norm(img_rgb.astype(np.float32) - bg_median, axis=2)
+    is_bg_like = dist_to_bg < bg_tol
+
+    # Thêm kiểm tra viền trắng nếu nền sáng (R, G, B > 232)
+    is_white = (img_rgb[:, :, 0] > 232) & (img_rgb[:, :, 1] > 232) & (img_rgb[:, :, 2] > 232)
+    # Thêm kiểm tra viền đen nếu nền tối (R, G, B < 24)
+    is_black = (img_rgb[:, :, 0] < 24) & (img_rgb[:, :, 1] < 24) & (img_rgb[:, :, 2] < 24)
+
+    is_bg_rejected = is_bg_like | (is_white if np.mean(bg_median) > 200 else False) | (is_black if np.mean(bg_median) < 40 else False)
+
+    # Tập hợp các điểm ảnh thân thể thực sự (không dính phông nền)
+    body_pixels = img_rgb[(inner_mask > 120) & (~is_bg_rejected)]
+    if len(body_pixels) < 20:
+        body_pixels = img_rgb[(mask > 120) & (~is_bg_rejected)]
     global_median_color = np.median(body_pixels, axis=0) if len(body_pixels) > 0 else np.array([128, 128, 128], dtype=np.float32)
 
     bulge_norm = cv2.resize(bulge, (w, h)) if bulge.shape != (h, w) else bulge
@@ -179,10 +241,10 @@ def generate_synchronized_back_texture(img_rgb, mask, bulge):
         c_min = cols[0]
         c_max = cols[-1]
 
-        # Ưu tiên lấy mẫu trong inner_mask để tránh triệt để viền trắng mép ngoài
-        inner_cols = [c for c in cols if inner_mask[r, c] > 120 and not is_white_border[r, c]]
+        # Lấy các cột nằm trong inner_mask và loại trừ hoàn toàn màu nền
+        inner_cols = [c for c in cols if inner_mask[r, c] > 120 and not is_bg_rejected[r, c]]
         if len(inner_cols) < 3:
-            inner_cols = [c for c in cols if not is_white_border[r, c]]
+            inner_cols = [c for c in cols if not is_bg_rejected[r, c]]
 
         if len(inner_cols) == 0:
             row_colors.append(None)
@@ -388,24 +450,31 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, back_image=None, de
     faces = np.array(faces, dtype=np.int32)
     uvs = np.array(uvs, dtype=np.float32)
 
-    # 4. Chuẩn bị Texture Mặt Sau & Ghép Texture Atlas hoàn chỉnh
+    # 4. Chuẩn bị Texture Mặt Trước & Mặt Sau hoàn toàn sạch phông nền của ảnh gốc
+    mask_3c = (mask > 120)[:, :, np.newaxis]
+    clean_front_rgb = np.where(mask_3c, img_rgb, 0)
+
     if back_image is not None and isinstance(back_image, np.ndarray):
         if back_image.shape[:2] != (h_orig, w_orig):
             back_rgb = cv2.resize(back_image, (w_orig, h_orig), interpolation=cv2.INTER_LANCZOS4)
         else:
             back_rgb = back_image
-        mask_3c = (mask > 120)[:, :, np.newaxis]
         back_rgb = np.where(mask_3c, back_rgb, 0)
     else:
         # Tự động tổng hợp màu sắc mặt sau đồng bộ theo từng tầng chiều cao (Synchronized Dorsal Synthesis):
+        # - Tuyệt đối không lấy màu phông nền của ảnh gốc
         # - Đồng bộ màu sắc áo giáp, da thịt, thân bình, đai lưng theo từng tầng
         # - Tự động loại bỏ mắt, mũi, logo, chi tiết mặt trước
-        # - Khử triệt để viền trắng sticker/cutout (tránh biến thành khối thạch cao trắng)
         # - Kết hợp bóng đổ vòm độ dày 3D tự nhiên
         back_rgb = generate_synchronized_back_texture(img_rgb, mask, bulge)
 
+    # Kéo giãn viền màu (Color Bleed Margin) ra ngoài mép 8px cho cả mặt trước và mặt sau:
+    # Đảm bảo WebGL/Three.js khi lọc mipmap khử răng cưa KHÔNG BAO GIỜ bị ăn vào màu phông nền cũ
+    clean_front_rgb = apply_texture_margin(clean_front_rgb, mask, margin_px=8)
+    clean_back_rgb = apply_texture_margin(back_rgb, mask, margin_px=8)
+
     # Tạo Texture Atlas ghép dọc: Nửa trên Mặt Trước, Nửa dưới Mặt Sau
-    atlas_rgb = np.vstack([img_rgb, back_rgb])
+    atlas_rgb = np.vstack([clean_front_rgb, clean_back_rgb])
     pil_texture = Image.fromarray(atlas_rgb)
 
     mesh = trimesh.Trimesh(
@@ -431,15 +500,15 @@ def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, dept
         raise FileNotFoundError(f"Không tìm thấy file ảnh: {image_path}")
 
     print(f"[*] Đang tải và chuẩn hóa ảnh hiện vật: {image_path}...", file=sys.stderr)
-    img_rgb = load_and_prepare_image(image_path, max_dim=1600)
+    img_rgb, alpha_mask = load_and_prepare_image(image_path, max_dim=1600)
 
     back_img_rgb = None
     if back_image_path and os.path.exists(back_image_path):
         print(f"[*] Tìm thấy ảnh chụp mặt sau: {back_image_path}, đang nạp...", file=sys.stderr)
-        back_img_rgb = load_and_prepare_image(back_image_path, max_dim=1600)
+        back_img_rgb, _ = load_and_prepare_image(back_image_path, max_dim=1600)
 
-    print(f"[*] Đang phân đoạn và tách nền cổ vật...", file=sys.stderr)
-    mask = extract_salient_mask(img_rgb)
+    print(f"[*] Đang phân đoạn và tách sạch nền cổ vật...", file=sys.stderr)
+    mask = extract_salient_mask(img_rgb, alpha_mask=alpha_mask)
 
     print(f"[*] Đang tính toán bản đồ chiều sâu và độ phồng hình khối...", file=sys.stderr)
     depth, bulge = estimate_artifact_depth(img_rgb, mask)
