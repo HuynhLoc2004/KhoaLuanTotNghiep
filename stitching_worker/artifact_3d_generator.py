@@ -154,35 +154,37 @@ def extract_salient_mask(img_rgb, alpha_mask=None):
 def estimate_artifact_depth(img_rgb, mask):
     """
     Ước tính bản đồ độ sâu hình học (Monocular Depth & Surface Relief):
-    - Radial Distance Transform: tạo độ phồng cong 3D tự nhiên từ biên vào tâm (thân bình, tượng, kiếm).
-    - Luminance High-Pass: tạo độ lồi lõm cho hoa văn, vết khắc chữ cổ, quai cầm, đường viền cổ vật.
-    - Kết hợp để tạo nên khối 3D sống động, không bị bẹp dính như tấm bìa carton.
+    - Smooth Spherical/Cylindrical Dome: tạo độ phồng nhẹ nhàng, đỉnh phẳng tự nhiên, KHÔNG tạo chóp nón nhọn làm méo mặt.
+    - Micro-Surface Relief: vi chạm hoa văn rất nhẹ (±5%), tuyệt đối không làm sụp hố mắt/kính đen hoặc đẩy nhọn mắt vàng.
+    - Kết quả: Mặt trước giữ nguyên 100% tỷ lệ cân đối của nhân vật/cổ vật, không bị biến dạng khi xoay góc.
     """
     h, w = mask.shape
     gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
 
-    # 1. Độ phồng thân thể dựa trên Distance Transform
+    # 1. Độ phồng thân thể dựa trên Distance Transform dạng vòm mượt (Sine Dome)
     dist = cv2.distanceTransform(mask, cv2.DIST_L2, 5)
     max_d = np.max(dist)
     if max_d > 0:
-        dist_norm = dist / max_d
+        dist_norm = np.clip(dist / max_d, 0.0, 1.0)
     else:
         dist_norm = np.zeros_like(dist)
 
-    # Đường cong làm mượt độ phồng (Elliptical / Parabolic dome)
-    bulge = np.power(dist_norm, 0.72)
+    # Vòm phẳng mịn ở đỉnh (đạo hàm tại đỉnh = 0 giúp mặt trước giữ nguyên tỷ lệ, không bị kéo nhọn)
+    bulge = np.sin(dist_norm * (np.pi / 2.0))
 
-    # 2. Chi tiết vân nổi bề mặt từ độ sáng (Luminance High-Pass)
-    blurred_lum = cv2.GaussianBlur(gray, (0, 0), sigmaX=5.0)
-    relief = gray - blurred_lum
-    relief = cv2.normalize(relief, None, 0.0, 1.0, cv2.NORM_MINMAX)
+    # 2. Chi tiết vi chạm bề mặt rất nhẹ (Subtle micro-relief, tối đa ±5%)
+    blurred_lum = cv2.GaussianBlur(gray, (0, 0), sigmaX=3.0)
+    lum_diff = np.clip((gray - blurred_lum) * 0.15, -0.05, 0.05)
 
-    # 3. Tổng hợp độ sâu mặt trước
-    front_depth = (bulge * 0.82) + (relief * 0.18)
-    front_depth = front_depth * (mask.astype(np.float32) / 255.0)
-    front_depth = cv2.GaussianBlur(front_depth, (3, 3), 0.8)
+    # 3. Tổng hợp độ sâu: 95% độ cong êm ái + 5% vi chạm bề mặt
+    front_depth = (bulge * 0.95) + lum_diff
+    front_depth = np.clip(front_depth, 0.0, 1.0) * (mask.astype(np.float32) / 255.0)
+
+    # Làm mịn đa hướng để loại bỏ hoàn toàn gợn sóng hoặc méo mó
+    front_depth = cv2.GaussianBlur(front_depth, (7, 7), 2.0)
 
     return front_depth, bulge
+
 
 def generate_synchronized_back_texture(img_rgb, mask, bulge):
     """
@@ -361,9 +363,10 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, back_image=None, de
             if mask_low[r, c] > 120:
                 x = xs[c]
                 y = ys[r]
-                zf = depth_low[r, c] * max_depth
+                # Mặt trước: Độ cong nhẹ nhàng 35% để mặt trước phẳng mịn, chuẩn tỷ lệ tuyệt đối, không bị kéo nhọn méo mó
+                zf = depth_low[r, c] * (max_depth * 0.35)
 
-                # Mặt sau: Tạo khối lồi về phía sau tương xứng với độ phồng
+                # Mặt sau: Tạo khối lồi về phía sau để hiện vật có độ dày đặc khối 3D vững chãi
                 zb = - (bulge_low[r, c] * 0.65 + 0.05) * max_depth
 
                 u_norm = c / float(gw - 1)
