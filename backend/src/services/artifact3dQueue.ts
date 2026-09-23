@@ -122,20 +122,43 @@ export async function enqueue3DReconstruction(
 /**
  * Worker Consumer xử lý công việc từ Queue
  */
-async function processSingleJob(job: I3DJobData): Promise<void> {
+async function processSingleJob(jobInput: I3DJobData): Promise<void> {
+  const job: I3DJobData = ((jobInput as any)?.data ? (jobInput as any).data : jobInput) as I3DJobData;
+  const artifactId = String(job.artifactId || (job as any).id || '');
+  const imagePath = String(job.imagePath || '');
+  const depthScale = (typeof job.depthScale === 'number' && !isNaN(job.depthScale))
+    ? job.depthScale
+    : (parseFloat(String(job.depthScale)) || 0.35);
+  const resolution = (typeof job.resolution === 'number' && !isNaN(job.resolution))
+    ? job.resolution
+    : (parseInt(String(job.resolution), 10) || 160);
+  const jobId = job.jobId || `job_${Date.now()}`;
+
   const outFilename = `model_3d_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.glb`;
   const outGlbPath = path.join(MODELS_3D_DIR, outFilename);
   const model3dUrl = `/uploads/artifacts/models_3d/${outFilename}`;
 
-  console.log(`[3D Consumer] Đang chạy tác vụ dựng 3D cho hiện vật: ${job.artifactId}...`);
+  console.log(`[3D Consumer] Đang chạy tác vụ dựng 3D cho hiện vật: ${artifactId} (Job: ${jobId}, depthScale: ${depthScale}, resolution: ${resolution})...`);
+
+  if (!artifactId || !imagePath || !fs.existsSync(imagePath)) {
+    console.error(`[3D Consumer] Dữ liệu job không hợp lệ hoặc không tìm thấy file ảnh:`, { artifactId, imagePath });
+    if (artifactId) {
+      await ArtifactModel.findByIdAndUpdate(artifactId, {
+        processingStatus: 'failed',
+        processingError: 'Không tìm thấy file ảnh gốc trên máy chủ để dựng 3D'
+      });
+      await cacheDelPattern('artifacts:*');
+    }
+    return;
+  }
 
   return new Promise<void>((resolve) => {
     const args = [
       ARTIFACT_SCRIPT,
-      '--image', job.imagePath,
+      '--image', imagePath,
       '--output', outGlbPath,
-      '--depth-scale', String(job.depthScale),
-      '--resolution', String(job.resolution)
+      '--depth-scale', String(depthScale),
+      '--resolution', String(resolution)
     ];
 
     const py = spawn(PYTHON_PATH, args);
@@ -157,7 +180,7 @@ async function processSingleJob(job: I3DJobData): Promise<void> {
           parsed = {};
         }
 
-        const fileHash = computeFileHash(job.imagePath);
+        const fileHash = computeFileHash(imagePath);
         const metadata = {
           vertices: parsed.vertices || 0,
           faces: parsed.faces || 0,
@@ -174,7 +197,7 @@ async function processSingleJob(job: I3DJobData): Promise<void> {
         await cacheSet(cacheKey, { model3dUrl, metadata }, 86400 * 30);
 
         // Cập nhật MongoDB thật
-        await ArtifactModel.findByIdAndUpdate(job.artifactId, {
+        await ArtifactModel.findByIdAndUpdate(artifactId, {
           model3dUrl,
           processingStatus: 'completed',
           processingError: '',
@@ -185,18 +208,18 @@ async function processSingleJob(job: I3DJobData): Promise<void> {
         await cacheDelPattern('artifacts:*');
 
         job.status = 'completed';
-        console.log(`[3D Consumer] Hoàn tất xuất sắc Job ${job.jobId}! Model URL: ${model3dUrl}`);
+        console.log(`[3D Consumer] Hoàn tất xuất sắc Job ${jobId}! Model URL: ${model3dUrl}`);
       } else {
         const errMsg = stderrData || stdoutData || 'Không thể tạo file mô hình 3D';
         job.status = 'failed';
         job.error = errMsg;
 
-        await ArtifactModel.findByIdAndUpdate(job.artifactId, {
+        await ArtifactModel.findByIdAndUpdate(artifactId, {
           processingStatus: 'failed',
           processingError: errMsg
         });
         await cacheDelPattern('artifacts:*');
-        console.error(`[3D Consumer] Thất bại Job ${job.jobId}:`, errMsg);
+        console.error(`[3D Consumer] Thất bại Job ${jobId}:`, errMsg);
       }
       resolve();
     });
@@ -204,7 +227,7 @@ async function processSingleJob(job: I3DJobData): Promise<void> {
     py.on('error', async (err) => {
       job.status = 'failed';
       job.error = err.message;
-      await ArtifactModel.findByIdAndUpdate(job.artifactId, {
+      await ArtifactModel.findByIdAndUpdate(artifactId, {
         processingStatus: 'failed',
         processingError: err.message
       });
@@ -225,17 +248,18 @@ async function triggerWorker() {
   try {
     while (true) {
       // 1. Thử lấy job từ Redis Queue
-      let job = await popJobFromQueue('artifact_3d');
+      let rawJob = await popJobFromQueue('artifact_3d');
 
       // 2. Nếu Redis không có job, lấy từ memory queue
-      if (!job && memoryJobs.length > 0) {
-        job = memoryJobs.shift();
+      if (!rawJob && memoryJobs.length > 0) {
+        rawJob = memoryJobs.shift();
       }
 
-      if (!job) {
+      if (!rawJob) {
         break; // Hết việc, tạm dừng worker
       }
 
+      const job: I3DJobData = ((rawJob as any)?.data ? (rawJob as any).data : rawJob) as I3DJobData;
       await processSingleJob(job);
       await new Promise(r => setTimeout(r, 200)); // Nghỉ 200ms giữa các job
     }

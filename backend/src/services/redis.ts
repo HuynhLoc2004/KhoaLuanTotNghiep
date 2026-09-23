@@ -139,7 +139,8 @@ export const popJobFromQueue = async (queueName: string): Promise<any | null> =>
   try {
     const item = await redisClient.lpop(`queue:${queueName}`);
     if (!item) return null;
-    return JSON.parse(item);
+    const parsed = JSON.parse(item);
+    return parsed && parsed.data !== undefined ? parsed.data : parsed;
   } catch (err: any) {
     console.warn(`[Queue Pop Error]:`, err.message);
     return null;

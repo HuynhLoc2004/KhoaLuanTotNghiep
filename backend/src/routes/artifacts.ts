@@ -371,7 +371,8 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
     const dScale = depthScale ? Number(depthScale) : 0.35;
     const resValue = resolution ? Number(resolution) : 160;
 
-    const result = await enqueue3DReconstruction(artifact.id, localImagePath, dScale, resValue);
+    const targetArtifactId = String(artifact._id || artifact.id);
+    const result = await enqueue3DReconstruction(targetArtifactId, localImagePath, dScale, resValue);
 
     res.json({
       success: true,
