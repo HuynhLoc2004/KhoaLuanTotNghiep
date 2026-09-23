@@ -320,12 +320,17 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, back_image=None, de
             back_rgb = cv2.resize(back_image, (w_orig, h_orig), interpolation=cv2.INTER_LANCZOS4)
         else:
             back_rgb = back_image
-        # Chỉ giữ phần trong mask
         mask_3c = (mask > 120)[:, :, np.newaxis]
         back_rgb = np.where(mask_3c, back_rgb, 0)
     else:
-        print(f"[*] Đang tự động kiến tạo mặt sau (Dorsal Back Synthesis) chân thực...", file=sys.stderr)
-        back_rgb = synthesize_dorsal_back_texture(img_rgb, mask, bulge)
+        # Khi chưa có ảnh mặt sau riêng: Giữ trọn vẹn màu sắc & hoa văn của cổ vật (tránh bị biến thành khối thạch cao trắng)
+        # kết hợp hiệu ứng bóng đổ lưng để tạo độ sâu
+        bulge_norm = cv2.resize(bulge, (w_orig, h_orig)) if bulge.shape != (h_orig, w_orig) else bulge
+        shading = 0.85 + 0.15 * np.power(bulge_norm, 0.7)
+        shading = np.clip(shading, 0.72, 1.0)[:, :, np.newaxis]
+        back_rgb = np.clip(img_rgb.astype(np.float32) * shading, 0, 255).astype(np.uint8)
+        mask_3c = (mask > 120)[:, :, np.newaxis]
+        back_rgb = np.where(mask_3c, back_rgb, 0)
 
     # Tạo Texture Atlas ghép dọc: Nửa trên Mặt Trước, Nửa dưới Mặt Sau
     atlas_rgb = np.vstack([img_rgb, back_rgb])

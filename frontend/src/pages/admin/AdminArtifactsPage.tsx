@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Loader2,
   Upload,
+  Camera,
   Image as ImageIcon,
   QrCode,
   Edit3,
@@ -66,6 +67,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingArtifact, setEditingArtifact] = useState<Partial<Artifact> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
   const [activeViewerArtifact, setActiveViewerArtifact] = useState<Artifact | null>(null);
@@ -343,6 +345,44 @@ export const AdminArtifactsPage: React.FC = () => {
       showToast('Đã tải ảnh tư liệu hiện vật thành công', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi tải ảnh hiện vật', 'error');
+    }
+  };
+
+  const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slot: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const res = await api.uploadArtifactImage(file);
+      const url = res.url;
+      setEditingArtifact((prev) => {
+        if (!prev) return prev;
+        const currentImgs = [...(prev.images || [])];
+        if (slot === 0) {
+          if (currentImgs.length === 0) currentImgs.push(url);
+          else currentImgs[0] = url;
+        } else {
+          if (currentImgs.length === 0) {
+            currentImgs.push(url); // slot 0 placeholder
+            currentImgs.push(url);
+          } else if (currentImgs.length === 1) {
+            currentImgs.push(url);
+          } else {
+            currentImgs[1] = url;
+          }
+        }
+        return {
+          ...prev,
+          images: currentImgs,
+          thumbnailUrl: currentImgs[0] || url
+        };
+      });
+      showToast(slot === 0 ? 'Đã tải ảnh mặt trước thành công' : 'Đã tải ảnh mặt sau thành công', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi tải ảnh hiện vật', 'error');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -1330,70 +1370,132 @@ export const AdminArtifactsPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Quản lý Ảnh tư liệu */}
+                {/* Quản lý Ảnh tư liệu 2 mặt: Mặt Trước & Mặt Sau */}
                 <div className="form-group">
-                  <label className="form-label">Hình ảnh tư liệu hiện vật</label>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {editingArtifact.images &&
-                      editingArtifact.images.map((img, i) => {
-                        const url = img.startsWith('http') ? img : `${API_ROOT}${img}`;
-                        return (
-                          <div
-                            key={i}
-                            style={{
-                              position: 'relative',
-                              width: 64,
-                              height: 64,
-                              borderRadius: 'var(--radius-sm)',
-                              overflow: 'hidden',
-                              border: '1px solid var(--border-color)'
-                            }}
-                          >
-                            <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const nextImgs = editingArtifact.images?.filter((_, idx) => idx !== i) || [];
-                                setEditingArtifact({
-                                  ...editingArtifact,
-                                  images: nextImgs,
-                                  thumbnailUrl: nextImgs[0] || ''
-                                });
-                              }}
-                              style={{
-                                position: 'absolute',
-                                top: 2,
-                                right: 2,
-                                background: 'rgba(0,0,0,0.7)',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: 18,
-                                height: 18,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <X size={10} />
-                            </button>
-                          </div>
-                        );
-                      })}
-
-                    <label
-                      className="btn btn-secondary btn-sm"
-                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <Upload size={13} />
-                      <span>Tải ảnh lên</span>
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <label className="form-label" style={{ margin: 0 }}>
+                      Hình ảnh tư liệu cổ vật (Hỗ trợ 2 mặt Trước & Sau)
                     </label>
+                    <span style={{ fontSize: '11px', color: 'var(--accent-gold)' }}>
+                      💡 Có thể chụp cả 2 mặt để mô hình 3D hoàn hảo 100%
+                    </span>
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                    Ảnh tư liệu đầu tiên sẽ được dùng làm ảnh gốc để tự động dựng mô hình 3D.
-                  </span>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                    {/* KHUNG 1: ẢNH MẶT TRƯỚC */}
+                    <div style={{
+                      padding: 10,
+                      borderRadius: 'var(--radius-sm, 6px)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-subtle)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--heading-color)' }}>
+                          1. Ảnh Mặt Trước (Chính)
+                        </span>
+                        {editingArtifact.images && editingArtifact.images[0] && (
+                          <span style={{ fontSize: '10.5px', color: 'var(--success)', fontWeight: 600 }}>✓ Đã có ảnh</span>
+                        )}
+                      </div>
+
+                      {editingArtifact.images && editingArtifact.images[0] ? (
+                        <div style={{ position: 'relative', height: 110, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border-color)', background: '#111' }}>
+                          <img
+                            src={editingArtifact.images[0].startsWith('http') ? editingArtifact.images[0] : `${API_ROOT}${editingArtifact.images[0]}`}
+                            alt="Mặt trước"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = [...(editingArtifact.images || [])];
+                              next.splice(0, 1);
+                              setEditingArtifact({ ...editingArtifact, images: next, thumbnailUrl: next[0] || '' });
+                            }}
+                            style={{
+                              position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)',
+                              color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                            }}
+                            title="Xóa ảnh mặt trước"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            width: '100%', height: 110, display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer',
+                            border: '1px dashed var(--border-color)'
+                          }}
+                        >
+                          <Upload size={16} style={{ color: 'var(--accent-gold)' }} />
+                          <span style={{ fontSize: '12px', fontWeight: 500 }}>Tải ảnh mặt trước</span>
+                          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Bắt buộc để dựng 3D</span>
+                          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleSlotUpload(e, 0)} />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* KHUNG 2: ẢNH MẶT SAU */}
+                    <div style={{
+                      padding: 10,
+                      borderRadius: 'var(--radius-sm, 6px)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-subtle)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--heading-color)' }}>
+                          2. Ảnh Mặt Sau (Tùy chọn)
+                        </span>
+                        {editingArtifact.images && editingArtifact.images[1] && (
+                          <span style={{ fontSize: '10.5px', color: 'var(--success)', fontWeight: 600 }}>✓ Đã có ảnh</span>
+                        )}
+                      </div>
+
+                      {editingArtifact.images && editingArtifact.images[1] ? (
+                        <div style={{ position: 'relative', height: 110, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border-color)', background: '#111' }}>
+                          <img
+                            src={editingArtifact.images[1].startsWith('http') ? editingArtifact.images[1] : `${API_ROOT}${editingArtifact.images[1]}`}
+                            alt="Mặt sau"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = [...(editingArtifact.images || [])];
+                              next.splice(1, 1);
+                              setEditingArtifact({ ...editingArtifact, images: next });
+                            }}
+                            style={{
+                              position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)',
+                              color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                            }}
+                            title="Xóa ảnh mặt sau"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            width: '100%', height: 110, display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer',
+                            border: '1px dashed var(--border-color)'
+                          }}
+                        >
+                          <Camera size={16} style={{ color: 'var(--accent-gold)' }} />
+                          <span style={{ fontSize: '12px', fontWeight: 500 }}>Tải ảnh mặt sau</span>
+                          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Để 3D chân thực cả 2 mặt</span>
+                          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleSlotUpload(e, 1)} />
+                        </label>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Tùy chọn tự động Dựng mô hình 3D AI ngay khi lưu */}
@@ -1592,37 +1694,50 @@ export const AdminArtifactsPage: React.FC = () => {
                   border: '1px solid var(--border-color)'
                 }}
               >
-                {generatingArtifact.thumbnailUrl || (generatingArtifact.images && generatingArtifact.images[0]) ? (
-                  <img
-                    src={
-                      (generatingArtifact.thumbnailUrl || generatingArtifact.images[0]).startsWith('http')
-                        ? generatingArtifact.thumbnailUrl || generatingArtifact.images[0]
-                        : `${API_ROOT}${generatingArtifact.thumbnailUrl || generatingArtifact.images[0]}`
-                    }
-                    alt=""
-                    style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 68,
-                      height: 68,
-                      background: 'var(--bg-surface)',
-                      borderRadius: 'var(--radius-sm)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <ImageIcon size={24} style={{ color: 'var(--text-muted)' }} />
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {/* Ảnh trước */}
+                  {generatingArtifact.images && generatingArtifact.images[0] ? (
+                    <div style={{ textAlign: 'center' }}>
+                      <img
+                        src={generatingArtifact.images[0].startsWith('http') ? generatingArtifact.images[0] : `${API_ROOT}${generatingArtifact.images[0]}`}
+                        alt="Trước"
+                        style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
+                      />
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>Mặt trước</span>
+                    </div>
+                  ) : null}
+
+                  {/* Ảnh sau */}
+                  {generatingArtifact.images && generatingArtifact.images[1] ? (
+                    <div style={{ textAlign: 'center' }}>
+                      <img
+                        src={generatingArtifact.images[1].startsWith('http') ? generatingArtifact.images[1] : `${API_ROOT}${generatingArtifact.images[1]}`}
+                        alt="Sau"
+                        style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent-gold)' }}
+                      />
+                      <span style={{ fontSize: '10px', color: 'var(--accent-gold)', display: 'block', marginTop: 2 }}>Mặt sau ✓</span>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', opacity: 0.6 }}>
+                      <div style={{ width: 56, height: 56, border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Camera size={16} style={{ color: 'var(--text-muted)' }} />
+                      </div>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>Chưa có mặt sau</span>
+                    </div>
+                  )}
+                </div>
+
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--heading-color)', marginBottom: 2 }}>
                     {generatingArtifact.name}
                   </div>
-                  <span style={{ fontSize: '11.5px', color: 'var(--accent-gold)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '11.5px', color: 'var(--accent-gold)', fontWeight: 600, display: 'block' }}>
                     Mã số: {generatingArtifact.code}
+                  </span>
+                  <span style={{ fontSize: '11px', color: generatingArtifact.images && generatingArtifact.images[1] ? 'var(--success)' : 'var(--text-muted)', marginTop: 3, display: 'block' }}>
+                    {generatingArtifact.images && generatingArtifact.images[1]
+                      ? '✨ Có đủ ảnh 2 mặt: AI sẽ tạo 3D chuẩn xác cả Trước & Sau'
+                      : 'ℹ️ Đang dựng từ 1 ảnh mặt trước (đồng bộ màu sắc & đổ bóng lưng)'}
                   </span>
                 </div>
               </div>
