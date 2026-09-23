@@ -126,20 +126,35 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   } | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
 
-  // Định dạng đường dẫn URL file 3D đầy đủ
-  const fullModelUrl = modelUrl
-    ? (modelUrl.startsWith('http') ? modelUrl : `${API_ROOT}${modelUrl.startsWith('/') ? '' : '/'}${modelUrl}`)
-    : null;
+  // Định dạng đường dẫn URL file 3D đầy đủ (với cơ chế lọc sạch undefined/null)
+  const fullModelUrl = React.useMemo(() => {
+    if (!modelUrl || typeof modelUrl !== 'string') return null;
+    const trimmed = modelUrl.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
+      return null;
+    }
+    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  }, [modelUrl]);
 
   // Định dạng đường dẫn URL ảnh đầy đủ
-  const fullImageUrl = imageUrl
-    ? (imageUrl.startsWith('http') ? imageUrl : `${API_ROOT}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
-    : null;
+  const fullImageUrl = React.useMemo(() => {
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    const trimmed = imageUrl.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
+      return null;
+    }
+    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  }, [imageUrl]);
 
   // Định dạng đường dẫn Audio đầy đủ
-  const fullAudioUrl = rawAudioUrl
-    ? (rawAudioUrl.startsWith('http') ? rawAudioUrl : `${API_ROOT}${rawAudioUrl.startsWith('/') ? '' : '/'}${rawAudioUrl}`)
-    : null;
+  const fullAudioUrl = React.useMemo(() => {
+    if (!rawAudioUrl || typeof rawAudioUrl !== 'string') return null;
+    const trimmed = rawAudioUrl.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
+      return null;
+    }
+    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  }, [rawAudioUrl]);
 
   // 1. Khởi tạo Three.js Scene, Camera, Lights, và Bục trưng bày Bảo tàng
   useEffect(() => {
@@ -789,15 +804,42 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             background: 'rgba(220, 38, 38, 0.92)',
             backdropFilter: 'blur(8px)',
             color: '#fff',
-            padding: '7px 12px',
+            padding: '8px 14px',
             borderRadius: 8,
             fontSize: '0.78rem',
             zIndex: 25,
             boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            textAlign: 'center'
+            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            flexWrap: 'wrap'
           }}
         >
-          {modelError}
+          <span>{modelError}</span>
+          {onGenerate3DClick && (
+            <button
+              type="button"
+              onClick={onGenerate3DClick}
+              style={{
+                background: '#ffffff',
+                color: '#b91c1c',
+                border: 'none',
+                borderRadius: 4,
+                padding: '3px 10px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+            >
+              <RotateCw size={12} />
+              Dựng lại mô hình 3D
+            </button>
+          )}
         </div>
       )}
 

@@ -1609,7 +1609,17 @@ export const AdminArtifactsPage: React.FC = () => {
           ========================================================================= */}
       {isViewerModalOpen && activeViewerArtifact && (
         <div className="modal-backdrop" style={{ zIndex: 1250 }}>
-          <div className="modal-card" style={{ maxWidth: 840 }}>
+          <div
+            className="modal-card"
+            style={{
+              maxWidth: 840,
+              width: '95vw',
+              maxHeight: '92vh',
+              margin: 'auto',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Box size={18} style={{ color: 'var(--accent-gold)' }} />
@@ -1632,12 +1642,14 @@ export const AdminArtifactsPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="modal-body" style={{ padding: 0, overflow: 'hidden', background: '#0d1118' }}>
+            <div className="modal-body" style={{ padding: 0, overflow: 'hidden', background: '#0d1118', flex: 1, minHeight: 0 }}>
               <Turntable360Viewer
                 modelUrl={
-                  activeViewerArtifact.model3dUrl?.startsWith('http')
-                    ? activeViewerArtifact.model3dUrl
-                    : `${API_ROOT}${activeViewerArtifact.model3dUrl}`
+                  activeViewerArtifact.model3dUrl && activeViewerArtifact.model3dUrl.trim() !== ''
+                    ? (activeViewerArtifact.model3dUrl.startsWith('http')
+                        ? activeViewerArtifact.model3dUrl
+                        : `${API_ROOT}${activeViewerArtifact.model3dUrl.startsWith('/') ? '' : '/'}${activeViewerArtifact.model3dUrl}`)
+                    : undefined
                 }
                 artifactName={activeViewerArtifact.name}
                 artifactPeriod={activeViewerArtifact.period}
@@ -1649,7 +1661,12 @@ export const AdminArtifactsPage: React.FC = () => {
                 }
                 translations={activeViewerArtifact.translations}
                 autoPlayAudio={true}
-                height={480}
+                height={typeof window !== 'undefined' && window.innerWidth < 640 ? Math.min(380, Math.round(window.innerHeight * 0.52)) : 480}
+                onGenerate3DClick={() => {
+                  setIsViewerModalOpen(false);
+                  handleOpenGenerate3D(activeViewerArtifact);
+                }}
+                isGenerating3D={activeViewerArtifact.processingStatus === 'processing'}
               />
             </div>
 
