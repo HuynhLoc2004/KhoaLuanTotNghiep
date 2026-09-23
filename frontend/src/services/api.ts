@@ -404,14 +404,18 @@ export const api = {
     const res = await fetch(`${API_BASE}/artifacts?${query.toString()}`);
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách hiện vật');
-    return json.data;
+    const list = Array.isArray(json.data) ? json.data : [];
+    return list.map((art: any) => ({
+      ...art,
+      id: String(art.id || art._id || '')
+    }));
   },
 
   async getArtifact(id: string): Promise<Artifact> {
     const res = await fetch(`${API_BASE}/artifacts/${id}`);
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải chi tiết hiện vật');
-    return json.data;
+    return { ...json.data, id: String(json.data.id || json.data._id || '') };
   },
 
   async createArtifact(artifact: Partial<Artifact>): Promise<Artifact> {
@@ -422,7 +426,7 @@ export const api = {
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tạo hiện vật mới');
-    return json.data;
+    return { ...json.data, id: String(json.data.id || json.data._id || '') };
   },
 
   async updateArtifact(id: string, patch: Partial<Artifact>): Promise<Artifact> {
@@ -433,11 +437,15 @@ export const api = {
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi cập nhật hiện vật');
-    return json.data;
+    return { ...json.data, id: String(json.data.id || json.data._id || '') };
   },
 
   async deleteArtifact(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/artifacts/${id}`, {
+    const cleanId = String(id || '').trim();
+    if (!cleanId || cleanId === 'undefined') {
+      throw new Error('ID hiện vật không hợp lệ để thực hiện thao tác xóa');
+    }
+    const res = await fetch(`${API_BASE}/artifacts/${cleanId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(true)
     });

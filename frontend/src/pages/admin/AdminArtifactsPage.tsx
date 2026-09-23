@@ -243,12 +243,19 @@ export const AdminArtifactsPage: React.FC = () => {
   };
 
   const handleEdit = (artifact: Artifact) => {
+    const targetId = artifact.id || (artifact as any)._id;
     setAutoGenerate3D(!artifact.model3dUrl);
-    setEditingArtifact({ ...artifact });
+    setEditingArtifact({ ...artifact, id: targetId });
     setIsEditModalOpen(true);
   };
 
   const handleDelete = (id: string, name: string) => {
+    const validId = (id && id !== 'undefined' && id !== 'null') ? String(id).trim() : '';
+    if (!validId) {
+      showToast('Lỗi: Không tìm thấy mã định danh hiện vật để xóa', 'error');
+      return;
+    }
+
     setConfirmDialog({
       isOpen: true,
       title: 'Xóa hồ sơ hiện vật',
@@ -258,7 +265,7 @@ export const AdminArtifactsPage: React.FC = () => {
       onConfirm: async () => {
         setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
         try {
-          await api.deleteArtifact(id);
+          await api.deleteArtifact(validId);
           showToast(`Đã xóa hiện vật "${name}" thành công`, 'success');
           fetchArtifacts();
         } catch (err: any) {
@@ -353,26 +360,34 @@ export const AdminArtifactsPage: React.FC = () => {
   };
 
   const handleOpenViewer = (artifact: Artifact) => {
-    setActiveViewerArtifact(artifact);
+    const targetId = artifact.id || (artifact as any)._id;
+    setActiveViewerArtifact({ ...artifact, id: targetId });
     setIsViewerModalOpen(true);
   };
 
   const handleOpenQR = (artifact: Artifact) => {
-    setActiveQRArtifact(artifact);
+    const targetId = artifact.id || (artifact as any)._id;
+    setActiveQRArtifact({ ...artifact, id: targetId });
     setIsQRModalOpen(true);
   };
 
   const handleOpenGenerate3D = (artifact: Artifact) => {
-    setGeneratingArtifact(artifact);
+    const targetId = artifact.id || (artifact as any)._id;
+    setGeneratingArtifact({ ...artifact, id: targetId });
     setDepthScale(0.35);
     setIsGenerateModalOpen(true);
   };
 
   const handleStart3DReconstruction = async () => {
     if (!generatingArtifact) return;
+    const targetId = generatingArtifact.id || (generatingArtifact as any)._id;
+    if (!targetId) {
+      showToast('Lỗi: Không tìm thấy ID hiện vật để dựng 3D', 'error');
+      return;
+    }
     try {
       setIsProcessing3D(true);
-      const res = await api.generate3DArtifact(generatingArtifact.id, {
+      const res = await api.generate3DArtifact(targetId, {
         depthScale: depthScale,
         resolution: 160
       });
@@ -427,7 +442,8 @@ export const AdminArtifactsPage: React.FC = () => {
 
   // === QUẢN TRỊ THUYẾT MINH & VOICE AI ĐA NGÔN NGỮ ===
   const handleOpenVoiceModal = (artifact: Artifact) => {
-    setActiveVoiceArtifact(artifact);
+    const targetId = artifact.id || (artifact as any)._id;
+    setActiveVoiceArtifact({ ...artifact, id: targetId });
     const initialLang = 'vi';
     setSelectedVoiceLang(initialLang);
 
@@ -1037,7 +1053,7 @@ export const AdminArtifactsPage: React.FC = () => {
                           type="button"
                           className="btn btn-secondary btn-sm room-card-btn-action-tool room-card-btn-delete"
                           title="Xóa hiện vật khỏi sổ lưu trữ"
-                          onClick={() => handleDelete(art.id, art.name)}
+                          onClick={() => handleDelete(art.id || (art as any)._id, art.name)}
                         >
                           <Trash2 size={12} style={{ flexShrink: 0 }} />
                           <span className="room-card-btn-label">Xóa</span>
@@ -1174,7 +1190,7 @@ export const AdminArtifactsPage: React.FC = () => {
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
-                            onClick={() => handleDelete(art.id, art.name)}
+                            onClick={() => handleDelete(art.id || (art as any)._id, art.name)}
                             title="Xóa"
                             style={{ color: 'var(--error)' }}
                           >

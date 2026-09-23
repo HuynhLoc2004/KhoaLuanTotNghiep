@@ -89,10 +89,14 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
     }
 
     const items = await ArtifactModel.find(filter).sort({ orderIndex: 1, createdAt: -1 }).lean();
+    const formatted = items.map((item: any) => ({
+      ...item,
+      id: item._id ? item._id.toString() : item.id
+    }));
     const result = {
       success: true,
-      count: items.length,
-      data: items
+      count: formatted.length,
+      data: formatted
     };
 
     // TTL 300s (5 phút)
@@ -235,6 +239,9 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
 artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(400).json({ success: false, message: 'Mã định danh hiện vật (ID) không hợp lệ' });
+    }
     const deleted = await ArtifactModel.findByIdAndDelete(id);
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để xóa' });
