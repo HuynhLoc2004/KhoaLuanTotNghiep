@@ -423,7 +423,7 @@ export const AdminLanguagePage: React.FC = () => {
         {/* BĂNG TỔNG QUAN ĐA NGỮ DI SẢN: Thiết kế độc bản, trang trọng, loại bỏ các thẻ AI rời rạc */}
         <div className="heritage-stats-banner">
           {/* Mục 1: Danh mục Ngôn ngữ Quốc tế */}
-          <div className="heritage-stat-col" style={{ flex: 1.2 }}>
+          <div className="heritage-stat-col">
             <div className="heritage-stat-header">
               <span className="heritage-stat-icon-wrapper">
                 <Languages size={15} />
@@ -449,7 +449,7 @@ export const AdminLanguagePage: React.FC = () => {
           </div>
 
           {/* Mục 2: Tỷ lệ hiển thị trên Client */}
-          <div className="heritage-stat-col" style={{ flex: 1 }}>
+          <div className="heritage-stat-col">
             <div className="heritage-stat-header">
               <span className="heritage-stat-icon-wrapper">
                 <Eye size={15} />
@@ -469,7 +469,7 @@ export const AdminLanguagePage: React.FC = () => {
           </div>
 
           {/* Mục 3: Chuẩn thuyết minh di sản */}
-          <div className="heritage-stat-col" style={{ flex: 1.1, borderRight: 'none' }}>
+          <div className="heritage-stat-col">
             <div className="heritage-stat-header">
               <span className="heritage-stat-icon-wrapper">
                 <Volume2 size={15} />
@@ -511,7 +511,7 @@ export const AdminLanguagePage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, justifyContent: 'flex-end', minWidth: 280 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, justifyContent: 'flex-end', minWidth: 'min(100%, 240px)', flexWrap: 'wrap' }}>
               <audio
                 controls
                 autoPlay
