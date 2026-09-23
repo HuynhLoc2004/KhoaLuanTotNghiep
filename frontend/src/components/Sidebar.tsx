@@ -25,7 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleItemClick = (tab: AdminTab) => {
     onTabChange(tab);
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 1024) {
       onClose();
     }
   };

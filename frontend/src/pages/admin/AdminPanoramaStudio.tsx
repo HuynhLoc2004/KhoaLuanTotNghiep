@@ -675,7 +675,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                 onClick={() => {
                   const next = !isPinMode;
                   setIsPinMode(next);
-                  if (next && window.innerWidth <= 768) {
+                  if (next && window.innerWidth <= 1024) {
                     setIsMobilePanelOpen(false);
                     showToast('Chạm vào vị trí bất kỳ trên ảnh 360° để đặt điểm', 'info');
                   }

@@ -442,8 +442,10 @@
    Thiết kế nguyên khối trang nhã, xóa bỏ hoàn toàn phong cách AI SaaS 4 hộp rời rạc
    ============================================================================== */
 .heritage-stats-banner {
-  display: flex;
-  background-color: var(--bg-surface);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1px;
+  background-color: var(--border-color);
   border: 1px solid var(--border-color);
   border-top: 3px solid var(--accent-gold);
   border-radius: var(--radius-md, 8px);
@@ -454,20 +456,14 @@
 }
 
 .heritage-stat-col {
-  flex: 1;
-  padding: 16px 22px;
-  border-right: 1px solid var(--border-color);
+  padding: 14px 18px;
+  background-color: var(--bg-surface);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 8px;
   min-width: 0;
-  background: transparent;
   transition: background-color 0.18s ease;
-}
-
-.heritage-stat-col:last-child {
-  border-right: none;
 }
 
 .heritage-stat-col:hover {
@@ -553,17 +549,12 @@
   font-size: 10px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 560px) {
   .heritage-stats-banner {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
   .heritage-stat-col {
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
-    padding: 14px 18px;
-  }
-  .heritage-stat-col:last-child {
-    border-bottom: none;
+    padding: 12px 14px;
   }
 }
 
@@ -594,20 +585,12 @@
 
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr));
   gap: 18px;
   padding: 16px 20px;
 }
 
-@media (max-width: 1100px) {
-  .rooms-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    padding: 14px;
-  }
-}
-
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .rooms-grid {
     grid-template-columns: 1fr;
     padding: 12px;
@@ -620,6 +603,7 @@
 }
 
 .room-card {
+  container-type: inline-size;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -734,6 +718,66 @@
   gap: 6px;
   padding-top: 10px;
   border-top: 1px solid var(--border-color);
+}
+
+.room-card-actions-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
+  width: 100%;
+}
+
+.room-card-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.room-card-btn-action {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.room-card-btn-action-tool {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.room-card-btn-delete {
+  color: var(--error) !important;
+}
+
+.room-card-btn-delete:hover {
+  background-color: rgba(220, 38, 38, 0.12) !important;
+  border-color: var(--error) !important;
+}
+
+.room-card-btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+@container (max-width: 270px) {
+  .room-card-actions-row {
+    flex-wrap: wrap;
+  }
+  .room-card-btn-action {
+    flex: 1 1 100%;
+  }
 }
 
 /* 360 Studio Workspace */
@@ -1442,6 +1486,36 @@
   border-color: var(--border-color);
 }
 
+.sidebar-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--bg-surface);
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
+}
+
+.desktop-only {
+  display: inline-flex;
+}
+
+.mobile-only {
+  display: none;
+}
+
 .mobile-hamburger-btn {
   display: inline-flex;
   align-items: center;
@@ -1456,16 +1530,24 @@
   transition: all 0.2s ease;
 }
 
-
 .sidebar-close-btn {
   display: none;
-  background: none;
-  border: none;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
   color: var(--text-muted);
-  padding: 6px;
-  border-radius: var(--radius-md);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm, 6px);
   cursor: pointer;
   margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.sidebar-close-btn:hover {
+  color: var(--heading-color);
+  border-color: var(--accent-gold);
 }
 
 .sidebar-overlay {
@@ -1566,8 +1648,8 @@
   font-family: 'Be Vietnam Pro', sans-serif;
 }
 
-/* TABLET & MOBILE BREAKPOINT (<= 768px) */
-@media (max-width: 768px) {
+/* TABLET & MOBILE BREAKPOINT (<= 1024px) */
+@media (max-width: 1024px) {
   .admin-app {
     position: relative;
     overflow-x: hidden;
@@ -1580,6 +1662,14 @@
 
   .sidebar-close-btn {
     display: flex;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: inline-flex !important;
   }
 
   /* Transform Sidebar into Slide-out Drawer */
@@ -1634,11 +1724,13 @@
     white-space: nowrap;
   }
 
-  /* Ẩn các cấp breadcrumb trung gian và tên bảo tàng trên mobile để không bao giờ vỡ dòng */
-  .breadcrumb-root,
-  .breadcrumb-divider,
-  .breadcrumb-link {
-    display: none !important;
+  /* Ẩn các cấp breadcrumb trung gian và tên bảo tàng trên mobile nhỏ để không bao giờ vỡ dòng */
+  @media (max-width: 640px) {
+    .breadcrumb-root,
+    .breadcrumb-divider,
+    .breadcrumb-link {
+      display: none !important;
+    }
   }
 
   .breadcrumb-mobile-back {
@@ -2732,6 +2824,22 @@
 .pagination-ellipsis {
   padding: 0 4px;
   color: var(--text-light);
+}
+
+@media (max-width: 640px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .pagination-controls {
+    justify-content: center;
+    width: 100%;
+  }
+  .pagination-btn.nav-btn .pagination-btn-label {
+    display: none;
+  }
 }
 
 /* Shooting Guide Modal */

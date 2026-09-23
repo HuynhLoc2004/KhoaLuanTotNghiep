@@ -742,7 +742,7 @@ export const AdminArtifactsPage: React.FC = () => {
           }}
         >
           {/* Search box */}
-          <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 'min(100%, 180px)' }}>
             <input
               type="text"
               placeholder="Tìm theo tên hiện vật, mã HV-..., niên đại..."
@@ -767,7 +767,7 @@ export const AdminArtifactsPage: React.FC = () => {
           </div>
 
           {/* Lọc danh mục */}
-          <div style={{ minWidth: 200 }}>
+          <div style={{ flex: '0 1 180px', minWidth: 'min(100%, 140px)' }}>
             <select
               className="form-control"
               style={{ fontSize: '13px', width: '100%' }}
@@ -787,7 +787,7 @@ export const AdminArtifactsPage: React.FC = () => {
           </div>
 
           {/* Lọc trạng thái 3D */}
-          <div style={{ minWidth: 180 }}>
+          <div style={{ flex: '0 1 180px', minWidth: 'min(100%, 140px)' }}>
             <select
               className="form-control"
               style={{ fontSize: '13px', width: '100%' }}
@@ -946,80 +946,74 @@ export const AdminArtifactsPage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Action buttons 2 hàng chuẩn mực, không bị dồn ép hay xếp 3 hàng dọc */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 8, marginTop: 'auto', borderTop: '1px solid var(--border-color)' }}>
+                    {/* Action buttons 2 hàng chuẩn mực, responsive đa tầng */}
+                    <div className="room-card-actions-wrapper">
                       {/* Hàng 1: Hai nút chức năng chính */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div className="room-card-actions-row">
                         {has3D ? (
                           <button
                             type="button"
-                            className="btn btn-primary btn-sm"
+                            className="btn btn-primary btn-sm room-card-btn-action"
                             onClick={() => handleOpenViewer(art)}
-                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
                             title="Xem mô hình 3D xoay 360° trên đĩa ngọc"
                           >
-                            <RotateCw size={13} />
-                            <span>Xem 3D 360°</span>
+                            <RotateCw size={13} style={{ flexShrink: 0 }} />
+                            <span className="room-card-btn-label">Xem 3D 360°</span>
                           </button>
                         ) : (
                           <button
                             type="button"
-                            className="btn btn-primary btn-sm"
+                            className="btn btn-primary btn-sm room-card-btn-action"
                             onClick={() => handleOpenGenerate3D(art)}
                             disabled={isProcessing}
-                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
                             title="Khởi tạo mô hình 3D từ ảnh chụp"
                           >
-                            {isProcessing ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
-                            <span>{isProcessing ? 'Đang dựng...' : 'Dựng 3D AI'}</span>
+                            {isProcessing ? <Loader2 size={13} className="spin" style={{ flexShrink: 0 }} /> : <Sparkles size={13} style={{ flexShrink: 0 }} />}
+                            <span className="room-card-btn-label">{isProcessing ? 'Đang dựng...' : 'Dựng 3D AI'}</span>
                           </button>
                         )}
 
                         <button
                           type="button"
-                          className="btn btn-secondary btn-sm"
+                          className="btn btn-secondary btn-sm room-card-btn-action"
                           onClick={() => handleOpenVoiceModal(art)}
-                          style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
                           title="Quản lý thuyết minh & Voice AI đa ngôn ngữ"
                         >
-                          <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
-                          <span>Thuyết minh</span>
+                          <Volume2 size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                          <span className="room-card-btn-label">Thuyết minh</span>
                         </button>
                       </div>
 
                       {/* Hàng 2: Nút công cụ phụ */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div className="room-card-actions-row">
                         <button
                           type="button"
-                          className="btn btn-secondary btn-sm"
+                          className="btn btn-secondary btn-sm room-card-btn-action"
                           title="Xem và in thẻ Standee QR trưng bày"
                           onClick={() => handleOpenQR(art)}
-                          style={{ flex: 1, justifyContent: 'center', padding: '4px 6px', fontSize: '11px', whiteSpace: 'nowrap' }}
                         >
-                          <QrCode size={12} />
-                          <span>Mã QR</span>
+                          <QrCode size={12} style={{ flexShrink: 0 }} />
+                          <span className="room-card-btn-label">Mã QR</span>
                         </button>
 
                         <button
                           type="button"
-                          className="btn btn-secondary btn-sm"
+                          className="btn btn-secondary btn-sm room-card-btn-action-tool"
                           title="Chỉnh sửa thông tin hiện vật"
                           onClick={() => handleEdit(art)}
-                          style={{ padding: '4px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
                         >
-                          <Edit3 size={12} />
-                          <span>Sửa</span>
+                          <Edit3 size={12} style={{ flexShrink: 0 }} />
+                          <span className="room-card-btn-label">Sửa</span>
                         </button>
 
                         <button
                           type="button"
-                          className="btn btn-secondary btn-sm"
+                          className="btn btn-secondary btn-sm room-card-btn-action-tool room-card-btn-delete"
                           title="Xóa hiện vật khỏi sổ lưu trữ"
                           onClick={() => handleDelete(art.id, art.name)}
-                          style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--error)' }}
                         >
-                          <Trash2 size={12} />
-                          <span>Xóa</span>
+                          <Trash2 size={12} style={{ flexShrink: 0 }} />
+                          <span className="room-card-btn-label">Xóa</span>
                         </button>
                       </div>
                     </div>

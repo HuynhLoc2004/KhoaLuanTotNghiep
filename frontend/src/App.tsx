@@ -215,7 +215,7 @@ const AppContent: React.FC = () => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const handleToggleSidebar = () => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+    if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
       setIsMobileSidebarOpen((prev) => !prev);
     } else {
       setIsSidebarCollapsed((prev) => {

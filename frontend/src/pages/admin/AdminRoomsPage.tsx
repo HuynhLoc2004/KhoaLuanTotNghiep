@@ -705,7 +705,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           }}
         >
           {/* Ô tìm kiếm */}
-          <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 'min(100%, 180px)' }}>
             <input
               type="text"
               placeholder={activeSubTab === 'rooms' ? t('rooms.searchPlaceholder', "Tìm theo tên phòng, mã P-01, P-05...") : t('rooms.searchPlaceholderPano', "Tìm tên file ảnh toàn cảnh 360°...")}
@@ -729,7 +729,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           {activeSubTab === 'rooms' && (
             <>
               {/* Lọc chuyên đề thực tế từ DB */}
-              <div style={{ minWidth: 220 }}>
+              <div style={{ flex: '0 1 200px', minWidth: 'min(100%, 150px)' }}>
                 <select
                   className="form-control"
                   style={{ fontSize: '13px', width: '100%' }}
@@ -752,7 +752,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </div>
 
               {/* Lọc trạng thái */}
-              <div style={{ minWidth: 160 }}>
+              <div style={{ flex: '0 1 160px', minWidth: 'min(100%, 130px)' }}>
                 <select
                   className="form-control"
                   style={{ fontSize: '13px', width: '100%' }}
@@ -877,60 +877,56 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         </span>
                       </div>
 
-                      {/* Action buttons 2 hàng thoáng đãng, không bị chèn ép chữ */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 8, marginTop: 'auto', borderTop: '1px solid var(--border-color)' }}>
+                      {/* Action buttons chuẩn mực, responsive đa tầng */}
+                      <div className="room-card-actions-wrapper">
                         {/* Hàng 1: Hai nút chức năng chính */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div className="room-card-actions-row">
                           <button
                             type="button"
-                            className="btn btn-primary btn-sm"
+                            className="btn btn-primary btn-sm room-card-btn-action"
                             onClick={() => onOpenStudio(room)}
-                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
                             title={t('rooms.explore360', 'Mở trình biên tập ghim Hotspots 360°')}
                           >
-                            <Compass size={13} />
-                            <span>{t('rooms.explore360', 'Biên tập 360')}</span>
+                            <Compass size={13} style={{ flexShrink: 0 }} />
+                            <span className="room-card-btn-label">{t('rooms.explore360', 'Biên tập 360')}</span>
                           </button>
 
                           <button
                             type="button"
-                            className="btn btn-secondary btn-sm"
+                            className="btn btn-secondary btn-sm room-card-btn-action"
                             onClick={() => handleOpenAiDrawer(room)}
-                            style={{ flex: 1, justifyContent: 'center', whiteSpace: 'nowrap', padding: '6px 8px', fontSize: '11.5px', fontWeight: 600 }}
                             title={t('rooms.narration', 'Thuyết minh & Trợ lý ảo cho gian phòng')}
                           >
-                            <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
-                            <span>{t('rooms.narration', 'Thuyết minh')}</span>
+                            <Volume2 size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                            <span className="room-card-btn-label">{t('rooms.narration', 'Thuyết minh')}</span>
                           </button>
                         </div>
 
                         {/* Hàng 2: Nút công cụ phụ */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div className="room-card-actions-row">
                           <button
                             type="button"
-                            className="btn btn-secondary btn-sm"
+                            className="btn btn-secondary btn-sm room-card-btn-action"
                             title="Tải mã QR Standee phòng này"
                             onClick={() => handleOpenQrModal(room)}
-                            style={{ flex: 1, justifyContent: 'center', padding: '4px 6px', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
-                            <QrCode size={12} />
-                            <span>{t('rooms.qrCode', 'Mã QR')}</span>
+                            <QrCode size={12} style={{ flexShrink: 0 }} />
+                            <span className="room-card-btn-label">{t('rooms.qrCode', 'Mã QR')}</span>
                           </button>
 
                           <button
                             type="button"
-                            className="btn btn-secondary btn-sm"
+                            className="btn btn-secondary btn-sm room-card-btn-action-tool"
                             title="Chỉnh sửa thông tin phòng"
                             onClick={() => setEditingRoom(room)}
-                            style={{ padding: '4px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
-                            <Edit3 size={12} />
-                            <span>{t('rooms.edit', 'Sửa')}</span>
+                            <Edit3 size={12} style={{ flexShrink: 0 }} />
+                            <span className="room-card-btn-label">{t('rooms.edit', 'Sửa')}</span>
                           </button>
 
                           <button
                             type="button"
-                            className="btn btn-secondary btn-sm"
+                            className="btn btn-secondary btn-sm room-card-btn-action-tool room-card-btn-delete"
                             title="Xóa gian phòng khỏi Database"
                             onClick={() => {
                               triggerConfirm(
@@ -939,10 +935,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                                 () => onDeleteRoom(room.id)
                               );
                             }}
-                            style={{ padding: '4px 8px', color: 'var(--error)', fontSize: '11px', whiteSpace: 'nowrap' }}
                           >
-                            <Trash2 size={12} />
-                            <span>{t('rooms.delete', 'Xóa')}</span>
+                            <Trash2 size={12} style={{ flexShrink: 0 }} />
+                            <span className="room-card-btn-label">{t('rooms.delete', 'Xóa')}</span>
                           </button>
                         </div>
                       </div>
