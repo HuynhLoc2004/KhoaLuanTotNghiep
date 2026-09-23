@@ -31,6 +31,9 @@ interface Turntable360ViewerProps {
   autoRotateSpeed?: number;
 }
 
+const PLINTH_RADIUS = 1.25;
+const PLINTH_HEIGHT = 0.06;
+
 export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   modelUrl,
   imageUrl,
@@ -78,6 +81,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     fillLight: THREE.DirectionalLight;
     ambientLight: THREE.AmbientLight;
     rimLight: THREE.DirectionalLight;
+    frontLight: THREE.DirectionalLight;
   } | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
 
@@ -103,14 +107,14 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     const width = containerRef.current.clientWidth || 800;
     const heightNum = typeof height === 'number' ? height : 520;
 
-    // SCENE: Không gian tối trầm sang trọng của phòng trưng bày bảo tàng
+    // SCENE: Không gian tối trầm sang trọng của phòng trưng bày bảo tàng (#0b0d13)
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0c0e14);
+    scene.background = new THREE.Color(0x0b0d13);
     sceneRef.current = scene;
 
     // CAMERA
     const camera = new THREE.PerspectiveCamera(45, width / heightNum, 0.1, 100);
-    camera.position.set(0, 1.8, 4.2);
+    camera.position.set(0, 1.45, 4.0);
     cameraRef.current = camera;
 
     // RENDERER
@@ -124,7 +128,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.35; // Cường độ phơi sáng chuẩn giúp hiện vật nổi bật, rực rỡ, không bị tối
     rendererRef.current = renderer;
 
     // CONTROLS (OrbitControls)
@@ -133,60 +137,67 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     controls.dampingFactor = 0.05;
     controls.maxDistance = 8.5;
     controls.minDistance = 1.5;
-    controls.maxPolarAngle = Math.PI / 2 + 0.04; // Không cho camera nhìn lộn dưới sàn
-    controls.target.set(0, 1.1, 0);
+    controls.maxPolarAngle = Math.PI / 2 + 0.04;
+    controls.target.set(0, 1.05, 0);
     controlsRef.current = controls;
 
-    // LIGHTING (Hệ thống đèn bảo tàng ấm áp làm nổi khối hiện vật)
-    const ambientLight = new THREE.AmbientLight(0xffeedb, 0.95);
+    // LIGHTING (Hệ thống đèn bảo tàng chuyên dụng hài hòa cho Dark Mode)
+    // 1. Ánh sáng môi trường dịu ấm (khử bóng chết ở mọi góc nhìn)
+    const ambientLight = new THREE.AmbientLight(0xfff6ec, 1.6);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff0d8, 2.8); // Spotlight vàng ấm chính
-    keyLight.position.set(3.2, 4.5, 3.2);
+    // 2. Đèn rọi trực diện (Front Key Light): Rọi thẳng mặt trước hiện vật, sáng rõ chi tiết và màu sắc
+    const frontLight = new THREE.DirectionalLight(0xfff8f0, 2.0);
+    frontLight.position.set(0, 1.8, 4.0);
+    scene.add(frontLight);
+
+    // 3. Đèn Spotlight nghệ thuật góc trên bên phải (Tạo khối nổi 3D sang trọng)
+    const keyLight = new THREE.DirectionalLight(0xffeed6, 1.7);
+    keyLight.position.set(2.4, 3.5, 2.2);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
     keyLight.shadow.bias = -0.0001;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xd0e0ff, 1.2); // Đèn mềm xanh dịu
-    fillLight.position.set(-3.2, 2.5, 2.5);
+    // 4. Đèn phụ bù sáng góc trái (Fill Light: khử bóng tối gắt bên sườn)
+    const fillLight = new THREE.DirectionalLight(0xdce8ff, 1.3);
+    fillLight.position.set(-2.4, 2.0, 2.0);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 1.3); // Đèn viền tóc nổi khối
-    rimLight.position.set(0, 3.0, -3.2);
+    // 5. Đèn viền sau (Rim Light: tôn đường bao vật thể)
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.3);
+    rimLight.position.set(0, 3.0, -3.0);
     scene.add(rimLight);
 
-    lightsRef.current = { keyLight, fillLight, ambientLight, rimLight };
+    lightsRef.current = { keyLight, fillLight, ambientLight, rimLight, frontLight };
 
-    // TURNTABLE GROUP (Bục trưng bày cổ vật hình trụ đá cẩm thạch đen sang trọng)
+    // TURNTABLE GROUP (Bục trưng bày đá đen mờ Obsidian chống lóa)
     const turntableGroup = new THREE.Group();
     scene.add(turntableGroup);
     turntableGroupRef.current = turntableGroup;
 
-    // Bục hình trụ đá cẩm thạch đen mờ (Không dùng khung lưới cyber)
-    const plinthRadius = 1.6;
-    const plinthHeight = 0.14;
-    const plinthGeo = new THREE.CylinderGeometry(plinthRadius, plinthRadius * 1.02, plinthHeight, 64);
+    // Bục hình trụ đá đen mờ (Matte Obsidian: roughness 0.95 để KHÔNG BỊ HẮT TRẮNG BẠC)
+    const plinthGeo = new THREE.CylinderGeometry(PLINTH_RADIUS, PLINTH_RADIUS * 1.015, PLINTH_HEIGHT, 64);
     const plinthMat = new THREE.MeshStandardMaterial({
-      color: 0x14171f,
-      roughness: 0.45,
-      metalness: 0.12
+      color: 0x14161d, // Đen than đá trầm tối
+      roughness: 0.95, // Nhám mịn mờ hoàn toàn, triệt tiêu lóa sáng
+      metalness: 0.02
     });
     const plinthMesh = new THREE.Mesh(plinthGeo, plinthMat);
-    plinthMesh.position.y = plinthHeight / 2;
+    plinthMesh.position.y = PLINTH_HEIGHT / 2;
     plinthMesh.receiveShadow = true;
     turntableGroup.add(plinthMesh);
 
-    // Đường viền kim loại đồng cổ vát mép bục
-    const trimGeo = new THREE.CylinderGeometry(plinthRadius * 1.022, plinthRadius * 1.025, 0.02, 64);
+    // Đường viền kim loại đồng cổ tối màu ở chân bục (tinh tế, kín đáo)
+    const trimGeo = new THREE.CylinderGeometry(PLINTH_RADIUS * 1.018, PLINTH_RADIUS * 1.022, 0.012, 64);
     const trimMat = new THREE.MeshStandardMaterial({
-      color: 0x8a7246, // Đồng cổ trang nhã (không chói gắt)
-      roughness: 0.35,
-      metalness: 0.65
+      color: 0x423522, // Đồng cổ tối màu trang nhã
+      roughness: 0.65,
+      metalness: 0.35
     });
     const trimMesh = new THREE.Mesh(trimGeo, trimMat);
-    trimMesh.position.y = 0.01;
+    trimMesh.position.y = 0.006;
     turntableGroup.add(trimMesh);
 
     // Tạo bóng đổ tiếp xúc mềm mại tự nhiên dưới chân cổ vật (Radial Gradient)
@@ -197,26 +208,26 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     if (shadowCtx) {
       const grad = shadowCtx.createRadialGradient(128, 128, 10, 128, 128, 120);
       grad.addColorStop(0, 'rgba(0, 0, 0, 0.7)');
-      grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.3)');
+      grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.25)');
       grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       shadowCtx.fillStyle = grad;
       shadowCtx.fillRect(0, 0, 256, 256);
     }
     const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
 
-    // Bóng đổ trên mặt bục
+    // Bóng đổ tiếp xúc nhỏ gọn vừa vặn ngay dưới chân hiện vật
     const contactShadow = new THREE.Mesh(
-      new THREE.PlaneGeometry(plinthRadius * 1.8, plinthRadius * 1.8),
-      new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: 0.85, depthWrite: false })
+      new THREE.PlaneGeometry(1.2, 1.2),
+      new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: 0.55, depthWrite: false })
     );
     contactShadow.rotation.x = -Math.PI / 2;
-    contactShadow.position.y = plinthHeight + 0.002;
+    contactShadow.position.y = PLINTH_HEIGHT + 0.001;
     turntableGroup.add(contactShadow);
 
-    // Bóng đổ dưới sàn
+    // Bóng đổ dưới sàn phòng
     const floorShadow = new THREE.Mesh(
-      new THREE.PlaneGeometry(plinthRadius * 2.8, plinthRadius * 2.8),
-      new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: 0.45, depthWrite: false })
+      new THREE.PlaneGeometry(PLINTH_RADIUS * 2.2, PLINTH_RADIUS * 2.2),
+      new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: 0.35, depthWrite: false })
     );
     floorShadow.rotation.x = -Math.PI / 2;
     floorShadow.position.y = 0.001;
@@ -303,10 +314,11 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         const targetScale = 2.0 / (maxDim || 1.0);
         root.scale.setScalar(targetScale);
 
-        // Đặt cổ vật đứng vững trên mặt bục trưng bày (Y = 0.14)
+        // Đặt chân cổ vật đứng vững VỪA KHÍT trên mặt bục trưng bày (Y = PLINTH_HEIGHT)
+        // Không bị chìm xuống bục và không bị lơ lửng
         root.position.x = -center.x * targetScale;
         root.position.z = -center.z * targetScale;
-        root.position.y = 0.15 - (box.min.y * targetScale);
+        root.position.y = PLINTH_HEIGHT - (box.min.y * targetScale) + 0.001;
 
         // Cấu hình vật liệu PBR cho toàn bộ mesh
         root.traverse((child) => {
@@ -355,25 +367,29 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     setLightingPreset((prev) => {
       const next = prev === 'museum' ? 'daylight' : 'museum';
       if (lightsRef.current && sceneRef.current && rendererRef.current) {
-        const { keyLight, fillLight, ambientLight } = lightsRef.current;
+        const { keyLight, fillLight, ambientLight, frontLight } = lightsRef.current;
         if (next === 'museum') {
-          keyLight.color.setHex(0xfff0d8);
-          keyLight.intensity = 2.8;
-          fillLight.color.setHex(0xd0e0ff);
-          fillLight.intensity = 1.2;
-          ambientLight.color.setHex(0xffeedb);
-          ambientLight.intensity = 0.95;
-          sceneRef.current.background = new THREE.Color(0x0c0e14);
-          rendererRef.current.toneMappingExposure = 1.15;
+          frontLight.color.setHex(0xfff8f0);
+          frontLight.intensity = 2.0;
+          keyLight.color.setHex(0xffeed6);
+          keyLight.intensity = 1.7;
+          fillLight.color.setHex(0xdce8ff);
+          fillLight.intensity = 1.3;
+          ambientLight.color.setHex(0xfff6ec);
+          ambientLight.intensity = 1.6;
+          sceneRef.current.background = new THREE.Color(0x0b0d13);
+          rendererRef.current.toneMappingExposure = 1.35;
         } else {
+          frontLight.color.setHex(0xffffff);
+          frontLight.intensity = 1.8;
           keyLight.color.setHex(0xffffff);
-          keyLight.intensity = 2.4;
+          keyLight.intensity = 1.8;
           fillLight.color.setHex(0xf0f4f8);
-          fillLight.intensity = 1.5;
+          fillLight.intensity = 1.3;
           ambientLight.color.setHex(0xffffff);
-          ambientLight.intensity = 1.35;
+          ambientLight.intensity = 1.8;
           sceneRef.current.background = new THREE.Color(0x181c24);
-          rendererRef.current.toneMappingExposure = 1.25;
+          rendererRef.current.toneMappingExposure = 1.30;
         }
       }
       return next;
