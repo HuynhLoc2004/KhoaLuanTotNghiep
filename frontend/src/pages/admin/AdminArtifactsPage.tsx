@@ -1149,9 +1149,10 @@ export const AdminArtifactsPage: React.FC = () => {
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenGenerate3D(art)}
-                              title="Khởi tạo mô hình 3D từ ảnh"
+                              disabled={isProcessing}
+                              title={isProcessing ? "Đang tiến hành dựng mô hình 3D..." : "Khởi tạo mô hình 3D từ ảnh"}
                             >
-                              <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+                              {isProcessing ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />}
                             </button>
                           )}
                           <button
