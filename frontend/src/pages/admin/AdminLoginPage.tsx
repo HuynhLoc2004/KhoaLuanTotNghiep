@@ -18,7 +18,7 @@ export const AdminLoginPage: React.FC = () => {
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
 
-  const [authMode, setAuthMode] = useState<'otp' | 'credentials'>('otp');
+  const [authMode, setAuthMode] = useState<'otp' | 'credentials'>('credentials');
 
   // State cho Đăng nhập OTP
   const [email, setEmail] = useState('');
@@ -29,8 +29,8 @@ export const AdminLoginPage: React.FC = () => {
   const [cooldown, setCooldown] = useState(0);
 
   // State cho Đăng nhập Tài khoản / Mật khẩu
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Ref cho 6 ô input OTP
@@ -385,6 +385,10 @@ export const AdminLoginPage: React.FC = () => {
                     required
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 14, fontSize: '12px', color: 'var(--text-muted)' }}>
+                <span>Quản trị viên mặc định: <strong style={{ color: 'var(--accent-gold)' }}>admin</strong> / <strong style={{ color: 'var(--accent-gold)' }}>admin</strong></span>
               </div>
 
               <button

@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User, IUser } from '../models/User.js';
+import { User, IUser, seedDefaultAdmin } from '../models/User.js';
 import { Role } from '../models/Role.js';
 import { OtpToken } from '../models/OtpToken.js';
 import { sendMail } from '../services/mail.js';
@@ -80,14 +80,17 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
 
     // Tìm kiếm xem email này có thuộc tài khoản Admin nào không
     // Hoặc nếu nhập 'admin', tự động chuyển về email admin đã cấu hình
-    let user = await User.findOne({
+    let user: any = await User.findOne({
       $or: [{ email: cleanEmail }, { username: cleanEmail }]
     });
 
-    // Nếu không tìm thấy, nhưng email trùng với SMTP_USER trong .env -> Tìm lại
-    const envAdminEmail = (process.env.SMTP_USER || '').trim().toLowerCase();
-    if (!user && (cleanEmail === 'admin' || cleanEmail === envAdminEmail)) {
-      user = await User.findOne({ role: 'admin' });
+    // Nếu không tìm thấy, nhưng email là 'admin' hoặc email SMTP cấu hình -> tự động phục hồi admin
+    const envAdminEmail = (process.env.SMTP_USER || 'huynhtanlocpp09@gmail.com').trim().toLowerCase();
+    if (!user && (cleanEmail === 'admin' || cleanEmail === envAdminEmail || cleanEmail.includes('admin'))) {
+      user = await seedDefaultAdmin();
+      if (!user) {
+        user = await User.findOne({ role: 'admin' });
+      }
     }
 
     if (!user) {
@@ -278,7 +281,9 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
     await tokenRecord.save();
 
     // Tìm tài khoản Admin
-    const user = await User.findOne({ email: cleanEmail });
+    const user = await User.findOne({
+      $or: [{ email: cleanEmail }, { username: cleanEmail }]
+    });
     if (!user) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng trong hệ thống.' });
     }
@@ -328,9 +333,18 @@ authRouter.post('/login-credentials', async (req: Request, res: Response) => {
     const cleanInput = usernameOrEmail.trim().toLowerCase();
 
     // Tìm tài khoản
-    const user = await User.findOne({
+    let user: any = await User.findOne({
       $or: [{ username: cleanInput }, { email: cleanInput }]
     });
+
+    // Tự động phục hồi Quản trị viên tối cao nếu chưa tồn tại
+    const envAdminEmail = (process.env.SMTP_USER || 'huynhtanlocpp09@gmail.com').trim().toLowerCase();
+    if (!user && (cleanInput === 'admin' || cleanInput === envAdminEmail || cleanInput.includes('admin'))) {
+      user = await seedDefaultAdmin();
+      if (!user) {
+        user = await User.findOne({ role: 'admin' });
+      }
+    }
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác' });
