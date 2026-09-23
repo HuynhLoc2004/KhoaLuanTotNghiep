@@ -79,6 +79,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const [generatingArtifact, setGeneratingArtifact] = useState<Artifact | null>(null);
   const [depthScale, setDepthScale] = useState(0.35);
   const [isProcessing3D, setIsProcessing3D] = useState(false);
+  const [autoGenerate3D, setAutoGenerate3D] = useState(true);
 
   // Multilingual Voice AI Drawer / Modal
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
@@ -222,6 +223,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const withQrCount = artifacts.filter((a) => !!a.qrCodeUrl).length;
 
   const handleCreateNew = () => {
+    setAutoGenerate3D(true);
     setEditingArtifact({
       code: `HV-${100 + Math.floor(Math.random() * 900)}`,
       name: '',
@@ -241,6 +243,7 @@ export const AdminArtifactsPage: React.FC = () => {
   };
 
   const handleEdit = (artifact: Artifact) => {
+    setAutoGenerate3D(!artifact.model3dUrl);
     setEditingArtifact({ ...artifact });
     setIsEditModalOpen(true);
   };
@@ -274,13 +277,37 @@ export const AdminArtifactsPage: React.FC = () => {
 
     try {
       setIsSaving(true);
+      let savedArtifact: Artifact;
       if (editingArtifact.id) {
-        await api.updateArtifact(editingArtifact.id, editingArtifact);
+        savedArtifact = await api.updateArtifact(editingArtifact.id, editingArtifact);
         showToast('Đã cập nhật hồ sơ hiện vật thành công!', 'success');
       } else {
-        await api.createArtifact(editingArtifact);
+        savedArtifact = await api.createArtifact(editingArtifact);
         showToast('Đã thêm hồ sơ hiện vật mới vào sổ lưu trữ di sản!', 'success');
       }
+
+      const targetId = savedArtifact.id || (savedArtifact as any)._id;
+      const hasImage = (savedArtifact.images && savedArtifact.images.length > 0) || savedArtifact.thumbnailUrl;
+      const hasModel = !!savedArtifact.model3dUrl;
+
+      // Tự động kích hoạt dựng mô hình 3D AI trong nền nếu người dùng bật và hiện vật có ảnh nhưng chưa có model
+      if (autoGenerate3D && targetId && hasImage && !hasModel) {
+        try {
+          const genRes = await api.generate3DArtifact(targetId, {
+            depthScale: 0.35,
+            resolution: 160
+          });
+          if (genRes.cached) {
+            showToast('Mô hình 3D đã sẵn sàng từ bộ nhớ đệm (Cache)!', 'success');
+          } else {
+            showToast('Đang tiến hành dựng mô hình 3D AI trong nền...', 'info');
+          }
+        } catch (genErr: any) {
+          console.warn('[Auto 3D Error]:', genErr);
+          showToast('Hồ sơ đã lưu, nhưng tác vụ 3D gặp lỗi: ' + (genErr.message || 'Không thể khởi động'), 'warning');
+        }
+      }
+
       setIsEditModalOpen(false);
       fetchArtifacts();
     } catch (err: any) {
@@ -1350,6 +1377,37 @@ export const AdminArtifactsPage: React.FC = () => {
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                     Ảnh tư liệu đầu tiên sẽ được dùng làm ảnh gốc để tự động dựng mô hình 3D.
                   </span>
+                </div>
+
+                {/* Tùy chọn tự động Dựng mô hình 3D AI ngay khi lưu */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    background: 'rgba(212, 168, 106, 0.08)',
+                    border: '1px solid rgba(212, 168, 106, 0.25)',
+                    marginTop: 2
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    id="autoGenerate3DCheckbox"
+                    checked={autoGenerate3D}
+                    onChange={(e) => setAutoGenerate3D(e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="autoGenerate3DCheckbox" style={{ fontSize: '12.5px', color: 'var(--heading-color)', fontWeight: 500, cursor: 'pointer', flex: 1, margin: 0 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+                      <strong>Tự động kích hoạt Dựng mô hình 3D AI ngay sau khi lưu</strong>
+                    </span>
+                    <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
+                      Hệ thống sẽ lấy ảnh tư liệu gốc để tách nền và tái tạo mô hình 3D xoay 360° tự động trong hàng đợi nền.
+                    </span>
+                  </label>
                 </div>
 
                 {/* File 3D (Tùy chọn) */}
