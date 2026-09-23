@@ -299,7 +299,7 @@ export const AdminArtifactsPage: React.FC = () => {
       const hasImage = (savedArtifact.images && savedArtifact.images.length > 0) || savedArtifact.thumbnailUrl;
       const hasModel = !!savedArtifact.model3dUrl;
 
-      // Tự động kích hoạt dựng mô hình 3D AI trong nền nếu người dùng bật và hiện vật có ảnh nhưng chưa có model
+      // Tự động kích hoạt tạo mô hình 3D trong nền nếu người dùng bật và hiện vật có ảnh nhưng chưa có model
       if (autoGenerate3D && targetId && hasImage && !hasModel) {
         try {
           const genRes = await api.generate3DArtifact(targetId, {
@@ -309,7 +309,7 @@ export const AdminArtifactsPage: React.FC = () => {
           if (genRes.cached) {
             showToast('Mô hình 3D đã sẵn sàng từ bộ nhớ đệm (Cache)!', 'success');
           } else {
-            showToast('Đang tiến hành dựng mô hình 3D AI trong nền...', 'info');
+            showToast('Đang tiến hành số hóa mô hình 3D trong tiến trình nền...', 'info');
           }
         } catch (genErr: any) {
           console.warn('[Auto 3D Error]:', genErr);
@@ -1051,8 +1051,8 @@ export const AdminArtifactsPage: React.FC = () => {
                             disabled={isProcessing}
                             title="Khởi tạo mô hình 3D từ ảnh chụp"
                           >
-                            {isProcessing ? <Loader2 size={13} className="spin" style={{ flexShrink: 0 }} /> : <Sparkles size={13} style={{ flexShrink: 0 }} />}
-                            <span className="room-card-btn-label">{isProcessing ? 'Đang dựng...' : 'Dựng 3D AI'}</span>
+                            {isProcessing ? <Loader2 size={13} className="spin" style={{ flexShrink: 0 }} /> : <Box size={13} style={{ flexShrink: 0 }} />}
+                            <span className="room-card-btn-label">{isProcessing ? 'Đang tạo...' : 'Số hóa 3D'}</span>
                           </button>
                         )}
 
@@ -1520,11 +1520,11 @@ export const AdminArtifactsPage: React.FC = () => {
                   />
                   <label htmlFor="autoGenerate3DCheckbox" style={{ fontSize: '12.5px', color: 'var(--heading-color)', fontWeight: 500, cursor: 'pointer', flex: 1, margin: 0 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
-                      <strong>Tự động kích hoạt Dựng mô hình 3D AI ngay sau khi lưu</strong>
+                      <Box size={13} style={{ color: 'var(--accent-gold)' }} />
+                      <strong>Tự động số hóa mô hình 3D sau khi lưu</strong>
                     </span>
                     <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
-                      Hệ thống sẽ lấy ảnh tư liệu gốc để tách nền và tái tạo mô hình 3D xoay 360° tự động trong hàng đợi nền.
+                      Hệ thống sẽ xử lý ảnh tư liệu để tái tạo mô hình 3D xoay 360° trong tiến trình nền.
                     </span>
                   </label>
                 </div>
@@ -1736,8 +1736,8 @@ export const AdminArtifactsPage: React.FC = () => {
                   </span>
                   <span style={{ fontSize: '11px', color: generatingArtifact.images && generatingArtifact.images[1] ? 'var(--success)' : 'var(--text-muted)', marginTop: 3, display: 'block' }}>
                     {generatingArtifact.images && generatingArtifact.images[1]
-                      ? '✨ Có đủ ảnh 2 mặt: AI sẽ tạo 3D chuẩn xác cả Trước & Sau'
-                      : 'ℹ️ Đang dựng từ 1 ảnh mặt trước (đồng bộ màu sắc & đổ bóng lưng)'}
+                      ? '✨ Đầy đủ ảnh 2 mặt: Tái tạo chi tiết mặt trước và mặt sau thực tế'
+                      : 'ℹ️ Dựng từ ảnh mặt trước (tự động đồng bộ màu sắc và khối lưng)'}
                   </span>
                 </div>
               </div>
@@ -1774,7 +1774,7 @@ export const AdminArtifactsPage: React.FC = () => {
                   border: '1px solid var(--border-color)'
                 }}
               >
-                Thuật toán sẽ tự động phân đoạn tách nền, ước tính độ phồng hình học và tạo khối đặc khép kín (Watertight Manifold) với mặt sau hài hòa.
+                Hệ thống tự động xử lý hình ảnh, ước tính độ sâu và tái tạo mô hình 3D đặc khép kín (Watertight) chuẩn bảo tàng.
               </div>
             </div>
 
@@ -1794,8 +1794,8 @@ export const AdminArtifactsPage: React.FC = () => {
                 disabled={isProcessing3D}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                {isProcessing3D ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
-                <span>{isProcessing3D ? 'Đang kích hoạt...' : 'Bắt đầu dựng 3D'}</span>
+                {isProcessing3D ? <Loader2 size={14} className="spin" /> : <Box size={14} />}
+                <span>{isProcessing3D ? 'Đang khởi tạo...' : 'Bắt đầu số hóa 3D'}</span>
               </button>
             </div>
           </div>

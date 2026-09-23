@@ -4,17 +4,18 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   RotateCw,
+  RotateCcw,
   Play,
   Pause,
   Maximize2,
+  Minimize2,
   Volume2,
   VolumeX,
-  Sparkles,
-  Info,
   Layers,
   Sun,
   Camera,
-  Loader2
+  Loader2,
+  Box
 } from 'lucide-react';
 import { API_ROOT } from '../services/api';
 
@@ -47,12 +48,17 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
 
   // Trạng thái điều khiển 3D
   const [isAutoRotating, setIsAutoRotating] = useState(true);
+  const isAutoRotatingRef = useRef(isAutoRotating);
+  useEffect(() => {
+    isAutoRotatingRef.current = isAutoRotating;
+  }, [isAutoRotating]);
+
   const [isLoadingModel, setIsLoadingModel] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
   const [lightingPreset, setLightingPreset] = useState<'museum' | 'daylight'>('museum');
   const [wireframeMode, setWireframeMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [modelStats, setModelStats] = useState<{ vertices: number; faces: number } | null>(null);
-  const [showStats, setShowStats] = useState(false);
 
   // Trạng thái Thuyết minh Audio
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -67,7 +73,12 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const controlsRef = useRef<OrbitControls | null>(null);
   const turntableGroupRef = useRef<THREE.Group | null>(null);
   const modelObjectRef = useRef<THREE.Object3D | null>(null);
-  const lightsRef = useRef<{ keyLight: THREE.DirectionalLight; fillLight: THREE.DirectionalLight; ambientLight: THREE.AmbientLight } | null>(null);
+  const lightsRef = useRef<{
+    keyLight: THREE.DirectionalLight;
+    fillLight: THREE.DirectionalLight;
+    ambientLight: THREE.AmbientLight;
+    rimLight: THREE.DirectionalLight;
+  } | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
 
   // Định dạng đường dẫn URL file 3D đầy đủ
@@ -85,16 +96,16 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     ? (audioNarrationUrl.startsWith('http') ? audioNarrationUrl : `${API_ROOT}${audioNarrationUrl.startsWith('/') ? '' : '/'}${audioNarrationUrl}`)
     : null;
 
-  // 1. Khởi tạo Three.js Scene, Camera, Lights, và Turntable Pedestal
+  // 1. Khởi tạo Three.js Scene, Camera, Lights, và Bục trưng bày Bảo tàng
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
     const width = containerRef.current.clientWidth || 800;
     const heightNum = typeof height === 'number' ? height : 520;
 
-    // SCENE
+    // SCENE: Không gian tối trầm sang trọng của phòng trưng bày bảo tàng
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0c10); // Nền phòng tối bảo tàng sang trọng
+    scene.background = new THREE.Color(0x0c0e14);
     sceneRef.current = scene;
 
     // CAMERA
@@ -122,90 +133,103 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     controls.dampingFactor = 0.05;
     controls.maxDistance = 8.5;
     controls.minDistance = 1.5;
-    controls.maxPolarAngle = Math.PI / 2 + 0.05; // Không cho camera nhìn lộn dưới sàn
+    controls.maxPolarAngle = Math.PI / 2 + 0.04; // Không cho camera nhìn lộn dưới sàn
     controls.target.set(0, 1.1, 0);
     controlsRef.current = controls;
 
-    // LIGHTING (Hệ thống đèn chiếu sáng bảo tàng chuyên nghiệp)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    // LIGHTING (Hệ thống đèn bảo tàng ấm áp làm nổi khối hiện vật)
+    const ambientLight = new THREE.AmbientLight(0xffeedb, 0.95);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff4e6, 2.6); // Đèn spotlight chính ấm áp
-    keyLight.position.set(3.5, 4.5, 3.5);
+    const keyLight = new THREE.DirectionalLight(0xfff0d8, 2.8); // Spotlight vàng ấm chính
+    keyLight.position.set(3.2, 4.5, 3.2);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
     keyLight.shadow.bias = -0.0001;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xdce7ff, 1.2); // Đèn phụ xanh nhạt làm dịu bóng râm
-    fillLight.position.set(-3.5, 2.5, 2.5);
+    const fillLight = new THREE.DirectionalLight(0xd0e0ff, 1.2); // Đèn mềm xanh dịu
+    fillLight.position.set(-3.2, 2.5, 2.5);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 1.4); // Đèn viền tóc nổi bật khối
-    rimLight.position.set(0, 3.0, -3.5);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.3); // Đèn viền tóc nổi khối
+    rimLight.position.set(0, 3.0, -3.2);
     scene.add(rimLight);
 
-    lightsRef.current = { keyLight, fillLight, ambientLight };
+    lightsRef.current = { keyLight, fillLight, ambientLight, rimLight };
 
-    // TURNTABLE GROUP (Mâm xoay trưng bày hiện vật)
+    // TURNTABLE GROUP (Bục trưng bày cổ vật hình trụ đá cẩm thạch đen sang trọng)
     const turntableGroup = new THREE.Group();
     scene.add(turntableGroup);
     turntableGroupRef.current = turntableGroup;
 
-    // ĐĨA XOAY (Turntable Disc): Đá cẩm thạch Nero Marquina đen bóng viền kim loại vàng
-    const discRadius = 1.65;
-    const discHeight = 0.12;
-    const discGeo = new THREE.CylinderGeometry(discRadius, discRadius * 1.03, discHeight, 64);
-    const discMat = new THREE.MeshStandardMaterial({
-      color: 0x16181f,
-      roughness: 0.25,
-      metalness: 0.15
+    // Bục hình trụ đá cẩm thạch đen mờ (Không dùng khung lưới cyber)
+    const plinthRadius = 1.6;
+    const plinthHeight = 0.14;
+    const plinthGeo = new THREE.CylinderGeometry(plinthRadius, plinthRadius * 1.02, plinthHeight, 64);
+    const plinthMat = new THREE.MeshStandardMaterial({
+      color: 0x14171f,
+      roughness: 0.45,
+      metalness: 0.12
     });
-    const turntableDisc = new THREE.Mesh(discGeo, discMat);
-    turntableDisc.position.y = discHeight / 2;
-    turntableDisc.receiveShadow = true;
-    turntableGroup.add(turntableDisc);
+    const plinthMesh = new THREE.Mesh(plinthGeo, plinthMat);
+    plinthMesh.position.y = plinthHeight / 2;
+    plinthMesh.receiveShadow = true;
+    turntableGroup.add(plinthMesh);
 
-    // Vành kim loại ánh đồng hoàng gia viền quanh đĩa xoay
-    const rimGeo = new THREE.TorusGeometry(discRadius * 1.01, 0.02, 16, 64);
-    const rimMat = new THREE.MeshStandardMaterial({
-      color: 0xd4af37, // Royal Gold Bronze
-      roughness: 0.2,
-      metalness: 0.85
+    // Đường viền kim loại đồng cổ vát mép bục
+    const trimGeo = new THREE.CylinderGeometry(plinthRadius * 1.022, plinthRadius * 1.025, 0.02, 64);
+    const trimMat = new THREE.MeshStandardMaterial({
+      color: 0x8a7246, // Đồng cổ trang nhã (không chói gắt)
+      roughness: 0.35,
+      metalness: 0.65
     });
-    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
-    rimMesh.rotation.x = Math.PI / 2;
-    rimMesh.position.y = discHeight;
-    turntableGroup.add(rimMesh);
+    const trimMesh = new THREE.Mesh(trimGeo, trimMat);
+    trimMesh.position.y = 0.01;
+    turntableGroup.add(trimMesh);
 
-    // Bóng đổ tiếp xúc (Contact shadow ring) dưới nền phòng
-    const shadowGeo = new THREE.RingGeometry(discRadius * 0.2, discRadius * 1.5, 64);
-    const shadowMat = new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.35,
-      side: THREE.DoubleSide
-    });
-    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-    shadowMesh.rotation.x = Math.PI / 2;
-    shadowMesh.position.y = 0.005;
-    scene.add(shadowMesh);
+    // Tạo bóng đổ tiếp xúc mềm mại tự nhiên dưới chân cổ vật (Radial Gradient)
+    const shadowCanvas = document.createElement('canvas');
+    shadowCanvas.width = 256;
+    shadowCanvas.height = 256;
+    const shadowCtx = shadowCanvas.getContext('2d');
+    if (shadowCtx) {
+      const grad = shadowCtx.createRadialGradient(128, 128, 10, 128, 128, 120);
+      grad.addColorStop(0, 'rgba(0, 0, 0, 0.7)');
+      grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.3)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      shadowCtx.fillStyle = grad;
+      shadowCtx.fillRect(0, 0, 256, 256);
+    }
+    const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
 
-    // Lưới tọa độ sàn bảo tàng tối giản
-    const gridHelper = new THREE.GridHelper(10, 20, 0x242836, 0x151822);
-    gridHelper.position.y = 0;
-    scene.add(gridHelper);
+    // Bóng đổ trên mặt bục
+    const contactShadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(plinthRadius * 1.8, plinthRadius * 1.8),
+      new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: 0.85, depthWrite: false })
+    );
+    contactShadow.rotation.x = -Math.PI / 2;
+    contactShadow.position.y = plinthHeight + 0.002;
+    turntableGroup.add(contactShadow);
 
-    // VÒNG LẶP ANIMATION (Tự động xoay đĩa xoay 360 độ)
+    // Bóng đổ dưới sàn
+    const floorShadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(plinthRadius * 2.8, plinthRadius * 2.8),
+      new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: 0.45, depthWrite: false })
+    );
+    floorShadow.rotation.x = -Math.PI / 2;
+    floorShadow.position.y = 0.001;
+    scene.add(floorShadow);
+
+    // VÒNG LẶP ANIMATION (Tự động xoay bục 360 độ - sử dụng Ref để không bị lỗi stale closure)
     let lastTime = performance.now();
     const animate = () => {
       const now = performance.now();
       const delta = (now - lastTime) / 1000.0;
       lastTime = now;
 
-      // Xoay mâm trưng bày nếu đang bật chế độ tự xoay
-      if (isAutoRotating && turntableGroupRef.current) {
+      if (isAutoRotatingRef.current && turntableGroupRef.current) {
         turntableGroupRef.current.rotation.y += (autoRotateSpeed * 0.25) * delta;
       }
 
@@ -244,12 +268,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     };
   }, [height, autoRotateSpeed]);
 
-  // 2. Cập nhật tốc độ xoay khi người dùng toggle Auto-Rotate
-  useEffect(() => {
-    // Trạng thái được kiểm soát trực tiếp trong vòng lặp animate
-  }, [isAutoRotating]);
-
-  // 3. Tải và Gắn Mô hình 3D .GLB lên đĩa xoay
+  // 2. Tải và Gắn Mô hình 3D .GLB lên đĩa xoay (Chỉ tải lại khi URL thay đổi)
   useEffect(() => {
     if (!fullModelUrl || !turntableGroupRef.current) return;
 
@@ -284,10 +303,10 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         const targetScale = 2.0 / (maxDim || 1.0);
         root.scale.setScalar(targetScale);
 
-        // Đặt cổ vật đứng vững trên mặt đĩa xoay (Y = 0.12)
+        // Đặt cổ vật đứng vững trên mặt bục trưng bày (Y = 0.14)
         root.position.x = -center.x * targetScale;
         root.position.z = -center.z * targetScale;
-        root.position.y = 0.13 - (box.min.y * targetScale);
+        root.position.y = 0.15 - (box.min.y * targetScale);
 
         // Cấu hình vật liệu PBR cho toàn bộ mesh
         root.traverse((child) => {
@@ -307,11 +326,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             }
 
             if (mesh.material) {
-              const mat = mesh.material as THREE.MeshStandardMaterial;
-              mat.wireframe = wireframeMode;
-              mat.roughness = Math.max(0.35, mat.roughness ?? 0.5);
-              mat.metalness = Math.min(0.85, mat.metalness ?? 0.2);
-              mat.needsUpdate = true;
+              if (Array.isArray(mesh.material)) {
+                mesh.material.forEach((m) => {
+                  (m as THREE.MeshStandardMaterial).wireframe = wireframeMode;
+                });
+              } else {
+                (mesh.material as THREE.MeshStandardMaterial).wireframe = wireframeMode;
+              }
             }
           }
         });
@@ -327,30 +348,39 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         setIsLoadingModel(false);
       }
     );
-  }, [fullModelUrl, wireframeMode]);
+  }, [fullModelUrl]);
 
-  // 4. Thay đổi Preset Ánh Sáng
-  useEffect(() => {
-    if (!lightsRef.current) return;
-    const { keyLight, fillLight, ambientLight } = lightsRef.current;
+  // 3. Chuyển đổi Ánh sáng: Trưng bày Bảo tàng vs Studio Ban ngày
+  const toggleLighting = () => {
+    setLightingPreset((prev) => {
+      const next = prev === 'museum' ? 'daylight' : 'museum';
+      if (lightsRef.current && sceneRef.current && rendererRef.current) {
+        const { keyLight, fillLight, ambientLight } = lightsRef.current;
+        if (next === 'museum') {
+          keyLight.color.setHex(0xfff0d8);
+          keyLight.intensity = 2.8;
+          fillLight.color.setHex(0xd0e0ff);
+          fillLight.intensity = 1.2;
+          ambientLight.color.setHex(0xffeedb);
+          ambientLight.intensity = 0.95;
+          sceneRef.current.background = new THREE.Color(0x0c0e14);
+          rendererRef.current.toneMappingExposure = 1.15;
+        } else {
+          keyLight.color.setHex(0xffffff);
+          keyLight.intensity = 2.4;
+          fillLight.color.setHex(0xf0f4f8);
+          fillLight.intensity = 1.5;
+          ambientLight.color.setHex(0xffffff);
+          ambientLight.intensity = 1.35;
+          sceneRef.current.background = new THREE.Color(0x181c24);
+          rendererRef.current.toneMappingExposure = 1.25;
+        }
+      }
+      return next;
+    });
+  };
 
-    if (lightingPreset === 'museum') {
-      keyLight.color.setHex(0xfff4e6);
-      keyLight.intensity = 2.6;
-      fillLight.color.setHex(0xdce7ff);
-      fillLight.intensity = 1.2;
-      ambientLight.intensity = 0.85;
-    } else {
-      // Daylight trung tính
-      keyLight.color.setHex(0xffffff);
-      keyLight.intensity = 2.2;
-      fillLight.color.setHex(0xf0f0f0);
-      fillLight.intensity = 1.4;
-      ambientLight.intensity = 1.0;
-    }
-  }, [lightingPreset]);
-
-  // 5. Cập nhật Wireframe Mode
+  // 4. Bật / Tắt Lưới Đa giác Wireframe (Cập nhật trực tiếp trên GPU, không tải lại file)
   const toggleWireframe = () => {
     setWireframeMode((prev) => {
       const next = !prev;
@@ -359,7 +389,15 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             if (mesh.material) {
-              (mesh.material as THREE.MeshStandardMaterial).wireframe = next;
+              if (Array.isArray(mesh.material)) {
+                mesh.material.forEach((m) => {
+                  (m as THREE.MeshStandardMaterial).wireframe = next;
+                  m.needsUpdate = true;
+                });
+              } else {
+                (mesh.material as THREE.MeshStandardMaterial).wireframe = next;
+                mesh.material.needsUpdate = true;
+              }
             }
           }
         });
@@ -368,7 +406,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     });
   };
 
-  // 6. Reset góc nhìn về vị trí chuẩn bảo tàng
+  // 5. Căn lại góc nhìn ban đầu
   const handleResetCamera = () => {
     if (!cameraRef.current || !controlsRef.current) return;
     cameraRef.current.position.set(0, 1.8, 4.2);
@@ -376,7 +414,33 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     controlsRef.current.update();
   };
 
-  // 7. Xử lý Audio Thuyết Minh AI
+  // 6. Toàn màn hình (Fullscreen)
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      setTimeout(() => {
+        if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
+        const w = containerRef.current.clientWidth;
+        const h = containerRef.current.clientHeight;
+        cameraRef.current.aspect = w / h;
+        cameraRef.current.updateProjectionMatrix();
+        rendererRef.current.setSize(w, h);
+      }, 100);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  // 7. Xử lý Audio Thuyết Minh
   const togglePlayAudio = () => {
     if (!audioRef.current) return;
     if (isPlayingAudio) {
@@ -423,11 +487,11 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         position: 'relative',
         width: '100%',
         height: typeof height === 'number' ? `${height}px` : height,
-        borderRadius: 16,
+        borderRadius: isFullscreen ? 0 : 12,
         overflow: 'hidden',
-        background: 'radial-gradient(circle at 50% 35%, #181d29 0%, #0a0c12 100%)',
-        border: '1px solid rgba(212, 175, 55, 0.25)',
-        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)'
+        background: '#0c0e14',
+        border: isFullscreen ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.5)'
       }}
     >
       {/* Three.js Canvas */}
@@ -437,11 +501,11 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
       <div
         style={{
           position: 'absolute',
-          top: 16,
+          top: 14,
           left: 16,
           display: 'flex',
           flexDirection: 'column',
-          gap: 4,
+          gap: 3,
           pointerEvents: 'none',
           zIndex: 10
         }}
@@ -450,21 +514,20 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           <span
             style={{
               fontSize: '0.72rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
+              fontWeight: 600,
+              letterSpacing: '0.04em',
               padding: '3px 10px',
-              borderRadius: 20,
-              background: 'rgba(212, 175, 55, 0.2)',
-              color: 'var(--accent-gold, #d4af37)',
-              border: '1px solid rgba(212, 175, 55, 0.35)',
+              borderRadius: 16,
+              background: 'rgba(212, 168, 106, 0.15)',
+              color: 'var(--accent-gold, #d4a86a)',
+              border: '1px solid rgba(212, 168, 106, 0.3)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 5
             }}
           >
-            <Sparkles size={12} />
-            Mô phỏng 3D Đĩa Xoay 360°
+            <Box size={13} />
+            Không gian trưng bày 3D
           </span>
           {modelStats && (
             <span
@@ -477,17 +540,17 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 border: '1px solid rgba(255, 255, 255, 0.1)'
               }}
             >
-              {modelStats.faces.toLocaleString()} đa giác
+              {modelStats.faces.toLocaleString()} mặt lưới
             </span>
           )}
         </div>
         <h3
           style={{
-            margin: 0,
-            fontSize: '1.2rem',
-            fontWeight: 700,
+            margin: '4px 0 0 0',
+            fontSize: '1.15rem',
+            fontWeight: 600,
             color: '#ffffff',
-            textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)'
+            textShadow: '0 2px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
           {artifactName}
@@ -495,8 +558,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         <p
           style={{
             margin: 0,
-            fontSize: '0.82rem',
-            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: '0.8rem',
+            color: 'rgba(255, 255, 255, 0.65)',
             textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)'
           }}
         >
@@ -514,7 +577,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(10, 12, 18, 0.85)',
+            background: 'rgba(12, 14, 20, 0.9)',
             backdropFilter: 'blur(8px)',
             zIndex: 15,
             padding: 24,
@@ -524,13 +587,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           {fullImageUrl ? (
             <div
               style={{
-                width: 140,
-                height: 140,
-                borderRadius: 16,
+                width: 130,
+                height: 130,
+                borderRadius: 12,
                 overflow: 'hidden',
                 marginBottom: 16,
-                border: '2px solid rgba(212, 175, 55, 0.4)',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
               }}
             >
               <img
@@ -542,28 +605,28 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           ) : (
             <div
               style={{
-                width: 70,
-                height: 70,
+                width: 60,
+                height: 60,
                 borderRadius: '50%',
-                background: 'rgba(212, 175, 55, 0.15)',
+                background: 'rgba(212, 168, 106, 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--accent-gold, #d4af37)',
+                color: 'var(--accent-gold, #d4a86a)',
                 marginBottom: 16
               }}
             >
-              <Camera size={32} />
+              <Camera size={28} />
             </div>
           )}
 
-          <h4 style={{ color: '#fff', margin: '0 0 8px 0', fontSize: '1.1rem' }}>
-            {isGenerating3D ? 'Đang tái tạo mô hình 3D từ ảnh...' : 'Chưa có mô hình 3D cho hiện vật này'}
+          <h4 style={{ color: '#fff', margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 600 }}>
+            {isGenerating3D ? 'Đang số hóa mô hình 3D...' : 'Chưa có mô hình 3D cho hiện vật này'}
           </h4>
-          <p style={{ color: 'rgba(255, 255, 255, 0.65)', maxWidth: 420, margin: '0 0 20px 0', fontSize: '0.85rem' }}>
+          <p style={{ color: 'rgba(255, 255, 255, 0.65)', maxWidth: 400, margin: '0 0 18px 0', fontSize: '0.84rem', lineHeight: 1.5 }}>
             {isGenerating3D
-              ? 'Hệ thống AI đang phân đoạn tách nền, ước lượng độ sâu và dựng khối 3D đặc khép kín. Quá trình mất khoảng 3 - 6 giây.'
-              : 'Bạn có thể kích hoạt thuật toán AI để tự động biến bức ảnh chụp tủ kính thành khối 3D đặc đặt trên đĩa xoay.'}
+              ? 'Hệ thống đang tiến hành xử lý hình ảnh và tái tạo khối 3D đa giác. Quá trình xử lý mất khoảng vài giây.'
+              : 'Bạn có thể tạo mô hình 3D tương tác từ hình ảnh tư liệu của hiện vật.'}
           </p>
 
           {onGenerate3DClick && (
@@ -576,21 +639,20 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
-                padding: '10px 22px',
-                borderRadius: 24,
-                boxShadow: '0 4px 18px rgba(212, 175, 55, 0.35)',
+                padding: '9px 20px',
+                borderRadius: 20,
                 cursor: isGenerating3D ? 'not-allowed' : 'pointer'
               }}
             >
               {isGenerating3D ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Đang xử lý trong hàng đợi AI...</span>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Đang xử lý trong tiến trình nền...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={16} />
-                  <span>Kích hoạt tạo mô hình 3D ngay</span>
+                  <Box size={15} />
+                  <span>Tạo mô hình 3D ngay</span>
                 </>
               )}
             </button>
@@ -608,14 +670,14 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(10, 12, 18, 0.65)',
+            background: 'rgba(12, 14, 20, 0.7)',
             backdropFilter: 'blur(4px)',
             zIndex: 12
           }}
         >
-          <Loader2 size={36} style={{ color: 'var(--accent-gold, #d4af37)' }} className="animate-spin" />
-          <p style={{ color: '#fff', marginTop: 12, fontSize: '0.88rem' }}>
-            Đang tải mô hình 3D lên đĩa xoay...
+          <Loader2 size={32} style={{ color: 'var(--accent-gold, #d4a86a)' }} className="animate-spin" />
+          <p style={{ color: 'rgba(255, 255, 255, 0.85)', marginTop: 12, fontSize: '0.85rem' }}>
+            Đang tải dữ liệu không gian 3D...
           </p>
         </div>
       )}
@@ -625,13 +687,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         <div
           style={{
             position: 'absolute',
-            top: 20,
-            right: 20,
+            top: 16,
+            right: 16,
             background: 'rgba(239, 68, 68, 0.9)',
             color: '#fff',
             padding: '8px 14px',
-            borderRadius: 8,
-            fontSize: '0.82rem',
+            borderRadius: 6,
+            fontSize: '0.8rem',
             zIndex: 20
           }}
         >
@@ -639,108 +701,134 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         </div>
       )}
 
-      {/* Control Buttons Bar (Góc phải trên) */}
+      {/* Thanh Công Cụ Điều Khiển (Góc phải trên) */}
       <div
         style={{
           position: 'absolute',
-          top: 16,
-          right: 16,
+          top: 14,
+          right: 14,
           display: 'flex',
-          gap: 8,
+          gap: 6,
           zIndex: 10
         }}
       >
-        {/* Toggle Tự xoay đĩa xoay */}
+        {/* Nút 1: Tự động xoay */}
         <button
           type="button"
-          onClick={() => setIsAutoRotating(!isAutoRotating)}
-          title={isAutoRotating ? 'Tạm dừng tự xoay' : 'Bật tự xoay 360°'}
+          onClick={() => setIsAutoRotating((prev) => !prev)}
+          title={isAutoRotating ? 'Tạm dừng xoay' : 'Tiếp tục tự xoay 360°'}
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: '50%',
-            background: isAutoRotating ? 'rgba(212, 175, 55, 0.3)' : 'rgba(0, 0, 0, 0.6)',
-            border: isAutoRotating ? '1px solid #d4af37' : '1px solid rgba(255, 255, 255, 0.2)',
-            color: isAutoRotating ? '#d4af37' : '#ffffff',
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: isAutoRotating ? 'rgba(212, 168, 106, 0.25)' : 'rgba(20, 24, 33, 0.75)',
+            border: isAutoRotating ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
+            color: isAutoRotating ? '#d4a86a' : '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             backdropFilter: 'blur(8px)',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.15s ease'
           }}
         >
-          <RotateCw size={17} style={{ transform: isAutoRotating ? 'rotate(180deg)' : 'none', transition: 'transform 0.4s ease' }} />
+          <RotateCw size={16} />
         </button>
 
-        {/* Toggle Ánh sáng Studio */}
+        {/* Nút 2: Đổi ánh sáng */}
         <button
           type="button"
-          onClick={() => setLightingPreset(lightingPreset === 'museum' ? 'daylight' : 'museum')}
-          title={`Đổi ánh sáng: ${lightingPreset === 'museum' ? 'Ánh sáng bảo tàng ấm' : 'Ánh sáng tự nhiên'}`}
+          onClick={toggleLighting}
+          title={`Đổi ánh sáng: ${lightingPreset === 'museum' ? 'Ánh sáng bảo tàng ấm (Bật)' : 'Ánh sáng ban ngày (Bật)'}`}
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: '50%',
-            background: 'rgba(0, 0, 0, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: lightingPreset === 'museum' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(20, 24, 33, 0.75)',
+            border: lightingPreset === 'museum' ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.15)',
             color: lightingPreset === 'museum' ? '#f59e0b' : '#38bdf8',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            backdropFilter: 'blur(8px)'
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.15s ease'
           }}
         >
-          <Sun size={17} />
+          <Sun size={16} />
         </button>
 
-        {/* Toggle Lưới Wireframe */}
+        {/* Nút 3: Lưới đa giác Wireframe */}
         <button
           type="button"
           onClick={toggleWireframe}
-          title="Bật / tắt lưới đa giác Wireframe"
+          title={wireframeMode ? 'Tắt lưới đa giác' : 'Xem cấu trúc lưới đa giác 3D'}
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: '50%',
-            background: wireframeMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(0, 0, 0, 0.6)',
-            border: wireframeMode ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.2)',
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: wireframeMode ? 'rgba(59, 130, 246, 0.25)' : 'rgba(20, 24, 33, 0.75)',
+            border: wireframeMode ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.15)',
             color: wireframeMode ? '#60a5fa' : '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            backdropFilter: 'blur(8px)'
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.15s ease'
           }}
         >
-          <Layers size={17} />
+          <Layers size={16} />
         </button>
 
-        {/* Reset Camera */}
+        {/* Nút 4: Căn lại góc nhìn chuẩn */}
         <button
           type="button"
           onClick={handleResetCamera}
           title="Căn lại góc nhìn ban đầu"
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: '50%',
-            background: 'rgba(0, 0, 0, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: 'rgba(20, 24, 33, 0.75)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            backdropFilter: 'blur(8px)'
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.15s ease'
           }}
         >
-          <Maximize2 size={16} />
+          <RotateCcw size={16} />
+        </button>
+
+        {/* Nút 5: Toàn màn hình */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Xem toàn màn hình'}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: isFullscreen ? 'rgba(212, 168, 106, 0.25)' : 'rgba(20, 24, 33, 0.75)',
+            border: isFullscreen ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
+            color: isFullscreen ? '#d4a86a' : '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>
       </div>
 
-      {/* Thanh Phát Audio Thuyết Minh AI (Nếu có audioNarrationUrl) */}
+      {/* Thanh Phát Audio Thuyết Minh */}
       {fullAudioUrl && (
         <div
           style={{
@@ -748,16 +836,16 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             bottom: 14,
             left: 16,
             right: 16,
-            background: 'rgba(15, 20, 29, 0.88)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(212, 175, 55, 0.3)',
-            borderRadius: 14,
-            padding: '10px 16px',
+            background: 'rgba(15, 18, 26, 0.9)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: 10,
+            padding: '8px 14px',
             display: 'flex',
             alignItems: 'center',
-            gap: 14,
+            gap: 12,
             zIndex: 10,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)'
+            boxShadow: '0 6px 20px rgba(0, 0, 0, 0.5)'
           }}
         >
           <audio
@@ -771,10 +859,10 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             type="button"
             onClick={togglePlayAudio}
             style={{
-              width: 36,
-              height: 36,
+              width: 34,
+              height: 34,
               borderRadius: '50%',
-              background: 'var(--accent-gold, #d4af37)',
+              background: 'var(--accent-gold, #d4a86a)',
               color: '#000000',
               border: 'none',
               display: 'flex',
@@ -784,15 +872,15 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
               flexShrink: 0
             }}
           >
-            {isPlayingAudio ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: 2 }} />}
+            {isPlayingAudio ? <Pause size={15} /> : <Play size={15} style={{ marginLeft: 2 }} />}
           </button>
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.76rem', color: '#d4af37', fontWeight: 600 }}>
-                Thuyết minh giọng đọc AI
+              <span style={{ fontSize: '0.74rem', color: '#d4a86a', fontWeight: 600 }}>
+                Thuyết minh tự động
               </span>
-              <span style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.55)' }}>
                 {formatTime(audioProgress)} / {formatTime(audioDuration)}
               </span>
             </div>
@@ -805,7 +893,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
               style={{
                 width: '100%',
                 height: 4,
-                accentColor: 'var(--accent-gold, #d4af37)',
+                accentColor: 'var(--accent-gold, #d4a86a)',
                 cursor: 'pointer'
               }}
             />
@@ -817,17 +905,17 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             style={{
               background: 'transparent',
               border: 'none',
-              color: audioMuted ? '#ef4444' : 'rgba(255, 255, 255, 0.8)',
+              color: audioMuted ? '#ef4444' : 'rgba(255, 255, 255, 0.75)',
               cursor: 'pointer',
               padding: 4
             }}
           >
-            {audioMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            {audioMuted ? <VolumeX size={17} /> : <Volume2 size={17} />}
           </button>
         </div>
       )}
 
-      {/* Hint chỉ dẫn góc xoay (Dưới cùng khi không có audio) */}
+      {/* Chỉ dẫn tương tác bảo tàng */}
       {!fullAudioUrl && (
         <div
           style={{
@@ -843,15 +931,15 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           <span
             style={{
               fontSize: '0.72rem',
-              color: 'rgba(255, 255, 255, 0.55)',
-              background: 'rgba(0, 0, 0, 0.5)',
+              color: 'rgba(255, 255, 255, 0.6)',
+              background: 'rgba(15, 18, 26, 0.75)',
               padding: '4px 14px',
-              borderRadius: 20,
+              borderRadius: 16,
               backdropFilter: 'blur(4px)',
               border: '1px solid rgba(255, 255, 255, 0.08)'
             }}
           >
-            Chạm hoặc kéo chuột để xoay đa hướng 360° • Cuộn để phóng to / thu nhỏ
+            Kéo chuột để xoay 360° • Cuộn để phóng to / thu nhỏ
           </span>
         </div>
       )}
