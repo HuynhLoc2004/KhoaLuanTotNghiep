@@ -25,6 +25,8 @@ interface Turntable360ViewerProps {
   artifactName?: string;
   artifactPeriod?: string;
   audioNarrationUrl?: string;
+  translations?: Record<string, any>;
+  autoPlayAudio?: boolean;
   onGenerate3DClick?: () => void;
   isGenerating3D?: boolean;
   height?: number | string;
@@ -40,6 +42,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   artifactName = 'Cổ vật di sản',
   artifactPeriod = 'Bảo tàng Lịch sử TP.HCM',
   audioNarrationUrl,
+  translations,
+  autoPlayAudio = true,
   onGenerate3DClick,
   isGenerating3D = false,
   height = 520,
@@ -62,6 +66,43 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const [wireframeMode, setWireframeMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [modelStats, setModelStats] = useState<{ vertices: number; faces: number } | null>(null);
+
+  // Tổng hợp danh sách các ngôn ngữ có thuyết minh giọng đọc
+  const availableAudioLangs = React.useMemo(() => {
+    const list: { code: string; label: string; url: string }[] = [];
+    if (audioNarrationUrl) {
+      list.push({ code: 'default', label: 'Mặc định', url: audioNarrationUrl });
+    }
+    if (translations) {
+      Object.entries(translations).forEach(([langCode, trans]: [string, any]) => {
+        if (trans && trans.audioNarrationUrl) {
+          const already = list.find((x) => x.url === trans.audioNarrationUrl);
+          if (!already) {
+            list.push({
+              code: langCode,
+              label: langCode.toUpperCase(),
+              url: trans.audioNarrationUrl
+            });
+          }
+        }
+      });
+    }
+    return list;
+  }, [audioNarrationUrl, translations]);
+
+  // Ngôn ngữ âm thanh đang chọn (ưu tiên 'vi', 'default', hoặc mục đầu tiên có voice)
+  const [activeAudioLang, setActiveAudioLang] = useState<string>('default');
+
+  useEffect(() => {
+    if (availableAudioLangs.length > 0) {
+      const hasVi = availableAudioLangs.find((x) => x.code === 'vi');
+      const hasDefault = availableAudioLangs.find((x) => x.code === 'default');
+      setActiveAudioLang(hasVi ? 'vi' : hasDefault ? 'default' : availableAudioLangs[0].code);
+    }
+  }, [availableAudioLangs]);
+
+  const currentAudioItem = availableAudioLangs.find((x) => x.code === activeAudioLang) || availableAudioLangs[0] || null;
+  const rawAudioUrl = currentAudioItem?.url || audioNarrationUrl || null;
 
   // Trạng thái Thuyết minh Audio
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -96,8 +137,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     : null;
 
   // Định dạng đường dẫn Audio đầy đủ
-  const fullAudioUrl = audioNarrationUrl
-    ? (audioNarrationUrl.startsWith('http') ? audioNarrationUrl : `${API_ROOT}${audioNarrationUrl.startsWith('/') ? '' : '/'}${audioNarrationUrl}`)
+  const fullAudioUrl = rawAudioUrl
+    ? (rawAudioUrl.startsWith('http') ? rawAudioUrl : `${API_ROOT}${rawAudioUrl.startsWith('/') ? '' : '/'}${rawAudioUrl}`)
     : null;
 
   // 1. Khởi tạo Three.js Scene, Camera, Lights, và Bục trưng bày Bảo tàng
@@ -457,6 +498,25 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   }, []);
 
   // 7. Xử lý Audio Thuyết Minh
+  // Tự động phát thuyết minh khi mở không gian trưng bày 3D (nếu có audio)
+  useEffect(() => {
+    if (!autoPlayAudio || !fullAudioUrl || !audioRef.current) return;
+
+    // Reset về đầu và phát ngay
+    audioRef.current.currentTime = 0;
+    const playPromise = audioRef.current.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsPlayingAudio(true);
+        })
+        .catch((err) => {
+          console.warn('[3D Viewer] Tự động phát bị giới hạn bởi chính sách âm thanh trình duyệt:', err);
+          setIsPlayingAudio(false);
+        });
+    }
+  }, [fullAudioUrl, autoPlayAudio]);
+
   const togglePlayAudio = () => {
     if (!audioRef.current) return;
     if (isPlayingAudio) {
@@ -867,6 +927,9 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           <audio
             ref={audioRef}
             src={fullAudioUrl}
+            preload="auto"
+            onPlay={() => setIsPlayingAudio(true)}
+            onPause={() => setIsPlayingAudio(false)}
             onTimeUpdate={handleAudioTimeUpdate}
             onEnded={() => setIsPlayingAudio(false)}
           />
@@ -874,6 +937,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           <button
             type="button"
             onClick={togglePlayAudio}
+            title={isPlayingAudio ? 'Tạm dừng thuyết minh' : 'Phát thuyết minh tự động'}
             style={{
               width: 34,
               height: 34,
@@ -893,9 +957,37 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.74rem', color: '#d4a86a', fontWeight: 600 }}>
-                Thuyết minh tự động
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '0.74rem', color: '#d4a86a', fontWeight: 600 }}>
+                  Thuyết minh giọng đọc
+                </span>
+                {availableAudioLangs.length > 1 && (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {availableAudioLangs.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveAudioLang(item.code);
+                        }}
+                        style={{
+                          fontSize: '0.65rem',
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                          border: activeAudioLang === item.code ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.2)',
+                          background: activeAudioLang === item.code ? 'rgba(212, 168, 106, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          color: activeAudioLang === item.code ? '#d4a86a' : 'rgba(255, 255, 255, 0.7)',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.55)' }}>
                 {formatTime(audioProgress)} / {formatTime(audioDuration)}
               </span>

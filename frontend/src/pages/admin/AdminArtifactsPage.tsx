@@ -566,7 +566,34 @@ export const AdminArtifactsPage: React.FC = () => {
         : `${API_ROOT}${res.audioUrl}`;
 
       setPreviewAudioUrl(fullUrl);
-      showToast(`Đã xuất bản giọng đọc Voice AI (${selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
+
+      // Tự động lưu và cập nhật ngay vào cơ sở dữ liệu để đồng bộ tức thì
+      const existingTranslations = activeVoiceArtifact.translations || {};
+      const updatedTranslations = {
+        ...existingTranslations,
+        [selectedVoiceLang]: {
+          ...(existingTranslations[selectedVoiceLang] || {}),
+          name: voiceName.trim() || activeVoiceArtifact.name,
+          period: voicePeriod.trim() || activeVoiceArtifact.period,
+          narrationScript: voiceScript.trim(),
+          description: voiceScript.trim(),
+          audioNarrationUrl: res.audioUrl
+        }
+      };
+
+      const patchPayload: Partial<Artifact> = {
+        translations: updatedTranslations
+      };
+
+      if (selectedVoiceLang === 'vi' || !activeVoiceArtifact.audioNarrationUrl) {
+        patchPayload.audioNarrationUrl = res.audioUrl;
+      }
+
+      const updated = await api.updateArtifact(activeVoiceArtifact.id, patchPayload);
+      setActiveVoiceArtifact(updated);
+      setArtifacts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+
+      showToast(`Đã xuất bản và đồng bộ giọng đọc Voice AI (${selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tạo giọng đọc Voice AI', 'error');
     } finally {
@@ -597,7 +624,7 @@ export const AdminArtifactsPage: React.FC = () => {
         translations: updatedTranslations
       };
 
-      if (selectedVoiceLang === 'vi' && previewAudioUrl) {
+      if ((selectedVoiceLang === 'vi' || !activeVoiceArtifact.audioNarrationUrl) && previewAudioUrl) {
         patchPayload.audioNarrationUrl = previewAudioUrl;
       }
 
@@ -1615,12 +1642,13 @@ export const AdminArtifactsPage: React.FC = () => {
                 artifactName={activeViewerArtifact.name}
                 artifactPeriod={activeViewerArtifact.period}
                 audioNarrationUrl={
-                  activeViewerArtifact.audioNarrationUrl
-                    ? activeViewerArtifact.audioNarrationUrl.startsWith('http')
-                      ? activeViewerArtifact.audioNarrationUrl
-                      : `${API_ROOT}${activeViewerArtifact.audioNarrationUrl}`
-                    : undefined
+                  activeViewerArtifact.audioNarrationUrl ||
+                  activeViewerArtifact.translations?.vi?.audioNarrationUrl ||
+                  (activeViewerArtifact.translations &&
+                    Object.values(activeViewerArtifact.translations).find((t: any) => !!t?.audioNarrationUrl)?.audioNarrationUrl)
                 }
+                translations={activeViewerArtifact.translations}
+                autoPlayAudio={true}
                 height={480}
               />
             </div>
