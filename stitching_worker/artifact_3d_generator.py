@@ -143,12 +143,57 @@ def estimate_artifact_depth(img_rgb, mask):
 
     return front_depth, bulge
 
-def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, depth_scale=0.35, resolution=160):
+def synthesize_dorsal_back_texture(img_rgb, mask, bulge):
+    """
+    Tự động tái tạo kết cấu mặt sau (Dorsal Back Shell Texture) chuyên biệt:
+    1. Quét theo từng dòng ngang (horizontal scanlines) để trích xuất màu sắc thân vỏ/áo giáp/thân bình.
+    2. Nội suy cosine mượt mà từ cạnh biên trái sang phải để loại bỏ hoàn toàn mắt, mũi, logo, chi tiết mặt trước.
+    3. Áp dụng bóng đổ độ cong 3D (Ambient curvature dome shading) để mặt sau tròn trịa, có chiều sâu tự nhiên.
+    """
+    h, w = mask.shape
+    back_rgb = np.zeros_like(img_rgb, dtype=np.float32)
+
+    for r in range(h):
+        cols = np.where(mask[r] > 120)[0]
+        if len(cols) == 0:
+            continue
+        c_min = cols[0]
+        c_max = cols[-1]
+
+        if c_min == c_max:
+            back_rgb[r, c_min] = img_rgb[r, c_min]
+            continue
+
+        pad = min(5, (c_max - c_min) // 4)
+        left_samples = img_rgb[r, c_min : c_min + pad + 1]
+        right_samples = img_rgb[r, max(c_min, c_max - pad) : c_max + 1]
+
+        color_left = np.median(left_samples, axis=0)
+        color_right = np.median(right_samples, axis=0)
+
+        t = np.linspace(0.0, 1.0, c_max - c_min + 1)
+        t_cos = (1.0 - np.cos(t * np.pi)) / 2.0
+        line_colors = np.outer(1.0 - t_cos, color_left) + np.outer(t_cos, color_right)
+        back_rgb[r, c_min : c_max + 1] = line_colors
+
+    back_rgb = np.clip(back_rgb, 0, 255).astype(np.uint8)
+    back_rgb = cv2.bilateralFilter(back_rgb, 15, 60, 60)
+    back_rgb = cv2.GaussianBlur(back_rgb, (9, 9), 3.0)
+
+    bulge_norm = cv2.resize(bulge, (w, h)) if bulge.shape != (h, w) else bulge
+    shading = 0.80 + 0.25 * np.power(bulge_norm, 0.65)
+    shading = np.clip(shading, 0.65, 1.05)[:, :, np.newaxis]
+
+    back_rgb_shaded = np.clip(back_rgb.astype(np.float32) * shading, 0, 255).astype(np.uint8)
+    mask_3c = (mask > 120)[:, :, np.newaxis]
+    return np.where(mask_3c, back_rgb_shaded, 0)
+
+def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, back_image=None, depth_scale=0.35, resolution=160):
     """
     Xây dựng lưới 3D đặc đa giác khép kín (Watertight Manifold 3D Mesh):
-    - Mặt trước (Front): Mang hình khối chi tiết cao và Texture chân thực 100% từ ảnh.
+    - Mặt trước (Front): Mang hình khối chi tiết cao và Texture chân thực 100% từ ảnh mặt trước.
     - Vách bên (Side Walls): Nối khép kín viền chu vi, không tạo khe hở thủng rách.
-    - Mặt sau (Back Shell): Bo cong lồi tự nhiên, phủ vân chất liệu bảo tàng đồng điệu.
+    - Mặt sau (Back Shell): Phủ Texture mặt sau riêng biệt (ảnh mặt sau chụp thật hoặc tự động tái tạo lưng thân).
     """
     h_orig, w_orig = mask.shape
     aspect = float(w_orig) / float(h_orig)
@@ -174,6 +219,7 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, depth_scale=0.35, r
     uvs = []
 
     # 1. Tạo các đỉnh mặt trước & mặt sau
+    # Texture Atlas xếp dọc (Top: Mặt trước V in [0.5, 1.0], Bottom: Mặt sau V in [0.0, 0.5])
     for r in range(gh):
         for c in range(gw):
             if mask_low[r, c] > 120:
@@ -182,19 +228,21 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, depth_scale=0.35, r
                 zf = depth_low[r, c] * max_depth
 
                 # Mặt sau: Tạo khối lồi về phía sau tương xứng với độ phồng
-                # Đảm bảo cổ vật có độ dày thực tế khi xoay 180 độ
                 zb = - (bulge_low[r, c] * 0.65 + 0.05) * max_depth
 
-                # Đỉnh mặt trước
+                u_norm = c / float(gw - 1)
+                v_rel = 1.0 - (r / float(gh - 1))
+
+                # Đỉnh mặt trước: Nửa trên của Atlas Texture [0.5, 1.0]
                 front_idx[r, c] = len(vertices)
                 vertices.append([x, y, zf])
-                uvs.append([c / float(gw - 1), 1.0 - (r / float(gh - 1))])
+                uvs.append([u_norm, 0.5 + 0.5 * v_rel])
 
-                # Đỉnh mặt sau
+                # Đỉnh mặt sau: Nửa dưới của Atlas Texture [0.0, 0.5]
+                # Sử dụng u_norm đồng bộ để đường viền vách bên tiếp giáp không bị rách xoắn
                 back_idx[r, c] = len(vertices)
                 vertices.append([x, y, zb])
-                # UV mặt sau: Đảo trục X để hoa văn đối xứng tự nhiên
-                uvs.append([1.0 - (c / float(gw - 1)), 1.0 - (r / float(gh - 1))])
+                uvs.append([u_norm, 0.5 * v_rel])
 
     faces = []
 
@@ -224,7 +272,6 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, depth_scale=0.35, r
                 faces.append([b_tr, b_br, b_bl])
 
     # 3. Nối vách bên kín khít (Watertight Boundary Stitching)
-    # Duyệt các cạnh biên tiếp giáp giữa vùng có đỉnh và vùng nền rỗng
     for r in range(gh):
         for c in range(gw):
             if front_idx[r, c] >= 0:
@@ -233,7 +280,6 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, depth_scale=0.35, r
 
                 # Kiểm tra láng giềng bên Phải
                 if c < gw - 1 and front_idx[r, c + 1] < 0:
-                    # Mép biên bên phải: nối với hàng dưới nếu cùng là biên
                     if r < gh - 1 and front_idx[r + 1, c] >= 0:
                         next_f = front_idx[r + 1, c]
                         next_b = back_idx[r + 1, c]
@@ -268,8 +314,22 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, depth_scale=0.35, r
     faces = np.array(faces, dtype=np.int32)
     uvs = np.array(uvs, dtype=np.float32)
 
-    # 4. Gắn Texture ảnh màu nguyên bản
-    pil_texture = Image.fromarray(img_rgb)
+    # 4. Chuẩn bị Texture Mặt Sau & Ghép Texture Atlas hoàn chỉnh
+    if back_image is not None and isinstance(back_image, np.ndarray):
+        if back_image.shape[:2] != (h_orig, w_orig):
+            back_rgb = cv2.resize(back_image, (w_orig, h_orig), interpolation=cv2.INTER_LANCZOS4)
+        else:
+            back_rgb = back_image
+        # Chỉ giữ phần trong mask
+        mask_3c = (mask > 120)[:, :, np.newaxis]
+        back_rgb = np.where(mask_3c, back_rgb, 0)
+    else:
+        print(f"[*] Đang tự động kiến tạo mặt sau (Dorsal Back Synthesis) chân thực...", file=sys.stderr)
+        back_rgb = synthesize_dorsal_back_texture(img_rgb, mask, bulge)
+
+    # Tạo Texture Atlas ghép dọc: Nửa trên Mặt Trước, Nửa dưới Mặt Sau
+    atlas_rgb = np.vstack([img_rgb, back_rgb])
+    pil_texture = Image.fromarray(atlas_rgb)
 
     mesh = trimesh.Trimesh(
         vertices=vertices,
@@ -286,15 +346,20 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, depth_scale=0.35, r
 
     return mesh
 
-def generate_3d_artifact(image_path, output_glb_path, depth_scale=0.35, resolution=160):
+def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, depth_scale=0.35, resolution=160):
     """
-    Quy trình toàn diện biến 1 ảnh chụp cổ vật -> Mô hình 3D .GLB chuẩn bảo tàng
+    Quy trình toàn diện biến ảnh chụp cổ vật -> Mô hình 3D .GLB chuẩn bảo tàng (mặt trước và mặt sau khác biệt chân thực)
     """
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Không tìm thấy file ảnh: {image_path}")
 
     print(f"[*] Đang tải và chuẩn hóa ảnh hiện vật: {image_path}...", file=sys.stderr)
     img_rgb = load_and_prepare_image(image_path, max_dim=1600)
+
+    back_img_rgb = None
+    if back_image_path and os.path.exists(back_image_path):
+        print(f"[*] Tìm thấy ảnh chụp mặt sau: {back_image_path}, đang nạp...", file=sys.stderr)
+        back_img_rgb = load_and_prepare_image(back_image_path, max_dim=1600)
 
     print(f"[*] Đang phân đoạn và tách nền cổ vật...", file=sys.stderr)
     mask = extract_salient_mask(img_rgb)
@@ -305,6 +370,7 @@ def generate_3d_artifact(image_path, output_glb_path, depth_scale=0.35, resoluti
     print(f"[*] Đang dựng khối đa giác đặc khép kín (Watertight Mesh, Res={resolution})...", file=sys.stderr)
     mesh = build_watertight_solid_mesh(
         img_rgb, depth, bulge, mask,
+        back_image=back_img_rgb,
         depth_scale=depth_scale,
         resolution=resolution
     )
@@ -322,18 +388,20 @@ def generate_3d_artifact(image_path, output_glb_path, depth_scale=0.35, resoluti
         "vertices": len(mesh.vertices),
         "faces": len(mesh.faces),
         "sizeBytes": len(glb_bytes),
+        "hasCustomBack": back_img_rgb is not None,
         "dimensions": {
             "width": round(float(mesh.extents[0]), 3),
             "height": round(float(mesh.extents[1]), 3),
             "depth": round(float(mesh.extents[2]), 3)
         },
-        "message": "Đã tạo thành công mô hình 3D cổ vật đặc khối khép kín chuẩn bảo tàng."
+        "message": "Đã tạo thành công mô hình 3D cổ vật đặc khối khép kín chuẩn bảo tàng (mặt trước & mặt sau độc lập)."
     }
     return result
 
 def main():
-    parser = argparse.ArgumentParser(description="Tái tạo mô hình 3D cổ vật từ 1 ảnh đơn (Bảo tàng Lịch sử TP.HCM)")
-    parser.add_argument("--image", required=True, help="Đường dẫn file ảnh đầu vào (.jpg, .png)")
+    parser = argparse.ArgumentParser(description="Tái tạo mô hình 3D cổ vật từ ảnh (Bảo tàng Lịch sử TP.HCM)")
+    parser.add_argument("--image", required=True, help="Đường dẫn file ảnh mặt trước (.jpg, .png)")
+    parser.add_argument("--back-image", default=None, help="Đường dẫn file ảnh mặt sau (Tùy chọn)")
     parser.add_argument("--output", required=True, help="Đường dẫn lưu file 3D đầu ra (.glb)")
     parser.add_argument("--depth-scale", type=float, default=0.35, help="Độ dày lồi lõm của hiện vật (0.15 đến 0.65)")
     parser.add_argument("--resolution", type=int, default=160, help="Độ phân giải lưới 3D (100 đến 220)")
@@ -344,6 +412,7 @@ def main():
         res = generate_3d_artifact(
             args.image,
             args.output,
+            back_image_path=args.back_image,
             depth_scale=args.depth_scale,
             resolution=args.resolution
         )

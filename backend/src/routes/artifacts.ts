@@ -340,7 +340,7 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật' });
     }
 
-    // Xác định ảnh nguồn
+    // Xác định ảnh nguồn mặt trước
     const targetImageUrl = imageUrl || artifact.thumbnailUrl || (artifact.images.length > 0 ? artifact.images[0] : null);
     if (!targetImageUrl) {
       return res.status(400).json({ success: false, message: 'Hiện vật chưa có hình ảnh chụp để dựng mô hình 3D' });
@@ -349,7 +349,6 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
     // Chuyển URL tương đối sang đường dẫn thực tế trên server
     let localImagePath = '';
     if (targetImageUrl.startsWith('http')) {
-      // Tải tạm file về server
       const tempPath = path.join(ARTIFACTS_UPLOAD_DIR, `temp_gen_${Date.now()}.jpg`);
       const resp = await fetch(targetImageUrl);
       const buf = Buffer.from(await resp.arrayBuffer());
@@ -374,12 +373,47 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       return res.status(400).json({ success: false, message: 'Không thể tìm thấy file ảnh gốc trên máy chủ' });
     }
 
+    // Xác định ảnh nguồn mặt sau (nếu có trong mảng ảnh hoặc được gửi kèm)
+    const { backImageUrl } = req.body;
+    const targetBackImageUrl = backImageUrl || (artifact.images && artifact.images.length > 1 ? artifact.images[1] : null);
+    let localBackImagePath = '';
+    if (targetBackImageUrl) {
+      if (targetBackImageUrl.startsWith('http')) {
+        const tempBackPath = path.join(ARTIFACTS_UPLOAD_DIR, `temp_gen_back_${Date.now()}.jpg`);
+        try {
+          const respB = await fetch(targetBackImageUrl);
+          const bufB = Buffer.from(await respB.arrayBuffer());
+          fs.writeFileSync(tempBackPath, bufB);
+          localBackImagePath = tempBackPath;
+        } catch {}
+      } else {
+        const cleanRelB = targetBackImageUrl.replace(/^\/uploads\//, '');
+        const candidatesB = [
+          path.join(process.cwd(), 'public', 'uploads', cleanRelB),
+          path.join(ARTIFACTS_UPLOAD_DIR, path.basename(cleanRelB)),
+          path.join(process.cwd(), 'backend', 'public', 'uploads', cleanRelB)
+        ];
+        for (const candB of candidatesB) {
+          if (fs.existsSync(candB)) {
+            localBackImagePath = candB;
+            break;
+          }
+        }
+      }
+    }
+
     // Đưa vào hàng đợi xử lý bất đồng bộ kèm kiểm tra Cache
     const dScale = depthScale ? Number(depthScale) : 0.35;
     const resValue = resolution ? Number(resolution) : 160;
 
     const targetArtifactId = String(artifact._id || artifact.id);
-    const result = await enqueue3DReconstruction(targetArtifactId, localImagePath, dScale, resValue);
+    const result = await enqueue3DReconstruction(
+      targetArtifactId,
+      localImagePath,
+      localBackImagePath || undefined,
+      dScale,
+      resValue
+    );
 
     res.json({
       success: true,

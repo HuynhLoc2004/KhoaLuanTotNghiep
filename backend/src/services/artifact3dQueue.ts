@@ -31,6 +31,7 @@ export interface I3DJobData {
   jobId: string;
   artifactId: string;
   imagePath: string;
+  backImagePath?: string;
   depthScale: number;
   resolution: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -58,11 +59,12 @@ function computeFileHash(filePath: string): string {
 export async function enqueue3DReconstruction(
   artifactId: string,
   imagePath: string,
+  backImagePath?: string,
   depthScale = 0.35,
   resolution = 160
 ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string }> {
-  // 1. Kiểm tra cache dựa trên SHA256 của ảnh đầu vào (TTL 30 ngày)
-  const fileHash = computeFileHash(imagePath);
+  // 1. Kiểm tra cache dựa trên SHA256 (kèm mã phân biệt mặt sau độc lập v2)
+  const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_dorsal_v2');
   const cacheKey = `artifact:3d_cache:${fileHash}`;
 
   const cached = await cacheGet<{ model3dUrl: string; metadata: any }>(cacheKey);
@@ -99,6 +101,7 @@ export async function enqueue3DReconstruction(
     jobId,
     artifactId,
     imagePath,
+    backImagePath: backImagePath || undefined,
     depthScale,
     resolution,
     status: 'pending',
@@ -126,6 +129,7 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
   const job: I3DJobData = ((jobInput as any)?.data ? (jobInput as any).data : jobInput) as I3DJobData;
   const artifactId = String(job.artifactId || (job as any).id || '');
   const imagePath = String(job.imagePath || '');
+  const backImagePath = job.backImagePath ? String(job.backImagePath) : '';
   const depthScale = (typeof job.depthScale === 'number' && !isNaN(job.depthScale))
     ? job.depthScale
     : (parseFloat(String(job.depthScale)) || 0.35);
@@ -138,7 +142,7 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
   const outGlbPath = path.join(MODELS_3D_DIR, outFilename);
   const model3dUrl = `/uploads/artifacts/models_3d/${outFilename}`;
 
-  console.log(`[3D Consumer] Đang chạy tác vụ dựng 3D cho hiện vật: ${artifactId} (Job: ${jobId}, depthScale: ${depthScale}, resolution: ${resolution})...`);
+  console.log(`[3D Consumer] Đang chạy tác vụ dựng 3D cho hiện vật: ${artifactId} (Job: ${jobId}, depthScale: ${depthScale}, resolution: ${resolution}, hasBack: ${!!backImagePath})...`);
 
   if (!artifactId || !imagePath || !fs.existsSync(imagePath)) {
     console.error(`[3D Consumer] Dữ liệu job không hợp lệ hoặc không tìm thấy file ảnh:`, { artifactId, imagePath });
@@ -160,6 +164,9 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
       '--depth-scale', String(depthScale),
       '--resolution', String(resolution)
     ];
+    if (backImagePath && fs.existsSync(backImagePath)) {
+      args.push('--back-image', backImagePath);
+    }
 
     const py = spawn(PYTHON_PATH, args);
     let stdoutData = '';
