@@ -143,50 +143,124 @@ def estimate_artifact_depth(img_rgb, mask):
 
     return front_depth, bulge
 
-def synthesize_dorsal_back_texture(img_rgb, mask, bulge):
+def generate_synchronized_back_texture(img_rgb, mask, bulge):
     """
-    Tự động tái tạo kết cấu mặt sau (Dorsal Back Shell Texture) chuyên biệt:
-    1. Quét theo từng dòng ngang (horizontal scanlines) để trích xuất màu sắc thân vỏ/áo giáp/thân bình.
-    2. Nội suy cosine mượt mà từ cạnh biên trái sang phải để loại bỏ hoàn toàn mắt, mũi, logo, chi tiết mặt trước.
-    3. Áp dụng bóng đổ độ cong 3D (Ambient curvature dome shading) để mặt sau tròn trịa, có chiều sâu tự nhiên.
+    Tự động tổng hợp kết cấu mặt sau đồng bộ theo màu sắc cơ thể (Synchronized Dorsal Synthesis):
+    1. Bóc tách lớp viền trắng sticker / halo khử răng cưa để không bị lỗi khối thạch cao trắng.
+    2. Quét màu sắc thân vỏ / áo giáp / da / vải thực tế theo từng tầng chiều cao (đầu, ngực, thắt lưng, chân).
+    3. Nội suy cosine mượt mà từ 2 mạn sườn trái/phải vào giữa để tự nhiên loại bỏ mắt, kính, miệng, khóa thắt lưng mặt trước.
+    4. Áp dụng bóng đổ vòm độ cong 3D (Cylindrical & Dome Curvature Shading) tạo chiều sâu và độ dày khối đặc.
+    5. Khử gián đoạn hàng quét (scanlines) bằng bộ lọc Gaussian làm mềm liên tầng.
     """
     h, w = mask.shape
     back_rgb = np.zeros_like(img_rgb, dtype=np.float32)
 
+    # 1. Bóc tách viền ngoài (Erode) để loại bỏ hoàn toàn viền trắng sticker hoặc viền bán trong suốt
+    erode_size = max(4, int(min(h, w) * 0.03))
+    inner_mask = cv2.erode(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (erode_size * 2 + 1, erode_size * 2 + 1)))
+
+    # Nhận diện điểm ảnh nền sáng / viền trắng sticker (R, G, B > 235)
+    is_white_border = (img_rgb[:, :, 0] > 235) & (img_rgb[:, :, 1] > 235) & (img_rgb[:, :, 2] > 235)
+
+    # Tập hợp các điểm ảnh thân thể thực sự (không phải viền trắng)
+    body_pixels = img_rgb[(mask > 120) & (~is_white_border)]
+    global_median_color = np.median(body_pixels, axis=0) if len(body_pixels) > 0 else np.array([128, 128, 128], dtype=np.float32)
+
+    bulge_norm = cv2.resize(bulge, (w, h)) if bulge.shape != (h, w) else bulge
+
+    # 2. Phân tích màu sắc đồng bộ theo từng dòng quét ngang (Horizontal Strata)
+    row_colors = []
     for r in range(h):
         cols = np.where(mask[r] > 120)[0]
         if len(cols) == 0:
+            row_colors.append(None)
             continue
+
         c_min = cols[0]
         c_max = cols[-1]
 
-        if c_min == c_max:
-            back_rgb[r, c_min] = img_rgb[r, c_min]
+        # Ưu tiên lấy mẫu trong inner_mask để tránh triệt để viền trắng mép ngoài
+        inner_cols = [c for c in cols if inner_mask[r, c] > 120 and not is_white_border[r, c]]
+        if len(inner_cols) < 3:
+            inner_cols = [c for c in cols if not is_white_border[r, c]]
+
+        if len(inner_cols) == 0:
+            row_colors.append(None)
             continue
 
-        pad = min(5, (c_max - c_min) // 4)
-        left_samples = img_rgb[r, c_min : c_min + pad + 1]
-        right_samples = img_rgb[r, max(c_min, c_max - pad) : c_max + 1]
+        valid_samples = img_rgb[r, inner_cols].astype(np.float32)
+        row_median = np.median(valid_samples, axis=0)
+
+        # Lấy mẫu màu 2 mạn sườn (vỏ ngoài hai bên thân thể ở độ cao này)
+        n_flank = max(1, len(inner_cols) // 4)
+        left_samples = img_rgb[r, inner_cols[:n_flank]].astype(np.float32)
+        right_samples = img_rgb[r, inner_cols[-n_flank:]].astype(np.float32)
 
         color_left = np.median(left_samples, axis=0)
         color_right = np.median(right_samples, axis=0)
 
-        t = np.linspace(0.0, 1.0, c_max - c_min + 1)
+        # Hòa trộn mạn sườn với trung vị tầng để cân bằng nếu một bên có vũ khí/tay cầm
+        color_left = 0.70 * color_left + 0.30 * row_median
+        color_right = 0.70 * color_right + 0.30 * row_median
+
+        row_colors.append({
+            'c_min': c_min,
+            'c_max': c_max,
+            'left': color_left,
+            'right': color_right,
+            'median': row_median
+        })
+
+    # Lấp đầy các dòng khuyết (như chóp nhọn, viền hẹp) bằng màu tầng lân cận
+    for r in range(h):
+        if row_colors[r] is None:
+            cols = np.where(mask[r] > 120)[0]
+            if len(cols) == 0:
+                continue
+            found = None
+            for offset in range(1, 20):
+                if r - offset >= 0 and row_colors[r - offset] is not None:
+                    found = row_colors[r - offset]
+                    break
+                if r + offset < h and row_colors[r + offset] is not None:
+                    found = row_colors[r + offset]
+                    break
+            if found is None:
+                found = {'c_min': cols[0], 'c_max': cols[-1], 'left': global_median_color, 'right': global_median_color, 'median': global_median_color}
+            else:
+                found = {'c_min': cols[0], 'c_max': cols[-1], 'left': found['left'], 'right': found['right'], 'median': found['median']}
+            row_colors[r] = found
+
+    # 3. Phủ màu đồng bộ và đổ bóng độ cong 3D theo từng dòng
+    for r in range(h):
+        info = row_colors[r]
+        if info is None:
+            continue
+        c_min = info['c_min']
+        c_max = info['c_max']
+        span = c_max - c_min + 1
+
+        t = np.linspace(0.0, 1.0, span)
         t_cos = (1.0 - np.cos(t * np.pi)) / 2.0
-        line_colors = np.outer(1.0 - t_cos, color_left) + np.outer(t_cos, color_right)
-        back_rgb[r, c_min : c_max + 1] = line_colors
+        line_colors = np.outer(1.0 - t_cos, info['left']) + np.outer(t_cos, info['right'])
 
+        # Độ cong hình trụ: tâm sáng hơn, mép ngoài cong khuất tối hơn 16%
+        curvature = (1.0 - 0.16 * ((2.0 * t - 1.0) ** 2))[:, np.newaxis]
+
+        # Bóng đổ vòm độ dày 3D (Ambient Bulge Dome)
+        r_bulge = bulge_norm[r, c_min : c_max + 1]
+        dome = (0.85 + 0.20 * np.power(r_bulge, 0.70))[:, np.newaxis]
+
+        shading = np.clip(curvature * dome, 0.65, 1.05)
+        back_rgb[r, c_min : c_max + 1] = line_colors * shading
+
+    # 4. Làm mịn làm mềm chuyển tiếp liên tầng (Vertical Gaussian Blur)
     back_rgb = np.clip(back_rgb, 0, 255).astype(np.uint8)
-    back_rgb = cv2.bilateralFilter(back_rgb, 15, 60, 60)
-    back_rgb = cv2.GaussianBlur(back_rgb, (9, 9), 3.0)
+    back_rgb = cv2.GaussianBlur(back_rgb, (5, 9), 2.0)
 
-    bulge_norm = cv2.resize(bulge, (w, h)) if bulge.shape != (h, w) else bulge
-    shading = 0.80 + 0.25 * np.power(bulge_norm, 0.65)
-    shading = np.clip(shading, 0.65, 1.05)[:, :, np.newaxis]
-
-    back_rgb_shaded = np.clip(back_rgb.astype(np.float32) * shading, 0, 255).astype(np.uint8)
     mask_3c = (mask > 120)[:, :, np.newaxis]
-    return np.where(mask_3c, back_rgb_shaded, 0)
+    return np.where(mask_3c, back_rgb, 0)
+
 
 def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, back_image=None, depth_scale=0.35, resolution=160):
     """
@@ -323,14 +397,12 @@ def build_watertight_solid_mesh(img_rgb, depth, bulge, mask, back_image=None, de
         mask_3c = (mask > 120)[:, :, np.newaxis]
         back_rgb = np.where(mask_3c, back_rgb, 0)
     else:
-        # Khi chưa có ảnh mặt sau riêng: Giữ trọn vẹn màu sắc & hoa văn của cổ vật (tránh bị biến thành khối thạch cao trắng)
-        # kết hợp hiệu ứng bóng đổ lưng để tạo độ sâu
-        bulge_norm = cv2.resize(bulge, (w_orig, h_orig)) if bulge.shape != (h_orig, w_orig) else bulge
-        shading = 0.85 + 0.15 * np.power(bulge_norm, 0.7)
-        shading = np.clip(shading, 0.72, 1.0)[:, :, np.newaxis]
-        back_rgb = np.clip(img_rgb.astype(np.float32) * shading, 0, 255).astype(np.uint8)
-        mask_3c = (mask > 120)[:, :, np.newaxis]
-        back_rgb = np.where(mask_3c, back_rgb, 0)
+        # Tự động tổng hợp màu sắc mặt sau đồng bộ theo từng tầng chiều cao (Synchronized Dorsal Synthesis):
+        # - Đồng bộ màu sắc áo giáp, da thịt, thân bình, đai lưng theo từng tầng
+        # - Tự động loại bỏ mắt, mũi, logo, chi tiết mặt trước
+        # - Khử triệt để viền trắng sticker/cutout (tránh biến thành khối thạch cao trắng)
+        # - Kết hợp bóng đổ vòm độ dày 3D tự nhiên
+        back_rgb = generate_synchronized_back_texture(img_rgb, mask, bulge)
 
     # Tạo Texture Atlas ghép dọc: Nửa trên Mặt Trước, Nửa dưới Mặt Sau
     atlas_rgb = np.vstack([img_rgb, back_rgb])
