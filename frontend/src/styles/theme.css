@@ -151,3 +151,50 @@ button {
 input, textarea, select {
   font-family: inherit;
 }
+
+/* Global Loading & Spinning Animations (Hoạt cảnh xoay loading mượt mà toàn hệ thống) */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin,
+.animate-spin {
+  animation: spin 0.85s linear infinite !important;
+  display: inline-block !important;
+  transform-origin: 50% 50% !important;
+  flex-shrink: 0;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.btn-processing {
+  position: relative !important;
+  overflow: hidden !important;
+  opacity: 0.88 !important;
+  cursor: wait !important;
+  pointer-events: none !important;
+}
+
+.btn-processing::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  animation: shimmer 1.5s infinite;
+}
+

@@ -153,15 +153,23 @@ export const AdminArtifactsPage: React.FC = () => {
         try {
           const freshList = await api.getArtifacts();
           setArtifacts(freshList);
+
+          // Tự động đồng bộ modal xem 3D nếu người dùng đang mở đĩa xoay của hiện vật này
+          setActiveViewerArtifact((prev) => {
+            if (!prev) return null;
+            const updated = freshList.find((a) => (a.id || (a as any)._id) === (prev.id || (prev as any)._id));
+            return updated || prev;
+          });
+
           const stillProcessing = freshList.some((a) => a.processingStatus === 'processing');
           if (!stillProcessing && pollingTimerRef.current) {
             clearInterval(pollingTimerRef.current);
-            showToast('Đã hoàn thành số hóa mô hình 3D cho các hiện vật trong hàng đợi', 'success');
+            showToast('Đã hoàn thành số hóa mô hình 3D cho các hiện vật trong hàng đợi!', 'success');
           }
         } catch {
           // Ignored in polling
         }
-      }, 4000);
+      }, 2500);
     } else if (pollingTimerRef.current) {
       clearInterval(pollingTimerRef.current);
     }
@@ -432,10 +440,28 @@ export const AdminArtifactsPage: React.FC = () => {
         resolution: 160
       });
 
+      // Cập nhật ngay trạng thái processing vào danh sách cục bộ để nút lập tức chuyển sang hiệu ứng loading xoay mượt mà
+      setArtifacts((prev) =>
+        prev.map((a) =>
+          (a.id === targetId || (a as any)._id === targetId)
+            ? { ...a, processingStatus: res.cached ? 'completed' : 'processing', model3dUrl: res.model3dUrl || a.model3dUrl }
+            : a
+        )
+      );
+
+      setActiveViewerArtifact((prev) => {
+        if (!prev || (prev.id !== targetId && (prev as any)._id !== targetId)) return prev;
+        return {
+          ...prev,
+          processingStatus: res.cached ? 'completed' : 'processing',
+          model3dUrl: res.model3dUrl || prev.model3dUrl
+        };
+      });
+
       if (res.cached) {
         showToast('Mô hình 3D đã sẵn sàng từ bộ nhớ đệm (Cache)', 'success');
       } else {
-        showToast('Đã đưa tác vụ dựng 3D vào hàng đợi xử lý nền', 'success');
+        showToast('Đang tiến hành số hóa mô hình 3D trong tiến trình nền...', 'info');
       }
 
       setIsGenerateModalOpen(false);
@@ -1060,7 +1086,7 @@ export const AdminArtifactsPage: React.FC = () => {
                     <div className="room-card-actions-wrapper">
                       {/* Hàng 1: Hai nút chức năng chính */}
                       <div className="room-card-actions-row">
-                        {has3D ? (
+                        {has3D && !isProcessing ? (
                           <button
                             type="button"
                             className="btn btn-primary btn-sm room-card-btn-action"
@@ -1073,13 +1099,22 @@ export const AdminArtifactsPage: React.FC = () => {
                         ) : (
                           <button
                             type="button"
-                            className="btn btn-primary btn-sm room-card-btn-action"
+                            className={`btn btn-primary btn-sm room-card-btn-action ${isProcessing ? 'btn-processing' : ''}`}
                             onClick={() => handleOpenGenerate3D(art)}
                             disabled={isProcessing}
-                            title="Khởi tạo mô hình 3D từ ảnh chụp"
+                            title={isProcessing ? "Hệ thống đang xử lý và dựng mô hình 3D..." : "Khởi tạo mô hình 3D từ ảnh chụp"}
                           >
-                            {isProcessing ? <Loader2 size={13} className="spin" style={{ flexShrink: 0 }} /> : <Box size={13} style={{ flexShrink: 0 }} />}
-                            <span className="room-card-btn-label">{isProcessing ? 'Đang tạo...' : 'Số hóa 3D'}</span>
+                            {isProcessing ? (
+                              <>
+                                <Loader2 size={13} className="spin" style={{ flexShrink: 0 }} />
+                                <span className="room-card-btn-label">Đang dựng 3D...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Box size={13} style={{ flexShrink: 0 }} />
+                                <span className="room-card-btn-label">Số hóa 3D</span>
+                              </>
+                            )}
                           </button>
                         )}
 
@@ -1192,15 +1227,17 @@ export const AdminArtifactsPage: React.FC = () => {
                         </div>
                       </td>
                       <td>
-                        {has3D ? (
+                        {has3D && !isProcessing && (
                           <span className="badge-3d-ready">
                             <Box size={11} /> 3D Sẵn sàng
                           </span>
-                        ) : isProcessing ? (
-                          <span className="badge-3d-processing">
-                            <Loader2 size={11} className="spin" /> Đang dựng 3D
+                        )}
+                        {isProcessing && (
+                          <span className="badge-3d-processing" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <Loader2 size={12} className="spin" /> Đang dựng 3D...
                           </span>
-                        ) : (
+                        )}
+                        {!has3D && !isProcessing && (
                           <span className="badge-3d-none">Ảnh 2D</span>
                         )}
                       </td>
@@ -1217,7 +1254,7 @@ export const AdminArtifactsPage: React.FC = () => {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: 6 }}>
-                          {has3D && (
+                          {has3D && !isProcessing && (
                             <button
                               type="button"
                               className="btn btn-primary btn-sm"
@@ -1227,15 +1264,24 @@ export const AdminArtifactsPage: React.FC = () => {
                               <RotateCw size={13} />
                             </button>
                           )}
-                          {!has3D && (
+                          {isProcessing && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm btn-processing"
+                              disabled
+                              title="Đang tiến hành dựng mô hình 3D trong tiến trình nền..."
+                            >
+                              <Loader2 size={13} className="spin" style={{ color: 'var(--accent-gold)' }} />
+                            </button>
+                          )}
+                          {!has3D && !isProcessing && (
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenGenerate3D(art)}
-                              disabled={isProcessing}
-                              title={isProcessing ? "Đang tiến hành dựng mô hình 3D..." : "Khởi tạo mô hình 3D từ ảnh"}
+                              title="Khởi tạo mô hình 3D từ ảnh"
                             >
-                              {isProcessing ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />}
+                              <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
                             </button>
                           )}
                           <button
@@ -1834,13 +1880,22 @@ export const AdminArtifactsPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className={`btn btn-primary btn-sm ${isProcessing3D ? 'btn-processing' : ''}`}
                 onClick={handleStart3DReconstruction}
                 disabled={isProcessing3D}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                {isProcessing3D ? <Loader2 size={14} className="spin" /> : <Box size={14} />}
-                <span>{isProcessing3D ? 'Đang khởi tạo...' : 'Bắt đầu số hóa 3D'}</span>
+                {isProcessing3D ? (
+                  <>
+                    <Loader2 size={14} className="spin" />
+                    <span>Đang đưa vào hàng đợi...</span>
+                  </>
+                ) : (
+                  <>
+                    <Box size={14} />
+                    <span>Bắt đầu số hóa 3D</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

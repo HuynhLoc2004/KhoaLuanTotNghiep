@@ -752,13 +752,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 gap: 8,
                 padding: '9px 20px',
                 borderRadius: 20,
-                cursor: isGenerating3D ? 'not-allowed' : 'pointer'
+                cursor: isGenerating3D ? 'wait' : 'pointer'
               }}
             >
               {isGenerating3D ? (
                 <>
-                  <Loader2 size={15} className="animate-spin" />
-                  <span>Đang xử lý trong tiến trình nền...</span>
+                  <Loader2 size={16} className="spin" />
+                  <span>Đang dựng 3D trong tiến trình nền...</span>
                 </>
               ) : (
                 <>
@@ -781,13 +781,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(12, 14, 20, 0.7)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(12, 14, 20, 0.75)',
+            backdropFilter: 'blur(6px)',
             zIndex: 12
           }}
         >
-          <Loader2 size={32} style={{ color: 'var(--accent-gold, #d4a86a)' }} className="animate-spin" />
-          <p style={{ color: 'rgba(255, 255, 255, 0.85)', marginTop: 12, fontSize: '0.85rem' }}>
+          <Loader2 size={36} style={{ color: 'var(--accent-gold, #d4a86a)' }} className="spin" />
+          <p style={{ color: 'rgba(255, 255, 255, 0.9)', marginTop: 12, fontSize: '0.88rem', fontWeight: 500 }}>
             Đang tải dữ liệu không gian 3D...
           </p>
         </div>
