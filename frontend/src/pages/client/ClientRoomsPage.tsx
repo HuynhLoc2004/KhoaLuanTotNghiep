@@ -223,7 +223,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
         </div>
       </main>
 
-      <ClientFooter />
+      <ClientFooter onNavigatePage={onNavigatePage} />
     </div>
   );
 };

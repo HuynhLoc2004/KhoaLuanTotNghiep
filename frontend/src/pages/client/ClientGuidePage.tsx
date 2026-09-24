@@ -164,7 +164,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
         </div>
       </main>
 
-      <ClientFooter />
+      <ClientFooter onNavigatePage={onNavigatePage} />
     </div>
   );
 };

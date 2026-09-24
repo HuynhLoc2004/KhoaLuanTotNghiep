@@ -247,7 +247,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
         </div>
       </main>
 
-      <ClientFooter />
+      <ClientFooter onNavigatePage={onNavigatePage} />
     </div>
   );
 };

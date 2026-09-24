@@ -2276,58 +2276,121 @@
 
 /* --- 11. CHÂN TRANG DI SẢN (CLIENT FOOTER) --- */
 .client-footer {
-  background: #080A0E;
-  color: #9CA3AF;
-  padding: 80px 0 32px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, #0D111A 0%, #07090F 100%);
+  color: #8C867A;
+  padding: clamp(64px, 7vw, 96px) 0 36px 0;
+  border-top: 1px solid rgba(212, 175, 55, 0.16);
+  position: relative;
+}
+
+.client-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.45) 50%, transparent 100%);
+  pointer-events: none;
 }
 
 .client-portal[data-client-theme="light"] .client-footer {
-  background: #191C24;
-  color: #A0AEC0;
-  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  background: #F8F9FA;
+  color: #6B7280;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.client-portal[data-client-theme="light"] .client-footer::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(180, 138, 60, 0.35) 50%, transparent 100%);
 }
 
 .client-footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1.5fr;
-  gap: 40px;
-  margin-bottom: 48px;
+  grid-template-columns: 2fr 1.1fr 1.2fr 1.6fr;
+  gap: clamp(28px, 4vw, 48px);
+  margin-bottom: 56px;
 }
 
 @media (max-width: 992px) {
   .client-footer-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 36px;
   }
 }
 
 @media (max-width: 600px) {
   .client-footer-grid {
     grid-template-columns: 1fr;
+    gap: 32px;
   }
 }
 
+.client-footer-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.client-footer-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.client-footer-emblem {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.16) 0%, rgba(197, 160, 89, 0.05) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #DFC07D;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .client-footer-brand-title {
-  font-family: 'Lora', serif;
-  font-size: 1.3rem;
-  color: #FFFFFF;
-  margin: 0 0 14px 0;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #FAF8F5;
+  line-height: 1.35;
+  margin: 0;
+}
+
+[data-client-theme="light"] .client-footer-brand-title {
+  color: #111622;
 }
 
 .client-footer-brand-desc {
-  font-size: 0.92rem;
-  line-height: 1.7;
-  color: #6B7280;
-  max-width: 400px;
+  font-size: 0.88rem;
+  line-height: 1.76;
+  color: #8C867A;
+  max-width: 380px;
+  margin: 0;
+}
+
+[data-client-theme="light"] .client-footer-brand-desc {
+  color: #5A6272;
 }
 
 .client-footer-col-title {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: #E6C665;
-  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #C5A059;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   margin: 0 0 20px 0;
+}
+
+[data-client-theme="light"] .client-footer-col-title {
+  color: #9E7427;
 }
 
 .client-footer-links {
@@ -2340,27 +2403,95 @@
 }
 
 .client-footer-link {
-  color: #9CA3AF;
+  color: #A6A095;
   text-decoration: none;
-  font-size: 0.92rem;
-  transition: var(--c-transition);
+  font-size: 0.88rem;
+  transition: all 0.22s ease;
+  display: inline-block;
 }
 
 .client-footer-link:hover {
-  color: #FFFFFF;
-  transform: translateX(4px);
+  color: #FAF8F5;
+  transform: translateX(3px);
 }
 
+[data-client-theme="light"] .client-footer-link {
+  color: #4B5563;
+}
+
+[data-client-theme="light"] .client-footer-link:hover {
+  color: #111622;
+}
+
+/* THÔNG TIN LIÊN HỆ DẠNG DANH SÁCH LỊCH THIỆP */
+.client-footer-contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.86rem;
+}
+
+.client-footer-contact-lbl {
+  font-size: 0.72rem;
+  color: #8C867A;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.client-footer-contact-val {
+  color: #FAF8F5;
+  line-height: 1.5;
+}
+
+[data-client-theme="light"] .client-footer-contact-val {
+  color: #1F2937;
+}
+
+/* THANH CHÂN TRANG */
 .client-footer-bottom {
-  padding-top: 32px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
+  color: #7E7970;
+}
+
+[data-client-theme="light"] .client-footer-bottom {
+  border-top-color: rgba(0, 0, 0, 0.08);
   color: #6B7280;
+}
+
+.client-footer-copyright {
+  font-size: 0.82rem;
+  color: inherit;
+}
+
+.client-footer-scroll-top {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  color: #C5A059;
+  border-radius: var(--c-radius-pill);
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.client-footer-scroll-top:hover {
+  background: rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.45);
+  color: #FAF8F5;
+  transform: translateY(-2px);
 }
 
 /* --- 12. MODAL ĐĂNG NHẬP EMAIL OTP (TỐI GIẢN, CHUẨN MỰC BẢO TÀNG) --- */

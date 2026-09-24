@@ -191,7 +191,7 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
       </main>
 
       {/* 8. Chân trang văn hóa di sản */}
-      <ClientFooter />
+      <ClientFooter onNavigatePage={onNavigatePage} />
 
       {/* 9. Modal Đăng nhập thuần Email OTP (Không lộ mật khẩu) */}
       <ClientLoginOtpModal
