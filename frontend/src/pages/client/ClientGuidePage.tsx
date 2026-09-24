@@ -143,10 +143,91 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
           </div>
 
           {/* =========================================================================
-              PHẦN 1: THÔNG TIN THIẾT YẾU CHO KHÁCH THAM QUAN (3 CỘT TRỰC QUAN, RÕ RÀNG)
-              Tập trung đúng trọng tâm: Giờ mở cửa, Giá vé, Vị trí & Di chuyển
+              PHẦN 1: TÂM ĐIỂM SƠ ĐỒ MẶT BẰNG BẢO TÀNG (MUSEUM FLOOR PLAN SHOWCASE)
+              Ưu tiên hiển thị ngay đầu trang cho khách quan sát sơ đồ
               ========================================================================= */}
-          <section className="client-guide-essentials-section" style={{ marginBottom: 40 }}>
+          <section className="client-guide-floorplan-showcase" style={{ marginBottom: 48 }}>
+            <div className="client-guide-floorplan-header">
+              <div>
+                <h2 className="client-guide-floorplan-title" style={{ fontSize: 'clamp(1.4rem, 2.2vw, 1.85rem)' }}>
+                  {branding.guideMapTitle || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày'}
+                </h2>
+                <p className="client-guide-floorplan-desc" style={{ maxWidth: 720 }}>
+                  {branding.guideMapDesc ||
+                    'Chọn từng gian phòng trên sơ đồ để tra cứu tên hiện vật, quan sát hướng đi và các lối thông phòng liên kết thực tế.'}
+                </p>
+              </div>
+
+              <div className="client-guide-floorplan-actions">
+                <button
+                  type="button"
+                  className="client-zigzag-btn-primary"
+                  onClick={() => {
+                    setZoomLevel(1);
+                    setIsMapLightboxOpen(true);
+                  }}
+                  title="Mở toàn màn hình để xem chi tiết từng phòng"
+                >
+                  <Maximize2 size={15} />
+                  <span>Phóng to sơ đồ</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Khung hiển thị Bản đồ mặt bằng & Mạng Topo Thông phòng */}
+            <div style={{ marginTop: 20 }}>
+              {floorPlan ? (
+                <InteractiveFloorPlanMap
+                  floorPlan={floorPlan}
+                  onSelectRoom360={onSelectRoom360}
+                  clientTheme={clientTheme}
+                />
+              ) : loadingFloorPlan ? (
+                <div
+                  style={{
+                    padding: '60px 20px',
+                    textAlign: 'center',
+                    background: '#0D111A',
+                    borderRadius: 14,
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    color: '#94A3B8'
+                  }}
+                >
+                  <div style={{ fontSize: 13, color: '#D4AF37', marginBottom: 6 }}>
+                    Đang nạp sơ đồ mặt bằng từ máy chủ...
+                  </div>
+                </div>
+              ) : serverMapUrl ? (
+                <div
+                  className="client-guide-map-stage"
+                  onClick={() => {
+                    setZoomLevel(1);
+                    setIsMapLightboxOpen(true);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  title="Bấm để phóng to sơ đồ chi tiết"
+                >
+                  <img
+                    src={serverMapUrl}
+                    alt={branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng'}
+                    className="client-guide-map-img"
+                    loading="lazy"
+                  />
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          {/* =========================================================================
+              PHẦN 2: THÔNG TIN THIẾT YẾU CHO KHÁCH THAM QUAN (3 CỘT TRỰC QUAN, RÕ RÀNG)
+              Đặt ngay dưới sơ đồ mặt bằng: Giờ mở cửa, Giá vé, Vị trí & Di chuyển
+              ========================================================================= */}
+          <section className="client-guide-essentials-section" style={{ marginBottom: 48 }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--c-text-primary)', marginBottom: 20 }}>
+              Thông Tin Cần Biết Khi Đến Tham Quan
+            </h3>
+
             <div className="client-guide-essentials-grid">
               {/* Cột 1: Giờ mở cửa */}
               <div className="client-guide-essential-card">
@@ -274,83 +355,6 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   </a>
                 </div>
               </div>
-            </div>
-          </section>
-
-          {/* =========================================================================
-              PHẦN 2: TÂM ĐIỂM SƠ ĐỒ MẶT BẰNG BẢO TÀNG (MUSEUM FLOOR PLAN SHOWCASE)
-              Sạch sẽ, trực quan, không lặp lại các card thừa
-              ========================================================================= */}
-          <section className="client-guide-floorplan-showcase" style={{ marginBottom: 44 }}>
-            <div className="client-guide-floorplan-header">
-              <div>
-                <h2 className="client-guide-floorplan-title" style={{ fontSize: 'clamp(1.4rem, 2.2vw, 1.85rem)' }}>
-                  {branding.guideMapTitle || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày'}
-                </h2>
-                <p className="client-guide-floorplan-desc" style={{ maxWidth: 720 }}>
-                  {branding.guideMapDesc ||
-                    'Chọn từng gian phòng trên sơ đồ để tra cứu tên hiện vật, quan sát hướng đi và các lối thông phòng liên kết thực tế.'}
-                </p>
-              </div>
-
-              <div className="client-guide-floorplan-actions">
-                <button
-                  type="button"
-                  className="client-zigzag-btn-primary"
-                  onClick={() => {
-                    setZoomLevel(1);
-                    setIsMapLightboxOpen(true);
-                  }}
-                  title="Mở toàn màn hình để xem chi tiết từng phòng"
-                >
-                  <Maximize2 size={15} />
-                  <span>Phóng to sơ đồ</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Khung hiển thị Bản đồ mặt bằng & Mạng Topo Thông phòng */}
-            <div style={{ marginTop: 20 }}>
-              {floorPlan ? (
-                <InteractiveFloorPlanMap
-                  floorPlan={floorPlan}
-                  onSelectRoom360={onSelectRoom360}
-                  clientTheme={clientTheme}
-                />
-              ) : loadingFloorPlan ? (
-                <div
-                  style={{
-                    padding: '60px 20px',
-                    textAlign: 'center',
-                    background: '#0D111A',
-                    borderRadius: 14,
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    color: '#94A3B8'
-                  }}
-                >
-                  <div style={{ fontSize: 13, color: '#D4AF37', marginBottom: 6 }}>
-                    Đang nạp sơ đồ mặt bằng từ máy chủ...
-                  </div>
-                </div>
-              ) : serverMapUrl ? (
-                <div
-                  className="client-guide-map-stage"
-                  onClick={() => {
-                    setZoomLevel(1);
-                    setIsMapLightboxOpen(true);
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  title="Bấm để phóng to sơ đồ chi tiết"
-                >
-                  <img
-                    src={serverMapUrl}
-                    alt={branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng'}
-                    className="client-guide-map-img"
-                    loading="lazy"
-                  />
-                </div>
-              ) : null}
             </div>
           </section>
 
