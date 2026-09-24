@@ -25,7 +25,7 @@ interface ClientNavbarProps {
   onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
   activeSection?: string;
-  onNavigatePage?: (page: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide') => void;
+  onNavigatePage?: (page: 'home' | 'rooms' | 'artifacts' | 'guide') => void;
 }
 
 export const ClientNavbar: React.FC<ClientNavbarProps> = ({
@@ -171,22 +171,6 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 }}
               >
                 {t('nav.artifacts3d', 'Cổ vật 3D')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#topics"
-                className={`client-nav-link ${activeSection === 'topics' ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (onNavigatePage) {
-                    onNavigatePage('topics');
-                  } else {
-                    scrollToSection('topics');
-                  }
-                }}
-              >
-                {t('nav.topics', 'Chuyên đề')}
               </a>
             </li>
             <li>
@@ -408,16 +392,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           >
             {t('nav.artifacts3d', 'Cổ vật 3D')}
           </a>
-          <a
-            href="#topics"
-            className="client-nav-link"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToSection('topics');
-            }}
-          >
-            {t('nav.topics', 'Chuyên đề')}
-          </a>
+
           <a
             href="#guide"
             className="client-nav-link"

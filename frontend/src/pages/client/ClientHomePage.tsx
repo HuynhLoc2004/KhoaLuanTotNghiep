@@ -8,7 +8,6 @@ import { ClientHeroBanner } from '../../components/client/ClientHeroBanner';
 import { ClientIntroSection } from '../../components/client/ClientIntroSection';
 import { ClientFeaturedRooms } from '../../components/client/ClientFeaturedRooms';
 import { ClientFeaturedArtifacts } from '../../components/client/ClientFeaturedArtifacts';
-import { ClientTopicsSection } from '../../components/client/ClientTopicsSection';
 import { ClientVisitorGuide } from '../../components/client/ClientVisitorGuide';
 import { ClientFooter } from '../../components/client/ClientFooter';
 import { ClientLoginOtpModal } from '../../components/client/ClientLoginOtpModal';
@@ -20,7 +19,7 @@ interface ClientHomePageProps {
   onNavigateAdmin: () => void;
   onSelectRoomForTour: (room: MuseumRoom) => void;
   onSelectArtifactDetail?: (artifactId: string) => void;
-  onNavigatePage: (page: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide') => void;
+  onNavigatePage: (page: 'home' | 'rooms' | 'artifacts' | 'guide') => void;
 }
 
 export const ClientHomePage: React.FC<ClientHomePageProps> = ({
@@ -183,11 +182,7 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
           onViewAllArtifacts={() => onNavigatePage('artifacts')}
         />
 
-        {/* 6. Khối Chuyên đề & Thời kỳ lịch sử (Đại diện cho trang Chuyên đề) */}
-        <ClientTopicsSection
-          topics={topics}
-          onViewAllTopics={() => onNavigatePage('topics')}
-        />
+
 
         {/* 7. Khối Hướng dẫn tham quan & Giờ mở cửa (Đại diện cho trang Cẩm nang) */}
         <ClientVisitorGuide

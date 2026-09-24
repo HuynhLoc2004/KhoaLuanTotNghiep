@@ -10,7 +10,7 @@ interface ClientArtifactsPageProps {
   artifacts: Artifact[];
   onSelectArtifactDetail: (artifactId: string) => void;
   onNavigateHome: () => void;
-  onNavigatePage: (page: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide') => void;
+  onNavigatePage: (page: 'home' | 'rooms' | 'artifacts' | 'guide') => void;
   clientTheme: 'light' | 'dark';
   onToggleClientTheme: () => void;
   onOpenLoginModal: () => void;

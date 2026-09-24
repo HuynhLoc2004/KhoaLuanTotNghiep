@@ -14,8 +14,8 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   return (
     <section id="guide" className="client-zigzag-section client-section-alt">
       <div className="client-container">
-        {/* ZIG-ZAG THẰNG 5: NẰM BÊN CÙNG BÊN PHẢI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
-        <div className="client-zigzag-card align-right reveal-on-scroll">
+        {/* ZIG-ZAG 4: NẰM BÊN TRÁI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
+        <div className="client-zigzag-card align-left reveal-on-scroll">
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
               {t('guide.tag', 'Kế Hoạch Tham Quan')}

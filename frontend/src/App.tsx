@@ -25,7 +25,6 @@ import { ClientHomePage } from './pages/client/ClientHomePage';
 import { ClientTourView } from './pages/client/ClientTourView';
 import { ClientRoomsPage } from './pages/client/ClientRoomsPage';
 import { ClientArtifactsPage } from './pages/client/ClientArtifactsPage';
-import { ClientTopicsPage } from './pages/client/ClientTopicsPage';
 import { ClientGuidePage } from './pages/client/ClientGuidePage';
 import { ClientLoginOtpModal } from './components/client/ClientLoginOtpModal';
 
@@ -63,19 +62,19 @@ const AppContent: React.FC = () => {
     });
   };
 
-  // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide'
-  const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'topics' | 'guide'>(() => {
+  // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'guide'
+  const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'guide'>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const p = params.get('page');
-      if (p === 'rooms' || p === 'artifacts' || p === 'topics' || p === 'guide') {
+      if (p === 'rooms' || p === 'artifacts' || p === 'guide') {
         return p;
       }
     } catch {}
     return 'home';
   });
 
-  const handleNavigateClientPage = (page: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide') => {
+  const handleNavigateClientPage = (page: 'home' | 'rooms' | 'artifacts' | 'guide') => {
     setClientActivePage(page);
     try {
       const url = page === 'home' ? '/' : `?page=${page}`;
@@ -171,7 +170,7 @@ const AppContent: React.FC = () => {
         }
 
         const p = params.get('page');
-        if (p === 'rooms' || p === 'artifacts' || p === 'topics' || p === 'guide') {
+        if (p === 'rooms' || p === 'artifacts' || p === 'guide') {
           setClientActivePage(p);
         } else {
           setClientActivePage('home');
@@ -442,24 +441,7 @@ const AppContent: React.FC = () => {
           }}
         />
       );
-    } else if (clientActivePage === 'topics') {
-      activeClientView = (
-        <ClientTopicsPage
-          topics={topics}
-          onNavigateHome={() => handleNavigateClientPage('home')}
-          onNavigatePage={handleNavigateClientPage}
-          onNavigateRoomsPage={() => handleNavigateClientPage('rooms')}
-          clientTheme={clientTheme}
-          onToggleClientTheme={toggleClientTheme}
-          onOpenLoginModal={() => setIsClientLoginModalOpen(true)}
-          onNavigateAdmin={() => {
-            setIsAdminRoute(true);
-            try {
-              window.history.pushState({}, '', '/admin');
-            } catch {}
-          }}
-        />
-      );
+
     } else if (clientActivePage === 'guide') {
       activeClientView = (
         <ClientGuidePage
