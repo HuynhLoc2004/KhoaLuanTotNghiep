@@ -10,10 +10,15 @@ import {
   RefreshCw,
   Loader2,
   Lock,
-  User
+  User,
+  ArrowLeft
 } from 'lucide-react';
 
-export const AdminLoginPage: React.FC = () => {
+interface AdminLoginPageProps {
+  onBackToHome?: () => void;
+}
+
+export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) => {
   const { sendOtp, loginWithOtp, loginWithCredentials } = useAuth();
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
@@ -413,7 +418,27 @@ export const AdminLoginPage: React.FC = () => {
         </div>
 
         {/* Footer tối giản, chuẩn mực */}
-        <div className="login-card-footer">
+        <div className="login-card-footer" style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+          {onBackToHome && (
+            <button
+              type="button"
+              onClick={onBackToHome}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--accent-gold)',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              <ArrowLeft size={13} />
+              <span>Quay về Cổng thông tin Khách tham quan</span>
+            </button>
+          )}
           <span>{branding.museumName} &copy; 2026</span>
         </div>
       </div>

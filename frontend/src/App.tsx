@@ -21,6 +21,8 @@ import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { ClientTranslationProvider, useClientTranslation } from './context/ClientTranslationContext';
+import { ClientHomePage } from './pages/client/ClientHomePage';
+import { ClientTourView } from './pages/client/ClientTourView';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -33,6 +35,20 @@ const AppContent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLagging, setIsLagging] = useState(false);
+
+  // Xác định đang truy cập tuyến Quản trị (/admin) hay Cổng thông tin Khách tham quan
+  const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
+    try {
+      const path = window.location.pathname;
+      const search = window.location.search;
+      return path.startsWith('/admin') || search.includes('admin');
+    } catch {
+      return false;
+    }
+  });
+
+  // Chế độ xem Tour 360 trực tiếp cho khách tham quan
+  const [publicTourRoom, setPublicTourRoom] = useState<MuseumRoom | null>(null);
 
   // Kiểm tra nếu khách truy cập trực tiếp trang Hiện vật 3D (Quét mã QR hoặc URL /artifact/ID hoặc ?artifact=ID)
   const [publicArtifactId, setPublicArtifactId] = useState<string | null>(() => {
@@ -49,9 +65,8 @@ const AppContent: React.FC = () => {
     return null;
   });
 
-  // Fetch all rooms from API
+  // Fetch all rooms from API (sử dụng chung cho cả Tour khách và Quản trị viên)
   const fetchRooms = async () => {
-    if (!user || user.role !== 'admin') return;
     try {
       setLoading(true);
       setError(null);
@@ -60,7 +75,9 @@ const AppContent: React.FC = () => {
       setRooms(data);
     } catch (err: any) {
       console.error('Lỗi khi tải dữ liệu phòng:', err);
-      setError('Không thể kết nối đến máy chủ API. Vui lòng kiểm tra backend.');
+      if (isAdminRoute) {
+        setError('Không thể kết nối đến máy chủ API. Vui lòng kiểm tra backend.');
+      }
     } finally {
       setLoading(false);
     }
@@ -76,11 +93,33 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, [loading, user]);
 
+  // Nạp danh sách phòng khi khởi tạo (phục vụ cả tour khách và admin)
   useEffect(() => {
-    if (user && user.role === 'admin') {
-      fetchRooms();
-    }
-  }, [user]);
+    fetchRooms();
+  }, []);
+
+  // Lắng nghe thay đổi URL khi người dùng nhấn nút Back / Forward trên trình duyệt
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const path = window.location.pathname;
+        const search = window.location.search;
+        setIsAdminRoute(path.startsWith('/admin') || search.includes('admin'));
+        const params = new URLSearchParams(search);
+        const q = params.get('artifact');
+        if (q) {
+          setPublicArtifactId(q);
+        } else if (path.startsWith('/artifact/')) {
+          const seg = path.split('/artifact/')[1];
+          setPublicArtifactId(seg ? seg.split('/')[0] : null);
+        } else {
+          setPublicArtifactId(null);
+        }
+      } catch {}
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Tự động kiểm tra sức khỏe máy chủ và kết nối lại khi gặp sự cố mất kết nối / bảo trì
   useEffect(() => {
@@ -121,7 +160,7 @@ const AppContent: React.FC = () => {
         }
       }
 
-      // Nếu là thao tác F5 / Reload hoặc không có query hoặc chưa có phòng, giữ nguyên trang quản lý
+      // Nếu là thao tác F5 / Reload hoặc không có query hoặc chưa có phòng, giữ nguyên trang hiện tại
       if (isReload || !roomQuery || rooms.length === 0) {
         return;
       }
@@ -134,15 +173,19 @@ const AppContent: React.FC = () => {
       );
 
       if (matched) {
-        setActiveRoom(matched);
-        setCurrentTab('studio');
+        if (isAdminRoute && user && user.role === 'admin') {
+          setActiveRoom(matched);
+          setCurrentTab('studio');
+        } else {
+          setPublicTourRoom(matched);
+        }
       }
     };
 
     handleCheckRoomUrl();
     window.addEventListener('popstate', handleCheckRoomUrl);
     return () => window.removeEventListener('popstate', handleCheckRoomUrl);
-  }, [rooms]);
+  }, [rooms, isAdminRoute, user]);
 
   // Open Studio for a room (không chèn ?room vào URL để tránh kẹt F5)
   const handleOpenStudio = (room: MuseumRoom) => {
@@ -257,6 +300,47 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Khách tham quan mở Tour 360 từ Trang chủ hoặc quét mã QR gian phòng
+  if (publicTourRoom) {
+    return (
+      <ClientTourView
+        currentRoom={publicTourRoom}
+        allRooms={rooms}
+        onBackToHome={() => {
+          setPublicTourRoom(null);
+          try {
+            window.history.replaceState({}, '', '/');
+          } catch {}
+        }}
+        onNavigateRoom={(room) => setPublicTourRoom(room)}
+      />
+    );
+  }
+
+  // Nếu người dùng truy cập trang chủ công khai (không phải /admin)
+  if (!isAdminRoute) {
+    return (
+      <ClientHomePage
+        onNavigateAdmin={() => {
+          setIsAdminRoute(true);
+          try {
+            window.history.pushState({}, '', '/admin');
+          } catch {}
+        }}
+        onSelectRoomForTour={(room) => {
+          setPublicTourRoom(room);
+        }}
+        onSelectArtifactDetail={(artifactId) => {
+          setPublicArtifactId(artifactId);
+          try {
+            window.history.pushState({}, '', `?artifact=${artifactId}`);
+          } catch {}
+        }}
+      />
+    );
+  }
+
+  // Dưới đây là các tuyến đường Quản Trị Viên (Admin Route)
   // Màn hình chờ xác thực phiên đăng nhập
   if (isAuthLoading) {
     return (
@@ -310,7 +394,16 @@ const AppContent: React.FC = () => {
 
   // Chặn người dùng chưa đăng nhập hoặc không có quyền Admin
   if (!user || user.role !== 'admin') {
-    return <AdminLoginPage />;
+    return (
+      <AdminLoginPage
+        onBackToHome={() => {
+          setIsAdminRoute(false);
+          try {
+            window.history.replaceState({}, '', '/');
+          } catch {}
+        }}
+      />
+    );
   }
 
   return (
