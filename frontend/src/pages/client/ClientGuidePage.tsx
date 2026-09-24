@@ -237,7 +237,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   </div>
                   <div>
                     <h3 className="client-guide-essential-title">Giờ Mở Cửa</h3>
-                    <span className="client-guide-essential-badge open">Thứ Ba – Chủ Nhật</span>
+                    <span className="client-guide-essential-badge">Thứ Ba – Chủ Nhật</span>
                   </div>
                 </div>
 
@@ -275,7 +275,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   </div>
                   <div>
                     <h3 className="client-guide-essential-title">Giá Vé Niêm Yết</h3>
-                    <span className="client-guide-essential-badge neutral">Quy định hiện hành</span>
+                    <span className="client-guide-essential-badge">Quy định hiện hành</span>
                   </div>
                 </div>
 
@@ -289,20 +289,20 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                       <div className="client-guide-price-amount">30.000 ₫</div>
                     </div>
 
-                    <div className="client-guide-price-row highlight">
+                    <div className="client-guide-price-row">
                       <div className="client-guide-price-target">
                         <strong>Học sinh, Sinh viên</strong>
                         <span>Xuất trình thẻ HSSV còn hạn</span>
                       </div>
-                      <div className="client-guide-price-amount gold">15.000 ₫</div>
+                      <div className="client-guide-price-amount">15.000 ₫</div>
                     </div>
 
-                    <div className="client-guide-price-row free">
+                    <div className="client-guide-price-row">
                       <div className="client-guide-price-target">
                         <strong>Trẻ em &lt; 6 tuổi, Người cao tuổi</strong>
                         <span>Người khuyết tật, diện chính sách</span>
                       </div>
-                      <div className="client-guide-price-amount free-badge">Miễn phí</div>
+                      <div className="client-guide-price-amount">Miễn phí</div>
                     </div>
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   </div>
                   <div>
                     <h3 className="client-guide-essential-title">Vị Trí & Di Chuyển</h3>
-                    <span className="client-guide-essential-badge neutral">Quận 1, TP.HCM</span>
+                    <span className="client-guide-essential-badge">Quận 1, TP.HCM</span>
                   </div>
                 </div>
 
