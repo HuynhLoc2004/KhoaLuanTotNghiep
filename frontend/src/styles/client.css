@@ -159,39 +159,41 @@
   max-width: 680px;
 }
 
-/* --- 4. THANH ĐIỀU HƯỚNG CỐ ĐỊNH (CLIENT NAVBAR) --- */
+/* --- 4. THANH ĐIỀU HƯỚNG CỐ ĐỊNH DẠNG VIÊN THUỐC NỔI (CAPSULE FLOATING NAVBAR) --- */
 .client-navbar {
   position: fixed;
-  top: 0;
+  top: 16px;
   left: 0;
   right: 0;
   z-index: 1000;
-  width: 100%;
-  background: rgba(10, 14, 22, 0.7);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.45s cubic-bezier(0.34, 1.35, 0.64, 1);
-  will-change: transform, top, width, border-radius;
-}
-
-/* KHI CUỘN XUỐNG: NGUYÊN BỘ MENU RÚT NHỎ LẠI, TỤT TỪ TRÊN XUỐNG 1 ĐOẠN VÀ DỊCH SANG TRÁI */
-.client-navbar.is-scrolled {
-  top: 14px;
-  width: calc(100% - 64px);
-  max-width: 1360px;
+  width: calc(100% - 48px);
+  max-width: 1380px;
   margin: 0 auto;
   border-radius: var(--c-radius-pill);
   border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(10, 14, 22, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 12px 35px -6px rgba(0, 0, 0, 0.55), 0 0 20px -4px rgba(212, 175, 55, 0.15);
+  transform: translateX(0);
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+  will-change: transform;
+}
+
+/* KHI CUỘN XUỐNG: GIỮ NGUYÊN KÍCH THƯỚC VIÊN THUỐC, MƯỢT MÀ TRƯỢT SANG TRÁI */
+.client-navbar.is-scrolled {
+  transform: translateX(-48px);
   background: rgba(10, 14, 22, 0.92);
-  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.65), 0 0 25px -4px rgba(212, 175, 55, 0.22);
-  transform: translateX(-36px);
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow: 0 18px 45px -8px rgba(0, 0, 0, 0.7), 0 0 25px -4px rgba(212, 175, 55, 0.25);
 }
 
 @media (max-width: 992px) {
-  .client-navbar.is-scrolled {
-    width: calc(100% - 24px);
+  .client-navbar {
+    width: calc(100% - 20px);
     top: 10px;
+  }
+  .client-navbar.is-scrolled {
     transform: translateX(0);
   }
 }
@@ -200,13 +202,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 76px;
+  height: 64px;
   gap: 20px;
-  transition: height 0.45s cubic-bezier(0.34, 1.35, 0.64, 1), padding 0.45s ease;
-}
-
-.client-navbar.is-scrolled .client-nav-inner {
-  height: 60px;
   padding: 0 24px;
 }
 
