@@ -227,9 +227,9 @@
 }
 
 .client-portal[data-client-theme="light"] .client-nav-emblem {
-  background: radial-gradient(circle at 35% 30%, #FBF6EB 0%, #EDE4D0 100%);
-  border-color: rgba(180, 138, 60, 0.45);
-  color: #A3792C;
+  background: linear-gradient(135deg, #8C2D19 0%, #6E2212 100%);
+  border-color: rgba(212, 168, 106, 0.6);
+  color: #FFFFFF;
 }
 
 .client-portal[data-client-theme="light"] .client-nav-badge {
@@ -312,31 +312,29 @@
   border-radius: 8px;
 }
 
-/* Biểu tượng di sản hình tròn tinh tế chuẩn hoàng gia bảo tàng */
+/* Biểu tượng di sản đồng bộ với nhận diện bảo tàng (Emblem BT) */
 .client-nav-emblem {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #221B11 0%, #0D111A 100%);
-  border: 1px solid rgba(212, 175, 55, 0.42);
-  color: #D4AF37;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #8C2D19 0%, #6E2212 100%);
+  border: 1px solid rgba(212, 168, 106, 0.5);
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 10px rgba(212, 175, 55, 0.12), 0 4px 14px rgba(0, 0, 0, 0.35);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s ease;
   flex-shrink: 0;
 }
 
 .client-nav-brand:hover .client-nav-emblem {
-  border-color: rgba(212, 175, 55, 0.75);
-  box-shadow: inset 0 0 14px rgba(212, 175, 55, 0.25), 0 0 16px rgba(212, 175, 55, 0.2);
+  border-color: #D4A86A;
+  box-shadow: 0 0 12px rgba(212, 168, 106, 0.35);
   transform: scale(1.04);
-}
-
-.client-nav-emblem-icon {
-  color: #D4AF37;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
 }
 
 .client-nav-title-group {

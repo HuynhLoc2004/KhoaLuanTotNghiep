@@ -174,7 +174,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             <img src={branding.logoUrl} alt={branding.shortName} className="client-nav-logo" />
           ) : (
             <div className="client-nav-emblem" title={branding.shortName || 'Bảo tàng Lịch sử'}>
-              <Landmark size={18} strokeWidth={1.75} className="client-nav-emblem-icon" />
+              <span>{branding.emblemText || 'BT'}</span>
             </div>
           )}
           <div className="client-nav-title-group">

@@ -175,11 +175,17 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
       const name = branding.shortName || branding.museumName || 'Bảo tàng Di sản';
       document.title = `${name} - Hệ thống Tour 360 Không gian Di sản`;
 
-      // Xác định Favicon mục tiêu: Dùng logo bảo tàng nếu có, nếu không thì dùng favicon chuẩn bảo tàng
+      // Xác định Favicon mục tiêu: Dùng logo ảnh nếu có, nếu không thì dùng biểu trưng (emblem) chuẩn bảo tàng
       const hasCustomLogo = Boolean(branding.logoUrl && branding.logoUrl.trim());
-      const targetIconUrl = hasCustomLogo
-        ? branding.logoUrl!.trim()
-        : `/favicon.svg?v=${branding.updatedAt ? new Date(branding.updatedAt).getTime() : Date.now()}`;
+      let targetIconUrl = '';
+      if (hasCustomLogo) {
+        targetIconUrl = branding.logoUrl!.trim();
+      } else {
+        const emblem = (branding.emblemText || 'BT').trim() || 'BT';
+        const fontSize = emblem.length > 2 ? (emblem.length > 3 ? 18 : 22) : 28;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8C2D19"/><stop offset="100%" stop-color="#5A1A0C"/></linearGradient><linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F3E5AB"/><stop offset="50%" stop-color="#D4A86A"/><stop offset="100%" stop-color="#AA7C39"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#bgGrad)"/><rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-opacity="0.85"/><text x="32" y="44" font-family="'Be Vietnam Pro', system-ui, -apple-system, sans-serif, Arial" font-size="${fontSize}" font-weight="800" text-anchor="middle" fill="#FFFFFF" letter-spacing="1">${emblem}</text></svg>`;
+        targetIconUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      }
 
       let favicons = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
       if (favicons.length > 0) {
