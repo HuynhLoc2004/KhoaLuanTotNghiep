@@ -134,6 +134,39 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
 
   useEffect(() => {
     fetchBranding();
+
+    // Lắng nghe sự kiện đồng bộ giữa các Tab trình duyệt (Admin lưu ở Tab 1 -> Tab 2 Khách nhận dữ liệu thật tức thì)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === LOCAL_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && parsed.museumName) {
+            setBranding(parsed);
+          }
+        } catch {}
+      }
+    };
+
+    // Khi người dùng chuyển tab quay lại trang (tab focus), tự động tải lại dữ liệu mới nhất từ server
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchBranding();
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('focus', fetchBranding);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', fetchBranding);
+      }
+    };
   }, []);
 
   // Tự động đồng bộ Tiêu đề Tab trình duyệt (document.title) & Favicon theo thương hiệu bảo tàng

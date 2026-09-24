@@ -36,7 +36,7 @@ const AppContent: React.FC = () => {
   const { showToast } = useToast();
   const { t } = useClientTranslation();
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
-  const [homepageSection, setHomepageSection] = useState<string>('panel-menu');
+  const [homepageSection, setHomepageSection] = useState<string>('panel-brand');
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [topics, setTopics] = useState<TopicItem[]>([]);

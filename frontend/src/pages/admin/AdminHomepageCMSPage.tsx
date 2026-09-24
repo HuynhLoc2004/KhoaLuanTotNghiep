@@ -302,12 +302,12 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   const handleSave = async (sectionName?: string) => {
     if (!form.museumName?.trim()) {
       showToast('Tên đầy đủ của bảo tàng không được để trống', 'warning');
-      selectSection('panel-menu');
+      selectSection('panel-brand');
       return;
     }
     if (!form.shortName?.trim()) {
       showToast('Tên rút gọn của bảo tàng không được để trống', 'warning');
-      selectSection('panel-menu');
+      selectSection('panel-brand');
       return;
     }
 
