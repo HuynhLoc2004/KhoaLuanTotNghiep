@@ -57,11 +57,23 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const sanitizeMuseumText = (text: string): string => {
+    if (!text) return '';
+    return text
+      .replace(/Sảnh Đón Khách\s*&\s*Giới Thiệu Tổng Thể/gi, 'Sảnh Chính')
+      .replace(/Gian Thời Tiền Sử Việt Nam/gi, 'Phòng Thời Tiền Sử')
+      .replace(/Gian Thời Tiền Sử/gi, 'Phòng Thời Tiền Sử')
+      .replace(/Thời kỳ Thành lập\s*&\s*Kiến trúc Đông Dương/gi, 'Kiến trúc Đông Dương (1929)')
+      .replace(/Thời kỳ Đồ Đá\s*&\s*Đồ Đồng\s*\(Cách nay hàng ngàn năm\)/gi, 'Thời đại Đồ đá & Đồ đồng')
+      .replace(/Gian Văn Hóa Óc Eo\s*&\s*Vương Quốc Phù Nam/gi, 'Phòng Văn hóa Óc Eo – Phù Nam')
+      .replace(/Thế kỷ I đến Thế kỷ VII sau Công nguyên/gi, 'Thế kỷ I – VII SCN');
+  };
+
   // Trích xuất danh sách các thời kỳ / phân loại từ dữ liệu phòng thực tế
   const periods = useMemo(() => {
     const set = new Set<string>();
     rooms.forEach((r) => {
-      const p = (r as any).period || r.category;
+      const p = sanitizeMuseumText((r as any).period || r.category || '');
       if (p) set.add(p);
     });
     return Array.from(set);
@@ -381,8 +393,8 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
           ) : (
             <div className="client-subpage-grid">
               {filteredRooms.map((room, index) => {
-                const title = localize(room, 'name', room.name);
-                const period = localize(room, 'period', (room as any).period || room.category || '');
+                const title = sanitizeMuseumText(localize(room, 'name', room.name));
+                const period = sanitizeMuseumText(localize(room, 'period', (room as any).period || room.category || ''));
                 const desc = localize(room, 'description', room.description || '');
                 const hotspotCount = room.hotspots ? room.hotspots.length : 0;
                 const thumb = getRoomThumb(room);

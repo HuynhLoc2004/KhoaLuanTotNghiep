@@ -11,8 +11,22 @@ import {
   Home,
   Navigation,
   CheckCircle2,
-  Camera
+  Camera,
+  Info
 } from 'lucide-react';
+
+const cleanHotspotLabel = (rawTitle: string): string => {
+  if (!rawTitle) return '';
+  return rawTitle
+    .replace(/^Bước vào\s+/i, '')
+    .replace(/^Quay lại\s+Sảnh Đón Khách/i, 'Sảnh Chính')
+    .replace(/^Quay lại\s+/i, '')
+    .replace(/^Sang\s+/i, '')
+    .replace(/Gian Thời Tiền Sử/i, 'Phòng Thời Tiền Sử')
+    .replace(/Gian Văn Hóa Óc Eo\s*-\s*Phù Nam/i, 'Phòng Văn hóa Óc Eo – Phù Nam')
+    .replace(/Bia đá lưu niệm kiến trúc bảo tàng/i, 'Văn bia kỷ niệm khánh thành (1929)')
+    .replace(/Tượng Phật Gỗ Cổ Óc Eo/i, 'Tượng Phật gỗ cổ Óc Eo (Bảo vật Quốc gia)');
+};
 
 interface ThreePanoramaViewerProps {
   room: MuseumRoom;
@@ -437,41 +451,44 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
       )}
 
       {/* Direct DOM Hotspot Elements */}
-      {room.hotspots?.map((hs) => (
-        <div
-          key={hs.id}
-          ref={(el) => {
-            hotspotElementsRef.current[hs.id] = el;
-          }}
-          className={hs.type === 'navigation' ? 'hotspot-marker walking-arrow-hotspot' : 'hotspot-marker'}
-          style={{ display: 'none' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onHotspotClick) onHotspotClick(hs);
-          }}
-          title={hs.title}
-        >
-          {hs.type === 'navigation' ? (
-            <>
-              <div className="walking-arrow-label">
-                <span>{hs.title}</span>
-              </div>
-              <div className="walking-arrow-disc">
-                <svg className="walking-arrow-svg" viewBox="0 0 24 24">
-                  <polyline points="18 15 12 9 6 15"></polyline>
-                </svg>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="hotspot-icon-wrapper">
-                <Navigation size={20} style={{ transform: 'rotate(-45deg)' }} />
-              </div>
-              <div className="hotspot-label">{hs.title}</div>
-            </>
-          )}
-        </div>
-      ))}
+      {room.hotspots?.map((hs) => {
+        const cleanedTitle = cleanHotspotLabel(hs.title);
+        return (
+          <div
+            key={hs.id}
+            ref={(el) => {
+              hotspotElementsRef.current[hs.id] = el;
+            }}
+            className={hs.type === 'navigation' ? 'hotspot-marker walking-arrow-hotspot' : 'hotspot-marker'}
+            style={{ display: 'none' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onHotspotClick) onHotspotClick({ ...hs, title: cleanedTitle });
+            }}
+            title={cleanedTitle}
+          >
+            {hs.type === 'navigation' ? (
+              <>
+                <div className="walking-arrow-label">
+                  <span>{cleanedTitle}</span>
+                </div>
+                <div className="walking-arrow-disc">
+                  <svg className="walking-arrow-svg" viewBox="0 0 24 24">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="hotspot-icon-wrapper">
+                  <Info size={18} />
+                </div>
+                <div className="hotspot-label">{cleanedTitle}</div>
+              </>
+            )}
+          </div>
+        );
+      })}
 
       {/* Bottom Floating Control Bar */}
       <div className="viewer-bottom-toolbar" onClick={(e) => e.stopPropagation()}>

@@ -64,7 +64,7 @@ export const INITIAL_TOPICS = [
   },
   {
     id: 'thoi-ky-thanh-lap-kien-truc-dong-duong',
-    name: 'Thời kỳ Thành lập & Kiến trúc Đông Dương',
+    name: 'Kiến trúc Đông Dương (1929)',
     description: 'Lịch sử thành lập bảo tàng năm 1929 và phong cách kiến trúc Đông Dương (Indochine).',
     orderIndex: 4,
     active: true

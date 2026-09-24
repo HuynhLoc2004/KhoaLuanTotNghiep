@@ -191,8 +191,28 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
     setSelectedHotspot(hotspot);
   };
 
-  const title = localize(currentRoom, 'name', currentRoom.name);
-  const period = localize(currentRoom, 'period', currentRoom.period || currentRoom.category || 'Gian phòng di sản');
+  const sanitizeMuseumText = (text: string): string => {
+    if (!text) return '';
+    return text
+      .replace(/^Bước vào\s+/i, '')
+      .replace(/^Quay lại\s+Sảnh Đón Khách/i, 'Sảnh Chính')
+      .replace(/^Quay lại\s+/i, '')
+      .replace(/^Sang\s+/i, '')
+      .replace(/Sảnh Đón Khách\s*&\s*Giới Thiệu Tổng Thể/gi, 'Sảnh Chính')
+      .replace(/Gian Thời Tiền Sử Việt Nam/gi, 'Phòng Thời Tiền Sử')
+      .replace(/Gian Thời Tiền Sử/gi, 'Phòng Thời Tiền Sử')
+      .replace(/Thời kỳ Thành lập\s*&\s*Kiến trúc Đông Dương/gi, 'Kiến trúc Đông Dương (1929)')
+      .replace(/Thời kỳ Đồ Đá\s*&\s*Đồ Đồng\s*\(Cách nay hàng ngàn năm\)/gi, 'Thời đại Đồ đá & Đồ đồng')
+      .replace(/Gian Văn Hóa Óc Eo\s*&\s*Vương Quốc Phù Nam/gi, 'Phòng Văn hóa Óc Eo – Phù Nam')
+      .replace(/Thế kỷ I đến Thế kỷ VII sau Công nguyên/gi, 'Thế kỷ I – VII SCN')
+      .replace(/Bia đá lưu niệm kiến trúc bảo tàng/i, 'Văn bia kỷ niệm khánh thành (1929)')
+      .replace(/Tượng Phật Gỗ Cổ Óc Eo/i, 'Tượng Phật gỗ cổ Óc Eo (Bảo vật Quốc gia)');
+  };
+
+  const rawTitle = localize(currentRoom, 'name', currentRoom.name);
+  const title = sanitizeMuseumText(rawTitle);
+  const rawPeriod = localize(currentRoom, 'period', currentRoom.period || currentRoom.category || 'Gian phòng di sản');
+  const period = sanitizeMuseumText(rawPeriod);
   const description = localize(currentRoom, 'description', currentRoom.description || '');
 
   return (
@@ -481,7 +501,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   fontSize: '12px'
                 }}
               >
-                {currentRoom.code ? `[${currentRoom.code}] ` : ''}{currentRoom.name}
+                {currentRoom.code ? `[${currentRoom.code}] ` : ''}{sanitizeMuseumText(currentRoom.name)}
               </span>
               <ChevronDown
                 size={13}
@@ -526,8 +546,8 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
 
                 {allRooms.map((r) => {
                   const isSelected = r.id === currentRoom.id;
-                  const rName = localize(r, 'name', r.name);
-                  const rPeriod = localize(r, 'period', r.period || '');
+                  const rName = sanitizeMuseumText(localize(r, 'name', r.name));
+                  const rPeriod = sanitizeMuseumText(localize(r, 'period', r.period || ''));
                   return (
                     <button
                       key={r.id}
@@ -662,7 +682,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                 <Info size={15} />
               </div>
               <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#F9FAFB' }}>
-                {selectedHotspot.title}
+                {sanitizeMuseumText(selectedHotspot.title)}
               </h4>
             </div>
             <button
