@@ -22,6 +22,8 @@ interface ThreePanoramaViewerProps {
   onCanvasPinClick?: (coords: { pitch: number; yaw: number }) => void;
   onHotspotClick?: (hotspot: Hotspot) => void;
   onCaptureInitialView?: (view: { pitch: number; yaw: number; fov: number }) => void;
+  hideTopBanner?: boolean;
+  isClientView?: boolean;
 }
 
 export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
@@ -31,7 +33,9 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
   onTogglePinMode,
   onCanvasPinClick,
   onHotspotClick,
-  onCaptureInitialView
+  onCaptureInitialView,
+  hideTopBanner = false,
+  isClientView = false
 }) => {
   const { branding } = useSystemBranding();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -389,12 +393,14 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
         touchAction: 'none'
       }}
     >
-      {/* Top Banner: Name of Room */}
-      <div className="viewer-top-banner">
-        <Navigation size={15} />
-        <span>{room.name}</span>
-        <span style={{ opacity: 0.75, fontSize: 11 }}>({room.code})</span>
-      </div>
+      {/* Top Banner: Name of Room (chỉ hiện khi không ẩn) */}
+      {!hideTopBanner && (
+        <div className="viewer-top-banner">
+          <Navigation size={15} />
+          <span>{room.name}</span>
+          <span style={{ opacity: 0.75, fontSize: 11 }}>({room.code})</span>
+        </div>
+      )}
 
       {/* Pin Mode Indicator */}
       {isPinMode && (
@@ -493,15 +499,18 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
           <ZoomIn size={18} />
         </button>
 
-        <div className="viewer-tool-separator" />
-
-        <button
-          className={`viewer-tool-btn ${isPinMode ? 'active' : ''}`}
-          title={isPinMode ? 'Tắt chế độ ghim' : 'Ghim điểm liên kết (Hotspot)'}
-          onClick={onTogglePinMode}
-        >
-          <MapPin size={18} />
-        </button>
+        {!isClientView && (
+          <>
+            <div className="viewer-tool-separator" />
+            <button
+              className={`viewer-tool-btn ${isPinMode ? 'active' : ''}`}
+              title={isPinMode ? 'Tắt chế độ ghim' : 'Ghim điểm liên kết (Hotspot)'}
+              onClick={onTogglePinMode}
+            >
+              <MapPin size={18} />
+            </button>
+          </>
+        )}
 
         <button
           className={`viewer-tool-btn ${autoRotate ? 'active' : ''}`}
@@ -511,13 +520,15 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
           <RotateCw size={18} />
         </button>
 
-        <button
-          className="viewer-tool-btn"
-          title="Lưu góc nhìn hiện tại làm góc mở đầu"
-          onClick={() => viewerApiRef.current?.captureView()}
-        >
-          <Camera size={18} />
-        </button>
+        {!isClientView && (
+          <button
+            className="viewer-tool-btn"
+            title="Lưu góc nhìn hiện tại làm góc mở đầu"
+            onClick={() => viewerApiRef.current?.captureView()}
+          >
+            <Camera size={18} />
+          </button>
+        )}
 
         <div className="viewer-tool-separator" />
 
