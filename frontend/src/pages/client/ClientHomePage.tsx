@@ -30,13 +30,13 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
   const { branding } = useSystemBranding();
   const { currentLang, activeLanguages, t } = useClientTranslation();
 
-  // Quản lý Light / Dark Mode chuyên biệt của Client Portal
+  // Quản lý Light / Dark Mode chuyên biệt của Client Portal (Mặc định: Deep Obsidian Gallery)
   const [clientTheme, setClientTheme] = useState<'light' | 'dark'>(() => {
     try {
       const saved = localStorage.getItem('client_theme');
       if (saved === 'dark' || saved === 'light') return saved;
     } catch {}
-    return 'light'; // Mặc định là Light Mode trang nhã cho khách
+    return 'dark'; // Mặc định là Deep Obsidian Gallery sang trọng chuẩn bảo tàng ảo
   });
 
   const toggleClientTheme = () => {

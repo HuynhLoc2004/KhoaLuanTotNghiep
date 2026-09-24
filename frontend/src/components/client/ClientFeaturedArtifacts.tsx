@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Artifact } from '../../types';
-import { Box, Eye, RotateCw, Volume2, Sparkles, ExternalLink } from 'lucide-react';
+import { Box, Eye, RotateCw, Volume2, Sparkles } from 'lucide-react';
 import { API_ROOT } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { Turntable360Viewer } from '../Turntable360Viewer';
@@ -24,7 +24,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   const artifactsWith3D = artifacts.filter((a) => !!a.model3dUrl);
   const eligibleArtifacts = artifactsWith3D.length > 0 ? artifactsWith3D : artifacts;
 
-  // Quản lý hiện vật đang được đưa vào tâm điểm tủ kính (spotlight)
+  // Quản lý hiện vật đang được đưa lên bệ xoay 3D trung tâm
   const [selectedArtifactId, setSelectedArtifactId] = useState<string>(
     eligibleArtifacts[0]?.id || ''
   );
@@ -42,93 +42,92 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
             {t('artifacts.tag', 'Bảo Vật & Hiện Vật Số')}
           </span>
           <h2 className="client-section-title">
-            {t('artifacts.headline', 'Kiệt Tác Cổ Vật Di Sản 3D')}
+            {t('artifacts.headline', 'Bệ Trưng Bày Cổ Vật 3D Tương Tác')}
           </h2>
           <p className="client-section-subtitle">
             {t(
               'artifacts.sub',
-              'Chiêm ngưỡng bảo vật nghìn năm tuổi được tái tạo khối đa giác 3D với độ chi tiết cao, tương tác xoay đa chiều và lắng nghe giọng thuyết minh truyền cảm.'
+              'Tương tác xoay đa chiều trực tiếp từng đường nét cổ vật nghìn năm tuổi được tái tạo khối 3D độ chi tiết cao và lắng nghe thuyết minh truyền cảm.'
             )}
           </p>
         </div>
 
         {eligibleArtifacts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--c-text-muted)' }}>
-            <Box size={40} style={{ color: 'var(--c-gold)', opacity: 0.7, marginBottom: 12 }} />
+            <Box size={44} style={{ color: 'var(--c-gold)', opacity: 0.7, marginBottom: 14 }} />
             <p>{t('artifacts.empty', 'Đang cập nhật các bảo vật di sản 3D...')}</p>
           </div>
         ) : (
-          <div>
-            {/* TỦ KÍNH GIÁM TUYỂN TRƯNG BÀY BẢO VẬT TRUNG TÂM (EXHIBITION CABINET) */}
+          <div className="client-pedestal-wrap">
+            {/* KHỐI TRƯNG BÀY BỆ XOAY 3D & THẺ GIÁM TUYỂN */}
             {activeArtifact && (
-              <div className="client-masterpiece-cabinet">
-                {/* Vùng tương tác 3D bên trái */}
-                <div className="client-cabinet-stage">
-                  <div className="client-cabinet-viewer-wrap">
-                    {activeArtifact.model3dUrl ? (
-                      <Turntable360Viewer
-                        modelUrl={activeArtifact.model3dUrl}
-                        artifactName={activeArtifact.name}
-                        artifactPeriod={activeArtifact.period || activeArtifact.category}
-                        audioNarrationUrl={activeArtifact.audioNarrationUrl}
-                        translations={activeArtifact.translations}
-                        height={420}
+              <div className="client-pedestal-grid">
+                {/* BỆ XOAY 3D TRỰC TIẾP TRÊN TRANG CHỦ */}
+                <div className="client-pedestal-viewer-stage">
+                  {activeArtifact.model3dUrl ? (
+                    <Turntable360Viewer
+                      modelUrl={activeArtifact.model3dUrl}
+                      artifactName={activeArtifact.name}
+                      artifactPeriod={activeArtifact.period || activeArtifact.category}
+                      audioNarrationUrl={activeArtifact.audioNarrationUrl}
+                      translations={activeArtifact.translations}
+                      height={480}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: 480,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#090B0E'
+                      }}
+                    >
+                      <img
+                        src={
+                          activeArtifact.thumbnailUrl?.startsWith('http')
+                            ? activeArtifact.thumbnailUrl
+                            : `${API_ROOT}${activeArtifact.thumbnailUrl?.startsWith('/') ? '' : '/'}${activeArtifact.thumbnailUrl}`
+                        }
+                        alt={activeArtifact.name}
+                        style={{ maxHeight: 360, maxWidth: '85%', objectFit: 'contain' }}
                       />
-                    ) : (
-                      <div
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <img
-                          src={
-                            activeArtifact.thumbnailUrl?.startsWith('http')
-                              ? activeArtifact.thumbnailUrl
-                              : `${API_ROOT}${activeArtifact.thumbnailUrl?.startsWith('/') ? '' : '/'}${activeArtifact.thumbnailUrl}`
-                          }
-                          alt={activeArtifact.name}
-                          style={{ maxHeight: 340, maxWidth: '90%', objectFit: 'contain' }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Thẻ giám tuyển cổ vật bên phải */}
-                <div className="client-cabinet-placard">
-                  <div className="client-cabinet-period">
+                {/* THẺ GIÁM TUYỂN BẢO VẬT BÊN PHẢI */}
+                <div className="client-pedestal-placard">
+                  <div className="client-pedestal-period">
                     {localize(activeArtifact, 'period', activeArtifact.period || 'Thời kỳ di sản')}
                   </div>
 
-                  <h3 className="client-cabinet-title">
+                  <h3 className="client-pedestal-title">
                     {localize(activeArtifact, 'name', activeArtifact.name)}
                   </h3>
 
-                  <div className="client-cabinet-meta-grid">
+                  <div className="client-pedestal-meta-table">
                     <div>
-                      <div className="client-cabinet-meta-item-label">
-                        {t('artifacts.metaCategory', 'Loại hình')}
+                      <div className="client-pedestal-meta-label">
+                        {t('artifacts.metaCategory', 'Loại hình / Chất liệu')}
                       </div>
-                      <div className="client-cabinet-meta-item-value">
+                      <div className="client-pedestal-meta-val">
                         {activeArtifact.category || 'Cổ vật bảo tàng'}
                       </div>
                     </div>
 
                     <div>
-                      <div className="client-cabinet-meta-item-label">
-                        {t('artifacts.metaOrigin', 'Xuất xứ / Niên đại')}
+                      <div className="client-pedestal-meta-label">
+                        {t('artifacts.metaOrigin', 'Niên đại / Xuất xứ')}
                       </div>
-                      <div className="client-cabinet-meta-item-value">
+                      <div className="client-pedestal-meta-val">
                         {localize(activeArtifact, 'origin', activeArtifact.origin || activeArtifact.period || 'Việt Nam')}
                       </div>
                     </div>
                   </div>
 
-                  <p className="client-cabinet-desc">
+                  <p className="client-pedestal-desc">
                     {localize(
                       activeArtifact,
                       'description',
@@ -137,7 +136,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                     )}
                   </p>
 
-                  <div className="client-cabinet-actions">
+                  <div className="client-pedestal-actions">
                     {onSelectArtifactDetail && (
                       <button
                         type="button"
@@ -156,7 +155,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                         onClick={() => onOpen3DViewer(activeArtifact)}
                       >
                         <RotateCw size={16} />
-                        <span>{t('artifacts.btnFullscreen', 'Mở Đĩa Xoay Lớn')}</span>
+                        <span>{t('artifacts.btnFullscreen', 'Phóng To Đĩa Xoay')}</span>
                       </button>
                     )}
                   </div>
@@ -164,20 +163,20 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
               </div>
             )}
 
-            {/* KHAY CHỌN CỔ VẬT TIÊU BIỂU CHÂN TỦ KÍNH */}
+            {/* KHAY CHỌN CỔ VẬT CHÂN BỆ XOAY */}
             {eligibleArtifacts.length > 1 && (
-              <div className="client-cabinet-shelf">
+              <div className="client-pedestal-shelf">
                 <span
                   style={{
-                    fontSize: '0.8rem',
+                    fontSize: '0.82rem',
                     fontWeight: 700,
-                    color: 'var(--c-text-muted)',
+                    color: 'var(--c-gold)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.08em',
                     paddingRight: 6
                   }}
                 >
-                  Bộ sưu tập:
+                  Chọn cổ vật:
                 </span>
                 {eligibleArtifacts.map((art) => {
                   const rawThumb = art.thumbnailUrl || (art.images && art.images[0]);
@@ -192,13 +191,13 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                   return (
                     <div
                       key={art.id}
-                      className={`client-shelf-item ${isSelected ? 'active' : ''}`}
+                      className={`client-pedestal-shelf-item ${isSelected ? 'active' : ''}`}
                       onClick={() => setSelectedArtifactId(art.id)}
                       role="button"
                       tabIndex={0}
                     >
-                      <img src={thumb} alt={art.name} className="client-shelf-thumb" />
-                      <span className="client-shelf-name">{localize(art, 'name', art.name)}</span>
+                      <img src={thumb} alt={art.name} className="client-pedestal-shelf-thumb" />
+                      <span className="client-pedestal-shelf-name">{localize(art, 'name', art.name)}</span>
                     </div>
                   );
                 })}
