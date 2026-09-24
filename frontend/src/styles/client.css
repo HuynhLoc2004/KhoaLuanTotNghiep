@@ -166,10 +166,10 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  background: var(--c-nav-bg);
+  background: rgba(10, 14, 22, 0.7);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--c-nav-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   transition: var(--c-transition);
 }
 
@@ -186,7 +186,7 @@
   align-items: center;
   gap: 14px;
   text-decoration: none;
-  color: var(--c-text-primary);
+  color: #FFFFFF;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -202,7 +202,7 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #181E2B 0%, #0D111A 100%);
+  background: linear-gradient(135deg, #1C2230 0%, #0D111A 100%);
   border: 1.5px solid var(--c-gold);
   color: var(--c-gold);
   display: flex;
@@ -230,7 +230,7 @@
   font-family: 'Lora', serif;
   font-weight: 700;
   font-size: 1.12rem;
-  color: var(--c-text-primary);
+  color: #FFFFFF;
   line-height: 1.2;
 }
 
@@ -243,7 +243,7 @@
 
 .client-nav-tagline {
   font-size: 0.68rem;
-  color: var(--c-text-muted);
+  color: rgba(255, 255, 255, 0.65);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 600;
@@ -252,16 +252,16 @@
 .client-nav-dot {
   font-size: 0.65rem;
   color: var(--c-gold);
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .client-nav-badge {
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: var(--c-gold);
-  background: var(--c-gold-light);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #F3E0A3;
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid rgba(212, 175, 55, 0.35);
   padding: 1px 7px;
   border-radius: var(--c-radius-pill);
 }
@@ -279,20 +279,15 @@
   list-style: none;
   margin: 0;
   padding: 4px 6px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--c-border);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--c-radius-pill);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
-.client-portal[data-client-theme="light"] .client-nav-menu {
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
-
 .client-nav-link {
-  color: var(--c-text-secondary);
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   font-size: 0.88rem;
   font-weight: 500;
@@ -306,8 +301,8 @@
 
 .client-nav-link:hover,
 .client-nav-link.active {
-  color: var(--c-gold);
-  background: var(--c-gold-light);
+  color: #F3E0A3;
+  background: rgba(212, 175, 55, 0.22);
   font-weight: 600;
 }
 
@@ -323,9 +318,9 @@
   width: 38px;
   height: 38px;
   border-radius: var(--c-radius-pill);
-  border: 1px solid var(--c-border);
-  background: var(--c-bg-card);
-  color: var(--c-text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -334,9 +329,9 @@
 }
 
 .client-theme-toggle:hover {
-  color: var(--c-gold);
-  border-color: var(--c-gold);
-  background: var(--c-gold-light);
+  color: #F3E0A3;
+  border-color: #F3E0A3;
+  background: rgba(212, 175, 55, 0.2);
   transform: translateY(-1px);
 }
 
@@ -346,9 +341,9 @@
   gap: 8px;
   padding: 8px 20px;
   border-radius: var(--c-radius-pill);
-  border: 1px solid var(--c-border-gold);
-  background: var(--c-gold-light);
-  color: var(--c-gold);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.18);
+  color: #F3E0A3;
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
@@ -498,29 +493,22 @@
   height: 100%;
   object-fit: cover;
   object-position: center center;
-  filter: brightness(0.68) contrast(1.05);
+  filter: brightness(0.72) contrast(1.08);
   transition: filter 0.3s ease, opacity 0.3s ease;
-}
-
-/* Trong Light Mode: TUYỆT ĐỐI KHÔNG làm mờ đục ảnh (opacity = 1), giữ trọn vẹn màu sắc & kiến trúc bảo tàng */
-.client-portal[data-client-theme="light"] .client-hero-media {
-  filter: brightness(0.88) contrast(1.08);
-  opacity: 1;
 }
 
 .client-hero-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(10, 13, 20, 0.45) 0%, rgba(10, 13, 20, 0.88) 100%),
-              linear-gradient(180deg, rgba(10, 13, 20, 0.7) 0%, transparent 45%, var(--c-bg) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(10, 13, 20, 0.65) 0%,
+    rgba(10, 13, 20, 0.15) 30%,
+    rgba(10, 13, 20, 0.3) 65%,
+    var(--c-bg) 100%
+  );
   pointer-events: none;
   z-index: 2;
-}
-
-/* Lớp phủ Light Mode: Trong suốt dịu dàng ở giữa để thấy ảnh rõ nét 100%, chỉ chuyển màu mượt ở mép dưới */
-.client-portal[data-client-theme="light"] .client-hero-overlay {
-  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.4) 100%),
-              linear-gradient(180deg, rgba(247, 245, 240, 0.3) 0%, transparent 45%, var(--c-bg) 100%);
 }
 
 .client-hero-content {
@@ -529,51 +517,40 @@
   text-align: center;
   max-width: 960px;
   margin: 0 auto;
-  padding: 120px 20px 60px 20px;
-}
-
-/* Trong Light Mode: Thẻ giám tuyển mờ sang trọng tôn trọn vẹn hình ảnh phía sau và giúp chữ đọc cực nét */
-.client-portal[data-client-theme="light"] .client-hero-content {
-  background: rgba(247, 245, 240, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(180, 138, 60, 0.35);
-  border-radius: var(--c-radius-lg);
-  box-shadow: 0 24px 60px -10px rgba(44, 34, 20, 0.15);
-  padding: 48px 36px 36px 36px;
-  margin-top: 40px;
+  padding: 130px 20px 50px 20px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .client-hero-tag {
   display: inline-block;
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
-  color: var(--c-gold);
+  letter-spacing: 0.2em;
+  color: #F3E0A3;
   text-transform: uppercase;
   margin-bottom: 20px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
 .client-hero-headline {
   font-family: 'Lora', serif;
-  font-size: clamp(2.3rem, 4.8vw, 4.2rem);
+  font-size: clamp(2.4rem, 5vw, 4.4rem);
   font-weight: 700;
   line-height: 1.18;
-  color: var(--c-text-primary);
+  color: #FFFFFF !important;
   margin: 0 0 20px 0;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-}
-
-.client-portal[data-client-theme="light"] .client-hero-headline {
-  text-shadow: 0 2px 12px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.95);
 }
 
 .client-hero-lead {
-  font-size: clamp(1.02rem, 1.25vw, 1.22rem);
+  font-size: clamp(1.05rem, 1.3vw, 1.25rem);
   line-height: 1.8;
-  color: var(--c-text-secondary);
-  max-width: 720px;
-  margin: 0 auto 36px auto;
+  color: rgba(255, 255, 255, 0.92) !important;
+  max-width: 740px;
+  margin: 0 auto 38px auto;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
 }
 
 .client-hero-actions {
@@ -582,7 +559,7 @@
   justify-content: center;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 56px;
+  margin-bottom: 50px;
 }
 
 .client-btn-primary {
@@ -597,14 +574,14 @@
   font-weight: 600;
   border: none;
   cursor: pointer;
-  box-shadow: 0 8px 25px rgba(178, 59, 34, 0.45);
+  box-shadow: 0 8px 25px rgba(178, 59, 34, 0.5);
   transition: var(--c-transition);
 }
 
 .client-btn-primary:hover {
   background: var(--c-primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(178, 59, 34, 0.6);
+  box-shadow: 0 12px 32px rgba(178, 59, 34, 0.65);
 }
 
 .client-btn-secondary {
@@ -613,46 +590,38 @@
   gap: 10px;
   padding: 13px 30px;
   border-radius: var(--c-radius-pill);
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  color: var(--c-text-primary);
+  background: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #FFFFFF !important;
   font-size: 0.98rem;
   font-weight: 600;
-  border: 1px solid var(--c-border);
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
   cursor: pointer;
   transition: var(--c-transition);
 }
 
-.client-portal[data-client-theme="light"] .client-btn-secondary {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(0, 0, 0, 0.15);
-}
-
 .client-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: var(--c-gold);
-  color: var(--c-gold);
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: #F3E0A3 !important;
+  color: #F3E0A3 !important;
   transform: translateY(-2px);
 }
 
-/* Thanh thống kê dữ liệu thật dưới chân Hero Banner */
+/* Thanh thống kê dữ liệu thật dạng kính mờ thanh thoát (Không bao giờ là hộp trắng đục) */
 .client-hero-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 32px;
-  padding: 24px 36px;
+  padding: 20px 38px;
   border-radius: var(--c-radius-lg);
-  background: rgba(16, 20, 30, 0.75);
+  background: rgba(10, 14, 22, 0.6) !important;
   backdrop-filter: blur(20px);
-  border: 1px solid var(--c-border-gold);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
   max-width: 680px;
   margin: 0 auto;
-  box-shadow: var(--c-shadow-lg);
-}
-
-.client-portal[data-client-theme="light"] .client-hero-stats {
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid var(--c-border-gold);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
 .client-hero-stat-item {
@@ -665,13 +634,13 @@
   font-family: 'Lora', serif;
   font-size: clamp(2rem, 3vw, 2.6rem);
   font-weight: 700;
-  color: var(--c-gold);
+  color: #F3E0A3 !important;
   line-height: 1.1;
 }
 
 .client-hero-stat-label {
-  font-size: 0.8rem;
-  color: var(--c-text-secondary);
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.82) !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-top: 6px;
