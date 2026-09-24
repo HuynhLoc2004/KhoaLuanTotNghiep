@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Artifact } from '../../types';
-import { Box, RotateCw, ArrowRight, Sparkles } from 'lucide-react';
 import { API_ROOT } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { Turntable360Viewer } from '../Turntable360Viewer';
@@ -28,20 +27,21 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     artifacts.find((a) => a.id === selectedArtifactId) || artifacts[0];
 
   const getFullThumb = (art?: Artifact) => {
-    if (!art) {
-      return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=85';
-    }
+    // Ảnh hiện vật lịch sử bảo tàng chất lượng cao (Tránh tuyệt đối ảnh sách vở/cà phê)
+    const fallbackMuseumRelic =
+      'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=85';
+    if (!art) return fallbackMuseumRelic;
     const raw = art.thumbnailUrl || (art.images && art.images[0]);
-    if (!raw) {
-      return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=85';
-    }
+    if (!raw) return fallbackMuseumRelic;
     return raw.startsWith('http')
       ? raw
       : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
   };
 
   const currentThumb = getFullThumb(activeArtifact);
-  const currentTitle = activeArtifact ? localize(activeArtifact, 'name', activeArtifact.name) : 'Cổ vật di sản';
+  const currentTitle = activeArtifact
+    ? localize(activeArtifact, 'name', activeArtifact.name)
+    : t('artifacts.defaultTitle', 'Cổ vật di sản tiêu biểu');
   const artifact3DCount = artifacts.filter((a) => !!a.model3dUrl).length;
 
   return (
@@ -49,7 +49,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
       <div className="client-container">
         {/* ZIG-ZAG 3: NẰM BÊN PHẢI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
         <div className="client-zigzag-card horizontal-split align-right reveal-on-scroll">
-          {/* CỘT MEDIA: MÔ HÌNH 3D / ẢNH TIÊU BIỂU */}
+          {/* CỘT MEDIA: MÔ HÌNH 3D / ẢNH HIỆN VẬT LỊCH SỬ CHUẨN MỰC */}
           <div
             className="client-zigzag-card-media dark-vitrine clickable"
             onClick={onViewAllArtifacts}
@@ -78,12 +78,12 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                   loading="lazy"
                 />
                 <div className="client-zigzag-badge-float">
-                  <span>Kho Hiện Vật Số Hóa</span>
+                  <span>{t('artifacts.vitrineBadge', 'Bảo vật số hóa')}</span>
                 </div>
               </div>
             )}
 
-            {/* Thumbnail preview nhanh một số hiện vật */}
+            {/* Dải thumbnail chọn nhanh hiện vật */}
             {artifacts.length > 1 && (
               <div className="client-zigzag-shelf" onClick={(e) => e.stopPropagation()}>
                 {artifacts.slice(0, 4).map((art) => {
@@ -105,7 +105,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
             )}
           </div>
 
-          {/* CỘT NỘI DUNG: ĐẠI DIỆN CHO TOÀN BỘ PHÂN HỆ CỔ VẬT 3D */}
+          {/* CỘT NỘI DUNG: TINH TẾ, ĐẲNG CẤP, KHÔNG TÈM LEM MÀU SẮC */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
               {t('artifacts.tag', 'Bảo Vật Di Sản & Mô Hình 3D')}
@@ -122,29 +122,33 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
               )}
             </p>
 
-            {/* CHIPS THỐNG KÊ THẬT CỦA PHÂN HỆ CỔ VẬT */}
-            <div className="client-zigzag-meta-chips">
-              <div className="client-zigzag-meta-chip">
-                <Box size={14} className="client-zigzag-chip-icon" />
-                <span><strong>{artifacts.length}</strong> {t('artifacts.totalArtifacts', 'Hiện vật số hóa')}</span>
-              </div>
+            {/* DÒNG THÔNG SỐ ĐỒNG BỘ THẬT */}
+            <div className="client-zigzag-meta-line">
+              <span className="client-zigzag-meta-item">
+                <strong>{artifacts.length}</strong> {t('artifacts.totalArtifacts', 'Hiện vật lưu trữ')}
+              </span>
               {artifact3DCount > 0 && (
-                <div className="client-zigzag-meta-chip">
-                  <RotateCw size={14} className="client-zigzag-chip-icon" />
-                  <span><strong>{artifact3DCount}</strong> {t('artifacts.total3D', 'Mô hình 3D xoay')}</span>
-                </div>
+                <>
+                  <span className="client-zigzag-meta-sep">•</span>
+                  <span className="client-zigzag-meta-item">
+                    <strong>{artifact3DCount}</strong> {t('artifacts.total3D', 'Mô hình 3D xoay')}
+                  </span>
+                </>
               )}
+              <span className="client-zigzag-meta-sep">•</span>
+              <span className="client-zigzag-meta-item">
+                {t('artifacts.audioGuide', 'Thuyết minh song ngữ')}
+              </span>
             </div>
 
-            {/* NÚT ĐIỀU HƯỚNG SANG PAGE KHO HIỆN VẬT */}
-            <div className="client-zigzag-actions" style={{ marginTop: 20 }}>
+            {/* NÚT HÀNH ĐỘNG SANG TRỌNG */}
+            <div className="client-zigzag-actions">
               <button
                 type="button"
                 className="client-zigzag-btn-primary"
                 onClick={onViewAllArtifacts}
               >
-                <span>{t('artifacts.btnViewAll', 'Khám phá toàn bộ kho hiện vật')}</span>
-                <ArrowRight size={15} />
+                {t('artifacts.btnViewAll', 'Khám phá toàn bộ kho hiện vật')}
               </button>
             </div>
           </div>
@@ -153,3 +157,4 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     </section>
   );
 };
+

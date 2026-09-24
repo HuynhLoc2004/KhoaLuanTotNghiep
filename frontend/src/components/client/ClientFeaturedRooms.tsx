@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { MuseumRoom } from '../../types';
-import { Compass, ArrowRight, Layers } from 'lucide-react';
 import { API_ROOT } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -34,7 +33,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
     <section id="rooms" className="client-zigzag-section">
       <div className="client-container">
         {/* ZIG-ZAG 2: NẰM BÊN TRÁI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
-        <div className="client-zigzag-card horizontal-split align-left reveal-on-scroll">
+        <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
           {/* CỘT MEDIA: ẢNH TOÀN CẢNH GIAN PHÒNG */}
           <div
             className="client-zigzag-card-media clickable"
@@ -54,12 +53,12 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
             </div>
 
             <div className="client-zigzag-media-caption">
-              <span style={{ fontWeight: 700 }}>{featuredTitle}</span>
+              <span style={{ fontWeight: 600 }}>{featuredTitle}</span>
               {featuredPeriod && <span> • {featuredPeriod}</span>}
             </div>
           </div>
 
-          {/* CỘT NỘI DUNG: ĐẠI DIỆN CHO TOÀN BỘ PHÂN HỆ GIAN PHÒNG 360 */}
+          {/* CỘT NỘI DUNG: ĐẠI DIỆN CHO PHÂN HỆ GIAN PHÒNG 360 */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
               {t('rooms.tag', 'Không Gian Thực Tế Ảo')}
@@ -76,27 +75,29 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
               )}
             </p>
 
-            {/* CHIPS THỐNG KÊ THẬT CỦA PHÂN HỆ PHÒNG */}
-            <div className="client-zigzag-meta-chips">
-              <div className="client-zigzag-meta-chip">
-                <Compass size={14} className="client-zigzag-chip-icon" />
-                <span><strong>{rooms.length}</strong> {t('rooms.totalRooms', 'Gian phòng số hóa')}</span>
-              </div>
-              <div className="client-zigzag-meta-chip">
-                <Layers size={14} className="client-zigzag-chip-icon" />
-                <span>{t('rooms.interactiveHotspots', 'Thuyết minh đa điểm')}</span>
-              </div>
+            {/* DÒNG THÔNG SỐ TINH TẾ */}
+            <div className="client-zigzag-meta-line">
+              <span className="client-zigzag-meta-item">
+                <strong>{rooms.length}</strong> {t('rooms.totalRooms', 'Gian phòng số hóa')}
+              </span>
+              <span className="client-zigzag-meta-sep">•</span>
+              <span className="client-zigzag-meta-item">
+                {t('rooms.interactiveHotspots', 'Thuyết minh đa điểm')}
+              </span>
+              <span className="client-zigzag-meta-sep">•</span>
+              <span className="client-zigzag-meta-item">
+                {t('rooms.seamlessNav', 'Chuyển phòng mượt mà')}
+              </span>
             </div>
 
-            {/* NÚT ĐIỀU HƯỚNG SANG PAGE GIAN PHÒNG */}
-            <div className="client-zigzag-actions" style={{ marginTop: 20 }}>
+            {/* NÚT HÀNH ĐỘNG */}
+            <div className="client-zigzag-actions">
               <button
                 type="button"
                 className="client-zigzag-btn-primary"
                 onClick={onViewAllRooms}
               >
-                <span>{t('rooms.btnViewAll', 'Khám phá tất cả gian phòng 360°')}</span>
-                <ArrowRight size={15} />
+                {t('rooms.btnViewAll', 'Khám phá tất cả gian phòng 360°')}
               </button>
             </div>
           </div>

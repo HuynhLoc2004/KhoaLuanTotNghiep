@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { ArrowUpRight } from 'lucide-react';
 
 interface ClientVisitorGuideProps {
   onViewAllGuide?: () => void;
@@ -11,11 +10,41 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
 
+  const museumPhoto =
+    branding.heroBannerUrl ||
+    'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=1200&q=85';
+
   return (
-    <section id="guide" className="client-zigzag-section client-section-alt">
+    <section id="guide" className="client-zigzag-section">
       <div className="client-container">
-        {/* ZIG-ZAG 4: NẰM BÊN TRÁI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
-        <div className="client-zigzag-card align-left reveal-on-scroll">
+        {/* ZIG-ZAG 4: NẰM BÊN TRÁI, CỘT NỘI DUNG BÊN TRÁI - ẢNH KIẾN TRÚC BÊN PHẢI */}
+        <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
+          {/* CỘT MEDIA: HÌNH ẢNH KHUÔN VIÊN & KIẾN TRÚC BẢO TÀNG */}
+          <div
+            className="client-zigzag-card-media clickable"
+            onClick={onViewAllGuide}
+            role="button"
+            tabIndex={0}
+            title={t('guide.clickToEnter', 'Bấm để xem cẩm nang tham quan chi tiết')}
+          >
+            <img
+              src={museumPhoto}
+              alt={branding.museumName || 'Bảo tàng Lịch sử TP.HCM'}
+              className="client-zigzag-card-img"
+              loading="lazy"
+            />
+            <div className="client-zigzag-badge-float">
+              <span>{t('guide.openToday', 'Đón khách tham quan')}</span>
+            </div>
+
+            <div className="client-zigzag-media-caption">
+              <span style={{ fontWeight: 600 }}>
+                {branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM'}
+              </span>
+            </div>
+          </div>
+
+          {/* CỘT NỘI DUNG: HƯỚNG DẪN THỰC ĐỊA TRANG NHÃ */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
               {t('guide.tag', 'Kế Hoạch Tham Quan')}
@@ -25,6 +54,13 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
               {t('guide.headline', 'Hướng Dẫn Khách Tham Quan Thực Địa')}
             </h2>
 
+            <p className="client-zigzag-desc" style={{ marginBottom: 18 }}>
+              {t(
+                'guide.sub',
+                'Thông tin giờ mở cửa đón khách, chính sách biểu phí niêm yết và trải nghiệm tương tác số hóa trực tiếp tại không gian bảo tàng.'
+              )}
+            </p>
+
             <div className="client-zigzag-guide-cards">
               {/* Giờ mở cửa */}
               <div className="client-zigzag-guide-item">
@@ -33,16 +69,16 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                   <span className="client-zigzag-guide-badge">Thứ Ba – Chủ Nhật</span>
                 </div>
                 <div className="client-zigzag-guide-time">
-                  <span>Sáng: 08:00 – 11:30</span>
+                  <span>08:00 – 11:30</span>
                   <span className="client-zigzag-guide-dot">•</span>
-                  <span>Chiều: 13:30 – 17:00</span>
+                  <span>13:30 – 17:00</span>
                 </div>
                 <div className="client-zigzag-guide-sub">
-                  * Đóng cửa vào Thứ Hai hàng tuần để bảo dưỡng cổ vật
+                  * Nghỉ Thứ Hai hàng tuần để bảo dưỡng cổ vật
                 </div>
               </div>
 
-              {/* Vé tham quan */}
+              {/* Biểu phí vé */}
               <div className="client-zigzag-guide-item">
                 <div className="client-zigzag-guide-header">
                   <span className="client-zigzag-guide-label">Biểu phí vé niêm yết</span>
@@ -58,51 +94,17 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                   </div>
                 </div>
               </div>
-
-              {/* Địa chỉ & Hotline */}
-              <div className="client-zigzag-guide-item">
-                <div className="client-zigzag-guide-header">
-                  <span className="client-zigzag-guide-label">Địa chỉ & Liên hệ</span>
-                </div>
-                <div className="client-zigzag-guide-address">
-                  {branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
-                </div>
-                <div className="client-zigzag-guide-hotline">
-                  Đường dây nóng: <strong>{branding.hotline || '(028) 3829 8146'}</strong>
-                </div>
-              </div>
-
-              {/* Trải nghiệm Quét mã QR */}
-              <div className="client-zigzag-guide-item">
-                <div className="client-zigzag-guide-header">
-                  <span className="client-zigzag-guide-label">Trải nghiệm quét mã QR tại điểm</span>
-                </div>
-                <p className="client-zigzag-desc" style={{ margin: '4px 0 10px 0', fontSize: '0.84rem' }}>
-                  Dùng camera điện thoại quét mã QR cạnh chú thích mỗi hiện vật để xem mô hình 3D và nghe thuyết minh bản ngữ.
-                </p>
-
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(branding.address || 'Bảo tàng Lịch sử TP. Hồ Chí Minh, 2 Nguyễn Bỉnh Khiêm, Quận 1')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="client-zigzag-btn-primary"
-                  style={{ textDecoration: 'none', width: 'fit-content', marginTop: 6 }}
-                >
-                  <span>Chỉ đường trên Google Maps</span>
-                  <ArrowUpRight size={15} />
-                </a>
-              </div>
             </div>
 
+            {/* NÚT HÀNH ĐỘNG SANG TRỌNG */}
             {onViewAllGuide && (
-              <div style={{ marginTop: 22, display: 'flex', justifyContent: 'flex-start' }}>
+              <div className="client-zigzag-actions" style={{ marginTop: 22 }}>
                 <button
                   type="button"
                   className="client-zigzag-btn-primary"
                   onClick={onViewAllGuide}
                 >
-                  <span>{t('guide.btnViewAll', 'Xem cẩm nang tham quan đầy đủ')}</span>
-                  <ArrowUpRight size={15} />
+                  {t('guide.btnViewAll', 'Xem cẩm nang tham quan đầy đủ')}
                 </button>
               </div>
             )}
@@ -112,3 +114,4 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
     </section>
   );
 };
+

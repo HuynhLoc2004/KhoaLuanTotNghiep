@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { Compass, Box, Sparkles, ArrowRight } from 'lucide-react';
 
 interface ClientIntroSectionProps {
   roomCount?: number;
@@ -13,7 +12,6 @@ interface ClientIntroSectionProps {
 export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
   roomCount = 0,
   artifactCount = 0,
-  topicCount = 0,
   onExploreRooms
 }) => {
   const { branding } = useSystemBranding();
@@ -37,7 +35,7 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
             </div>
           </div>
 
-          {/* CỘT NỘI DUNG: NGẮN GỌN, CHÂN THỰC, KHÔNG SÁO RỖNG, SỐ LIỆU ĐỒNG BỘ THẬT */}
+          {/* CỘT NỘI DUNG: TRANG NHÃ, KHÔNG TÈM LEM MÀU, KHÔNG ICON DƯ THỪA */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
               {t('intro.tag', 'Kiến Trúc & Không Gian')}
@@ -55,40 +53,30 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
                 )}
             </p>
 
-            {/* DỮ LIỆU ĐỒNG BỘ THẬT TỪ DATABASE - TUYỆT ĐỐI KHÔNG DÙNG SỐ ẢO */}
-            <div className="client-zigzag-meta-chips">
-              <div className="client-zigzag-meta-chip">
-                <Compass size={14} className="client-zigzag-chip-icon" />
-                <span>
-                  <strong>{roomCount}</strong> {t('intro.statRooms', 'Gian phòng 360°')}
-                </span>
-              </div>
-              <div className="client-zigzag-meta-chip">
-                <Box size={14} className="client-zigzag-chip-icon" />
-                <span>
-                  <strong>{artifactCount}</strong> {t('intro.statArtifacts', 'Hiện vật số hóa')}
-                </span>
-              </div>
-              {topicCount > 0 && (
-                <div className="client-zigzag-meta-chip">
-                  <Sparkles size={14} className="client-zigzag-chip-icon" />
-                  <span>
-                    <strong>{topicCount}</strong> {t('intro.statTopics', 'Chuyên đề')}
-                  </span>
-                </div>
-              )}
+            {/* DÒNG THÔNG SỐ ĐỒNG BỘ THẬT: TỐI GIẢN, LỊCH THIỆP, KHÔNG ICON LÒE LOẸT */}
+            <div className="client-zigzag-meta-line">
+              <span className="client-zigzag-meta-item">
+                <strong>{roomCount}</strong> {t('intro.statRooms', 'Gian phòng 360°')}
+              </span>
+              <span className="client-zigzag-meta-sep">•</span>
+              <span className="client-zigzag-meta-item">
+                <strong>{artifactCount}</strong> {t('intro.statArtifacts', 'Hiện vật số hóa')}
+              </span>
+              <span className="client-zigzag-meta-sep">•</span>
+              <span className="client-zigzag-meta-item">
+                {t('intro.interactiveTag', 'Không gian tương tác')}
+              </span>
             </div>
 
-            {/* NÚT ĐIỀU HƯỚNG NHẸ NHÀNG */}
+            {/* NÚT HÀNH ĐỘNG SANG TRỌNG CHUẨN MỰC */}
             {onExploreRooms && (
-              <div className="client-zigzag-actions" style={{ marginTop: 22 }}>
+              <div className="client-zigzag-actions">
                 <button
                   type="button"
                   className="client-zigzag-btn-primary"
                   onClick={onExploreRooms}
                 >
-                  <span>{t('intro.btnExplore', 'Khám phá gian trưng bày')}</span>
-                  <ArrowRight size={15} />
+                  {t('intro.btnExplore', 'Khám phá gian trưng bày')}
                 </button>
               </div>
             )}
