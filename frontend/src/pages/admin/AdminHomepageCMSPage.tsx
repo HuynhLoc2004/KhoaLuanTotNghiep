@@ -510,19 +510,15 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       {/* 2. THANH ĐIỀU HƯỚNG NHANH THEO TỪNG PHẦN (CHỌN TỪNG PHẦN ĐỘC LẬP) */}
       <div
         style={{
-          position: 'sticky',
-          top: 64,
-          zIndex: 15,
           background: 'var(--bg-surface)',
-          padding: '10px 14px',
-          borderRadius: 12,
+          padding: '8px 14px',
+          borderRadius: 10,
           border: '1px solid var(--border-color)',
           marginBottom: 20,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          overflowX: 'auto',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+          overflowX: 'auto'
         }}
       >
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4 }}>
