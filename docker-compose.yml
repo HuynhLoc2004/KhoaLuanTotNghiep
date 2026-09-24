@@ -48,6 +48,7 @@ services:
       - SMTP_PORT=587
       - SMTP_SECURE=false
       - SMTP_USER=huynhtanlocpp09@gmail.com
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-huynhtanlocpp09@gmail.com}
       - SMTP_PASS=csvopdsnfnonsuxy
       - SMTP_FROM="Bảo Tàng Lịch Sử TP.HCM <huynhtanlocpp09@gmail.com>"
       - R2_ACCOUNT_ID=58adca9a5a385f5db2618f638bfda563

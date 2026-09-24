@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User, IUser, seedDefaultAdmin } from '../models/User.js';
+import { User, IUser, seedDefaultAdmin, isAllowedAdminEmail, getAllowedAdminEmails } from '../models/User.js';
 import { Role } from '../models/Role.js';
 import { OtpToken } from '../models/OtpToken.js';
 import { sendMail } from '../services/mail.js';
@@ -78,33 +78,36 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Tìm kiếm xem email này có thuộc tài khoản Admin nào không
-    // Hoặc nếu nhập 'admin', tự động chuyển về email admin đã cấu hình
-    let user: any = await User.findOne({
-      $or: [{ email: cleanEmail }, { username: cleanEmail }]
-    });
+    // KIỂM TRA BẢO MẬT: Chỉ cho phép Email Admin lấy từ biến môi trường (không fix cứng)
+    if (!isAllowedAdminEmail(cleanEmail)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Từ chối truy cập: Địa chỉ email này không có quyền Quản trị viên (Admin) của hệ thống!'
+      });
+    }
 
-    // Nếu không tìm thấy, nhưng email là 'admin' hoặc email SMTP cấu hình -> tự động phục hồi admin
-    const envAdminEmail = (process.env.SMTP_USER || 'huynhtanlocpp09@gmail.com').trim().toLowerCase();
-    if (!user && (cleanEmail === 'admin' || cleanEmail === envAdminEmail || cleanEmail.includes('admin'))) {
-      user = await seedDefaultAdmin();
+    // Đảm bảo tài khoản Quản trị viên tồn tại trong CSDL với role 'admin'
+    let user: any = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      await seedDefaultAdmin();
+      user = await User.findOne({ email: cleanEmail });
       if (!user) {
-        user = await User.findOne({ role: 'admin' });
+        user = await User.create({
+          username: cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'admin',
+          email: cleanEmail,
+          password: 'NO_PASSWORD_OTP_ONLY',
+          fullName: 'Quản trị viên Bảo tàng Lịch sử TP.HCM',
+          role: 'admin',
+          permissions: ['*'],
+          isActive: true
+        });
       }
     }
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: `Email hoặc tài khoản "${cleanEmail}" không tồn tại trong hệ thống quản trị.`
-      });
-    }
-
     if (user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Từ chối: Địa chỉ email này không có quyền Quản trị viên (Admin).'
-      });
+      user.role = 'admin';
+      user.permissions = ['*'];
+      await user.save();
     }
 
     const targetEmail = user.email;
@@ -280,19 +283,29 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
     tokenRecord.isUsed = true;
     await tokenRecord.save();
 
-    // Tìm tài khoản Admin
-    const user = await User.findOne({
-      $or: [{ email: cleanEmail }, { username: cleanEmail }]
-    });
+    // KIỂM TRA BẢO MẬT: Chỉ cho phép Email Admin lấy từ biến môi trường
+    if (!isAllowedAdminEmail(cleanEmail)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Từ chối: Địa chỉ email này không có quyền Quản trị viên (Admin) để truy cập hệ thống.'
+      });
+    }
+
+    // Tìm tài khoản Admin hoặc khởi tạo theo cấu hình môi trường
+    let user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      await seedDefaultAdmin();
+      user = await User.findOne({ email: cleanEmail });
+    }
+
     if (!user) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng trong hệ thống.' });
     }
 
     if (user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Từ chối: Bạn không có quyền Quản trị viên (Admin) để truy cập hệ thống.'
-      });
+      user.role = 'admin';
+      user.permissions = ['*'];
+      await user.save();
     }
 
     user.lastLogin = new Date();
@@ -320,70 +333,13 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
 });
 
 // ==============================================================================
-// 3. ĐĂNG NHẬP BẰNG TÀI KHOẢN MẬT KHẨU (admin / admin)
+// 3. ĐĂNG NHẬP BẰNG TÀI KHOẢN MẬT KHẨU (ĐÃ VÔ HIỆU HÓA HOÀN TOÀN VÌ BẢO MẬT)
 // ==============================================================================
-authRouter.post('/login-credentials', async (req: Request, res: Response) => {
-  try {
-    const { usernameOrEmail, password } = req.body;
-
-    if (!usernameOrEmail || !password) {
-      return res.status(400).json({ success: false, message: 'Vui lòng nhập tên đăng nhập/email và mật khẩu' });
-    }
-
-    const cleanInput = usernameOrEmail.trim().toLowerCase();
-
-    // Tìm tài khoản
-    let user: any = await User.findOne({
-      $or: [{ username: cleanInput }, { email: cleanInput }]
-    });
-
-    // Tự động phục hồi Quản trị viên tối cao nếu chưa tồn tại
-    const envAdminEmail = (process.env.SMTP_USER || 'huynhtanlocpp09@gmail.com').trim().toLowerCase();
-    if (!user && (cleanInput === 'admin' || cleanInput === envAdminEmail || cleanInput.includes('admin'))) {
-      user = await seedDefaultAdmin();
-      if (!user) {
-        user = await User.findOne({ role: 'admin' });
-      }
-    }
-
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác' });
-    }
-
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác' });
-    }
-
-    if (user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Từ chối: Chỉ tài khoản có quyền Quản trị viên (Admin) mới có thể vào trang này'
-      });
-    }
-
-    user.lastLogin = new Date();
-    await user.save();
-
-    const token = generateToken(user);
-
-    return res.json({
-      success: true,
-      message: 'Đăng nhập thành công',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        permissions: user.permissions
-      }
-    });
-  } catch (err: any) {
-    console.error('[Login Credentials Error]:', err);
-    return res.status(500).json({ success: false, message: err.message || 'Lỗi đăng nhập tài khoản' });
-  }
+authRouter.post('/login-credentials', async (_req: Request, res: Response) => {
+  return res.status(403).json({
+    success: false,
+    message: 'Phương thức đăng nhập bằng tên tài khoản và mật khẩu đã bị vô hiệu hóa vì lý do bảo mật. Vui lòng sử dụng xác thực qua Email OTP Quản trị viên.'
+  });
 });
 
 // ==============================================================================

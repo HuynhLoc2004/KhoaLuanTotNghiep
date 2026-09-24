@@ -3,15 +3,13 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import {
-  Landmark,
   Mail,
-  KeyRound,
   ArrowRight,
   RefreshCw,
   Loader2,
   Lock,
-  User,
-  ArrowLeft
+  ArrowLeft,
+  ShieldCheck
 } from 'lucide-react';
 
 interface AdminLoginPageProps {
@@ -19,24 +17,17 @@ interface AdminLoginPageProps {
 }
 
 export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) => {
-  const { sendOtp, loginWithOtp, loginWithCredentials } = useAuth();
+  const { sendOtp, loginWithOtp } = useAuth();
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
 
-  const [authMode, setAuthMode] = useState<'otp' | 'credentials'>('otp');
-
-  // State cho Đăng nhập OTP
+  // State cho Đăng nhập Xác thực OTP Email Bảo Mật
   const [email, setEmail] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-
-  // State cho Đăng nhập Tài khoản / Mật khẩu
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Ref cho 6 ô input OTP
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -72,7 +63,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
       if (res.success) {
         setOtpSent(true);
         setCooldown(res.cooldownSeconds || 60);
-        showToast(res.message || 'Mã xác thực đã được gửi đến email của bạn', 'success');
+        showToast(res.message || 'Mã xác thực đã được gửi đến email quản trị viên', 'success');
         setOtpDigits(['', '', '', '', '', '']);
         setTimeout(() => inputRefs.current[0]?.focus(), 150);
       } else if (res.retryAfter) {
@@ -143,25 +134,6 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
     }
   };
 
-  // Đăng nhập bằng Tài khoản Mật khẩu
-  const handleCredentialsLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim() || !password) {
-      showToast('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu', 'warning');
-      return;
-    }
-
-    try {
-      setIsLoggingIn(true);
-      await loginWithCredentials(username.trim(), password);
-      showToast('Đăng nhập quản trị thành công', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Tên đăng nhập hoặc mật khẩu không chính xác', 'error');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
   return (
     <div className="admin-login-wrapper">
       <div className="admin-login-card">
@@ -203,216 +175,150 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
           )}
           <h1 className="login-museum-title">{branding.museumName?.toUpperCase() || 'BẢO TÀNG'}</h1>
           <p className="login-sub-title">Cổng Đăng Nhập Quản Trị Hệ Thống</p>
-        </div>
-
-        {/* Tab chuyển đổi phương thức */}
-        <div className="login-tabs">
-          <button
-            type="button"
-            className={`login-tab-btn ${authMode === 'otp' ? 'active' : ''}`}
-            onClick={() => setAuthMode('otp')}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: 8,
+              padding: '4px 12px',
+              borderRadius: 20,
+              background: 'rgba(212, 175, 55, 0.1)',
+              border: '1px solid rgba(212, 175, 55, 0.25)',
+              color: 'var(--accent-gold)',
+              fontSize: 11.5,
+              fontWeight: 600
+            }}
           >
-            <Mail size={14} />
-            <span>Xác thực OTP Email</span>
-          </button>
-          <button
-            type="button"
-            className={`login-tab-btn ${authMode === 'credentials' ? 'active' : ''}`}
-            onClick={() => setAuthMode('credentials')}
-          >
-            <KeyRound size={14} />
-            <span>Tài khoản / Mật khẩu</span>
-          </button>
+            <ShieldCheck size={13} />
+            <span>Xác thực Không Mật Khẩu (Passwordless OTP)</span>
+          </div>
         </div>
 
         {/* Thân biểu mẫu */}
         <div className="login-card-body">
-          {authMode === 'otp' ? (
-            !otpSent ? (
-              /* Bước 1: Nhập email */
-              <form onSubmit={handleSendOtp} className="login-form">
-                <div className="form-group">
-                  <label htmlFor="login-email" className="login-label">
-                    Email quản trị viên
-                  </label>
-                  <div className="login-input-group">
-                    <Mail size={15} className="input-icon" />
-                    <input
-                      id="login-email"
-                      type="email"
-                      className="login-input"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="admin@baotanglichsu.vn"
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  <span className="login-input-hint">
-                    Hệ thống sẽ gửi mã bảo mật 6 chữ số đến email để xác minh danh tính.
-                  </span>
-                </div>
-
-                <button
-                  type="submit"
-                  className="login-submit-btn"
-                  disabled={isSendingOtp || cooldown > 0}
-                >
-                  {isSendingOtp ? (
-                    <>
-                      <Loader2 size={15} className="spin" />
-                      <span>Đang gửi mã...</span>
-                    </>
-                  ) : cooldown > 0 ? (
-                    <>
-                      <RefreshCw size={14} />
-                      <span>Gửi lại sau ({cooldown}s)</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Gửi mã xác thực</span>
-                      <ArrowRight size={15} />
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              /* Bước 2: Nhập OTP 6 số */
-              <form onSubmit={handleVerifyOtp} className="login-form">
-                <div className="otp-info-box">
-                  <div className="otp-info-text">
-                    Mã xác thực đã gửi đến: <strong>{email}</strong>
-                  </div>
-                  <button
-                    type="button"
-                    className="otp-change-email-btn"
-                    onClick={() => setOtpSent(false)}
-                  >
-                    Thay đổi
-                  </button>
-                </div>
-
-                <div className="form-group">
-                  <label className="login-label" style={{ textAlign: 'center', display: 'block' }}>
-                    Nhập mã xác thực 6 chữ số
-                  </label>
-                  <div className="otp-inputs-wrapper" onPaste={handlePaste}>
-                    {otpDigits.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        ref={(el) => {
-                          inputRefs.current[idx] = el;
-                        }}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={1}
-                        className={`otp-digit-input ${digit ? 'filled' : ''}`}
-                        value={digit}
-                        onChange={(e) => handleDigitChange(idx, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(idx, e)}
-                        autoFocus={idx === 0}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="login-submit-btn"
-                  disabled={isVerifyingOtp || otpDigits.join('').length < 6}
-                >
-                  {isVerifyingOtp ? (
-                    <>
-                      <Loader2 size={15} className="spin" />
-                      <span>Đang xác nhận...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock size={15} />
-                      <span>Xác nhận và Đăng nhập</span>
-                    </>
-                  )}
-                </button>
-
-                <div className="otp-resend-row">
-                  <button
-                    type="button"
-                    className="btn-link-resend"
-                    onClick={() => handleSendOtp()}
-                    disabled={isSendingOtp || cooldown > 0}
-                  >
-                    <RefreshCw size={12} className={isSendingOtp ? 'spin' : ''} />
-                    <span>
-                      {cooldown > 0
-                        ? `Gửi lại mã sau (${cooldown}s)`
-                        : 'Không nhận được mã? Gửi lại mã'}
-                    </span>
-                  </button>
-                </div>
-              </form>
-            )
-          ) : (
-            /* Đăng nhập bằng tên đăng nhập / mật khẩu */
-            <form onSubmit={handleCredentialsLogin} className="login-form">
+          {!otpSent ? (
+            /* Bước 1: Nhập email quản trị viên */
+            <form onSubmit={handleSendOtp} className="login-form">
               <div className="form-group">
-                <label htmlFor="login-username" className="login-label">
-                  Tên đăng nhập hoặc Email
+                <label htmlFor="login-email" className="login-label">
+                  Email quản trị viên được cấp quyền
                 </label>
                 <div className="login-input-group">
-                  <User size={15} className="input-icon" />
+                  <Mail size={15} className="input-icon" />
                   <input
-                    id="login-username"
-                    type="text"
+                    id="login-email"
+                    type="email"
                     className="login-input"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="admin"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@... (Email quản trị viên)"
                     required
                     autoFocus
                   />
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="login-password" className="login-label">
-                  Mật khẩu
-                </label>
-                <div className="login-input-group">
-                  <Lock size={15} className="input-icon" />
-                  <input
-                    id="login-password"
-                    type="password"
-                    className="login-input"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 14, fontSize: '12px', color: 'var(--text-muted)' }}>
-                <span>Quản trị viên mặc định: <strong style={{ color: 'var(--accent-gold)' }}>admin</strong> / <strong style={{ color: 'var(--accent-gold)' }}>admin</strong></span>
+                <span className="login-input-hint" style={{ lineHeight: 1.5 }}>
+                  Chỉ các email quản trị viên được cấu hình trong hệ thống mới nhận được mã OTP xác thực bảo mật 6 chữ số.
+                </span>
               </div>
 
               <button
                 type="submit"
                 className="login-submit-btn"
-                disabled={isLoggingIn}
+                disabled={isSendingOtp || cooldown > 0}
               >
-                {isLoggingIn ? (
+                {isSendingOtp ? (
                   <>
                     <Loader2 size={15} className="spin" />
-                    <span>Đang đăng nhập...</span>
+                    <span>Đang gửi mã...</span>
+                  </>
+                ) : cooldown > 0 ? (
+                  <>
+                    <RefreshCw size={14} />
+                    <span>Gửi lại sau ({cooldown}s)</span>
                   </>
                 ) : (
                   <>
-                    <span>Đăng nhập</span>
+                    <span>Gửi mã xác thực OTP</span>
                     <ArrowRight size={15} />
                   </>
                 )}
               </button>
+            </form>
+          ) : (
+            /* Bước 2: Nhập OTP 6 số */
+            <form onSubmit={handleVerifyOtp} className="login-form">
+              <div className="otp-info-box">
+                <div className="otp-info-text">
+                  Mã xác thực đã gửi đến: <strong>{email}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="otp-change-email-btn"
+                  onClick={() => setOtpSent(false)}
+                >
+                  Thay đổi
+                </button>
+              </div>
+
+              <div className="form-group">
+                <label className="login-label" style={{ textAlign: 'center', display: 'block' }}>
+                  Nhập mã xác thực 6 chữ số
+                </label>
+                <div className="otp-inputs-wrapper" onPaste={handlePaste}>
+                  {otpDigits.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) => {
+                        inputRefs.current[idx] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      className={`otp-digit-input ${digit ? 'filled' : ''}`}
+                      value={digit}
+                      onChange={(e) => handleDigitChange(idx, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(idx, e)}
+                      autoFocus={idx === 0}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="login-submit-btn"
+                disabled={isVerifyingOtp || otpDigits.join('').length < 6}
+              >
+                {isVerifyingOtp ? (
+                  <>
+                    <Loader2 size={15} className="spin" />
+                    <span>Đang xác nhận...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={15} />
+                    <span>Xác nhận và Đăng nhập Quản trị</span>
+                  </>
+                )}
+              </button>
+
+              <div className="otp-resend-row">
+                <button
+                  type="button"
+                  className="btn-link-resend"
+                  onClick={() => handleSendOtp()}
+                  disabled={isSendingOtp || cooldown > 0}
+                >
+                  <RefreshCw size={12} className={isSendingOtp ? 'spin' : ''} />
+                  <span>
+                    {cooldown > 0
+                      ? `Gửi lại mã sau (${cooldown}s)`
+                      : 'Không nhận được mã? Gửi lại mã'}
+                  </span>
+                </button>
+              </div>
             </form>
           )}
         </div>
