@@ -16,6 +16,8 @@ import { ToastProvider, useToast } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SystemBrandingProvider, useSystemBranding } from './context/SystemBrandingContext';
+import { MaintenanceProvider, useMaintenance } from './context/MaintenanceContext';
+import { ClientMaintenanceView } from './components/client/ClientMaintenanceView';
 
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
@@ -33,6 +35,7 @@ import { QRScannerModal } from './components/client/QRScannerModal';
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { branding } = useSystemBranding();
+  const { maintenance, refreshMaintenance } = useMaintenance();
   const { showToast } = useToast();
   const { t } = useClientTranslation();
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
@@ -348,6 +351,22 @@ const AppContent: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Chế độ bảo trì hệ thống: Chỉ áp dụng cho giao diện Khách tham quan (Client), Quản trị viên (isAdminRoute) không bị chặn
+  if (!isAdminRoute && maintenance.enabled) {
+    return (
+      <ClientMaintenanceView
+        maintenance={maintenance}
+        onRetry={refreshMaintenance}
+        onNavigateAdmin={() => {
+          setIsAdminRoute(true);
+          try {
+            window.history.pushState({}, '', '/admin');
+          } catch {}
+        }}
+      />
+    );
+  }
 
   // Khách tham quan quét mã QR xem Hiện vật 3D trực tiếp (Không yêu cầu đăng nhập quản trị viên)
   if (publicArtifactId) {
@@ -842,11 +861,13 @@ export const App: React.FC = () => {
     <ThemeProvider>
       <ToastProvider>
         <SystemBrandingProvider>
-          <ClientTranslationProvider>
-            <AuthProvider>
-              <AppContent />
-            </AuthProvider>
-          </ClientTranslationProvider>
+          <MaintenanceProvider>
+            <ClientTranslationProvider>
+              <AuthProvider>
+                <AppContent />
+              </AuthProvider>
+            </ClientTranslationProvider>
+          </MaintenanceProvider>
         </SystemBrandingProvider>
       </ToastProvider>
     </ThemeProvider>

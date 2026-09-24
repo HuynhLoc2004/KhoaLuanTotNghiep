@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { MaintenanceStatus, SystemInfo, SystemBranding } from '../../types';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { useMaintenance } from '../../context/MaintenanceContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import {
   SlidersHorizontal,
@@ -60,6 +61,7 @@ const formatTime = (isoString?: string): string => {
 export const AdminSettingsPage: React.FC = () => {
   const { showToast } = useToast();
   const { branding, updateBranding } = useSystemBranding();
+  const { setLocalMaintenance } = useMaintenance();
   const { t } = useClientTranslation();
 
   const [settingsTab, setSettingsTab] = useState<'branding' | 'maintenance'>('branding');
@@ -232,6 +234,7 @@ export const AdminSettingsPage: React.FC = () => {
         enabled: nextState
       });
       setMaintenance(updated);
+      setLocalMaintenance(updated);
       showToast(
         nextState ? 'Đã kích hoạt chế độ bảo trì hệ thống' : 'Đã tắt bảo trì, hệ thống trực tuyến',
         'success'
@@ -249,6 +252,7 @@ export const AdminSettingsPage: React.FC = () => {
       setSaving(true);
       const updated = await api.updateMaintenanceStatus(maintenance);
       setMaintenance(updated);
+      setLocalMaintenance(updated);
       showToast('Đã lưu và áp dụng cấu hình thành công', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi lưu cấu hình', 'error');
