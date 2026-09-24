@@ -41,9 +41,22 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Hiệu ứng lắng nghe cuộn trang: Khi ở đỉnh trang (top = 0) menu đứng yên, khi cuộn nhẹ xuống sẽ giật nảy sang trái
+  useEffect(() => {
+    const handleScroll = () => {
+      const top = window.scrollY || document.documentElement.scrollTop;
+      setIsScrolled(top > 25);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -74,7 +87,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   };
 
   return (
-    <nav className="client-navbar">
+    <nav className={`client-navbar ${isScrolled ? 'is-scrolled' : ''}`}>
       <div className="client-container client-nav-inner">
         {/* 1. Logo & Tên bảo tàng sang trọng chuẩn di sản */}
         <a
@@ -103,7 +116,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
         </a>
 
         {/* 2. Menu Điều Hướng Dạng Viên Thuốc (Capsule Island Nav) Cực Kì Hiện Đại */}
-        <div className="client-nav-menu-wrapper">
+        <div className={`client-nav-menu-wrapper ${isScrolled ? 'is-scrolled' : ''}`}>
           <ul className="client-nav-menu">
             <li>
               <a
