@@ -12,7 +12,6 @@ interface ClientFeaturedArtifactsProps {
   onViewAllArtifacts?: () => void;
 }
 
-// Cổ vật dự phòng chuẩn mực đảm bảo không bao giờ bị rỗng
 const CURATED_NATIONAL_TREASURES: Artifact[] = [
   {
     id: 'curated-01',
@@ -88,7 +87,6 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
 }) => {
   const { t, localize } = useClientTranslation();
 
-  // Đồng bộ cổ vật từ MongoDB của Admin kết hợp danh mục chuẩn
   const eligibleArtifacts: Artifact[] = React.useMemo(() => {
     const list = [...(artifacts || [])];
     CURATED_NATIONAL_TREASURES.forEach((c) => {
@@ -126,86 +124,83 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   const currentOrigin = localize(activeArtifact, 'origin', activeArtifact.origin || 'Việt Nam');
 
   return (
-    <section id="artifacts" className="client-section client-section-alt client-zigzag-section reveal-on-scroll">
+    <section id="artifacts" className="client-zigzag-section client-section-alt">
       <div className="client-container">
-        {/* ZIG-ZAG: BỤC 3D/ẢNH BÊN TRÁI, THÔNG TIN BÊN PHẢI */}
-        <div className="client-zigzag-grid">
-          {/* CỘT TRÁI: BỤC TRƯNG BÀY 3D / ẢNH HIỆN VẬT LỚN */}
-          <div className="client-zigzag-media">
-            <div className="client-zigzag-vitrine">
-              {activeArtifact.model3dUrl ? (
-                <div className="client-zigzag-vitrine-3d">
-                  <Turntable360Viewer
-                    modelUrl={
-                      activeArtifact.model3dUrl.startsWith('http')
-                        ? activeArtifact.model3dUrl
-                        : `${API_ROOT}${activeArtifact.model3dUrl.startsWith('/') ? '' : '/'}${activeArtifact.model3dUrl}`
-                    }
-                    artifactName={currentTitle}
-                    height={460}
-                  />
-                </div>
-              ) : (
-                <div className="client-zigzag-vitrine-static">
-                  <img
-                    src={currentThumb}
-                    alt={currentTitle}
-                    className="client-zigzag-vitrine-img"
-                  />
-                  <div className="client-zigzag-vitrine-hint">
-                    <span>Mô hình 3D tương tác</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Khay chọn nhanh cổ vật ngay dưới bục */}
-              <div className="client-zigzag-shelf">
-                {eligibleArtifacts.slice(0, 4).map((art) => {
-                  const isSelected = art.id === activeArtifact.id;
-                  const thumb = getFullThumb(art);
-                  return (
-                    <button
-                      key={art.id}
-                      type="button"
-                      className={`client-zigzag-shelf-item ${isSelected ? 'active' : ''}`}
-                      onClick={() => setSelectedArtifactId(art.id)}
-                      title={localize(art, 'name', art.name)}
-                    >
-                      <img src={thumb} alt="" className="client-zigzag-shelf-img" />
-                    </button>
-                  );
-                })}
+        {/* ZIG-ZAG THẰNG 3: NẰM BÊN CÙNG BÊN PHẢI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
+        <div className="client-zigzag-card align-right reveal-on-scroll">
+          {/* Bục xoay 3D / ảnh hiện vật */}
+          <div className="client-zigzag-card-media dark-vitrine">
+            {activeArtifact.model3dUrl ? (
+              <div style={{ width: '100%', height: 340 }}>
+                <Turntable360Viewer
+                  modelUrl={
+                    activeArtifact.model3dUrl.startsWith('http')
+                      ? activeArtifact.model3dUrl
+                      : `${API_ROOT}${activeArtifact.model3dUrl.startsWith('/') ? '' : '/'}${activeArtifact.model3dUrl}`
+                  }
+                  artifactName={currentTitle}
+                  height={340}
+                />
               </div>
+            ) : (
+              <div className="client-zigzag-vitrine-static">
+                <img
+                  src={currentThumb}
+                  alt={currentTitle}
+                  className="client-zigzag-vitrine-img"
+                />
+                <div className="client-zigzag-badge-float">
+                  <span>Mô hình 3D tương tác</span>
+                </div>
+              </div>
+            )}
+
+            {/* Thanh thumbnail chọn nhanh cổ vật */}
+            <div className="client-zigzag-shelf">
+              {eligibleArtifacts.slice(0, 4).map((art) => {
+                const isSelected = art.id === activeArtifact.id;
+                const thumb = getFullThumb(art);
+                return (
+                  <button
+                    key={art.id}
+                    type="button"
+                    className={`client-zigzag-shelf-item ${isSelected ? 'active' : ''}`}
+                    onClick={() => setSelectedArtifactId(art.id)}
+                    title={localize(art, 'name', art.name)}
+                  >
+                    <img src={thumb} alt="" className="client-zigzag-shelf-img" />
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* CỘT PHẢI: THÔNG SỐ & MÔ TẢ NGẮN GỌN */}
-          <div className="client-zigzag-content">
+          <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
-              {t('artifacts.tag', 'Bảo Vật Quốc Gia & Cổ Vật')}
+              {t('artifacts.tag', 'Bảo Vật Quốc Gia & Cổ Vật 3D')}
             </span>
 
             <h2 className="client-zigzag-title">{currentTitle}</h2>
 
-            {/* Bảng thông số ngắn gọn, chuẩn mực */}
+            {/* Thông số giám định */}
             <div className="client-zigzag-meta-grid">
               <div className="client-zigzag-meta-item">
-                <span className="client-zigzag-meta-lbl">Chất liệu / Phân loại</span>
+                <span className="client-zigzag-meta-lbl">Chất liệu</span>
                 <span className="client-zigzag-meta-val">{currentCategory}</span>
               </div>
               <div className="client-zigzag-meta-item">
-                <span className="client-zigzag-meta-lbl">Niên đại / Thời kỳ</span>
+                <span className="client-zigzag-meta-lbl">Niên đại</span>
                 <span className="client-zigzag-meta-val">{currentPeriod || 'Cổ đại'}</span>
               </div>
               <div className="client-zigzag-meta-item">
-                <span className="client-zigzag-meta-lbl">Nơi phát hiện / Xuất xứ</span>
+                <span className="client-zigzag-meta-lbl">Xuất xứ</span>
                 <span className="client-zigzag-meta-val">{currentOrigin}</span>
               </div>
             </div>
 
             <p className="client-zigzag-desc">{currentDesc}</p>
 
-            {/* Các nút hành động */}
+            {/* Nút hành động */}
             <div className="client-zigzag-actions">
               {onSelectArtifactDetail && (
                 <button
@@ -214,7 +209,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                   onClick={() => onSelectArtifactDetail(activeArtifact.id)}
                 >
                   <Volume2 size={16} />
-                  <span>Nghe Thuyết Minh & Audio</span>
+                  <span>Nghe Thuyết Minh Voice AI</span>
                 </button>
               )}
 

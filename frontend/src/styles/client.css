@@ -2632,40 +2632,168 @@
 }
 
 /* =========================================================================
-   14. BỐ CỤC ZIG-ZAG BẢO TÀNG HIỆN ĐẠI (ALTERNATING LEFT-RIGHT STORYTELLING)
-   Tránh xếp thẳng 1 hàng đơn điệu, tạo nhịp điệu thị giác lôi cuốn, thoáng đãng
+   14. BỐ CỤC ZIG-ZAG ĐÍCH THỰC (ALTERNATING RIGHT - LEFT - RIGHT FLOW)
+   Thằng 1: Bên cùng bên PHẢI -> Scroll trồi từ dưới lên Thằng 2: Bên cùng bên TRÁI
+   -> Scroll trồi từ dưới lên Thằng 3: Bên cùng bên PHẢI
    ========================================================================= */
 .client-zigzag-section {
-  padding: clamp(56px, 7vw, 92px) 0;
+  padding: clamp(52px, 6.5vw, 88px) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* THẺ ZIG-ZAG ĐƠN LẺ */
+.client-zigzag-card {
+  width: 100%;
+  max-width: 860px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--c-shadow-md);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
   position: relative;
 }
 
-.client-zigzag-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: clamp(36px, 5.5vw, 76px);
-  align-items: center;
-  width: 100%;
+/* THẰNG BÊN CÙNG BÊN PHẢI (Right Aligned) */
+.client-zigzag-card.align-right {
+  margin-left: auto;
+  margin-right: 0;
 }
 
-.client-zigzag-grid.reverse {
-  grid-template-columns: 1fr 1.25fr;
+/* THẰNG BÊN CÙNG BÊN TRÁI (Left Aligned) */
+.client-zigzag-card.align-left {
+  margin-right: auto;
+  margin-left: 0;
 }
 
 @media (max-width: 992px) {
-  .client-zigzag-grid,
-  .client-zigzag-grid.reverse {
-    grid-template-columns: 1fr;
-    gap: 32px;
+  .client-zigzag-card.align-right,
+  .client-zigzag-card.align-left {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
   }
 }
 
-/* CỘT NỘI DUNG */
-.client-zigzag-content {
+/* HIỆU ỨNG TRỒI TỪ DƯỚI LÊN KHI SCROLL (Subtle Scroll Reveal) */
+.client-zigzag-card.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(52px);
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.client-zigzag-card.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.client-zigzag-card:hover {
+  border-color: var(--c-border-gold);
+  box-shadow: var(--c-shadow-lg);
+}
+
+/* KHUNG MEDIA TRÊN THẺ */
+.client-zigzag-card-media {
+  position: relative;
+  width: 100%;
+  height: clamp(280px, 32vw, 360px);
+  overflow: hidden;
+  background: #000;
+}
+
+.client-zigzag-card-media.clickable {
+  cursor: pointer;
+}
+
+.client-zigzag-card-media.dark-vitrine {
+  background: #0E131E;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  z-index: 2;
+  justify-content: space-between;
+  padding: 16px;
+  height: auto;
+  min-height: 360px;
+}
+
+.client-zigzag-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.client-zigzag-card:hover .client-zigzag-card-img {
+  transform: scale(1.04);
+}
+
+.client-zigzag-badge-float {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  padding: 5px 14px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(10, 14, 22, 0.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #FAF7F2;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.client-zigzag-media-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 14px 20px;
+  background: linear-gradient(180deg, transparent 0%, rgba(8, 10, 16, 0.85) 100%);
+  color: #FFFFFF;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* NỘI DUNG TRONG THẺ */
+.client-zigzag-card-body {
+  padding: clamp(22px, 3vw, 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* CHIPS CHỌN PHÒNG NHANH */
+.client-zigzag-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.client-zigzag-chip {
+  padding: 7px 14px;
+  border-radius: var(--c-radius-pill);
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-stage);
+  color: var(--c-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.client-zigzag-chip:hover {
+  border-color: var(--c-gold);
+  color: var(--c-text-primary);
+}
+
+.client-zigzag-chip.active {
+  border-color: var(--c-gold);
+  background: var(--c-gold-light);
+  color: var(--c-gold);
+  font-weight: 600;
 }
 
 .client-zigzag-tag {
@@ -2692,7 +2820,7 @@
   line-height: 1.72;
   color: var(--c-text-secondary);
   margin: 0 0 22px 0;
-  max-width: 540px;
+  max-width: 640px;
 }
 
 /* Nút bấm chuẩn mực */
