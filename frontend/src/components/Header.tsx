@@ -27,11 +27,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getTabLabel = (tab: AdminTab): string => {
     switch (tab) {
-      case 'rooms': return t('nav.rooms', 'Gian trưng bày & Tour 360');
+      case 'rooms': return t('nav.rooms', 'Quản lý Trang Gian phòng 360°');
       case 'studio': return t('nav.studio', 'Biên tập Hotspot 360°');
-      case 'poc_stitching': return t('nav.pocStitching', 'Xưởng Ghép Ảnh Toàn Cảnh 360°');
-      case 'artifacts': return t('nav.artifacts', 'Hiện vật & Cổ vật di sản');
-      case 'homepage_cms': return t('nav.homepageCms', 'Quản lý Giao diện Trang chủ');
+      case 'poc_stitching': return t('nav.pocStitching', 'Tạo Ảnh Toàn Cảnh 360°');
+      case 'artifacts': return t('nav.artifacts', 'Quản lý Trang Cổ vật & Bảo vật 3D');
+      case 'homepage_cms': return t('nav.homepageCms', 'Quản lý Trang chủ & Giao diện');
       case 'languages': return t('nav.languages', 'Quản trị Ngôn ngữ & Voice AI');
       case 'analytics': return t('nav.analytics', 'Báo cáo & Thống kê');
       case 'settings': return t('nav.settings', 'Cấu hình hệ thống');
