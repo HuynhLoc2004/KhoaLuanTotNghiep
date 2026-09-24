@@ -118,15 +118,118 @@
   border-radius: 0 3px 3px 0;
 }
 
-/* NHÃN PHÂN NHÓM SIDEBAR MENU */
-.sidebar-group-label {
-  padding: 8px 12px 4px 12px;
+/* NHÃN PHÂN NHÓM & KHUNG PHÂN VÙNG SIDEBAR MENU */
+.sidebar-section-block {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  transition: border-color 0.2s ease;
+}
+
+.sidebar-section-block.pages-block {
+  background: linear-gradient(180deg, rgba(212, 168, 106, 0.04) 0%, rgba(212, 168, 106, 0.01) 100%);
+  border-color: rgba(212, 168, 106, 0.2);
+}
+
+.sidebar-section-block.tools-block {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.035) 0%, rgba(56, 189, 248, 0.01) 100%);
+  border-color: rgba(56, 189, 248, 0.18);
+}
+
+.sidebar-section-block.system-block {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0.005) 100%);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.sidebar-group-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px 7px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 6px;
+}
+
+.sidebar-group-header.pages-group {
+  color: #E6C280;
+  border-bottom-color: rgba(212, 168, 106, 0.22);
+}
+
+.sidebar-group-header.tools-group {
+  color: #7DD3FC;
+  border-bottom-color: rgba(56, 189, 248, 0.22);
+}
+
+.sidebar-group-header.system-group {
+  color: #D1D5DB;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-group-badge {
+  margin-left: auto;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+
+.sidebar-group-badge.gold {
+  background: rgba(212, 168, 106, 0.18);
+  color: #F5D396;
+}
+
+.sidebar-group-badge.blue {
+  background: rgba(56, 189, 248, 0.15);
+  color: #BAE6FD;
+}
+
+.sidebar-group-badge.gray {
+  background: rgba(255, 255, 255, 0.08);
+  color: #E5E7EB;
+}
+
+.nav-item-num-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
   font-size: 10px;
   font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover .nav-item-num-badge {
+  background: rgba(212, 168, 106, 0.25);
+  color: var(--accent-gold);
+}
+
+.nav-item.active .nav-item-num-badge {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.sidebar-group-label {
+  padding: 8px 12px 4px 12px;
+  font-size: 10.5px;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  opacity: 0.8;
   display: flex;
   align-items: center;
   user-select: none;
