@@ -158,7 +158,12 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
         />
 
         {/* 3. Khối Giới thiệu & Lịch sử (Curatorial Storytelling 2 cột nghệ thuật) */}
-        <ClientIntroSection />
+        <ClientIntroSection
+          roomCount={rooms.length}
+          artifactCount={artifacts.length}
+          topicCount={topics.length}
+          onExploreRooms={scrollToRooms}
+        />
 
         {/* 4. Khối Gian phòng Trưng bày 360° Tiêu biểu */}
         <ClientFeaturedRooms

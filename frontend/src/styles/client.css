@@ -2645,14 +2645,45 @@
 /* THẺ ZIG-ZAG ĐƠN LẺ */
 .client-zigzag-card {
   width: 100%;
-  max-width: 860px;
+  max-width: 1040px;
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: var(--c-shadow-md);
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
   position: relative;
+}
+
+/* BỐ CỤC 2 CỘT NGHỆ THUẬT (HORIZONTAL SPLIT CHO DESKTOP) */
+.client-zigzag-card.horizontal-split {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+}
+
+.client-zigzag-card.horizontal-split .client-zigzag-card-media {
+  height: 100%;
+  min-height: 400px;
+}
+
+.client-zigzag-card.horizontal-split .client-zigzag-card-body {
+  padding: clamp(28px, 3.2vw, 44px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 960px) {
+  .client-zigzag-card.horizontal-split {
+    grid-template-columns: 1fr;
+  }
+  .client-zigzag-card.horizontal-split .client-zigzag-card-media {
+    height: clamp(250px, 36vw, 340px);
+    min-height: auto;
+  }
+  .client-zigzag-card.horizontal-split .client-zigzag-card-body {
+    padding: 24px 20px;
+  }
 }
 
 /* THẰNG BÊN CÙNG BÊN PHẢI (Right Aligned) */
@@ -2929,6 +2960,43 @@
   font-size: 0.76rem;
   font-weight: 600;
   border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* CHIPS THỐNG KÊ THẬT ĐỒNG BỘ TỪ HỆ THỐNG (KHÔNG SÁO RỖNG) */
+.client-zigzag-meta-chips {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0 6px 0;
+}
+
+.client-zigzag-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: var(--c-radius-pill);
+  font-size: 0.82rem;
+  background: var(--c-bg-stage);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.client-zigzag-meta-chip:hover {
+  border-color: var(--c-border-gold);
+  color: var(--c-text-primary);
+}
+
+.client-zigzag-meta-chip strong {
+  color: var(--c-gold);
+  font-weight: 700;
+}
+
+.client-zigzag-chip-icon {
+  color: var(--c-gold);
+  flex-shrink: 0;
 }
 
 /* 3 CHỈ SỐ THEN CHỐT SECTION 1 */

@@ -37,7 +37,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
     <section id="rooms" className="client-zigzag-section">
       <div className="client-container">
         {/* ZIG-ZAG THẰNG 2: NẰM BÊN CÙNG BÊN TRÁI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
-        <div className="client-zigzag-card align-left reveal-on-scroll">
+        <div className="client-zigzag-card horizontal-split align-left reveal-on-scroll">
           {/* Khung media phòng 360 */}
           <div
             className="client-zigzag-card-media clickable"
@@ -67,7 +67,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
             </span>
 
             <h2 className="client-zigzag-title">
-              {t('rooms.headline', 'Khám Phá Gian Phòng Tour 360° Toàn Cảnh')}
+              {featuredTitle || t('rooms.headline', 'Gian Phòng Trưng Bày 360°')}
             </h2>
 
             <p className="client-zigzag-desc">

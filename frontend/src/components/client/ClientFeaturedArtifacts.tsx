@@ -127,7 +127,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     <section id="artifacts" className="client-zigzag-section client-section-alt">
       <div className="client-container">
         {/* ZIG-ZAG THẰNG 3: NẰM BÊN CÙNG BÊN PHẢI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
-        <div className="client-zigzag-card align-right reveal-on-scroll">
+        <div className="client-zigzag-card horizontal-split align-right reveal-on-scroll">
           {/* Bục xoay 3D / ảnh hiện vật */}
           <div className="client-zigzag-card-media dark-vitrine">
             {activeArtifact.model3dUrl ? (
