@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
-import { X, Camera, Zap, ZapOff, RefreshCw, Upload, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
+import { X, Camera, Zap, ZapOff, RefreshCw, Upload, AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { Artifact, MuseumRoom } from '../../types';
 
 interface QRScannerModalProps {
@@ -23,16 +23,20 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isLiveCameraSupported, setIsLiveCameraSupported] = useState<boolean>(true);
+  const [isProcessingImage, setIsProcessingImage] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasTorch, setHasTorch] = useState<boolean>(false);
   const [isTorchOn, setIsTorchOn] = useState<boolean>(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [scanSuccessResult, setScanSuccessResult] = useState<string | null>(null);
+  const [matchedItemName, setMatchedItemName] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(true);
 
-  // Phát âm thanh tiếng "Beep" thông báo quét thành công qua Web Audio API (không cần tải file ngoài)
+  // Phát âm thanh tiếng "Beep" thông báo quét thành công qua Web Audio API (không phụ thuộc file ngoài)
   const playBeep = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -53,7 +57,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     } catch {}
   };
 
-  // Khởi động Camera trình duyệt
+  // Khởi động Camera khi mở Modal
   useEffect(() => {
     if (!isOpen) {
       stopCamera();
@@ -62,6 +66,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
     setErrorMsg(null);
     setScanSuccessResult(null);
+    setMatchedItemName(null);
+    setIsProcessingImage(false);
     setIsScanning(true);
     startCamera();
 
@@ -72,6 +78,22 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
   const startCamera = async () => {
     stopCamera();
+    setErrorMsg(null);
+
+    // Kiểm tra xem trình duyệt có hỗ trợ WebRTC live video (Google Chrome chặn WebRTC trên HTTP không bảo mật)
+    const hasGetUserMedia = typeof navigator !== 'undefined' && !!(
+      navigator.mediaDevices?.getUserMedia ||
+      (navigator as any).webkitGetUserMedia ||
+      (navigator as any).mozGetUserMedia ||
+      (navigator as any).getUserMedia
+    );
+
+    if (!hasGetUserMedia) {
+      console.log('[QRScanner] Trình duyệt không cấp quyền live video (yêu cầu HTTPS trên Chrome). Kích hoạt chế độ Camera trình duyệt.');
+      setIsLiveCameraSupported(false);
+      return;
+    }
+
     try {
       const constraints: MediaStreamConstraints = {
         video: {
@@ -82,31 +104,39 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         audio: false
       };
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      let mediaStream: MediaStream;
+      if (navigator.mediaDevices?.getUserMedia) {
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      } else {
+        const legacyGetUserMedia =
+          (navigator as any).webkitGetUserMedia ||
+          (navigator as any).mozGetUserMedia ||
+          (navigator as any).getUserMedia;
+        mediaStream = await new Promise((resolve, reject) => {
+          legacyGetUserMedia.call(navigator, constraints, resolve, reject);
+        });
+      }
+
       setStream(mediaStream);
+      setIsLiveCameraSupported(true);
 
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        videoRef.current.setAttribute('playsinline', 'true'); // Cần thiết trên iOS Safari
+        videoRef.current.setAttribute('playsinline', 'true');
         await videoRef.current.play();
       }
 
-      // Kiểm tra hỗ trợ đèn Flash/Torch
+      // Kiểm tra hỗ trợ đèn pin (Torch)
       const track = mediaStream.getVideoTracks()[0];
       const capabilities: any = track?.getCapabilities ? track.getCapabilities() : {};
-      if (capabilities && capabilities.torch) {
-        setHasTorch(true);
-      } else {
-        setHasTorch(false);
-      }
+      setHasTorch(!!(capabilities && capabilities.torch));
     } catch (err: any) {
-      console.warn('[QRScanner] Lỗi mở camera:', err);
+      console.warn('[QRScanner] Live camera không khởi động được:', err);
+      setIsLiveCameraSupported(false);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setErrorMsg('Trình duyệt chưa được cấp quyền truy cập Camera. Vui lòng bật quyền Camera trong cài đặt để quét mã.');
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setErrorMsg('Không tìm thấy thiết bị Camera trên máy này.');
+        setErrorMsg('Chưa được cấp quyền truy cập Camera trực tiếp. Bạn hãy dùng tính năng "Mở Camera Trình Duyệt" bên dưới.');
       } else {
-        setErrorMsg('Không thể khởi động Camera. Bạn có thể chọn tải ảnh mã QR bên dưới.');
+        setErrorMsg('Trình duyệt yêu cầu HTTPS để phát video trực tiếp. Bạn hãy dùng camera trình duyệt bên dưới để chụp quét mã.');
       }
     }
   };
@@ -139,7 +169,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     setFacingMode((prev) => (prev === 'environment' ? 'user' : 'environment'));
   };
 
-  // Vòng lặp quét từng frame qua Canvas & jsQR
+  // Vòng lặp quét từng frame qua Canvas & jsQR khi có Live Video
   useEffect(() => {
     let animationFrameId: number;
 
@@ -181,7 +211,105 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     };
   }, [isOpen, stream, isScanning]);
 
-  // Xử lý dữ liệu khi quét trúng mã QR
+  // Giải mã QR từ ảnh do Camera chụp hoặc tệp tải lên (Hỗ trợ đa độ phân giải tối ưu cho jsQR)
+  const decodeQRFromImage = (img: HTMLImageElement): string | null => {
+    const targetSizes = [1000, 600, 1400];
+
+    for (const maxDim of targetSizes) {
+      let width = img.naturalWidth || img.width;
+      let height = img.naturalHeight || img.height;
+      if (width === 0 || height === 0) continue;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) continue;
+
+      ctx.drawImage(img, 0, 0, width, height);
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'attemptBoth'
+      });
+      if (code && code.data) {
+        return code.data;
+      }
+    }
+
+    // Thử nguyên bản nếu ảnh nhỏ
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext('2d');
+    if (ctx && canvas.width > 0 && canvas.height > 0) {
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'attemptBoth'
+      });
+      if (code && code.data) {
+        return code.data;
+      }
+    }
+
+    return null;
+  };
+
+  // Xử lý khi ảnh từ Camera hoặc thư viện được nạp vào
+  const handleProcessFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset giá trị input để có thể chụp lại liên tục
+    e.target.value = '';
+
+    setIsProcessingImage(true);
+    setErrorMsg(null);
+
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        try {
+          const decodedData = decodeQRFromImage(img);
+          setIsProcessingImage(false);
+
+          if (decodedData) {
+            handleQRCodeDetected(decodedData);
+          } else {
+            setErrorMsg('Không tìm thấy mã QR trong ảnh vừa chụp. Vui lòng căn góc chụp thẳng và rõ nét hơn.');
+          }
+        } catch (scanErr) {
+          console.warn('[QRScanner] Lỗi phân tích ảnh QR:', scanErr);
+          setIsProcessingImage(false);
+          setErrorMsg('Lỗi khi đọc ảnh. Vui lòng thử lại.');
+        }
+      };
+      img.onerror = () => {
+        setIsProcessingImage(false);
+        setErrorMsg('Không thể mở ảnh vừa chụp. Vui lòng thử lại.');
+      };
+    };
+    reader.onerror = () => {
+      setIsProcessingImage(false);
+      setErrorMsg('Không đọc được tệp ảnh từ thiết bị.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Xử lý dữ liệu khi quét trúng mã QR (Hỗ trợ URL, mã Code và ID)
   const handleQRCodeDetected = (rawData: string) => {
     setIsScanning(false);
     playBeep();
@@ -189,8 +317,6 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
     console.log('[QRScanner] Đã quét thành công mã QR:', rawData);
 
-    // 1. Phân tích nội dung mã QR:
-    // Trường hợp 1: Chứa đường dẫn hiện vật (VD: /artifact/65f... hoặc ?artifact=65f...)
     let targetArtifactId: string | null = null;
     let targetRoomId: string | null = null;
 
@@ -214,7 +340,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       }
     } catch {}
 
-    // Nếu không khớp URL, kiểm tra trực tiếp với ID hoặc Mã Code trong CSDL
+    // Khớp theo ID hoặc Mã hiện vật trong CSDL
     if (!targetArtifactId) {
       const matchedArt = artifacts.find(
         (a) => a.id === rawData || a.code === rawData || rawData.includes(a.id) || (a.code && rawData.includes(a.code))
@@ -224,6 +350,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       }
     }
 
+    // Khớp theo ID hoặc Mã phòng trong CSDL
     if (!targetRoomId) {
       const matchedRoom = rooms.find(
         (r) => r.id === rawData || r.code === rawData || rawData.includes(r.id) || (r.code && rawData.includes(r.code))
@@ -233,7 +360,16 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       }
     }
 
-    // Thực hiện điều hướng sau 400ms để người dùng thấy hiệu ứng thành công
+    // Tìm tên để hiển thị thông báo thân thiện
+    if (targetArtifactId) {
+      const foundArt = artifacts.find((a) => a.id === targetArtifactId || a.code === targetArtifactId);
+      if (foundArt) setMatchedItemName(`Hiện vật: ${foundArt.name}`);
+    } else if (targetRoomId) {
+      const foundRoom = rooms.find((r) => r.id === targetRoomId || r.code === targetRoomId);
+      if (foundRoom) setMatchedItemName(`Gian phòng: ${foundRoom.name}`);
+    }
+
+    // Điều hướng sau 500ms
     setTimeout(() => {
       if (targetArtifactId && onSelectArtifactDetail) {
         onClose();
@@ -247,7 +383,6 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
           onClose();
         }
       } else {
-        // Nếu là URL bên ngoài hoặc chuỗi khác, mở nếu là link hoặc hiển thị thông báo
         if (rawData.startsWith('http://') || rawData.startsWith('https://')) {
           window.location.href = rawData;
         } else {
@@ -255,39 +390,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
           onClose();
         }
       }
-    }, 500);
-  };
-
-  // Quét ảnh QR từ thư viện tệp nếu camera bị chặn
-  const handleUploadQRImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const img = new Image();
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-        if (code && code.data) {
-          handleQRCodeDetected(code.data);
-        } else {
-          setErrorMsg('Không tìm thấy mã QR hợp lệ trong bức ảnh này. Vui lòng thử lại với ảnh rõ nét hơn.');
-        }
-      };
-    };
-    reader.readAsDataURL(file);
+    }, 600);
   };
 
   if (!isOpen) return null;
@@ -325,6 +428,23 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Hidden File Inputs: Camera chụp trực tiếp và Chọn ảnh từ thư viện */}
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          ref={cameraInputRef}
+          style={{ display: 'none' }}
+          onChange={handleProcessFile}
+        />
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handleProcessFile}
+        />
+
         {/* Header */}
         <div
           style={{
@@ -393,121 +513,206 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             justifyContent: 'center'
           }}
         >
-          {/* Video stream thực tế */}
-          <video
-            ref={videoRef}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
-          />
-
-          {/* Canvas ẩn để trích xuất frame */}
-          <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-          {/* Khung ngắm Hologram / Laser Target */}
-          <div
-            style={{
-              position: 'absolute',
-              width: '68%',
-              height: '68%',
-              borderRadius: 16,
-              border: '2px solid rgba(212, 175, 55, 0.6)',
-              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
-              pointerEvents: 'none',
-              overflow: 'hidden'
-            }}
-          >
-            {/* 4 Góc ngắm kim loại */}
-            <div style={{ position: 'absolute', top: -2, left: -2, width: 20, height: 20, borderTop: '4px solid #D4AF37', borderLeft: '4px solid #D4AF37', borderTopLeftRadius: 12 }} />
-            <div style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderTop: '4px solid #D4AF37', borderRight: '4px solid #D4AF37', borderTopRightRadius: 12 }} />
-            <div style={{ position: 'absolute', bottom: -2, left: -2, width: 20, height: 20, borderBottom: '4px solid #D4AF37', borderLeft: '4px solid #D4AF37', borderBottomLeftRadius: 12 }} />
-            <div style={{ position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderBottom: '4px solid #D4AF37', borderRight: '4px solid #D4AF37', borderBottomRightRadius: 12 }} />
-
-            {/* Tia Laser Quét chuyển động lên xuống */}
-            {isScanning && (
-              <div
+          {/* Live Video stream khi được trình duyệt hỗ trợ */}
+          {stream && isLiveCameraSupported ? (
+            <>
+              <video
+                ref={videoRef}
                 style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  height: 3,
-                  background: 'linear-gradient(90deg, transparent 0%, #10B981 50%, transparent 100%)',
-                  boxShadow: '0 0 14px #10B981',
-                  animation: 'qrLaserScan 2s infinite ease-in-out'
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
                 }}
               />
-            )}
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            {/* Thông báo quét thành công */}
-            {scanSuccessResult && (
+              {/* Khung ngắm Hologram / Laser Target */}
               <div
                 style={{
                   position: 'absolute',
-                  inset: 0,
-                  background: 'rgba(16, 185, 129, 0.25)',
-                  backdropFilter: 'blur(4px)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFF',
-                  gap: 8,
-                  animation: 'fadeIn 0.2s ease'
+                  width: '68%',
+                  height: '68%',
+                  borderRadius: 16,
+                  border: '2px solid rgba(212, 175, 55, 0.6)',
+                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
+                  pointerEvents: 'none',
+                  overflow: 'hidden'
                 }}
               >
-                <CheckCircle2 size={42} color="#10B981" />
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#10B981' }}>
-                  Đã nhận diện mã QR!
-                </span>
-                <span style={{ fontSize: 11, color: '#E2E8F0' }}>Đang mở chi tiết...</span>
-              </div>
-            )}
-          </div>
+                <div style={{ position: 'absolute', top: -2, left: -2, width: 20, height: 20, borderTop: '4px solid #D4AF37', borderLeft: '4px solid #D4AF37', borderTopLeftRadius: 12 }} />
+                <div style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderTop: '4px solid #D4AF37', borderRight: '4px solid #D4AF37', borderTopRightRadius: 12 }} />
+                <div style={{ position: 'absolute', bottom: -2, left: -2, width: 20, height: 20, borderBottom: '4px solid #D4AF37', borderLeft: '4px solid #D4AF37', borderBottomLeftRadius: 12 }} />
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderBottom: '4px solid #D4AF37', borderRight: '4px solid #D4AF37', borderBottomRightRadius: 12 }} />
 
-          {/* Lỗi nếu camera bị chặn */}
-          {errorMsg && (
+                {isScanning && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      height: 3,
+                      background: 'linear-gradient(90deg, transparent 0%, #10B981 50%, transparent 100%)',
+                      boxShadow: '0 0 14px #10B981',
+                      animation: 'qrLaserScan 2s infinite ease-in-out'
+                    }}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            /* Giao diện Camera Trình duyệt Phổ quát (Hỗ trợ 100% mọi trình duyệt kể cả Chrome trên HTTP) */
             <div
               style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'rgba(11, 15, 25, 0.95)',
-                padding: 24,
+                width: '100%',
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                padding: '24px 20px',
                 textAlign: 'center',
-                gap: 12
+                background: 'radial-gradient(circle at center, #151C2C 0%, #080B12 100%)',
+                position: 'relative'
               }}
             >
-              <AlertCircle size={36} color="#EF4444" />
-              <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.5 }}>{errorMsg}</div>
-              <button
-                type="button"
-                onClick={startCamera}
+              {/* Vòng tròn Icon Camera nổi bật */}
+              <div
                 style={{
-                  padding: '7px 16px',
-                  borderRadius: 8,
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#FFF',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer'
+                  width: 76,
+                  height: 76,
+                  borderRadius: '50%',
+                  background: 'rgba(212, 175, 55, 0.12)',
+                  border: '2px solid rgba(212, 175, 55, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 14,
+                  boxShadow: '0 0 25px rgba(212, 175, 55, 0.2)'
                 }}
               >
-                Thử lại Camera
+                <Camera size={38} color="#D4AF37" />
+              </div>
+
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#F8FAFC', marginBottom: 6 }}>
+                Quét Mã QR Bằng Camera
+              </div>
+
+              <p style={{ fontSize: 12, color: '#94A3B8', maxWidth: 320, lineHeight: 1.5, margin: '0 0 16px 0' }}>
+                Hỗ trợ tất cả trình duyệt (Google Chrome, Safari, Cốc Cốc, Edge...) trực tiếp trên thiết bị của bạn.
+              </p>
+
+              {/* Nút hành động chính: Mở máy ảnh chụp mã QR */}
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={isProcessingImage}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '11px 22px',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #AA820A 100%)',
+                  color: '#0B0F19',
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: isProcessingImage ? 'wait' : 'pointer',
+                  boxShadow: '0 6px 20px rgba(212, 175, 55, 0.35)',
+                  transition: 'transform 0.15s ease'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                <Camera size={17} />
+                <span>Mở Camera Chụp & Quét Mã</span>
               </button>
+
+              {/* Thông báo lỗi hoặc hướng dẫn nếu có */}
+              {errorMsg && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    color: '#FCA5A5',
+                    fontSize: 11.5,
+                    maxWidth: 320,
+                    lineHeight: 1.4
+                  }}
+                >
+                  {errorMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Overlay khi đang xử lý ảnh chụp */}
+          {isProcessingImage && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(11, 15, 25, 0.92)',
+                backdropFilter: 'blur(6px)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFF',
+                gap: 12,
+                zIndex: 10
+              }}
+            >
+              <Loader2 size={36} color="#D4AF37" className="animate-spin" />
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#D4AF37' }}>
+                Đang đọc dữ liệu mã QR...
+              </div>
+            </div>
+          )}
+
+          {/* Overlay khi quét thành công */}
+          {scanSuccessResult && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(6, 78, 59, 0.88)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFF',
+                gap: 8,
+                padding: 20,
+                textAlign: 'center',
+                zIndex: 20,
+                animation: 'fadeIn 0.2s ease'
+              }}
+            >
+              <CheckCircle2 size={46} color="#34D399" />
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#34D399' }}>
+                Đã nhận diện mã QR thành công!
+              </span>
+              {matchedItemName && (
+                <span style={{ fontSize: 12.5, color: '#E2E8F0', fontWeight: 600, maxWidth: 300 }}>
+                  {matchedItemName}
+                </span>
+              )}
+              <span style={{ fontSize: 11.5, color: '#A7F3D0', marginTop: 4 }}>
+                Đang mở thông tin chi tiết...
+              </span>
             </div>
           )}
         </div>
 
-        {/* Thanh công cụ phụ: Đèn pin, Đổi camera, Tải ảnh */}
+        {/* Thanh công cụ: Mở Camera, Tải ảnh, Đèn pin, Lật camera */}
         <div
           style={{
-            padding: '14px 20px',
+            padding: '12px 18px',
             background: '#070A12',
             display: 'flex',
             alignItems: 'center',
@@ -516,15 +721,31 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             borderTop: '1px solid rgba(255, 255, 255, 0.06)'
           }}
         >
-          {/* Tải ảnh từ thư viện */}
-          <div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleUploadQRImage}
-            />
+          {/* Nút Mở máy ảnh chụp trực tiếp */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 12px',
+                borderRadius: 8,
+                background: 'rgba(212, 175, 55, 0.15)',
+                border: '1px solid rgba(212, 175, 55, 0.3)',
+                color: '#D4AF37',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              title="Mở camera của thiết bị để chụp mã QR"
+            >
+              <Camera size={14} />
+              <span>Chụp ảnh QR</span>
+            </button>
+
+            {/* Nút Tải ảnh có sẵn từ máy */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -532,7 +753,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '6px 12px',
+                padding: '7px 12px',
                 borderRadius: 8,
                 background: 'rgba(255, 255, 255, 0.05)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -540,16 +761,16 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 fontSize: 12,
                 cursor: 'pointer'
               }}
-              title="Tải ảnh QR từ điện thoại"
+              title="Tải ảnh QR từ thư viện thiết bị"
             >
               <Upload size={14} />
-              <span>Tải ảnh QR</span>
+              <span>Tải ảnh</span>
             </button>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Đèn pin nếu thiết bị hỗ trợ */}
-            {hasTorch && (
+            {/* Đèn pin nếu thiết bị hỗ trợ live stream */}
+            {hasTorch && stream && (
               <button
                 type="button"
                 onClick={toggleTorch}
@@ -572,25 +793,27 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             )}
 
             {/* Nút lật camera trước / sau */}
-            <button
-              type="button"
-              onClick={toggleFacingMode}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 8,
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#94A3B8',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-              title="Đổi camera trước/sau"
-            >
-              <RefreshCw size={15} />
-            </button>
+            {stream && (
+              <button
+                type="button"
+                onClick={toggleFacingMode}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94A3B8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                title="Đổi camera trước/sau"
+              >
+                <RefreshCw size={15} />
+              </button>
+            )}
           </div>
         </div>
 
