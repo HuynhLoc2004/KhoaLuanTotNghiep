@@ -166,17 +166,34 @@
   left: 0;
   right: 0;
   z-index: 1000;
+  width: 100%;
   background: rgba(10, 14, 22, 0.7);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  transition: all 0.45s cubic-bezier(0.34, 1.35, 0.64, 1);
+  will-change: transform, top, width, border-radius;
 }
 
+/* KHI CUỘN XUỐNG: NGUYÊN BỘ MENU RÚT NHỎ LẠI, TỤT TỪ TRÊN XUỐNG 1 ĐOẠN VÀ DỊCH SANG TRÁI */
 .client-navbar.is-scrolled {
-  background: rgba(10, 14, 22, 0.88);
-  border-bottom-color: rgba(212, 175, 55, 0.2);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  top: 14px;
+  width: calc(100% - 64px);
+  max-width: 1360px;
+  margin: 0 auto;
+  border-radius: var(--c-radius-pill);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(10, 14, 22, 0.92);
+  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.65), 0 0 25px -4px rgba(212, 175, 55, 0.22);
+  transform: translateX(-36px);
+}
+
+@media (max-width: 992px) {
+  .client-navbar.is-scrolled {
+    width: calc(100% - 24px);
+    top: 10px;
+    transform: translateX(0);
+  }
 }
 
 .client-nav-inner {
@@ -185,11 +202,12 @@
   justify-content: space-between;
   height: 76px;
   gap: 20px;
-  transition: height 0.35s ease;
+  transition: height 0.45s cubic-bezier(0.34, 1.35, 0.64, 1), padding 0.45s ease;
 }
 
 .client-navbar.is-scrolled .client-nav-inner {
-  height: 68px;
+  height: 60px;
+  padding: 0 24px;
 }
 
 .client-nav-brand {
@@ -281,14 +299,6 @@
 .client-nav-menu-wrapper {
   display: flex;
   align-items: center;
-  transition: transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1);
-  will-change: transform;
-}
-
-/* Hiệu ứng giật nảy sang bên trái khi cuộn chuột xuống khỏi đỉnh trang */
-.client-nav-menu-wrapper.is-scrolled,
-.client-navbar.is-scrolled .client-nav-menu-wrapper {
-  transform: translateX(-40px);
 }
 
 .client-nav-menu {
