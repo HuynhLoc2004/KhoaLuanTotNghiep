@@ -15,11 +15,14 @@ import {
   Info,
   Calendar,
   Landmark,
-  QrCode
+  QrCode,
+  ChevronDown,
+  ExternalLink
 } from 'lucide-react';
-import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { useSystemBranding, DEFAULT_HEADER_MENU } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { useAuth } from '../../context/AuthContext';
+import { HeaderMenuItem, HeaderSubMenuItem } from '../../types';
 
 interface ClientNavbarProps {
   clientTheme: 'light' | 'dark';
@@ -47,12 +50,15 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [mobileExpandedIds, setMobileExpandedIds] = useState<Record<string, boolean>>({});
   const [isScrolled, setIsScrolled] = useState(false);
 
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
+  const navDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Hiệu ứng lắng nghe cuộn trang: Khi ở đỉnh trang (top = 0) menu đứng yên, khi cuộn nhẹ xuống sẽ giật nảy sang trái
+  // Hiệu ứng lắng nghe cuộn trang
   useEffect(() => {
     const handleScroll = () => {
       const top = window.scrollY || document.documentElement.scrollTop;
@@ -73,6 +79,9 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
       if (langDropdownRef.current && !langDropdownRef.current.contains(e.target as Node)) {
         setIsLangDropdownOpen(false);
       }
+      if (navDropdownRef.current && !navDropdownRef.current.contains(e.target as Node)) {
+        setActiveDropdownId(null);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -86,11 +95,64 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
     }
   };
 
+  const handleNavItemClick = (item: { linkType?: string; target: string; isNewTab?: boolean }) => {
+    setIsMobileMenuOpen(false);
+    setActiveDropdownId(null);
+
+    if (item.linkType === 'custom') {
+      if (item.target) {
+        window.open(item.target, item.isNewTab ? '_blank' : '_self');
+      }
+      return;
+    }
+
+    if (item.linkType === 'page') {
+      const pageTarget = item.target as 'home' | 'rooms' | 'artifacts' | 'guide';
+      if (onNavigatePage) {
+        onNavigatePage(pageTarget);
+        if (pageTarget === 'home') {
+          scrollToSection('hero');
+        }
+      }
+      return;
+    }
+
+    // Anchor
+    const cleanId = (item.target || '').replace(/^#/, '');
+    if (cleanId) {
+      if (onNavigatePage) {
+        onNavigatePage('home');
+        setTimeout(() => scrollToSection(cleanId), 100);
+      } else {
+        scrollToSection(cleanId);
+      }
+    }
+  };
+
+  const isItemActive = (item: { linkType?: string; target: string }) => {
+    if (item.linkType === 'page') {
+      if (item.target === 'home') return activeSection === 'hero' || activeSection === 'intro';
+      return activeSection === item.target;
+    }
+    if (item.linkType === 'anchor') {
+      const clean = (item.target || '').replace(/^#/, '');
+      return activeSection === clean;
+    }
+    return false;
+  };
+
   const currentLangObj = activeLanguages.find((l) => l.code === currentLang) || {
     code: 'vi',
     name: 'Tiếng Việt',
     flagIcon: '🇻🇳'
   };
+
+  // Lấy danh sách menu động từ branding, fallback về mặc định nếu chưa cấu hình
+  const menuItems: HeaderMenuItem[] = (branding.headerMenuItems && branding.headerMenuItems.length > 0)
+    ? branding.headerMenuItems
+    : DEFAULT_HEADER_MENU;
+
+  const visibleMenuItems = menuItems.filter((m) => m.active !== false);
 
   return (
     <nav className={`client-navbar ${isScrolled ? 'is-scrolled' : ''}`}>
@@ -128,74 +190,94 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           </div>
         </a>
 
-        {/* 2. Menu Điều Hướng Dạng Viên Thuốc (Capsule Island Nav) Cực Kì Hiện Đại */}
-        <div className={`client-nav-menu-wrapper ${isScrolled ? 'is-scrolled' : ''}`}>
+        {/* 2. Menu Điều Hướng Động Dạng Viên Thuốc (Capsule Island Nav) Hỗ Trợ Dropdown Đa Cấp */}
+        <div className={`client-nav-menu-wrapper ${isScrolled ? 'is-scrolled' : ''}`} ref={navDropdownRef}>
           <ul className="client-nav-menu">
-            <li>
-              <a
-                href="#intro"
-                className={`client-nav-link ${activeSection === 'intro' ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (onNavigatePage) {
-                    onNavigatePage('home');
-                    setTimeout(() => scrollToSection('intro'), 100);
-                  } else {
-                    scrollToSection('intro');
-                  }
-                }}
-              >
-                {t('nav.intro', 'Giới thiệu')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#rooms"
-                className={`client-nav-link ${activeSection === 'rooms' ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (onNavigatePage) {
-                    onNavigatePage('rooms');
-                  } else {
-                    scrollToSection('rooms');
-                  }
-                }}
-              >
-                {t('nav.rooms360', 'Gian phòng 360°')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#artifacts"
-                className={`client-nav-link ${activeSection === 'artifacts' ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (onNavigatePage) {
-                    onNavigatePage('artifacts');
-                  } else {
-                    scrollToSection('artifacts');
-                  }
-                }}
-              >
-                {t('nav.artifacts3d', 'Cổ vật 3D')}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#guide"
-                className={`client-nav-link ${activeSection === 'guide' ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (onNavigatePage) {
-                    onNavigatePage('guide');
-                  } else {
-                    scrollToSection('guide');
-                  }
-                }}
-              >
-                {t('nav.guide', 'Tham quan')}
-              </a>
-            </li>
+            {visibleMenuItems.map((item) => {
+              const activeChildren = (item.children || []).filter((c) => c.active !== false);
+              const hasChildren = activeChildren.length > 0;
+              const isParentActive = isItemActive(item) || activeChildren.some(isItemActive);
+              const isDropdownOpen = activeDropdownId === item.id;
+
+              if (hasChildren) {
+                return (
+                  <li
+                    key={item.id}
+                    className="client-nav-item client-nav-item-dropdown"
+                    onMouseEnter={() => setActiveDropdownId(item.id)}
+                    onMouseLeave={() => setActiveDropdownId(null)}
+                    style={{ position: 'relative' }}
+                  >
+                    <button
+                      type="button"
+                      className={`client-nav-link client-nav-dropdown-trigger ${isParentActive ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (item.linkType !== 'dropdown_only') {
+                          handleNavItemClick(item);
+                        } else {
+                          setActiveDropdownId((prev) => (prev === item.id ? null : item.id));
+                        }
+                      }}
+                      aria-expanded={isDropdownOpen}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        font: 'inherit',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      <ChevronDown
+                        size={13}
+                        style={{
+                          transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                          opacity: 0.7
+                        }}
+                      />
+                    </button>
+
+                    {isDropdownOpen && (
+                      <div className="client-nav-dropdown">
+                        {activeChildren.map((sub) => (
+                          <button
+                            key={sub.id}
+                            type="button"
+                            className={`client-nav-dropdown-item ${isItemActive(sub) ? 'active' : ''}`}
+                            onClick={() => handleNavItemClick(sub)}
+                          >
+                            <span>{sub.label}</span>
+                            {sub.linkType === 'custom' && <ExternalLink size={12} style={{ opacity: 0.6 }} />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                );
+              }
+
+              return (
+                <li key={item.id} className="client-nav-item">
+                  <button
+                    type="button"
+                    className={`client-nav-link ${isItemActive(item) ? 'active' : ''}`}
+                    onClick={() => handleNavItemClick(item)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      font: 'inherit'
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -384,47 +466,97 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             gap: 12
           }}
         >
-          <a
-            href="#intro"
-            className="client-nav-link"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToSection('intro');
-            }}
-          >
-            {t('nav.intro', 'Giới thiệu')}
-          </a>
-          <a
-            href="#rooms"
-            className="client-nav-link"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToSection('rooms');
-            }}
-          >
-            {t('nav.rooms360', 'Gian phòng 360°')}
-          </a>
-          <a
-            href="#artifacts"
-            className="client-nav-link"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToSection('artifacts');
-            }}
-          >
-            {t('nav.artifacts3d', 'Cổ vật 3D')}
-          </a>
+          {visibleMenuItems.map((item) => {
+            const activeChildren = (item.children || []).filter((c) => c.active !== false);
+            const hasChildren = activeChildren.length > 0;
+            const isParentActive = isItemActive(item) || activeChildren.some(isItemActive);
+            const isExpanded = !!mobileExpandedIds[item.id];
 
-          <a
-            href="#guide"
-            className="client-nav-link"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToSection('guide');
-            }}
-          >
-            {t('nav.guide', 'Tham quan')}
-          </a>
+            if (hasChildren) {
+              return (
+                <div key={item.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                  <button
+                    type="button"
+                    className={`client-nav-link ${isParentActive ? 'active' : ''}`}
+                    onClick={() => {
+                      setMobileExpandedIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      font: 'inherit',
+                      padding: '8px 12px',
+                      borderRadius: 8
+                    }}
+                  >
+                    <span>{item.label}</span>
+                    <ChevronDown
+                      size={16}
+                      style={{
+                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                        opacity: 0.7
+                      }}
+                    />
+                  </button>
+
+                  {isExpanded && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 16, marginTop: 4 }}>
+                      {activeChildren.map((sub) => (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          className={`client-nav-link ${isItemActive(sub) ? 'active' : ''}`}
+                          onClick={() => handleNavItemClick(sub)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            font: 'inherit',
+                            fontSize: '0.84rem',
+                            opacity: 0.9,
+                            textAlign: 'left',
+                            padding: '6px 12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
+                          }}
+                        >
+                          <span>└─ {sub.label}</span>
+                          {sub.linkType === 'custom' && <ExternalLink size={12} style={{ opacity: 0.5 }} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`client-nav-link ${isItemActive(item) ? 'active' : ''}`}
+                onClick={() => handleNavItemClick(item)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  textAlign: 'left',
+                  padding: '8px 12px',
+                  borderRadius: 8
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
 
           {onOpenQRScanner && (
             <button

@@ -1,6 +1,26 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { cacheGet, cacheSet } from '../services/redis.js';
 
+export interface IHeaderSubMenuItem {
+  id: string;
+  label: string;
+  linkType: 'page' | 'anchor' | 'custom';
+  target: string;
+  active: boolean;
+  isNewTab?: boolean;
+}
+
+export interface IHeaderMenuItem {
+  id: string;
+  label: string;
+  linkType: 'page' | 'anchor' | 'custom' | 'dropdown_only';
+  target: string;
+  active: boolean;
+  isNewTab?: boolean;
+  order: number;
+  children?: IHeaderSubMenuItem[];
+}
+
 export interface ISystemBranding extends Document {
   museumName: string;
   shortName: string;
@@ -12,6 +32,8 @@ export interface ISystemBranding extends Document {
   contactEmail: string;
   hotline: string;
   emailSenderName: string;
+  // Header Dynamic Menu Items (Hỗ trợ Dropdown đa cấp)
+  headerMenuItems?: IHeaderMenuItem[];
   // Hero Showcase
   heroTitle?: string;
   heroTagline?: string;
@@ -105,6 +127,48 @@ const SystemBrandingSchema = new Schema<ISystemBranding>(
       type: String,
       trim: true,
       default: 'Bảo Tàng Lịch Sử TP.HCM'
+    },
+    // Header Dynamic Menu Items (Hỗ trợ Dropdown đa cấp)
+    headerMenuItems: {
+      type: Array,
+      default: () => [
+        {
+          id: 'menu-intro',
+          label: 'Giới thiệu',
+          linkType: 'anchor',
+          target: 'intro',
+          active: true,
+          order: 1,
+          children: []
+        },
+        {
+          id: 'menu-rooms',
+          label: 'Gian phòng 360°',
+          linkType: 'page',
+          target: 'rooms',
+          active: true,
+          order: 2,
+          children: []
+        },
+        {
+          id: 'menu-artifacts',
+          label: 'Cổ vật 3D',
+          linkType: 'page',
+          target: 'artifacts',
+          active: true,
+          order: 3,
+          children: []
+        },
+        {
+          id: 'menu-guide',
+          label: 'Tham quan',
+          linkType: 'page',
+          target: 'guide',
+          active: true,
+          order: 4,
+          children: []
+        }
+      ]
     },
     // Hero Showcase
     heroTitle: {
@@ -267,6 +331,45 @@ export const SystemBranding = mongoose.model<ISystemBranding>('SystemBranding', 
 
 export const REDIS_BRANDING_KEY = 'system:branding:config';
 
+export const DEFAULT_HEADER_MENU: IHeaderMenuItem[] = [
+  {
+    id: 'menu-intro',
+    label: 'Giới thiệu',
+    linkType: 'anchor',
+    target: 'intro',
+    active: true,
+    order: 1,
+    children: []
+  },
+  {
+    id: 'menu-rooms',
+    label: 'Gian phòng 360°',
+    linkType: 'page',
+    target: 'rooms',
+    active: true,
+    order: 2,
+    children: []
+  },
+  {
+    id: 'menu-artifacts',
+    label: 'Cổ vật 3D',
+    linkType: 'page',
+    target: 'artifacts',
+    active: true,
+    order: 3,
+    children: []
+  },
+  {
+    id: 'menu-guide',
+    label: 'Tham quan',
+    linkType: 'page',
+    target: 'guide',
+    active: true,
+    order: 4,
+    children: []
+  }
+];
+
 export const DEFAULT_BRANDING = {
   museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
   shortName: 'Bảo tàng Lịch sử',
@@ -278,6 +381,7 @@ export const DEFAULT_BRANDING = {
   contactEmail: 'huynhtanlocpp09@gmail.com',
   hotline: '(028) 3829 8146',
   emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM',
+  headerMenuItems: DEFAULT_HEADER_MENU,
   heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
   heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
   heroBannerUrl: '',
@@ -317,6 +421,9 @@ export async function getSystemBrandingConfig(): Promise<any> {
   try {
     const cached = await cacheGet<any>(REDIS_BRANDING_KEY);
     if (cached && cached.museumName) {
+      if (!cached.headerMenuItems || cached.headerMenuItems.length === 0) {
+        cached.headerMenuItems = DEFAULT_HEADER_MENU;
+      }
       return cached;
     }
   } catch {
@@ -328,6 +435,10 @@ export async function getSystemBrandingConfig(): Promise<any> {
     if (!branding) {
       const created = await SystemBranding.create(DEFAULT_BRANDING);
       branding = created.toObject();
+    }
+
+    if (!branding.headerMenuItems || branding.headerMenuItems.length === 0) {
+      branding.headerMenuItems = DEFAULT_HEADER_MENU;
     }
 
     try {

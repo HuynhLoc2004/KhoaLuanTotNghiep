@@ -4,6 +4,45 @@ import { api } from '../services/api';
 
 const LOCAL_STORAGE_KEY = 'system_branding_cache';
 
+export const DEFAULT_HEADER_MENU = [
+  {
+    id: 'menu-intro',
+    label: 'Giới thiệu',
+    linkType: 'anchor' as const,
+    target: 'intro',
+    active: true,
+    order: 1,
+    children: []
+  },
+  {
+    id: 'menu-rooms',
+    label: 'Gian phòng 360°',
+    linkType: 'page' as const,
+    target: 'rooms',
+    active: true,
+    order: 2,
+    children: []
+  },
+  {
+    id: 'menu-artifacts',
+    label: 'Cổ vật 3D',
+    linkType: 'page' as const,
+    target: 'artifacts',
+    active: true,
+    order: 3,
+    children: []
+  },
+  {
+    id: 'menu-guide',
+    label: 'Tham quan',
+    linkType: 'page' as const,
+    target: 'guide',
+    active: true,
+    order: 4,
+    children: []
+  }
+];
+
 export const DEFAULT_BRANDING_STATE: SystemBranding = {
   museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
   shortName: 'Bảo tàng Lịch sử',
@@ -15,6 +54,7 @@ export const DEFAULT_BRANDING_STATE: SystemBranding = {
   contactEmail: 'huynhtanlocpp09@gmail.com',
   hotline: '(028) 3829 8146',
   emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM',
+  headerMenuItems: DEFAULT_HEADER_MENU,
   heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
   heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
   heroBannerUrl: '',

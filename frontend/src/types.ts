@@ -160,6 +160,26 @@ export interface SystemInfo {
   publicIp?: string;
 }
 
+export interface HeaderSubMenuItem {
+  id: string;
+  label: string;
+  linkType: 'page' | 'anchor' | 'custom';
+  target: string;
+  active: boolean;
+  isNewTab?: boolean;
+}
+
+export interface HeaderMenuItem {
+  id: string;
+  label: string;
+  linkType: 'page' | 'anchor' | 'custom' | 'dropdown_only';
+  target: string;
+  active: boolean;
+  isNewTab?: boolean;
+  order: number;
+  children?: HeaderSubMenuItem[];
+}
+
 export interface SystemBranding {
   museumName: string;
   shortName: string;
@@ -171,6 +191,8 @@ export interface SystemBranding {
   contactEmail: string;
   hotline: string;
   emailSenderName: string;
+  // Header Dynamic Menu Items (Hỗ trợ Dropdown đa cấp)
+  headerMenuItems?: HeaderMenuItem[];
   // Hero Showcase
   heroTitle?: string;
   heroTagline?: string;

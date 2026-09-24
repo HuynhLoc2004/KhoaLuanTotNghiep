@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
-import { SystemBranding } from '../../types';
-import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { SystemBranding, HeaderMenuItem, HeaderSubMenuItem } from '../../types';
+import { useSystemBranding, DEFAULT_HEADER_MENU } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import {
   LayoutTemplate,
@@ -29,7 +29,13 @@ import {
   ChevronDown,
   Info,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Menu as MenuIcon,
+  Plus,
+  ArrowUp,
+  ArrowDown,
+  FolderPlus,
+  ListPlus
 } from 'lucide-react';
 import { HOMEPAGE_SECTIONS } from '../../constants/homepageSections';
 
@@ -48,7 +54,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
   const [form, setForm] = useState<SystemBranding>(branding);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState<string>(activeSection || 'panel-menu');
+  const [activeSectionId, setActiveSectionId] = useState<string>(activeSection || 'panel-brand');
 
   // Quản lý upload file
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -70,10 +76,98 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   }, [branding]);
 
   useEffect(() => {
-    if (activeSection && activeSection !== activeSectionId) {
-      setActiveSectionId(activeSection);
+    if (activeSection) {
+      const mapped = activeSection === 'panel-menu' ? 'panel-brand' : activeSection;
+      if (mapped !== activeSectionId) {
+        setActiveSectionId(mapped);
+      }
     }
   }, [activeSection]);
+
+  // Quản lý Header Menu Items (Đa cấp)
+  const menuItems: HeaderMenuItem[] = form.headerMenuItems || DEFAULT_HEADER_MENU;
+
+  const updateMenuItems = (newItems: HeaderMenuItem[]) => {
+    setForm((prev) => ({
+      ...prev,
+      headerMenuItems: newItems
+    }));
+  };
+
+  const handleAddMenuItem = () => {
+    const newItem: HeaderMenuItem = {
+      id: `menu-${Date.now()}`,
+      label: 'Mục Menu Mới',
+      linkType: 'page',
+      target: 'rooms',
+      active: true,
+      order: menuItems.length + 1,
+      children: []
+    };
+    updateMenuItems([...menuItems, newItem]);
+  };
+
+  const handleUpdateMenuItem = (index: number, patch: Partial<HeaderMenuItem>) => {
+    const updated = [...menuItems];
+    updated[index] = { ...updated[index], ...patch };
+    updateMenuItems(updated);
+  };
+
+  const handleDeleteMenuItem = (index: number) => {
+    const updated = menuItems.filter((_, i) => i !== index);
+    updateMenuItems(updated);
+  };
+
+  const handleMoveMenuItem = (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === menuItems.length - 1) return;
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    const updated = [...menuItems];
+    const temp = updated[index];
+    updated[index] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    updateMenuItems(updated.map((item, i) => ({ ...item, order: i + 1 })));
+  };
+
+  // Quản lý Menu Con Dropdown (Cấp 2)
+  const handleAddSubItem = (parentIndex: number) => {
+    const updated = [...menuItems];
+    const parent = updated[parentIndex];
+    const newSub: HeaderSubMenuItem = {
+      id: `sub-${Date.now()}`,
+      label: 'Menu con mới',
+      linkType: 'page',
+      target: 'rooms',
+      active: true
+    };
+    parent.children = [...(parent.children || []), newSub];
+    updateMenuItems(updated);
+  };
+
+  const handleUpdateSubItem = (parentIndex: number, subIndex: number, patch: Partial<HeaderSubMenuItem>) => {
+    const updated = [...menuItems];
+    const parent = updated[parentIndex];
+    if (!parent.children) return;
+    const subChildren = [...parent.children];
+    subChildren[subIndex] = { ...subChildren[subIndex], ...patch };
+    parent.children = subChildren;
+    updateMenuItems(updated);
+  };
+
+  const handleDeleteSubItem = (parentIndex: number, subIndex: number) => {
+    const updated = [...menuItems];
+    const parent = updated[parentIndex];
+    if (!parent.children) return;
+    parent.children = parent.children.filter((_, i) => i !== subIndex);
+    updateMenuItems(updated);
+  };
+
+  const handleResetDefaultMenu = () => {
+    if (window.confirm('Khôi phục danh sách Menu điều hướng Header về cấu hình chuẩn ban đầu?')) {
+      updateMenuItems(DEFAULT_HEADER_MENU);
+      showToast('Đã khôi phục Menu Header mặc định', 'success');
+    }
+  };
 
   const selectSection = (id: string) => {
     setActiveSectionId(id);
@@ -482,10 +576,10 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       {/* 3. KHU VỰC QUẢN LÝ TẬP TRUNG THEO TỪNG PHẦN ĐƯỢC CHỌN (KHÔNG GỘP TRÀN LAN) */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
 
-        {/* KHUNG 1: MENU & NHẬN DIỆN THƯƠNG HIỆU */}
-        {activeSectionId === 'panel-menu' && (
+        {/* KHUNG 1: NHẬN DIỆN THƯƠNG HIỆU & LOGO */}
+        {(activeSectionId === 'panel-brand' || activeSectionId === 'panel-menu') && (
         <section
-          id="panel-menu"
+          id="panel-brand"
           style={{
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
@@ -501,10 +595,10 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  1. Khung Menu & Nhận Diện Thương Hiệu
+                  1. Nhận Diện Thương Hiệu & Logo
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  Quản lý tên bảo tàng, tên rút gọn, logo tải lên và khẩu hiệu trên thanh điều hướng Navbar
+                  Quản lý tên bảo tàng, tên rút gọn, logo chính thức, huy hiệu viết tắt và khẩu hiệu
                 </span>
               </div>
             </div>
@@ -512,12 +606,12 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => handleSave('Menu & Nhận diện')}
+              onClick={() => handleSave('Nhận diện & Logo')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Save size={14} />
-              <span>Lưu phần Menu</span>
+              <span>Lưu phần 1: Nhận diện</span>
             </button>
           </div>
 
@@ -650,8 +744,396 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 </span>
               </div>
             </div>
-            {renderSectionNavFooter(0, 'Phần 1: Menu & Nhận diện')}
+            {renderSectionNavFooter(0, 'Phần 1: Nhận diện & Logo')}
           </div>
+        </section>
+        )}
+
+        {/* KHUNG 2: QUẢN LÝ MENU HEADER (ĐA CẤP & DROPDOWN) */}
+        {activeSectionId === 'panel-header-menu' && (
+        <section
+          id="panel-header-menu"
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 14,
+            padding: 24,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14, flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MenuIcon size={18} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
+                  2. Menu Header (Thanh Điều Hướng Đa Cấp)
+                </h2>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Quản lý danh sách các mục menu hiển thị trên Header, hỗ trợ mở rộng menu con (Dropdown đa cấp), tùy biến liên kết và bật/tắt
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleResetDefaultMenu}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                title="Khôi phục danh sách Menu mặc định"
+              >
+                <RotateCcw size={13} />
+                <span>Khôi phục menu chuẩn</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleAddMenuItem}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Plus size={14} />
+                <span>Thêm mục Menu mới</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleSave('Menu Header')}
+                disabled={isSaving}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Save size={14} />
+                <span>Lưu phần 2: Menu Header</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Gợi ý hướng dẫn */}
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: 10,
+              background: 'rgba(212, 168, 106, 0.08)',
+              border: '1px solid rgba(212, 168, 106, 0.25)',
+              marginBottom: 20,
+              fontSize: 12.5,
+              color: 'var(--text-muted)',
+              lineHeight: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10
+            }}
+          >
+            <Info size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+            <div>
+              <strong style={{ color: 'var(--heading-color)' }}>Dữ liệu động & Cấu trúc đa cấp:</strong> Khách tham quan sẽ nhìn thấy thanh Menu chính xác theo thứ tự và cấu hình tại đây. Khi thêm menu con, mục đó sẽ tự động hiển thị mũi tên <strong>(▾)</strong> và xổ danh sách Dropdown khi người dùng di chuột hoặc chạm trên điện thoại.
+            </div>
+          </div>
+
+          {/* Danh sách các Menu Items */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {menuItems.map((item, idx) => (
+              <div
+                key={item.id}
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 12,
+                  padding: 18,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              >
+                {/* Header item cha */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)' }}>
+                      #{idx + 1}
+                    </span>
+                    <strong style={{ fontSize: 14, color: 'var(--heading-color)' }}>
+                      {item.label || '(Chưa đặt tên menu)'}
+                    </strong>
+                    {item.children && item.children.length > 0 && (
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', fontWeight: 600 }}>
+                        {item.children.length} menu con
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {/* Di chuyển thứ tự */}
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      style={{ padding: '4px 8px' }}
+                      disabled={idx === 0}
+                      onClick={() => handleMoveMenuItem(idx, 'up')}
+                      title="Chuyển lên trước"
+                    >
+                      <ArrowUp size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      style={{ padding: '4px 8px' }}
+                      disabled={idx === menuItems.length - 1}
+                      onClick={() => handleMoveMenuItem(idx, 'down')}
+                      title="Chuyển xuống sau"
+                    >
+                      <ArrowDown size={13} />
+                    </button>
+
+                    {/* Bật / Tắt */}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', margin: '0 6px' }}>
+                      <input
+                        type="checkbox"
+                        checked={item.active !== false}
+                        onChange={(e) => handleUpdateMenuItem(idx, { active: e.target.checked })}
+                      />
+                      <span>{item.active !== false ? 'Hiển thị' : 'Đang ẩn'}</span>
+                    </label>
+
+                    {/* Xóa item */}
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      style={{ padding: '4px 8px', color: '#EF4444' }}
+                      onClick={() => handleDeleteMenuItem(idx)}
+                      title="Xóa mục menu này"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Các trường cấu hình Menu cha */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
+                      Tên nút Menu <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={item.label}
+                      onChange={(e) => handleUpdateMenuItem(idx, { label: e.target.value })}
+                      placeholder="VD: Giới thiệu, Gian phòng 360°"
+                      style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
+                      Kiểu liên kết
+                    </label>
+                    <select
+                      value={item.linkType}
+                      onChange={(e) => handleUpdateMenuItem(idx, { linkType: e.target.value as any })}
+                      style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    >
+                      <option value="page">Chuyển trang nội bộ (Page)</option>
+                      <option value="anchor">Cuộn tới phần trên trang (Anchor #)</option>
+                      <option value="custom">Đường dẫn ngoài tùy ý (URL)</option>
+                      <option value="dropdown_only">Chỉ làm nhóm mở Dropdown con</option>
+                    </select>
+                  </div>
+
+                  {item.linkType !== 'dropdown_only' && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
+                        Đích đến (Trang / Phần / Link)
+                      </label>
+                      {item.linkType === 'page' ? (
+                        <select
+                          value={item.target}
+                          onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
+                          style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                        >
+                          <option value="home">Trang chủ di sản</option>
+                          <option value="rooms">Gian phòng 360°</option>
+                          <option value="artifacts">Kho cổ vật 3D</option>
+                          <option value="guide">Cẩm nang & Sơ đồ tham quan</option>
+                        </select>
+                      ) : item.linkType === 'anchor' ? (
+                        <select
+                          value={item.target.replace(/^#/, '')}
+                          onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
+                          style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                        >
+                          <option value="intro">#intro (Khối giới thiệu kiến trúc)</option>
+                          <option value="rooms">#rooms (Khối gian phòng 360°)</option>
+                          <option value="artifacts">#artifacts (Khối cổ vật 3D)</option>
+                          <option value="guide">#guide (Khối sơ đồ & cẩm nang)</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={item.target}
+                          onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
+                          placeholder="https://..."
+                          style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {item.linkType === 'custom' && (
+                    <div style={{ display: 'flex', alignItems: 'center', marginTop: 22 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={item.isNewTab || false}
+                          onChange={(e) => handleUpdateMenuItem(idx, { isNewTab: e.target.checked })}
+                        />
+                        <span>Mở tab mới</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Vùng Menu con cấp 2 (Dropdown) */}
+                <div
+                  style={{
+                    background: 'var(--bg-surface)',
+                    border: '1px dashed var(--border-color)',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    marginTop: 8
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--accent-gold)' }}>
+                      <FolderPlus size={14} />
+                      <span>Menu con Dropdown (Cấp 2) {item.children && item.children.length > 0 ? `(${item.children.length})` : ''}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => handleAddSubItem(idx)}
+                      style={{ fontSize: 11.5, padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <Plus size={12} />
+                      <span>Thêm menu con</span>
+                    </button>
+                  </div>
+
+                  {(!item.children || item.children.length === 0) ? (
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontStyle: 'italic', padding: '6px 0' }}>
+                      Mục này chưa có menu con (click trực tiếp vào liên kết). Bấm "Thêm menu con" nếu muốn tạo danh sách xổ xuống (Dropdown).
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {item.children.map((sub, sIdx) => (
+                        <div
+                          key={sub.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '8px 12px',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 6,
+                            flexWrap: 'wrap'
+                          }}
+                        >
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.8 }}>
+                            └─ {sIdx + 1}.
+                          </span>
+
+                          <input
+                            type="text"
+                            value={sub.label}
+                            onChange={(e) => handleUpdateSubItem(idx, sIdx, { label: e.target.value })}
+                            placeholder="Tên menu con"
+                            style={{ flex: 1, minWidth: 140, padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
+                          />
+
+                          <select
+                            value={sub.linkType}
+                            onChange={(e) => handleUpdateSubItem(idx, sIdx, { linkType: e.target.value as any })}
+                            style={{ padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
+                          >
+                            <option value="page">Trang nội bộ</option>
+                            <option value="anchor">Cuộn tới phần #</option>
+                            <option value="custom">URL ngoài</option>
+                          </select>
+
+                          {sub.linkType === 'page' ? (
+                            <select
+                              value={sub.target}
+                              onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
+                              style={{ padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
+                            >
+                              <option value="home">Trang chủ</option>
+                              <option value="rooms">Gian phòng 360°</option>
+                              <option value="artifacts">Kho cổ vật 3D</option>
+                              <option value="guide">Cẩm nang & Sơ đồ</option>
+                            </select>
+                          ) : sub.linkType === 'anchor' ? (
+                            <select
+                              value={sub.target.replace(/^#/, '')}
+                              onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
+                              style={{ padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
+                            >
+                              <option value="intro">#intro (Giới thiệu)</option>
+                              <option value="rooms">#rooms (Gian phòng 360°)</option>
+                              <option value="artifacts">#artifacts (Cổ vật 3D)</option>
+                              <option value="guide">#guide (Cẩm nang)</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={sub.target}
+                              onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
+                              placeholder="https://..."
+                              style={{ width: 140, padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
+                            />
+                          )}
+
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={sub.active !== false}
+                              onChange={(e) => handleUpdateSubItem(idx, sIdx, { active: e.target.checked })}
+                            />
+                            <span>{sub.active !== false ? 'Bật' : 'Ẩn'}</span>
+                          </label>
+
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ padding: '3px 6px', color: '#EF4444' }}
+                            onClick={() => handleDeleteSubItem(idx, sIdx)}
+                            title="Xóa menu con này"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Nút thêm nhanh cuối danh sách */}
+          <div style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleAddMenuItem}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Plus size={14} />
+              <span>Thêm mục Menu mới (Cấp 1)</span>
+            </button>
+          </div>
+
+          {renderSectionNavFooter(1, 'Phần 2: Menu Header')}
         </section>
         )}
 
@@ -674,7 +1156,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  2. Khung Banner Hero Toàn Cảnh (Đầu trang)
+                  3. Khung Banner Hero Toàn Cảnh (Đầu trang)
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Quản lý tiêu đề chào đón, khẩu hiệu, 2 nút kêu gọi CTA, ảnh nền toàn cảnh và video nền
@@ -806,7 +1288,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 </div>
               )}
             </div>
-            {renderSectionNavFooter(1, 'Phần 2: Banner Hero')}
+            {renderSectionNavFooter(2, 'Phần 3: Banner Hero')}
           </div>
         </section>
         )}
@@ -830,7 +1312,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  3. Khung Giới Thiệu Lịch Sử & Kiến Trúc
+                  4. Khung Giới Thiệu Lịch Sử & Kiến Trúc
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Quản lý thẻ định danh, tiêu đề, bài viết giới thiệu, huy hiệu công trình và ảnh chụp kiến trúc
@@ -956,7 +1438,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 </div>
               )}
             </div>
-            {renderSectionNavFooter(2, 'Phần 3: Giới thiệu Không gian')}
+            {renderSectionNavFooter(3, 'Phần 4: Giới thiệu Không gian')}
           </div>
         </section>
         )}
@@ -980,7 +1462,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  4. Khung Gian Phòng Trưng Bày 360°
+                  5. Khung Gian Phòng Trưng Bày 360°
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Quản lý thẻ khối, tiêu đề khối, đoạn giới thiệu trải nghiệm và nhãn nút chuyển sang trang danh sách phòng
@@ -1052,7 +1534,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
             </div>
-            {renderSectionNavFooter(3, 'Phần 4: Gian phòng 360°')}
+            {renderSectionNavFooter(4, 'Phần 5: Gian phòng 360°')}
           </div>
         </section>
         )}
@@ -1076,7 +1558,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  5. Khung Kho Tàng Cổ Vật Di Sản 3D
+                  6. Khung Kho Tàng Cổ Vật Di Sản 3D
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Quản lý thẻ khối, tiêu đề khối, đoạn giới thiệu bảo vật 3D và nhãn nút chuyển sang kho hiện vật
@@ -1148,7 +1630,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
             </div>
-            {renderSectionNavFooter(4, 'Phần 5: Cổ vật 3D')}
+            {renderSectionNavFooter(5, 'Phần 6: Cổ vật 3D')}
           </div>
         </section>
         )}
@@ -1172,7 +1654,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  6. Khung Cẩm Nang & Sơ Đồ Tham Quan Thực Địa
+                  7. Khung Cẩm Nang & Sơ Đồ Tham Quan Thực Địa
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Quản lý thẻ khối, tiêu đề khối, tải ảnh bản đồ/sơ đồ mặt bằng bảo tàng và nút điều hướng
@@ -1334,7 +1816,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 </div>
               )}
             </div>
-            {renderSectionNavFooter(5, 'Phần 6: Cẩm nang & Sơ đồ')}
+            {renderSectionNavFooter(6, 'Phần 7: Cẩm nang & Sơ đồ')}
           </div>
         </section>
         )}
@@ -1358,7 +1840,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  7. Khung Chân Trang & Thông Tin Liên Hệ (Footer)
+                  8. Khung Chân Trang & Thông Tin Liên Hệ (Footer)
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Quản lý địa chỉ thực tế, đường dây nóng, email tiếp nhận thông tin và bản quyền hiển thị
@@ -1459,7 +1941,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 Hệ thống tự động thêm biểu tượng © và năm hiện hành {new Date().getFullYear()} vào trước dòng này.
               </span>
             </div>
-            {renderSectionNavFooter(6, 'Phần 7: Chân trang & Liên hệ')}
+            {renderSectionNavFooter(7, 'Phần 8: Chân trang & Liên hệ')}
           </div>
         </section>
         )}

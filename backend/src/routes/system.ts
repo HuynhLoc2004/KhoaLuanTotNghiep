@@ -383,6 +383,8 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       contactEmail: contactEmail !== undefined ? String(contactEmail).trim() : current.contactEmail,
       hotline: hotline !== undefined ? String(hotline).trim() : current.hotline,
       emailSenderName: emailSenderName !== undefined ? String(emailSenderName).trim() : current.emailSenderName,
+      // Header Dynamic Menu Items (Hỗ trợ Dropdown đa cấp)
+      headerMenuItems: req.body.headerMenuItems !== undefined ? req.body.headerMenuItems : current.headerMenuItems,
       // Hero Showcase
       heroTitle: req.body.heroTitle !== undefined ? String(req.body.heroTitle).trim() : current.heroTitle,
       heroTagline: req.body.heroTagline !== undefined ? String(req.body.heroTagline).trim() : current.heroTagline,

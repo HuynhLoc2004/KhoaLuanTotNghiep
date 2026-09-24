@@ -452,6 +452,89 @@
   font-weight: 600;
 }
 
+/* Dropdown Menu Đa Cấp Header */
+.client-nav-item {
+  position: relative;
+  list-style: none;
+}
+
+.client-nav-item-dropdown {
+  position: relative;
+}
+
+.client-nav-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  background: rgba(22, 18, 15, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 120;
+  animation: navDropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes navDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.client-nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.client-nav-dropdown-item:hover,
+.client-nav-dropdown-item.active {
+  background: rgba(212, 175, 55, 0.18);
+  color: #F3E0A3;
+  padding-left: 17px;
+}
+
+/* Light theme for dropdown */
+.client-portal[data-client-theme="light"] .client-nav-dropdown {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(180, 140, 60, 0.35);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+}
+
+.client-portal[data-client-theme="light"] .client-nav-dropdown-item {
+  color: #2D251E;
+}
+
+.client-portal[data-client-theme="light"] .client-nav-dropdown-item:hover,
+.client-portal[data-client-theme="light"] .client-nav-dropdown-item.active {
+  background: rgba(212, 175, 55, 0.15);
+  color: #8A6018;
+}
+
 /* 3. Cụm Hành động Góc Phải */
 .client-nav-actions {
   display: flex;
