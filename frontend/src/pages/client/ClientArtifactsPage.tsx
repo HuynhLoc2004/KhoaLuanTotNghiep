@@ -15,6 +15,7 @@ interface ClientArtifactsPageProps {
   onToggleClientTheme: () => void;
   onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
+  onOpenQRScanner?: () => void;
 }
 
 export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
@@ -25,7 +26,8 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
   clientTheme,
   onToggleClientTheme,
   onOpenLoginModal,
-  onNavigateAdmin
+  onNavigateAdmin,
+  onOpenQRScanner
 }) => {
   const { t, localize } = useClientTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,6 +87,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
         onNavigateAdmin={onNavigateAdmin}
         activeSection="artifacts"
         onNavigatePage={onNavigatePage}
+        onOpenQRScanner={onOpenQRScanner}
       />
 
       <main className="client-subpage">

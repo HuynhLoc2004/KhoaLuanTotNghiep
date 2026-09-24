@@ -14,7 +14,8 @@ import {
   Layers,
   Info,
   Calendar,
-  Landmark
+  Landmark,
+  QrCode
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
@@ -27,6 +28,7 @@ interface ClientNavbarProps {
   onNavigateAdmin: () => void;
   activeSection?: string;
   onNavigatePage?: (page: 'home' | 'rooms' | 'artifacts' | 'guide') => void;
+  onOpenQRScanner?: () => void;
 }
 
 export const ClientNavbar: React.FC<ClientNavbarProps> = ({
@@ -35,7 +37,8 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   onOpenLoginModal,
   onNavigateAdmin,
   activeSection = 'hero',
-  onNavigatePage
+  onNavigatePage,
+  onOpenQRScanner
 }) => {
   const { branding } = useSystemBranding();
   const { currentLang, activeLanguages, changeLanguage, t } = useClientTranslation();
@@ -261,6 +264,21 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             )}
           </div>
 
+          {/* Nút Quét mã QR Hiện Vật bằng Camera Trực Tiếp */}
+          {onOpenQRScanner && (
+            <button
+              type="button"
+              className="client-theme-toggle client-nav-qr-btn"
+              style={{ width: 'auto', padding: '0 12px', gap: 6, fontSize: '0.82rem' }}
+              onClick={onOpenQRScanner}
+              title="Quét mã QR hiện vật hoặc gian phòng bằng Camera"
+              aria-label="Quét mã QR"
+            >
+              <QrCode size={16} style={{ color: '#D4AF37' }} />
+              <span style={{ fontWeight: 600 }}>Quét QR</span>
+            </button>
+          )}
+
           {/* Nút chuyển đổi Light / Dark Theme */}
           <button
             type="button"
@@ -407,6 +425,37 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           >
             {t('nav.guide', 'Tham quan')}
           </a>
+
+          {onOpenQRScanner && (
+            <button
+              type="button"
+              className="client-mobile-qr-btn"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onOpenQRScanner();
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                width: '100%',
+                padding: '12px',
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.06) 100%)',
+                border: '1px solid rgba(212,175,55,0.35)',
+                color: '#D4AF37',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                marginTop: 10,
+                marginBottom: 4
+              }}
+            >
+              <QrCode size={18} />
+              <span>Quét Mã QR Bằng Camera</span>
+            </button>
+          )}
 
           {!user && (
             <button

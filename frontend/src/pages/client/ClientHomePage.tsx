@@ -20,13 +20,15 @@ interface ClientHomePageProps {
   onSelectRoomForTour: (room: MuseumRoom) => void;
   onSelectArtifactDetail?: (artifactId: string) => void;
   onNavigatePage: (page: 'home' | 'rooms' | 'artifacts' | 'guide') => void;
+  onOpenQRScanner?: () => void;
 }
 
 export const ClientHomePage: React.FC<ClientHomePageProps> = ({
   onNavigateAdmin,
   onSelectRoomForTour,
   onSelectArtifactDetail,
-  onNavigatePage
+  onNavigatePage,
+  onOpenQRScanner
 }) => {
   const { branding } = useSystemBranding();
   const { currentLang, activeLanguages, t } = useClientTranslation();
@@ -140,6 +142,7 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onNavigateAdmin={onNavigateAdmin}
         onNavigatePage={onNavigatePage}
+        onOpenQRScanner={onOpenQRScanner}
       />
 
       <main>

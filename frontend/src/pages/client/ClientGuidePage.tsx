@@ -16,6 +16,7 @@ interface ClientGuidePageProps {
   onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
   onSelectRoom360?: (roomId: string) => void;
+  onOpenQRScanner?: () => void;
 }
 
 export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
@@ -25,7 +26,8 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
   onToggleClientTheme,
   onOpenLoginModal,
   onNavigateAdmin,
-  onSelectRoom360
+  onSelectRoom360,
+  onOpenQRScanner
 }) => {
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
@@ -106,6 +108,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
         onNavigateAdmin={onNavigateAdmin}
         activeSection="guide"
         onNavigatePage={onNavigatePage}
+        onOpenQRScanner={onOpenQRScanner}
       />
 
       <main className="client-subpage">

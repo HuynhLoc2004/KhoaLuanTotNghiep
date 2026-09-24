@@ -26,6 +26,7 @@ interface ClientRoomsPageProps {
   onToggleClientTheme: () => void;
   onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
+  onOpenQRScanner?: () => void;
 }
 
 export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
@@ -36,7 +37,8 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
   clientTheme,
   onToggleClientTheme,
   onOpenLoginModal,
-  onNavigateAdmin
+  onNavigateAdmin,
+  onOpenQRScanner
 }) => {
   const { t, localize } = useClientTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,6 +135,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
         onNavigateAdmin={onNavigateAdmin}
         activeSection="rooms"
         onNavigatePage={onNavigatePage}
+        onOpenQRScanner={onOpenQRScanner}
       />
 
       <main className="client-subpage">

@@ -11,7 +11,7 @@ import { AdminArtifactsPage } from './pages/admin/AdminArtifactsPage';
 import { PublicArtifactView } from './pages/public/PublicArtifactView';
 import { MuseumRoom, AdminTab, Artifact, TopicItem } from './types';
 import { api } from './services/api';
-import { Loader2, AlertCircle, Landmark, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, Landmark, RefreshCw, QrCode } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -28,6 +28,7 @@ import { ClientRoomsPage } from './pages/client/ClientRoomsPage';
 import { ClientArtifactsPage } from './pages/client/ClientArtifactsPage';
 import { ClientGuidePage } from './pages/client/ClientGuidePage';
 import { ClientLoginOtpModal } from './components/client/ClientLoginOtpModal';
+import { QRScannerModal } from './components/client/QRScannerModal';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -43,6 +44,7 @@ const AppContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLagging, setIsLagging] = useState(false);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
 
   // Quản lý theme client đồng bộ toàn hệ thống
   const [clientTheme, setClientTheme] = useState<'light' | 'dark'>(() => {
@@ -398,6 +400,7 @@ const AppContent: React.FC = () => {
           } catch {}
         }}
         onNavigatePage={handleNavigateClientPage}
+        onOpenQRScanner={() => setIsQRScannerOpen(true)}
       />
     );
 
@@ -417,6 +420,7 @@ const AppContent: React.FC = () => {
               window.history.pushState({}, '', '/admin');
             } catch {}
           }}
+          onOpenQRScanner={() => setIsQRScannerOpen(true)}
         />
       );
     } else if (clientActivePage === 'artifacts') {
@@ -440,6 +444,7 @@ const AppContent: React.FC = () => {
               window.history.pushState({}, '', '/admin');
             } catch {}
           }}
+          onOpenQRScanner={() => setIsQRScannerOpen(true)}
         />
       );
 
@@ -465,6 +470,7 @@ const AppContent: React.FC = () => {
               handleNavigateClientPage('rooms');
             }
           }}
+          onOpenQRScanner={() => setIsQRScannerOpen(true)}
         />
       );
     }
@@ -480,6 +486,35 @@ const AppContent: React.FC = () => {
             setIsClientLoginModalOpen(false);
           }}
         />
+
+        {/* Modal Quét Mã QR Hiện Vật & Gian Phòng Bằng Camera Trình Duyệt */}
+        <QRScannerModal
+          isOpen={isQRScannerOpen}
+          onClose={() => setIsQRScannerOpen(false)}
+          artifacts={artifacts}
+          rooms={rooms}
+          onSelectArtifactDetail={(artifactId) => {
+            setPublicArtifactId(artifactId);
+            try {
+              window.history.pushState({}, '', `?artifact=${artifactId}`);
+            } catch {}
+          }}
+          onSelectRoomForTour={(room) => {
+            setPublicTourRoom(room);
+          }}
+        />
+
+        {/* Nút nổi Quét QR nhanh ở góc dưới màn hình */}
+        <button
+          type="button"
+          className="client-floating-qr-btn"
+          onClick={() => setIsQRScannerOpen(true)}
+          title="Quét mã QR hiện vật tại bảo tàng bằng Camera"
+          aria-label="Quét mã QR"
+        >
+          <QrCode size={20} />
+          <span className="client-floating-qr-label">Quét QR</span>
+        </button>
       </>
     );
   }
