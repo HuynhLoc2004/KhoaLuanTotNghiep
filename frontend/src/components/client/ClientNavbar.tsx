@@ -393,50 +393,31 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             {clientTheme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
 
-          {/* Đăng nhập hoặc Menu người dùng (Thiết kế capsule thu gọn thông minh) */}
+          {/* Đăng nhập hoặc Menu người dùng (Thiết kế capsule thu gọn, lấy tên từ email) */}
           {user ? (
             <div className="client-user-menu" ref={userDropdownRef}>
               <button
                 type="button"
                 className="client-user-btn"
                 onClick={() => setIsUserDropdownOpen((prev) => !prev)}
-                title={user.fullName || user.username}
+                title={user.email || user.username}
               >
                 <div className="client-user-avatar">
-                  {user.role === 'admin' ? <Shield size={14} /> : <User size={14} />}
+                  <User size={14} />
                 </div>
                 <span className="client-user-name">
-                  {user.role === 'admin'
-                    ? 'Quản trị viên'
-                    : (user.fullName?.split(' ').pop() || user.username || 'Tài khoản')}
+                  {user.email ? user.email.split('@')[0] : (user.username || 'Tài khoản')}
                 </span>
                 <span style={{ fontSize: '10px', opacity: 0.6, marginLeft: 2 }}>▼</span>
               </button>
 
               {isUserDropdownOpen && (
-                <div className="client-user-dropdown">
-                  <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--c-border-subtle)', marginBottom: 4 }}>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--c-text-primary)' }}>
-                      {user.fullName || user.username}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', marginTop: 2 }}>
-                      {user.email}
+                <div className="client-user-dropdown" style={{ minWidth: 180 }}>
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--c-border-subtle)', marginBottom: 2 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--c-text-primary)', wordBreak: 'break-all' }}>
+                      {user.email || user.username}
                     </div>
                   </div>
-
-                  {user.role === 'admin' && (
-                    <button
-                      type="button"
-                      className="client-user-dropdown-item"
-                      onClick={() => {
-                        setIsUserDropdownOpen(false);
-                        onNavigateAdmin();
-                      }}
-                    >
-                      <Shield size={15} style={{ color: 'var(--c-primary)' }} />
-                      <span style={{ fontWeight: 600 }}>Cổng Quản Trị Hệ Thống</span>
-                    </button>
-                  )}
 
                   <button
                     type="button"
@@ -445,6 +426,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                       setIsUserDropdownOpen(false);
                       logout();
                     }}
+                    style={{ color: '#EF4444' }}
                   >
                     <LogOut size={15} />
                     <span>Đăng xuất</span>
@@ -606,46 +588,27 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             </div>
           </div>
 
-          {/* Nếu user là Admin: hiển thị nút Cổng Quản Trị Hệ Thống */}
-          {user && user.role === 'admin' && (
-            <button
-              type="button"
-              className="client-mobile-nav-link"
-              style={{
-                background: 'rgba(212, 175, 55, 0.12)',
-                borderColor: 'rgba(212, 175, 55, 0.35)',
-                color: 'var(--c-gold)',
-                fontWeight: 600,
-                marginTop: 4
-              }}
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onNavigateAdmin();
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Shield size={16} />
-                <span>Cổng Quản Trị Hệ Thống</span>
-              </span>
-            </button>
-          )}
-
           {/* Nút Đăng nhập hoặc Đăng xuất */}
           {user ? (
-            <button
-              type="button"
-              className="client-mobile-nav-link"
-              style={{ color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.2)', marginTop: 4 }}
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                logout();
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <LogOut size={16} />
-                <span>Đăng xuất tài khoản</span>
-              </span>
-            </button>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)', padding: '0 8px', wordBreak: 'break-all' }}>
+                {user.email || user.username}
+              </div>
+              <button
+                type="button"
+                className="client-mobile-nav-link"
+                style={{ color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  logout();
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <LogOut size={16} />
+                  <span>Đăng xuất tài khoản</span>
+                </span>
+              </button>
+            </div>
           ) : (
             <button
               type="button"
