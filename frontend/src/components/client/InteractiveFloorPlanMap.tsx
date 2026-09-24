@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Compass, Navigation, Eye, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Info, Layers, Building } from 'lucide-react';
+import { Navigation, Eye, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Info, Layers, Building } from 'lucide-react';
 import { FloorPlanMap, FloorPlanNode, FloorPlanEdge } from '../../types';
 
 interface InteractiveFloorPlanMapProps {
@@ -30,6 +30,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     return (floorPlan.edges || []).filter((e) => e.fromNodeId === activeNode.id);
   }, [floorPlan.edges, activeNode]);
 
+  // Hướng đi kèm icon và nhãn dễ hiểu
   const getDirectionBadge = (dir: FloorPlanEdge['direction']) => {
     switch (dir) {
       case 'left':
@@ -45,16 +46,63 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     }
   };
 
+  // Rút gọn tên gian phòng để hiển thị vừa vặn trong ô bản đồ, TUYỆT ĐỐI không chèn chữ ra ngoài
+  const getMapNodeLabel = (node: FloorPlanNode) => {
+    const raw = node.name || '';
+    if (/bát giác|sảnh chính/i.test(raw) || node.code.includes('SANH')) {
+      return { line1: 'Sảnh Bát Giác', line2: '(Sảnh Chính)' };
+    }
+    if (/đón khách/i.test(raw)) {
+      return { line1: 'Sảnh Đón Khách', line2: '' };
+    }
+    if (/tiền sử/i.test(raw)) {
+      return { line1: 'Thời Tiền Sử', line2: '' };
+    }
+    if (/óc eo/i.test(raw)) {
+      return { line1: 'Văn Hóa Óc Eo', line2: 'Phù Nam' };
+    }
+    if (/chăm/i.test(raw)) {
+      return { line1: 'Điêu Khắc', line2: 'Chăm Pa' };
+    }
+    if (/nguyễn/i.test(raw)) {
+      return { line1: 'Mỹ Thuật', line2: 'Triều Nguyễn' };
+    }
+    const clean = raw.replace(/^(Gian phòng|Phòng trưng bày|Gian|Phòng)\s+/i, '');
+    if (clean.length > 15) {
+      const words = clean.split(' ');
+      if (words.length > 2) {
+        const mid = Math.ceil(words.length / 2);
+        return {
+          line1: words.slice(0, mid).join(' '),
+          line2: words.slice(mid).join(' ')
+        };
+      }
+      return { line1: clean.substring(0, 14) + '…', line2: '' };
+    }
+    return { line1: clean, line2: '' };
+  };
+
+  // Tính toán kích thước hộp gian phòng đảm bảo vừa chữ và bố cục hài hòa
+  const getNodeBox = (node: FloorPlanNode) => {
+    const width = Math.max(node.width, 24);
+    const height = Math.max(node.height, 18);
+    const x = node.x - (width - node.width) / 2;
+    const y = node.y - (height - node.height) / 2;
+    return { x, y, width, height };
+  };
+
+  const isLight = clientTheme === 'light';
+
   return (
     <div
       className="interactive-floorplan-container"
       style={{
-        background: '#111520',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        background: isLight ? '#FFFFFF' : '#111520',
+        border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.09)'}`,
         borderRadius: 14,
         padding: '20px',
-        color: '#F1F5F9',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+        color: isLight ? '#181C26' : '#F1F5F9',
+        boxShadow: isLight ? '0 8px 24px rgba(0, 0, 0, 0.05)' : '0 10px 30px rgba(0, 0, 0, 0.35)',
         position: 'relative'
       }}
     >
@@ -67,7 +115,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
           justifyContent: 'space-between',
           gap: 12,
           marginBottom: 16,
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)'}`,
           paddingBottom: 14
         }}
       >
@@ -77,21 +125,21 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               width: 32,
               height: 32,
               borderRadius: 8,
-              background: 'rgba(212, 175, 55, 0.1)',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
+              background: isLight ? 'rgba(180, 138, 60, 0.1)' : 'rgba(212, 168, 106, 0.12)',
+              border: `1px solid ${isLight ? 'rgba(180, 138, 60, 0.25)' : 'rgba(212, 168, 106, 0.3)'}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#D4AF37'
+              color: isLight ? '#8C6826' : '#D4A86A'
             }}
           >
             <Building size={16} />
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: isLight ? '#111827' : '#FFFFFF' }}>
               Sơ Đồ Mặt Bằng & Vị Trí Các Gian Phòng
             </div>
-            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 1 }}>
+            <div style={{ fontSize: 12, color: isLight ? '#64748B' : '#94A3B8', marginTop: 1 }}>
               Bấm vào từng gian phòng trên sơ đồ để xem vị trí, lối đi và kết nối thực tế
             </div>
           </div>
@@ -111,9 +159,11 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 600,
-                background: showOriginalImage ? 'rgba(212, 175, 55, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: showOriginalImage ? '#D4AF37' : '#CBD5E1',
+                background: showOriginalImage
+                  ? isLight ? 'rgba(180, 138, 60, 0.15)' : 'rgba(212, 168, 106, 0.15)'
+                  : isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)',
+                border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)'}`,
+                color: showOriginalImage ? (isLight ? '#8C6826' : '#D4A86A') : (isLight ? '#475569' : '#CBD5E1'),
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
@@ -130,11 +180,11 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               gap: 6,
               padding: '5px 10px',
               borderRadius: 6,
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)',
+              border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)'}`,
               fontSize: 11.5,
               fontWeight: 500,
-              color: '#94A3B8'
+              color: isLight ? '#64748B' : '#94A3B8'
             }}
           >
             <span>{floorPlan.nodes.length} gian trưng bày</span>
@@ -159,13 +209,12 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
             position: 'relative',
             aspectRatio: '16 / 11',
             minHeight: 390,
-            background: '#0B0E17',
+            background: isLight ? '#F8FAFC' : '#0E131D',
             borderRadius: 10,
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            backgroundImage: `
-              linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
-            `,
+            border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`,
+            backgroundImage: isLight
+              ? `linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px)`
+              : `linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)`,
             backgroundSize: '24px 24px, 24px 24px',
             overflow: 'hidden'
           }}
@@ -178,7 +227,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 width: '100%',
                 height: '100%',
                 objectFit: 'contain',
-                background: '#0B0E17'
+                background: isLight ? '#F8FAFC' : '#0E131D'
               }}
             />
           ) : (
@@ -187,24 +236,19 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               style={{ width: '100%', height: '100%', display: 'block' }}
               preserveAspectRatio="xMidYMid meet"
             >
-              {/* La bàn phương vị Bắc tinh giản */}
-              <g transform="translate(92, 8)">
-                <circle cx="0" cy="0" r="4.2" fill="#131722" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="0.4" />
-                <path d="M 0 -3.2 L 1.2 0 L 0 -0.8 L -1.2 0 Z" fill="#D4AF37" />
-                <path d="M 0 3.2 L 1.2 0 L 0 0.8 L -1.2 0 Z" fill="#475569" />
-                <text x="0" y="-4.6" fill="#D4AF37" fontSize="2.4" fontWeight="bold" textAnchor="middle">BẮC</text>
-              </g>
-
               {/* Vẽ các đường liên kết lối đi (Edges) */}
               {floorPlan.edges.map((edge) => {
                 const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
                 const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
                 if (!nodeFrom || !nodeTo) return null;
 
-                const x1 = nodeFrom.x + nodeFrom.width / 2;
-                const y1 = nodeFrom.y + nodeFrom.height / 2;
-                const x2 = nodeTo.x + nodeTo.width / 2;
-                const y2 = nodeTo.y + nodeTo.height / 2;
+                const boxFrom = getNodeBox(nodeFrom);
+                const boxTo = getNodeBox(nodeTo);
+
+                const x1 = boxFrom.x + boxFrom.width / 2;
+                const y1 = boxFrom.y + boxFrom.height / 2;
+                const x2 = boxTo.x + boxTo.width / 2;
+                const y2 = boxTo.y + boxTo.height / 2;
 
                 const isConnectedToActive =
                   activeNode && (edge.fromNodeId === activeNode.id || edge.toNodeId === activeNode.id);
@@ -216,13 +260,13 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       y1={y1}
                       x2={x2}
                       y2={y2}
-                      stroke={isConnectedToActive ? '#D4AF37' : 'rgba(255, 255, 255, 0.1)'}
-                      strokeWidth={isConnectedToActive ? 0.65 : 0.3}
+                      stroke={isConnectedToActive ? '#C5A059' : isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'}
+                      strokeWidth={isConnectedToActive ? 0.5 : 0.3}
                       strokeDasharray={isConnectedToActive ? undefined : '1, 1'}
-                      opacity={isConnectedToActive ? 0.95 : 0.35}
+                      opacity={isConnectedToActive ? 0.9 : 0.4}
                     />
 
-                    {/* Vị trí cánh cửa thông phòng (Điểm đánh dấu cửa sạch sẽ, không hiệu ứng nhấp nháy chói mắt) */}
+                    {/* Vị trí cánh cửa thông phòng */}
                     {isConnectedToActive && edge.doorX && edge.doorY && (
                       <g
                         transform={`translate(${edge.doorX}, ${edge.doorY})`}
@@ -232,7 +276,14 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                           setSelectedNodeId(edge.toNodeId);
                         }}
                       >
-                        <circle cx="0" cy="0" r="1.3" fill="#D4AF37" stroke="#0B0E17" strokeWidth="0.3" />
+                        <circle
+                          cx="0"
+                          cy="0"
+                          r="1.0"
+                          fill="#C5A059"
+                          stroke={isLight ? '#FFFFFF' : '#0E131D'}
+                          strokeWidth="0.25"
+                        />
                       </g>
                     )}
                   </g>
@@ -244,6 +295,14 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 const isSelected = activeNode?.id === node.id;
                 const isHovered = hoveredNodeId === node.id;
                 const isCentral = node.isEntrance || node.code.includes('SANH');
+                const box = getNodeBox(node);
+                const label = getMapNodeLabel(node);
+
+                // Kích thước mã phòng pill
+                const pillWidth = Math.min(box.width - 4, Math.max(node.code.length * 1.3 + 3, 9));
+                const pillHeight = 2.6;
+                const pillX = box.x + (box.width - pillWidth) / 2;
+                const pillY = box.y + 1.2;
 
                 return (
                   <g
@@ -255,75 +314,93 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                   >
                     {/* Khối gian phòng */}
                     <rect
-                      x={node.x}
-                      y={node.y}
-                      width={node.width}
-                      height={node.height}
-                      rx="1.5"
-                      ry="1.5"
+                      x={box.x}
+                      y={box.y}
+                      width={box.width}
+                      height={box.height}
+                      rx="2"
+                      ry="2"
                       fill={
                         isSelected
-                          ? '#1E293B'
-                          : isCentral
-                          ? '#172033'
+                          ? isLight ? '#FFFFFF' : '#1F283C'
                           : isHovered
-                          ? '#1A2234'
-                          : '#111827'
+                          ? isLight ? '#F1F5F9' : '#1A2333'
+                          : isCentral
+                          ? isLight ? '#FAF8F5' : '#161D2B'
+                          : isLight ? '#FFFFFF' : '#141A26'
                       }
                       stroke={
                         isSelected
-                          ? '#D4AF37'
+                          ? '#C5A059'
                           : isHovered
-                          ? '#94A3B8'
+                          ? isLight ? '#94A3B8' : '#64748B'
                           : isCentral
-                          ? 'rgba(212, 175, 55, 0.45)'
-                          : 'rgba(255, 255, 255, 0.14)'
+                          ? isLight ? 'rgba(180, 138, 60, 0.4)' : 'rgba(212, 168, 106, 0.35)'
+                          : isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'
                       }
-                      strokeWidth={isSelected ? 0.8 : 0.4}
+                      strokeWidth={isSelected ? 0.9 : 0.4}
                     />
 
-                    {/* Mã phân khu */}
+                    {/* Mã phân khu (Pill căn giữa phía trên) */}
                     <rect
-                      x={node.x + 1}
-                      y={node.y + 1}
-                      width={Math.min(node.width - 2, 8.5)}
-                      height={2.6}
-                      rx="0.6"
-                      fill={isSelected ? '#D4AF37' : 'rgba(255, 255, 255, 0.08)'}
+                      x={pillX}
+                      y={pillY}
+                      width={pillWidth}
+                      height={pillHeight}
+                      rx="0.8"
+                      fill={
+                        isSelected
+                          ? '#C5A059'
+                          : isLight
+                          ? 'rgba(0, 0, 0, 0.06)'
+                          : 'rgba(255, 255, 255, 0.08)'
+                      }
                     />
                     <text
-                      x={node.x + 1 + Math.min(node.width - 2, 8.5) / 2}
-                      y={node.y + 2.75}
-                      fill={isSelected ? '#0B0E17' : '#CBD5E1'}
-                      fontSize="1.5"
+                      x={pillX + pillWidth / 2}
+                      y={pillY + 1.8}
+                      fill={isSelected ? '#0F131D' : isLight ? '#475569' : '#CBD5E1'}
+                      fontSize="1.3"
                       fontWeight="bold"
                       textAnchor="middle"
                     >
                       {node.code}
                     </text>
 
-                    {/* Tên gian phòng */}
-                    <text
-                      x={node.x + node.width / 2}
-                      y={node.y + node.height / 2 + 0.5}
-                      fill={isSelected ? '#FFFFFF' : '#E2E8F0'}
-                      fontSize={isCentral ? '2.0' : '1.85'}
-                      fontWeight={isSelected ? 'bold' : '600'}
-                      textAnchor="middle"
-                    >
-                      {node.name.length > 22 ? node.name.substring(0, 20) + '...' : node.name}
-                    </text>
-
-                    {/* Phân kỳ lịch sử */}
-                    {node.period && (
+                    {/* Tên gian phòng căn giữa (1 dòng hoặc 2 dòng ngắn, vừa vặn 100% trong khung) */}
+                    {label.line2 ? (
+                      <>
+                        <text
+                          x={box.x + box.width / 2}
+                          y={box.y + box.height / 2 + 1.4}
+                          fill={isSelected ? (isLight ? '#0F172A' : '#FFFFFF') : isLight ? '#334155' : '#E2E8F0'}
+                          fontSize="1.55"
+                          fontWeight={isSelected ? 'bold' : '600'}
+                          textAnchor="middle"
+                        >
+                          {label.line1}
+                        </text>
+                        <text
+                          x={box.x + box.width / 2}
+                          y={box.y + box.height / 2 + 3.4}
+                          fill={isSelected ? '#C5A059' : isLight ? '#64748B' : '#94A3B8'}
+                          fontSize="1.25"
+                          fontWeight="500"
+                          textAnchor="middle"
+                        >
+                          {label.line2}
+                        </text>
+                      </>
+                    ) : (
                       <text
-                        x={node.x + node.width / 2}
-                        y={node.y + node.height / 2 + 3.1}
-                        fill={isSelected ? '#D4AF37' : '#94A3B8'}
-                        fontSize="1.25"
+                        x={box.x + box.width / 2}
+                        y={box.y + box.height / 2 + 2.2}
+                        fill={isSelected ? (isLight ? '#0F172A' : '#FFFFFF') : isLight ? '#334155' : '#E2E8F0'}
+                        fontSize="1.6"
+                        fontWeight={isSelected ? 'bold' : '600'}
                         textAnchor="middle"
                       >
-                        {node.period.length > 26 ? node.period.substring(0, 24) + '...' : node.period}
+                        {label.line1}
                       </text>
                     )}
                   </g>
@@ -331,6 +408,31 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               })}
             </svg>
           )}
+
+          {/* Chỉ báo phương vị Bắc chuẩn kiến trúc (gọn gàng, không giả lập xoay gây nhầm lẫn) */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 12,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '4px 9px',
+              borderRadius: 6,
+              background: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 19, 29, 0.85)',
+              border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)'}`,
+              fontSize: 11,
+              fontWeight: 500,
+              color: isLight ? '#475569' : '#CBD5E1',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              pointerEvents: 'none'
+            }}
+          >
+            <Navigation size={12} style={{ color: '#C5A059' }} />
+            <span>Hướng Bắc (N)</span>
+          </div>
 
           {/* Lối vào chính chân sơ đồ */}
           <div
@@ -341,23 +443,23 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               transform: 'translateX(-50%)',
               padding: '3px 12px',
               borderRadius: 4,
-              background: 'rgba(11, 14, 23, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(11, 14, 23, 0.85)',
+              border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.1)'}`,
               fontSize: 10.5,
               fontWeight: 500,
-              color: '#94A3B8',
+              color: isLight ? '#64748B' : '#94A3B8',
               pointerEvents: 'none'
             }}
           >
-            LỐI VÀO CHÍNH BẢO TÀNG • SỐ 2 NGUYỄN BỈNH KHIÊM
+            LỐI VÀO CHÍNH (SỐ 2 NGUYỄN BỈNH KHIÊM)
           </div>
         </div>
 
-        {/* Panel Chi Tiết Gian Phòng Đang Chọn (Rõ ràng, trực quan, không màu mè) */}
+        {/* Panel Chi Tiết Gian Phòng Đang Chọn (Tinh gọn, rõ ràng, không màu mè rối mắt) */}
         <div
           style={{
-            background: '#0E131F',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: isLight ? '#F8FAFC' : '#0E131F',
+            border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`,
             borderRadius: 10,
             padding: 16,
             display: 'flex',
@@ -368,52 +470,68 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
         >
           {activeNode ? (
             <div>
-              {/* Mã & Phân loại */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              {/* Mã & Phân loại nhẹ nhàng */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span
                   style={{
-                    padding: '2px 7px',
+                    padding: '2px 8px',
                     borderRadius: 4,
-                    background: '#D4AF37',
-                    color: '#0B0E17',
-                    fontSize: 10.5,
+                    background: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
+                    color: isLight ? '#334155' : '#CBD5E1',
+                    fontSize: 11,
                     fontWeight: 700
                   }}
                 >
                   {activeNode.code}
                 </span>
-                <span style={{ fontSize: 11.5, color: '#94A3B8' }}>{activeNode.category || 'Gian Trưng Bày'}</span>
+                <span style={{ fontSize: 12, color: isLight ? '#64748B' : '#94A3B8' }}>
+                  {activeNode.category || 'Gian Trưng Bày'}
+                </span>
               </div>
 
               {/* Tên gian phòng */}
-              <h3 style={{ fontSize: 15.5, fontWeight: 700, color: '#FFFFFF', margin: '0 0 4px 0', lineHeight: 1.35 }}>
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: isLight ? '#0F172A' : '#FFFFFF',
+                  margin: '0 0 4px 0',
+                  lineHeight: 1.35
+                }}
+              >
                 {activeNode.name}
               </h3>
 
-              <div style={{ fontSize: 12, color: '#CBD5E1', marginBottom: 14 }}>
+              {/* Phân kỳ lịch sử */}
+              <div style={{ fontSize: 12.5, color: isLight ? '#64748B' : '#94A3B8', marginBottom: 16 }}>
                 {activeNode.period || 'Hiện vật trưng bày lịch sử'}
               </div>
 
-              {/* Các lối đi thông sang phòng kế tiếp */}
-              <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: 12 }}>
+              {/* Các lối đi thông sang phòng liền kề */}
+              <div
+                style={{
+                  borderTop: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)'}`,
+                  paddingTop: 12
+                }}
+              >
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 11.5,
                     fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    color: '#94A3B8',
-                    marginBottom: 8
+                    color: isLight ? '#475569' : '#CBD5E1',
+                    marginBottom: 10
                   }}
                 >
-                  Lối đi sang các phòng kế tiếp:
+                  Lối đi sang các phòng kế tiếp ({connectedEdges.length}):
                 </div>
 
                 {connectedEdges.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 190, overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
                     {connectedEdges.map((edge) => {
                       const targetNode = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
                       const badge = getDirectionBadge(edge.direction);
+                      const targetName = targetNode ? targetNode.name : edge.targetRoomName || 'Gian kế tiếp';
+
                       return (
                         <div
                           key={edge.id}
@@ -422,47 +540,55 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '7px 10px',
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            padding: '8px 10px',
+                            background: isLight ? '#FFFFFF' : 'rgba(255, 255, 255, 0.03)',
+                            border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)'}`,
                             borderRadius: 6,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(212, 175, 55, 0.08)';
-                            e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                            e.currentTarget.style.background = isLight ? '#F1F5F9' : 'rgba(255, 255, 255, 0.07)';
+                            e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.4)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+                            e.currentTarget.style.background = isLight ? '#FFFFFF' : 'rgba(255, 255, 255, 0.03)';
+                            e.currentTarget.style.borderColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)';
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                            <span style={{ color: '#D4AF37', display: 'flex' }}>{badge.icon}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ color: '#C5A059', display: 'flex', flexShrink: 0 }}>
+                              {badge.icon}
+                            </span>
                             <div>
-                              <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 500 }}>
+                              <div style={{ fontSize: 10, color: isLight ? '#64748B' : '#94A3B8' }}>
                                 {badge.label}
                               </div>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: '#F8FAFC' }}>
-                                {targetNode ? targetNode.name : edge.targetRoomName || 'Gian kế tiếp'}
+                              <div
+                                style={{
+                                  fontSize: 12.5,
+                                  fontWeight: 600,
+                                  color: isLight ? '#1E293B' : '#F1F5F9'
+                                }}
+                              >
+                                {targetName}
                               </div>
                             </div>
                           </div>
-                          <span style={{ fontSize: 11, color: '#D4AF37' }}>Xem →</span>
+                          <ArrowRight size={13} style={{ color: isLight ? '#94A3B8' : '#64748B', flexShrink: 0 }} />
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <div style={{ fontSize: 12, color: '#94A3B8', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: 12, color: isLight ? '#64748B' : '#94A3B8', fontStyle: 'italic' }}>
                     Khu vực tiếp đón hoặc kết nối qua hành lang chính
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: '#94A3B8' }}>
+            <div style={{ textAlign: 'center', padding: '24px 0', color: isLight ? '#64748B' : '#94A3B8' }}>
               <Info size={22} style={{ margin: '0 auto 6px auto', opacity: 0.6 }} />
               <div>Bấm vào một gian phòng trên sơ đồ để xem thông tin</div>
             </div>
@@ -481,8 +607,8 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                   justifyContent: 'center',
                   gap: 8,
                   padding: '10px 14px',
-                  background: '#D4AF37',
-                  color: '#0B0E17',
+                  background: '#C5A059',
+                  color: '#0F131D',
                   border: 'none',
                   borderRadius: 6,
                   fontSize: 12.5,
@@ -490,19 +616,19 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                   cursor: 'pointer',
                   transition: 'background 0.15s ease'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#E5C358'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#D4AF37'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#D4AF37'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#C5A059'; }}
               >
                 <Eye size={15} />
-                <span>Vào Tham Quan Tour 360° Phòng Này</span>
+                <span>Vào tham quan 360° phòng này</span>
               </button>
             ) : (
               <div
                 style={{
                   fontSize: 11.5,
                   textAlign: 'center',
-                  color: '#94A3B8',
-                  background: 'rgba(255, 255, 255, 0.02)',
+                  color: isLight ? '#64748B' : '#94A3B8',
+                  background: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.02)',
                   padding: '8px',
                   borderRadius: 6
                 }}
