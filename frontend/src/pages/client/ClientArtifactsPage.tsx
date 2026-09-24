@@ -37,7 +37,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
 
   // Phân trang chuẩn Dashboard (6 - 9 - 12 - 18 - 24)
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(9);
+  const [pageSize, setPageSize] = useState<number>(6);
 
   // Reset về trang 1 khi lọc hoặc tìm kiếm
   useEffect(() => {
@@ -124,17 +124,17 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
             </div>
 
             <span className="client-subpage-badge">
-              {t('artifacts.tag', 'Hiện vật & Cổ vật 3D')}
+              {t('artifacts.tag', 'Cổ vật 3D')}
             </span>
 
             <h1 className="client-subpage-title">
-              {t('artifacts.pageHeading', 'Kho hiện vật di sản')}
+              {t('artifacts.pageHeading', 'Cổ vật & Hiện vật di sản')}
             </h1>
 
             <p className="client-subpage-lead">
               {t(
                 'artifacts.pageLead',
-                'Khám phá bộ sưu tập hiện vật và bảo vật lịch sử được số hóa 3D đa chiều.'
+                'Khám phá các hiện vật lịch sử và cổ vật được số hóa 3D.'
               )}
             </p>
           </div>
