@@ -17,15 +17,15 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   return (
     <section id="guide" className="client-zigzag-section">
       <div className="client-container">
-        {/* ZIG-ZAG 4: NẰM BÊN TRÁI, CỘT NỘI DUNG BÊN TRÁI - ẢNH KIẾN TRÚC BÊN PHẢI */}
+        {/* ZIG-ZAG 4: NẰM BÊN TRÁI, ĐẢO CỘT NỘI DUNG TRÁI - ẢNH KIẾN TRÚC PHẢI */}
         <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
-          {/* CỘT MEDIA: HÌNH ẢNH KHUÔN VIÊN & KIẾN TRÚC BẢO TÀNG */}
+          {/* CỘT MEDIA: ẢNH KIẾN TRÚC BẢO TÀNG */}
           <div
             className="client-zigzag-card-media clickable"
             onClick={onViewAllGuide}
             role="button"
             tabIndex={0}
-            title={t('guide.clickToEnter', 'Bấm để xem cẩm nang tham quan chi tiết')}
+            title={t('guide.clickToEnter', 'Bấm để xem cẩm nang & sơ đồ tham quan')}
           >
             <img
               src={museumPhoto}
@@ -44,67 +44,47 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             </div>
           </div>
 
-          {/* CỘT NỘI DUNG: HƯỚNG DẪN THỰC ĐỊA TRANG NHÃ */}
+          {/* CỘT NỘI DUNG: TỐI GIẢN, TINH TẾ, TUYỆT ĐỐI KHÔNG DÙNG HỘP DỮ LIỆU ẢO */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
-              {t('guide.tag', 'Kế Hoạch Tham Quan')}
+              {t('guide.tag', 'Kế Hoạch & Sơ Đồ')}
             </span>
 
             <h2 className="client-zigzag-title">
-              {t('guide.headline', 'Hướng Dẫn Khách Tham Quan Thực Địa')}
+              {t('guide.headline', 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa')}
             </h2>
 
-            <p className="client-zigzag-desc" style={{ marginBottom: 18 }}>
+            <p className="client-zigzag-desc">
               {t(
                 'guide.sub',
-                'Thông tin giờ mở cửa đón khách, chính sách biểu phí niêm yết và trải nghiệm tương tác số hóa trực tiếp tại không gian bảo tàng.'
+                'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.'
               )}
             </p>
 
-            <div className="client-zigzag-guide-cards">
-              {/* Giờ mở cửa */}
-              <div className="client-zigzag-guide-item">
-                <div className="client-zigzag-guide-header">
-                  <span className="client-zigzag-guide-label">Thời gian mở cửa đón khách</span>
-                  <span className="client-zigzag-guide-badge">Thứ Ba – Chủ Nhật</span>
-                </div>
-                <div className="client-zigzag-guide-time">
-                  <span>08:00 – 11:30</span>
-                  <span className="client-zigzag-guide-dot">•</span>
-                  <span>13:30 – 17:00</span>
-                </div>
-                <div className="client-zigzag-guide-sub">
-                  * Nghỉ Thứ Hai hàng tuần để bảo dưỡng cổ vật
-                </div>
-              </div>
-
-              {/* Biểu phí vé */}
-              <div className="client-zigzag-guide-item">
-                <div className="client-zigzag-guide-header">
-                  <span className="client-zigzag-guide-label">Biểu phí vé niêm yết</span>
-                </div>
-                <div className="client-zigzag-guide-tickets">
-                  <div className="client-zigzag-ticket-row">
-                    <span>Khách người lớn</span>
-                    <strong>30.000 VNĐ</strong>
-                  </div>
-                  <div className="client-zigzag-ticket-row">
-                    <span>Học sinh, sinh viên, người cao tuổi</span>
-                    <strong className="highlight">Miễn phí / Ưu đãi</strong>
-                  </div>
-                </div>
-              </div>
+            {/* DÒNG THÔNG SỐ ĐỒNG BỘ TINH TẾ */}
+            <div className="client-zigzag-meta-line">
+              <span className="client-zigzag-meta-item">
+                {branding.city || 'TP. Hồ Chí Minh'}
+              </span>
+              <span className="client-zigzag-meta-sep">•</span>
+              <span className="client-zigzag-meta-item">
+                Sơ đồ mặt bằng số hóa
+              </span>
+              <span className="client-zigzag-meta-sep">•</span>
+              <span className="client-zigzag-meta-item">
+                Thuyết minh Audio Guide
+              </span>
             </div>
 
-            {/* NÚT HÀNH ĐỘNG SANG TRỌNG */}
+            {/* DUY NHẤT 1 NÚT ĐIỀU HƯỚNG SANG TRANG CẨM NANG */}
             {onViewAllGuide && (
-              <div className="client-zigzag-actions" style={{ marginTop: 22 }}>
+              <div className="client-zigzag-actions">
                 <button
                   type="button"
                   className="client-zigzag-btn-primary"
                   onClick={onViewAllGuide}
                 >
-                  {t('guide.btnViewAll', 'Xem cẩm nang tham quan đầy đủ')}
+                  {t('guide.btnViewAll', 'Xem cẩm nang & sơ đồ tham quan')}
                 </button>
               </div>
             )}
@@ -114,4 +94,5 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
     </section>
   );
 };
+
 
