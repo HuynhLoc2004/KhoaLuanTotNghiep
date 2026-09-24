@@ -394,6 +394,21 @@ export const api = {
     return { url: json.data.url };
   },
 
+  async uploadBrandingImage(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = getAuthHeaders(false);
+
+    const res = await fetch(`${API_BASE}/upload/branding-image`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải lên file ảnh');
+    return { url: json.data.url };
+  },
+
   // === QUẢN TRỊ HIỆN VẬT & MÔ PHỎNG 3D CỔ VẬT (ARTIFACTS & 3D RECONSTRUCTION) ===
   async getArtifacts(params?: { category?: string; search?: string; status?: string }): Promise<Artifact[]> {
     const query = new URLSearchParams();

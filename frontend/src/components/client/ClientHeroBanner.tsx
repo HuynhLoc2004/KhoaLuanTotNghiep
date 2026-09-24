@@ -84,11 +84,12 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
           </span>
 
           <h1 className="client-hero-headline">
-            {branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}
+            {branding.heroTitle || branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}
           </h1>
 
           <p className="client-hero-lead">
-            {branding.tagline ||
+            {branding.heroTagline ||
+              branding.tagline ||
               t(
                 'hero.subtitle',
                 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.'
@@ -102,7 +103,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               className="client-btn-primary"
               onClick={onExploreTourClick}
             >
-              <span>{t('hero.btnTour', 'Bắt Đầu Tour 360°')}</span>
+              <span>{branding.heroCta1Text || t('hero.btnTour', 'Bắt Đầu Tour 360°')}</span>
               <ArrowRight size={16} />
             </button>
 
@@ -111,7 +112,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               className="client-btn-secondary"
               onClick={onExploreArtifactsClick}
             >
-              <span>{t('hero.btnArtifacts', 'Chiêm Ngưỡng Cổ Vật 3D')}</span>
+              <span>{branding.heroCta2Text || t('hero.btnArtifacts', 'Chiêm Ngưỡng Cổ Vật 3D')}</span>
             </button>
           </div>
 

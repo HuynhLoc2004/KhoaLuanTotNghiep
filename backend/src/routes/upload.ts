@@ -119,3 +119,44 @@ uploadRouter.post('/branding-logo', upload.single('file'), async (req: Request, 
   }
 });
 
+// POST /api/upload/branding-image (Tải ảnh banner, ảnh kiến trúc, ảnh sơ đồ mặt bằng)
+uploadRouter.post('/branding-image', upload.single('file'), async (req: Request, res: Response) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'Vui lòng chọn file ảnh để tải lên' });
+  }
+
+  const localFilePath = req.file.path;
+
+  try {
+    console.log('[Cloudinary] Đang tải ảnh giao diện bảo tàng lên Cloudinary folder: museum/branding_assets...');
+    const result = await uploadToCloudinary(localFilePath, 'museum/branding_assets');
+    console.log('[Cloudinary] Tải ảnh thành công! URL:', result.secure_url);
+
+    try {
+      fs.unlinkSync(localFilePath);
+    } catch {}
+
+    res.json({
+      success: true,
+      data: {
+        url: result.secure_url,
+        public_id: result.public_id,
+        filename: req.file.filename,
+        storage: 'cloudinary'
+      }
+    });
+  } catch (cloudErr: any) {
+    console.warn('[Cloudinary] Lỗi tải Cloudinary, dùng máy chủ cục bộ:', cloudErr.message);
+    const localUrl = `/uploads/${req.file.filename}`;
+    res.json({
+      success: true,
+      data: {
+        url: localUrl,
+        filename: req.file.filename,
+        storage: 'local'
+      }
+    });
+  }
+});
+
+

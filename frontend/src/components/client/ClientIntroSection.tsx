@@ -25,28 +25,29 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
           {/* CỘT ẢNH: KIẾN TRÚC BẢO TÀNG TINH TẾ */}
           <div className="client-zigzag-card-media">
             <img
-              src="https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=1200&q=85"
-              alt={branding.museumName || 'Kiến trúc Bảo tàng Lịch sử'}
+              src={branding.introImageUrl || "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=1200&q=85"}
+              alt={branding.introTitle || branding.museumName || 'Kiến trúc Bảo tàng Lịch sử'}
               className="client-zigzag-card-img"
               loading="lazy"
             />
             <div className="client-zigzag-badge-float">
-              <span>Di tích Kiến trúc Nghệ thuật Cấp Quốc gia</span>
+              <span>{branding.introBadgeText || 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia'}</span>
             </div>
           </div>
 
           {/* CỘT NỘI DUNG: TRANG NHÃ, KHÔNG TÈM LEM MÀU, KHÔNG ICON DƯ THỪA */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
-              {t('intro.tag', 'Kiến Trúc & Không Gian')}
+              {branding.introTag || t('intro.tag', 'Kiến Trúc & Không Gian')}
             </span>
 
             <h2 className="client-zigzag-title">
-              {branding.museumName || t('intro.title', 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh')}
+              {branding.introTitle || branding.museumName || t('intro.title', 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh')}
             </h2>
 
             <p className="client-zigzag-desc">
-              {branding.tagline ||
+              {branding.introDesc ||
+                branding.tagline ||
                 t(
                   'intro.desc',
                   'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.'
@@ -76,7 +77,7 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
                   className="client-zigzag-btn-primary"
                   onClick={onExploreRooms}
                 >
-                  {t('intro.btnExplore', 'Khám phá gian trưng bày')}
+                  {branding.introCtaText || t('intro.btnExplore', 'Khám phá gian trưng bày')}
                 </button>
               </div>
             )}

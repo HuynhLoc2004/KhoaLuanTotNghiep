@@ -11,6 +11,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   const { t } = useClientTranslation();
 
   const museumPhoto =
+    branding.guideMapUrl ||
     branding.heroBannerUrl ||
     'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=1200&q=85';
 
@@ -47,18 +48,19 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
           {/* CỘT NỘI DUNG: TỐI GIẢN, TINH TẾ, TUYỆT ĐỐI KHÔNG DÙNG HỘP DỮ LIỆU ẢO */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
-              {t('guide.tag', 'Kế Hoạch & Sơ Đồ')}
+              {branding.guideTag || t('guide.tag', 'Kế Hoạch & Sơ Đồ')}
             </span>
 
             <h2 className="client-zigzag-title">
-              {t('guide.headline', 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa')}
+              {branding.guideTitle || t('guide.headline', 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa')}
             </h2>
 
             <p className="client-zigzag-desc">
-              {t(
-                'guide.sub',
-                'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.'
-              )}
+              {branding.guideDesc ||
+                t(
+                  'guide.sub',
+                  'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.'
+                )}
             </p>
 
             {/* DÒNG THÔNG SỐ ĐỒNG BỘ TINH TẾ */}
@@ -84,7 +86,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                   className="client-zigzag-btn-primary"
                   onClick={onViewAllGuide}
                 >
-                  {t('guide.btnViewAll', 'Xem cẩm nang & sơ đồ tham quan')}
+                  {branding.guideCtaText || t('guide.btnViewAll', 'Xem cẩm nang & sơ đồ tham quan')}
                 </button>
               </div>
             )}

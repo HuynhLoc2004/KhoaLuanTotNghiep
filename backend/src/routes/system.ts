@@ -383,9 +383,40 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       contactEmail: contactEmail !== undefined ? String(contactEmail).trim() : current.contactEmail,
       hotline: hotline !== undefined ? String(hotline).trim() : current.hotline,
       emailSenderName: emailSenderName !== undefined ? String(emailSenderName).trim() : current.emailSenderName,
+      // Hero Showcase
+      heroTitle: req.body.heroTitle !== undefined ? String(req.body.heroTitle).trim() : current.heroTitle,
+      heroTagline: req.body.heroTagline !== undefined ? String(req.body.heroTagline).trim() : current.heroTagline,
+      heroBannerUrl: req.body.heroBannerUrl !== undefined ? String(req.body.heroBannerUrl).trim() : current.heroBannerUrl,
+      heroVideoUrl: req.body.heroVideoUrl !== undefined ? String(req.body.heroVideoUrl).trim() : current.heroVideoUrl,
+      heroCta1Text: req.body.heroCta1Text !== undefined ? String(req.body.heroCta1Text).trim() : current.heroCta1Text,
+      heroCta2Text: req.body.heroCta2Text !== undefined ? String(req.body.heroCta2Text).trim() : current.heroCta2Text,
+      // Intro Section
+      introTag: req.body.introTag !== undefined ? String(req.body.introTag).trim() : current.introTag,
+      introTitle: req.body.introTitle !== undefined ? String(req.body.introTitle).trim() : current.introTitle,
+      introDesc: req.body.introDesc !== undefined ? String(req.body.introDesc).trim() : current.introDesc,
+      introBadgeText: req.body.introBadgeText !== undefined ? String(req.body.introBadgeText).trim() : current.introBadgeText,
+      introImageUrl: req.body.introImageUrl !== undefined ? String(req.body.introImageUrl).trim() : current.introImageUrl,
+      introCtaText: req.body.introCtaText !== undefined ? String(req.body.introCtaText).trim() : current.introCtaText,
+      // Rooms Section
+      roomsTag: req.body.roomsTag !== undefined ? String(req.body.roomsTag).trim() : current.roomsTag,
+      roomsTitle: req.body.roomsTitle !== undefined ? String(req.body.roomsTitle).trim() : current.roomsTitle,
+      roomsDesc: req.body.roomsDesc !== undefined ? String(req.body.roomsDesc).trim() : current.roomsDesc,
+      roomsCtaText: req.body.roomsCtaText !== undefined ? String(req.body.roomsCtaText).trim() : current.roomsCtaText,
+      // Artifacts Section
+      artifactsTag: req.body.artifactsTag !== undefined ? String(req.body.artifactsTag).trim() : current.artifactsTag,
+      artifactsTitle: req.body.artifactsTitle !== undefined ? String(req.body.artifactsTitle).trim() : current.artifactsTitle,
+      artifactsDesc: req.body.artifactsDesc !== undefined ? String(req.body.artifactsDesc).trim() : current.artifactsDesc,
+      artifactsCtaText: req.body.artifactsCtaText !== undefined ? String(req.body.artifactsCtaText).trim() : current.artifactsCtaText,
+      // Guide & Floor Plan Section
+      guideTag: req.body.guideTag !== undefined ? String(req.body.guideTag).trim() : current.guideTag,
+      guideTitle: req.body.guideTitle !== undefined ? String(req.body.guideTitle).trim() : current.guideTitle,
+      guideDesc: req.body.guideDesc !== undefined ? String(req.body.guideDesc).trim() : current.guideDesc,
+      guideCtaText: req.body.guideCtaText !== undefined ? String(req.body.guideCtaText).trim() : current.guideCtaText,
       guideMapUrl: req.body.guideMapUrl !== undefined ? String(req.body.guideMapUrl).trim() : current.guideMapUrl,
       guideMapTitle: req.body.guideMapTitle !== undefined ? String(req.body.guideMapTitle).trim() : current.guideMapTitle,
       guideMapDesc: req.body.guideMapDesc !== undefined ? String(req.body.guideMapDesc).trim() : current.guideMapDesc,
+      // Footer
+      footerCopyrightText: req.body.footerCopyrightText !== undefined ? String(req.body.footerCopyrightText).trim() : current.footerCopyrightText,
       updatedBy: req.user?.username || 'admin'
     };
 

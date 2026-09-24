@@ -78,7 +78,7 @@ export interface TopicItem {
   updatedAt?: string;
 }
 
-export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'languages' | 'analytics' | 'settings';
+export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'homepage_cms' | 'languages' | 'analytics' | 'settings';
 
 
 
@@ -171,12 +171,40 @@ export interface SystemBranding {
   contactEmail: string;
   hotline: string;
   emailSenderName: string;
+  // Hero Showcase
+  heroTitle?: string;
+  heroTagline?: string;
   heroBannerUrl?: string;
   heroVideoUrl?: string;
+  heroCta1Text?: string;
+  heroCta2Text?: string;
+  // Intro Section
+  introTag?: string;
+  introTitle?: string;
+  introDesc?: string;
+  introBadgeText?: string;
   introImageUrl?: string;
+  introCtaText?: string;
+  // Rooms Section
+  roomsTag?: string;
+  roomsTitle?: string;
+  roomsDesc?: string;
+  roomsCtaText?: string;
+  // Artifacts Section
+  artifactsTag?: string;
+  artifactsTitle?: string;
+  artifactsDesc?: string;
+  artifactsCtaText?: string;
+  // Guide & Floor Plan Section
+  guideTag?: string;
+  guideTitle?: string;
+  guideDesc?: string;
+  guideCtaText?: string;
   guideMapUrl?: string;
   guideMapTitle?: string;
   guideMapDesc?: string;
+  // Footer
+  footerCopyrightText?: string;
   updatedAt?: string;
   updatedBy?: string;
 }

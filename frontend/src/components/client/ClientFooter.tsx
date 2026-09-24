@@ -168,7 +168,7 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
         {/* Thanh chân trang & Nút cuộn lên đầu */}
         <div className="client-footer-bottom">
           <div className="client-footer-copyright">
-            &copy; {new Date().getFullYear()} {branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}. Tất cả quyền được bảo lưu.
+            &copy; {new Date().getFullYear()} {branding.footerCopyrightText || `${branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}. Tất cả quyền được bảo lưu.`}
           </div>
 
           <button

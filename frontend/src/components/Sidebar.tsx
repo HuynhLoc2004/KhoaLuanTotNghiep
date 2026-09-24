@@ -1,4 +1,4 @@
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose } from 'lucide-react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate } from 'lucide-react';
 import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 import { useClientTranslation } from '../context/ClientTranslationContext';
@@ -127,6 +127,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Box size={16} />
           <span>{t('nav.artifacts', 'Hiện vật & Cổ vật di sản')}</span>
+        </button>
+
+        <button
+          className={`nav-item ${currentTab === 'homepage_cms' ? 'active' : ''}`}
+          onClick={() => handleItemClick('homepage_cms')}
+        >
+          <LayoutTemplate size={16} />
+          <span>{t('nav.homepageCms', 'Quản lý Trang chủ')}</span>
         </button>
 
         <button

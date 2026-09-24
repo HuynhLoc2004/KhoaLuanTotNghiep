@@ -20,6 +20,7 @@ import { SystemBrandingProvider, useSystemBranding } from './context/SystemBrand
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { AdminHomepageCMSPage } from './pages/admin/AdminHomepageCMSPage';
 import { ClientTranslationProvider, useClientTranslation } from './context/ClientTranslationContext';
 import { ClientHomePage } from './pages/client/ClientHomePage';
 import { ClientTourView } from './pages/client/ClientTourView';
@@ -754,6 +755,8 @@ const AppContent: React.FC = () => {
           />
         ) : currentTab === 'artifacts' ? (
           <AdminArtifactsPage />
+        ) : currentTab === 'homepage_cms' ? (
+          <AdminHomepageCMSPage />
         ) : currentTab === 'languages' ? (
           <AdminLanguagePage />
         ) : currentTab === 'settings' ? (

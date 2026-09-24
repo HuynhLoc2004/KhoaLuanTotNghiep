@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Artifact } from '../../types';
 import { API_ROOT } from '../../services/api';
+import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { Turntable360Viewer } from '../Turntable360Viewer';
 
@@ -17,6 +18,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   onSelectArtifactDetail,
   onViewAllArtifacts
 }) => {
+  const { branding } = useSystemBranding();
   const { t, localize } = useClientTranslation();
 
   const [selectedArtifactId, setSelectedArtifactId] = useState<string>(
@@ -108,18 +110,19 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
           {/* CỘT NỘI DUNG: TINH TẾ, ĐẲNG CẤP, KHÔNG TÈM LEM MÀU SẮC */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
-              {t('artifacts.tag', 'Bảo Vật Di Sản & Mô Hình 3D')}
+              {branding.artifactsTag || t('artifacts.tag', 'Bảo Vật Di Sản & Mô Hình 3D')}
             </span>
 
             <h2 className="client-zigzag-title">
-              {t('artifacts.headline', 'Kho Tàng Cổ Vật & Bảo Vật Di Sản')}
+              {branding.artifactsTitle || t('artifacts.headline', 'Kho Tàng Cổ Vật & Bảo Vật Di Sản')}
             </h2>
 
             <p className="client-zigzag-desc">
-              {t(
-                'artifacts.sub',
-                'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.'
-              )}
+              {branding.artifactsDesc ||
+                t(
+                  'artifacts.sub',
+                  'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.'
+                )}
             </p>
 
             {/* DÒNG THÔNG SỐ ĐỒNG BỘ THẬT */}
@@ -148,7 +151,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                 className="client-zigzag-btn-primary"
                 onClick={onViewAllArtifacts}
               >
-                {t('artifacts.btnViewAll', 'Khám phá toàn bộ kho hiện vật')}
+                {branding.artifactsCtaText || t('artifacts.btnViewAll', 'Khám phá toàn bộ kho hiện vật')}
               </button>
             </div>
           </div>
