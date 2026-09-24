@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Maximize2, X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, Ticket, MapPin, Maximize2, X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { ClientNavbar } from '../../components/client/ClientNavbar';
@@ -113,8 +113,8 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
 
       <main className="client-subpage">
         <div className="client-container">
-          {/* Breadcrumb & Tiêu đề trang */}
-          <div className="client-subpage-hero" style={{ maxWidth: 880, margin: '0 auto clamp(36px, 4vw, 54px) auto', textAlign: 'center' }}>
+          {/* Tiêu đề trang - Tinh gọn, uy nghiêm, không rườm rà */}
+          <div className="client-subpage-hero" style={{ maxWidth: 840, margin: '0 auto clamp(28px, 3.5vw, 44px) auto', textAlign: 'center' }}>
             <div className="client-subpage-breadcrumb" style={{ justifyContent: 'center' }}>
               <button
                 type="button"
@@ -126,42 +126,170 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
               </button>
               <span className="client-breadcrumb-sep">/</span>
               <span className="client-breadcrumb-current">
-                {t('guide.pageTitle', 'Cẩm nang & Sơ đồ tham quan')}
+                {t('guide.pageTitle', 'Cẩm nang tham quan')}
               </span>
             </div>
 
-            <span className="client-zigzag-tag">
-              {t('guide.tag', 'Lộ Trình & Kế Hoạch Tham Quan Thực Địa')}
-            </span>
-
-            <h1 className="client-subpage-title" style={{ fontSize: 'clamp(2.1rem, 3.2vw, 3rem)' }}>
-              {t('guide.pageHeading', 'Sơ Đồ Mặt Bằng & Cẩm Nang Tham Quan')}
+            <h1 className="client-subpage-title" style={{ fontSize: 'clamp(2rem, 3.2vw, 2.75rem)', letterSpacing: '-0.02em', margin: '14px 0 10px 0' }}>
+              {t('guide.pageHeading', 'Cẩm Nang & Sơ Đồ Tham Quan')}
             </h1>
 
-            <p className="client-subpage-lead" style={{ margin: '0 auto', fontSize: '1rem', lineHeight: 1.75 }}>
+            <p className="client-subpage-lead" style={{ margin: '0 auto', fontSize: '1.02rem', lineHeight: 1.7, color: 'var(--c-text-secondary)', maxWidth: 680 }}>
               {t(
                 'guide.pageLead',
-                'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và trang bị đầy đủ thông tin biểu phí, giờ mở cửa cùng các tiện ích tương tác số hóa tại điểm.'
+                'Thông tin chính thức về thời gian mở cửa, biểu phí vé, hướng dẫn di chuyển và sơ đồ liên kết các gian trưng bày tại Bảo tàng Lịch sử TP. Hồ Chí Minh.'
               )}
             </p>
           </div>
 
           {/* =========================================================================
-              PHẦN 1: TÂM ĐIỂM SƠ ĐỒ MẶT BẰNG BẢO TÀNG (MUSEUM FLOOR PLAN SHOWCASE)
-              Hỗ trợ nạp động ảnh do Admin upload từ server
+              PHẦN 1: THÔNG TIN THIẾT YẾU CHO KHÁCH THAM QUAN (3 CỘT TRỰC QUAN, RÕ RÀNG)
+              Tập trung đúng trọng tâm: Giờ mở cửa, Giá vé, Vị trí & Di chuyển
               ========================================================================= */}
-          <section className="client-guide-floorplan-showcase">
+          <section className="client-guide-essentials-section" style={{ marginBottom: 40 }}>
+            <div className="client-guide-essentials-grid">
+              {/* Cột 1: Giờ mở cửa */}
+              <div className="client-guide-essential-card">
+                <div className="client-guide-essential-header">
+                  <div className="client-guide-essential-icon">
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <h3 className="client-guide-essential-title">Giờ Mở Cửa</h3>
+                    <span className="client-guide-essential-badge open">Thứ Ba – Chủ Nhật</span>
+                  </div>
+                </div>
+
+                <div className="client-guide-essential-body">
+                  <div className="client-guide-hours-display">
+                    <div className="client-guide-hour-slot">
+                      <span className="client-guide-hour-period">Sáng</span>
+                      <strong className="client-guide-hour-time">08:00 – 11:30</strong>
+                    </div>
+                    <div className="client-guide-hour-divider" />
+                    <div className="client-guide-hour-slot">
+                      <span className="client-guide-hour-period">Chiều</span>
+                      <strong className="client-guide-hour-time">13:30 – 17:00</strong>
+                    </div>
+                  </div>
+
+                  <ul className="client-guide-essential-list">
+                    <li>
+                      <span className="bullet">•</span>
+                      <span><strong>Thứ Hai:</strong> Đóng cửa định kỳ để bảo quản hiện vật.</span>
+                    </li>
+                    <li>
+                      <span className="bullet">•</span>
+                      <span>Quầy vé ngưng nhận khách trước giờ đóng cửa 30 phút.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Cột 2: Bảng giá vé niêm yết */}
+              <div className="client-guide-essential-card">
+                <div className="client-guide-essential-header">
+                  <div className="client-guide-essential-icon">
+                    <Ticket size={18} />
+                  </div>
+                  <div>
+                    <h3 className="client-guide-essential-title">Giá Vé Niêm Yết</h3>
+                    <span className="client-guide-essential-badge neutral">Quy định hiện hành</span>
+                  </div>
+                </div>
+
+                <div className="client-guide-essential-body">
+                  <div className="client-guide-price-rows">
+                    <div className="client-guide-price-row">
+                      <div className="client-guide-price-target">
+                        <strong>Người lớn</strong>
+                        <span>Khách Việt Nam & Quốc tế</span>
+                      </div>
+                      <div className="client-guide-price-amount">30.000 ₫</div>
+                    </div>
+
+                    <div className="client-guide-price-row highlight">
+                      <div className="client-guide-price-target">
+                        <strong>Học sinh, Sinh viên</strong>
+                        <span>Xuất trình thẻ HSSV còn hạn</span>
+                      </div>
+                      <div className="client-guide-price-amount gold">15.000 ₫</div>
+                    </div>
+
+                    <div className="client-guide-price-row free">
+                      <div className="client-guide-price-target">
+                        <strong>Trẻ em &lt; 6 tuổi, Người cao tuổi</strong>
+                        <span>Người khuyết tật, diện chính sách</span>
+                      </div>
+                      <div className="client-guide-price-amount free-badge">Miễn phí</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cột 3: Vị trí & Hướng dẫn đi lại */}
+              <div className="client-guide-essential-card">
+                <div className="client-guide-essential-header">
+                  <div className="client-guide-essential-icon">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <h3 className="client-guide-essential-title">Vị Trí & Di Chuyển</h3>
+                    <span className="client-guide-essential-badge neutral">Quận 1, TP.HCM</span>
+                  </div>
+                </div>
+
+                <div className="client-guide-essential-body">
+                  <p className="client-guide-address-text">
+                    <strong>{address}</strong>
+                    <br />
+                    <span style={{ fontSize: '0.85rem', color: '#94A3B8' }}>
+                      (Cổng chính đối diện Thảo Cầm Viên Sài Gòn)
+                    </span>
+                  </p>
+
+                  <ul className="client-guide-essential-list" style={{ marginBottom: 16 }}>
+                    <li>
+                      <span className="bullet">•</span>
+                      <span><strong>Xe buýt:</strong> Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.</span>
+                    </li>
+                    <li>
+                      <span className="bullet">•</span>
+                      <span><strong>Gửi xe:</strong> Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.</span>
+                    </li>
+                    <li>
+                      <span className="bullet">•</span>
+                      <span><strong>Hotline:</strong> <strong style={{ color: '#F8FAFC' }}>{hotline}</strong></span>
+                    </li>
+                  </ul>
+
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="client-guide-maps-btn"
+                  >
+                    <span>Mở chỉ đường Google Maps</span>
+                    <ArrowRight size={14} />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              PHẦN 2: TÂM ĐIỂM SƠ ĐỒ MẶT BẰNG BẢO TÀNG (MUSEUM FLOOR PLAN SHOWCASE)
+              Sạch sẽ, trực quan, không lặp lại các card thừa
+              ========================================================================= */}
+          <section className="client-guide-floorplan-showcase" style={{ marginBottom: 44 }}>
             <div className="client-guide-floorplan-header">
               <div>
-                <span className="client-zigzag-tag" style={{ marginBottom: 6 }}>
-                  Sơ Đồ Không Gian Kiến Trúc
-                </span>
-                <h2 className="client-guide-floorplan-title">
-                  {branding.guideMapTitle || 'Sơ Đồ Mặt Bằng & Lộ Trình Tham Quan'}
+                <h2 className="client-guide-floorplan-title" style={{ fontSize: 'clamp(1.4rem, 2.2vw, 1.85rem)' }}>
+                  {branding.guideMapTitle || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày'}
                 </h2>
-                <p className="client-guide-floorplan-desc">
+                <p className="client-guide-floorplan-desc" style={{ maxWidth: 720 }}>
                   {branding.guideMapDesc ||
-                    'Bản đồ vị trí các cánh trưng bày, sảnh tiếp đón và lối vào khuôn viên Bảo tàng Lịch sử TP.HCM'}
+                    'Chọn từng gian phòng trên sơ đồ để tra cứu tên hiện vật, quan sát hướng đi và các lối thông phòng liên kết thực tế.'}
                 </p>
               </div>
 
@@ -181,8 +309,8 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
               </div>
             </div>
 
-            {/* Khung hiển thị Bản đồ mặt bằng & Mạng Topo Thông phòng do Server Phân Tích */}
-            <div style={{ marginTop: 24, marginBottom: 36 }}>
+            {/* Khung hiển thị Bản đồ mặt bằng & Mạng Topo Thông phòng */}
+            <div style={{ marginTop: 20 }}>
               {floorPlan ? (
                 <InteractiveFloorPlanMap
                   floorPlan={floorPlan}
@@ -194,14 +322,14 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   style={{
                     padding: '60px 20px',
                     textAlign: 'center',
-                    background: '#0B0F17',
-                    borderRadius: 16,
-                    border: '1px solid rgba(212, 175, 55, 0.2)',
+                    background: '#0D111A',
+                    borderRadius: 14,
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
                     color: '#94A3B8'
                   }}
                 >
                   <div style={{ fontSize: 13, color: '#D4AF37', marginBottom: 6 }}>
-                    Đang đồng bộ mạng liên kết không gian từ máy chủ...
+                    Đang nạp sơ đồ mặt bằng từ máy chủ...
                   </div>
                 </div>
               ) : serverMapUrl ? (
@@ -224,180 +352,43 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                 </div>
               ) : null}
             </div>
-
-            {/* Danh sách các phân khu trưng bày tương ứng với các gian phòng 360° */}
-            <div className="client-guide-wings-grid">
-              {(floorPlan && floorPlan.nodes.filter(n => !n.isEntrance).length > 0
-                ? floorPlan.nodes.filter(n => !n.isEntrance).slice(0, 4).map(node => ({
-                    code: node.code,
-                    title: node.name,
-                    desc: node.category || 'Gian trưng bày hiện vật lịch sử theo tiến trình thời gian',
-                    period: node.period || 'Hiện vật & Văn hóa',
-                    roomId: node.roomId
-                  }))
-                : museumWings
-              ).map((w: any) => (
-                <div key={w.code} className="client-guide-wing-card">
-                  <div className="client-guide-wing-header">
-                    <span className="client-guide-wing-badge">{w.code}</span>
-                    <span className="client-guide-wing-period">{w.period}</span>
-                  </div>
-                  <h3 className="client-guide-wing-title">{w.title}</h3>
-                  <p className="client-guide-wing-desc">{w.desc}</p>
-                  <button
-                    type="button"
-                    className="client-guide-wing-btn"
-                    onClick={() => {
-                      if (w.roomId && onSelectRoom360) {
-                        onSelectRoom360(w.roomId);
-                      } else {
-                        onNavigatePage('rooms');
-                      }
-                    }}
-                  >
-                    Xem gian phòng 360° →
-                  </button>
-                </div>
-              ))}
-            </div>
           </section>
 
           {/* =========================================================================
-              PHẦN 2: THÔNG TIN VÉ & GIỜ ĐÓN TIẾP (2 CỘT CÂN XỨNG)
+              PHẦN 3: LƯU Ý & TIỆN ÍCH DÀNH CHO KHÁCH THAM QUAN
+              Dải 4 tiện ích ngang tinh tế, thực tế, dễ đọc
               ========================================================================= */}
-          <div className="client-guide-two-col-grid" style={{ marginTop: 48 }}>
-            {/* Cột 1: Giờ mở cửa */}
-            <div className="client-guide-feature-card">
-              <span className="client-zigzag-tag">Kế Hoạch Tham Quan</span>
-              <h2 className="client-guide-feature-title">Thời Gian Mở Cửa Đón Khách</h2>
-              
-              <div className="client-guide-status-row">
-                <span className="client-guide-status-pill">
-                  Đón khách: Thứ Ba – Chủ Nhật
-                </span>
-                <span className="client-guide-status-note">Nghỉ Thứ Hai hàng tuần</span>
+          <section className="client-guide-amenities-section" style={{ marginBottom: 60 }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--c-text-primary)', marginBottom: 16 }}>
+              Tiện Ích & Quy Định Tham Quan
+            </h3>
+
+            <div className="client-guide-amenities-grid">
+              <div className="client-guide-amenity-card">
+                <div className="client-guide-amenity-num">01</div>
+                <h4>Quét mã QR tại tủ hiện vật</h4>
+                <p>Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.</p>
               </div>
 
-              <div className="client-guide-hours-box">
-                <div className="client-guide-hour-item">
-                  <span className="client-guide-hour-label">Buổi Sáng</span>
-                  <strong className="client-guide-hour-val">08:00 – 11:30</strong>
-                </div>
-                <div className="client-guide-hour-sep">•</div>
-                <div className="client-guide-hour-item">
-                  <span className="client-guide-hour-label">Buổi Chiều</span>
-                  <strong className="client-guide-hour-val">13:30 – 17:00</strong>
-                </div>
+              <div className="client-guide-amenity-card">
+                <div className="client-guide-amenity-num">02</div>
+                <h4>Thuyết minh Audio Guide song ngữ</h4>
+                <p>Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.</p>
               </div>
 
-              <div className="client-guide-card-footer-note">
-                * Quầy vé ngừng phát hành vé và đón khách mới trước giờ đóng cửa 30 phút. Bảo tàng đóng cửa ngày Thứ Hai để thực hiện công tác bảo tồn hiện vật.
-              </div>
-            </div>
-
-            {/* Cột 2: Biểu phí vé */}
-            <div className="client-guide-feature-card">
-              <span className="client-zigzag-tag">Biểu Phí Niêm Yết</span>
-              <h2 className="client-guide-feature-title">Chính Sách Vé Tham Quan</h2>
-
-              <div className="client-guide-ticket-list">
-                <div className="client-guide-ticket-item">
-                  <div>
-                    <strong>Khách người lớn</strong>
-                    <div className="client-guide-ticket-sub">Áp dụng cho khách Việt Nam & Quốc tế</div>
-                  </div>
-                  <div className="client-guide-ticket-price">30.000 VNĐ / vé</div>
-                </div>
-
-                <div className="client-guide-ticket-item">
-                  <div>
-                    <strong>Học sinh, Sinh viên</strong>
-                    <div className="client-guide-ticket-sub">Yêu cầu xuất trình thẻ HSSV còn hạn</div>
-                  </div>
-                  <div className="client-guide-ticket-price highlight">Ưu đãi 50% (15.000 VNĐ)</div>
-                </div>
-
-                <div className="client-guide-ticket-item">
-                  <div>
-                    <strong>Người cao tuổi & Trẻ em dưới 6 tuổi</strong>
-                    <div className="client-guide-ticket-sub">Người khuyết tật và các đối tượng chính sách</div>
-                  </div>
-                  <div className="client-guide-ticket-price highlight">Miễn phí hoàn toàn</div>
-                </div>
+              <div className="client-guide-amenity-card">
+                <div className="client-guide-amenity-num">03</div>
+                <h4>Bảo quản di sản & Hiện vật</h4>
+                <p>Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.</p>
               </div>
 
-              <div className="client-guide-card-footer-note">
-                * Đăng ký hướng dẫn viên đoàn thuyết minh: Vui lòng liên hệ quầy tiếp đón tại sảnh Bát Giác trước 24 giờ.
+              <div className="client-guide-amenity-card">
+                <div className="client-guide-amenity-num">04</div>
+                <h4>Trang phục & Văn minh tham quan</h4>
+                <p>Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.</p>
               </div>
             </div>
-          </div>
-
-          {/* =========================================================================
-              PHẦN 3: ĐƯỜNG ĐI & TIỆN ÍCH TRẢI NGHIỆM SỐ TẠI ĐIỂM (2 CỘT CÂN XỨNG)
-              ========================================================================= */}
-          <div className="client-guide-two-col-grid" style={{ marginTop: 28, marginBottom: 60 }}>
-            {/* Cột 1: Vị trí & Di chuyển */}
-            <div className="client-guide-feature-card">
-              <span className="client-zigzag-tag">Vị Trí & Chỉ Dẫn</span>
-              <h2 className="client-guide-feature-title">Đường Đi & Bãi Gửi Xe</h2>
-
-              <p className="client-guide-feature-desc" style={{ marginBottom: 16 }}>
-                <strong>{address}</strong> (Cổng chính đối diện Thảo Cầm Viên Sài Gòn).
-              </p>
-
-              <div className="client-guide-info-rows">
-                <div className="client-guide-info-row">
-                  <span className="client-guide-info-key">Xe Buýt:</span>
-                  <span>Các tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.</span>
-                </div>
-                <div className="client-guide-info-row">
-                  <span className="client-guide-info-key">Bãi Đỗ Xe:</span>
-                  <span>Có bãi gửi xe máy và bãi đỗ ô tô thuận tiện ngay trong khuôn viên bảo tàng.</span>
-                </div>
-                <div className="client-guide-info-row">
-                  <span className="client-guide-info-key">Hotline:</span>
-                  <strong style={{ color: 'var(--c-text-primary)' }}>{hotline}</strong>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 22 }}>
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="client-zigzag-btn-primary"
-                  style={{ textDecoration: 'none', display: 'inline-flex' }}
-                >
-                  <span>Chỉ đường trên Google Maps</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Cột 2: Tiện ích số hóa tại điểm */}
-            <div className="client-guide-feature-card">
-              <span className="client-zigzag-tag">Trải Nghiệm Số Tại Điểm</span>
-              <h2 className="client-guide-feature-title">Tiện Ích Số Hóa Cho Khách Tham Quan</h2>
-
-              <p className="client-guide-feature-desc" style={{ marginBottom: 16 }}>
-                Bảo tàng Lịch sử TP.HCM tích hợp hệ thống tương tác số hóa trực tiếp trên thiết bị cá nhân của bạn:
-              </p>
-
-              <div className="client-guide-perks-list">
-                <div className="client-guide-perk-item">
-                  <strong>Quét mã QR tại tủ hiện vật</strong>
-                  <span>Mỗi tủ kính đều có mã QR tra cứu mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết.</span>
-                </div>
-                <div className="client-guide-perk-item">
-                  <strong>Thuyết minh tự động (Audio Guide song ngữ)</strong>
-                  <span>Nghe giọng đọc thuyết minh truyền cảm bằng tiếng Việt và tiếng Anh ngay trên trình duyệt điện thoại.</span>
-                </div>
-                <div className="client-guide-perk-item">
-                  <strong>Wi-Fi di sản tốc độ cao miễn phí</strong>
-                  <span>Hệ thống mạng không dây phủ sóng toàn bộ các gian trưng bày và sân vườn.</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
       </main>
 
