@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { FloorPlanMapModel } from '../models/FloorPlanMap.js';
+import { RoomModel } from '../models/Room.js';
 import { analyzeFloorPlanImage } from '../services/floorPlanAnalyzer.js';
 import { uploadToCloudinary } from '../services/cloudinary.js';
 import { getSystemBrandingConfig } from '../models/SystemBranding.js';
@@ -39,25 +40,40 @@ const upload = multer({
 
 /**
  * GET /api/floor-plan
- * Lấy sơ đồ mặt bằng và đồ thị liên kết không gian hiện tại
+ * Lấy sơ đồ mặt bằng và đồ thị liên kết không gian hiện tại (Đồng bộ 100% với CSDL MongoDB thực tế)
  */
 floorPlanRouter.get('/', async (req: Request, res: Response) => {
   try {
+    const dbRooms = await RoomModel.find({ active: true }).sort({ orderIndex: 1 }).lean();
     let floorPlan = await FloorPlanMapModel.findOne({ id: 'floor_plan_main', active: true }).lean();
 
-    // Nếu chưa có trong DB, tự động khởi tạo phân tích baseline dựa trên các phòng hiện có trong CSDL
-    if (!floorPlan) {
-      console.log('[FloorPlanRoute] Chưa có sơ đồ trong DB, đang tự động khởi tạo baseline...');
+    // Kiểm tra tính đồng bộ giữa floorPlan và dbRooms thật:
+    // 1. Chưa có floorPlan trong CSDL
+    // 2. Số lượng node khác số lượng phòng thực tế trong CSDL
+    // 3. Có node mock cũ (như node_central_rotunda) hoặc node trỏ tới roomId không còn tồn tại
+    // 4. Tên phòng hoặc mã phòng trong node bị lệch so với dữ liệu thật trong CSDL
+    const roomSet = new Set(dbRooms.map((r: any) => r.id));
+    const hasMockNode = floorPlan?.nodes?.some((n: any) => n.id === 'node_central_rotunda' || !n.roomId || !roomSet.has(n.roomId));
+    const nodeCountMismatch = (floorPlan?.nodes?.length || 0) !== dbRooms.length;
+    const roomDataMismatch = dbRooms.some((r: any) => {
+      const node = floorPlan?.nodes?.find((n: any) => n.roomId === r.id);
+      return !node || node.name !== r.name || node.code !== r.code;
+    });
+
+    const needsResync = !floorPlan || hasMockNode || nodeCountMismatch || roomDataMismatch;
+
+    if (needsResync) {
+      console.log('[FloorPlanRoute] Phát hiện dữ liệu gian phòng thay đổi trong MongoDB, đang tự động đồng bộ lại sơ đồ mặt bằng...');
       const branding = await getSystemBrandingConfig();
-      const initialMap = await analyzeFloorPlanImage(
+      const updatedMap = await analyzeFloorPlanImage(
         '',
-        branding?.guideMapUrl || '',
+        branding?.guideMapUrl || floorPlan?.imageUrl || '',
         {
-          title: branding?.guideMapTitle || 'Sơ Đồ Mặt Bằng & Cẩm Nang Tham Quan',
-          description: branding?.guideMapDesc || 'Mạng lưới liên kết không gian và cửa thông phòng được phân tích từ sơ đồ kiến trúc'
+          title: branding?.guideMapTitle || floorPlan?.title || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày',
+          description: branding?.guideMapDesc || floorPlan?.description || 'Bản đồ kiến trúc không gian và vị trí các gian phòng'
         }
       );
-      floorPlan = initialMap.toObject ? initialMap.toObject() : initialMap;
+      floorPlan = updatedMap.toObject ? updatedMap.toObject() : updatedMap;
     }
 
     res.json({
@@ -68,7 +84,7 @@ floorPlanRouter.get('/', async (req: Request, res: Response) => {
     console.error('[FloorPlanRoute GET Error]:', error);
     res.status(500).json({
       success: false,
-      message: 'Không thể tải sơ đồ mặt bằng kiến trúc: ' + (error.message || '')
+      message: 'Không thể tải sơ đồ mặt bằng: ' + (error.message || '')
     });
   }
 });

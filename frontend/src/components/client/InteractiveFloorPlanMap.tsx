@@ -14,10 +14,19 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   clientTheme = 'dark'
 }) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string>(
-    floorPlan.nodes?.[0]?.id || 'node_central_rotunda'
+    floorPlan.nodes?.[0]?.id || ''
   );
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [showOriginalImage, setShowOriginalImage] = useState<boolean>(false);
+
+  // Tự động đồng bộ node được chọn khi danh sách phòng từ MongoDB thay đổi
+  React.useEffect(() => {
+    if (floorPlan.nodes?.length) {
+      if (!floorPlan.nodes.some((n) => n.id === selectedNodeId)) {
+        setSelectedNodeId(floorPlan.nodes[0].id);
+      }
+    }
+  }, [floorPlan.nodes, selectedNodeId]);
 
   // Node đang được chọn
   const activeNode = useMemo(() => {
@@ -46,40 +55,26 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     }
   };
 
-  // Rút gọn tên gian phòng để hiển thị vừa vặn trong ô bản đồ, TUYỆT ĐỐI không chèn chữ ra ngoài
+  // Hiển thị tên gian phòng thật do Admin thêm, tự động ngắt 2 dòng cân đối, TUYỆT ĐỐI không tràn chữ ra ngoài
   const getMapNodeLabel = (node: FloorPlanNode) => {
-    const raw = node.name || '';
-    if (/bát giác|sảnh chính/i.test(raw) || node.code.includes('SANH')) {
-      return { line1: 'Sảnh Bát Giác', line2: '(Sảnh Chính)' };
+    const raw = (node.name || '').trim();
+    if (!raw) return { line1: node.code || 'Phòng', line2: '' };
+    if (raw.length <= 16) {
+      return { line1: raw, line2: '' };
     }
-    if (/đón khách/i.test(raw)) {
-      return { line1: 'Sảnh Đón Khách', line2: '' };
+
+    const words = raw.split(/\s+/);
+    if (words.length <= 1) {
+      return { line1: raw.slice(0, 14) + '…', line2: '' };
     }
-    if (/tiền sử/i.test(raw)) {
-      return { line1: 'Thời Tiền Sử', line2: '' };
-    }
-    if (/óc eo/i.test(raw)) {
-      return { line1: 'Văn Hóa Óc Eo', line2: 'Phù Nam' };
-    }
-    if (/chăm/i.test(raw)) {
-      return { line1: 'Điêu Khắc', line2: 'Chăm Pa' };
-    }
-    if (/nguyễn/i.test(raw)) {
-      return { line1: 'Mỹ Thuật', line2: 'Triều Nguyễn' };
-    }
-    const clean = raw.replace(/^(Gian phòng|Phòng trưng bày|Gian|Phòng)\s+/i, '');
-    if (clean.length > 15) {
-      const words = clean.split(' ');
-      if (words.length > 2) {
-        const mid = Math.ceil(words.length / 2);
-        return {
-          line1: words.slice(0, mid).join(' '),
-          line2: words.slice(mid).join(' ')
-        };
-      }
-      return { line1: clean.substring(0, 14) + '…', line2: '' };
-    }
-    return { line1: clean, line2: '' };
+
+    const mid = Math.ceil(words.length / 2);
+    const line1 = words.slice(0, mid).join(' ');
+    const line2 = words.slice(mid).join(' ');
+    return {
+      line1: line1.length > 18 ? line1.slice(0, 16) + '…' : line1,
+      line2: line2.length > 18 ? line2.slice(0, 16) + '…' : line2
+    };
   };
 
   // Tính toán kích thước hộp gian phòng đảm bảo vừa chữ và bố cục hài hòa
@@ -92,6 +87,29 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   };
 
   const isLight = clientTheme === 'light';
+
+  if (!floorPlan.nodes || floorPlan.nodes.length === 0) {
+    return (
+      <div
+        style={{
+          padding: '48px 24px',
+          textAlign: 'center',
+          background: isLight ? '#FFFFFF' : '#111520',
+          borderRadius: 14,
+          border: `1px dashed ${isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'}`,
+          color: isLight ? '#64748B' : '#94A3B8'
+        }}
+      >
+        <Building size={32} style={{ margin: '0 auto 12px auto', opacity: 0.5, color: '#C5A059' }} />
+        <div style={{ fontSize: 15, fontWeight: 600, color: isLight ? '#0F172A' : '#FFFFFF', marginBottom: 4 }}>
+          Chưa bổ sung gian phòng trưng bày
+        </div>
+        <div style={{ fontSize: 13, maxWidth: 460, margin: '0 auto' }}>
+          Sơ đồ mặt bằng sẽ tự động kết nối và hiển thị khi ban quản trị thêm các gian phòng trưng bày vào hệ thống.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

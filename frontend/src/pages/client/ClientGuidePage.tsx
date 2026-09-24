@@ -71,33 +71,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
       : `${API_ROOT}${branding.guideMapUrl.startsWith('/') ? '' : '/'}${branding.guideMapUrl}`
     : '';
 
-  // Phân khu trưng bày gắn liền với lộ trình tham quan thực địa
-  const museumWings = [
-    {
-      code: 'KHU A',
-      title: 'Thời Tiền Sử & Khởi Nguồn Dân Tộc',
-      desc: 'Công cụ đá, đồ đồng Đông Sơn và dấu tích người cổ trên đất Việt.',
-      period: 'Thời Tiền Sử – Thế kỷ X'
-    },
-    {
-      code: 'KHU B',
-      title: 'Văn Hóa Óc Eo & Vương Quốc Phù Nam',
-      desc: 'Cổ vật khảo cổ Nam Bộ, tượng thờ bằng gỗ và trang sức vàng cổ.',
-      period: 'Thế kỷ I – Thế kỷ VII'
-    },
-    {
-      code: 'KHU C',
-      title: 'Nghệ Thuật Điêu Khắc Chăm Pa',
-      desc: 'Kiệt tác tượng đá phù điêu thần Shiva, Ganesha và bia ký cổ.',
-      period: 'Thế kỷ VII – Thế kỷ XVII'
-    },
-    {
-      code: 'KHU D',
-      title: 'Di Sản Mỹ Thuật Cung Đình Triều Nguyễn',
-      desc: 'Trang phục hoàng gia, kim ấn, súng thần công và đồ sứ ngự dụng.',
-      period: 'Năm 1802 – 1945'
-    }
-  ];
+
 
   return (
     <div className="client-portal" data-client-theme={clientTheme}>
@@ -131,11 +105,11 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
             </div>
 
             <h1 className="client-subpage-title" style={{ fontSize: 'clamp(2rem, 3.2vw, 2.75rem)', letterSpacing: '-0.02em', margin: '14px 0 10px 0' }}>
-              {t('guide.pageHeading', 'Cẩm Nang & Sơ Đồ Tham Quan')}
+              {branding.guideTitle || t('guide.pageHeading', 'Cẩm Nang & Sơ Đồ Tham Quan')}
             </h1>
 
             <p className="client-subpage-lead" style={{ margin: '0 auto', fontSize: '1.02rem', lineHeight: 1.7, color: 'var(--c-text-secondary)', maxWidth: 680 }}>
-              {t(
+              {branding.guideDesc || t(
                 'guide.pageLead',
                 'Thông tin chính thức về thời gian mở cửa, biểu phí vé, hướng dẫn di chuyển và sơ đồ liên kết các gian trưng bày tại Bảo tàng Lịch sử TP. Hồ Chí Minh.'
               )}
@@ -176,7 +150,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
 
             {/* Khung hiển thị Bản đồ mặt bằng & Mạng Topo Thông phòng */}
             <div style={{ marginTop: 20 }}>
-              {floorPlan ? (
+              {floorPlan && floorPlan.nodes && floorPlan.nodes.length > 0 ? (
                 <InteractiveFloorPlanMap
                   floorPlan={floorPlan}
                   onSelectRoom360={onSelectRoom360}
@@ -187,13 +161,13 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   style={{
                     padding: '60px 20px',
                     textAlign: 'center',
-                    background: '#0D111A',
+                    background: clientTheme === 'light' ? '#FFFFFF' : '#0D111A',
                     borderRadius: 14,
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    color: '#94A3B8'
+                    border: `1px solid ${clientTheme === 'light' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    color: clientTheme === 'light' ? '#64748B' : '#94A3B8'
                   }}
                 >
-                  <div style={{ fontSize: 13, color: '#D4AF37', marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, color: '#C5A059', marginBottom: 6 }}>
                     Đang nạp sơ đồ mặt bằng từ máy chủ...
                   </div>
                 </div>
@@ -215,7 +189,25 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                     loading="lazy"
                   />
                 </div>
-              ) : null}
+              ) : (
+                <div
+                  style={{
+                    padding: '50px 20px',
+                    textAlign: 'center',
+                    background: clientTheme === 'light' ? '#FFFFFF' : '#0D111A',
+                    borderRadius: 14,
+                    border: `1px dashed ${clientTheme === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.1)'}`,
+                    color: clientTheme === 'light' ? '#64748B' : '#94A3B8'
+                  }}
+                >
+                  <div style={{ fontSize: 15, fontWeight: 600, color: clientTheme === 'light' ? '#0F172A' : '#F1F5F9', marginBottom: 4 }}>
+                    Chưa bổ sung sơ đồ mặt bằng tham quan
+                  </div>
+                  <div style={{ fontSize: 13, maxWidth: 480, margin: '0 auto' }}>
+                    Sơ đồ mặt bằng và lộ trình tham quan sẽ được cập nhật khi ban quản lý hoàn tất thiết lập danh sách gian phòng trưng bày.
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
