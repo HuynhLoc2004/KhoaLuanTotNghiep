@@ -76,7 +76,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   return (
     <nav className="client-navbar">
       <div className="client-container client-nav-inner">
-        {/* Logo & Tên bảo tàng */}
+        {/* 1. Logo & Tên bảo tàng sang trọng chuẩn di sản */}
         <a
           href="#hero"
           className="client-nav-brand"
@@ -94,73 +94,79 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           )}
           <div className="client-nav-title-group">
             <span className="client-nav-title">{branding.shortName || 'Bảo tàng Lịch sử'}</span>
-            <span className="client-nav-tagline">{branding.tagline || 'Không Gian Di Sản Số'}</span>
+            <div className="client-nav-subtitle-row">
+              <span className="client-nav-tagline">{branding.city || 'TP. HỒ CHÍ MINH'}</span>
+              <span className="client-nav-dot">•</span>
+              <span className="client-nav-badge">TOUR 360°</span>
+            </div>
           </div>
         </a>
 
-        {/* Menu Điều Hướng Desktop */}
-        <ul className="client-nav-menu">
-          <li>
-            <a
-              href="#intro"
-              className="client-nav-link"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('intro');
-              }}
-            >
-              {t('nav.intro', 'Giới thiệu')}
-            </a>
-          </li>
-          <li>
-            <a
-              href="#rooms"
-              className="client-nav-link"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('rooms');
-              }}
-            >
-              {t('nav.rooms360', 'Gian phòng 360°')}
-            </a>
-          </li>
-          <li>
-            <a
-              href="#artifacts"
-              className="client-nav-link"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('artifacts');
-              }}
-            >
-              {t('nav.artifacts3d', 'Cổ vật 3D')}
-            </a>
-          </li>
-          <li>
-            <a
-              href="#topics"
-              className="client-nav-link"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('topics');
-              }}
-            >
-              {t('nav.topics', 'Chuyên đề')}
-            </a>
-          </li>
-          <li>
-            <a
-              href="#guide"
-              className="client-nav-link"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('guide');
-              }}
-            >
-              {t('nav.guide', 'Tham quan')}
-            </a>
-          </li>
-        </ul>
+        {/* 2. Menu Điều Hướng Dạng Viên Thuốc (Capsule Island Nav) Cực Kì Hiện Đại */}
+        <div className="client-nav-menu-wrapper">
+          <ul className="client-nav-menu">
+            <li>
+              <a
+                href="#intro"
+                className={`client-nav-link ${activeSection === 'intro' ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('intro');
+                }}
+              >
+                {t('nav.intro', 'Giới thiệu')}
+              </a>
+            </li>
+            <li>
+              <a
+                href="#rooms"
+                className={`client-nav-link ${activeSection === 'rooms' ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('rooms');
+                }}
+              >
+                {t('nav.rooms360', 'Gian phòng 360°')}
+              </a>
+            </li>
+            <li>
+              <a
+                href="#artifacts"
+                className={`client-nav-link ${activeSection === 'artifacts' ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('artifacts');
+                }}
+              >
+                {t('nav.artifacts3d', 'Cổ vật 3D')}
+              </a>
+            </li>
+            <li>
+              <a
+                href="#topics"
+                className={`client-nav-link ${activeSection === 'topics' ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('topics');
+                }}
+              >
+                {t('nav.topics', 'Chuyên đề')}
+              </a>
+            </li>
+            <li>
+              <a
+                href="#guide"
+                className={`client-nav-link ${activeSection === 'guide' ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('guide');
+                }}
+              >
+                {t('nav.guide', 'Tham quan')}
+              </a>
+            </li>
+          </ul>
+        </div>
 
         {/* Cụm hành động bên phải: Ngôn ngữ, Đổi Theme, Đăng nhập */}
         <div className="client-nav-actions">
@@ -238,25 +244,33 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             {clientTheme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
 
-          {/* Đăng nhập hoặc Menu người dùng (Tuyệt đối không lộ nút Cổng Quản Trị ra ngoài) */}
+          {/* Đăng nhập hoặc Menu người dùng (Thiết kế capsule thu gọn thông minh) */}
           {user ? (
             <div className="client-user-menu" ref={userDropdownRef}>
               <button
                 type="button"
                 className="client-user-btn"
                 onClick={() => setIsUserDropdownOpen((prev) => !prev)}
+                title={user.fullName || user.username}
               >
-                <User size={15} />
-                <span>{user.fullName || user.username || user.email?.split('@')[0]}</span>
+                <div className="client-user-avatar">
+                  {user.role === 'admin' ? <Shield size={14} /> : <User size={14} />}
+                </div>
+                <span className="client-user-name">
+                  {user.role === 'admin'
+                    ? 'Quản trị viên'
+                    : (user.fullName?.split(' ').pop() || user.username || 'Tài khoản')}
+                </span>
+                <span style={{ fontSize: '10px', opacity: 0.6, marginLeft: 2 }}>▼</span>
               </button>
 
               {isUserDropdownOpen && (
                 <div className="client-user-dropdown">
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--c-border-subtle)', marginBottom: 4 }}>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                  <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--c-border-subtle)', marginBottom: 4 }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--c-text-primary)' }}>
                       {user.fullName || user.username}
                     </div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--c-text-muted)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', marginTop: 2 }}>
                       {user.email}
                     </div>
                   </div>

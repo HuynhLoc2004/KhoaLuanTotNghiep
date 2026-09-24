@@ -167,8 +167,8 @@
   right: 0;
   z-index: 1000;
   background: var(--c-nav-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--c-nav-border);
   transition: var(--c-transition);
 }
@@ -177,7 +177,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 74px;
+  height: 76px;
+  gap: 20px;
 }
 
 .client-nav-brand {
@@ -187,29 +188,37 @@
   text-decoration: none;
   color: var(--c-text-primary);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .client-nav-logo {
   width: 44px;
   height: 44px;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .client-nav-emblem {
   width: 42px;
   height: 42px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--c-primary) 0%, #4a150b 100%);
-  border: 1px solid var(--c-gold);
-  color: #FFF;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #181E2B 0%, #0D111A 100%);
+  border: 1.5px solid var(--c-gold);
+  color: var(--c-gold);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Lora', serif;
   font-weight: 700;
   font-size: 16px;
-  box-shadow: var(--c-shadow-sm);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: var(--c-transition);
+}
+
+.client-nav-brand:hover .client-nav-emblem {
+  border-color: #F3E0A3;
+  box-shadow: var(--c-shadow-gold);
+  transform: scale(1.03);
 }
 
 .client-nav-title-group {
@@ -220,60 +229,94 @@
 .client-nav-title {
   font-family: 'Lora', serif;
   font-weight: 700;
-  font-size: 1.08rem;
+  font-size: 1.12rem;
   color: var(--c-text-primary);
   line-height: 1.2;
 }
 
+.client-nav-subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
 .client-nav-tagline {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--c-text-muted);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-weight: 600;
+}
+
+.client-nav-dot {
+  font-size: 0.65rem;
+  color: var(--c-gold);
+  opacity: 0.6;
+}
+
+.client-nav-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--c-gold);
+  background: var(--c-gold-light);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 1px 7px;
+  border-radius: var(--c-radius-pill);
+}
+
+/* 2. Menu Điều hướng Dạng Floating Capsule Island */
+.client-nav-menu-wrapper {
+  display: flex;
+  align-items: center;
 }
 
 .client-nav-menu {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 4px;
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--c-border);
+  border-radius: var(--c-radius-pill);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.client-portal[data-client-theme="light"] .client-nav-menu {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .client-nav-link {
   color: var(--c-text-secondary);
   text-decoration: none;
-  font-size: 0.94rem;
+  font-size: 0.88rem;
   font-weight: 500;
+  padding: 7px 18px;
+  border-radius: var(--c-radius-pill);
   transition: var(--c-transition);
-  position: relative;
-  padding: 6px 0;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
-.client-nav-link:hover {
+.client-nav-link:hover,
+.client-nav-link.active {
   color: var(--c-gold);
+  background: var(--c-gold-light);
+  font-weight: 600;
 }
 
-.client-nav-link::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: var(--c-gold);
-  transition: width 0.25s ease;
-}
-
-.client-nav-link:hover::after {
-  width: 100%;
-}
-
+/* 3. Cụm Hành động Góc Phải */
 .client-nav-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .client-theme-toggle {
@@ -293,6 +336,7 @@
 .client-theme-toggle:hover {
   color: var(--c-gold);
   border-color: var(--c-gold);
+  background: var(--c-gold-light);
   transform: translateY(-1px);
 }
 
@@ -300,7 +344,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 20px;
+  padding: 8px 20px;
   border-radius: var(--c-radius-pill);
   border: 1px solid var(--c-border-gold);
   background: var(--c-gold-light);
@@ -326,15 +370,39 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 18px;
+  padding: 5px 14px 5px 7px;
   border-radius: var(--c-radius-pill);
   border: 1px solid var(--c-border-gold);
   background: var(--c-gold-light);
   color: var(--c-text-primary);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--c-transition);
+  max-width: 170px;
+}
+
+.client-user-btn:hover {
+  border-color: var(--c-gold);
+  background: rgba(212, 175, 55, 0.22);
+}
+
+.client-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--c-gold);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.client-user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .client-user-dropdown {
@@ -389,7 +457,7 @@
 }
 
 @media (max-width: 992px) {
-  .client-nav-menu {
+  .client-nav-menu-wrapper {
     display: none;
   }
   .client-nav-mobile-toggle {
@@ -397,7 +465,7 @@
   }
 }
 
-/* --- 5. CINEMATIC HERO BANNER (CHUẨN BẢO TÀNG SỐ, KHÔNG BAO GIỜ BỊ ĐEN SÌ) --- */
+/* --- 5. CINEMATIC HERO BANNER (HIỂN THỊ RÕ NÉT CẢ LIGHT & DARK MODE, KHÔNG BAO GIỜ MẤT ẢNH) --- */
 .client-hero {
   position: relative;
   min-height: 100vh;
@@ -407,13 +475,12 @@
   justify-content: center;
   overflow: hidden;
   background-color: var(--c-bg);
-  /* Lớp nền dự phòng bằng spotlight hoàng gia: không bao giờ bị đen sì dù ảnh có lỗi */
   background-image: radial-gradient(ellipse at 50% 35%, rgba(212, 175, 55, 0.16) 0%, rgba(10, 13, 20, 0.95) 75%);
   transition: background-color 0.3s ease;
 }
 
 .client-portal[data-client-theme="light"] .client-hero {
-  background-image: radial-gradient(ellipse at 50% 35%, rgba(180, 138, 60, 0.15) 0%, rgba(237, 233, 223, 0.95) 75%);
+  background-image: radial-gradient(ellipse at 50% 35%, rgba(180, 138, 60, 0.12) 0%, rgba(237, 233, 223, 0.9) 75%);
 }
 
 .client-hero-media-wrap {
@@ -432,11 +499,13 @@
   object-fit: cover;
   object-position: center center;
   filter: brightness(0.68) contrast(1.05);
+  transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
+/* Trong Light Mode: TUYỆT ĐỐI KHÔNG làm mờ đục ảnh (opacity = 1), giữ trọn vẹn màu sắc & kiến trúc bảo tàng */
 .client-portal[data-client-theme="light"] .client-hero-media {
-  filter: brightness(0.85) contrast(1.02);
-  opacity: 0.45;
+  filter: brightness(0.88) contrast(1.08);
+  opacity: 1;
 }
 
 .client-hero-overlay {
@@ -448,9 +517,10 @@
   z-index: 2;
 }
 
+/* Lớp phủ Light Mode: Trong suốt dịu dàng ở giữa để thấy ảnh rõ nét 100%, chỉ chuyển màu mượt ở mép dưới */
 .client-portal[data-client-theme="light"] .client-hero-overlay {
-  background: radial-gradient(circle at center, rgba(247, 245, 240, 0.4) 0%, rgba(247, 245, 240, 0.85) 100%),
-              linear-gradient(180deg, rgba(247, 245, 240, 0.7) 0%, transparent 45%, var(--c-bg) 100%);
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.4) 100%),
+              linear-gradient(180deg, rgba(247, 245, 240, 0.3) 0%, transparent 45%, var(--c-bg) 100%);
 }
 
 .client-hero-content {
@@ -460,6 +530,18 @@
   max-width: 960px;
   margin: 0 auto;
   padding: 120px 20px 60px 20px;
+}
+
+/* Trong Light Mode: Thẻ giám tuyển mờ sang trọng tôn trọn vẹn hình ảnh phía sau và giúp chữ đọc cực nét */
+.client-portal[data-client-theme="light"] .client-hero-content {
+  background: rgba(247, 245, 240, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(180, 138, 60, 0.35);
+  border-radius: var(--c-radius-lg);
+  box-shadow: 0 24px 60px -10px rgba(44, 34, 20, 0.15);
+  padding: 48px 36px 36px 36px;
+  margin-top: 40px;
 }
 
 .client-hero-tag {
