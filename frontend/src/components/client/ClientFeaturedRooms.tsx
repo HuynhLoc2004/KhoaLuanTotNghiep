@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Compass } from 'lucide-react';
 import { MuseumRoom } from '../../types';
 import { API_ROOT } from '../../services/api';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
@@ -23,10 +24,8 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
 
   const panoUrl = featuredRoom ? (featuredRoom.panoramaUrl || featuredRoom.thumbnailUrl) : '';
   const fullFeaturedThumb = panoUrl
-    ? panoUrl.startsWith('http')
-      ? panoUrl
-      : `${API_ROOT}${panoUrl.startsWith('/') ? '' : '/'}${panoUrl}`
-    : 'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=1200&q=85';
+    ? (panoUrl.startsWith('http') ? panoUrl : `${API_ROOT}${panoUrl.startsWith('/') ? '' : '/'}${panoUrl}`)
+    : '';
 
   const featuredTitle = featuredRoom ? localize(featuredRoom, 'name', featuredRoom.name) : 'Gian phòng di sản';
   const featuredPeriod = featuredRoom ? localize(featuredRoom, 'period', (featuredRoom as any).period || '') : '';
@@ -44,20 +43,36 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
             tabIndex={0}
             title={t('rooms.clickToEnter', 'Bấm để xem tất cả gian phòng 360°')}
           >
-            <img
-              src={fullFeaturedThumb}
-              alt={featuredTitle}
-              className="client-zigzag-card-img"
-              loading="lazy"
-            />
+            {fullFeaturedThumb ? (
+              <img
+                src={fullFeaturedThumb}
+                alt={featuredTitle}
+                className="client-zigzag-card-img"
+                loading="lazy"
+              />
+            ) : (
+              <div className="client-media-placeholder">
+                <div className="client-media-placeholder-icon">
+                  <Compass size={32} strokeWidth={1.5} />
+                </div>
+                <span className="client-media-placeholder-title">
+                  {t('rooms.noPanoTitle', 'Chưa có ảnh toàn cảnh 360°')}
+                </span>
+                <span className="client-media-placeholder-desc">
+                  {t('rooms.noPanoDesc', 'Hình ảnh gian phòng sẽ xuất hiện sau khi quản trị viên tải ảnh 360° lên hệ thống.')}
+                </span>
+              </div>
+            )}
             <div className="client-zigzag-badge-float">
-              <span>{rooms.length} Không gian 360° Sẵn sàng</span>
+              <span>{rooms.length} Không gian 360°</span>
             </div>
 
-            <div className="client-zigzag-media-caption">
-              <span style={{ fontWeight: 600 }}>{featuredTitle}</span>
-              {featuredPeriod && <span> • {featuredPeriod}</span>}
-            </div>
+            {featuredTitle && fullFeaturedThumb && (
+              <div className="client-zigzag-media-caption">
+                <span style={{ fontWeight: 600 }}>{featuredTitle}</span>
+                {featuredPeriod && <span> • {featuredPeriod}</span>}
+              </div>
+            )}
           </div>
 
           {/* CỘT NỘI DUNG: ĐẠI DIỆN CHO PHÂN HỆ GIAN PHÒNG 360 */}

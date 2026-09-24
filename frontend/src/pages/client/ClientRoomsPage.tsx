@@ -125,9 +125,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
 
   const getRoomThumb = (room: MuseumRoom) => {
     const raw = room.panoramaUrl || room.thumbnailUrl;
-    if (!raw) {
-      return 'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=1200&q=85';
-    }
+    if (!raw) return '';
     return raw.startsWith('http')
       ? raw
       : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
@@ -413,9 +411,18 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                       tabIndex={0}
                       title={`Bấm để vào tham quan 360° ${title}`}
                     >
-                      <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                      {thumb ? (
+                        <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                      ) : (
+                        <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
+                          <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
+                            <Compass size={22} strokeWidth={1.5} />
+                          </div>
+                          <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>Chưa có ảnh 360°</span>
+                        </div>
+                      )}
                       <div className="client-zigzag-badge-float">
-                        <span>360° Sẵn sàng</span>
+                        <span>{thumb ? '360° Sẵn sàng' : 'Đang cập nhật'}</span>
                       </div>
                       {hotspotCount > 0 && (
                         <div className="client-gallery-hotspot-pill">

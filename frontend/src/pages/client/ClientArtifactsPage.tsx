@@ -70,9 +70,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
 
   const getArtifactThumb = (art: Artifact) => {
     const raw = art.thumbnailUrl || (art.images && art.images[0]);
-    if (!raw) {
-      return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=85';
-    }
+    if (!raw) return '';
     return raw.startsWith('http')
       ? raw
       : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
@@ -208,7 +206,16 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                       role="button"
                       tabIndex={0}
                     >
-                      <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                      {thumb ? (
+                        <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                      ) : (
+                        <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
+                          <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
+                            <Box size={22} strokeWidth={1.5} />
+                          </div>
+                          <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>Chưa có ảnh</span>
+                        </div>
+                      )}
                       {has3D ? (
                         <div className="client-zigzag-badge-float" style={{ borderColor: 'rgba(212, 175, 55, 0.7)' }}>
                           <RotateCw size={12} style={{ display: 'inline', marginRight: 4 }} />
@@ -216,7 +223,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                         </div>
                       ) : (
                         <div className="client-zigzag-badge-float">
-                          <span>Hiện vật số hóa</span>
+                          <span>{thumb ? 'Hiện vật số hóa' : 'Đang cập nhật'}</span>
                         </div>
                       )}
                     </div>

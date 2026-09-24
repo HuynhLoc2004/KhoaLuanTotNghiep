@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Box } from 'lucide-react';
 import { Artifact } from '../../types';
 import { API_ROOT } from '../../services/api';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
@@ -29,12 +30,9 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     artifacts.find((a) => a.id === selectedArtifactId) || artifacts[0];
 
   const getFullThumb = (art?: Artifact) => {
-    // Ảnh hiện vật lịch sử bảo tàng chất lượng cao (Tránh tuyệt đối ảnh sách vở/cà phê)
-    const fallbackMuseumRelic =
-      'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=85';
-    if (!art) return fallbackMuseumRelic;
+    if (!art) return '';
     const raw = art.thumbnailUrl || (art.images && art.images[0]);
-    if (!raw) return fallbackMuseumRelic;
+    if (!raw) return '';
     return raw.startsWith('http')
       ? raw
       : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
@@ -71,7 +69,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                   height={340}
                 />
               </div>
-            ) : (
+            ) : currentThumb ? (
               <div className="client-zigzag-vitrine-static">
                 <img
                   src={currentThumb}
@@ -82,6 +80,18 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                 <div className="client-zigzag-badge-float">
                   <span>{t('artifacts.vitrineBadge', 'Bảo vật số hóa')}</span>
                 </div>
+              </div>
+            ) : (
+              <div className="client-media-placeholder">
+                <div className="client-media-placeholder-icon">
+                  <Box size={32} strokeWidth={1.5} />
+                </div>
+                <span className="client-media-placeholder-title">
+                  {t('artifacts.noArtifactTitle', 'Chưa bổ sung hiện vật di sản')}
+                </span>
+                <span className="client-media-placeholder-desc">
+                  {t('artifacts.noArtifactDesc', 'Thông tin và mô hình 3D sẽ xuất hiện sau khi được quản trị viên tải lên hệ thống.')}
+                </span>
               </div>
             )}
 

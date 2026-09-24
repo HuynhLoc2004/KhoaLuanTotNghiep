@@ -1,4 +1,5 @@
 import React from 'react';
+import { Landmark } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -24,12 +25,26 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
         <div className="client-zigzag-card horizontal-split align-right reveal-on-scroll">
           {/* CỘT ẢNH: KIẾN TRÚC BẢO TÀNG TINH TẾ */}
           <div className="client-zigzag-card-media">
-            <img
-              src={branding.introImageUrl || "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=1200&q=85"}
-              alt={branding.introTitle || branding.museumName || 'Kiến trúc Bảo tàng Lịch sử'}
-              className="client-zigzag-card-img"
-              loading="lazy"
-            />
+            {branding.introImageUrl ? (
+              <img
+                src={branding.introImageUrl}
+                alt={branding.introTitle || branding.museumName || 'Kiến trúc Bảo tàng Lịch sử'}
+                className="client-zigzag-card-img"
+                loading="lazy"
+              />
+            ) : (
+              <div className="client-media-placeholder">
+                <div className="client-media-placeholder-icon">
+                  <Landmark size={32} strokeWidth={1.5} />
+                </div>
+                <span className="client-media-placeholder-title">
+                  {t('intro.noImageTitle', 'Chưa bổ sung hình ảnh không gian')}
+                </span>
+                <span className="client-media-placeholder-desc">
+                  {t('intro.noImageDesc', 'Hình ảnh kiến trúc & khuôn viên sẽ hiển thị khi quản trị viên cập nhật tại mục 4 Quản lý Trang chủ.')}
+                </span>
+              </div>
+            )}
             <div className="client-zigzag-badge-float">
               <span>{branding.introBadgeText || 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia'}</span>
             </div>

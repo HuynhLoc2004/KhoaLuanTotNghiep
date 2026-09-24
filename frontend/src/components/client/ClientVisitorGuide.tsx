@@ -1,4 +1,5 @@
 import React from 'react';
+import { MapPin } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -10,10 +11,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  const museumPhoto =
-    branding.guideMapUrl ||
-    branding.heroBannerUrl ||
-    'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=1200&q=85';
+  const museumPhoto = branding.guideMapUrl || branding.introImageUrl || '';
 
   return (
     <section id="guide" className="client-zigzag-section">
@@ -28,21 +26,37 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             tabIndex={0}
             title={t('guide.clickToEnter', 'Bấm để xem cẩm nang & sơ đồ tham quan')}
           >
-            <img
-              src={museumPhoto}
-              alt={branding.museumName || 'Bảo tàng Lịch sử TP.HCM'}
-              className="client-zigzag-card-img"
-              loading="lazy"
-            />
+            {museumPhoto ? (
+              <img
+                src={museumPhoto}
+                alt={branding.museumName || 'Bảo tàng Lịch sử TP.HCM'}
+                className="client-zigzag-card-img"
+                loading="lazy"
+              />
+            ) : (
+              <div className="client-media-placeholder">
+                <div className="client-media-placeholder-icon">
+                  <MapPin size={32} strokeWidth={1.5} />
+                </div>
+                <span className="client-media-placeholder-title">
+                  {t('guide.noMapTitle', 'Chưa bổ sung sơ đồ tham quan')}
+                </span>
+                <span className="client-media-placeholder-desc">
+                  {t('guide.noMapDesc', 'Sơ đồ mặt bằng và cẩm nang sẽ hiển thị sau khi quản trị viên cập nhật tại mục 7 Quản lý Trang chủ.')}
+                </span>
+              </div>
+            )}
             <div className="client-zigzag-badge-float">
               <span>{t('guide.openToday', 'Đón khách tham quan')}</span>
             </div>
 
-            <div className="client-zigzag-media-caption">
-              <span style={{ fontWeight: 600 }}>
-                {branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM'}
-              </span>
-            </div>
+            {museumPhoto && (
+              <div className="client-zigzag-media-caption">
+                <span style={{ fontWeight: 600 }}>
+                  {branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* CỘT NỘI DUNG: TỐI GIẢN, TINH TẾ, TUYỆT ĐỐI KHÔNG DÙNG HỘP DỮ LIỆU ẢO */}

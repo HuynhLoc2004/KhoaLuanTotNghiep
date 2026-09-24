@@ -14,7 +14,7 @@ const CURATED_DEFAULT_EPOCHS = [
     name: 'Tiền Sử & Bình Minh Lịch Sử',
     era: 'Thời Tiền Sử • Đồ Đá, Đồ Đồng',
     desc: 'Dấu tích văn hóa Đông Sơn và thời dựng nước Hùng Vương.',
-    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+    image: '',
     roomCount: 3
   },
   {
@@ -22,7 +22,7 @@ const CURATED_DEFAULT_EPOCHS = [
     name: 'Văn Hóa Phù Nam & Champa',
     era: 'Thế kỷ I – XIII',
     desc: 'Văn minh cổ Óc Eo và nghệ thuật điêu khắc sa thạch Champa.',
-    image: 'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=800&q=80',
+    image: '',
     roomCount: 4
   },
   {
@@ -30,7 +30,7 @@ const CURATED_DEFAULT_EPOCHS = [
     name: 'Đại Việt Qua Các Triều Đại',
     era: 'Lý, Trần, Lê, Nguyễn',
     desc: 'Kỷ nguyên độc lập và mỹ thuật cung đình cổ truyền rực rỡ.',
-    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
+    image: '',
     roomCount: 6
   },
   {
@@ -38,7 +38,7 @@ const CURATED_DEFAULT_EPOCHS = [
     name: 'Văn Hóa Đất Phương Nam',
     era: 'Từ Thế kỷ XVII',
     desc: 'Hành trình khai phá Nam Bộ và mỹ thuật dân gian phương Nam.',
-    image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80',
+    image: '',
     roomCount: 5
   }
 ];
