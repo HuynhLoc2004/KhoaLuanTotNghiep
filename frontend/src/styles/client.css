@@ -2616,3 +2616,716 @@
   opacity: 0.4;
 }
 
+/* =========================================================================
+   13. HIỆU ỨNG CUỘN HIỂN THỊ TỰ NHIÊN (SUBTLE SCROLL REVEAL - KHÔNG GIẬT CỤC, KHÔNG AI)
+   ========================================================================= */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* =========================================================================
+   14. BỐ CỤC ZIG-ZAG BẢO TÀNG HIỆN ĐẠI (ALTERNATING LEFT-RIGHT STORYTELLING)
+   Tránh xếp thẳng 1 hàng đơn điệu, tạo nhịp điệu thị giác lôi cuốn, thoáng đãng
+   ========================================================================= */
+.client-zigzag-section {
+  padding: clamp(56px, 7vw, 92px) 0;
+  position: relative;
+}
+
+.client-zigzag-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: clamp(36px, 5.5vw, 76px);
+  align-items: center;
+  width: 100%;
+}
+
+.client-zigzag-grid.reverse {
+  grid-template-columns: 1fr 1.25fr;
+}
+
+@media (max-width: 992px) {
+  .client-zigzag-grid,
+  .client-zigzag-grid.reverse {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+/* CỘT NỘI DUNG */
+.client-zigzag-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 2;
+}
+
+.client-zigzag-tag {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--c-gold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+
+.client-zigzag-title {
+  font-family: 'Lora', Georgia, serif;
+  font-size: clamp(1.8rem, 2.6vw, 2.4rem);
+  font-weight: 700;
+  color: var(--c-text-primary);
+  line-height: 1.28;
+  margin: 0 0 14px 0;
+}
+
+.client-zigzag-desc {
+  font-size: 0.95rem;
+  line-height: 1.72;
+  color: var(--c-text-secondary);
+  margin: 0 0 22px 0;
+  max-width: 540px;
+}
+
+/* Nút bấm chuẩn mực */
+.client-zigzag-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.client-zigzag-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: var(--c-radius-pill);
+  background: var(--c-primary);
+  color: #FFFFFF;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.client-zigzag-btn-primary:hover {
+  background: var(--c-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(163, 42, 19, 0.3);
+}
+
+.client-zigzag-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: var(--c-radius-pill);
+  background: transparent;
+  border: 1px solid var(--c-border-gold);
+  color: var(--c-gold);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.client-zigzag-btn-secondary:hover {
+  background: var(--c-gold-light);
+  transform: translateY(-1px);
+}
+
+.client-zigzag-btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--c-gold);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.client-zigzag-btn-link:hover {
+  color: var(--c-text-primary);
+}
+
+/* CỘT MEDIA KHUNG HÌNH / ẢNH KIẾN TRÚC (SECTION 1) */
+.client-zigzag-media {
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.client-zigzag-img-frame {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-lg);
+  height: clamp(340px, 34vw, 420px);
+}
+
+.client-zigzag-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.client-zigzag-img-frame:hover .client-zigzag-img {
+  transform: scale(1.03);
+}
+
+.client-zigzag-media-caption {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  padding: 5px 14px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(10, 14, 22, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #FAF7F2;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* 3 CHỈ SỐ THEN CHỐT SECTION 1 */
+.client-zigzag-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+  width: fit-content;
+}
+
+.client-zigzag-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.client-zigzag-stat-val {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--c-gold);
+  line-height: 1.1;
+}
+
+.client-zigzag-stat-lbl {
+  font-size: 0.74rem;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.client-zigzag-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--c-border);
+}
+
+/* SECTION 2: CHỌN PHÒNG & KHUNG XEM 360 (TOUR 360) */
+.client-zigzag-room-selector {
+  margin-bottom: 20px;
+}
+
+.client-zigzag-selector-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.client-zigzag-room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-width: 480px;
+}
+
+.client-zigzag-room-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-card);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.client-zigzag-room-item:hover {
+  border-color: var(--c-gold);
+  background: var(--c-bg-card-hover);
+}
+
+.client-zigzag-room-item.active {
+  border-color: var(--c-gold);
+  background: var(--c-gold-light);
+}
+
+.client-zigzag-room-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.client-zigzag-room-period {
+  font-size: 0.74rem;
+  color: var(--c-text-muted);
+}
+
+.client-zigzag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c-gold);
+  flex-shrink: 0;
+}
+
+.client-zigzag-stage {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-lg);
+  height: clamp(360px, 38vw, 460px);
+  cursor: pointer;
+}
+
+.client-zigzag-stage-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.client-zigzag-stage:hover .client-zigzag-stage-img {
+  transform: scale(1.04);
+}
+
+.client-zigzag-stage-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 10, 16, 0.15) 0%, rgba(8, 10, 16, 0.85) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.client-zigzag-stage-badge {
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(10, 14, 22, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #FAF7F2;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.client-zigzag-stage-bottom {
+  color: #FFFFFF;
+}
+
+.client-zigzag-stage-title {
+  font-family: 'Lora', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: #FFFFFF;
+}
+
+.client-zigzag-stage-meta {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* SECTION 3: BỤC 3D & THÔNG SỐ CỔ VẬT */
+.client-zigzag-vitrine {
+  background: #0D111A;
+  border: 1px solid var(--c-border-gold);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: var(--c-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.client-zigzag-vitrine-static {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(280px, 30vw, 340px);
+}
+
+.client-zigzag-vitrine-img {
+  max-height: 280px;
+  max-width: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.75));
+  transition: transform 0.5s ease;
+}
+
+.client-zigzag-vitrine:hover .client-zigzag-vitrine-img {
+  transform: scale(1.05);
+}
+
+.client-zigzag-vitrine-hint {
+  position: absolute;
+  bottom: 8px;
+  padding: 4px 12px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.client-zigzag-shelf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.client-zigzag-shelf-item {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #000;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.client-zigzag-shelf-item.active {
+  border-color: #D4AF37;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+}
+
+.client-zigzag-shelf-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.client-zigzag-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
+  margin-bottom: 18px;
+}
+
+@media (max-width: 600px) {
+  .client-zigzag-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.client-zigzag-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.client-zigzag-meta-lbl {
+  font-size: 0.72rem;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.client-zigzag-meta-val {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+/* SECTION 4: 2X2 THẺ CHUYÊN ĐỀ LỊCH SỬ */
+.client-zigzag-topics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .client-zigzag-topics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.client-zigzag-topic-card {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  height: 200px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.client-zigzag-topic-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--c-gold);
+  box-shadow: var(--c-shadow-md);
+}
+
+.client-zigzag-topic-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.client-zigzag-topic-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.client-zigzag-topic-card:hover .client-zigzag-topic-img {
+  transform: scale(1.08);
+}
+
+.client-zigzag-topic-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(14, 18, 28, 0.15) 0%, rgba(14, 18, 28, 0.9) 100%);
+}
+
+.client-zigzag-topic-body {
+  position: relative;
+  z-index: 2;
+  color: #FFFFFF;
+}
+
+.client-zigzag-topic-era {
+  font-size: 0.68rem;
+  color: #E8D39E;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.client-zigzag-topic-name {
+  font-family: 'Lora', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 4px 0;
+  line-height: 1.25;
+}
+
+.client-zigzag-topic-desc {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.client-zigzag-topic-rooms {
+  font-size: 0.72rem;
+  color: #DFC07D;
+}
+
+/* SECTION 5: THÔNG TIN THAM QUAN & QR */
+.client-zigzag-guide-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.client-zigzag-guide-item {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+}
+
+.client-zigzag-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.client-zigzag-guide-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--c-text-primary);
+}
+
+.client-zigzag-guide-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 8px;
+  border-radius: var(--c-radius-pill);
+}
+
+.client-zigzag-guide-time {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.client-zigzag-guide-dot {
+  color: var(--c-text-muted);
+}
+
+.client-zigzag-guide-sub {
+  font-size: 0.76rem;
+  color: var(--c-text-muted);
+  margin-top: 4px;
+}
+
+.client-zigzag-guide-tickets {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.client-zigzag-ticket-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: var(--c-text-secondary);
+}
+
+.client-zigzag-ticket-row strong {
+  color: var(--c-text-primary);
+}
+
+.client-zigzag-ticket-row .highlight {
+  color: var(--c-gold);
+}
+
+.client-zigzag-guide-address {
+  font-size: 0.88rem;
+  color: var(--c-text-secondary);
+  line-height: 1.5;
+}
+
+.client-zigzag-guide-hotline {
+  font-size: 0.84rem;
+  color: var(--c-text-secondary);
+  margin-top: 4px;
+}
+
+.client-zigzag-guide-hotline strong {
+  color: var(--c-text-primary);
+}
+
+.client-zigzag-qr-box {
+  padding: 28px 26px;
+  border-radius: 16px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border-gold);
+  box-shadow: var(--c-shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.client-zigzag-qr-title {
+  font-family: 'Lora', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.client-zigzag-qr-desc {
+  font-size: 0.88rem;
+  color: var(--c-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.client-zigzag-qr-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.client-zigzag-qr-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+  color: var(--c-text-secondary);
+}
+
+.client-zigzag-qr-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-gold);
+  color: #0A0D14;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+

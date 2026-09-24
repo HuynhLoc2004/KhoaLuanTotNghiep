@@ -102,7 +102,6 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               className="client-btn-primary"
               onClick={onExploreTourClick}
             >
-              <Compass size={18} />
               <span>{t('hero.btnTour', 'Bắt Đầu Tour 360°')}</span>
               <ArrowRight size={16} />
             </button>
@@ -112,38 +111,28 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               className="client-btn-secondary"
               onClick={onExploreArtifactsClick}
             >
-              <Box size={18} />
               <span>{t('hero.btnArtifacts', 'Chiêm Ngưỡng Cổ Vật 3D')}</span>
             </button>
           </div>
 
-          {/* Thanh thống kê dữ liệu thật dạng Capsule tinh hoa di sản */}
+          {/* Thanh thống kê dữ liệu thật dạng Capsule tinh gọn */}
           <div className="client-hero-stats">
             <div className="client-hero-stat-item">
-              <div className="client-hero-stat-header">
-                <Compass size={16} className="client-hero-stat-icon" />
-                <span className="client-hero-stat-value">{roomCount > 0 ? roomCount : 3}</span>
-              </div>
+              <span className="client-hero-stat-value">{roomCount > 0 ? roomCount : 3}</span>
               <div className="client-hero-stat-label">{t('hero.statRooms', 'Gian Phòng 360°')}</div>
             </div>
 
             <div className="client-hero-stat-divider" aria-hidden="true" />
 
             <div className="client-hero-stat-item">
-              <div className="client-hero-stat-header">
-                <Box size={16} className="client-hero-stat-icon" />
-                <span className="client-hero-stat-value">{artifact3DCount > 0 ? artifact3DCount : 1}</span>
-              </div>
+              <span className="client-hero-stat-value">{artifact3DCount > 0 ? artifact3DCount : 1}</span>
               <div className="client-hero-stat-label">{t('hero.statArtifacts', 'Cổ Vật 3D')}</div>
             </div>
 
             <div className="client-hero-stat-divider" aria-hidden="true" />
 
             <div className="client-hero-stat-item">
-              <div className="client-hero-stat-header">
-                <Globe size={16} className="client-hero-stat-icon" />
-                <span className="client-hero-stat-value">{languageCount > 0 ? languageCount : 6}</span>
-              </div>
+              <span className="client-hero-stat-value">{languageCount > 0 ? languageCount : 6}</span>
               <div className="client-hero-stat-label">{t('hero.statLangs', 'Ngôn Ngữ Thuyết Minh')}</div>
             </div>
           </div>

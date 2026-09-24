@@ -90,6 +90,30 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
     };
   }, []);
 
+  // Hiệu ứng cuộn hiển thị nhẹ nhàng tự nhiên từ dưới lên (Subtle Scroll Reveal)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const elements = document.querySelectorAll('.reveal-on-scroll');
+      if (!elements.length) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-revealed');
+            }
+          });
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -30px 0px' }
+      );
+
+      elements.forEach((el) => observer.observe(el));
+      return () => observer.disconnect();
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [rooms, artifacts, topics]);
+
   const handleOpen3DViewer = (artifact: Artifact) => {
     setActive3DArtifact(artifact);
   };

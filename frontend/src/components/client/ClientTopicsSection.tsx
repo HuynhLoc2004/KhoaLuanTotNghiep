@@ -1,132 +1,114 @@
 import React from 'react';
 import { TopicItem } from '../../types';
-import { Layers, Calendar, ArrowRight, Landmark, Compass, Award } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
 interface ClientTopicsSectionProps {
-  topics: TopicItem[];
+  topics?: TopicItem[];
 }
 
-interface CuratedEpoch {
-  id: string;
-  name: string;
-  era: string;
-  description: string;
-  roomCount: number;
-  imageUrl: string;
-}
-
-const CURATED_DEFAULT_EPOCHS: CuratedEpoch[] = [
+// Chuyên đề mẫu chuẩn lịch sử bảo tàng
+const CURATED_DEFAULT_EPOCHS = [
   {
-    id: 'epoch-01',
-    name: 'Tiến Trình Lịch Sử & Thời Đại Dựng Nước',
-    era: 'Thời Tiền Sử • Đồ Đồng • Dựng Nước',
-    description: 'Từ thời tiền sử, các nền văn minh Sông Hồng, trống đồng Đông Sơn đến các triều đại Đinh - Lê - Lý - Trần kế tục giữ yên bờ cõi.',
-    roomCount: 4,
-    imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80'
+    id: 'epoch-1',
+    name: 'Tiền Sử & Bình Minh Lịch Sử',
+    era: 'Thời Tiền Sử • Đồ Đá, Đồ Đồng',
+    desc: 'Dấu tích người nguyên thủy, văn hóa Đông Sơn và thời dựng nước.',
+    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+    roomCount: 3
   },
   {
-    id: 'epoch-02',
-    name: 'Văn Hóa Champa & Phù Nam - Óc Eo',
-    era: 'Thế kỷ I – Thế kỷ XIII',
-    description: 'Di sản điêu khắc sa thạch độc bản, đồ gốm và trang sức vàng rực rỡ của các vương quốc cổ đại rạng danh trên dải đất phương Nam.',
-    roomCount: 3,
-    imageUrl: 'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=800&q=80'
+    id: 'epoch-2',
+    name: 'Văn Hóa Phù Nam & Champa',
+    era: 'Thế kỷ I – XIII',
+    desc: 'Nền văn minh cổ Óc Eo và nghệ thuật điêu khắc sa thạch Champa.',
+    image: 'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=800&q=80',
+    roomCount: 4
   },
   {
-    id: 'epoch-03',
-    name: 'Mỹ Thuật Cung Đình & Cổ Ngoạn Đặc Sắc',
-    era: 'Triều Nguyễn (1802 – 1945)',
-    description: 'Bộ sưu tập trang phục hoàng gia, long sàng, ngự kiếm và kho tàng cổ vật quý hiếm do học giả Vương Hồng Sển hiến tặng.',
-    roomCount: 4,
-    imageUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80'
+    id: 'epoch-3',
+    name: 'Đại Việt Qua Các Triều Đại',
+    era: 'Thế kỷ X – XIX • Lý, Trần, Lê, Nguyễn',
+    desc: 'Kỷ nguyên độc lập, phát triển văn hóa cung đình và đồ gốm sứ cổ truyền.',
+    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
+    roomCount: 6
   },
   {
-    id: 'epoch-04',
-    name: 'Kiến Trúc Đông Dương & Bảo Tàng Gần 100 Năm',
-    era: 'Từ 1929 Đến Nay',
-    description: 'Kiệt tác kiến trúc Đông Dương kết hợp mỹ thuật cung đình truyền thống và kỹ nghệ phương Tây giữa lòng Sài Gòn cổ kính.',
-    roomCount: 3,
-    imageUrl: 'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=800&q=80'
+    id: 'epoch-4',
+    name: 'Văn Hóa Đất Phương Nam',
+    era: 'Từ Thế kỷ XVII',
+    desc: 'Hành trình khai phá Nam Bộ, phong tục tập quán và mỹ thuật dân gian.',
+    image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80',
+    roomCount: 5
   }
 ];
 
 export const ClientTopicsSection: React.FC<ClientTopicsSectionProps> = ({ topics }) => {
   const { t, localize } = useClientTranslation();
 
-  // Hòa trộn chuyên đề thực tế từ Admin MongoDB với danh mục thời kỳ lịch sử chuẩn
-  const displayList: (TopicItem | CuratedEpoch)[] =
+  // Đồng bộ chuyên đề từ API Admin nếu có >= 2, ngược lại dùng danh mục chuẩn
+  const displayEpochs =
     topics && topics.length >= 2
-      ? topics.slice(0, 4)
+      ? topics.slice(0, 4).map((top, idx) => ({
+          id: top.id,
+          name: localize(top, 'name', top.name),
+          era: (top as any).era || `Chuyên đề ${idx + 1}`,
+          desc: localize(top, 'description', top.description || 'Chuyên đề trưng bày di sản lịch sử.'),
+          image: (top as any).imageUrl || CURATED_DEFAULT_EPOCHS[idx % CURATED_DEFAULT_EPOCHS.length].image,
+          roomCount: top.roomCount || 2
+        }))
       : CURATED_DEFAULT_EPOCHS;
 
-  const sampleImages = [
-    'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=800&q=80'
-  ];
-
   return (
-    <section id="topics" className="client-section client-topics-section">
+    <section id="topics" className="client-section client-zigzag-section reveal-on-scroll">
       <div className="client-container">
-        {/* Tiêu đề Khối Chuyên Đề */}
-        <div className="client-section-header">
-          <span className="client-section-tag">
-            {t('topics.tag', 'Dòng Chảy Lịch Sử & Thời Đại')}
-          </span>
-          <h2 className="client-section-title">
-            {t('topics.headline', 'Dấu Ấn Thời Gian & Các Chuyên Đề Trưng Bày')}
-          </h2>
-          <p className="client-section-subtitle">
-            {t(
-              'topics.sub',
-              'Khám phá tiến trình lịch sử hào hùng qua từng thời kỳ văn hóa, kiến trúc và các bộ sưu tập chuyên đề đặc sắc của bảo tàng.'
-            )}
-          </p>
-        </div>
+        {/* ZIG-ZAG: CỘT TRÁI (CHỮ), CỘT PHẢI (LƯỚI 2X2 THẺ CHUYÊN ĐỀ) */}
+        <div className="client-zigzag-grid reverse">
+          {/* CỘT NỘI DUNG (BÊN TRÁI KHI REVERSE) */}
+          <div className="client-zigzag-content">
+            <span className="client-zigzag-tag">
+              {t('topics.tag', 'Dòng Chảy Lịch Sử')}
+            </span>
 
-        {/* LƯỚI THẺ CHUYÊN ĐỀ HÌNH ẢNH NGHỆ THUẬT (EPOCH GALLERY GRID) */}
-        <div className="client-topics-grid">
-          {displayList.map((item, idx) => {
-            const name = localize(item, 'name', item.name);
-            const description = localize(item, 'description', item.description || '');
-            const era = (item as any).era || `Thời kỳ ${idx + 1}`;
-            const roomCount = item.roomCount || 3;
-            const bgImage = (item as any).imageUrl || sampleImages[idx % sampleImages.length];
+            <h2 className="client-zigzag-title">
+              {t('topics.headline', 'Các Thời Kỳ & Chuyên Đề Di Sản')}
+            </h2>
 
-            return (
-              <div key={item.id} className="client-topic-card">
-                {/* Lớp nền ảnh di sản kèm hiệu ứng phủ tối */}
-                <div className="client-topic-bg-wrap">
-                  <img src={bgImage} alt={name} className="client-topic-bg-img" />
-                  <div className="client-topic-gradient" />
-                </div>
+            <p className="client-zigzag-desc">
+              {t(
+                'topics.desc',
+                'Hành trình xuyên suốt lịch sử phương Nam từ thời tiền sử đến các triều đại phong kiến qua hệ thống các phòng chuyên khảo độc đáo.'
+              )}
+            </p>
 
-                {/* Nội dung trên thẻ chuyên đề */}
-                <div className="client-topic-content">
-                  <div className="client-topic-header-row">
-                    <span className="client-topic-step-pill">{`0${idx + 1}`}</span>
-                    <span className="client-topic-era-tag">{era}</span>
+            <a href="#rooms" className="client-zigzag-btn-primary" style={{ textDecoration: 'none' }}>
+              <span>Khám Phá Các Chuyên Đề</span>
+              <ArrowRight size={15} />
+            </a>
+          </div>
+
+          {/* CỘT MEDIA (LƯỚI 2X2 THẺ CHUYÊN ĐỀ BÊN PHẢI) */}
+          <div className="client-zigzag-media">
+            <div className="client-zigzag-topics-grid">
+              {displayEpochs.map((item) => (
+                <div key={item.id} className="client-zigzag-topic-card">
+                  <div className="client-zigzag-topic-bg">
+                    <img src={item.image} alt={item.name} className="client-zigzag-topic-img" />
+                    <div className="client-zigzag-topic-gradient" />
                   </div>
 
-                  <h3 className="client-topic-title">{name}</h3>
-
-                  <p className="client-topic-desc">{description}</p>
-
-                  <div className="client-topic-footer">
-                    <span className="client-topic-room-badge">
-                      <Landmark size={13} />
-                      <span>{roomCount} gian phòng liên quan</span>
-                    </span>
-                    <span className="client-topic-arrow">
-                      <ArrowRight size={15} />
-                    </span>
+                  <div className="client-zigzag-topic-body">
+                    <span className="client-zigzag-topic-era">{item.era}</span>
+                    <h3 className="client-zigzag-topic-name">{item.name}</h3>
+                    <p className="client-zigzag-topic-desc">{item.desc}</p>
+                    <div className="client-zigzag-topic-rooms">
+                      <span>{item.roomCount} gian phòng liên quan</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
