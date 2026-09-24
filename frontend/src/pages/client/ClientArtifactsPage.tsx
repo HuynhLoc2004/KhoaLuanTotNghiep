@@ -1,0 +1,253 @@
+import React, { useState, useMemo } from 'react';
+import { Artifact } from '../../types';
+import { Box, Search, ArrowRight, ArrowLeft, RotateCw, Sparkles, Filter } from 'lucide-react';
+import { API_ROOT } from '../../services/api';
+import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { ClientNavbar } from '../../components/client/ClientNavbar';
+import { ClientFooter } from '../../components/client/ClientFooter';
+
+interface ClientArtifactsPageProps {
+  artifacts: Artifact[];
+  onSelectArtifactDetail: (artifactId: string) => void;
+  onNavigateHome: () => void;
+  onNavigatePage: (page: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide') => void;
+  clientTheme: 'light' | 'dark';
+  onToggleClientTheme: () => void;
+  onOpenLoginModal: () => void;
+  onNavigateAdmin: () => void;
+}
+
+export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
+  artifacts,
+  onSelectArtifactDetail,
+  onNavigateHome,
+  onNavigatePage,
+  clientTheme,
+  onToggleClientTheme,
+  onOpenLoginModal,
+  onNavigateAdmin
+}) => {
+  const { t, localize } = useClientTranslation();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [only3D, setOnly3D] = useState<boolean>(false);
+
+  // Trích xuất các phân loại hiện vật
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    artifacts.forEach((a) => {
+      if (a.category) set.add(a.category);
+    });
+    return Array.from(set);
+  }, [artifacts]);
+
+  // Lọc hiện vật theo tìm kiếm, danh mục và trạng thái 3D
+  const filteredArtifacts = useMemo(() => {
+    return artifacts.filter((a) => {
+      const name = localize(a, 'name', a.name).toLowerCase();
+      const code = (a.code || '').toLowerCase();
+      const desc = localize(a, 'description', a.description || '').toLowerCase();
+      const origin = localize(a, 'origin', a.origin || '').toLowerCase();
+      const period = localize(a, 'period', a.period || '').toLowerCase();
+      const cat = a.category || '';
+
+      const matchSearch =
+        !searchQuery ||
+        name.includes(searchQuery.toLowerCase()) ||
+        code.includes(searchQuery.toLowerCase()) ||
+        desc.includes(searchQuery.toLowerCase()) ||
+        origin.includes(searchQuery.toLowerCase()) ||
+        period.includes(searchQuery.toLowerCase());
+
+      const matchCategory = selectedCategory === 'all' || cat === selectedCategory;
+      const match3D = !only3D || !!a.model3dUrl;
+
+      return matchSearch && matchCategory && match3D;
+    });
+  }, [artifacts, searchQuery, selectedCategory, only3D, localize]);
+
+  const getArtifactThumb = (art: Artifact) => {
+    const raw = art.thumbnailUrl || (art.images && art.images[0]);
+    if (!raw) {
+      return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=85';
+    }
+    return raw.startsWith('http')
+      ? raw
+      : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  };
+
+  return (
+    <div className="client-portal" data-client-theme={clientTheme}>
+      <ClientNavbar
+        clientTheme={clientTheme}
+        onToggleClientTheme={onToggleClientTheme}
+        onOpenLoginModal={onOpenLoginModal}
+        onNavigateAdmin={onNavigateAdmin}
+        activeSection="artifacts"
+        onNavigatePage={onNavigatePage}
+      />
+
+      <main className="client-subpage">
+        <div className="client-container">
+          {/* Breadcrumb & Header */}
+          <div className="client-subpage-hero">
+            <div className="client-subpage-breadcrumb">
+              <button
+                type="button"
+                className="client-breadcrumb-btn"
+                onClick={onNavigateHome}
+              >
+                <ArrowLeft size={14} />
+                <span>{t('nav.home', 'Trang chủ')}</span>
+              </button>
+              <span className="client-breadcrumb-sep">/</span>
+              <span className="client-breadcrumb-current">
+                {t('artifacts.pageTitle', 'Cổ vật 3D')}
+              </span>
+            </div>
+
+            <span className="client-zigzag-tag">
+              {t('artifacts.tag', 'Bảo Vật Di Sản & Mô Hình 3D')}
+            </span>
+
+            <h1 className="client-subpage-title">
+              {t('artifacts.pageHeading', 'Kho Tàng Cổ Vật & Bảo Vật Di Sản')}
+            </h1>
+
+            <p className="client-subpage-lead">
+              {t(
+                'artifacts.pageLead',
+                'Khám phá bộ sưu tập hiện vật lịch sử và các bảo vật quốc gia được số hóa 3D đa chiều. Khách tham quan có thể xoay mô hình 360°, phóng to chi tiết hoa văn và lắng nghe thuyết minh âm thanh đa ngôn ngữ.'
+              )}
+            </p>
+          </div>
+
+          {/* Thanh công cụ tìm kiếm và bộ lọc */}
+          <div className="client-subpage-toolbar">
+            <div className="client-subpage-search-wrap">
+              <Search size={16} className="client-subpage-search-icon" />
+              <input
+                type="text"
+                className="client-subpage-search-input"
+                placeholder={t('artifacts.searchPlaceholder', 'Tìm kiếm cổ vật, chất liệu, niên đại...')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="client-subpage-filters">
+              <button
+                type="button"
+                className={`client-subpage-filter-btn ${!only3D && selectedCategory === 'all' ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedCategory('all');
+                  setOnly3D(false);
+                }}
+              >
+                <span>{t('common.all', 'Tất cả')} ({artifacts.length})</span>
+              </button>
+
+              <button
+                type="button"
+                className={`client-subpage-filter-btn ${only3D ? 'active' : ''}`}
+                onClick={() => setOnly3D((prev) => !prev)}
+              >
+                <RotateCw size={13} />
+                <span>{t('artifacts.only3D', 'Có mô hình 3D xoay')}</span>
+              </button>
+
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`client-subpage-filter-btn ${selectedCategory === c ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(c)}
+                >
+                  <span>{c}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Danh sách lưới hiện vật */}
+          {filteredArtifacts.length === 0 ? (
+            <div className="client-subpage-empty">
+              <Box size={40} className="client-empty-icon" />
+              <p>{t('artifacts.notFound', 'Không tìm thấy cổ vật phù hợp với điều kiện tìm kiếm.')}</p>
+              <button
+                type="button"
+                className="client-zigzag-btn-primary"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                  setOnly3D(false);
+                }}
+                style={{ marginTop: 12 }}
+              >
+                <span>{t('common.resetFilter', 'Đặt lại bộ lọc')}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="client-subpage-grid">
+              {filteredArtifacts.map((art) => {
+                const title = localize(art, 'name', art.name);
+                const period = localize(art, 'period', art.period || '');
+                const category = art.category || 'Cổ vật di sản';
+                const desc = localize(art, 'description', art.description || '');
+                const thumb = getArtifactThumb(art);
+                const has3D = !!art.model3dUrl;
+
+                return (
+                  <div key={art.id} className="client-gallery-card">
+                    <div
+                      className="client-gallery-media clickable"
+                      onClick={() => onSelectArtifactDetail(art.id)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                      {has3D ? (
+                        <div className="client-zigzag-badge-float" style={{ borderColor: 'rgba(212, 175, 55, 0.7)' }}>
+                          <RotateCw size={12} style={{ display: 'inline', marginRight: 4 }} />
+                          <span>Mô hình 3D</span>
+                        </div>
+                      ) : (
+                        <div className="client-zigzag-badge-float">
+                          <span>Hiện vật số hóa</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="client-gallery-body">
+                      <div className="client-gallery-tags-row">
+                        <span className="client-gallery-meta">{category}</span>
+                        {period && <span className="client-gallery-period">{period}</span>}
+                      </div>
+
+                      <h2 className="client-gallery-title">{title}</h2>
+                      {desc && <p className="client-gallery-desc">{desc}</p>}
+
+                      <div className="client-gallery-actions">
+                        <button
+                          type="button"
+                          className="client-zigzag-btn-primary"
+                          style={{ width: '100%', justifyContent: 'center' }}
+                          onClick={() => onSelectArtifactDetail(art.id)}
+                        >
+                          <Box size={15} />
+                          <span>{t('artifacts.btnViewDetail', 'Chiêm ngưỡng chi tiết & 3D')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+
+      <ClientFooter />
+    </div>
+  );
+};

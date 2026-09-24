@@ -3524,4 +3524,378 @@
   flex-shrink: 0;
 }
 
+/* =========================================================================
+   CÁC TRANG CHUYÊN BIỆT (DEDICATED SUBPAGES: ROOMS, ARTIFACTS, TOPICS, GUIDE)
+   ========================================================================= */
+
+.client-subpage {
+  min-height: 100vh;
+  padding-top: 110px;
+  padding-bottom: 90px;
+  position: relative;
+}
+
+.client-subpage-hero {
+  padding: 24px 0 32px 0;
+}
+
+.client-subpage-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  margin-bottom: 16px;
+  color: var(--c-text-muted);
+}
+
+.client-breadcrumb-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--c-gold);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.client-breadcrumb-btn:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.client-breadcrumb-sep {
+  color: var(--c-text-muted);
+  opacity: 0.5;
+}
+
+.client-breadcrumb-current {
+  color: var(--c-text-secondary);
+  font-weight: 500;
+}
+
+.client-subpage-title {
+  font-family: 'Lora', Georgia, serif;
+  font-size: clamp(2rem, 3.2vw, 2.8rem);
+  font-weight: 700;
+  color: var(--c-text-primary);
+  line-height: 1.22;
+  margin: 10px 0 14px 0;
+}
+
+.client-subpage-lead {
+  font-size: 1.02rem;
+  line-height: 1.72;
+  color: var(--c-text-secondary);
+  max-width: 760px;
+  margin: 0;
+}
+
+/* THANH CÔNG CỤ & BỘ LỌC SUBPAGE */
+.client-subpage-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 30px 0 36px 0;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.client-subpage-search-wrap {
+  position: relative;
+  width: 320px;
+  max-width: 100%;
+}
+
+.client-subpage-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-text-muted);
+  pointer-events: none;
+}
+
+.client-subpage-search-input {
+  width: 100%;
+  padding: 10px 16px 10px 42px;
+  border-radius: var(--c-radius-pill);
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-primary);
+  font-size: 0.88rem;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.client-subpage-search-input:focus {
+  border-color: var(--c-border-gold);
+  box-shadow: 0 0 0 3px var(--c-gold-light);
+}
+
+.client-subpage-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.client-subpage-filter-btn {
+  padding: 7px 16px;
+  border-radius: var(--c-radius-pill);
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.client-subpage-filter-btn:hover {
+  border-color: var(--c-border-gold);
+  color: var(--c-text-primary);
+}
+
+.client-subpage-filter-btn.active {
+  background: var(--c-gold-light);
+  border-color: var(--c-gold);
+  color: var(--c-gold);
+  font-weight: 600;
+}
+
+/* LƯỚI CARD TRÊN CÁC TRANG CON */
+.client-subpage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px;
+}
+
+.client-gallery-card {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--c-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.client-gallery-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--c-border-gold);
+  box-shadow: var(--c-shadow-md);
+}
+
+.client-gallery-media {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  background: #000;
+}
+
+.client-gallery-media.clickable {
+  cursor: pointer;
+}
+
+.client-gallery-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.client-gallery-card:hover .client-gallery-img {
+  transform: scale(1.05);
+}
+
+.client-gallery-hotspot-pill {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(10, 14, 22, 0.82);
+  backdrop-filter: blur(8px);
+  color: #FAF7F2;
+  font-size: 0.74rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.client-gallery-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.client-gallery-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.client-gallery-meta {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-gold);
+}
+
+.client-gallery-period {
+  font-size: 0.76rem;
+  color: var(--c-text-muted);
+}
+
+.client-gallery-title {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  line-height: 1.35;
+  margin: 0 0 10px 0;
+}
+
+.client-gallery-desc {
+  font-size: 0.88rem;
+  color: var(--c-text-secondary);
+  line-height: 1.62;
+  margin: 0 0 18px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.client-gallery-actions {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.client-subpage-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--c-bg-card);
+  border: 1px dashed var(--c-border);
+  border-radius: 18px;
+  color: var(--c-text-muted);
+}
+
+.client-empty-icon {
+  margin: 0 auto 14px auto;
+  opacity: 0.4;
+  color: var(--c-gold);
+}
+
+/* TRANG CẨM NANG THAM QUAN (CLIENT GUIDE PAGE) */
+.client-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 28px;
+}
+
+.client-guide-card {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow: var(--c-shadow-sm);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.client-guide-card:hover {
+  border-color: var(--c-border-gold);
+  box-shadow: var(--c-shadow-md);
+}
+
+.client-guide-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--c-gold-light);
+  color: var(--c-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.client-guide-card-title {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 0 0 8px 0;
+}
+
+.client-guide-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--c-radius-pill);
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.14);
+  color: #10B981;
+  width: fit-content;
+}
+
+.client-guide-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--c-text-secondary);
+}
+
+.client-guide-list li {
+  position: relative;
+  padding-left: 16px;
+}
+
+.client-guide-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--c-gold);
+  font-weight: bold;
+}
+
+.client-guide-note {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  line-height: 1.55;
+  margin-top: auto;
+  padding-top: 10px;
+  font-style: italic;
+}
+
+.client-guide-tickets-table {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+
 

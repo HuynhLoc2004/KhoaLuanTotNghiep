@@ -5,6 +5,7 @@ import { useClientTranslation } from '../../context/ClientTranslationContext';
 
 interface ClientTopicsSectionProps {
   topics?: TopicItem[];
+  onViewAllTopics?: () => void;
 }
 
 const CURATED_DEFAULT_EPOCHS = [
@@ -42,7 +43,7 @@ const CURATED_DEFAULT_EPOCHS = [
   }
 ];
 
-export const ClientTopicsSection: React.FC<ClientTopicsSectionProps> = ({ topics }) => {
+export const ClientTopicsSection: React.FC<ClientTopicsSectionProps> = ({ topics, onViewAllTopics }) => {
   const { t, localize } = useClientTranslation();
 
   const displayEpochs =
@@ -100,10 +101,14 @@ export const ClientTopicsSection: React.FC<ClientTopicsSectionProps> = ({ topics
             </div>
 
             <div style={{ marginTop: 20 }}>
-              <a href="#rooms" className="client-zigzag-btn-primary" style={{ textDecoration: 'none' }}>
-                <span>Khám Phá Các Chuyên Đề</span>
+              <button
+                type="button"
+                className="client-zigzag-btn-primary"
+                onClick={onViewAllTopics}
+              >
+                <span>{t('topics.btnViewAll', 'Xem tất cả chuyên đề lịch sử')}</span>
                 <ArrowRight size={15} />
-              </a>
+              </button>
             </div>
           </div>
         </div>

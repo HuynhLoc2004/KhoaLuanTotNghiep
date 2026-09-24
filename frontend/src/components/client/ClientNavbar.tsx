@@ -25,6 +25,7 @@ interface ClientNavbarProps {
   onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
   activeSection?: string;
+  onNavigatePage?: (page: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide') => void;
 }
 
 export const ClientNavbar: React.FC<ClientNavbarProps> = ({
@@ -32,7 +33,8 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   onToggleClientTheme,
   onOpenLoginModal,
   onNavigateAdmin,
-  activeSection = 'hero'
+  activeSection = 'hero',
+  onNavigatePage
 }) => {
   const { branding } = useSystemBranding();
   const { currentLang, activeLanguages, changeLanguage, t } = useClientTranslation();
@@ -95,7 +97,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           className="client-nav-brand"
           onClick={(e) => {
             e.preventDefault();
-            scrollToSection('hero');
+            if (onNavigatePage) {
+              onNavigatePage('home');
+            } else {
+              scrollToSection('hero');
+            }
           }}
         >
           {branding.logoUrl ? (
@@ -124,7 +130,12 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 className={`client-nav-link ${activeSection === 'intro' ? 'active' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollToSection('intro');
+                  if (onNavigatePage) {
+                    onNavigatePage('home');
+                    setTimeout(() => scrollToSection('intro'), 100);
+                  } else {
+                    scrollToSection('intro');
+                  }
                 }}
               >
                 {t('nav.intro', 'Giới thiệu')}
@@ -136,7 +147,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 className={`client-nav-link ${activeSection === 'rooms' ? 'active' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollToSection('rooms');
+                  if (onNavigatePage) {
+                    onNavigatePage('rooms');
+                  } else {
+                    scrollToSection('rooms');
+                  }
                 }}
               >
                 {t('nav.rooms360', 'Gian phòng 360°')}
@@ -148,7 +163,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 className={`client-nav-link ${activeSection === 'artifacts' ? 'active' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollToSection('artifacts');
+                  if (onNavigatePage) {
+                    onNavigatePage('artifacts');
+                  } else {
+                    scrollToSection('artifacts');
+                  }
                 }}
               >
                 {t('nav.artifacts3d', 'Cổ vật 3D')}
@@ -160,7 +179,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 className={`client-nav-link ${activeSection === 'topics' ? 'active' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollToSection('topics');
+                  if (onNavigatePage) {
+                    onNavigatePage('topics');
+                  } else {
+                    scrollToSection('topics');
+                  }
                 }}
               >
                 {t('nav.topics', 'Chuyên đề')}
@@ -172,7 +195,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 className={`client-nav-link ${activeSection === 'guide' ? 'active' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollToSection('guide');
+                  if (onNavigatePage) {
+                    onNavigatePage('guide');
+                  } else {
+                    scrollToSection('guide');
+                  }
                 }}
               >
                 {t('nav.guide', 'Tham quan')}

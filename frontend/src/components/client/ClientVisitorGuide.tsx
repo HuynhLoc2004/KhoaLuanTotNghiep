@@ -3,7 +3,11 @@ import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { ArrowUpRight } from 'lucide-react';
 
-export const ClientVisitorGuide: React.FC = () => {
+interface ClientVisitorGuideProps {
+  onViewAllGuide?: () => void;
+}
+
+export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAllGuide }) => {
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
 
@@ -89,6 +93,19 @@ export const ClientVisitorGuide: React.FC = () => {
                 </a>
               </div>
             </div>
+
+            {onViewAllGuide && (
+              <div style={{ marginTop: 22, display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  className="client-zigzag-btn-primary"
+                  onClick={onViewAllGuide}
+                >
+                  <span>{t('guide.btnViewAll', 'Xem cẩm nang tham quan đầy đủ')}</span>
+                  <ArrowUpRight size={15} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

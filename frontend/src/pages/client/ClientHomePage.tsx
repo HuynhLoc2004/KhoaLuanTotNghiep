@@ -20,12 +20,14 @@ interface ClientHomePageProps {
   onNavigateAdmin: () => void;
   onSelectRoomForTour: (room: MuseumRoom) => void;
   onSelectArtifactDetail?: (artifactId: string) => void;
+  onNavigatePage: (page: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide') => void;
 }
 
 export const ClientHomePage: React.FC<ClientHomePageProps> = ({
   onNavigateAdmin,
   onSelectRoomForTour,
-  onSelectArtifactDetail
+  onSelectArtifactDetail,
+  onNavigatePage
 }) => {
   const { branding } = useSystemBranding();
   const { currentLang, activeLanguages, t } = useClientTranslation();
@@ -138,6 +140,7 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
         onToggleClientTheme={toggleClientTheme}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onNavigateAdmin={onNavigateAdmin}
+        onNavigatePage={onNavigatePage}
       />
 
       <main>
@@ -146,8 +149,8 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
           roomCount={rooms.length}
           artifact3DCount={artifactsWith3D.length}
           languageCount={activeLanguages.length || 5}
-          onExploreTourClick={scrollToRooms}
-          onExploreArtifactsClick={scrollToArtifacts}
+          onExploreTourClick={() => onNavigatePage('rooms')}
+          onExploreArtifactsClick={() => onNavigatePage('artifacts')}
           featuredImageUrl={
             branding.heroBannerUrl ||
             (rooms[0]?.panoramaUrl
@@ -162,29 +165,34 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
           roomCount={rooms.length}
           artifactCount={artifacts.length}
           topicCount={topics.length}
-          onExploreRooms={scrollToRooms}
+          onExploreRooms={() => onNavigatePage('rooms')}
         />
 
-        {/* 4. Khối Gian phòng Trưng bày 360° Tiêu biểu */}
+        {/* 4. Khối Gian phòng Trưng bày 360° (Đại diện cho trang Gian phòng 360°) */}
         <ClientFeaturedRooms
           rooms={rooms}
           onSelectRoom={onSelectRoomForTour}
-          onViewAllRooms={scrollToRooms}
+          onViewAllRooms={() => onNavigatePage('rooms')}
         />
 
-        {/* 5. Khối Kiệt tác Cổ vật 3D Di sản */}
+        {/* 5. Khối Kiệt tác Cổ vật 3D (Đại diện cho trang Kho hiện vật) */}
         <ClientFeaturedArtifacts
           artifacts={artifacts}
           onOpen3DViewer={handleOpen3DViewer}
           onSelectArtifactDetail={onSelectArtifactDetail}
-          onViewAllArtifacts={scrollToArtifacts}
+          onViewAllArtifacts={() => onNavigatePage('artifacts')}
         />
 
-        {/* 6. Khối Chuyên đề & Thời kỳ lịch sử */}
-        <ClientTopicsSection topics={topics} />
+        {/* 6. Khối Chuyên đề & Thời kỳ lịch sử (Đại diện cho trang Chuyên đề) */}
+        <ClientTopicsSection
+          topics={topics}
+          onViewAllTopics={() => onNavigatePage('topics')}
+        />
 
-        {/* 7. Khối Hướng dẫn tham quan & Giờ mở cửa */}
-        <ClientVisitorGuide />
+        {/* 7. Khối Hướng dẫn tham quan & Giờ mở cửa (Đại diện cho trang Cẩm nang) */}
+        <ClientVisitorGuide
+          onViewAllGuide={() => onNavigatePage('guide')}
+        />
       </main>
 
       {/* 8. Chân trang văn hóa di sản */}

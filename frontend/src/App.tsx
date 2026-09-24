@@ -9,7 +9,7 @@ import { AdminPanoramaStudio } from './pages/admin/AdminPanoramaStudio';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminArtifactsPage } from './pages/admin/AdminArtifactsPage';
 import { PublicArtifactView } from './pages/public/PublicArtifactView';
-import { MuseumRoom, AdminTab } from './types';
+import { MuseumRoom, AdminTab, Artifact, TopicItem } from './types';
 import { api } from './services/api';
 import { Loader2, AlertCircle, Landmark, RefreshCw } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
@@ -23,6 +23,11 @@ import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { ClientTranslationProvider, useClientTranslation } from './context/ClientTranslationContext';
 import { ClientHomePage } from './pages/client/ClientHomePage';
 import { ClientTourView } from './pages/client/ClientTourView';
+import { ClientRoomsPage } from './pages/client/ClientRoomsPage';
+import { ClientArtifactsPage } from './pages/client/ClientArtifactsPage';
+import { ClientTopicsPage } from './pages/client/ClientTopicsPage';
+import { ClientGuidePage } from './pages/client/ClientGuidePage';
+import { ClientLoginOtpModal } from './components/client/ClientLoginOtpModal';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -31,10 +36,53 @@ const AppContent: React.FC = () => {
   const { t } = useClientTranslation();
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
   const [activeRoom, setActiveRoom] = useState<MuseumRoom | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLagging, setIsLagging] = useState(false);
+  const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
+
+  // Quản lý theme client đồng bộ toàn hệ thống
+  const [clientTheme, setClientTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('client_theme_v2');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {}
+    return 'dark';
+  });
+
+  const toggleClientTheme = () => {
+    setClientTheme((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      try {
+        localStorage.setItem('client_theme_v2', next);
+      } catch {}
+      return next;
+    });
+  };
+
+  // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide'
+  const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'topics' | 'guide'>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const p = params.get('page');
+      if (p === 'rooms' || p === 'artifacts' || p === 'topics' || p === 'guide') {
+        return p;
+      }
+    } catch {}
+    return 'home';
+  });
+
+  const handleNavigateClientPage = (page: 'home' | 'rooms' | 'artifacts' | 'topics' | 'guide') => {
+    setClientActivePage(page);
+    try {
+      const url = page === 'home' ? '/' : `?page=${page}`;
+      window.history.pushState({}, '', url);
+    } catch {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Xác định đang truy cập tuyến Quản trị (/admin) hay Cổng thông tin Khách tham quan
   const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
@@ -65,16 +113,22 @@ const AppContent: React.FC = () => {
     return null;
   });
 
-  // Fetch all rooms from API (sử dụng chung cho cả Tour khách và Quản trị viên)
+  // Fetch all data from API (sử dụng chung cho cả Tour khách, các trang con và Quản trị viên)
   const fetchRooms = async () => {
     try {
       setLoading(true);
       setError(null);
       setIsLagging(false);
-      const data = await api.getRooms();
-      setRooms(data);
+      const [roomsData, artifactsData, topicsData] = await Promise.all([
+        api.getRooms().catch(() => []),
+        api.getArtifacts().catch(() => []),
+        api.getTopics().catch(() => [])
+      ]);
+      setRooms(roomsData);
+      setArtifacts(artifactsData);
+      setTopics(topicsData);
     } catch (err: any) {
-      console.error('Lỗi khi tải dữ liệu phòng:', err);
+      console.error('Lỗi khi tải dữ liệu hệ thống:', err);
       if (isAdminRoute) {
         setError('Không thể kết nối đến máy chủ API. Vui lòng kiểm tra backend.');
       }
@@ -93,7 +147,7 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, [loading, user]);
 
-  // Nạp danh sách phòng khi khởi tạo (phục vụ cả tour khách và admin)
+  // Nạp danh sách dữ liệu khi khởi tạo (phục vụ cả tour khách và admin)
   useEffect(() => {
     fetchRooms();
   }, []);
@@ -114,6 +168,13 @@ const AppContent: React.FC = () => {
           setPublicArtifactId(seg ? seg.split('/')[0] : null);
         } else {
           setPublicArtifactId(null);
+        }
+
+        const p = params.get('page');
+        if (p === 'rooms' || p === 'artifacts' || p === 'topics' || p === 'guide') {
+          setClientActivePage(p);
+        } else {
+          setClientActivePage('home');
         }
       } catch {}
     };
@@ -317,9 +378,9 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Nếu người dùng truy cập trang chủ công khai (không phải /admin)
+  // Nếu người dùng truy cập trang công khai của Cổng thông tin (không phải /admin)
   if (!isAdminRoute) {
-    return (
+    let activeClientView = (
       <ClientHomePage
         onNavigateAdmin={() => {
           setIsAdminRoute(true);
@@ -336,7 +397,99 @@ const AppContent: React.FC = () => {
             window.history.pushState({}, '', `?artifact=${artifactId}`);
           } catch {}
         }}
+        onNavigatePage={handleNavigateClientPage}
       />
+    );
+
+    if (clientActivePage === 'rooms') {
+      activeClientView = (
+        <ClientRoomsPage
+          rooms={rooms}
+          onSelectRoomForTour={(room) => setPublicTourRoom(room)}
+          onNavigateHome={() => handleNavigateClientPage('home')}
+          onNavigatePage={handleNavigateClientPage}
+          clientTheme={clientTheme}
+          onToggleClientTheme={toggleClientTheme}
+          onOpenLoginModal={() => setIsClientLoginModalOpen(true)}
+          onNavigateAdmin={() => {
+            setIsAdminRoute(true);
+            try {
+              window.history.pushState({}, '', '/admin');
+            } catch {}
+          }}
+        />
+      );
+    } else if (clientActivePage === 'artifacts') {
+      activeClientView = (
+        <ClientArtifactsPage
+          artifacts={artifacts}
+          onSelectArtifactDetail={(artifactId) => {
+            setPublicArtifactId(artifactId);
+            try {
+              window.history.pushState({}, '', `?artifact=${artifactId}`);
+            } catch {}
+          }}
+          onNavigateHome={() => handleNavigateClientPage('home')}
+          onNavigatePage={handleNavigateClientPage}
+          clientTheme={clientTheme}
+          onToggleClientTheme={toggleClientTheme}
+          onOpenLoginModal={() => setIsClientLoginModalOpen(true)}
+          onNavigateAdmin={() => {
+            setIsAdminRoute(true);
+            try {
+              window.history.pushState({}, '', '/admin');
+            } catch {}
+          }}
+        />
+      );
+    } else if (clientActivePage === 'topics') {
+      activeClientView = (
+        <ClientTopicsPage
+          topics={topics}
+          onNavigateHome={() => handleNavigateClientPage('home')}
+          onNavigatePage={handleNavigateClientPage}
+          onNavigateRoomsPage={() => handleNavigateClientPage('rooms')}
+          clientTheme={clientTheme}
+          onToggleClientTheme={toggleClientTheme}
+          onOpenLoginModal={() => setIsClientLoginModalOpen(true)}
+          onNavigateAdmin={() => {
+            setIsAdminRoute(true);
+            try {
+              window.history.pushState({}, '', '/admin');
+            } catch {}
+          }}
+        />
+      );
+    } else if (clientActivePage === 'guide') {
+      activeClientView = (
+        <ClientGuidePage
+          onNavigateHome={() => handleNavigateClientPage('home')}
+          onNavigatePage={handleNavigateClientPage}
+          clientTheme={clientTheme}
+          onToggleClientTheme={toggleClientTheme}
+          onOpenLoginModal={() => setIsClientLoginModalOpen(true)}
+          onNavigateAdmin={() => {
+            setIsAdminRoute(true);
+            try {
+              window.history.pushState({}, '', '/admin');
+            } catch {}
+          }}
+        />
+      );
+    }
+
+    return (
+      <>
+        {activeClientView}
+        <ClientLoginOtpModal
+          isOpen={isClientLoginModalOpen}
+          onClose={() => setIsClientLoginModalOpen(false)}
+          onSuccess={() => {
+            showToast('Đăng nhập thành công', 'success');
+            setIsClientLoginModalOpen(false);
+          }}
+        />
+      </>
     );
   }
 
