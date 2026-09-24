@@ -1,22 +1,21 @@
 /* =========================================================================
-   CLIENT PORTAL HOMEPAGE - DESIGN SYSTEM & STYLES
-   Chuyên biệt cho Khách Tham Quan: Sang trọng, nhân văn, di sản, thoáng đãng
-   Hỗ trợ 2 chế độ: Light Mode (Mặc định - Nền giấy ngà) & Dark Mode (Đá Obsidian)
+   CLIENT PORTAL HOMEPAGE - DESIGN SYSTEM (HUMAN-CRAFTED EXHIBITION)
+   Chuẩn mực viện bảo tàng quốc gia: Nghệ thuật, không gian đa chiều, thoáng đãng
    ========================================================================= */
 
-/* --- 1. BIẾN MÀU CHUYÊN BIỆT CHO CLIENT PORTAL --- */
+/* --- 1. HỆ THỐNG MÀU SẮC CHUYÊN BIỆT (KHÔNG CÒN VÀNG CHÓI HOẶC TỐI ĐEN KÌ) --- */
 .client-portal {
-  /* LIGHT MODE (MẶC ĐỊNH CHO KHÁCH THAM QUAN) */
-  --c-bg: #FBF9F5;
-  --c-bg-alt: #F3EFEA;
+  /* LIGHT MODE (TRẮNG KIẾN TRÚC ĐƯƠNG ĐẠI - GALLERY WHITE) */
+  --c-bg: #F8F9FA;
+  --c-bg-alt: #EFF1F4;
   --c-bg-card: #FFFFFF;
   --c-bg-card-hover: #FFFFFF;
-  --c-nav-bg: rgba(251, 249, 245, 0.88);
-  --c-nav-border: rgba(44, 38, 34, 0.08);
+  --c-nav-bg: rgba(248, 249, 250, 0.92);
+  --c-nav-border: rgba(0, 0, 0, 0.08);
 
-  --c-text-primary: #1C1917;
-  --c-text-secondary: #57534E;
-  --c-text-muted: #8C857B;
+  --c-text-primary: #111827;
+  --c-text-secondary: #4B5563;
+  --c-text-muted: #6B7280;
   --c-text-inverse: #FFFFFF;
 
   --c-primary: #8C2D19;
@@ -27,13 +26,13 @@
   --c-gold-hover: #9A742E;
   --c-gold-light: rgba(180, 138, 60, 0.12);
 
-  --c-border: rgba(44, 38, 34, 0.09);
-  --c-border-subtle: rgba(44, 38, 34, 0.05);
+  --c-border: #E5E7EB;
+  --c-border-subtle: #F3F4F6;
   --c-border-gold: rgba(180, 138, 60, 0.35);
 
-  --c-shadow-sm: 0 2px 8px rgba(36, 28, 20, 0.04);
-  --c-shadow-md: 0 10px 30px -8px rgba(36, 28, 20, 0.08);
-  --c-shadow-lg: 0 20px 48px -12px rgba(36, 28, 20, 0.14);
+  --c-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --c-shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --c-shadow-lg: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
 
   --c-radius-sm: 8px;
   --c-radius-md: 14px;
@@ -45,8 +44,8 @@
   min-height: 100vh;
   background-color: var(--c-bg);
   color: var(--c-text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.6;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.65;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -54,19 +53,19 @@
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* DARK MODE SANG TRỌNG (ĐÁ OBSIDIAN & ÁNH VÀNG KIM) */
+/* DARK MODE (BẢO TÀNG VỀ ĐÊM - OBSIDIAN SPOTLIGHT GALLERY) */
 .client-portal[data-client-theme="dark"] {
-  --c-bg: #0D0F13;
-  --c-bg-alt: #13171F;
-  --c-bg-card: #181D26;
+  --c-bg: #0C0E12;
+  --c-bg-alt: #13161C;
+  --c-bg-card: #181C24;
   --c-bg-card-hover: #1E232E;
-  --c-nav-bg: rgba(13, 15, 19, 0.88);
+  --c-nav-bg: rgba(12, 14, 18, 0.92);
   --c-nav-border: rgba(255, 255, 255, 0.08);
 
-  --c-text-primary: #F7F5F0;
-  --c-text-secondary: #A8A29E;
-  --c-text-muted: #736E67;
-  --c-text-inverse: #0D0F13;
+  --c-text-primary: #F9FAFB;
+  --c-text-secondary: #9CA3AF;
+  --c-text-muted: #6B7280;
+  --c-text-inverse: #0C0E12;
 
   --c-primary: #B23B22;
   --c-primary-hover: #C5452A;
@@ -76,26 +75,36 @@
   --c-gold-hover: #E5C358;
   --c-gold-light: rgba(212, 175, 55, 0.15);
 
-  --c-border: rgba(255, 255, 255, 0.08);
+  --c-border: rgba(255, 255, 255, 0.09);
   --c-border-subtle: rgba(255, 255, 255, 0.04);
   --c-border-gold: rgba(212, 175, 55, 0.3);
 
-  --c-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --c-shadow-md: 0 14px 36px -8px rgba(0, 0, 0, 0.5);
-  --c-shadow-lg: 0 24px 56px -12px rgba(0, 0, 0, 0.7);
+  --c-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --c-shadow-md: 0 12px 30px -8px rgba(0, 0, 0, 0.6);
+  --c-shadow-lg: 0 24px 50px -12px rgba(0, 0, 0, 0.8);
 }
 
-/* --- 2. HỆ THỐNG KHUNG CHỨA (CONTAINER RỘNG CÂN XỨNG) --- */
+/* --- 2. TYPOGRAPHY CHUẨN MỰC TIẾNG VIỆT (KHÔNG LỖI FONT, KHÔNG TÁCH DẤU) --- */
+.client-portal h1,
+.client-portal h2,
+.client-portal h3,
+.client-portal h4 {
+  font-family: 'Lora', Georgia, serif;
+  font-feature-settings: "kern" 1, "liga" 1;
+  letter-spacing: -0.01em;
+}
+
+/* --- 3. KHUNG CHỨA RỘNG CÂN XỨNG (MAX-WIDTH 1400PX) --- */
 .client-container {
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 clamp(20px, 3.5vw, 48px);
+  padding: 0 clamp(20px, 3.5vw, 56px);
   box-sizing: border-box;
 }
 
 .client-section {
-  padding: clamp(64px, 7vw, 108px) 0;
+  padding: clamp(72px, 8vw, 116px) 0;
   position: relative;
 }
 
@@ -103,48 +112,40 @@
   background-color: var(--c-bg-alt);
 }
 
-/* --- 3. TIÊU ĐỀ SECTION CHUẨN MỰC BẢO TÀNG (KHÔNG RẬP KHUÔN) --- */
+/* --- 4. SECTION HEADER THANH NHÃ (BỎ BADGE CON NHỘNG RẬP KHUÔN) --- */
 .client-section-header {
   text-align: center;
-  max-width: 760px;
-  margin: 0 auto clamp(40px, 5vw, 64px) auto;
+  max-width: 780px;
+  margin: 0 auto clamp(40px, 5.5vw, 64px) auto;
 }
 
-.client-section-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 14px;
-  border-radius: var(--c-radius-pill);
-  background: var(--c-gold-light);
-  color: var(--c-gold);
-  border: 1px solid var(--c-border-gold);
-  font-size: 0.78rem;
+.client-section-tag {
+  font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  color: var(--c-gold);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  display: block;
 }
 
 .client-section-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(1.85rem, 3.2vw, 2.75rem);
+  font-size: clamp(2rem, 3.4vw, 2.85rem);
   font-weight: 700;
   color: var(--c-text-primary);
-  line-height: 1.25;
+  line-height: 1.28;
   margin: 0 0 14px 0;
-  letter-spacing: -0.01em;
 }
 
 .client-section-subtitle {
-  font-size: clamp(0.95rem, 1.2vw, 1.08rem);
+  font-size: clamp(0.98rem, 1.2vw, 1.1rem);
   color: var(--c-text-secondary);
-  line-height: 1.65;
+  line-height: 1.7;
   margin: 0 auto;
-  max-width: 640px;
+  max-width: 660px;
 }
 
-/* --- 4. THANH ĐIỀU HƯỚNG CỐ ĐỊNH (CLIENT NAVBAR) --- */
+/* --- 5. THANH ĐIỀU HƯỚNG CỐ ĐỊNH TRÊN CÙNG (CLIENT NAVBAR) --- */
 .client-navbar {
   position: fixed;
   top: 0;
@@ -152,8 +153,8 @@
   right: 0;
   z-index: 1000;
   background: var(--c-nav-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--c-nav-border);
   transition: var(--c-transition);
 }
@@ -175,15 +176,15 @@
 }
 
 .client-nav-logo {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   border-radius: 8px;
 }
 
 .client-nav-emblem {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
   background: linear-gradient(135deg, var(--c-primary) 0%, #4a150b 100%);
   border: 1px solid var(--c-gold);
@@ -191,9 +192,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 800;
-  font-size: 15px;
+  font-family: 'Lora', serif;
+  font-weight: 700;
+  font-size: 16px;
   box-shadow: var(--c-shadow-sm);
 }
 
@@ -203,7 +204,7 @@
 }
 
 .client-nav-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Lora', serif;
   font-weight: 700;
   font-size: 1.05rem;
   color: var(--c-text-primary);
@@ -213,7 +214,7 @@
 .client-nav-tagline {
   font-size: 0.72rem;
   color: var(--c-text-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -261,7 +262,6 @@
   gap: 12px;
 }
 
-/* Nút Đổi Theme Light/Dark */
 .client-theme-toggle {
   width: 38px;
   height: 38px;
@@ -282,7 +282,6 @@
   transform: translateY(-1px);
 }
 
-/* Nút Đăng nhập Khách / Tài khoản (Không còn Cổng Quản Trị thô) */
 .client-nav-login-btn {
   display: inline-flex;
   align-items: center;
@@ -305,7 +304,6 @@
   transform: translateY(-1px);
 }
 
-/* Dropdown người dùng đã đăng nhập */
 .client-user-menu {
   position: relative;
 }
@@ -314,7 +312,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
+  padding: 7px 16px;
   border-radius: var(--c-radius-pill);
   border: 1px solid var(--c-border-gold);
   background: var(--c-gold-light);
@@ -385,20 +383,18 @@
   }
 }
 
-/* --- 5. CINEMATIC HERO BANNER (HỖ TRỢ CẢ VIDEO & ẢNH, FIT MỌI KÍCH THƯỚC) --- */
+/* --- 6. CINEMATIC HERO BANNER (100VH TOÀN MÀN HÌNH, KHÔNG CÓ THANH ĐEN) --- */
 .client-hero {
   position: relative;
-  min-height: 86vh;
+  min-height: 100vh;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 72px; /* Navbar height */
   overflow: hidden;
-  background: #0D0F13;
+  background: #090B0E;
 }
 
-/* Khối media nền (video/img) bao phủ không bị nhòe/bể */
 .client-hero-media-wrap {
   position: absolute;
   inset: 0;
@@ -413,24 +409,13 @@
   height: 100%;
   object-fit: cover;
   object-position: center center;
-  transform: scale(1.02);
-  transition: transform 8s ease;
 }
 
-.client-hero:hover .client-hero-media {
-  transform: scale(1.06);
-}
-
-/* Lớp phủ chuyển màu quang học tinh tế để bảo vệ độ tương phản chữ */
 .client-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(13, 15, 19, 0.45) 0%,
-    rgba(13, 15, 19, 0.65) 50%,
-    rgba(13, 15, 19, 0.88) 100%
-  );
+  background: radial-gradient(circle at center, rgba(12, 14, 18, 0.45) 0%, rgba(9, 11, 14, 0.85) 100%),
+              linear-gradient(180deg, rgba(9, 11, 14, 0.6) 0%, transparent 40%, rgba(9, 11, 14, 0.95) 100%);
   pointer-events: none;
 }
 
@@ -438,46 +423,39 @@
   position: relative;
   z-index: 10;
   text-align: center;
-  max-width: 900px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 60px 20px;
+  padding: 100px 20px 40px 20px;
   color: #FFFFFF;
 }
 
-.client-hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 18px;
-  border-radius: var(--c-radius-pill);
-  background: rgba(212, 175, 55, 0.18);
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  color: #E6C665;
+.client-hero-tag {
+  display: inline-block;
   font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.16em;
+  color: #E6C665;
   text-transform: uppercase;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 .client-hero-headline {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-family: 'Lora', serif;
+  font-size: clamp(2.4rem, 5.2vw, 4.2rem);
   font-weight: 700;
   line-height: 1.18;
   color: #FFFFFF;
   margin: 0 0 20px 0;
-  letter-spacing: -0.015em;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
 .client-hero-lead {
-  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
   line-height: 1.7;
-  color: rgba(255, 255, 255, 0.85);
-  max-width: 720px;
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 740px;
   margin: 0 auto 36px auto;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 .client-hero-actions {
@@ -492,7 +470,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 28px;
+  padding: 14px 30px;
   border-radius: var(--c-radius-pill);
   background: var(--c-primary);
   color: #FFFFFF;
@@ -515,55 +493,50 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 26px;
+  padding: 14px 28px;
   border-radius: var(--c-radius-pill);
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #FFFFFF;
   font-size: 0.96rem;
   font-weight: 600;
   text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: var(--c-transition);
 }
 
 .client-btn-secondary:hover {
   background: rgba(255, 255, 255, 0.22);
-  border-color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.5);
   transform: translateY(-2px);
 }
 
-/* Khối thống kê nhanh chân Hero */
 .client-hero-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 24px;
   max-width: 680px;
   margin: 50px auto 0 auto;
-  padding-top: 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.client-hero-stat-item {
-  text-align: center;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .client-hero-stat-value {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(1.8rem, 2.8vw, 2.4rem);
-  font-weight: 800;
+  font-family: 'Lora', serif;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+  font-weight: 700;
   color: #E6C665;
   line-height: 1.1;
 }
 
 .client-hero-stat-label {
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 4px;
+  letter-spacing: 0.08em;
+  margin-top: 5px;
 }
 
 @media (max-width: 600px) {
@@ -573,11 +546,11 @@
   }
 }
 
-/* --- 6. PHẦN GIỚI THIỆU BẢO TÀNG (CURATORIAL STORYTELLING 2 CỘT NGHỆ THUẬT) --- */
+/* --- 7. GIỚI THIỆU BẢO TÀNG (EDITORIAL 2-COLUMN STORYTELLING) --- */
 .client-intro-grid {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
-  gap: clamp(36px, 5vw, 72px);
+  gap: clamp(40px, 5vw, 80px);
   align-items: center;
 }
 
@@ -605,68 +578,29 @@
   transform: scale(1.03);
 }
 
-.client-intro-badge-card {
-  position: absolute;
-  bottom: -20px;
-  right: -20px;
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border-gold);
-  border-radius: var(--c-radius-md);
-  padding: 16px 22px;
-  box-shadow: var(--c-shadow-lg);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.client-intro-badge-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--c-gold-light);
-  color: var(--c-gold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.client-intro-badge-text-top {
-  font-size: 0.72rem;
-  color: var(--c-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.client-intro-badge-text-main {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--c-text-primary);
-}
-
 .client-intro-text-col {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
 }
 
 .client-intro-paragraph {
-  font-size: 1.02rem;
-  line-height: 1.75;
+  font-size: 1.05rem;
+  line-height: 1.8;
   color: var(--c-text-secondary);
   margin: 0;
 }
 
-.client-intro-pillars {
+.client-intro-features {
   display: flex;
   flex-direction: column;
   gap: 16px;
   margin-top: 10px;
 }
 
-.client-pillar-item {
+.client-feature-item {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   padding: 16px;
   border-radius: var(--c-radius-md);
   background: var(--c-bg-card);
@@ -675,15 +609,15 @@
   transition: var(--c-transition);
 }
 
-.client-pillar-item:hover {
+.client-feature-item:hover {
   border-color: var(--c-border-gold);
   transform: translateX(4px);
   box-shadow: var(--c-shadow-md);
 }
 
-.client-pillar-icon {
-  width: 38px;
-  height: 38px;
+.client-feature-icon {
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
   background: var(--c-primary-light);
   color: var(--c-primary);
@@ -693,18 +627,19 @@
   flex-shrink: 0;
 }
 
-.client-pillar-title {
+.client-feature-title {
+  font-family: 'Lora', serif;
   font-weight: 700;
-  font-size: 0.98rem;
+  font-size: 1.02rem;
   color: var(--c-text-primary);
   margin: 0 0 4px 0;
 }
 
-.client-pillar-desc {
-  font-size: 0.88rem;
+.client-feature-desc {
+  font-size: 0.9rem;
   color: var(--c-text-secondary);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 @media (max-width: 992px) {
@@ -712,13 +647,162 @@
     grid-template-columns: 1fr;
     gap: 48px;
   }
-  .client-intro-badge-card {
-    position: static;
-    margin-top: 16px;
+}
+
+/* --- 8. TỦ KÍNH TRƯNG BÀY BẢO VẬT 3D TIÊU BIỂU (EXHIBITION CABINET - SPOTLIGHT) --- */
+.client-masterpiece-cabinet {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--c-radius-lg);
+  box-shadow: var(--c-shadow-lg);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+@media (max-width: 992px) {
+  .client-masterpiece-cabinet {
+    grid-template-columns: 1fr;
   }
 }
 
-/* --- 7. GIAN PHÒNG TRƯNG BÀY 360° TIÊU BIỂU (FEATURED 360 ROOMS) --- */
+/* Bệ xoay tương tác 3D trung tâm */
+.client-cabinet-stage {
+  position: relative;
+  min-height: 460px;
+  background: radial-gradient(circle at center, rgba(180, 138, 60, 0.08) 0%, transparent 70%),
+              var(--c-bg-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  border-right: 1px solid var(--c-border);
+}
+
+@media (max-width: 992px) {
+  .client-cabinet-stage {
+    border-right: none;
+    border-bottom: 1px solid var(--c-border);
+    min-height: 380px;
+  }
+}
+
+.client-cabinet-viewer-wrap {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  position: relative;
+}
+
+/* Thẻ thông tin giám tuyển bảo vật bên cạnh */
+.client-cabinet-placard {
+  padding: clamp(28px, 4vw, 48px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.client-cabinet-period {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-gold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.client-cabinet-title {
+  font-family: 'Lora', serif;
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 0 0 12px 0;
+  line-height: 1.3;
+}
+
+.client-cabinet-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 14px 0;
+  margin: 14px 0;
+  border-top: 1px solid var(--c-border-subtle);
+  border-bottom: 1px solid var(--c-border-subtle);
+}
+
+.client-cabinet-meta-item-label {
+  font-size: 0.76rem;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.client-cabinet-meta-item-value {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  margin-top: 2px;
+}
+
+.client-cabinet-desc {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--c-text-secondary);
+  margin: 0 0 24px 0;
+}
+
+.client-cabinet-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Khay chọn hiện vật tiêu biểu chân tủ kính */
+.client-cabinet-shelf {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 10px 4px 14px 4px;
+}
+
+.client-shelf-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: var(--c-radius-md);
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  cursor: pointer;
+  transition: var(--c-transition);
+  flex-shrink: 0;
+}
+
+.client-shelf-item:hover,
+.client-shelf-item.active {
+  border-color: var(--c-gold);
+  background: var(--c-gold-light);
+}
+
+.client-shelf-thumb {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.client-shelf-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  white-space: nowrap;
+}
+
+/* --- 9. GIAN PHÒNG TRƯNG BÀY 360° TIÊU BIỂU (CURATED 360 ROOMS) --- */
 .client-rooms-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -760,7 +844,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: #1A1E26;
+  background: #11141A;
 }
 
 .client-room-thumb {
@@ -774,34 +858,16 @@
   transform: scale(1.05);
 }
 
-.client-room-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: rgba(13, 15, 19, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
-  padding: 4px 10px;
-  border-radius: var(--c-radius-pill);
-  font-size: 0.72rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
 .client-room-body {
-  padding: 22px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 .client-room-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.22rem;
+  font-family: 'Lora', serif;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--c-text-primary);
   margin: 0 0 8px 0;
@@ -809,7 +875,7 @@
 }
 
 .client-room-desc {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--c-text-secondary);
   line-height: 1.6;
   margin: 0 0 18px 0;
@@ -826,7 +892,7 @@
   justify-content: space-between;
   padding-top: 14px;
   border-top: 1px solid var(--c-border-subtle);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--c-text-muted);
 }
 
@@ -844,196 +910,26 @@
   color: var(--c-gold);
 }
 
-/* Nút Xem tất cả gian phòng chân section */
-.client-section-action {
-  text-align: center;
-  margin-top: clamp(36px, 5vw, 54px);
-}
-
-/* --- 8. KIỆT TÁC CỔ VẬT 3D DI SẢN (3D ARTIFACTS SHOWCASE) --- */
-.client-artifacts-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: clamp(20px, 2.5vw, 32px);
-}
-
-@media (max-width: 1200px) {
-  .client-artifacts-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 860px) {
-  .client-artifacts-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 520px) {
-  .client-artifacts-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.client-artifact-card {
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--c-radius-lg);
-  overflow: hidden;
-  box-shadow: var(--c-shadow-sm);
-  transition: var(--c-transition);
-  display: flex;
-  flex-direction: column;
-}
-
-.client-artifact-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--c-shadow-lg);
-  border-color: var(--c-border-gold);
-}
-
-.client-artifact-thumb-wrap {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  background: radial-gradient(circle at center, var(--c-bg-alt) 0%, var(--c-bg-card) 75%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  overflow: hidden;
-}
-
-.client-artifact-thumb {
-  max-width: 88%;
-  max-height: 88%;
-  object-fit: contain;
-  transition: transform 0.4s ease;
-  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.12));
-}
-
-.client-artifact-card:hover .client-artifact-thumb {
-  transform: scale(1.08) rotate(2deg);
-}
-
-.client-artifact-badge-3d {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: var(--c-gold-light);
-  border: 1px solid var(--c-border-gold);
-  color: var(--c-gold);
-  padding: 4px 10px;
-  border-radius: var(--c-radius-pill);
-  font-size: 0.72rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.client-artifact-body {
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.client-artifact-period {
-  font-size: 0.76rem;
-  color: var(--c-gold);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 4px;
-}
-
-.client-artifact-name {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.12rem;
-  font-weight: 700;
-  color: var(--c-text-primary);
-  margin: 0 0 6px 0;
-  line-height: 1.3;
-}
-
-.client-artifact-origin {
-  font-size: 0.82rem;
-  color: var(--c-text-muted);
-  margin-bottom: 14px;
-}
-
-.client-artifact-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--c-border-subtle);
-}
-
-.client-artifact-3d-btn {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: var(--c-radius-pill);
-  background: var(--c-primary-light);
-  border: 1px solid var(--c-primary);
-  color: var(--c-primary);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--c-transition);
-}
-
-.client-artifact-3d-btn:hover {
-  background: var(--c-primary);
-  color: #FFFFFF;
-}
-
-.client-artifact-detail-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--c-bg-alt);
-  border: 1px solid var(--c-border);
-  color: var(--c-text-secondary);
-  cursor: pointer;
-  transition: var(--c-transition);
-}
-
-.client-artifact-detail-btn:hover {
-  background: var(--c-bg-card);
-  color: var(--c-gold);
-  border-color: var(--c-gold);
-}
-
-/* --- 9. CHUYÊN ĐỀ LỊCH SỬ (HISTORICAL TOPICS) --- */
-.client-topics-grid {
+/* --- 10. DÒNG THỜI GIAN LỊCH SỬ (TIMELINE & EPOCHS) --- */
+.client-timeline-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
 }
 
 @media (max-width: 1024px) {
-  .client-topics-grid {
+  .client-timeline-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 600px) {
-  .client-topics-grid {
+  .client-timeline-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.client-topic-card {
+.client-timeline-card {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
   border-radius: var(--c-radius-md);
@@ -1042,25 +938,26 @@
   transition: var(--c-transition);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-.client-topic-card:hover {
-  border-color: var(--c-border-gold);
+.client-timeline-card:hover {
+  border-color: var(--c-gold);
   transform: translateY(-4px);
   box-shadow: var(--c-shadow-md);
 }
 
-.client-topic-period {
-  font-size: 0.74rem;
-  color: var(--c-gold);
+.client-timeline-num {
+  font-family: 'Lora', serif;
+  font-size: 1.8rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
+  color: var(--c-gold);
+  opacity: 0.5;
+  margin-bottom: 6px;
 }
 
-.client-topic-title {
-  font-family: 'Playfair Display', Georgia, serif;
+.client-timeline-title {
+  font-family: 'Lora', serif;
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--c-text-primary);
@@ -1068,76 +965,114 @@
   line-height: 1.35;
 }
 
-.client-topic-desc {
+.client-timeline-desc {
   font-size: 0.88rem;
   color: var(--c-text-secondary);
   line-height: 1.6;
   margin: 0;
 }
 
-/* --- 10. HƯỚNG DẪN THAM QUAN THỰC ĐỊA (PLAN YOUR VISIT) --- */
-.client-guide-grid {
+/* --- 11. HƯỚNG DẪN THAM QUAN & QUÉT QR STANDEE (PLAN YOUR VISIT) --- */
+.client-guide-split {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 28px;
+  grid-template-columns: 1.1fr 1fr;
+  gap: clamp(32px, 4vw, 64px);
+  align-items: center;
 }
 
 @media (max-width: 900px) {
-  .client-guide-grid {
+  .client-guide-split {
     grid-template-columns: 1fr;
   }
 }
 
-.client-guide-card {
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--c-radius-lg);
-  padding: 32px 24px;
-  box-shadow: var(--c-shadow-sm);
+.client-guide-info-cards {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  transition: var(--c-transition);
+  gap: 18px;
 }
 
-.client-guide-card:hover {
-  box-shadow: var(--c-shadow-md);
-  border-color: var(--c-border-gold);
-  transform: translateY(-4px);
+.client-guide-info-card {
+  display: flex;
+  gap: 18px;
+  padding: 22px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--c-radius-md);
+  box-shadow: var(--c-shadow-sm);
 }
 
-.client-guide-icon-wrap {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+.client-guide-info-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   background: var(--c-gold-light);
   color: var(--c-gold);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
-.client-guide-card-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.25rem;
+.client-guide-info-title {
+  font-family: 'Lora', serif;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--c-text-primary);
-  margin: 0 0 12px 0;
+  margin: 0 0 6px 0;
 }
 
-.client-guide-card-text {
+.client-guide-info-text {
   font-size: 0.92rem;
   color: var(--c-text-secondary);
   line-height: 1.65;
   margin: 0;
 }
 
-/* --- 11. CHÂN TRANG DI SẢN (CLIENT FOOTER) --- */
+/* Thẻ Standee QR tương tác */
+.client-standee-card {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border-gold);
+  border-radius: var(--c-radius-lg);
+  padding: 36px 32px;
+  box-shadow: var(--c-shadow-lg);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.client-standee-qr-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--c-primary-light);
+  color: var(--c-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+}
+
+.client-standee-title {
+  font-family: 'Lora', serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 0 0 10px 0;
+}
+
+.client-standee-desc {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--c-text-secondary);
+  margin: 0 auto 24px auto;
+  max-width: 420px;
+}
+
+/* --- 12. CHÂN TRANG DI SẢN (CLIENT FOOTER) --- */
 .client-footer {
-  background: #0A0C0F;
-  color: #A8A29E;
+  background: #090B0E;
+  color: #9CA3AF;
   padding: 72px 0 28px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -1162,7 +1097,7 @@
 }
 
 .client-footer-brand-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Lora', serif;
   font-size: 1.25rem;
   color: #FFFFFF;
   margin: 0 0 12px 0;
@@ -1171,7 +1106,7 @@
 .client-footer-brand-desc {
   font-size: 0.9rem;
   line-height: 1.65;
-  color: #736E67;
+  color: #6B7280;
   max-width: 380px;
 }
 
@@ -1194,7 +1129,7 @@
 }
 
 .client-footer-link {
-  color: #A8A29E;
+  color: #9CA3AF;
   text-decoration: none;
   font-size: 0.9rem;
   transition: var(--c-transition);
@@ -1212,10 +1147,10 @@
   align-items: center;
   justify-content: space-between;
   font-size: 0.82rem;
-  color: #57534E;
+  color: #4B5563;
 }
 
-/* --- 12. MODAL ĐĂNG NHẬP EMAIL OTP (THUẦN OTP, KHÔNG PASSWORD) --- */
+/* --- 13. MODAL ĐĂNG NHẬP EMAIL OTP --- */
 .client-otp-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1227,7 +1162,6 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  animation: clientFadeIn 0.25s ease-out;
 }
 
 .client-otp-modal-card {
@@ -1239,7 +1173,6 @@
   box-shadow: var(--c-shadow-lg);
   padding: 36px 32px;
   position: relative;
-  animation: clientScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .client-otp-modal-close {
@@ -1279,15 +1212,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 800;
+  font-family: 'Lora', serif;
+  font-weight: 700;
   font-size: 19px;
   margin: 0 auto 16px auto;
   box-shadow: var(--c-shadow-md);
 }
 
 .client-otp-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Lora', serif;
   font-size: 1.45rem;
   font-weight: 700;
   color: var(--c-text-primary);
@@ -1401,20 +1334,4 @@
   cursor: pointer;
   padding: 0 4px;
   text-decoration: underline;
-}
-
-.client-otp-resend-btn:disabled {
-  color: var(--c-text-muted);
-  cursor: not-allowed;
-  text-decoration: none;
-}
-
-@keyframes clientFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes clientScaleUp {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
 }

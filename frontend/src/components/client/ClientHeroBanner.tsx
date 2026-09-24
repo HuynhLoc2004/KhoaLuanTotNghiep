@@ -3,7 +3,6 @@ import {
   Compass,
   Box,
   ArrowRight,
-  Sparkles,
   ChevronDown
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
@@ -31,14 +30,13 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  // Hình ảnh chất lượng cao mặc định nếu bảo tàng chưa có ảnh/video tùy biến
   const heroImage =
     featuredImageUrl ||
     'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=2000&q=85';
 
   return (
     <section id="hero" className="client-hero">
-      {/* 1. KHỐI MEDIA TOÀN CẢNH (HỖ TRỢ CẢ VIDEO & ẢNH, TỰ ĐỘNG FIT HOÀN HẢO MỌI MÀN HÌNH) */}
+      {/* 1. KHỐI MEDIA TOÀN CẢNH TRÀN KHUNG 100VH */}
       <div className="client-hero-media-wrap">
         {videoUrl ? (
           <video
@@ -61,16 +59,15 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
         )}
       </div>
 
-      {/* Lớp phủ chuyển màu quang học bảo vệ độ tương phản chữ */}
+      {/* Lớp phủ chuyển màu quang học bảo vệ độ sắc nét chữ */}
       <div className="client-hero-overlay" />
 
-      {/* 2. NỘI DUNG CHÍNH (TYPOGRAPHY THOÁNG ĐÃNG, KHÔNG CHEN CHÚC) */}
+      {/* 2. NỘI DUNG CHÍNH (TYPOGRAPHY THOÁNG ĐÃNG) */}
       <div className="client-container" style={{ position: 'relative', zIndex: 10 }}>
         <div className="client-hero-content">
-          <div className="client-hero-eyebrow">
-            <Sparkles size={14} />
-            <span>{t('hero.badge', 'Bảo Tàng Số • Di Sản Văn Hóa Tương Tác')}</span>
-          </div>
+          <span className="client-hero-tag">
+            {t('hero.tag', 'Bảo Tàng Số • Di Sản Văn Hóa & Không Gian Tương Tác')}
+          </span>
 
           <h1 className="client-hero-headline">
             {branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}
@@ -80,7 +77,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
             {branding.tagline ||
               t(
                 'hero.subtitle',
-                'Nơi kết nối quá khứ huy hoàng cùng hiện tại qua công nghệ Tour 360° toàn cảnh và không gian tương tác cổ vật 3D chân thực.'
+                'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.'
               )}
           </p>
 
@@ -92,7 +89,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               onClick={onExploreTourClick}
             >
               <Compass size={18} />
-              <span>{t('hero.btnTour', 'Khám Phá Tour 360°')}</span>
+              <span>{t('hero.btnTour', 'Bắt Đầu Tour 360°')}</span>
               <ArrowRight size={16} />
             </button>
 

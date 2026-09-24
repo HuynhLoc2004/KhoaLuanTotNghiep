@@ -1,6 +1,6 @@
 import React from 'react';
 import { MuseumRoom } from '../../types';
-import { Compass, ArrowRight, Eye, Layers } from 'lucide-react';
+import { Compass, ArrowRight } from 'lucide-react';
 import { API_ROOT } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -17,7 +17,6 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
 }) => {
   const { t, localize } = useClientTranslation();
 
-  // Trên trang chủ chỉ hiển thị tối đa 3-6 gian phòng tiêu biểu nhất để giữ bố cục tinh tế
   const displayRooms = rooms.slice(0, 3);
 
   return (
@@ -25,8 +24,8 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
       <div className="client-container">
         {/* Tiêu đề Section */}
         <div className="client-section-header">
-          <span className="client-section-badge">
-            {t('rooms.badge', 'Tham Quan Toàn Cảnh')}
+          <span className="client-section-tag">
+            {t('rooms.tag', 'Tham Quan Toàn Cảnh')}
           </span>
           <h2 className="client-section-title">
             {t('rooms.headline', 'Không Gian Trưng Bày 360°')}
@@ -77,10 +76,6 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
                       className="client-room-thumb"
                       loading="lazy"
                     />
-                    <div className="client-room-badge">
-                      <Compass size={12} />
-                      <span>Tour 360°</span>
-                    </div>
                   </div>
 
                   <div className="client-room-body">
@@ -100,23 +95,6 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {/* Nút Khám phá tất cả các phòng */}
-        {rooms.length > 3 && (
-          <div className="client-section-action">
-            <button
-              type="button"
-              className="client-btn-primary"
-              onClick={() => {
-                if (onViewAllRooms) onViewAllRooms();
-                else if (rooms[0]) onSelectRoom(rooms[0]);
-              }}
-            >
-              <span>{t('rooms.viewAll', `Khám phá toàn bộ ${rooms.length} gian phòng`)}</span>
-              <ArrowRight size={16} />
-            </button>
           </div>
         )}
       </div>
