@@ -35,7 +35,8 @@ import {
   ArrowUp,
   ArrowDown,
   FolderPlus,
-  ListPlus
+  ListPlus,
+  CornerDownRight
 } from 'lucide-react';
 import { HOMEPAGE_SECTIONS } from '../../constants/homepageSections';
 
@@ -811,326 +812,508 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             </div>
           </div>
 
-          {/* Gợi ý hướng dẫn */}
+          {/* Thông tin & tóm tắt */}
           <div
             style={{
-              padding: '12px 16px',
-              borderRadius: 10,
-              background: 'rgba(212, 168, 106, 0.08)',
-              border: '1px solid rgba(212, 168, 106, 0.25)',
-              marginBottom: 20,
+              padding: '8px 14px',
+              borderRadius: 8,
+              background: 'rgba(212, 168, 106, 0.06)',
+              border: '1px solid rgba(212, 168, 106, 0.2)',
+              marginBottom: 14,
               fontSize: 12.5,
               color: 'var(--text-muted)',
-              lineHeight: 1.5,
               display: 'flex',
               alignItems: 'center',
-              gap: 10
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 8
             }}
           >
-            <Info size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
-            <div>
-              <strong style={{ color: 'var(--heading-color)' }}>Dữ liệu động & Cấu trúc đa cấp:</strong> Khách tham quan sẽ nhìn thấy thanh Menu chính xác theo thứ tự và cấu hình tại đây. Khi thêm menu con, mục đó sẽ tự động hiển thị mũi tên <strong>(▾)</strong> và xổ danh sách Dropdown khi người dùng di chuột hoặc chạm trên điện thoại.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Info size={15} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+              <span>
+                Thứ tự và cấu trúc cây phân cấp dưới đây sẽ hiển thị trực tiếp trên thanh Header của khách tham quan.
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--accent-gold)', fontWeight: 600 }}>
+              {menuItems.length} mục chính ({menuItems.reduce((acc, it) => acc + (it.children?.length || 0), 0)} menu con)
             </div>
           </div>
 
-          {/* Danh sách các Menu Items */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {menuItems.map((item, idx) => (
-              <div
-                key={item.id}
-                style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 12,
-                  padding: 18,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }}
-              >
-                {/* Header item cha */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)' }}>
-                      #{idx + 1}
-                    </span>
-                    <strong style={{ fontSize: 14, color: 'var(--heading-color)' }}>
-                      {item.label || '(Chưa đặt tên menu)'}
-                    </strong>
-                    {item.children && item.children.length > 0 && (
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', fontWeight: 600 }}>
-                        {item.children.length} menu con
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {/* Di chuyển thứ tự */}
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      style={{ padding: '4px 8px' }}
-                      disabled={idx === 0}
-                      onClick={() => handleMoveMenuItem(idx, 'up')}
-                      title="Chuyển lên trước"
-                    >
-                      <ArrowUp size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      style={{ padding: '4px 8px' }}
-                      disabled={idx === menuItems.length - 1}
-                      onClick={() => handleMoveMenuItem(idx, 'down')}
-                      title="Chuyển xuống sau"
-                    >
-                      <ArrowDown size={13} />
-                    </button>
-
-                    {/* Bật / Tắt */}
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', margin: '0 6px' }}>
-                      <input
-                        type="checkbox"
-                        checked={item.active !== false}
-                        onChange={(e) => handleUpdateMenuItem(idx, { active: e.target.checked })}
-                      />
-                      <span>{item.active !== false ? 'Hiển thị' : 'Đang ẩn'}</span>
-                    </label>
-
-                    {/* Xóa item */}
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      style={{ padding: '4px 8px', color: '#EF4444' }}
-                      onClick={() => handleDeleteMenuItem(idx)}
-                      title="Xóa mục menu này"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Các trường cấu hình Menu cha */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 14 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
-                      Tên nút Menu <span style={{ color: '#EF4444' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.label}
-                      onChange={(e) => handleUpdateMenuItem(idx, { label: e.target.value })}
-                      placeholder="VD: Giới thiệu, Gian phòng 360°"
-                      style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
+          {/* Bảng Tree Table tinh gọn */}
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 10,
+              overflow: 'hidden',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+            }}
+          >
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-muted)', width: '32%' }}>
+                      Tên hiển thị trên Menu
+                    </th>
+                    <th style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-muted)', width: '22%' }}>
                       Kiểu liên kết
-                    </label>
-                    <select
-                      value={item.linkType}
-                      onChange={(e) => handleUpdateMenuItem(idx, { linkType: e.target.value as any })}
-                      style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
-                    >
-                      <option value="page">Chuyển trang nội bộ (Page)</option>
-                      <option value="anchor">Cuộn tới phần trên trang (Anchor #)</option>
-                      <option value="custom">Đường dẫn ngoài tùy ý (URL)</option>
-                      <option value="dropdown_only">Chỉ làm nhóm mở Dropdown con</option>
-                    </select>
-                  </div>
-
-                  {item.linkType !== 'dropdown_only' && (
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
-                        Đích đến (Trang / Phần / Link)
-                      </label>
-                      {item.linkType === 'page' ? (
-                        <select
-                          value={item.target}
-                          onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
-                          style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
-                        >
-                          <option value="home">Trang chủ di sản</option>
-                          <option value="rooms">Gian phòng 360°</option>
-                          <option value="artifacts">Kho cổ vật 3D</option>
-                          <option value="guide">Cẩm nang & Sơ đồ tham quan</option>
-                        </select>
-                      ) : item.linkType === 'anchor' ? (
-                        <select
-                          value={item.target.replace(/^#/, '')}
-                          onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
-                          style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
-                        >
-                          <option value="intro">#intro (Khối giới thiệu kiến trúc)</option>
-                          <option value="rooms">#rooms (Khối gian phòng 360°)</option>
-                          <option value="artifacts">#artifacts (Khối cổ vật 3D)</option>
-                          <option value="guide">#guide (Khối sơ đồ & cẩm nang)</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={item.target}
-                          onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
-                          placeholder="https://..."
-                          style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {item.linkType === 'custom' && (
-                    <div style={{ display: 'flex', alignItems: 'center', marginTop: 22 }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={item.isNewTab || false}
-                          onChange={(e) => handleUpdateMenuItem(idx, { isNewTab: e.target.checked })}
-                        />
-                        <span>Mở tab mới</span>
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                {/* Vùng Menu con cấp 2 (Dropdown) */}
-                <div
-                  style={{
-                    background: 'var(--bg-surface)',
-                    border: '1px dashed var(--border-color)',
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                    marginTop: 8
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--accent-gold)' }}>
-                      <FolderPlus size={14} />
-                      <span>Menu con Dropdown (Cấp 2) {item.children && item.children.length > 0 ? `(${item.children.length})` : ''}</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={() => handleAddSubItem(idx)}
-                      style={{ fontSize: 11.5, padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                    >
-                      <Plus size={12} />
-                      <span>Thêm menu con</span>
-                    </button>
-                  </div>
-
-                  {(!item.children || item.children.length === 0) ? (
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontStyle: 'italic', padding: '6px 0' }}>
-                      Mục này chưa có menu con (click trực tiếp vào liên kết). Bấm "Thêm menu con" nếu muốn tạo danh sách xổ xuống (Dropdown).
-                    </div>
+                    </th>
+                    <th style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-muted)', width: '26%' }}>
+                      Đích đến (Trang / Phần # / URL)
+                    </th>
+                    <th style={{ padding: '10px 10px', fontWeight: 600, color: 'var(--text-muted)', width: '8%', textAlign: 'center' }}>
+                      Hiển thị
+                    </th>
+                    <th style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-muted)', width: '12%', textAlign: 'right' }}>
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {menuItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        Chưa có mục Menu nào. Bấm nút <strong>"Thêm mục Menu mới"</strong> hoặc <strong>"Khôi phục menu chuẩn"</strong> ở góc trên.
+                      </td>
+                    </tr>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {item.children.map((sub, sIdx) => (
-                        <div
-                          key={sub.id}
+                    menuItems.map((item, idx) => (
+                      <React.Fragment key={item.id}>
+                        {/* Hàng mục Menu cha (Cấp 1) */}
+                        <tr
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            padding: '8px 12px',
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: 6,
-                            flexWrap: 'wrap'
+                            borderBottom: '1px solid var(--border-color)',
+                            background: item.active !== false ? 'transparent' : 'rgba(255, 255, 255, 0.015)',
+                            transition: 'background 0.15s ease'
                           }}
                         >
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.8 }}>
-                            └─ {sIdx + 1}.
-                          </span>
+                          {/* Cột 1: Tên mục cha */}
+                          <td style={{ padding: '8px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: '2px 7px',
+                                  borderRadius: 4,
+                                  background: 'rgba(212, 168, 106, 0.15)',
+                                  color: 'var(--accent-gold)',
+                                  flexShrink: 0
+                                }}
+                              >
+                                #{idx + 1}
+                              </span>
+                              <input
+                                type="text"
+                                value={item.label}
+                                onChange={(e) => handleUpdateMenuItem(idx, { label: e.target.value })}
+                                placeholder="Tên mục menu..."
+                                style={{
+                                  flex: 1,
+                                  minWidth: 120,
+                                  padding: '6px 10px',
+                                  background: 'var(--bg-surface)',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: 6,
+                                  color: 'var(--text-main)',
+                                  fontSize: 12.5,
+                                  fontWeight: 600
+                                }}
+                              />
+                              {item.children && item.children.length > 0 && (
+                                <span
+                                  title={`${item.children.length} menu con xổ xuống`}
+                                  style={{
+                                    fontSize: 11,
+                                    padding: '2px 7px',
+                                    borderRadius: 12,
+                                    background: 'rgba(59, 130, 246, 0.15)',
+                                    color: '#60A5FA',
+                                    fontWeight: 600,
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  ▾ {item.children.length} con
+                                </span>
+                              )}
+                            </div>
+                          </td>
 
-                          <input
-                            type="text"
-                            value={sub.label}
-                            onChange={(e) => handleUpdateSubItem(idx, sIdx, { label: e.target.value })}
-                            placeholder="Tên menu con"
-                            style={{ flex: 1, minWidth: 140, padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
-                          />
-
-                          <select
-                            value={sub.linkType}
-                            onChange={(e) => handleUpdateSubItem(idx, sIdx, { linkType: e.target.value as any })}
-                            style={{ padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
-                          >
-                            <option value="page">Trang nội bộ</option>
-                            <option value="anchor">Cuộn tới phần #</option>
-                            <option value="custom">URL ngoài</option>
-                          </select>
-
-                          {sub.linkType === 'page' ? (
+                          {/* Cột 2: Kiểu liên kết */}
+                          <td style={{ padding: '8px 12px' }}>
                             <select
-                              value={sub.target}
-                              onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
-                              style={{ padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
+                              value={item.linkType}
+                              onChange={(e) => handleUpdateMenuItem(idx, { linkType: e.target.value as any })}
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                background: 'var(--bg-surface)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 6,
+                                color: 'var(--text-main)',
+                                fontSize: 12
+                              }}
                             >
-                              <option value="home">Trang chủ</option>
-                              <option value="rooms">Gian phòng 360°</option>
-                              <option value="artifacts">Kho cổ vật 3D</option>
-                              <option value="guide">Cẩm nang & Sơ đồ</option>
+                              <option value="page">Chuyển trang (Page)</option>
+                              <option value="anchor">Cuộn tới phần (Anchor #)</option>
+                              <option value="custom">URL tùy ý (Link ngoài)</option>
+                              <option value="dropdown_only">Chỉ làm nhóm mở Dropdown</option>
                             </select>
-                          ) : sub.linkType === 'anchor' ? (
-                            <select
-                              value={sub.target.replace(/^#/, '')}
-                              onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
-                              style={{ padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
-                            >
-                              <option value="intro">#intro (Giới thiệu)</option>
-                              <option value="rooms">#rooms (Gian phòng 360°)</option>
-                              <option value="artifacts">#artifacts (Cổ vật 3D)</option>
-                              <option value="guide">#guide (Cẩm nang)</option>
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              value={sub.target}
-                              onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
-                              placeholder="https://..."
-                              style={{ width: 140, padding: '6px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 4, color: 'var(--text-main)', fontSize: 12 }}
-                            />
-                          )}
+                          </td>
 
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, cursor: 'pointer' }}>
-                            <input
-                              type="checkbox"
-                              checked={sub.active !== false}
-                              onChange={(e) => handleUpdateSubItem(idx, sIdx, { active: e.target.checked })}
-                            />
-                            <span>{sub.active !== false ? 'Bật' : 'Ẩn'}</span>
-                          </label>
+                          {/* Cột 3: Đích đến */}
+                          <td style={{ padding: '8px 12px' }}>
+                            {item.linkType === 'dropdown_only' ? (
+                              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                (Nhóm menu - mở dropdown con khi rê chuột)
+                              </span>
+                            ) : item.linkType === 'page' ? (
+                              <select
+                                value={item.target}
+                                onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  background: 'var(--bg-surface)',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: 6,
+                                  color: 'var(--text-main)',
+                                  fontSize: 12
+                                }}
+                              >
+                                <option value="home">Trang chủ di sản</option>
+                                <option value="rooms">Gian phòng 360°</option>
+                                <option value="artifacts">Kho cổ vật 3D</option>
+                                <option value="guide">Cẩm nang & Sơ đồ tham quan</option>
+                              </select>
+                            ) : item.linkType === 'anchor' ? (
+                              <select
+                                value={item.target.replace(/^#/, '')}
+                                onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  background: 'var(--bg-surface)',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: 6,
+                                  color: 'var(--text-main)',
+                                  fontSize: 12
+                                }}
+                              >
+                                <option value="intro">#intro (Khối giới thiệu)</option>
+                                <option value="rooms">#rooms (Khối gian phòng 360°)</option>
+                                <option value="artifacts">#artifacts (Khối cổ vật 3D)</option>
+                                <option value="guide">#guide (Khối sơ đồ & cẩm nang)</option>
+                              </select>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <input
+                                  type="text"
+                                  value={item.target}
+                                  onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
+                                  placeholder="https://..."
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 100,
+                                    padding: '6px 8px',
+                                    background: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 6,
+                                    color: 'var(--text-main)',
+                                    fontSize: 12
+                                  }}
+                                />
+                                <label
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    fontSize: 11,
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title="Mở tab mới"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={item.isNewTab || false}
+                                    onChange={(e) => handleUpdateMenuItem(idx, { isNewTab: e.target.checked })}
+                                  />
+                                  <span>Tab mới</span>
+                                </label>
+                              </div>
+                            )}
+                          </td>
 
-                          <button
-                            type="button"
-                            className="btn btn-outline btn-sm"
-                            style={{ padding: '3px 6px', color: '#EF4444' }}
-                            onClick={() => handleDeleteSubItem(idx, sIdx)}
-                            title="Xóa menu con này"
+                          {/* Cột 4: Hiển thị */}
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 11.5 }}>
+                              <input
+                                type="checkbox"
+                                checked={item.active !== false}
+                                onChange={(e) => handleUpdateMenuItem(idx, { active: e.target.checked })}
+                              />
+                              <span style={{ color: item.active !== false ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                                {item.active !== false ? 'Bật' : 'Ẩn'}
+                              </span>
+                            </label>
+                          </td>
+
+                          {/* Cột 5: Thao tác */}
+                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                style={{ padding: '3px 7px', fontSize: 11.5, color: 'var(--accent-gold)' }}
+                                onClick={() => handleAddSubItem(idx)}
+                                title="Thêm mục con cấp 2 cho mục này"
+                              >
+                                <Plus size={11} />
+                                <span>Con</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                style={{ padding: '3px 6px' }}
+                                disabled={idx === 0}
+                                onClick={() => handleMoveMenuItem(idx, 'up')}
+                                title="Chuyển lên trước"
+                              >
+                                <ArrowUp size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                style={{ padding: '3px 6px' }}
+                                disabled={idx === menuItems.length - 1}
+                                onClick={() => handleMoveMenuItem(idx, 'down')}
+                                title="Chuyển xuống sau"
+                              >
+                                <ArrowDown size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                style={{ padding: '3px 6px', color: '#EF4444' }}
+                                onClick={() => handleDeleteMenuItem(idx)}
+                                title="Xóa mục menu này"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Các hàng Menu con cấp 2 (nếu có) */}
+                        {item.children && item.children.map((sub, sIdx) => (
+                          <tr
+                            key={sub.id}
+                            style={{
+                              borderBottom: '1px dashed var(--border-color)',
+                              background: 'rgba(212, 168, 106, 0.02)',
+                              fontSize: 12
+                            }}
                           >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                            {/* Cột 1: Tên mục con với thụt lề cây */}
+                            <td style={{ padding: '6px 12px 6px 32px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <CornerDownRight size={13} style={{ color: 'var(--accent-gold)', opacity: 0.8, flexShrink: 0 }} />
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    padding: '1px 5px',
+                                    borderRadius: 3,
+                                    background: 'rgba(255, 255, 255, 0.06)',
+                                    color: 'var(--text-muted)',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {idx + 1}.{sIdx + 1}
+                                </span>
+                                <input
+                                  type="text"
+                                  value={sub.label}
+                                  onChange={(e) => handleUpdateSubItem(idx, sIdx, { label: e.target.value })}
+                                  placeholder="Tên menu con..."
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 100,
+                                    padding: '5px 8px',
+                                    background: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 4,
+                                    color: 'var(--text-main)',
+                                    fontSize: 12
+                                  }}
+                                />
+                              </div>
+                            </td>
+
+                            {/* Cột 2: Kiểu liên kết con */}
+                            <td style={{ padding: '6px 12px' }}>
+                              <select
+                                value={sub.linkType}
+                                onChange={(e) => handleUpdateSubItem(idx, sIdx, { linkType: e.target.value as any })}
+                                style={{
+                                  width: '100%',
+                                  padding: '5px 8px',
+                                  background: 'var(--bg-surface)',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: 4,
+                                  color: 'var(--text-main)',
+                                  fontSize: 11.5
+                                }}
+                              >
+                                <option value="page">Chuyển trang</option>
+                                <option value="anchor">Cuộn tới #</option>
+                                <option value="custom">URL ngoài</option>
+                              </select>
+                            </td>
+
+                            {/* Cột 3: Đích đến con */}
+                            <td style={{ padding: '6px 12px' }}>
+                              {sub.linkType === 'page' ? (
+                                <select
+                                  value={sub.target}
+                                  onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '5px 8px',
+                                    background: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 4,
+                                    color: 'var(--text-main)',
+                                    fontSize: 11.5
+                                  }}
+                                >
+                                  <option value="home">Trang chủ</option>
+                                  <option value="rooms">Gian phòng 360°</option>
+                                  <option value="artifacts">Kho cổ vật 3D</option>
+                                  <option value="guide">Cẩm nang & Sơ đồ</option>
+                                </select>
+                              ) : sub.linkType === 'anchor' ? (
+                                <select
+                                  value={sub.target.replace(/^#/, '')}
+                                  onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '5px 8px',
+                                    background: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 4,
+                                    color: 'var(--text-main)',
+                                    fontSize: 11.5
+                                  }}
+                                >
+                                  <option value="intro">#intro (Giới thiệu)</option>
+                                  <option value="rooms">#rooms (Gian phòng 360°)</option>
+                                  <option value="artifacts">#artifacts (Cổ vật 3D)</option>
+                                  <option value="guide">#guide (Cẩm nang)</option>
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={sub.target}
+                                  onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
+                                  placeholder="https://..."
+                                  style={{
+                                    width: '100%',
+                                    padding: '5px 8px',
+                                    background: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 4,
+                                    color: 'var(--text-main)',
+                                    fontSize: 11.5
+                                  }}
+                                />
+                              )}
+                            </td>
+
+                            {/* Cột 4: Hiển thị con */}
+                            <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3, cursor: 'pointer', fontSize: 11 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={sub.active !== false}
+                                  onChange={(e) => handleUpdateSubItem(idx, sIdx, { active: e.target.checked })}
+                                />
+                                <span style={{ color: sub.active !== false ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                                  {sub.active !== false ? 'Bật' : 'Ẩn'}
+                                </span>
+                              </label>
+                            </td>
+
+                            {/* Cột 5: Thao tác con */}
+                            <td style={{ padding: '6px 12px', textAlign: 'right' }}>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                style={{ padding: '2px 5px', color: '#EF4444' }}
+                                onClick={() => handleDeleteSubItem(idx, sIdx)}
+                                title="Xóa menu con này"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ))
                   )}
-                </div>
-              </div>
-            ))}
-          </div>
+                </tbody>
+              </table>
+            </div>
 
-          {/* Nút thêm nhanh cuối danh sách */}
-          <div style={{ marginTop: 16 }}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleAddMenuItem}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            {/* Thanh công cụ chân bảng */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                background: 'var(--bg-surface)',
+                borderTop: '1px solid var(--border-color)',
+                flexWrap: 'wrap',
+                gap: 10
+              }}
             >
-              <Plus size={14} />
-              <span>Thêm mục Menu mới (Cấp 1)</span>
-            </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleAddMenuItem}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+              >
+                <Plus size={13} />
+                <span>Thêm mục Menu mới (Cấp 1)</span>
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={handleResetDefaultMenu}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                >
+                  <RotateCcw size={12} />
+                  <span>Khôi phục menu chuẩn</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleSave('Menu Header')}
+                  disabled={isSaving}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                >
+                  <Save size={13} />
+                  <span>{isSaving ? 'Đang lưu...' : 'Lưu Menu Header'}</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {renderSectionNavFooter(1, 'Phần 2: Menu Header')}
