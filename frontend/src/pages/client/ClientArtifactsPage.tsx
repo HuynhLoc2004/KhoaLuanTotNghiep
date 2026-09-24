@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Artifact } from '../../types';
+import { Pagination } from '../../components/Pagination';
 import { Box, Search, ArrowRight, ArrowLeft, RotateCw, Sparkles, Filter } from 'lucide-react';
 import { API_ROOT } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
@@ -34,6 +35,15 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [only3D, setOnly3D] = useState<boolean>(false);
 
+  // Phân trang chuẩn Dashboard (6 - 9 - 12 - 18 - 24)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(9);
+
+  // Reset về trang 1 khi lọc hoặc tìm kiếm
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, only3D]);
+
   // Trích xuất các phân loại hiện vật
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -67,6 +77,12 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
       return matchSearch && matchCategory && match3D;
     });
   }, [artifacts, searchQuery, selectedCategory, only3D, localize]);
+
+  // Phân trang hiện vật
+  const paginatedArtifacts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredArtifacts.slice(start, start + pageSize);
+  }, [filteredArtifacts, currentPage, pageSize]);
 
   const getArtifactThumb = (art: Artifact) => {
     const raw = art.thumbnailUrl || (art.images && art.images[0]);
@@ -107,18 +123,18 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
               </span>
             </div>
 
-            <span className="client-zigzag-tag">
-              {t('artifacts.tag', 'Bảo Vật Di Sản & Mô Hình 3D')}
+            <span className="client-subpage-badge">
+              {t('artifacts.tag', 'Hiện vật & Cổ vật 3D')}
             </span>
 
             <h1 className="client-subpage-title">
-              {t('artifacts.pageHeading', 'Kho Tàng Cổ Vật & Bảo Vật Di Sản')}
+              {t('artifacts.pageHeading', 'Kho hiện vật di sản')}
             </h1>
 
             <p className="client-subpage-lead">
               {t(
                 'artifacts.pageLead',
-                'Khám phá bộ sưu tập hiện vật lịch sử và các bảo vật quốc gia được số hóa 3D đa chiều. Khách tham quan có thể xoay mô hình 360°, phóng to chi tiết hoa văn và lắng nghe thuyết minh âm thanh đa ngôn ngữ.'
+                'Khám phá bộ sưu tập hiện vật và bảo vật lịch sử được số hóa 3D đa chiều.'
               )}
             </p>
           </div>
@@ -189,70 +205,89 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
               </button>
             </div>
           ) : (
-            <div className="client-subpage-grid">
-              {filteredArtifacts.map((art) => {
-                const title = localize(art, 'name', art.name);
-                const period = localize(art, 'period', art.period || '');
-                const category = art.category || 'Cổ vật di sản';
-                const desc = localize(art, 'description', art.description || '');
-                const thumb = getArtifactThumb(art);
-                const has3D = !!art.model3dUrl;
+            <>
+              <div className="client-subpage-grid">
+                {paginatedArtifacts.map((art) => {
+                  const title = localize(art, 'name', art.name);
+                  const period = localize(art, 'period', art.period || '');
+                  const category = art.category || 'Cổ vật di sản';
+                  const desc = localize(art, 'description', art.description || '');
+                  const thumb = getArtifactThumb(art);
+                  const has3D = !!art.model3dUrl;
 
-                return (
-                  <div key={art.id} className="client-gallery-card">
-                    <div
-                      className="client-gallery-media clickable"
-                      onClick={() => onSelectArtifactDetail(art.id)}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      {thumb ? (
-                        <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
-                      ) : (
-                        <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
-                          <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
-                            <Box size={22} strokeWidth={1.5} />
+                  return (
+                    <div key={art.id} className="client-gallery-card">
+                      <div
+                        className="client-gallery-media clickable"
+                        onClick={() => onSelectArtifactDetail(art.id)}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        {thumb ? (
+                          <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                        ) : (
+                          <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
+                            <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
+                              <Box size={22} strokeWidth={1.5} />
+                            </div>
+                            <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>Chưa có ảnh</span>
                           </div>
-                          <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>Chưa có ảnh</span>
-                        </div>
-                      )}
-                      {has3D ? (
-                        <div className="client-zigzag-badge-float" style={{ borderColor: 'rgba(212, 175, 55, 0.7)' }}>
-                          <RotateCw size={12} style={{ display: 'inline', marginRight: 4 }} />
-                          <span>Mô hình 3D</span>
-                        </div>
-                      ) : (
-                        <div className="client-zigzag-badge-float">
-                          <span>{thumb ? 'Hiện vật số hóa' : 'Đang cập nhật'}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="client-gallery-body">
-                      <div className="client-gallery-tags-row">
-                        <span className="client-gallery-meta">{category}</span>
-                        {period && <span className="client-gallery-period">{period}</span>}
+                        )}
+                        {has3D ? (
+                          <div className="client-zigzag-badge-float" style={{ borderColor: 'rgba(212, 175, 55, 0.7)' }}>
+                            <RotateCw size={12} style={{ display: 'inline', marginRight: 4 }} />
+                            <span>Mô hình 3D</span>
+                          </div>
+                        ) : (
+                          <div className="client-zigzag-badge-float">
+                            <span>{thumb ? 'Hiện vật số hóa' : 'Đang cập nhật'}</span>
+                          </div>
+                        )}
                       </div>
 
-                      <h2 className="client-gallery-title">{title}</h2>
-                      {desc && <p className="client-gallery-desc">{desc}</p>}
+                      <div className="client-gallery-body">
+                        <div className="client-gallery-tags-row">
+                          <span className="client-gallery-meta">{category}</span>
+                          {period && <span className="client-gallery-period">{period}</span>}
+                        </div>
 
-                      <div className="client-gallery-actions">
-                        <button
-                          type="button"
-                          className="client-zigzag-btn-primary"
-                          style={{ width: '100%', justifyContent: 'center' }}
-                          onClick={() => onSelectArtifactDetail(art.id)}
-                        >
-                          <Box size={15} />
-                          <span>{t('artifacts.btnViewDetail', 'Chiêm ngưỡng chi tiết & 3D')}</span>
-                        </button>
+                        <h2 className="client-gallery-title">{title}</h2>
+                        {desc && <p className="client-gallery-desc">{desc}</p>}
+
+                        <div className="client-gallery-actions">
+                          <button
+                            type="button"
+                            className="client-zigzag-btn-primary"
+                            style={{ width: '100%', justifyContent: 'center' }}
+                            onClick={() => onSelectArtifactDetail(art.id)}
+                          >
+                            <Box size={15} />
+                            <span>{t('artifacts.btnViewDetail', 'Chiêm ngưỡng chi tiết & 3D')}</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              {/* PHÂN TRANG CHUẨN DASHBOARD (6 - 9 - 12 - 18 - 24) */}
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredArtifacts.length}
+                pageSize={pageSize}
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 160, behavior: 'smooth' });
+                }}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+                pageSizeOptions={[6, 9, 12, 18, 24]}
+                itemLabel={t('artifacts.unit', 'cổ vật')}
+              />
+            </>
           )}
         </div>
       </main>

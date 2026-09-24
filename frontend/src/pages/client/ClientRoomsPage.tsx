@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { MuseumRoom } from '../../types';
+import { Pagination } from '../../components/Pagination';
 import {
   Compass,
   Search,
@@ -45,6 +46,15 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Phân trang chuẩn Dashboard (6 - 9 - 12 - 18 - 24)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(6);
+
+  // Reset về trang 1 khi lọc hoặc tìm kiếm
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedPeriod]);
 
   // Đóng dropdown bộ lọc khi click ra ngoài
   useEffect(() => {
@@ -99,6 +109,12 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
     });
   }, [rooms, searchQuery, selectedPeriod, localize]);
 
+  // Danh sách phân trang gian phòng
+  const paginatedRooms = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRooms.slice(start, start + pageSize);
+  }, [filteredRooms, currentPage, pageSize]);
+
   // Hiệu ứng cuộn hiển thị nhẹ nhàng (Scroll Reveal Animation)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -121,7 +137,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
     }, 80);
 
     return () => clearTimeout(timer);
-  }, [filteredRooms]);
+  }, [paginatedRooms]);
 
   const getRoomThumb = (room: MuseumRoom) => {
     const raw = room.panoramaUrl || room.thumbnailUrl;
@@ -167,18 +183,18 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
               </span>
             </div>
 
-            <span className="client-zigzag-tag">
-              {t('rooms.tag', 'Không Gian Thực Tế Ảo Tour 360°')}
+            <span className="client-subpage-badge">
+              {t('rooms.tag', 'Không gian 360°')}
             </span>
 
             <h1 className="client-subpage-title">
-              {t('rooms.pageHeading', 'Tất Cả Gian Phòng Trưng Bày 360°')}
+              {t('rooms.pageHeading', 'Gian phòng trưng bày 360°')}
             </h1>
 
             <p className="client-subpage-lead">
               {t(
                 'rooms.pageLead',
-                'Hệ thống không gian trưng bày số hóa toàn cảnh 360° sắc nét. Bấm vào bất kỳ gian phòng nào để bắt đầu hành trình tham quan và tương tác với các điểm chú thích hiện vật lịch sử.'
+                'Chọn gian phòng bên dưới để bắt đầu trải nghiệm tham quan không gian 360°.'
               )}
             </p>
           </div>
@@ -389,71 +405,90 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
               </button>
             </div>
           ) : (
-            <div className="client-subpage-grid">
-              {filteredRooms.map((room, index) => {
-                const title = sanitizeMuseumText(localize(room, 'name', room.name));
-                const period = sanitizeMuseumText(localize(room, 'period', (room as any).period || room.category || ''));
-                const desc = localize(room, 'description', room.description || '');
-                const hotspotCount = room.hotspots ? room.hotspots.length : 0;
-                const thumb = getRoomThumb(room);
+            <>
+              <div className="client-subpage-grid">
+                {paginatedRooms.map((room, index) => {
+                  const title = sanitizeMuseumText(localize(room, 'name', room.name));
+                  const period = sanitizeMuseumText(localize(room, 'period', (room as any).period || room.category || ''));
+                  const desc = localize(room, 'description', room.description || '');
+                  const hotspotCount = room.hotspots ? room.hotspots.length : 0;
+                  const thumb = getRoomThumb(room);
 
-                return (
-                  <div
-                    key={room.id}
-                    className="client-gallery-card"
-                    style={{ transitionDelay: `${index * 60}ms` }}
-                  >
-                    {/* KHUNG MEDIA ẢNH TOÀN CẢNH */}
+                  return (
                     <div
-                      className="client-gallery-media clickable"
-                      onClick={() => onSelectRoomForTour(room)}
-                      role="button"
-                      tabIndex={0}
-                      title={`Bấm để vào tham quan 360° ${title}`}
+                      key={room.id}
+                      className="client-gallery-card"
+                      style={{ transitionDelay: `${index * 60}ms` }}
                     >
-                      {thumb ? (
-                        <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
-                      ) : (
-                        <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
-                          <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
-                            <Compass size={22} strokeWidth={1.5} />
+                      {/* KHUNG MEDIA ẢNH TOÀN CẢNH */}
+                      <div
+                        className="client-gallery-media clickable"
+                        onClick={() => onSelectRoomForTour(room)}
+                        role="button"
+                        tabIndex={0}
+                        title={`Bấm để vào tham quan 360° ${title}`}
+                      >
+                        {thumb ? (
+                          <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                        ) : (
+                          <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
+                            <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
+                              <Compass size={22} strokeWidth={1.5} />
+                            </div>
+                            <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>Chưa có ảnh 360°</span>
                           </div>
-                          <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>Chưa có ảnh 360°</span>
+                        )}
+                        <div className="client-zigzag-badge-float">
+                          <span>{thumb ? '360° Sẵn sàng' : 'Đang cập nhật'}</span>
                         </div>
-                      )}
-                      <div className="client-zigzag-badge-float">
-                        <span>{thumb ? '360° Sẵn sàng' : 'Đang cập nhật'}</span>
+                        {hotspotCount > 0 && (
+                          <div className="client-gallery-hotspot-pill">
+                            <Layers size={13} style={{ color: '#D4A86A' }} />
+                            <span>{hotspotCount} điểm chú thích</span>
+                          </div>
+                        )}
                       </div>
-                      {hotspotCount > 0 && (
-                        <div className="client-gallery-hotspot-pill">
-                          <Layers size={13} style={{ color: '#D4A86A' }} />
-                          <span>{hotspotCount} điểm chú thích</span>
+
+                      {/* NỘI DUNG CARD: TYPOGRAPHY ĐỒNG BỘ, KHÔNG RỚT CHỮ LỘN XỘN */}
+                      <div className="client-gallery-body">
+                        {period && <span className="client-gallery-meta">{period}</span>}
+                        <h2 className="client-gallery-title" title={title}>{title}</h2>
+                        {desc && <p className="client-gallery-desc">{desc}</p>}
+
+                        <div className="client-gallery-actions">
+                          <button
+                            type="button"
+                            className="client-zigzag-btn-primary"
+                            style={{ width: '100%', justifyContent: 'center' }}
+                            onClick={() => onSelectRoomForTour(room)}
+                          >
+                            <Compass size={15} />
+                            <span>{t('rooms.btnEnterTour', 'Vào tham quan 360°')}</span>
+                          </button>
                         </div>
-                      )}
-                    </div>
-
-                    {/* NỘI DUNG CARD: TYPOGRAPHY ĐỒNG BỘ, KHÔNG RỚT CHỮ LỘN XỘN */}
-                    <div className="client-gallery-body">
-                      {period && <span className="client-gallery-meta">{period}</span>}
-                      <h2 className="client-gallery-title" title={title}>{title}</h2>
-                      {desc && <p className="client-gallery-desc">{desc}</p>}
-
-                      <div className="client-gallery-actions">
-                        <button
-                          type="button"
-                          className="client-zigzag-btn-primary"
-                          style={{ width: '100%', justifyContent: 'center' }}
-                          onClick={() => onSelectRoomForTour(room)}
-                        >
-                          <Compass size={15} />
-                          <span>{t('rooms.btnEnterTour', 'Vào tham quan 360°')}</span>
-                        </button>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              {/* PHÂN TRANG CHUẨN DASHBOARD (6 - 9 - 12 - 18 - 24) */}
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredRooms.length}
+                pageSize={pageSize}
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 160, behavior: 'smooth' });
+                }}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+                pageSizeOptions={[6, 9, 12, 18, 24]}
+                itemLabel={t('rooms.unit', 'gian phòng')}
+              />
+            </>
           )}
         </div>
       </main>

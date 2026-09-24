@@ -5108,6 +5108,178 @@
   line-height: 1.55;
 }
 
+/* --- BADGE TIÊU ĐỀ SUBPAGE TINH GỌN, ÍT MÀU SẮC (THEO YÊU CẦU NGƯỜI DÙNG) --- */
+.client-subpage-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-gold);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  padding: 3px 10px;
+  border-radius: var(--c-radius-pill);
+  margin-bottom: 8px;
+}
+
+.client-portal[data-client-theme="light"] .client-subpage-badge {
+  background: rgba(180, 138, 60, 0.08);
+  border: 1px solid rgba(180, 138, 60, 0.2);
+  color: #8C6826;
+}
+
+/* --- PHÂN TRANG CLIENT PORTAL CHUẨN DASHBOARD (6 - 9 - 12 - 18 - 24) --- */
+.client-portal .pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 22px;
+  margin-top: 36px;
+  border-radius: 14px;
+  background: rgba(16, 20, 28, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-size: 13px;
+  color: var(--c-text-secondary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.client-portal[data-client-theme="light"] .pagination-container {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  color: var(--c-text-secondary);
+}
+
+.client-portal .pagination-info {
+  color: var(--c-text-muted);
+  font-size: 13px;
+}
+
+.client-portal .pagination-info strong {
+  color: var(--c-text-primary);
+  font-weight: 600;
+}
+
+.client-portal .pagination-size-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.client-portal .pagination-size-select {
+  padding: 6px 12px;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--c-text-primary);
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.client-portal .pagination-size-select option {
+  background: #151A26;
+  color: #F9FAFB;
+}
+
+.client-portal[data-client-theme="light"] .pagination-size-select {
+  background-color: #F7F5F0;
+  color: #181C26;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.client-portal[data-client-theme="light"] .pagination-size-select option {
+  background: #FFFFFF;
+  color: #181C26;
+}
+
+.client-portal .pagination-size-select:hover {
+  border-color: var(--c-gold);
+}
+
+.client-portal .pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.client-portal .pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.client-portal .pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--c-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.client-portal[data-client-theme="light"] .pagination-btn {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: #F7F5F0;
+  color: var(--c-text-primary);
+}
+
+.client-portal .pagination-btn:hover:not(:disabled) {
+  background-color: rgba(212, 175, 55, 0.12);
+  border-color: var(--c-gold);
+  color: var(--c-gold);
+}
+
+.client-portal[data-client-theme="light"] .pagination-btn:hover:not(:disabled) {
+  background-color: rgba(180, 138, 60, 0.1);
+  border-color: var(--c-gold);
+  color: var(--c-gold);
+}
+
+.client-portal .pagination-btn:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.client-portal[data-client-theme="light"] .pagination-btn:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed;
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+.client-portal .pagination-btn.active {
+  background: var(--c-gold) !important;
+  border-color: var(--c-gold) !important;
+  color: #0A0D14 !important;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+}
+
+.client-portal .pagination-ellipsis {
+  padding: 0 6px;
+  color: var(--c-text-muted);
+}
+
+
 
 
 
