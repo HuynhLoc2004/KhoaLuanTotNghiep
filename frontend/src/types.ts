@@ -171,6 +171,9 @@ export interface SystemBranding {
   contactEmail: string;
   hotline: string;
   emailSenderName: string;
+  heroBannerUrl?: string;
+  heroVideoUrl?: string;
+  introImageUrl?: string;
   updatedAt?: string;
   updatedBy?: string;
 }

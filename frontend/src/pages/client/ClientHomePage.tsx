@@ -33,17 +33,17 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
   // Quản lý Light / Dark Mode chuyên biệt của Client Portal (Mặc định: Deep Obsidian Gallery)
   const [clientTheme, setClientTheme] = useState<'light' | 'dark'>(() => {
     try {
-      const saved = localStorage.getItem('client_theme');
+      const saved = localStorage.getItem('client_theme_v2');
       if (saved === 'dark' || saved === 'light') return saved;
     } catch {}
-    return 'dark'; // Mặc định là Deep Obsidian Gallery sang trọng chuẩn bảo tàng ảo
+    return 'dark'; // Mặc định: Deep Gallery Obsidian sang trọng chuẩn bảo tàng ảo
   });
 
   const toggleClientTheme = () => {
     setClientTheme((prev) => {
       const next = prev === 'light' ? 'dark' : 'light';
       try {
-        localStorage.setItem('client_theme', next);
+        localStorage.setItem('client_theme_v2', next);
       } catch {}
       return next;
     });
@@ -125,10 +125,12 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
           onExploreTourClick={scrollToRooms}
           onExploreArtifactsClick={scrollToArtifacts}
           featuredImageUrl={
-            rooms[0]?.panoramaUrl
+            branding.heroBannerUrl ||
+            (rooms[0]?.panoramaUrl
               ? `${API_ROOT}${rooms[0].panoramaUrl.startsWith('/') ? '' : '/'}${rooms[0].panoramaUrl}`
-              : undefined
+              : undefined)
           }
+          videoUrl={branding.heroVideoUrl}
         />
 
         {/* 3. Khối Giới thiệu & Lịch sử (Curatorial Storytelling 2 cột nghệ thuật) */}

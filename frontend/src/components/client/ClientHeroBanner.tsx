@@ -30,9 +30,21 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  const heroImage =
+  const [mediaSrc, setMediaSrc] = React.useState<string>(
     featuredImageUrl ||
-    'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=2000&q=85';
+      'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=2000&q=85'
+  );
+
+  React.useEffect(() => {
+    if (featuredImageUrl) {
+      setMediaSrc(featuredImageUrl);
+    }
+  }, [featuredImageUrl]);
+
+  const handleImageError = () => {
+    // Nếu link ảnh lỗi hoặc bị chặn, dùng ảnh dự phòng kiến trúc bảo tàng đáng tin cậy
+    setMediaSrc('https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=2000&q=85');
+  };
 
   return (
     <section id="hero" className="client-hero">
@@ -45,16 +57,17 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
             muted
             playsInline
             className="client-hero-media"
-            poster={heroImage}
+            poster={mediaSrc}
           >
             <source src={videoUrl} type="video/mp4" />
           </video>
         ) : (
           <img
-            src={heroImage}
+            src={mediaSrc}
             alt={branding.museumName || 'Bảo tàng Lịch sử'}
             className="client-hero-media"
             loading="eager"
+            onError={handleImageError}
           />
         )}
       </div>
