@@ -27,17 +27,28 @@ import {
   Sparkles,
   ExternalLink,
   ChevronDown,
-  Info
+  Info,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
+import { HOMEPAGE_SECTIONS } from '../../constants/homepageSections';
 
-export const AdminHomepageCMSPage: React.FC = () => {
+interface AdminHomepageCMSPageProps {
+  activeSection?: string;
+  onSectionChange?: (sectionId: string) => void;
+}
+
+export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
+  activeSection,
+  onSectionChange
+}) => {
   const { showToast } = useToast();
   const { branding, updateBranding, refreshBranding } = useSystemBranding();
   const { t } = useClientTranslation();
 
   const [form, setForm] = useState<SystemBranding>(branding);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState<string>('panel-menu');
+  const [activeSectionId, setActiveSectionId] = useState<string>(activeSection || 'panel-menu');
 
   // Quản lý upload file
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -58,13 +69,18 @@ export const AdminHomepageCMSPage: React.FC = () => {
     }
   }, [branding]);
 
-  // Cuộn mượt đến khung thành phần được chọn
-  const scrollToPanel = (panelId: string) => {
-    setActiveSectionId(panelId);
-    const el = document.getElementById(panelId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  useEffect(() => {
+    if (activeSection && activeSection !== activeSectionId) {
+      setActiveSectionId(activeSection);
     }
+  }, [activeSection]);
+
+  const selectSection = (id: string) => {
+    setActiveSectionId(id);
+    if (onSectionChange) {
+      onSectionChange(id);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Cập nhật giá trị một trường
@@ -192,12 +208,12 @@ export const AdminHomepageCMSPage: React.FC = () => {
   const handleSave = async (sectionName?: string) => {
     if (!form.museumName?.trim()) {
       showToast('Tên đầy đủ của bảo tàng không được để trống', 'warning');
-      scrollToPanel('panel-menu');
+      selectSection('panel-menu');
       return;
     }
     if (!form.shortName?.trim()) {
       showToast('Tên rút gọn của bảo tàng không được để trống', 'warning');
-      scrollToPanel('panel-menu');
+      selectSection('panel-menu');
       return;
     }
 
@@ -262,15 +278,60 @@ export const AdminHomepageCMSPage: React.FC = () => {
     }
   };
 
-  const navItems = [
-    { id: 'panel-menu', label: 'Menu & Nhận diện', icon: Building2 },
-    { id: 'panel-hero', label: 'Banner Hero', icon: Image },
-    { id: 'panel-intro', label: 'Giới thiệu Không gian', icon: Sparkles },
-    { id: 'panel-rooms', label: 'Gian phòng 360°', icon: Compass },
-    { id: 'panel-artifacts', label: 'Cổ vật 3D', icon: Box },
-    { id: 'panel-guide', label: 'Cẩm nang & Sơ đồ', icon: Layers },
-    { id: 'panel-footer', label: 'Chân trang & Liên hệ', icon: Phone }
-  ];
+  const renderSectionNavFooter = (sectionIndex: number, sectionName: string) => {
+    const prevSec = sectionIndex > 0 ? HOMEPAGE_SECTIONS[sectionIndex - 1] : null;
+    const nextSec = sectionIndex < HOMEPAGE_SECTIONS.length - 1 ? HOMEPAGE_SECTIONS[sectionIndex + 1] : null;
+
+    return (
+      <div
+        style={{
+          marginTop: 28,
+          paddingTop: 18,
+          borderTop: '1px solid var(--border-color)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12
+        }}
+      >
+        {prevSec ? (
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => selectSection(prevSec.id)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <ArrowLeft size={14} />
+            <span>Phần trước: {prevSec.shortLabel}</span>
+          </button>
+        ) : <div />}
+
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={() => handleSave(sectionName)}
+          disabled={isSaving}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
+        >
+          <Save size={15} />
+          <span>{isSaving ? 'Đang lưu...' : `Lưu thay đổi ${sectionName}`}</span>
+        </button>
+
+        {nextSec ? (
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => selectSection(nextSec.id)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>Phần tiếp theo: {nextSec.shortLabel}</span>
+            <ArrowRight size={14} />
+          </button>
+        ) : <div />}
+      </div>
+    );
+  };
 
   return (
     <div className="admin-content" style={{ paddingBottom: 100 }}>
@@ -283,7 +344,7 @@ export const AdminHomepageCMSPage: React.FC = () => {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 16,
-          marginBottom: 20
+          marginBottom: 16
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -298,7 +359,8 @@ export const AdminHomepageCMSPage: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               color: '#FFF8F0',
-              boxShadow: '0 4px 12px rgba(140, 45, 25, 0.3)'
+              boxShadow: '0 4px 12px rgba(140, 45, 25, 0.3)',
+              flexShrink: 0
             }}
           >
             <LayoutTemplate size={22} />
@@ -308,8 +370,7 @@ export const AdminHomepageCMSPage: React.FC = () => {
               Quản Lý Giao Diện & Nội Dung Trang Chủ
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, maxWidth: 720, lineHeight: 1.5 }}>
-              Quản lý toàn bộ dữ liệu động hiển thị trên Trang chủ di sản (Menu, Banner, Giới thiệu, Gian phòng 360, Cổ vật 3D, Cẩm nang & Sơ đồ, Chân trang).
-              Dữ liệu được lưu trữ thật tại MongoDB và đồng bộ tức thì cho Khách tham quan.
+              Quản lý độc lập từng phần hiển thị trên Trang chủ di sản. Dữ liệu được lưu trữ trực tiếp vào MongoDB và đồng bộ tức thì cho Khách tham quan.
             </p>
           </div>
         </div>
@@ -351,7 +412,7 @@ export const AdminHomepageCMSPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. THANH ĐIỀU HƯỚNG NHANH THEO TỪNG KHUNG (KHÔNG CHUYỂN TAB ẨN DỮ LIỆU) */}
+      {/* 2. THANH ĐIỀU HƯỚNG NHANH THEO TỪNG PHẦN (CHỌN TỪNG PHẦN ĐỘC LẬP) */}
       <div
         style={{
           position: 'sticky',
@@ -361,7 +422,7 @@ export const AdminHomepageCMSPage: React.FC = () => {
           padding: '10px 14px',
           borderRadius: 12,
           border: '1px solid var(--border-color)',
-          marginBottom: 24,
+          marginBottom: 20,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
@@ -370,16 +431,15 @@ export const AdminHomepageCMSPage: React.FC = () => {
         }}
       >
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4 }}>
-          Khung thành phần:
+          Chọn phần:
         </span>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSectionId === item.id;
+        {HOMEPAGE_SECTIONS.map((sec) => {
+          const isActive = activeSectionId === sec.id;
           return (
             <button
-              key={item.id}
+              key={sec.id}
               type="button"
-              onClick={() => scrollToPanel(item.id)}
+              onClick={() => selectSection(sec.id)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -397,17 +457,33 @@ export const AdminHomepageCMSPage: React.FC = () => {
                 transition: 'all 0.2s ease'
               }}
             >
-              <Icon size={14} />
-              <span>{item.label}</span>
+              <span
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 4,
+                  background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
+                  color: isActive ? '#FFFFFF' : 'var(--text-muted)',
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {sec.num}
+              </span>
+              <span>{sec.shortLabel.replace(/^\d+\.\s*/, '')}</span>
             </button>
           );
         })}
       </div>
 
-      {/* 3. CÁC KHUNG QUẢN LÝ DỮ LIỆU ĐỘNG CHUYÊN BIỆT */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* 3. KHU VỰC QUẢN LÝ TẬP TRUNG THEO TỪNG PHẦN ĐƯỢC CHỌN (KHÔNG GỘP TRÀN LAN) */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
 
         {/* KHUNG 1: MENU & NHẬN DIỆN THƯƠNG HIỆU */}
+        {activeSectionId === 'panel-menu' && (
         <section
           id="panel-menu"
           style={{
@@ -574,10 +650,13 @@ export const AdminHomepageCMSPage: React.FC = () => {
                 </span>
               </div>
             </div>
+            {renderSectionNavFooter(0, 'Phần 1: Menu & Nhận diện')}
           </div>
         </section>
+        )}
 
         {/* KHUNG 2: BANNER HERO TOÀN CẢNH */}
+        {activeSectionId === 'panel-hero' && (
         <section
           id="panel-hero"
           style={{
@@ -727,10 +806,13 @@ export const AdminHomepageCMSPage: React.FC = () => {
                 </div>
               )}
             </div>
+            {renderSectionNavFooter(1, 'Phần 2: Banner Hero')}
           </div>
         </section>
+        )}
 
         {/* KHUNG 3: KHỐI GIỚI THIỆU KHÔNG GIAN & LỊCH SỬ */}
+        {activeSectionId === 'panel-intro' && (
         <section
           id="panel-intro"
           style={{
@@ -874,10 +956,13 @@ export const AdminHomepageCMSPage: React.FC = () => {
                 </div>
               )}
             </div>
+            {renderSectionNavFooter(2, 'Phần 3: Giới thiệu Không gian')}
           </div>
         </section>
+        )}
 
         {/* KHUNG 4: KHỐI GIAN PHÒNG TRƯNG BÀY 360° */}
+        {activeSectionId === 'panel-rooms' && (
         <section
           id="panel-rooms"
           style={{
@@ -967,10 +1052,13 @@ export const AdminHomepageCMSPage: React.FC = () => {
                 style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
             </div>
+            {renderSectionNavFooter(3, 'Phần 4: Gian phòng 360°')}
           </div>
         </section>
+        )}
 
         {/* KHUNG 5: KHỐI KHO TÀNG CỔ VẬT DI SẢN 3D */}
+        {activeSectionId === 'panel-artifacts' && (
         <section
           id="panel-artifacts"
           style={{
@@ -1060,10 +1148,13 @@ export const AdminHomepageCMSPage: React.FC = () => {
                 style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
             </div>
+            {renderSectionNavFooter(4, 'Phần 5: Cổ vật 3D')}
           </div>
         </section>
+        )}
 
         {/* KHUNG 6: KHỐI CẨM NANG & SƠ ĐỒ THAM QUAN */}
+        {activeSectionId === 'panel-guide' && (
         <section
           id="panel-guide"
           style={{
@@ -1243,10 +1334,13 @@ export const AdminHomepageCMSPage: React.FC = () => {
                 </div>
               )}
             </div>
+            {renderSectionNavFooter(5, 'Phần 6: Cẩm nang & Sơ đồ')}
           </div>
         </section>
+        )}
 
         {/* KHUNG 7: CHÂN TRANG & THÔNG TIN LIÊN HỆ */}
+        {activeSectionId === 'panel-footer' && (
         <section
           id="panel-footer"
           style={{
@@ -1365,8 +1459,10 @@ export const AdminHomepageCMSPage: React.FC = () => {
                 Hệ thống tự động thêm biểu tượng © và năm hiện hành {new Date().getFullYear()} vào trước dòng này.
               </span>
             </div>
+            {renderSectionNavFooter(6, 'Phần 7: Chân trang & Liên hệ')}
           </div>
         </section>
+        )}
 
       </div>
 

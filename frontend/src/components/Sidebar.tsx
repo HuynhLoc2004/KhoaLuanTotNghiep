@@ -1,15 +1,19 @@
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate } from 'lucide-react';
+import React, { useState } from 'react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate, ChevronDown } from 'lucide-react';
 import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 import { useClientTranslation } from '../context/ClientTranslationContext';
+import { HOMEPAGE_SECTIONS } from '../constants/homepageSections';
 
 interface SidebarProps {
   currentTab: AdminTab;
   isOpen: boolean;
   onClose: () => void;
   onToggle: () => void;
-  onTabChange: (tab: AdminTab) => void;
+  onTabChange: (tab: AdminTab, sectionId?: string) => void;
   roomCount: number;
+  homepageSection?: string;
+  onHomepageSectionChange?: (sectionId: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -18,13 +22,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   onToggle,
   onTabChange,
-  roomCount
+  roomCount,
+  homepageSection,
+  onHomepageSectionChange
 }) => {
   const { branding } = useSystemBranding();
   const { t, currentLang } = useClientTranslation();
+  const [isHomepageExpanded, setIsHomepageExpanded] = useState<boolean>(true);
 
   const handleItemClick = (tab: AdminTab) => {
     onTabChange(tab);
+    if (window.innerWidth <= 1024) {
+      onClose();
+    }
+  };
+
+  const handleHomepageMainClick = () => {
+    if (currentTab !== 'homepage_cms') {
+      onTabChange('homepage_cms', homepageSection || 'panel-menu');
+      setIsHomepageExpanded(true);
+    } else {
+      setIsHomepageExpanded(!isHomepageExpanded);
+    }
+  };
+
+  const handleSubSectionClick = (sectionId: string) => {
+    if (onHomepageSectionChange) {
+      onHomepageSectionChange(sectionId);
+    }
+    onTabChange('homepage_cms', sectionId);
     if (window.innerWidth <= 1024) {
       onClose();
     }
@@ -129,13 +155,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>{t('nav.artifacts', 'Hiện vật & Cổ vật di sản')}</span>
         </button>
 
-        <button
-          className={`nav-item ${currentTab === 'homepage_cms' ? 'active' : ''}`}
-          onClick={() => handleItemClick('homepage_cms')}
-        >
-          <LayoutTemplate size={16} />
-          <span>{t('nav.homepageCms', 'Quản lý Trang chủ')}</span>
-        </button>
+        {/* NHÓM QUẢN LÝ GIAO DIỆN & PAGE */}
+        <div className="sidebar-group-label" style={{ marginTop: 8 }}>
+          QUẢN LÝ PAGE & GIAO DIỆN
+        </div>
+
+        <div className="nav-collapsible-wrapper">
+          <button
+            type="button"
+            className={`nav-item ${currentTab === 'homepage_cms' ? 'active' : ''}`}
+            onClick={handleHomepageMainClick}
+            title="Quản lý giao diện & các khối thành phần trang chủ"
+          >
+            <LayoutTemplate size={16} />
+            <span>{t('nav.homepageCms', 'Quản lý Trang chủ')}</span>
+            <ChevronDown
+              size={14}
+              style={{
+                marginLeft: 'auto',
+                transform: isHomepageExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+                opacity: 0.7
+              }}
+            />
+          </button>
+
+          {/* Danh sách các phần con 1, 2, 3, 4, 5, 6, 7 theo đúng cấu trúc */}
+          {isHomepageExpanded && (
+            <div className="nav-sub-menu">
+              {HOMEPAGE_SECTIONS.map((sec) => {
+                const isSecActive = currentTab === 'homepage_cms' && (homepageSection || 'panel-menu') === sec.id;
+                const SecIcon = sec.icon;
+                return (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    className={`nav-sub-item ${isSecActive ? 'active' : ''}`}
+                    onClick={() => handleSubSectionClick(sec.id)}
+                    title={sec.desc}
+                  >
+                    <span className="nav-sub-num">{sec.num}</span>
+                    <span className="nav-sub-text">{sec.shortLabel.replace(/^\d+\.\s*/, '')}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* NHÓM HỆ THỐNG & DỮ LIỆU */}
+        <div className="sidebar-group-label" style={{ marginTop: 8 }}>
+          HỆ THỐNG & BÁO CÁO
+        </div>
 
         <button
           className={`nav-item ${currentTab === 'languages' ? 'active' : ''}`}

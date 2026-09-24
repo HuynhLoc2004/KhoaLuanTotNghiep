@@ -36,6 +36,7 @@ const AppContent: React.FC = () => {
   const { showToast } = useToast();
   const { t } = useClientTranslation();
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
+  const [homepageSection, setHomepageSection] = useState<string>('panel-menu');
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [topics, setTopics] = useState<TopicItem[]>([]);
@@ -600,8 +601,13 @@ const AppContent: React.FC = () => {
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
         onToggle={handleToggleSidebar}
-        onTabChange={(tab) => {
+        homepageSection={homepageSection}
+        onHomepageSectionChange={setHomepageSection}
+        onTabChange={(tab, sectionId) => {
           setCurrentTab(tab);
+          if (sectionId) {
+            setHomepageSection(sectionId);
+          }
           if (tab !== 'studio') {
             setActiveRoom(null);
             try {
@@ -799,7 +805,10 @@ const AppContent: React.FC = () => {
         ) : currentTab === 'artifacts' ? (
           <AdminArtifactsPage />
         ) : currentTab === 'homepage_cms' ? (
-          <AdminHomepageCMSPage />
+          <AdminHomepageCMSPage
+            activeSection={homepageSection}
+            onSectionChange={setHomepageSection}
+          />
         ) : currentTab === 'languages' ? (
           <AdminLanguagePage />
         ) : currentTab === 'settings' ? (
