@@ -401,6 +401,21 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           >
             {t('nav.guide', 'Tham quan')}
           </a>
+
+          {!user && (
+            <button
+              type="button"
+              className="client-nav-login-btn"
+              style={{ marginTop: 8, justifyContent: 'center', width: '100%' }}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onOpenLoginModal();
+              }}
+            >
+              <LogIn size={16} />
+              <span>{t('auth.login', 'Đăng nhập')}</span>
+            </button>
+          )}
         </div>
       )}
     </nav>

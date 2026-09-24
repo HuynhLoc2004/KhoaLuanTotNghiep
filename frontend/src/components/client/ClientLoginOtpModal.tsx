@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useSystemBranding } from '../../context/SystemBrandingContext';
-import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { X, Mail, KeyRound, Loader2, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
 interface ClientLoginOtpModalProps {
   isOpen: boolean;
@@ -15,8 +13,6 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const { branding } = useSystemBranding();
-  const { t } = useClientTranslation();
   const { sendOtp, loginWithOtp } = useAuth();
 
   const [step, setStep] = useState<'email' | 'otp'>('email');
@@ -27,40 +23,57 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
-  // Xử lý đếm ngược thời gian gửi lại OTP
+  // Đếm ngược gửi lại OTP
   useEffect(() => {
-    let timer: any;
+    let timer: ReturnType<typeof setInterval>;
     if (cooldown > 0) {
       timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
     }
-    return () => clearInterval(timer);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [cooldown]);
 
-  // Reset form khi modal đóng/mở
+  // Đóng bằng phím Escape & reset state khi mở/đóng
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
     if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
       setError(null);
     } else {
-      setTimeout(() => {
+      document.body.style.overflow = '';
+      const timeout = setTimeout(() => {
         setStep('email');
         setOtp('');
         setError(null);
-      }, 300);
+      }, 250);
+      return () => clearTimeout(timeout);
     }
-  }, [isOpen]);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  // Bước 1: Gửi mã OTP về email
+  // Bước 1: Gửi mã OTP
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanEmail = email.trim();
     if (!cleanEmail) {
-      setError(t('auth.enterEmail', 'Vui lòng nhập địa chỉ email của bạn'));
+      setError('Vui lòng nhập địa chỉ email');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError(t('auth.invalidEmail', 'Địa chỉ email không đúng định dạng'));
+      setError('Email không đúng định dạng');
       return;
     }
 
@@ -75,18 +88,18 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
       }
       setStep('otp');
     } catch (err: any) {
-      setError(err.message || t('auth.sendFailed', 'Không thể gửi mã xác thực. Vui lòng thử lại.'));
+      setError(err.message || 'Không thể gửi mã xác thực. Vui lòng thử lại.');
     } finally {
       setIsSending(false);
     }
   };
 
-  // Bước 2: Xác thực mã OTP và đăng nhập
+  // Bước 2: Xác thực OTP và đăng nhập
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanOtp = otp.trim();
     if (cleanOtp.length < 6) {
-      setError(t('auth.enterOtp', 'Vui lòng nhập đầy đủ mã OTP 6 chữ số'));
+      setError('Vui lòng nhập đủ 6 chữ số');
       return;
     }
 
@@ -97,7 +110,7 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || t('auth.loginFailed', 'Mã xác thực không hợp lệ hoặc đã hết hạn.'));
+      setError(err.message || 'Mã xác thực không đúng hoặc đã hết hạn.');
     } finally {
       setIsVerifying(false);
     }
@@ -118,76 +131,49 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
           type="button"
           className="client-otp-modal-close"
           onClick={onClose}
-          aria-label={t('common.close', 'Đóng')}
+          aria-label="Đóng"
         >
           <X size={18} />
         </button>
 
-        {/* Header thương hiệu */}
+        {/* Tiêu đề ngắn gọn, chuẩn mực */}
         <div className="client-otp-header">
-          {branding.logoUrl ? (
-            <img
-              src={branding.logoUrl}
-              alt=""
-              style={{ width: 52, height: 52, objectFit: 'contain', margin: '0 auto 14px auto', display: 'block' }}
-            />
-          ) : (
-            <div className="client-otp-emblem">
-              {branding.emblemText || 'BT'}
-            </div>
-          )}
           <h3 className="client-otp-title">
-            {step === 'email' ? t('auth.loginTitle', 'Đăng Nhập Khách Tham Quan') : t('auth.verifyTitle', 'Xác Thực Mã OTP')}
+            {step === 'email' ? 'Đăng nhập' : 'Xác thực OTP'}
           </h3>
           <p className="client-otp-subtitle">
             {step === 'email'
-              ? t('auth.loginSub', 'Nhập email để nhận mã xác thực đăng nhập tức thì, bảo mật và không cần mật khẩu')
-              : t('auth.verifySub', `Mã gồm 6 chữ số đã được gửi đến hộp thư ${email}`)}
+              ? 'Nhập email của bạn để nhận mã xác thực OTP'
+              : `Mã 6 chữ số đã được gửi đến ${email}`}
           </p>
         </div>
 
-        {/* Thông báo lỗi nếu có */}
+        {/* Thông báo lỗi gọn gàng */}
         {error && (
-          <div
-            style={{
-              padding: '10px 14px',
-              borderRadius: 'var(--c-radius-sm)',
-              background: 'rgba(180, 40, 30, 0.1)',
-              border: '1px solid rgba(180, 40, 30, 0.25)',
-              color: 'var(--c-primary)',
-              fontSize: '0.84rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 16
-            }}
-          >
-            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          <div className="client-otp-error">
             <span>{error}</span>
           </div>
         )}
 
-        {/* Form bước 1: Nhập Email */}
+        {/* Bước 1: Nhập Email */}
         {step === 'email' ? (
           <form onSubmit={handleSendOtp} className="client-otp-form">
             <div className="client-otp-field">
               <label className="client-otp-label" htmlFor="otp-email-input">
-                {t('auth.emailAddress', 'Địa chỉ Email')}
+                Địa chỉ email
               </label>
-              <div className="client-otp-input-wrap">
-                <Mail size={18} className="client-otp-input-icon" />
-                <input
-                  id="otp-email-input"
-                  type="email"
-                  className="client-otp-input"
-                  placeholder="vidu@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoFocus
-                  required
-                  disabled={isSending}
-                />
-              </div>
+              <input
+                id="otp-email-input"
+                type="email"
+                className="client-otp-input"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoFocus
+                required
+                disabled={isSending}
+                autoComplete="email"
+              />
             </div>
 
             <button
@@ -197,41 +183,38 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
             >
               {isSending ? (
                 <>
-                  <Loader2 size={18} className="spin" />
-                  <span>{t('auth.sending', 'Đang gửi mã xác thực...')}</span>
+                  <Loader2 size={16} className="spin" />
+                  <span>Đang gửi mã...</span>
                 </>
               ) : (
-                <>
-                  <span>{t('auth.getOtp', 'Nhận Mã Xác Thực')}</span>
-                  <ArrowRight size={18} />
-                </>
+                <span>Tiếp tục</span>
               )}
             </button>
           </form>
         ) : (
-          /* Form bước 2: Nhập OTP */
+          /* Bước 2: Nhập OTP */
           <form onSubmit={handleVerifyOtp} className="client-otp-form">
             <div className="client-otp-field">
               <label className="client-otp-label" htmlFor="otp-code-input">
-                {t('auth.otpCode', 'Mã xác nhận 6 số')}
+                Mã xác thực (6 số)
               </label>
-              <div className="client-otp-input-wrap">
-                <input
-                  id="otp-code-input"
-                  type="text"
-                  maxLength={6}
-                  className="client-otp-input client-otp-code-input"
-                  placeholder="••••••"
-                  value={otp}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setOtp(val);
-                  }}
-                  autoFocus
-                  required
-                  disabled={isVerifying}
-                />
-              </div>
+              <input
+                id="otp-code-input"
+                type="text"
+                maxLength={6}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="client-otp-input client-otp-code-input"
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setOtp(val);
+                }}
+                autoFocus
+                required
+                disabled={isVerifying}
+              />
             </div>
 
             <button
@@ -241,49 +224,40 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
             >
               {isVerifying ? (
                 <>
-                  <Loader2 size={18} className="spin" />
-                  <span>{t('auth.verifying', 'Đang xác thực đăng nhập...')}</span>
+                  <Loader2 size={16} className="spin" />
+                  <span>Đang đăng nhập...</span>
                 </>
               ) : (
-                <>
-                  <ShieldCheck size={18} />
-                  <span>{t('auth.confirmLogin', 'Xác Nhận & Đăng Nhập')}</span>
-                </>
+                <span>Đăng nhập</span>
               )}
             </button>
 
-            {/* Gửi lại mã */}
-            <div className="client-otp-resend">
-              <span>{t('auth.notReceived', 'Chưa nhận được mã? ')}</span>
-              <button
-                type="button"
-                className="client-otp-resend-btn"
-                disabled={cooldown > 0 || isSending}
-                onClick={() => handleSendOtp()}
-              >
-                {cooldown > 0
-                  ? t('auth.resendCountdown', `Gửi lại sau ${cooldown}s`)
-                  : t('auth.resendNow', 'Gửi lại mã ngay')}
-              </button>
-              <div style={{ marginTop: 8 }}>
+            {/* Dòng gửi lại mã và đổi email tối giản */}
+            <div className="client-otp-footer-links">
+              {cooldown > 0 ? (
+                <span className="client-otp-cooldown">Gửi lại sau {cooldown}s</span>
+              ) : (
                 <button
                   type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--c-text-muted)',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    textDecoration: 'underline'
-                  }}
-                  onClick={() => {
-                    setStep('email');
-                    setError(null);
-                  }}
+                  className="client-otp-link-btn"
+                  disabled={isSending}
+                  onClick={() => handleSendOtp()}
                 >
-                  {t('auth.changeEmail', 'Thay đổi địa chỉ email')}
+                  Gửi lại mã
                 </button>
-              </div>
+              )}
+              <span className="client-otp-divider">•</span>
+              <button
+                type="button"
+                className="client-otp-link-btn"
+                onClick={() => {
+                  setStep('email');
+                  setOtp('');
+                  setError(null);
+                }}
+              >
+                Đổi email
+              </button>
             </div>
           </form>
         )}
