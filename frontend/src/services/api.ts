@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -527,6 +527,25 @@ export const api = {
 
   getArtifactQRDownloadUrl(id: string): string {
     return `${API_BASE}/artifacts/${id}/qr-download`;
+  },
+
+  async getFloorPlan(): Promise<FloorPlanMap> {
+    const res = await fetch(`${API_BASE}/floor-plan`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải sơ đồ mặt bằng');
+    return json.data;
+  },
+
+  async analyzeFloorPlan(formData: FormData): Promise<{ data: FloorPlanMap; summary: any }> {
+    const res = await fetch(`${API_BASE}/floor-plan/analyze`, {
+      method: 'POST',
+      headers: getAuthHeaders(false),
+      body: formData
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi phân tích sơ đồ mặt bằng');
+    return { data: json.data, summary: json.summary };
   }
 
 };
+

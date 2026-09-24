@@ -457,6 +457,14 @@ const AppContent: React.FC = () => {
               window.history.pushState({}, '', '/admin');
             } catch {}
           }}
+          onSelectRoom360={(roomId) => {
+            const room = rooms.find((r) => r.id === roomId || r.code === roomId);
+            if (room) {
+              setPublicTourRoom(room);
+            } else {
+              handleNavigateClientPage('rooms');
+            }
+          }}
         />
       );
     }

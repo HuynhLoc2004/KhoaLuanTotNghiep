@@ -255,4 +255,50 @@ export interface Artifact {
   updatedAt: string;
 }
 
+export type SpatialDirection = 'front' | 'back' | 'left' | 'right' | 'center';
+
+export interface FloorPlanNode {
+  id: string;
+  roomId?: string;
+  code: string;
+  name: string;
+  period?: string;
+  category?: string;
+  x: number;      // % (0-100)
+  y: number;      // % (0-100)
+  width: number;  // % (0-100)
+  height: number; // % (0-100)
+  isEntrance?: boolean;
+  colorTag?: string;
+  panoramaUrl?: string;
+  thumbnailUrl?: string;
+}
+
+export interface FloorPlanEdge {
+  id: string;
+  fromNodeId: string;
+  toNodeId: string;
+  direction: 'front' | 'back' | 'left' | 'right' | 'center';
+  compassDirection: 'north' | 'south' | 'east' | 'west';
+  doorX: number;
+  doorY: number;
+  label: string;
+  targetRoomName?: string;
+  distance?: number;
+}
+
+export interface FloorPlanMap {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  imageWidth: number;
+  imageHeight: number;
+  analyzedAt: string;
+  analysisAlgorithm: string;
+  nodes: FloorPlanNode[];
+  edges: FloorPlanEdge[];
+  active: boolean;
+}
+
 

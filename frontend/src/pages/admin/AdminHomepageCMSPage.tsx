@@ -44,6 +44,8 @@ export const AdminHomepageCMSPage: React.FC = () => {
   const [uploadingHeroBanner, setUploadingHeroBanner] = useState(false);
   const [uploadingIntroImage, setUploadingIntroImage] = useState(false);
   const [uploadingGuideMap, setUploadingGuideMap] = useState(false);
+  const [analyzingFloorPlan, setAnalyzingFloorPlan] = useState(false);
+  const [analysisSummary, setAnalysisSummary] = useState<{ nodeCount: number; edgeCount: number; dimensions?: string } | null>(null);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const heroBannerInputRef = useRef<HTMLInputElement>(null);
@@ -154,6 +156,35 @@ export const AdminHomepageCMSPage: React.FC = () => {
     } finally {
       setUploadingGuideMap(false);
       if (guideMapInputRef.current) guideMapInputRef.current.value = '';
+    }
+  };
+
+  const handleAnalyzeFloorPlan = async (fileToUpload?: File) => {
+    if (!form.guideMapUrl && !fileToUpload) {
+      showToast('Vui lòng chọn file ảnh hoặc cung cấp URL sơ đồ mặt bằng để phân tích', 'warning');
+      return;
+    }
+    try {
+      setAnalyzingFloorPlan(true);
+      const formData = new FormData();
+      if (fileToUpload) {
+        formData.append('file', fileToUpload);
+      } else if (form.guideMapUrl) {
+        formData.append('imageUrl', form.guideMapUrl);
+      }
+      formData.append('title', form.guideMapTitle || 'Sơ Đồ Mặt Bằng & Cẩm Nang Tham Quan');
+      formData.append('description', form.guideMapDesc || 'Mạng lưới liên kết không gian và cửa thông phòng');
+
+      const res = await api.analyzeFloorPlan(formData);
+      if (res.data?.imageUrl) {
+        handleChange('guideMapUrl', res.data.imageUrl);
+      }
+      setAnalysisSummary(res.summary);
+      showToast(`Phân tích thành công! Đã tạo ${res.summary?.nodeCount || 0} phòng và ${res.summary?.edgeCount || 0} liên kết cửa thông phòng.`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi máy chủ phân tích sơ đồ', 'error');
+    } finally {
+      setAnalyzingFloorPlan(false);
     }
   };
 
@@ -1189,6 +1220,26 @@ export const AdminHomepageCMSPage: React.FC = () => {
                   <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', padding: '3px 8px', borderRadius: 4, fontSize: 11, color: '#FFF' }}>
                     Xem trước sơ đồ mặt bằng
                   </div>
+                </div>
+              )}
+
+              {/* Tính năng Phân tích Sơ đồ Mặt bằng & Kiến tạo Mạng Không gian Topo (Server Sharp Engine) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleAnalyzeFloorPlan()}
+                  disabled={analyzingFloorPlan || !form.guideMapUrl}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#D4AF37', borderColor: '#D4AF37', color: '#000', fontWeight: 600 }}
+                >
+                  <Compass size={14} />
+                  <span>{analyzingFloorPlan ? 'Máy chủ đang phân tích qua Sharp & Topo...' : '⚡ Phân tích Sơ đồ Kiến trúc & Tạo Liên Kết Không Gian'}</span>
+                </button>
+              </div>
+
+              {analysisSummary && (
+                <div style={{ padding: '10px 14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 8, fontSize: 12.5, color: '#10B981' }}>
+                  ✓ Đã phân tích thành công: Nhận diện <strong>{analysisSummary.nodeCount}</strong> phân khu và thiết lập <strong>{analysisSummary.edgeCount}</strong> cửa liên kết hướng đi (Trái/Phải/Trước/Sau). Dữ liệu đã lưu vào MongoDB và tự động đồng bộ sang trang Cẩm nang tham quan!
                 </div>
               )}
             </div>

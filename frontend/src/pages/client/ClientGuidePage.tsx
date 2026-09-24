@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Maximize2, X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { ClientNavbar } from '../../components/client/ClientNavbar';
 import { ClientFooter } from '../../components/client/ClientFooter';
-import { API_ROOT } from '../../services/api';
+import { InteractiveFloorPlanMap } from '../../components/client/InteractiveFloorPlanMap';
+import { API_ROOT, api } from '../../services/api';
+import { FloorPlanMap } from '../../types';
 
 interface ClientGuidePageProps {
   onNavigateHome: () => void;
@@ -13,6 +15,7 @@ interface ClientGuidePageProps {
   onToggleClientTheme: () => void;
   onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
+  onSelectRoom360?: (roomId: string) => void;
 }
 
 export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
@@ -21,7 +24,8 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
   clientTheme,
   onToggleClientTheme,
   onOpenLoginModal,
-  onNavigateAdmin
+  onNavigateAdmin,
+  onSelectRoom360
 }) => {
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
@@ -33,6 +37,30 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
   // Quản lý Modal Lightbox phóng to sơ đồ mặt bằng
   const [isMapLightboxOpen, setIsMapLightboxOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  // Dữ liệu Sơ đồ mặt bằng & Mạng Topo Không gian thực tế từ CSDL
+  const [floorPlan, setFloorPlan] = useState<FloorPlanMap | null>(null);
+  const [loadingFloorPlan, setLoadingFloorPlan] = useState<boolean>(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getFloorPlan()
+      .then((data) => {
+        if (isMounted && data) {
+          setFloorPlan(data);
+        }
+      })
+      .catch((err) => {
+        console.warn('[ClientGuidePage] Không tải được sơ đồ mặt bằng:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingFloorPlan(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Đường dẫn sơ đồ mặt bằng: Ưu tiên ảnh do Admin upload từ server
   const serverMapUrl = branding.guideMapUrl
@@ -150,83 +178,62 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
               </div>
             </div>
 
-            {/* Khung hiển thị Bản đồ mặt bằng */}
-            <div
-              className="client-guide-map-stage"
-              onClick={() => {
-                setZoomLevel(1);
-                setIsMapLightboxOpen(true);
-              }}
-              role="button"
-              tabIndex={0}
-              title="Bấm để phóng to sơ đồ chi tiết"
-            >
-              {serverMapUrl ? (
-                <img
-                  src={serverMapUrl}
-                  alt={branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng'}
-                  className="client-guide-map-img"
-                  loading="lazy"
+            {/* Khung hiển thị Bản đồ mặt bằng & Mạng Topo Thông phòng do Server Phân Tích */}
+            <div style={{ marginTop: 24, marginBottom: 36 }}>
+              {floorPlan ? (
+                <InteractiveFloorPlanMap
+                  floorPlan={floorPlan}
+                  onSelectRoom360={onSelectRoom360}
+                  clientTheme={clientTheme}
                 />
-              ) : (
-                /* Bản đồ kiến trúc vector trực quan tiêu chuẩn của Bảo tàng Lịch sử TP.HCM */
-                <div className="client-guide-map-vector">
-                  <div className="client-guide-map-compass">BẮC ↑</div>
-                  
-                  {/* Cấu trúc mặt bằng Bát giác & 4 cánh trưng bày */}
-                  <div className="client-guide-map-layout">
-                    {/* Cánh Bắc: Cung đình Triều Nguyễn */}
-                    <div className="client-map-wing wing-north">
-                      <div className="client-map-wing-badge">KHU D</div>
-                      <div className="client-map-wing-name">Mỹ thuật Triều Nguyễn</div>
-                    </div>
-
-                    <div className="client-map-middle-row">
-                      {/* Cánh Tây: Chăm Pa */}
-                      <div className="client-map-wing wing-west">
-                        <div className="client-map-wing-badge">KHU C</div>
-                        <div className="client-map-wing-name">Điêu khắc Chăm Pa</div>
-                      </div>
-
-                      {/* Tòa bát giác trung tâm */}
-                      <div className="client-map-rotunda">
-                        <div className="client-map-rotunda-core">
-                          <span className="client-map-rotunda-tag">SẢNH BÁT GIÁC</span>
-                          <strong>Đón Tiếp Khách</strong>
-                          <span className="client-map-rotunda-sub">Thông tin & Audio Guide</span>
-                        </div>
-                      </div>
-
-                      {/* Cánh Đông: Tiền sử & Đông Sơn */}
-                      <div className="client-map-wing wing-east">
-                        <div className="client-map-wing-badge">KHU A</div>
-                        <div className="client-map-wing-name">Tiền Sử & Đông Sơn</div>
-                      </div>
-                    </div>
-
-                    {/* Cánh Nam: Óc Eo & Phù Nam */}
-                    <div className="client-map-wing wing-south">
-                      <div className="client-map-wing-badge">KHU B</div>
-                      <div className="client-map-wing-name">Văn hóa Óc Eo – Phù Nam</div>
-                    </div>
-
-                    {/* Lối vào & Quầy vé */}
-                    <div className="client-map-entrance">
-                      <span>CỔNG VÀO CHÍNH • SỐ 2 NGUYỄN BỈNH KHIÊM (QUẦY VÉ & BÃI GỬI XE)</span>
-                    </div>
-                  </div>
-
-                  <div className="client-guide-map-hint">
-                    <Maximize2 size={13} />
-                    <span>Bấm vào sơ đồ để mở chế độ xem toàn cảnh</span>
+              ) : loadingFloorPlan ? (
+                <div
+                  style={{
+                    padding: '60px 20px',
+                    textAlign: 'center',
+                    background: '#0B0F17',
+                    borderRadius: 16,
+                    border: '1px solid rgba(212, 175, 55, 0.2)',
+                    color: '#94A3B8'
+                  }}
+                >
+                  <div style={{ fontSize: 13, color: '#D4AF37', marginBottom: 6 }}>
+                    Đang đồng bộ mạng liên kết không gian từ máy chủ...
                   </div>
                 </div>
-              )}
+              ) : serverMapUrl ? (
+                <div
+                  className="client-guide-map-stage"
+                  onClick={() => {
+                    setZoomLevel(1);
+                    setIsMapLightboxOpen(true);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  title="Bấm để phóng to sơ đồ chi tiết"
+                >
+                  <img
+                    src={serverMapUrl}
+                    alt={branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng'}
+                    className="client-guide-map-img"
+                    loading="lazy"
+                  />
+                </div>
+              ) : null}
             </div>
 
-            {/* Danh sách 4 phân khu trưng bày tương ứng với các gian phòng 360° */}
+            {/* Danh sách các phân khu trưng bày tương ứng với các gian phòng 360° */}
             <div className="client-guide-wings-grid">
-              {museumWings.map((w) => (
+              {(floorPlan && floorPlan.nodes.filter(n => !n.isEntrance).length > 0
+                ? floorPlan.nodes.filter(n => !n.isEntrance).slice(0, 4).map(node => ({
+                    code: node.code,
+                    title: node.name,
+                    desc: node.category || 'Gian trưng bày hiện vật lịch sử theo tiến trình thời gian',
+                    period: node.period || 'Hiện vật & Văn hóa',
+                    roomId: node.roomId
+                  }))
+                : museumWings
+              ).map((w: any) => (
                 <div key={w.code} className="client-guide-wing-card">
                   <div className="client-guide-wing-header">
                     <span className="client-guide-wing-badge">{w.code}</span>
@@ -237,9 +244,15 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   <button
                     type="button"
                     className="client-guide-wing-btn"
-                    onClick={() => onNavigatePage('rooms')}
+                    onClick={() => {
+                      if (w.roomId && onSelectRoom360) {
+                        onSelectRoom360(w.roomId);
+                      } else {
+                        onNavigatePage('rooms');
+                      }
+                    }}
                   >
-                    Xem các gian phòng 360° →
+                    Xem gian phòng 360° →
                   </button>
                 </div>
               ))}
@@ -463,48 +476,18 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                     alt={branding.guideMapTitle || 'Sơ đồ mặt bằng chi tiết'}
                     style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }}
                   />
-                ) : (
-                  <div style={{ width: '100%', maxWidth: 860 }}>
-                    {/* Bản đồ vector phóng to sắc nét */}
-                    <div className="client-guide-map-vector" style={{ minHeight: 460 }}>
-                      <div className="client-guide-map-layout" style={{ maxWidth: 720 }}>
-                        <div className="client-map-wing wing-north">
-                          <div className="client-map-wing-badge">KHU D</div>
-                          <div className="client-map-wing-name">Mỹ thuật Triều Nguyễn (Năm 1802 – 1945)</div>
-                        </div>
-
-                        <div className="client-map-middle-row">
-                          <div className="client-map-wing wing-west">
-                            <div className="client-map-wing-badge">KHU C</div>
-                            <div className="client-map-wing-name">Điêu khắc nghệ thuật Chăm Pa</div>
-                          </div>
-
-                          <div className="client-map-rotunda" style={{ width: 180, height: 180 }}>
-                            <div className="client-map-rotunda-core">
-                              <span className="client-map-rotunda-tag">SẢNH BÁT GIÁC</span>
-                              <strong>Đón Tiếp Khách</strong>
-                              <span className="client-map-rotunda-sub">Thông tin • Hướng dẫn đoàn</span>
-                            </div>
-                          </div>
-
-                          <div className="client-map-wing wing-east">
-                            <div className="client-map-wing-badge">KHU A</div>
-                            <div className="client-map-wing-name">Tiền Sử & Văn minh Đông Sơn</div>
-                          </div>
-                        </div>
-
-                        <div className="client-map-wing wing-south">
-                          <div className="client-map-wing-badge">KHU B</div>
-                          <div className="client-map-wing-name">Văn hóa Óc Eo – Phù Nam cổ đại</div>
-                        </div>
-
-                        <div className="client-map-entrance">
-                          <span>CỔNG VÀO CHÍNH • SỐ 2 NGUYỄN BỈNH KHIÊM (QUẦY VÉ & BÃI GỬI XE)</span>
-                        </div>
-                      </div>
-                    </div>
+                ) : floorPlan ? (
+                  <div style={{ width: '100%', maxWidth: 960 }}>
+                    <InteractiveFloorPlanMap
+                      floorPlan={floorPlan}
+                      onSelectRoom360={(roomId) => {
+                        setIsMapLightboxOpen(false);
+                        if (onSelectRoom360) onSelectRoom360(roomId);
+                      }}
+                      clientTheme={clientTheme}
+                    />
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
