@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Clock,
-  MapPin,
-  QrCode,
-  Phone,
-  Mail,
-  HelpCircle,
-  Bus,
-  CheckCircle2,
-  Info
-} from 'lucide-react';
+import { Clock, MapPin, QrCode } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -18,86 +8,76 @@ export const ClientVisitorGuide: React.FC = () => {
   const { t } = useClientTranslation();
 
   return (
-    <section id="guide" className="client-section" style={{ background: 'var(--bg-subtle)' }}>
+    <section id="guide" className="client-section client-section-alt">
       <div className="client-container">
+        {/* Tiêu đề Section */}
         <div className="client-section-header">
           <span className="client-section-badge">
-            <Info size={13} />
-            <span>{t('guide.badge', 'Thông tin thực tế')}</span>
+            {t('guide.badge', 'Chỉ Dẫn Tham Quan')}
           </span>
           <h2 className="client-section-title">
-            {t('guide.title', 'Hướng dẫn tham quan & Trải nghiệm')}
+            {t('guide.headline', 'Hướng Dẫn Tham Quan Thực Địa')}
           </h2>
-          <p className="client-section-desc">
+          <p className="client-section-subtitle">
             {t(
-              'guide.desc',
-              'Các thông tin hữu ích giúp quý khách có một chuyến tham quan di sản trọn vẹn, từ trải nghiệm thực địa tại bảo tàng đến công nghệ số trực tuyến.'
+              'guide.sub',
+              'Thông tin hữu ích giúp quý khách có một chuyến tham quan trọn vẹn tại bảo tàng.'
             )}
           </p>
         </div>
 
+        {/* Lưới 3 cột chỉ dẫn thực tế */}
         <div className="client-guide-grid">
           {/* Card 1: Giờ mở cửa */}
           <div className="client-guide-card">
             <div className="client-guide-icon-wrap">
-              <Clock size={22} />
+              <Clock size={28} />
             </div>
-            <h3 className="client-guide-title">{t('guide.hoursTitle', 'Giờ mở cửa đón khách')}</h3>
-            <div className="client-guide-content">
-              <p style={{ margin: '0 0 10px 0' }}>
-                <strong>Thứ Ba đến Chủ Nhật:</strong>
-                <br />
-                • Buổi sáng: 08:00 – 11:30
-                <br />
-                • Buổi chiều: 13:00 – 17:00
-              </p>
-              <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--accent-gold)' }}>
-                <em>* Mở cửa phục vụ tất cả các ngày Lễ, Tết trong năm. Thứ Hai bảo trì định kỳ.</em>
-              </p>
-            </div>
+            <h3 className="client-guide-card-title">
+              {t('guide.hoursTitle', 'Giờ Mở Cửa & Vé')}
+            </h3>
+            <p className="client-guide-card-text">
+              <strong>Thứ Ba - Chủ Nhật:</strong>
+              <br />
+              Sáng: 08:00 – 11:30 | Chiều: 13:30 – 17:00
+              <br />
+              <span style={{ fontSize: '0.84rem', color: 'var(--c-text-muted)', display: 'block', marginTop: 6 }}>
+                (Bảo tàng đóng cửa bảo quản vào thứ Hai hàng tuần)
+              </span>
+            </p>
           </div>
 
-          {/* Card 2: Địa chỉ & Di chuyển */}
+          {/* Card 2: Địa điểm */}
           <div className="client-guide-card">
             <div className="client-guide-icon-wrap">
-              <MapPin size={22} />
+              <MapPin size={28} />
             </div>
-            <h3 className="client-guide-title">{t('guide.locationTitle', 'Địa điểm & Tuyến đường')}</h3>
-            <div className="client-guide-content">
-              <p style={{ margin: '0 0 10px 0' }}>
-                <strong>{branding.museumName || 'Bảo tàng Lịch sử'}</strong>
-                <br />
-                {branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '12px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Bus size={13} style={{ color: 'var(--primary)' }} />
-                  <span>Tuyến xe buýt: 05, 06, 14, 19, 52 (Dừng tại Thảo Cầm Viên)</span>
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Phone size={13} style={{ color: 'var(--primary)' }} />
-                  <span>Hotline: {branding.hotline || '(028) 3829 8146'}</span>
-                </span>
-              </div>
-            </div>
+            <h3 className="client-guide-card-title">
+              {t('guide.locationTitle', 'Địa Điểm & Chỉ Đường')}
+            </h3>
+            <p className="client-guide-card-text">
+              {branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'}
+              <br />
+              <span style={{ fontSize: '0.84rem', color: 'var(--c-text-muted)', display: 'block', marginTop: 6 }}>
+                Hotline hỗ trợ: {branding.hotline || '(028) 3829 8146'}
+              </span>
+            </p>
           </div>
 
-          {/* Card 3: Tiện ích Số & Thẻ Standee QR */}
+          {/* Card 3: Quét QR Standee */}
           <div className="client-guide-card">
             <div className="client-guide-icon-wrap">
-              <QrCode size={22} />
+              <QrCode size={28} />
             </div>
-            <h3 className="client-guide-title">{t('guide.qrTitle', 'Trải nghiệm số hóa với QR')}</h3>
-            <div className="client-guide-content">
-              <p style={{ margin: '0 0 10px 0' }}>
-                Mỗi cổ vật tại các phòng trưng bày đều được gắn thẻ thông minh có mã QR di sản.
-              </p>
-              <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <li>Dùng camera điện thoại quét mã QR để mở trang chi tiết tức thì.</li>
-                <li>Xoay mô hình 3D đa góc nhìn mà không cần chạm hiện vật thật.</li>
-                <li>Nghe thuyết minh audio với ngôn ngữ tự chọn mà không cần thuê máy.</li>
-              </ul>
-            </div>
+            <h3 className="client-guide-card-title">
+              {t('guide.qrTitle', 'Trải Nghiệm Số Tại Điểm')}
+            </h3>
+            <p className="client-guide-card-text">
+              {t(
+                'guide.qrText',
+                'Quét mã QR tại bảng chú thích từng hiện vật để tương tác xoay 3D và nghe thuyết minh đa ngôn ngữ trực tiếp trên điện thoại của bạn.'
+              )}
+            </p>
           </div>
         </div>
       </div>

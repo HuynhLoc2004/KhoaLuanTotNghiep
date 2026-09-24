@@ -11,8 +11,9 @@ import { ClientFeaturedArtifacts } from '../../components/client/ClientFeaturedA
 import { ClientTopicsSection } from '../../components/client/ClientTopicsSection';
 import { ClientVisitorGuide } from '../../components/client/ClientVisitorGuide';
 import { ClientFooter } from '../../components/client/ClientFooter';
+import { ClientLoginOtpModal } from '../../components/client/ClientLoginOtpModal';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
-import { X, Box, ExternalLink, Loader2 } from 'lucide-react';
+import { X, Box, ExternalLink } from 'lucide-react';
 import '../../styles/client.css';
 
 interface ClientHomePageProps {
@@ -29,10 +30,32 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
   const { branding } = useSystemBranding();
   const { currentLang, activeLanguages, t } = useClientTranslation();
 
+  // Quản lý Light / Dark Mode chuyên biệt của Client Portal
+  const [clientTheme, setClientTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('client_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {}
+    return 'light'; // Mặc định là Light Mode trang nhã cho khách
+  });
+
+  const toggleClientTheme = () => {
+    setClientTheme((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      try {
+        localStorage.setItem('client_theme', next);
+      } catch {}
+      return next;
+    });
+  };
+
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Modal Đăng nhập Email OTP
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Modal xem nhanh 3D đĩa xoay cho khách tham quan
   const [active3DArtifact, setActive3DArtifact] = useState<Artifact | null>(null);
@@ -84,172 +107,194 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
   const artifactsWith3D = artifacts.filter((a) => !!a.model3dUrl);
 
   return (
-    <div className="client-portal">
+    <div className="client-portal" data-client-theme={clientTheme}>
       {/* 1. Thanh điều hướng cố định */}
-      <ClientNavbar onNavigateAdmin={onNavigateAdmin} />
+      <ClientNavbar
+        clientTheme={clientTheme}
+        onToggleClientTheme={toggleClientTheme}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onNavigateAdmin={onNavigateAdmin}
+      />
 
       <main>
-        {/* 2. Banner chính */}
+        {/* 2. Banner chính (Cinematic Hero hỗ trợ cả Video & Ảnh) */}
         <ClientHeroBanner
           roomCount={rooms.length}
           artifact3DCount={artifactsWith3D.length}
           languageCount={activeLanguages.length || 5}
           onExploreTourClick={scrollToRooms}
           onExploreArtifactsClick={scrollToArtifacts}
-          featuredImageUrl={rooms[0]?.panoramaUrl ? `${API_ROOT}${rooms[0].panoramaUrl.startsWith('/') ? '' : '/'}${rooms[0].panoramaUrl}` : undefined}
+          featuredImageUrl={
+            rooms[0]?.panoramaUrl
+              ? `${API_ROOT}${rooms[0].panoramaUrl.startsWith('/') ? '' : '/'}${rooms[0].panoramaUrl}`
+              : undefined
+          }
         />
 
-        {/* 3. Giới thiệu Bảo tàng & Kiến trúc */}
+        {/* 3. Khối Giới thiệu & Lịch sử (Curatorial Storytelling 2 cột nghệ thuật) */}
         <ClientIntroSection />
 
-        {/* 4. Các gian phòng 360° tiêu biểu */}
+        {/* 4. Khối Gian phòng Trưng bày 360° Tiêu biểu */}
         <ClientFeaturedRooms
           rooms={rooms}
-          onSelectRoom={(room) => onSelectRoomForTour(room)}
+          onSelectRoom={onSelectRoomForTour}
+          onViewAllRooms={scrollToRooms}
         />
 
-        {/* 5. Bộ sưu tập cổ vật số hóa 3D */}
+        {/* 5. Khối Kiệt tác Cổ vật 3D Di sản */}
         <ClientFeaturedArtifacts
           artifacts={artifacts}
-          onSelectArtifact={handleOpen3DViewer}
+          onOpen3DViewer={handleOpen3DViewer}
+          onSelectArtifactDetail={onSelectArtifactDetail}
+          onViewAllArtifacts={scrollToArtifacts}
         />
 
-        {/* 6. Không gian triển lãm chuyên đề */}
+        {/* 6. Khối Chuyên đề & Thời kỳ lịch sử */}
         <ClientTopicsSection topics={topics} />
 
-        {/* 7. Hướng dẫn tham quan & thông tin thực tế */}
+        {/* 7. Khối Hướng dẫn tham quan & Giờ mở cửa */}
         <ClientVisitorGuide />
       </main>
 
-      {/* 8. Chân trang di sản */}
-      <ClientFooter onNavigateAdmin={onNavigateAdmin} />
+      {/* 8. Chân trang văn hóa di sản */}
+      <ClientFooter />
 
-      {/* =========================================================================
-          MODAL XEM 3D TƯƠNG TÁC ĐĨA XOAY CHO KHÁCH THAM QUAN
-          ========================================================================= */}
+      {/* 9. Modal Đăng nhập thuần Email OTP (Không lộ mật khẩu) */}
+      <ClientLoginOtpModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={() => {
+          setIsLoginModalOpen(false);
+        }}
+      />
+
+      {/* 10. Modal Xem Nhanh Đĩa Xoay 3D Tương Tác Của Cổ Vật */}
       {active3DArtifact && (
         <div
-          className="modal-backdrop"
-          style={{ zIndex: 2000 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 3000,
+            background: 'rgba(10, 12, 16, 0.85)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
           onClick={(e) => {
             if (e.target === e.currentTarget) setActive3DArtifact(null);
           }}
+          role="dialog"
+          aria-modal="true"
         >
           <div
-            className="modal-card"
             style={{
-              maxWidth: 860,
-              width: '95vw',
-              maxHeight: '92vh',
-              margin: 'auto',
+              position: 'relative',
+              width: '100%',
+              maxWidth: 960,
+              maxHeight: '90vh',
+              background: 'var(--c-bg-card)',
+              border: '1px solid var(--c-border-gold)',
+              borderRadius: 'var(--c-radius-lg)',
+              overflow: 'hidden',
+              boxShadow: 'var(--c-shadow-lg)',
               display: 'flex',
-              flexDirection: 'column',
-              background: '#0d1118',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: 16,
-              overflow: 'hidden'
+              flexDirection: 'column'
             }}
           >
-            {/* Modal Header */}
+            {/* Thanh tiêu đề Modal 3D */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '14px 20px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                background: '#121620'
+                padding: '16px 24px',
+                borderBottom: '1px solid var(--c-border)',
+                background: 'var(--c-bg-alt)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Box size={18} style={{ color: 'var(--accent-gold)' }} />
+                <Box size={20} style={{ color: 'var(--c-gold)' }} />
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: '1.15rem',
+                      fontFamily: 'serif',
+                      color: 'var(--c-text-primary)'
+                    }}
+                  >
                     {active3DArtifact.name}
                   </h3>
-                  <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.65)' }}>
-                    {active3DArtifact.period || active3DArtifact.category || 'Cổ vật di sản'}
-                  </span>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}>
+                    {active3DArtifact.period ? `${active3DArtifact.period} • ` : ''}
+                    {active3DArtifact.category || 'Cổ vật di sản'}
+                  </div>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setActive3DArtifact(null)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  cursor: 'pointer',
-                  padding: 6,
-                  borderRadius: 6
-                }}
-                aria-label="Đóng"
-              >
-                <X size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {onSelectArtifactDetail && (
+                  <button
+                    type="button"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '7px 14px',
+                      borderRadius: 'var(--c-radius-pill)',
+                      background: 'var(--c-primary-light)',
+                      border: '1px solid var(--c-primary)',
+                      color: 'var(--c-primary)',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      const id = active3DArtifact.id;
+                      setActive3DArtifact(null);
+                      onSelectArtifactDetail(id);
+                    }}
+                  >
+                    <span>{t('artifacts.viewFull', 'Xem Thuyết Minh Đầy Đủ')}</span>
+                    <ExternalLink size={14} />
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--c-border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'var(--c-text-muted)'
+                  }}
+                  onClick={() => setActive3DArtifact(null)}
+                  aria-label="Đóng"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            {/* Modal Body: Turntable 360 Viewer */}
-            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            {/* Trình xem 3D tương tác */}
+            <div style={{ flex: 1, minHeight: 460, position: 'relative' }}>
               <Turntable360Viewer
-                modelUrl={
-                  active3DArtifact.model3dUrl && active3DArtifact.model3dUrl.trim() !== ''
-                    ? (active3DArtifact.model3dUrl.startsWith('http')
-                        ? active3DArtifact.model3dUrl
-                        : `${API_ROOT}${active3DArtifact.model3dUrl.startsWith('/') ? '' : '/'}${active3DArtifact.model3dUrl}`)
-                    : undefined
-                }
+                modelUrl={active3DArtifact.model3dUrl!}
                 artifactName={active3DArtifact.name}
-                artifactPeriod={active3DArtifact.period}
-                audioNarrationUrl={
-                  active3DArtifact.audioNarrationUrl ||
-                  active3DArtifact.translations?.vi?.audioNarrationUrl ||
-                  (active3DArtifact.translations &&
-                    Object.values(active3DArtifact.translations).find((t: any) => !!t?.audioNarrationUrl)?.audioNarrationUrl)
-                }
+                artifactPeriod={active3DArtifact.period || active3DArtifact.category}
+                audioNarrationUrl={active3DArtifact.audioNarrationUrl}
                 translations={active3DArtifact.translations}
-                autoPlayAudio={true}
-                height={typeof window !== 'undefined' && window.innerWidth < 640 ? Math.min(380, Math.round(window.innerHeight * 0.52)) : 500}
+                height={480}
               />
-            </div>
-
-            {/* Modal Footer */}
-            <div
-              style={{
-                padding: '12px 20px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: '#121620'
-              }}
-            >
-              <a
-                href={`/?artifact=${active3DArtifact.code || active3DArtifact.id}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  color: 'var(--accent-gold)',
-                  fontSize: '13px',
-                  textDecoration: 'none',
-                  fontWeight: 600
-                }}
-              >
-                <ExternalLink size={14} />
-                <span>Xem trang tư liệu khảo cứu đầy đủ</span>
-              </a>
-
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setActive3DArtifact(null)}
-              >
-                Đóng cửa sổ
-              </button>
             </div>
           </div>
         </div>

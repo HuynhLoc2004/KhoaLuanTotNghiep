@@ -1,54 +1,53 @@
 import React from 'react';
-import {
-  Compass,
-  ArrowRight,
-  Eye,
-  MapPin,
-  Sparkles,
-  Layers
-} from 'lucide-react';
 import { MuseumRoom } from '../../types';
+import { Compass, ArrowRight, Eye, Layers } from 'lucide-react';
 import { API_ROOT } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
 interface ClientFeaturedRoomsProps {
   rooms: MuseumRoom[];
   onSelectRoom: (room: MuseumRoom) => void;
+  onViewAllRooms?: () => void;
 }
 
 export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
   rooms,
-  onSelectRoom
+  onSelectRoom,
+  onViewAllRooms
 }) => {
   const { t, localize } = useClientTranslation();
+
+  // Trên trang chủ chỉ hiển thị tối đa 3-6 gian phòng tiêu biểu nhất để giữ bố cục tinh tế
+  const displayRooms = rooms.slice(0, 3);
 
   return (
     <section id="rooms" className="client-section">
       <div className="client-container">
+        {/* Tiêu đề Section */}
         <div className="client-section-header">
           <span className="client-section-badge">
-            <Compass size={13} />
-            <span>{t('rooms.badge', 'Tham quan thực tế ảo')}</span>
+            {t('rooms.badge', 'Tham Quan Toàn Cảnh')}
           </span>
           <h2 className="client-section-title">
-            {t('rooms.title', 'Các gian phòng trưng bày 360°')}
+            {t('rooms.headline', 'Không Gian Trưng Bày 360°')}
           </h2>
-          <p className="client-section-desc">
+          <p className="client-section-subtitle">
             {t(
-              'rooms.desc',
-              'Bước vào hành trình trải nghiệm không gian triển lãm toàn cảnh. Quý khách có thể tự do xoay góc nhìn, tương tác với các hiện vật và di chuyển linh hoạt giữa các phòng.'
+              'rooms.sub',
+              'Bước vào từng gian phòng lịch sử qua lăng kính thực tế ảo toàn cảnh, khám phá câu chuyện di sản bất tận.'
             )}
           </p>
         </div>
 
+        {/* Danh sách thẻ phòng */}
         {rooms.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-            <Compass size={36} style={{ color: 'var(--primary)', opacity: 0.6, marginBottom: 12 }} />
-            <p>{t('rooms.empty', 'Đang cập nhật danh sách các gian phòng 360°...')}</p>
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--c-text-muted)' }}>
+            <Compass size={40} style={{ color: 'var(--c-gold)', opacity: 0.7, marginBottom: 12 }} />
+            <p>{t('rooms.empty', 'Đang cập nhật danh sách các gian phòng trưng bày...')}</p>
           </div>
         ) : (
           <div className="client-rooms-grid">
-            {rooms.map((room) => {
+            {displayRooms.map((room) => {
               const panoUrl = room.panoramaUrl || room.thumbnailUrl;
               const fullThumbUrl = panoUrl
                 ? panoUrl.startsWith('http')
@@ -72,43 +71,52 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
                   }}
                 >
                   <div className="client-room-thumb-wrap">
-                    <img src={fullThumbUrl} alt={title} className="client-room-thumb" loading="lazy" />
-                    <div className="client-room-badge-360">
+                    <img
+                      src={fullThumbUrl}
+                      alt={title}
+                      className="client-room-thumb"
+                      loading="lazy"
+                    />
+                    <div className="client-room-badge">
                       <Compass size={12} />
                       <span>Tour 360°</span>
                     </div>
-                    {room.code && (
-                      <div className="client-room-badge-code">
-                        {room.code}
-                      </div>
-                    )}
                   </div>
 
                   <div className="client-room-body">
                     <h3 className="client-room-title">{title}</h3>
                     <p className="client-room-desc">
-                      {description || t('rooms.defaultDesc', 'Khám phá không gian văn hóa đặc sắc với các cổ vật tiêu biểu.')}
+                      {description || t('rooms.defaultDesc', 'Khám phá không gian trưng bày hiện vật lịch sử văn hóa.')}
                     </p>
 
                     <div className="client-room-footer">
-                      <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <Layers size={13} style={{ color: 'var(--accent-gold)' }} />
-                        <span>{hotspotCount} {t('rooms.hotspotsCount', 'điểm tương tác')}</span>
-                      </span>
-
-                      <button
-                        type="button"
-                        className="client-room-btn-tour"
-                        aria-label={`Tham quan gian phòng ${title}`}
-                      >
-                        <span>{t('rooms.btnEnter', 'Vào tham quan')}</span>
+                      <span>{hotspotCount} {t('rooms.hotspotsCount', 'điểm tương tác')}</span>
+                      <span className="client-room-cta">
+                        <span>{t('rooms.enterTour', 'Vào tham quan')}</span>
                         <ArrowRight size={14} />
-                      </button>
+                      </span>
                     </div>
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Nút Khám phá tất cả các phòng */}
+        {rooms.length > 3 && (
+          <div className="client-section-action">
+            <button
+              type="button"
+              className="client-btn-primary"
+              onClick={() => {
+                if (onViewAllRooms) onViewAllRooms();
+                else if (rooms[0]) onSelectRoom(rooms[0]);
+              }}
+            >
+              <span>{t('rooms.viewAll', `Khám phá toàn bộ ${rooms.length} gian phòng`)}</span>
+              <ArrowRight size={16} />
+            </button>
           </div>
         )}
       </div>

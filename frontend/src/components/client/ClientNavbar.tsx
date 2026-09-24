@@ -1,38 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
+  LogIn,
+  LogOut,
+  Shield,
+  User,
+  Sun,
+  Moon,
+  Globe,
+  Menu,
+  X,
   Compass,
   Box,
   Layers,
   Info,
-  Calendar,
-  Lock,
-  Menu,
-  X,
-  Globe,
-  Sun,
-  Moon,
-  Landmark
+  Calendar
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface ClientNavbarProps {
+  clientTheme: 'light' | 'dark';
+  onToggleClientTheme: () => void;
+  onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
-  onSelectRoom?: (roomCode: string) => void;
   activeSection?: string;
 }
 
 export const ClientNavbar: React.FC<ClientNavbarProps> = ({
+  clientTheme,
+  onToggleClientTheme,
+  onOpenLoginModal,
   onNavigateAdmin,
   activeSection = 'hero'
 }) => {
   const { branding } = useSystemBranding();
   const { currentLang, activeLanguages, changeLanguage, t } = useClientTranslation();
-  const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target as Node)) {
+        setIsLangDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const scrollToSection = (id: string) => {
     setIsMobileMenuOpen(false);
@@ -50,100 +75,121 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
 
   return (
     <nav className="client-navbar">
-      <div className="client-container client-navbar-inner">
-        {/* Brand Logo & Name */}
-        <a href="#hero" className="client-brand" onClick={(e) => { e.preventDefault(); scrollToSection('hero'); }}>
+      <div className="client-container client-nav-inner">
+        {/* Logo & Tên bảo tàng */}
+        <a
+          href="#hero"
+          className="client-nav-brand"
+          onClick={(e) => {
+            e.preventDefault();
+            scrollToSection('hero');
+          }}
+        >
           {branding.logoUrl ? (
-            <img src={branding.logoUrl} alt={branding.shortName} className="client-brand-logo" />
+            <img src={branding.logoUrl} alt={branding.shortName} className="client-nav-logo" />
           ) : (
-            <div className="client-brand-emblem">
+            <div className="client-nav-emblem">
               <span>{branding.emblemText || 'BT'}</span>
             </div>
           )}
-          <div className="client-brand-text">
-            <span className="client-brand-name">{branding.shortName || 'Bảo tàng Lịch sử'}</span>
-            <span className="client-brand-sub">{branding.tagline || 'Tour 360 & Di sản số'}</span>
+          <div className="client-nav-title-group">
+            <span className="client-nav-title">{branding.shortName || 'Bảo tàng Lịch sử'}</span>
+            <span className="client-nav-tagline">{branding.tagline || 'Không Gian Di Sản Số'}</span>
           </div>
         </a>
 
-        {/* Navigation Menu (Desktop) */}
-        <ul className="client-nav-links">
+        {/* Menu Điều Hướng Desktop */}
+        <ul className="client-nav-menu">
           <li>
             <a
-              href="#hero"
-              className={`client-nav-link ${activeSection === 'hero' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); scrollToSection('hero'); }}
+              href="#intro"
+              className="client-nav-link"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection('intro');
+              }}
             >
-              {t('nav.home', 'Trang chủ')}
+              {t('nav.intro', 'Giới thiệu')}
             </a>
           </li>
           <li>
             <a
               href="#rooms"
-              className={`client-nav-link ${activeSection === 'rooms' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); scrollToSection('rooms'); }}
+              className="client-nav-link"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection('rooms');
+              }}
             >
-              {t('nav.rooms360', 'Tham quan 360°')}
+              {t('nav.rooms360', 'Gian phòng 360°')}
             </a>
           </li>
           <li>
             <a
               href="#artifacts"
-              className={`client-nav-link ${activeSection === 'artifacts' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); scrollToSection('artifacts'); }}
+              className="client-nav-link"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection('artifacts');
+              }}
             >
-              {t('nav.artifacts3d', 'Cổ vật di sản 3D')}
+              {t('nav.artifacts3d', 'Cổ vật 3D')}
             </a>
           </li>
           <li>
             <a
               href="#topics"
-              className={`client-nav-link ${activeSection === 'topics' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); scrollToSection('topics'); }}
+              className="client-nav-link"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection('topics');
+              }}
             >
-              {t('nav.exhibitions', 'Chuyên đề lịch sử')}
+              {t('nav.topics', 'Chuyên đề')}
             </a>
           </li>
           <li>
             <a
               href="#guide"
-              className={`client-nav-link ${activeSection === 'guide' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); scrollToSection('guide'); }}
+              className="client-nav-link"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection('guide');
+              }}
             >
-              {t('nav.visitorGuide', 'Hướng dẫn tham quan')}
+              {t('nav.guide', 'Tham quan')}
             </a>
           </li>
         </ul>
 
-        {/* Actions Group (Language + Theme + Admin Link) */}
+        {/* Cụm hành động bên phải: Ngôn ngữ, Đổi Theme, Đăng nhập */}
         <div className="client-nav-actions">
-          {/* Bộ chọn Đa Ngôn Ngữ */}
-          <div style={{ position: 'relative' }}>
+          {/* Bộ chọn ngôn ngữ */}
+          <div style={{ position: 'relative' }} ref={langDropdownRef}>
             <button
               type="button"
-              onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-              className="client-btn-admin"
-              style={{ gap: 6, padding: '6px 12px' }}
-              title="Chọn ngôn ngữ hiển thị"
+              className="client-theme-toggle"
+              style={{ width: 'auto', padding: '0 12px', gap: 6, fontSize: '0.84rem' }}
+              onClick={() => setIsLangDropdownOpen((prev) => !prev)}
+              aria-label="Chọn ngôn ngữ"
             >
-              <span style={{ fontSize: '14px' }}>{currentLangObj.flagIcon || '🌐'}</span>
-              <span style={{ fontSize: '12px', fontWeight: 600 }}>{currentLang.toUpperCase()}</span>
+              <span style={{ fontSize: '15px' }}>{currentLangObj.flagIcon}</span>
+              <span style={{ fontWeight: 600, textTransform: 'uppercase' }}>{currentLangObj.code}</span>
             </button>
 
             {isLangDropdownOpen && (
               <div
                 style={{
                   position: 'absolute',
-                  top: '100%',
+                  top: 'calc(100% + 8px)',
                   right: 0,
-                  marginTop: 8,
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  boxShadow: 'var(--shadow-lg)',
+                  width: 170,
+                  background: 'var(--c-bg-card)',
+                  border: '1px solid var(--c-border)',
+                  borderRadius: 'var(--c-radius-md)',
+                  boxShadow: 'var(--c-shadow-lg)',
                   padding: 6,
-                  minWidth: 160,
-                  zIndex: 1100,
+                  zIndex: 100,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 3
@@ -153,27 +199,27 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                   <button
                     key={lang.code}
                     type="button"
-                    onClick={() => {
-                      changeLanguage(lang.code);
-                      setIsLangDropdownOpen(false);
-                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 8,
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: currentLang === lang.code ? 'rgba(140, 45, 25, 0.1)' : 'transparent',
-                      color: currentLang === lang.code ? 'var(--primary)' : 'var(--text-main)',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--c-radius-sm)',
+                      background: lang.code === currentLang ? 'var(--c-gold-light)' : 'transparent',
+                      color: lang.code === currentLang ? 'var(--c-gold)' : 'var(--c-text-primary)',
                       border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.84rem',
+                      fontWeight: lang.code === currentLang ? 700 : 500,
                       textAlign: 'left',
-                      fontSize: '13px',
-                      fontWeight: currentLang === lang.code ? 600 : 500,
-                      cursor: 'pointer'
+                      width: '100%'
+                    }}
+                    onClick={() => {
+                      changeLanguage(lang.code);
+                      setIsLangDropdownOpen(false);
                     }}
                   >
-                    <span>{lang.flagIcon || '🌐'}</span>
+                    <span>{lang.flagIcon}</span>
                     <span>{lang.nativeName || lang.name}</span>
                   </button>
                 ))}
@@ -181,93 +227,153 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             )}
           </div>
 
-          {/* Nút Đổi Dark / Light mode */}
+          {/* Nút chuyển đổi Light / Dark Theme */}
           <button
             type="button"
-            className="client-btn-admin"
-            onClick={toggleTheme}
-            style={{ padding: '7px 10px' }}
-            title={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+            className="client-theme-toggle"
+            onClick={onToggleClientTheme}
+            title={clientTheme === 'light' ? 'Chuyển sang chế độ ban đêm' : 'Chuyển sang chế độ ban ngày'}
+            aria-label="Chuyển chế độ sáng tối"
           >
-            {theme === 'dark' ? <Sun size={15} style={{ color: 'var(--accent-gold)' }} /> : <Moon size={15} />}
+            {clientTheme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
 
-          {/* Nút Cổng Quản Trị Admin */}
-          <button
-            type="button"
-            onClick={onNavigateAdmin}
-            className="client-btn-admin"
-            title="Đăng nhập ban quản lý bảo tàng"
-          >
-            <Lock size={14} />
-            <span>{t('nav.adminPortal', 'Cổng Quản Trị')}</span>
-          </button>
+          {/* Đăng nhập hoặc Menu người dùng (Tuyệt đối không lộ nút Cổng Quản Trị ra ngoài) */}
+          {user ? (
+            <div className="client-user-menu" ref={userDropdownRef}>
+              <button
+                type="button"
+                className="client-user-btn"
+                onClick={() => setIsUserDropdownOpen((prev) => !prev)}
+              >
+                <User size={15} />
+                <span>{user.fullName || user.username || user.email?.split('@')[0]}</span>
+              </button>
 
-          {/* Nút Hamburger menu Mobile */}
+              {isUserDropdownOpen && (
+                <div className="client-user-dropdown">
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--c-border-subtle)', marginBottom: 4 }}>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                      {user.fullName || user.username}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--c-text-muted)' }}>
+                      {user.email}
+                    </div>
+                  </div>
+
+                  {user.role === 'admin' && (
+                    <button
+                      type="button"
+                      className="client-user-dropdown-item"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        onNavigateAdmin();
+                      }}
+                    >
+                      <Shield size={15} style={{ color: 'var(--c-primary)' }} />
+                      <span style={{ fontWeight: 600 }}>Cổng Quản Trị Hệ Thống</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="client-user-dropdown-item"
+                    onClick={() => {
+                      setIsUserDropdownOpen(false);
+                      logout();
+                    }}
+                  >
+                    <LogOut size={15} />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="client-nav-login-btn"
+              onClick={onOpenLoginModal}
+            >
+              <LogIn size={16} />
+              <span>{t('auth.login', 'Đăng nhập')}</span>
+            </button>
+          )}
+
+          {/* Nút Toggle Mobile Drawer */}
           <button
             type="button"
-            className="client-mobile-toggle"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Menu"
+            className="client-nav-mobile-toggle"
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            aria-label="Mở menu điều hướng"
           >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
 
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
-        <div className="client-mobile-drawer">
+        <div
+          style={{
+            background: 'var(--c-bg-card)',
+            borderBottom: '1px solid var(--c-border)',
+            padding: '16px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}
+        >
           <a
-            href="#hero"
-            className="client-mobile-nav-link"
-            onClick={(e) => { e.preventDefault(); scrollToSection('hero'); }}
+            href="#intro"
+            className="client-nav-link"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection('intro');
+            }}
           >
-            {t('nav.home', 'Trang chủ')}
+            {t('nav.intro', 'Giới thiệu')}
           </a>
           <a
             href="#rooms"
-            className="client-mobile-nav-link"
-            onClick={(e) => { e.preventDefault(); scrollToSection('rooms'); }}
+            className="client-nav-link"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection('rooms');
+            }}
           >
-            {t('nav.rooms360', 'Tham quan 360°')}
+            {t('nav.rooms360', 'Gian phòng 360°')}
           </a>
           <a
             href="#artifacts"
-            className="client-mobile-nav-link"
-            onClick={(e) => { e.preventDefault(); scrollToSection('artifacts'); }}
+            className="client-nav-link"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection('artifacts');
+            }}
           >
-            {t('nav.artifacts3d', 'Cổ vật di sản 3D')}
+            {t('nav.artifacts3d', 'Cổ vật 3D')}
           </a>
           <a
             href="#topics"
-            className="client-mobile-nav-link"
-            onClick={(e) => { e.preventDefault(); scrollToSection('topics'); }}
+            className="client-nav-link"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection('topics');
+            }}
           >
-            {t('nav.exhibitions', 'Chuyên đề lịch sử')}
+            {t('nav.topics', 'Chuyên đề')}
           </a>
           <a
             href="#guide"
-            className="client-mobile-nav-link"
-            onClick={(e) => { e.preventDefault(); scrollToSection('guide'); }}
+            className="client-nav-link"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection('guide');
+            }}
           >
-            {t('nav.visitorGuide', 'Hướng dẫn tham quan')}
+            {t('nav.guide', 'Tham quan')}
           </a>
-
-          <div style={{ paddingTop: 16, borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onNavigateAdmin();
-              }}
-              className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              <Lock size={15} />
-              <span>{t('nav.adminPortal', 'Cổng Quản Trị Bảo Tàng')}</span>
-            </button>
-          </div>
         </div>
       )}
     </nav>

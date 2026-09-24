@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  Landmark,
-  Compass,
-  Box,
-  Volume2,
-  Award,
-  BookOpen,
-  History,
-  Sparkles
-} from 'lucide-react';
+import { Compass, Box, Volume2, Landmark, Award } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -17,107 +8,99 @@ export const ClientIntroSection: React.FC = () => {
   const { t } = useClientTranslation();
 
   return (
-    <section id="intro" className="client-section" style={{ background: 'var(--bg-subtle)' }}>
+    <section id="intro" className="client-section client-section-alt">
       <div className="client-container">
-        <div className="client-section-header">
-          <span className="client-section-badge">
-            <History size={13} />
-            <span>{t('intro.badge', 'Lịch sử & Sứ mệnh')}</span>
-          </span>
-          <h2 className="client-section-title">
-            {t('intro.title', 'Nơi hội tụ và lưu giữ tinh hoa di sản')}
-          </h2>
-          <p className="client-section-desc">
-            {t(
-              'intro.desc',
-              'Bảo tàng Lịch sử là gạch nối thiêng liêng giữa quá khứ huy hoàng và hiện tại, nơi gìn giữ hàng vạn cổ vật quý giá phản ánh toàn diện tiến trình lịch sử văn hóa dân tộc.'
-            )}
-          </p>
-        </div>
-
         <div className="client-intro-grid">
-          {/* Card giới thiệu chi tiết */}
-          <div className="client-intro-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 8,
-                  background: 'rgba(140, 45, 25, 0.12)',
-                  color: 'var(--primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Landmark size={20} />
+          {/* CỘT TRÁI: HÌNH ẢNH KIẾN TRÚC DI SẢN VỚI KHUNG NGHỆ THUẬT */}
+          <div className="client-intro-visual">
+            <div className="client-intro-img-frame">
+              <img
+                src="https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=1200&q=80"
+                alt={branding.museumName || 'Kiến trúc bảo tàng'}
+                className="client-intro-img"
+                loading="lazy"
+              />
+            </div>
+
+            {/* Thẻ nổi bật chân ảnh */}
+            <div className="client-intro-badge-card">
+              <div className="client-intro-badge-icon">
+                <Landmark size={22} />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                  {branding.museumName || 'Bảo tàng Lịch sử Thành phố'}
-                </h3>
-                <span style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
-                  {branding.city || 'Thành phố Hồ Chí Minh'}
-                </span>
+                <div className="client-intro-badge-text-top">
+                  {t('intro.badgeTop', 'Kiến trúc di sản')}
+                </div>
+                <div className="client-intro-badge-text-main">
+                  {t('intro.badgeMain', 'Nghệ thuật Đông Dương')}
+                </div>
               </div>
             </div>
-
-            <p style={{ fontSize: '0.94rem', color: 'var(--text-main)', lineHeight: 1.7, margin: '0 0 14px 0' }}>
-              {t(
-                'intro.paragraph1',
-                'Tọa lạc tại trung tâm đô thị lịch sử, bảo tàng sở hữu công trình kiến trúc Đông Dương độc đáo, kết hợp hài hòa giữa đường nét mỹ thuật cổ truyền Á Đông và kỹ thuật xây dựng hiện đại.'
-              )}
-            </p>
-
-            <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', lineHeight: 1.7, margin: 0 }}>
-              {t(
-                'intro.paragraph2',
-                'Hệ thống số hóa 360° và mô hình cổ vật 3D giúp quý khách ở bất cứ nơi đâu trên thế giới đều có thể tham quan, tìm hiểu và trân trọng những di sản vô giá của tổ tiên một cách chân thực nhất.'
-              )}
-            </p>
           </div>
 
-          {/* 4 Trụ cột trải nghiệm di sản */}
-          <div className="client-intro-features">
-            <div className="client-feature-box">
-              <div className="client-feature-icon">
-                <Compass size={20} />
-              </div>
-              <div className="client-feature-title">{t('intro.feat1Title', 'Không gian 360°')}</div>
-              <p className="client-feature-desc">
-                {t('intro.feat1Desc', 'Tham quan toàn cảnh từng gian phòng trưng bày với chất lượng hình ảnh sắc nét.')}
-              </p>
+          {/* CỘT PHẢI: LỜI TỰA GIÁM TUYỂN & 3 TRỤ CỘT TRẢI NGHIỆM */}
+          <div className="client-intro-text-col">
+            <div>
+              <span className="client-section-badge">
+                {t('intro.badge', 'Lịch Sử & Sứ Mệnh')}
+              </span>
+              <h2 className="client-section-title" style={{ textAlign: 'left' }}>
+                {t('intro.headline', 'Nơi hội tụ và lưu giữ tinh hoa di sản dân tộc')}
+              </h2>
             </div>
 
-            <div className="client-feature-box">
-              <div className="client-feature-icon">
-                <Box size={20} />
-              </div>
-              <div className="client-feature-title">{t('intro.feat2Title', 'Cổ vật 3D tương tác')}</div>
-              <p className="client-feature-desc">
-                {t('intro.feat2Desc', 'Xoay lật 360°, phóng to từng đường nét hoa văn và cấu trúc khối đa giác.')}
-              </p>
-            </div>
+            <p className="client-intro-paragraph">
+              {t(
+                'intro.desc1',
+                'Bảo tàng là gạch nối thiêng liêng giữa quá khứ huy hoàng và hiện tại, nơi gìn giữ hàng vạn cổ vật quý giá phản ánh toàn diện tiến trình lịch sử văn hóa phương Nam và dân tộc Việt Nam.'
+              )}
+            </p>
 
-            <div className="client-feature-box">
-              <div className="client-feature-icon">
-                <Volume2 size={20} />
+            <div className="client-intro-pillars">
+              {/* Trụ cột 1: Tour 360 */}
+              <div className="client-pillar-item">
+                <div className="client-pillar-icon">
+                  <Compass size={20} />
+                </div>
+                <div>
+                  <h4 className="client-pillar-title">
+                    {t('intro.pillar1Title', 'Không Gian Tour 360° Độc Bản')}
+                  </h4>
+                  <p className="client-pillar-desc">
+                    {t('intro.pillar1Desc', 'Tham quan toàn cảnh từng gian phòng trưng bày với chất lượng hình ảnh sắc nét, điểm neo tương tác sống động.')}
+                  </p>
+                </div>
               </div>
-              <div className="client-feature-title">{t('intro.feat3Title', 'Thuyết minh bản ngữ')}</div>
-              <p className="client-feature-desc">
-                {t('intro.feat3Desc', 'Lắng nghe giọng đọc hướng dẫn tự động đa ngôn ngữ chuẩn mực truyền cảm.')}
-              </p>
-            </div>
 
-            <div className="client-feature-box">
-              <div className="client-feature-icon">
-                <BookOpen size={20} />
+              {/* Trụ cột 2: Cổ vật 3D */}
+              <div className="client-pillar-item">
+                <div className="client-pillar-icon">
+                  <Box size={20} />
+                </div>
+                <div>
+                  <h4 className="client-pillar-title">
+                    {t('intro.pillar2Title', 'Tái Tạo Hiện Vật 3D Đa Chiều')}
+                  </h4>
+                  <p className="client-pillar-desc">
+                    {t('intro.pillar2Desc', 'Chiêm ngưỡng chi tiết hoa văn, xoay 360 độ và tiếp cận hiện vật quý ở cự ly chân thực nhất.')}
+                  </p>
+                </div>
               </div>
-              <div className="client-feature-title">{t('intro.feat4Title', 'Khảo cứu chuyên sâu')}</div>
-              <p className="client-feature-desc">
-                {t('intro.feat4Desc', 'Tư liệu lịch sử, niên đại và ý nghĩa biểu tượng được biên soạn chuẩn xác.')}
-              </p>
+
+              {/* Trụ cột 3: Thuyết minh đa ngữ */}
+              <div className="client-pillar-item">
+                <div className="client-pillar-icon">
+                  <Volume2 size={20} />
+                </div>
+                <div>
+                  <h4 className="client-pillar-title">
+                    {t('intro.pillar3Title', 'Thuyết Minh Đa Ngữ Thông Minh')}
+                  </h4>
+                  <p className="client-pillar-desc">
+                    {t('intro.pillar3Desc', 'Lắng nghe giọng đọc tự động đa ngôn ngữ truyền cảm, đưa câu chuyện lịch sử chạm đến trái tim du khách toàn cầu.')}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

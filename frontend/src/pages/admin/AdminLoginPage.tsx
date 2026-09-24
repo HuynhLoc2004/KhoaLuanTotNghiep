@@ -23,7 +23,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
 
-  const [authMode, setAuthMode] = useState<'otp' | 'credentials'>('credentials');
+  const [authMode, setAuthMode] = useState<'otp' | 'credentials'>('otp');
 
   // State cho Đăng nhập OTP
   const [email, setEmail] = useState('');
