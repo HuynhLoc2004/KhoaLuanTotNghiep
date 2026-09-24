@@ -38,6 +38,27 @@ export const DICTIONARY_VI: LocaleDictionary = {
   'stats.scansUnit': 'lượt quét',
   'stats.scansSub': 'Du khách quét mã tại gian trưng bày',
 
+  // Giới thiệu & Lịch sử Bảo tàng (Client Intro Section)
+  'intro.tag': 'Lịch Sử & Kiến Trúc Bảo Tàng',
+  'intro.headline': 'Gần Một Thế Kỷ Gìn Giữ & Tôn Vinh Di Sản Dân Tộc',
+  'intro.desc1': 'Tọa lạc giữa khuôn viên Thảo Cầm Viên xanh mát từ năm 1929, Bảo tàng Lịch sử TP. Hồ Chí Minh là công trình kiến trúc Đông Dương tráng lệ, kết hợp hài hòa mỹ thuật cung đình truyền thống và kỹ nghệ xây dựng phương Tây.',
+  'intro.desc2': 'Nơi đây hiện lưu giữ và phát huy giá trị của hơn 40.000 cổ vật quý giá, minh chứng cho các nền văn minh cổ xưa từ thời tiền sử đến triều Nguyễn, nay được tái hiện sinh động qua công nghệ số hóa 360° tương tác.',
+  'intro.feat1Title': 'Kiến Trúc Đông Dương Cổ Điển',
+  'intro.feat1Desc': 'Công trình di sản gần 100 năm tuổi với tháp bát giác tráng lệ và các vòm cửa hoa văn Á Đông độc đáo.',
+  'intro.feat2Title': 'Kho Tàng Cổ Vật & Bảo Vật Quốc Gia',
+  'intro.feat2Desc': 'Lưu giữ nhiều bảo vật quốc gia độc bản, văn hóa Champa, Óc Eo và di sản mỹ thuật cung đình triều Nguyễn.',
+  'intro.feat3Title': 'Không Gian Tour 360° Thực Tế Ảo',
+  'intro.feat3Desc': 'Khám phá toàn diện từng gian phòng triển lãm với ảnh toàn cảnh độ nét cao và điểm neo hiện vật tương tác.',
+
+  // Gian phòng Trưng bày Client (Featured Rooms Showcase)
+  'rooms.tag': 'Không Gian Trưng Bày Thực Tế Ảo',
+  'rooms.headline': 'Hành Trình Khám Phá Qua Các Thời Kỳ Lịch Sử',
+  'rooms.sub': 'Mỗi gian trưng bày là một chương sử sống động. Chiêm ngưỡng không gian toàn cảnh 360° sắc nét và tương tác trực quan với từng điểm neo cổ vật.',
+  'rooms.enterTour': 'Bắt Đầu Tham Quan Gian Phòng',
+  'rooms.hotspotsCount': 'điểm neo thuyết minh',
+  'rooms.pickerTitle': 'Danh Mục Gian Phòng',
+  'rooms.viewAll': 'Xem Tất Cả Gian Phòng Trưng Bày',
+
   // Rooms Management Page
   'rooms.title': 'Gian trưng bày & Tour 360',
   'rooms.desc': 'Quản trị không gian toàn cảnh 360°, điểm neo di sản và thiết lập điểm nhìn đầu tiên.',
@@ -378,6 +399,27 @@ export const DICTIONARY_EN: LocaleDictionary = {
   'stats.scansTitle': 'Field Interaction',
   'stats.scansUnit': 'scans',
   'stats.scansSub': 'Visitors scan the QR code at the exhibition booth',
+
+  // Heritage Introduction (Client Intro Section)
+  'intro.tag': 'History & Museum Architecture',
+  'intro.headline': 'Nearly a Century of Preserving and Honoring National Heritage',
+  'intro.desc1': 'Located in the lush greenery of the Botanical Gardens since 1929, the Museum of History in Ho Chi Minh City is a magnificent Indochinese architectural landmark, blending traditional royal arts with Western construction techniques.',
+  'intro.desc2': 'Housing more than 40,000 priceless artifacts reflecting ancient civilizations from prehistoric times to the Nguyen Dynasty, now brought to life through interactive 360° digitization.',
+  'intro.feat1Title': 'Classical Indochinese Architecture',
+  'intro.feat1Desc': 'A century-old heritage monument featuring a stately octagonal tower and intricate Oriental decorative archways.',
+  'intro.feat2Title': 'National Treasures & Antiquities',
+  'intro.feat2Desc': 'Preserving rare national treasures, Champa and Oc Eo civilizations, and exquisite imperial relics.',
+  'intro.feat3Title': 'Immersive 360° Virtual Tour',
+  'intro.feat3Desc': 'Explore every exhibition gallery in high resolution with interactive artifact hotspot annotations.',
+
+  // Featured Rooms Showcase
+  'rooms.tag': 'Virtual Reality Exhibition Spaces',
+  'rooms.headline': 'A Journey of Discovery Across Historical Epochs',
+  'rooms.sub': 'Each exhibition room tells a living historical story. Experience sharp 360° panoramic views and interact directly with artifact hotspots.',
+  'rooms.enterTour': 'Enter This Exhibition Room',
+  'rooms.hotspotsCount': 'interactive hotspots',
+  'rooms.pickerTitle': 'Exhibition Galleries',
+  'rooms.viewAll': 'View All Exhibition Galleries',
 
   // Rooms Management Page
   'rooms.title': 'Exhibition Rooms & 360 Tour',
@@ -720,6 +762,27 @@ export const DICTIONARY_FR: LocaleDictionary = {
   'stats.scansUnit': 'scans',
   'stats.scansSub': 'Les visiteurs scannent le code QR au stand',
 
+  // Histoire & Architecture (Client Intro Section)
+  'intro.tag': 'Histoire & Architecture du Musée',
+  'intro.headline': 'Près d’un Siècle de Préservation du Patrimoine National',
+  'intro.desc1': 'Édifié en 1929 au cœur du Jardin Botanique, le Musée d’Histoire d’Hô Chi Minh-Ville est un chef-d’œuvre d’architecture indochinoise, mariant l’art impérial oriental et les techniques occidentales.',
+  'intro.desc2': 'Abritant plus de 40 000 pièces rares illustrant les civilisations depuis la préhistoire jusqu’à la dynastie des Nguyen, désormais valorisées par des visites virtuelles à 360°.',
+  'intro.feat1Title': 'Architecture Indochinoise Classique',
+  'intro.feat1Desc': 'Monument patrimonial centenaire orné d’une remarquable tour octogonale et d’arches décoratives orientales.',
+  'intro.feat2Title': 'Trésors Nationaux & Antiquités',
+  'intro.feat2Desc': 'Préservation de trésors nationaux uniques, civilisations du Champa, d’Oc Eo et d’arts impériaux.',
+  'intro.feat3Title': 'Visite Virtuelle 360° Immersive',
+  'intro.feat3Desc': 'Explorez chaque salle en haute définition avec des points d’intérêt patrimoniaux interactifs.',
+
+  // Galeries d'exposition Client (Featured Rooms Showcase)
+  'rooms.tag': 'Espaces d’Exposition en Réalité Virtuelle',
+  'rooms.headline': 'Un Voyage de Découverte à Travers les Époques',
+  'rooms.sub': 'Chaque salle raconte une page d’histoire vivante. Admirez les panoramas à 360° et interagissez directement avec les points d’information des antiquités.',
+  'rooms.enterTour': 'Entrer dans cette salle',
+  'rooms.hotspotsCount': 'points interactifs',
+  'rooms.pickerTitle': 'Galeries d’Exposition',
+  'rooms.viewAll': 'Voir Toutes les Galeries d’Exposition',
+
   // Rooms Management Page
   'rooms.title': "Galeries d'exposition & Visite 360°",
   'rooms.desc': 'Gérer les espaces panoramiques 360°, les points du patrimoine et configurer la vue initiale.',
@@ -1051,6 +1114,27 @@ export const DICTIONARY_ZH: LocaleDictionary = {
   'stats.scansTitle': '实地交互统计',
   'stats.scansUnit': '次扫码',
   'stats.scansSub': '游客在各展厅现场扫描导览二维码',
+
+  // 历史与建筑 (Client Intro Section)
+  'intro.tag': '历史与博物馆建筑',
+  'intro.headline': '近百年来守护与弘扬国家历史文化精髓',
+  'intro.desc1': '胡志明市历史博物馆自1929年起座落于绿意盎然的动植物园内，是一座雄伟的印度支那风格建筑，巧妙融合了东方宫廷美学与西方建造技艺。',
+  'intro.desc2': '馆内珍藏逾4万件珍贵文物，见证了从史前时代至阮朝的历史文明进程，现通过360°全景数字化技术生动重现。',
+  'intro.feat1Title': '经典印度支那建筑',
+  'intro.feat1Desc': '近百年历史遗产建筑，拥有雄伟的八角塔楼与精美的东方雕饰拱门。',
+  'intro.feat2Title': '国家宝藏与古物典藏',
+  'intro.feat2Desc': '珍藏多件国宝级独本古物、占婆与奥欧文明古迹及阮朝宫廷艺术珍品。',
+  'intro.feat3Title': '360°实景虚拟漫游',
+  'intro.feat3Desc': '高清全景漫游各个展厅空间，实时交互探索文物解说锚点。',
+
+  // 展厅展览精选 (Featured Rooms Showcase)
+  'rooms.tag': '虚拟现实展览空间',
+  'rooms.headline': '穿越历史时空的探索之旅',
+  'rooms.sub': '每个展厅都是生动的历史篇章。在高清360°全景中漫游，与文物导览锚点进行实时交互。',
+  'rooms.enterTour': '进入本展厅参观',
+  'rooms.hotspotsCount': '处交互解说锚点',
+  'rooms.pickerTitle': '精品展厅目录',
+  'rooms.viewAll': '查看全部展厅空间',
 
   // Rooms Management Page
   'rooms.title': '展厅与360°全景漫游',
