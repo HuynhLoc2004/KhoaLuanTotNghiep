@@ -100,6 +100,11 @@ jobs:
             export DOCKER_BUILDKIT=0
             export COMPOSE_DOCKER_CLI_BUILD=0
 
+            # Dọn dẹp các container mồ côi hoặc bị kẹt trạng thái trước khi khởi động
+            echo ">>> Dọn dẹp container mồ côi / bị kẹt..."
+            docker rm -f $(docker ps -a -q --filter "status=created") 2>/dev/null || true
+            docker rm -f $(docker ps -a -q --filter "status=dead") 2>/dev/null || true
+
             DEPLOY_SUCCESS=false
             for attempt in 1 2 3; do
               echo ">>> Thực thi deploy (Lần $attempt/3)..."
