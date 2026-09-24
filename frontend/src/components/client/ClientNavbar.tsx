@@ -13,7 +13,8 @@ import {
   Box,
   Layers,
   Info,
-  Calendar
+  Calendar,
+  Landmark
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
@@ -107,8 +108,8 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           {branding.logoUrl ? (
             <img src={branding.logoUrl} alt={branding.shortName} className="client-nav-logo" />
           ) : (
-            <div className="client-nav-emblem">
-              <span>{branding.emblemText || 'BT'}</span>
+            <div className="client-nav-emblem" title={branding.shortName || 'Bảo tàng Lịch sử'}>
+              <Landmark size={18} strokeWidth={1.75} className="client-nav-emblem-icon" />
             </div>
           )}
           <div className="client-nav-title-group">
@@ -116,7 +117,10 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             <div className="client-nav-subtitle-row">
               <span className="client-nav-tagline">{branding.city || 'TP. HỒ CHÍ MINH'}</span>
               <span className="client-nav-dot">•</span>
-              <span className="client-nav-badge">TOUR 360°</span>
+              <span className="client-nav-badge">
+                <span className="client-nav-pulse-dot" />
+                <span>TOUR 360°</span>
+              </span>
             </div>
           </div>
         </a>
