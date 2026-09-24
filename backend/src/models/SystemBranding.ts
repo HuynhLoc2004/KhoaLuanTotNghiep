@@ -12,6 +12,9 @@ export interface ISystemBranding extends Document {
   contactEmail: string;
   hotline: string;
   emailSenderName: string;
+  guideMapUrl?: string;
+  guideMapTitle?: string;
+  guideMapDesc?: string;
   updatedAt: Date;
   updatedBy: string;
 }
@@ -72,6 +75,21 @@ const SystemBrandingSchema = new Schema<ISystemBranding>(
       trim: true,
       default: 'Bảo Tàng Lịch Sử TP.HCM'
     },
+    guideMapUrl: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    guideMapTitle: {
+      type: String,
+      default: 'Sơ đồ mặt bằng các gian trưng bày',
+      trim: true
+    },
+    guideMapDesc: {
+      type: String,
+      default: 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày tại Bảo tàng Lịch sử TP.HCM',
+      trim: true
+    },
     updatedBy: {
       type: String,
       default: 'Hệ thống'
@@ -98,6 +116,9 @@ export const DEFAULT_BRANDING = {
   contactEmail: 'huynhtanlocpp09@gmail.com',
   hotline: '(028) 3829 8146',
   emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM',
+  guideMapUrl: '',
+  guideMapTitle: 'Sơ đồ mặt bằng các gian trưng bày',
+  guideMapDesc: 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày tại Bảo tàng Lịch sử TP.HCM',
   updatedBy: 'Hệ thống'
 };
 

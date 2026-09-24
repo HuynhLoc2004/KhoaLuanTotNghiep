@@ -383,6 +383,9 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       contactEmail: contactEmail !== undefined ? String(contactEmail).trim() : current.contactEmail,
       hotline: hotline !== undefined ? String(hotline).trim() : current.hotline,
       emailSenderName: emailSenderName !== undefined ? String(emailSenderName).trim() : current.emailSenderName,
+      guideMapUrl: req.body.guideMapUrl !== undefined ? String(req.body.guideMapUrl).trim() : current.guideMapUrl,
+      guideMapTitle: req.body.guideMapTitle !== undefined ? String(req.body.guideMapTitle).trim() : current.guideMapTitle,
+      guideMapDesc: req.body.guideMapDesc !== undefined ? String(req.body.guideMapDesc).trim() : current.guideMapDesc,
       updatedBy: req.user?.username || 'admin'
     };
 

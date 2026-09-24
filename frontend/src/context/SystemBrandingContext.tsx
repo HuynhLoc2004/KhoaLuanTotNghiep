@@ -14,7 +14,10 @@ export const DEFAULT_BRANDING_STATE: SystemBranding = {
   address: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
   contactEmail: 'huynhtanlocpp09@gmail.com',
   hotline: '(028) 3829 8146',
-  emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM'
+  emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM',
+  guideMapUrl: '',
+  guideMapTitle: 'Sơ đồ mặt bằng các gian trưng bày',
+  guideMapDesc: 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày tại Bảo tàng Lịch sử TP.HCM'
 };
 
 interface SystemBrandingContextType {

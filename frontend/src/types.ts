@@ -174,6 +174,9 @@ export interface SystemBranding {
   heroBannerUrl?: string;
   heroVideoUrl?: string;
   introImageUrl?: string;
+  guideMapUrl?: string;
+  guideMapTitle?: string;
+  guideMapDesc?: string;
   updatedAt?: string;
   updatedBy?: string;
 }
