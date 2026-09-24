@@ -225,6 +225,26 @@ export interface SystemBranding {
   guideMapUrl?: string;
   guideMapTitle?: string;
   guideMapDesc?: string;
+  // Thông tin thực địa & Bản đồ Google Maps do Admin quản lý
+  guideOpeningDays?: string;
+  guideMorningHours?: string;
+  guideAfternoonHours?: string;
+  guideClosedNote?: string;
+  guideTicketAdult?: string;
+  guideTicketStudent?: string;
+  guideTicketChild?: string;
+  guideBusRoutes?: string;
+  guideParkingInfo?: string;
+  guideGoogleMapsUrl?: string;
+  guideGoogleMapsEmbed?: string;
+  guideRule1Title?: string;
+  guideRule1Desc?: string;
+  guideRule2Title?: string;
+  guideRule2Desc?: string;
+  guideRule3Title?: string;
+  guideRule3Desc?: string;
+  guideRule4Title?: string;
+  guideRule4Desc?: string;
   // Footer
   footerCopyrightText?: string;
   updatedAt?: string;

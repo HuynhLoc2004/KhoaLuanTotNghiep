@@ -145,7 +145,7 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
               </li>
               <li>
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  href={branding.guideGoogleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                     branding.address || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'
                   )}`}
                   target="_blank"
