@@ -634,49 +634,93 @@
   transform: translateY(-2px);
 }
 
-/* Thanh thống kê dữ liệu thật dạng kính mờ thanh thoát (Không bao giờ là hộp trắng đục) */
+/* Thanh thống kê dữ liệu thật dạng Capsule Viên thuốc Di sản (Không còn là hộp thô cục mịch) */
 .client-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
-  padding: 20px 38px;
-  border-radius: var(--c-radius-lg);
-  background: rgba(10, 14, 22, 0.6) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 32px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(10, 14, 22, 0.72) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(212, 175, 55, 0.35) !important;
-  max-width: 680px;
+  max-width: 660px;
   margin: 0 auto;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.client-hero-stats:hover {
+  border-color: rgba(212, 175, 55, 0.55) !important;
+  box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.7), 0 0 25px -4px rgba(212, 175, 55, 0.25);
 }
 
 .client-hero-stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1;
+  padding: 4px 8px;
+  transition: transform 0.25s ease;
+}
+
+.client-hero-stat-item:hover {
+  transform: translateY(-2px);
+}
+
+.client-hero-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.client-hero-stat-icon {
+  color: var(--c-gold);
+  opacity: 0.9;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.5));
 }
 
 .client-hero-stat-value {
   font-family: 'Lora', serif;
-  font-size: clamp(2rem, 3vw, 2.6rem);
+  font-size: clamp(1.6rem, 2.2vw, 2rem);
   font-weight: 700;
   color: #F3E0A3 !important;
   line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .client-hero-stat-label {
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85) !important;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-top: 6px;
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+  white-space: nowrap;
 }
 
-@media (max-width: 600px) {
+/* Vạch ngăn đứng màu vàng kim siêu mảnh, thanh thoát giữa các chỉ số */
+.client-hero-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: linear-gradient(180deg, transparent 0%, rgba(212, 175, 55, 0.4) 50%, transparent 100%);
+  flex-shrink: 0;
+}
+
+@media (max-width: 680px) {
   .client-hero-stats {
-    grid-template-columns: 1fr;
-    gap: 18px;
-    padding: 20px;
+    flex-direction: column;
+    border-radius: var(--c-radius-lg);
+    padding: 18px 24px;
+    gap: 16px;
+  }
+  .client-hero-stat-divider {
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.4) 50%, transparent 100%);
   }
 }
 

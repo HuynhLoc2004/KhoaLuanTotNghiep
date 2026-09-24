@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Compass,
   Box,
+  Globe,
   ArrowRight,
   ChevronDown
 } from 'lucide-react';
@@ -116,20 +117,33 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
             </button>
           </div>
 
-          {/* Thống kê dữ liệu thật từ cơ sở dữ liệu MongoDB */}
+          {/* Thanh thống kê dữ liệu thật dạng Capsule tinh hoa di sản */}
           <div className="client-hero-stats">
             <div className="client-hero-stat-item">
-              <div className="client-hero-stat-value">{roomCount > 0 ? roomCount : 3}</div>
+              <div className="client-hero-stat-header">
+                <Compass size={16} className="client-hero-stat-icon" />
+                <span className="client-hero-stat-value">{roomCount > 0 ? roomCount : 3}</span>
+              </div>
               <div className="client-hero-stat-label">{t('hero.statRooms', 'Gian Phòng 360°')}</div>
             </div>
 
-            <div className="client-hero-stat-item">
-              <div className="client-hero-stat-value">{artifact3DCount > 0 ? artifact3DCount : 1}</div>
-              <div className="client-hero-stat-label">{t('hero.statArtifacts', 'Mô Hình Cổ Vật 3D')}</div>
-            </div>
+            <div className="client-hero-stat-divider" aria-hidden="true" />
 
             <div className="client-hero-stat-item">
-              <div className="client-hero-stat-value">{languageCount > 0 ? languageCount : 5}</div>
+              <div className="client-hero-stat-header">
+                <Box size={16} className="client-hero-stat-icon" />
+                <span className="client-hero-stat-value">{artifact3DCount > 0 ? artifact3DCount : 1}</span>
+              </div>
+              <div className="client-hero-stat-label">{t('hero.statArtifacts', 'Cổ Vật 3D')}</div>
+            </div>
+
+            <div className="client-hero-stat-divider" aria-hidden="true" />
+
+            <div className="client-hero-stat-item">
+              <div className="client-hero-stat-header">
+                <Globe size={16} className="client-hero-stat-icon" />
+                <span className="client-hero-stat-value">{languageCount > 0 ? languageCount : 6}</span>
+              </div>
               <div className="client-hero-stat-label">{t('hero.statLangs', 'Ngôn Ngữ Thuyết Minh')}</div>
             </div>
           </div>
