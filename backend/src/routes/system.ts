@@ -404,6 +404,8 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       roomsTitle: req.body.roomsTitle !== undefined ? String(req.body.roomsTitle).trim() : current.roomsTitle,
       roomsDesc: req.body.roomsDesc !== undefined ? String(req.body.roomsDesc).trim() : current.roomsDesc,
       roomsCtaText: req.body.roomsCtaText !== undefined ? String(req.body.roomsCtaText).trim() : current.roomsCtaText,
+      roomsFeaturedId: req.body.roomsFeaturedId !== undefined ? String(req.body.roomsFeaturedId).trim() : current.roomsFeaturedId,
+      roomsShowcaseImageUrl: req.body.roomsShowcaseImageUrl !== undefined ? String(req.body.roomsShowcaseImageUrl).trim() : current.roomsShowcaseImageUrl,
       // Artifacts Section
       artifactsTag: req.body.artifactsTag !== undefined ? String(req.body.artifactsTag).trim() : current.artifactsTag,
       artifactsTitle: req.body.artifactsTitle !== undefined ? String(req.body.artifactsTitle).trim() : current.artifactsTitle,

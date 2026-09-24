@@ -19,15 +19,21 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
   const { branding } = useSystemBranding();
   const { t, localize } = useClientTranslation();
 
-  const [selectedRoomId, setSelectedRoomId] = useState<string>(rooms[0]?.id || '');
-  const featuredRoom = rooms.find((r) => r.id === selectedRoomId) || rooms[0];
+  // Ưu tiên: phòng được Admin chỉ định trong branding -> hoặc phòng đầu tiên có trong CSDL thực tế
+  const featuredRoom = (branding.roomsFeaturedId && rooms.find((r) => r.id === branding.roomsFeaturedId)) || rooms[0];
 
-  const panoUrl = featuredRoom ? (featuredRoom.panoramaUrl || featuredRoom.thumbnailUrl) : '';
+  // Ưu tiên ảnh:
+  // 1. Ảnh tùy chỉnh do Admin cấu hình trong CMS (branding.roomsShowcaseImageUrl)
+  // 2. Ảnh toàn cảnh 360 / Thumbnail của gian phòng thực tế trong CSDL
+  const customShowcase = branding.roomsShowcaseImageUrl?.trim();
+  const panoUrl = customShowcase || (featuredRoom ? (featuredRoom.panoramaUrl || featuredRoom.thumbnailUrl) : '');
   const fullFeaturedThumb = panoUrl
     ? (panoUrl.startsWith('http') ? panoUrl : `${API_ROOT}${panoUrl.startsWith('/') ? '' : '/'}${panoUrl}`)
     : '';
 
-  const featuredTitle = featuredRoom ? localize(featuredRoom, 'name', featuredRoom.name) : 'Gian phòng di sản';
+  const featuredTitle = featuredRoom
+    ? localize(featuredRoom, 'name', featuredRoom.name)
+    : (customShowcase ? (branding.roomsTitle || 'Không gian trưng bày') : '');
   const featuredPeriod = featuredRoom ? localize(featuredRoom, 'period', (featuredRoom as any).period || '') : '';
 
   return (
@@ -35,7 +41,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
       <div className="client-container">
         {/* ZIG-ZAG 2: NẰM BÊN TRÁI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
         <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
-          {/* CỘT MEDIA: ẢNH TOÀN CẢNH GIAN PHÒNG */}
+          {/* CỘT MEDIA: ẢNH TOÀN CẢNH GIAN PHÒNG THỰC TẾ */}
           <div
             className="client-zigzag-card-media clickable"
             onClick={onViewAllRooms}
@@ -46,7 +52,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
             {fullFeaturedThumb ? (
               <img
                 src={fullFeaturedThumb}
-                alt={featuredTitle}
+                alt={featuredTitle || 'Gian phòng 360°'}
                 className="client-zigzag-card-img"
                 loading="lazy"
               />
@@ -56,15 +62,15 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
                   <Compass size={32} strokeWidth={1.5} />
                 </div>
                 <span className="client-media-placeholder-title">
-                  {t('rooms.noPanoTitle', 'Chưa có ảnh toàn cảnh 360°')}
+                  {t('rooms.noPanoTitle', 'Chưa bổ sung gian phòng 360°')}
                 </span>
                 <span className="client-media-placeholder-desc">
-                  {t('rooms.noPanoDesc', 'Hình ảnh gian phòng sẽ xuất hiện sau khi quản trị viên tải ảnh 360° lên hệ thống.')}
+                  {t('rooms.noPanoDesc', 'Dữ liệu gian phòng số hóa sẽ hiển thị ngay khi được Quản trị viên khởi tạo trong hệ thống.')}
                 </span>
               </div>
             )}
             <div className="client-zigzag-badge-float">
-              <span>{rooms.length} Không gian 360°</span>
+              <span>{rooms.length > 0 ? `${rooms.length} Không gian 360°` : 'Đang cập nhật'}</span>
             </div>
 
             {featuredTitle && fullFeaturedThumb && (
@@ -96,7 +102,13 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
             {/* DÒNG THÔNG SỐ TINH TẾ */}
             <div className="client-zigzag-meta-line">
               <span className="client-zigzag-meta-item">
-                <strong>{rooms.length}</strong> {t('rooms.totalRooms', 'Gian phòng số hóa')}
+                {rooms.length > 0 ? (
+                  <>
+                    <strong>{rooms.length}</strong> {t('rooms.totalRooms', 'Gian phòng số hóa')}
+                  </>
+                ) : (
+                  <span>{t('rooms.updating', 'Đang cập nhật không gian')}</span>
+                )}
               </span>
               <span className="client-zigzag-meta-sep">•</span>
               <span className="client-zigzag-meta-item">

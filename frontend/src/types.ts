@@ -212,6 +212,8 @@ export interface SystemBranding {
   roomsTitle?: string;
   roomsDesc?: string;
   roomsCtaText?: string;
+  roomsFeaturedId?: string;
+  roomsShowcaseImageUrl?: string;
   // Artifacts Section
   artifactsTag?: string;
   artifactsTitle?: string;

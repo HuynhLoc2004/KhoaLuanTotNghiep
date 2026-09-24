@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
-import { SystemBranding, HeaderMenuItem, HeaderSubMenuItem } from '../../types';
+import { SystemBranding, HeaderMenuItem, HeaderSubMenuItem, MuseumRoom } from '../../types';
 import { useSystemBranding, DEFAULT_HEADER_MENU } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import {
@@ -65,10 +65,21 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   const [analyzingFloorPlan, setAnalyzingFloorPlan] = useState(false);
   const [analysisSummary, setAnalysisSummary] = useState<{ nodeCount: number; edgeCount: number; dimensions?: string } | null>(null);
 
+  // Quản lý gian phòng 360 thực tế từ cơ sở dữ liệu
+  const [availableRooms, setAvailableRooms] = useState<MuseumRoom[]>([]);
+  const [uploadingRoomsShowcase, setUploadingRoomsShowcase] = useState(false);
+
   const logoInputRef = useRef<HTMLInputElement>(null);
   const heroBannerInputRef = useRef<HTMLInputElement>(null);
   const introImageInputRef = useRef<HTMLInputElement>(null);
   const guideMapInputRef = useRef<HTMLInputElement>(null);
+  const roomsShowcaseInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    api.getRooms()
+      .then((data) => setAvailableRooms(data || []))
+      .catch((err) => console.warn('[AdminHomepageCMS] Lỗi tải danh sách phòng:', err));
+  }, []);
 
   useEffect(() => {
     if (branding) {
@@ -356,6 +367,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         roomsTitle: 'Hệ Thống Gian Phòng Tour 360°',
         roomsDesc: 'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.',
         roomsCtaText: 'Khám phá tất cả gian phòng 360°',
+        roomsFeaturedId: '',
+        roomsShowcaseImageUrl: '',
         artifactsTag: 'Bảo Vật Di Sản & Mô Hình 3D',
         artifactsTitle: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản',
         artifactsDesc: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.',
@@ -1731,6 +1744,137 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 placeholder="VD: Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng..."
                 style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1', padding: '16px', background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Compass size={16} />
+                <span>Đồng Bộ Dữ Liệu Gian Phòng Thực Tế & Ảnh Trưng Bày Tiêu Biểu</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Gian phòng số hóa tiêu biểu trên Trang Chủ:
+                  </label>
+                  <select
+                    value={form.roomsFeaturedId || ''}
+                    onChange={(e) => handleChange('roomsFeaturedId', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 8,
+                      color: 'var(--text-main)',
+                      fontSize: 13
+                    }}
+                  >
+                    <option value="">-- Tự động chọn gian phòng đầu tiên có trong CSDL --</option>
+                    {availableRooms.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.code ? `[${r.code}] ` : ''}{r.name} {r.period ? `— ${r.period}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                    {availableRooms.length > 0
+                      ? `Đang có ${availableRooms.length} gian phòng số hóa trong hệ thống MongoDB.`
+                      : 'Hệ thống hiện chưa có gian phòng nào. Quản trị viên hãy thêm gian phòng thực tế tại phân hệ "Quản lý gian phòng".'}
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Ảnh đại diện tùy chỉnh cho khối Tour 360° (Tùy chọn):
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="text"
+                      value={form.roomsShowcaseImageUrl || ''}
+                      onChange={(e) => handleChange('roomsShowcaseImageUrl', e.target.value)}
+                      placeholder="URL ảnh hoặc bấm tải lên (để trống sẽ dùng ảnh của phòng)"
+                      style={{ flex: 1, padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => roomsShowcaseInputRef.current?.click()}
+                      disabled={uploadingRoomsShowcase}
+                      style={{
+                        padding: '8px 14px',
+                        background: 'rgba(212, 175, 55, 0.15)',
+                        border: '1px solid rgba(212, 175, 55, 0.35)',
+                        color: 'var(--gold)',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: uploadingRoomsShowcase ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}
+                    >
+                      <Upload size={13} />
+                      <span>{uploadingRoomsShowcase ? 'Đang tải...' : 'Tải ảnh'}</span>
+                    </button>
+                    <input
+                      type="file"
+                      ref={roomsShowcaseInputRef}
+                      style={{ display: 'none' }}
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          setUploadingRoomsShowcase(true);
+                          const res = await api.uploadBrandingImage(file);
+                          if (res && res.url) {
+                            handleChange('roomsShowcaseImageUrl', res.url);
+                            showToast('Đã tải ảnh đại diện gian phòng lên thành công!', 'success');
+                          }
+                        } catch (err: any) {
+                          showToast(err.message || 'Lỗi tải ảnh lên', 'error');
+                        } finally {
+                          setUploadingRoomsShowcase(false);
+                          if (roomsShowcaseInputRef.current) roomsShowcaseInputRef.current.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                    Nếu để trống, hệ thống sẽ tự động dùng ảnh toàn cảnh 360° thực tế của gian phòng được chọn.
+                  </span>
+                </div>
+              </div>
+
+              {form.roomsShowcaseImageUrl && (
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img
+                    src={form.roomsShowcaseImageUrl}
+                    alt="Rooms Showcase Preview"
+                    style={{ height: 60, width: 100, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border-color)' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleChange('roomsShowcaseImageUrl', '')}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#EF4444',
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Trash2 size={12} />
+                    <span>Xóa ảnh tùy chỉnh (Dùng ảnh phòng)</span>
+                  </button>
+                </div>
+              )}
             </div>
             {renderSectionNavFooter(4, 'Phần 5: Gian phòng 360°')}
           </div>

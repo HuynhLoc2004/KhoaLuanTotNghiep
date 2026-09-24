@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { RoomModel, IRoom, IHotspot } from '../models/Room.js';
+import { cacheDel } from '../services/redis.js';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -106,13 +107,20 @@ export const connectMongoDB = async () => {
     await mongoose.connect(MONGO_URI);
     console.log(`[MongoDB] Đã kết nối cơ sở dữ liệu thực thành công tại: ${MONGO_URI}`);
 
-    // Seed if empty
-    const count = await RoomModel.countDocuments();
-    if (count === 0) {
-      console.log('[MongoDB] Khởi tạo dữ liệu các gian phòng Bảo tàng Lịch sử TP.HCM...');
-      await RoomModel.insertMany(INITIAL_ROOMS);
-      console.log('[MongoDB] Đã nạp thành công dữ liệu khởi tạo vào MongoDB!');
-    } else {
+    // Dọn dẹp hoàn toàn các gian phòng mock chứa ảnh Unsplash ngẫu nhiên, không để dữ liệu rác tồn tại
+    try {
+      const deletedMock = await RoomModel.deleteMany({
+        panoramaUrl: { $regex: /images\.unsplash\.com/i }
+      });
+      if (deletedMock.deletedCount > 0) {
+        console.log(`[MongoDB] Đã dọn dẹp ${deletedMock.deletedCount} gian phòng mock Unsplash cũ để đồng bộ 100% dữ liệu thực từ Admin.`);
+        try {
+          await cacheDel('rooms:all');
+        } catch {}
+      }
+    } catch (cleanErr) {
+      console.warn('[MongoDB] Không thể dọn dẹp phòng mock Unsplash:', cleanErr);
+    }
       // Tự động chuẩn hóa dữ liệu cũ mang tính AI / rườm rà sang thuật ngữ bảo tàng chuẩn mực
       try {
         await RoomModel.updateOne(
@@ -173,7 +181,6 @@ export const connectMongoDB = async () => {
       } catch (migrateErr) {
         console.warn('[MongoDB Migration Warning]:', migrateErr);
       }
-    }
   } catch (err: any) {
     console.error('[MongoDB] Lỗi kết nối MongoDB:', err.message);
   }

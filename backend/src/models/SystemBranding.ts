@@ -53,6 +53,8 @@ export interface ISystemBranding extends Document {
   roomsTitle?: string;
   roomsDesc?: string;
   roomsCtaText?: string;
+  roomsFeaturedId?: string;
+  roomsShowcaseImageUrl?: string;
   // Artifacts Section
   artifactsTag?: string;
   artifactsTitle?: string;
@@ -272,6 +274,16 @@ const SystemBrandingSchema = new Schema<ISystemBranding>(
       type: String,
       trim: true,
       default: 'Khám phá tất cả gian phòng 360°'
+    },
+    roomsFeaturedId: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    roomsShowcaseImageUrl: {
+      type: String,
+      trim: true,
+      default: ''
     },
     // Artifacts Section
     artifactsTag: {
@@ -514,6 +526,8 @@ export const DEFAULT_BRANDING = {
   roomsTitle: 'Hệ Thống Gian Phòng Tour 360°',
   roomsDesc: 'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.',
   roomsCtaText: 'Khám phá tất cả gian phòng 360°',
+  roomsFeaturedId: '',
+  roomsShowcaseImageUrl: '',
   artifactsTag: 'Bảo Vật Di Sản & Mô Hình 3D',
   artifactsTitle: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản',
   artifactsDesc: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.',
