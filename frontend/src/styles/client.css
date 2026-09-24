@@ -61,39 +61,39 @@
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* LIGHT MODE - WARM ANTIQUE ALABASTER (CHO NGƯỜI THÍCH SÁNG SỦA, KHÔNG CHÓI LÒA) */
+/* LIGHT MODE - IMPERIAL HERITAGE ALABASTER & LIMESTONE (SANG TRỌNG, ẤM ÁP, KHÔNG CHÓI LÒA) */
 .client-portal[data-client-theme="light"] {
-  --c-bg: #F7F5F0;
-  --c-bg-alt: #EDE9DF;
+  --c-bg: #FBF8F3;
+  --c-bg-alt: #F3ECE0;
   --c-bg-card: #FFFFFF;
-  --c-bg-card-hover: #FFFFFF;
-  --c-bg-stage: radial-gradient(circle at 50% 35%, rgba(180, 138, 60, 0.12) 0%, rgba(237, 233, 223, 0.98) 75%);
+  --c-bg-card-hover: #FFFDF9;
+  --c-bg-stage: radial-gradient(circle at 50% 35%, rgba(180, 138, 60, 0.15) 0%, rgba(243, 236, 224, 0.98) 75%);
 
-  --c-nav-bg: rgba(247, 245, 240, 0.92);
-  --c-nav-border: rgba(0, 0, 0, 0.08);
+  --c-nav-bg: rgba(251, 248, 243, 0.92);
+  --c-nav-border: rgba(180, 138, 60, 0.25);
 
-  --c-text-primary: #1C2029;
-  --c-text-secondary: #4B5563;
-  --c-text-muted: #6B7280;
+  --c-text-primary: #181C26;
+  --c-text-secondary: #475263;
+  --c-text-muted: #6E798B;
   --c-text-inverse: #FFFFFF;
 
-  --c-primary: #942E18;
-  --c-primary-hover: #7D2613;
-  --c-primary-light: rgba(148, 46, 24, 0.1);
+  --c-primary: #A32A13;
+  --c-primary-hover: #8B220E;
+  --c-primary-light: rgba(163, 42, 19, 0.09);
 
   --c-gold: #B48A3C;
   --c-gold-hover: #9E772F;
   --c-gold-light: rgba(180, 138, 60, 0.14);
-  --c-gold-gradient: linear-gradient(135deg, #DFBE7A 0%, #B48A3C 50%, #8C6721 100%);
+  --c-gold-gradient: linear-gradient(135deg, #DFC07D 0%, #B48A3C 50%, #8C6721 100%);
 
-  --c-border: rgba(0, 0, 0, 0.09);
-  --c-border-subtle: rgba(0, 0, 0, 0.05);
-  --c-border-gold: rgba(180, 138, 60, 0.35);
+  --c-border: rgba(60, 42, 20, 0.12);
+  --c-border-subtle: rgba(60, 42, 20, 0.06);
+  --c-border-gold: rgba(180, 138, 60, 0.4);
 
-  --c-shadow-sm: 0 2px 8px rgba(44, 34, 20, 0.04);
-  --c-shadow-md: 0 12px 30px -6px rgba(44, 34, 20, 0.07);
-  --c-shadow-lg: 0 20px 45px -10px rgba(44, 34, 20, 0.12);
-  --c-shadow-gold: 0 0 35px -5px rgba(180, 138, 60, 0.22);
+  --c-shadow-sm: 0 3px 10px rgba(50, 36, 18, 0.05);
+  --c-shadow-md: 0 12px 32px -6px rgba(50, 36, 18, 0.09);
+  --c-shadow-lg: 0 22px 52px -10px rgba(50, 36, 18, 0.14);
+  --c-shadow-gold: 0 0 35px -5px rgba(180, 138, 60, 0.25);
 }
 
 /* --- 2. TYPOGRAPHY DI SẢN CHUẨN MỰC --- */
@@ -124,6 +124,13 @@
 
 .client-section-alt {
   background-color: var(--c-bg-alt);
+}
+
+.client-portal[data-client-theme="light"] .client-section-alt {
+  background-color: #F3ECE0;
+  border-top: 1px solid rgba(180, 138, 60, 0.16);
+  border-bottom: 1px solid rgba(180, 138, 60, 0.16);
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(180, 138, 60, 0.06) 0%, transparent 75%);
 }
 
 /* Header section phong cách giám tuyển bảo tàng */
@@ -196,6 +203,69 @@
   .client-navbar.is-scrolled {
     transform: translateX(0);
   }
+}
+
+/* Light Mode cho Thanh Điều Hướng Nổi */
+.client-portal[data-client-theme="light"] .client-navbar {
+  background: rgba(251, 248, 243, 0.92);
+  border-color: rgba(180, 138, 60, 0.35);
+  box-shadow: 0 12px 35px -6px rgba(50, 36, 18, 0.1), 0 0 20px -4px rgba(180, 138, 60, 0.1);
+}
+
+.client-portal[data-client-theme="light"] .client-navbar.is-scrolled {
+  background: rgba(251, 248, 243, 0.98);
+  border-color: rgba(180, 138, 60, 0.5);
+  box-shadow: 0 16px 40px -8px rgba(50, 36, 18, 0.15), 0 0 25px -4px rgba(180, 138, 60, 0.16);
+}
+
+.client-portal[data-client-theme="light"] .client-nav-title {
+  color: #181C26;
+}
+
+.client-portal[data-client-theme="light"] .client-nav-tagline {
+  color: #5A6474;
+}
+
+.client-portal[data-client-theme="light"] .client-nav-menu {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.client-portal[data-client-theme="light"] .client-nav-link {
+  color: #3B4455;
+}
+
+.client-portal[data-client-theme="light"] .client-nav-link:hover,
+.client-portal[data-client-theme="light"] .client-nav-link.active {
+  color: #A32A13;
+  background: rgba(163, 42, 19, 0.08);
+}
+
+.client-portal[data-client-theme="light"] .client-nav-lang-btn,
+.client-portal[data-client-theme="light"] .client-theme-toggle {
+  color: #3B4455;
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.client-portal[data-client-theme="light"] .client-nav-lang-btn:hover,
+.client-portal[data-client-theme="light"] .client-theme-toggle:hover {
+  color: #A32A13;
+  border-color: #B48A3C;
+  background: rgba(180, 138, 60, 0.12);
+}
+
+.client-portal[data-client-theme="light"] .client-nav-login-btn {
+  background: linear-gradient(135deg, #A32A13 0%, #87200D 100%);
+  color: #FFFFFF;
+  border-color: rgba(163, 42, 19, 0.4);
+  box-shadow: 0 4px 14px rgba(163, 42, 19, 0.25);
+}
+
+.client-portal[data-client-theme="light"] .client-nav-login-btn:hover {
+  background: linear-gradient(135deg, #B83218 0%, #99250E 100%);
+  color: #FFFFFF;
+  box-shadow: 0 6px 18px rgba(163, 42, 19, 0.35);
 }
 
 .client-nav-inner {
@@ -1361,14 +1431,25 @@
 }
 
 /* --- 8. BỆ TRƯNG BÀY CỔ VẬT 3D DI SẢN (SPOTLIGHT EXHIBITION PEDESTAL) --- */
+.client-artifacts-section {
+  position: relative;
+}
+
 .client-pedestal-wrap {
-  background: var(--c-bg-stage);
+  background: #0C1019;
   border: 1px solid var(--c-border-gold);
   border-radius: var(--c-radius-lg);
-  box-shadow: var(--c-shadow-lg);
+  box-shadow: 0 25px 65px -15px rgba(10, 8, 5, 0.45);
   overflow: hidden;
   padding: clamp(28px, 4vw, 52px);
   position: relative;
+  width: 100%;
+}
+
+.client-portal[data-client-theme="light"] .client-pedestal-wrap {
+  background: #0E131E;
+  border-color: rgba(184, 134, 11, 0.55);
+  box-shadow: 0 25px 65px -15px rgba(45, 30, 15, 0.3);
 }
 
 .client-pedestal-grid {
@@ -1378,9 +1459,10 @@
   align-items: center;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   .client-pedestal-grid {
     grid-template-columns: 1fr;
+    gap: 40px;
   }
 }
 
@@ -1390,26 +1472,114 @@
   min-height: 500px;
   border-radius: var(--c-radius-md);
   overflow: hidden;
-  background: rgba(8, 10, 15, 0.7);
-  border: 1px solid var(--c-border);
-  box-shadow: var(--c-shadow-md);
+  background: #080A10;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
 }
 
-.client-portal[data-client-theme="light"] .client-pedestal-viewer-stage {
-  background: rgba(255, 255, 255, 0.6);
+.client-pedestal-static-vitrine {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 38%, rgba(212, 175, 55, 0.28) 0%, rgba(12, 16, 26, 0.95) 72%);
+  overflow: hidden;
 }
 
+.client-pedestal-halo {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.client-pedestal-status-badge {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 15px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(10, 14, 22, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  color: #F8E5A7;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.client-pedestal-static-img {
+  max-height: 380px;
+  max-width: 85%;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.85));
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.client-pedestal-static-vitrine:hover .client-pedestal-static-img {
+  transform: scale(1.05);
+}
+
+.client-pedestal-interaction-hint {
+  position: absolute;
+  bottom: 20px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 18px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(10, 14, 22, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #F8E5A7;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Thẻ giám tuyển bên phải bệ xoay */
 .client-pedestal-placard {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+}
+
+.client-pedestal-top-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.client-pedestal-badge-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(212, 175, 55, 0.22);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #F8E5A7;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .client-pedestal-period {
   font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--c-gold);
-  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: #F5DE93;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -1417,7 +1587,7 @@
   font-family: 'Lora', serif;
   font-size: clamp(1.9rem, 2.9vw, 2.6rem);
   font-weight: 700;
-  color: var(--c-text-primary);
+  color: #FFFFFF;
   margin: 0;
   line-height: 1.25;
 }
@@ -1425,30 +1595,37 @@
 .client-pedestal-meta-table {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  padding: 18px 0;
-  border-top: 1px solid var(--c-border);
-  border-bottom: 1px solid var(--c-border);
+  gap: 18px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.client-pedestal-meta-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .client-pedestal-meta-label {
   font-size: 0.74rem;
-  color: var(--c-text-muted);
+  color: rgba(255, 255, 255, 0.55);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 .client-pedestal-meta-val {
   font-size: 0.96rem;
   font-weight: 600;
-  color: var(--c-text-primary);
-  margin-top: 3px;
+  color: #FFFFFF;
+  margin-top: 2px;
 }
 
 .client-pedestal-desc {
-  font-size: 1rem;
-  line-height: 1.8;
-  color: var(--c-text-secondary);
+  font-size: 0.96rem;
+  line-height: 1.76;
+  color: rgba(255, 255, 255, 0.84);
   margin: 0;
 }
 
@@ -1457,150 +1634,383 @@
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.client-pedestal-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 24px;
+  border-radius: var(--c-radius-pill);
+  background: linear-gradient(135deg, var(--c-primary) 0%, #D44222 100%);
+  color: #FFFFFF;
+  font-size: 0.92rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(178, 59, 34, 0.45);
+  transition: all 0.3s ease;
+}
+
+.client-pedestal-primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(178, 59, 34, 0.65);
+  border-color: rgba(212, 175, 55, 0.6);
+}
+
+.client-pedestal-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: var(--c-radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #F8E5A7;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.client-pedestal-secondary-btn:hover {
+  background: rgba(212, 175, 55, 0.25);
+  transform: translateY(-2px);
 }
 
 /* Khay trượt chọn bảo vật chân bệ xoay */
-.client-pedestal-shelf {
+.client-pedestal-shelf-wrap {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.client-pedestal-shelf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.client-pedestal-shelf-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #F8E5A7;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.client-pedestal-shelf-all-btn {
+  background: none;
+  border: none;
+  color: #D4AF37;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.client-pedestal-shelf-all-btn:hover {
+  color: #FFFFFF;
+  text-decoration: underline;
+}
+
+.client-pedestal-shelf-scroll {
   display: flex;
   align-items: center;
   gap: 14px;
   overflow-x: auto;
-  padding: 24px 0 0 0;
-  margin-top: 32px;
-  border-top: 1px solid var(--c-border);
+  padding-bottom: 8px;
 }
 
 .client-pedestal-shelf-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 18px;
+  padding: 10px 16px;
   border-radius: var(--c-radius-md);
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   cursor: pointer;
-  transition: var(--c-transition);
+  transition: all 0.3s ease;
   flex-shrink: 0;
+  min-width: 220px;
 }
 
 .client-pedestal-shelf-item:hover,
 .client-pedestal-shelf-item.active {
-  border-color: var(--c-gold);
-  background: var(--c-gold-light);
+  background: rgba(212, 175, 55, 0.18);
+  border-color: #D4AF37;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.22);
+}
+
+.client-pedestal-shelf-thumb-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  flex-shrink: 0;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .client-pedestal-shelf-thumb {
-  width: 48px;
-  height: 48px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  border-radius: 6px;
+}
+
+.client-pedestal-shelf-active-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #D4AF37;
+  box-shadow: 0 0 6px #D4AF37;
+}
+
+.client-pedestal-shelf-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .client-pedestal-shelf-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--c-text-primary);
+  font-family: 'Lora', serif;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.25;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
 }
 
-/* --- 9. DÒNG THỜI GIAN LỊCH SỬ DẠNG NGANG (HORIZONTAL TIMELINE) --- */
-.client-timeline-track {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+.client-pedestal-shelf-meta {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+/* --- 9. BỘ SƯU TẬP CHUYÊN ĐỀ LỊCH SỬ (EPOCH GALLERY GRID) --- */
+.client-topics-section {
   position: relative;
 }
 
-@media (max-width: 1024px) {
-  .client-timeline-track {
+.client-topics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .client-topics-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 600px) {
-  .client-timeline-track {
+@media (max-width: 640px) {
+  .client-topics-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.client-timeline-milestone {
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--c-radius-md);
-  padding: 30px 24px;
-  box-shadow: var(--c-shadow-sm);
-  transition: var(--c-transition);
+.client-topic-card {
   position: relative;
+  border-radius: var(--c-radius-lg);
+  overflow: hidden;
+  min-height: 380px;
+  border: 1px solid var(--c-border-gold);
+  box-shadow: 0 18px 45px -10px rgba(20, 15, 10, 0.22);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
+  background: #0E121C;
 }
 
-.client-timeline-milestone:hover {
+.client-portal[data-client-theme="light"] .client-topic-card {
+  box-shadow: 0 18px 40px -10px rgba(45, 30, 15, 0.18);
+}
+
+.client-topic-card:hover {
+  transform: translateY(-8px);
   border-color: var(--c-gold);
-  transform: translateY(-4px);
-  box-shadow: var(--c-shadow-md);
+  box-shadow: 0 26px 60px -12px rgba(212, 175, 55, 0.3);
 }
 
-.client-timeline-step-badge {
-  font-family: 'Lora', serif;
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--c-gold);
-  opacity: 0.6;
-  margin-bottom: 8px;
+.client-topic-bg-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
 }
 
-.client-timeline-era-title {
+.client-topic-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.client-topic-card:hover .client-topic-bg-img {
+  transform: scale(1.1);
+}
+
+.client-topic-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 13, 20, 0.18) 0%, rgba(10, 13, 20, 0.72) 48%, rgba(8, 10, 16, 0.96) 100%);
+}
+
+.client-topic-content {
+  position: relative;
+  z-index: 2;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.client-topic-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.client-topic-step-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.28);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  color: #F8E5A7;
+  font-size: 0.82rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: 'Lora', serif;
-  font-size: 1.2rem;
+}
+
+.client-topic-era-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #F8E5A7;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 4px 10px;
+  border-radius: var(--c-radius-pill);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-topic-title {
+  font-family: 'Lora', serif;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--c-text-primary);
-  margin: 0 0 10px 0;
+  color: #FFFFFF;
   line-height: 1.35;
-}
-
-.client-timeline-era-desc {
-  font-size: 0.92rem;
-  color: var(--c-text-secondary);
-  line-height: 1.68;
   margin: 0;
 }
 
-/* --- 10. HƯỚNG DẪN THAM QUAN & QUÉT QR STANDEE (PLAN YOUR VISIT) --- */
-.client-visit-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: clamp(32px, 5vw, 64px);
-  align-items: center;
+.client-topic-desc {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.6;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-@media (max-width: 900px) {
+.client-topic-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.client-topic-room-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.client-topic-arrow {
+  color: #F8E5A7;
+  transition: transform 0.3s ease;
+}
+
+.client-topic-card:hover .client-topic-arrow {
+  transform: translateX(4px);
+}
+
+/* --- 10. HƯỚNG DẪN THAM QUAN & QUÉT QR STANDEE (PLAN YOUR VISIT) --- */
+.client-guide-section {
+  position: relative;
+}
+
+.client-visit-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: clamp(32px, 5vw, 64px);
+  align-items: stretch;
+  width: 100%;
+}
+
+@media (max-width: 992px) {
   .client-visit-grid {
     grid-template-columns: 1fr;
+    gap: 36px;
   }
 }
 
 .client-visit-info-stack {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .client-visit-card {
   display: flex;
-  gap: 22px;
-  padding: 26px;
+  gap: 20px;
+  padding: 24px;
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
   border-radius: var(--c-radius-md);
   box-shadow: var(--c-shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.client-visit-card:hover {
+  border-color: var(--c-gold);
+  box-shadow: var(--c-shadow-md);
 }
 
 .client-visit-card-icon {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   background: var(--c-gold-light);
+  border: 1px solid rgba(212, 175, 55, 0.25);
   color: var(--c-gold);
   display: flex;
   align-items: center;
@@ -1608,41 +2018,189 @@
   flex-shrink: 0;
 }
 
-.client-visit-card-title {
-  font-family: 'Lora', serif;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--c-text-primary);
-  margin: 0 0 8px 0;
+.client-visit-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
 }
 
-.client-visit-card-text {
-  font-size: 0.95rem;
-  color: var(--c-text-secondary);
-  line-height: 1.7;
+.client-visit-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.client-visit-card-title {
+  font-family: 'Lora', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--c-text-primary);
   margin: 0;
 }
 
+.client-visit-status-pill {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--c-gold);
+  background: var(--c-gold-light);
+  padding: 3px 10px;
+  border-radius: var(--c-radius-pill);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.client-visit-status-pill.open {
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.client-visit-time-slots {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--c-bg-stage);
+  border-radius: var(--c-radius-sm);
+  border: 1px solid var(--c-border);
+}
+
+.client-visit-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+
+.client-visit-slot-label {
+  color: var(--c-text-muted);
+}
+
+.client-visit-slot-time {
+  font-weight: 700;
+  color: var(--c-text-primary);
+}
+
+.client-visit-slot-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--c-border);
+}
+
+.client-visit-card-note {
+  font-size: 0.82rem;
+  color: var(--c-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.client-visit-ticket-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.client-visit-ticket-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+  background: var(--c-bg-stage);
+  border-radius: var(--c-radius-sm);
+  border: 1px solid var(--c-border);
+}
+
+.client-visit-ticket-type {
+  font-size: 0.82rem;
+  color: var(--c-text-muted);
+}
+
+.client-visit-ticket-price {
+  font-family: 'Lora', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--c-text-primary);
+}
+
+.client-visit-ticket-price.highlight {
+  color: var(--c-gold);
+}
+
+.client-visit-address-line {
+  font-size: 0.94rem;
+  color: var(--c-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.client-visit-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  color: var(--c-text-secondary);
+  flex-wrap: wrap;
+}
+
+.client-visit-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--c-gold);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 4px;
+  transition: all 0.25s ease;
+}
+
+.client-visit-map-link:hover {
+  color: var(--c-primary);
+  transform: translateX(4px);
+}
+
+/* Thẻ mô phỏng Standee QR bên phải */
 .client-standee-showcase {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border-gold);
   border-radius: var(--c-radius-lg);
-  padding: clamp(36px, 4.5vw, 52px);
+  padding: clamp(32px, 4vw, 44px);
   box-shadow: var(--c-shadow-lg);
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
   position: relative;
+}
+
+.client-standee-top-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: var(--c-radius-pill);
+  background: var(--c-gold-light);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: var(--c-gold);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  width: fit-content;
 }
 
 .client-standee-qr-icon-wrap {
   width: 76px;
   height: 76px;
-  border-radius: 50%;
+  border-radius: 18px;
   background: var(--c-primary-light);
+  border: 1px solid rgba(178, 59, 34, 0.3);
   color: var(--c-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 22px auto;
 }
 
 .client-standee-title {
@@ -1650,15 +2208,70 @@
   font-size: 1.45rem;
   font-weight: 700;
   color: var(--c-text-primary);
-  margin: 0 0 12px 0;
+  margin: 0;
+  line-height: 1.3;
 }
 
 .client-standee-desc {
-  font-size: 0.95rem;
-  line-height: 1.75;
+  font-size: 0.94rem;
+  line-height: 1.7;
   color: var(--c-text-secondary);
-  margin: 0 auto 26px auto;
-  max-width: 440px;
+  margin: 0;
+}
+
+/* 3 Bước trải nghiệm trực quan */
+.client-standee-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.client-standee-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--c-radius-sm);
+  background: var(--c-bg-stage);
+  border: 1px solid var(--c-border);
+}
+
+.client-standee-step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--c-gold);
+  color: #0A0D14;
+  font-weight: 800;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.client-standee-step-text {
+  font-size: 0.88rem;
+  color: var(--c-text-secondary);
+  line-height: 1.45;
+}
+
+.client-standee-step-text strong {
+  color: var(--c-text-primary);
+}
+
+.client-standee-feature-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--c-radius-pill);
+  background: var(--c-gold-light);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: var(--c-gold);
+  font-size: 0.82rem;
+  font-weight: 600;
+  justify-content: center;
 }
 
 /* --- 11. CHÂN TRANG DI SẢN (CLIENT FOOTER) --- */
