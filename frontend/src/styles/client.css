@@ -678,12 +678,266 @@
   cursor: pointer;
 }
 
+/* --- RESPONSIVE CHO CLIENT NAVBAR & MOBILE MENU DRAWER --- */
+.client-navbar.mobile-open {
+  border-radius: 20px !important;
+  background: rgba(10, 14, 22, 0.98) !important;
+  border-color: rgba(212, 175, 55, 0.55) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(212, 175, 55, 0.25) !important;
+}
+
+.client-portal[data-client-theme="light"] .client-navbar.mobile-open {
+  background: rgba(251, 248, 243, 0.98) !important;
+  border-color: rgba(180, 138, 60, 0.55) !important;
+  box-shadow: 0 20px 50px rgba(50, 36, 18, 0.25) !important;
+}
+
+.client-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 999;
+  animation: mobileFadeIn 0.2s ease;
+}
+
+@keyframes mobileFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.client-mobile-drawer {
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  padding: 16px 20px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.client-portal[data-client-theme="light"] .client-mobile-drawer {
+  border-top-color: rgba(180, 138, 60, 0.2);
+}
+
+.client-mobile-user-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.client-portal[data-client-theme="light"] .client-mobile-user-card {
+  background: rgba(180, 138, 60, 0.08);
+  border-color: rgba(180, 138, 60, 0.25);
+}
+
+.client-mobile-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: #F1F5F9;
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.client-mobile-nav-link:hover,
+.client-mobile-nav-link.active {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.35);
+  color: #F3E0A3;
+  font-weight: 600;
+}
+
+.client-portal[data-client-theme="light"] .client-mobile-nav-link {
+  background: rgba(0, 0, 0, 0.03);
+  color: #0F172A;
+}
+
+.client-portal[data-client-theme="light"] .client-mobile-nav-link:hover,
+.client-portal[data-client-theme="light"] .client-mobile-nav-link.active {
+  background: rgba(180, 138, 60, 0.12);
+  border-color: rgba(180, 138, 60, 0.35);
+  color: #8A6018;
+}
+
+.client-mobile-lang-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  margin-top: 4px;
+}
+
+.client-portal[data-client-theme="light"] .client-mobile-lang-row {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.client-mobile-lang-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--c-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.client-mobile-lang-chip.active {
+  background: var(--c-gold-light);
+  border-color: var(--c-border-gold);
+  color: var(--c-gold);
+}
+
 @media (max-width: 992px) {
+  .client-navbar {
+    width: calc(100% - 24px);
+    top: 10px;
+  }
+  .client-navbar.is-scrolled {
+    transform: translateX(0);
+  }
+  .client-nav-inner {
+    height: 60px;
+    padding: 0 16px;
+    gap: 12px;
+  }
   .client-nav-menu-wrapper {
+    display: none;
+  }
+  /* Ẩn nút đăng nhập to trên top bar, chuyển vào mobile drawer */
+  .client-nav-actions .client-nav-login-btn {
+    display: none;
+  }
+  /* Thu gọn nút user thành icon tròn */
+  .client-user-btn {
+    padding: 4px;
+    max-width: 36px;
+    border-radius: 50%;
+  }
+  .client-user-name,
+  .client-user-btn span:last-child {
     display: none;
   }
   .client-nav-mobile-toggle {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    background: rgba(212, 175, 55, 0.12);
+    color: #F3E0A3;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+  .client-nav-mobile-toggle:hover {
+    background: rgba(212, 175, 55, 0.25);
+    border-color: #D4AF37;
+    color: #FFFFFF;
+  }
+  .client-portal[data-client-theme="light"] .client-nav-mobile-toggle {
+    background: rgba(180, 138, 60, 0.12);
+    border-color: rgba(180, 138, 60, 0.4);
+    color: #8A6018;
+  }
+}
+
+@media (max-width: 640px) {
+  .client-navbar {
+    width: calc(100% - 16px);
+    top: 8px;
+  }
+  .client-nav-inner {
+    height: 54px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .client-nav-brand {
+    gap: 9px;
+  }
+  .client-nav-emblem {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  .client-nav-logo {
+    height: 32px;
+    max-width: 90px;
+  }
+  .client-nav-title {
+    font-size: 0.88rem;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Ẩn dòng phụ đề TP.HCM • TOUR 360 để không chèn ép các nút điều hướng */
+  .client-nav-subtitle-row {
+    display: none;
+  }
+  .client-nav-actions {
+    gap: 6px;
+  }
+  /* Nút Quét QR trên top thu gọn thành chỉ icon tròn */
+  .client-nav-qr-btn {
+    padding: 0 !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .client-nav-qr-btn span {
+    display: none !important;
+  }
+  .client-theme-toggle {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 420px) {
+  .client-navbar {
+    width: calc(100% - 12px);
+    top: 6px;
+  }
+  .client-nav-inner {
+    height: 50px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .client-nav-title {
+    font-size: 0.84rem;
+    max-width: 110px;
+  }
+  /* Trên màn hình nhỏ hơn 420px, ẩn nút QR trên top bar (ưu tiên trong drawer) để không bao giờ bị tràn */
+  .client-nav-qr-btn {
+    display: none !important;
   }
 }
 

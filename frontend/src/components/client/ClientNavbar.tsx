@@ -87,6 +87,18 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Khóa cuộn trang nền khi mở Mobile Drawer
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const scrollToSection = (id: string) => {
     setIsMobileMenuOpen(false);
     const element = document.getElementById(id);
@@ -155,8 +167,17 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   const visibleMenuItems = menuItems.filter((m) => m.active !== false);
 
   return (
-    <nav className={`client-navbar ${isScrolled ? 'is-scrolled' : ''}`}>
-      <div className="client-container client-nav-inner">
+    <>
+      {/* Lớp nền mờ khi mở Mobile Drawer */}
+      {isMobileMenuOpen && (
+        <div
+          className="client-mobile-backdrop"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      <nav className={`client-navbar ${isScrolled ? 'is-scrolled' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+        <div className="client-container client-nav-inner">
         {/* 1. Logo & Tên bảo tàng sang trọng chuẩn di sản */}
         <a
           href="#hero"
@@ -456,16 +477,25 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
 
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
-        <div
-          style={{
-            background: 'var(--c-bg-card)',
-            borderBottom: '1px solid var(--c-border)',
-            padding: '16px 24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12
-          }}
-        >
+        <div className="client-mobile-drawer">
+          {/* Thông tin người dùng nếu đã đăng nhập */}
+          {user && (
+            <div className="client-mobile-user-card">
+              <div className="client-user-avatar">
+                {user.role === 'admin' ? <Shield size={16} /> : <User size={16} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--c-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {user.fullName || user.username}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>
+                  {user.role === 'admin' ? 'Quản trị viên hệ thống' : user.email}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Danh sách mục điều hướng */}
           {visibleMenuItems.map((item) => {
             const activeChildren = (item.children || []).filter((c) => c.active !== false);
             const hasChildren = activeChildren.length > 0;
@@ -477,21 +507,9 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 <div key={item.id} style={{ display: 'flex', flexDirection: 'column' }}>
                   <button
                     type="button"
-                    className={`client-nav-link ${isParentActive ? 'active' : ''}`}
+                    className={`client-mobile-nav-link ${isParentActive ? 'active' : ''}`}
                     onClick={() => {
                       setMobileExpandedIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      font: 'inherit',
-                      padding: '8px 12px',
-                      borderRadius: 8
                     }}
                   >
                     <span>{item.label}</span>
@@ -506,26 +524,14 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                   </button>
 
                   {isExpanded && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 16, marginTop: 4 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 14, marginTop: 4 }}>
                       {activeChildren.map((sub) => (
                         <button
                           key={sub.id}
                           type="button"
-                          className={`client-nav-link ${isItemActive(sub) ? 'active' : ''}`}
+                          className={`client-mobile-nav-link ${isItemActive(sub) ? 'active' : ''}`}
                           onClick={() => handleNavItemClick(sub)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            cursor: 'pointer',
-                            font: 'inherit',
-                            fontSize: '0.84rem',
-                            opacity: 0.9,
-                            textAlign: 'left',
-                            padding: '6px 12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                          }}
+                          style={{ fontSize: '0.86rem', opacity: 0.95 }}
                         >
                           <span>└─ {sub.label}</span>
                           {sub.linkType === 'custom' && <ExternalLink size={12} style={{ opacity: 0.5 }} />}
@@ -541,23 +547,15 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               <button
                 key={item.id}
                 type="button"
-                className={`client-nav-link ${isItemActive(item) ? 'active' : ''}`}
+                className={`client-mobile-nav-link ${isItemActive(item) ? 'active' : ''}`}
                 onClick={() => handleNavItemClick(item)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  font: 'inherit',
-                  textAlign: 'left',
-                  padding: '8px 12px',
-                  borderRadius: 8
-                }}
               >
-                {item.label}
+                <span>{item.label}</span>
               </button>
             );
           })}
 
+          {/* Nút Quét mã QR bằng Camera */}
           {onOpenQRScanner && (
             <button
               type="button"
@@ -574,14 +572,13 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 width: '100%',
                 padding: '12px',
                 borderRadius: 10,
-                background: 'linear-gradient(135deg, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.06) 100%)',
-                border: '1px solid rgba(212,175,55,0.35)',
+                background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(212,175,55,0.08) 100%)',
+                border: '1px solid rgba(212,175,55,0.4)',
                 color: '#D4AF37',
                 fontWeight: 700,
                 fontSize: '0.9rem',
                 cursor: 'pointer',
-                marginTop: 10,
-                marginBottom: 4
+                marginTop: 6
               }}
             >
               <QrCode size={18} />
@@ -589,11 +586,71 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             </button>
           )}
 
-          {!user && (
+          {/* Dải chọn ngôn ngữ nhanh trên Mobile */}
+          <div className="client-mobile-lang-row">
+            <span style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)', fontWeight: 600 }}>
+              {t('common.language', 'Ngôn ngữ')}:
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {activeLanguages.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  className={`client-mobile-lang-chip ${lang.code === currentLang ? 'active' : ''}`}
+                  onClick={() => changeLanguage(lang.code)}
+                >
+                  <span>{lang.flagIcon}</span>
+                  <span>{lang.code.toUpperCase()}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Nếu user là Admin: hiển thị nút Cổng Quản Trị Hệ Thống */}
+          {user && user.role === 'admin' && (
+            <button
+              type="button"
+              className="client-mobile-nav-link"
+              style={{
+                background: 'rgba(212, 175, 55, 0.12)',
+                borderColor: 'rgba(212, 175, 55, 0.35)',
+                color: 'var(--c-gold)',
+                fontWeight: 600,
+                marginTop: 4
+              }}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onNavigateAdmin();
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Shield size={16} />
+                <span>Cổng Quản Trị Hệ Thống</span>
+              </span>
+            </button>
+          )}
+
+          {/* Nút Đăng nhập hoặc Đăng xuất */}
+          {user ? (
+            <button
+              type="button"
+              className="client-mobile-nav-link"
+              style={{ color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.2)', marginTop: 4 }}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                logout();
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <LogOut size={16} />
+                <span>Đăng xuất tài khoản</span>
+              </span>
+            </button>
+          ) : (
             <button
               type="button"
               className="client-nav-login-btn"
-              style={{ marginTop: 8, justifyContent: 'center', width: '100%' }}
+              style={{ marginTop: 8, justifyContent: 'center', width: '100%', display: 'inline-flex' }}
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 onOpenLoginModal();
@@ -606,5 +663,6 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
         </div>
       )}
     </nav>
+    </>
   );
 };
