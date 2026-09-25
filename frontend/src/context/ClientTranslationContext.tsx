@@ -18,8 +18,18 @@ const ClientTranslationContext = createContext<ClientTranslationContextType | un
 
 const STORAGE_LANG_KEY = 'museum_client_lang';
 const BUNDLE_STORAGE_PREFIX = 'museum_i18n_bundle_';
-const DYNAMIC_I18N_STORAGE_PREFIX = 'museum_dynamic_i18n_';
+const DYNAMIC_I18N_STORAGE_PREFIX = 'museum_dynamic_i18n_v2_';
 const VIETNAMESE_REGEX = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/i;
+
+// Loại bỏ triệt để hậu tố mã nguồn 'vi' do Google dict-chrome-ex ghép nhầm
+export function cleanTranslationResult(str: string, orig: string, targetLang: string): string {
+  if (!str) return str;
+  let s = str.trim();
+  if (s.endsWith('vi') && s.length > 4 && !orig.toLowerCase().endsWith('vi')) {
+    s = s.slice(0, -2).trim();
+  }
+  return s;
+}
 
 // Kiểm tra tính hợp lệ của bản dịch, loại bỏ các trường hợp dịch giả hoặc bị lặp lại tiếng Việt
 function isValidTranslation(trans: string | undefined | null, original: string, targetLang: string): string | null {
@@ -382,7 +392,9 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
-          newDict = json.data;
+          for (const [k, v] of Object.entries(json.data)) {
+            newDict[k] = cleanTranslationResult(String(v), k, currentLang);
+          }
         }
       } else {
         // 2. Client fallback sang Google dict-chrome-ex trực tiếp nếu backend bận
@@ -398,9 +410,12 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
                   if (typeof data[0] === 'string') {
                     tr = data[0].trim();
                   } else if (Array.isArray(data[0])) {
-                    tr = data[0].map((item: any) => (Array.isArray(item) ? item[0] : item)).filter(Boolean).join('').trim();
+                    // data[0] có dạng [translatedText, sourceLang]
+                    const first = data[0][0];
+                    if (typeof first === 'string') tr = first.trim();
                   }
                 }
+                tr = cleanTranslationResult(tr, txt, currentLang);
                 if (tr && tr !== txt.trim()) {
                   newDict[txt] = tr;
                 }

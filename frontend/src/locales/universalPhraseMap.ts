@@ -16,6 +16,295 @@ export interface UniversalPhraseItem {
 }
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
+  // --- CLIENT PORTAL & NAVIGATION CORE TERMS (DỊCH TỨC THÌ 0MS - KHÔNG DELAY) ---
+  'Giới thiệu': {
+    en: 'Introduction',
+    fr: 'Introduction',
+    zh: '简介',
+    ja: 'ご紹介'
+  },
+  'Gian phòng 360°': {
+    en: '360° Rooms',
+    fr: 'Salles 360°',
+    zh: '360°展厅',
+    ja: '360°展示室'
+  },
+  'Cổ vật 3D': {
+    en: '3D Artifacts',
+    fr: 'Objets 3D',
+    zh: '3D文物',
+    ja: '3D文化財'
+  },
+  'Tham quan': {
+    en: 'Visit',
+    fr: 'Visite',
+    zh: '参观指南',
+    ja: '見学案内'
+  },
+  'Quét QR': {
+    en: 'Scan QR',
+    fr: 'Scanner QR',
+    zh: '扫码',
+    ja: 'QRスキャン'
+  },
+  'Quét Mã QR Bằng Camera': {
+    en: 'Scan QR Code with Camera',
+    fr: "Scanner le code QR à l'aide de l'appareil photo",
+    zh: '使用相机扫描二维码',
+    ja: 'カメラでQRコードをスキャン'
+  },
+  'Quét Mã QR': {
+    en: 'Scan QR Code',
+    fr: 'Scanner le code QR',
+    zh: '扫描二维码',
+    ja: 'QRコードをスキャン'
+  },
+  'Ngôn ngữ:': {
+    en: 'Language:',
+    fr: 'Langue :',
+    zh: '语言:',
+    ja: '言語:'
+  },
+  'Ngôn ngữ': {
+    en: 'Language',
+    fr: 'Langue',
+    zh: '语言',
+    ja: '言語'
+  },
+  'Ban Quản trị Bảo tàng Lịch sử TP.HCM': {
+    en: 'Board of Management - HCMC History Museum',
+    fr: "Conseil d'administration du Musée d'histoire de Hô Chi Minh-Ville",
+    zh: '胡志明市历史博物馆管理委员会',
+    ja: 'ホーチミン市歴史博物館管理委員会'
+  },
+  'Ban Quản trị Bảo tàng Lịch sử TP. Hồ Chí Minh': {
+    en: 'Board of Management - HCMC History Museum',
+    fr: "Conseil d'administration du Musée d'histoire de Hô Chi Minh-Ville",
+    zh: '胡志明市历史博物馆管理委员会',
+    ja: 'ホーチミン市歴史博物館管理委员会'
+  },
+  'Quản trị viên hệ thống': {
+    en: 'System Administrator',
+    fr: 'Administrateur du système',
+    zh: '系统管理员',
+    ja: 'システム管理者'
+  },
+  'Đăng xuất tài khoản': {
+    en: 'Log out',
+    fr: 'Déconnecter-vous de votre compte',
+    zh: '退出账号',
+    ja: 'ログアウト'
+  },
+  'Đăng nhập': {
+    en: 'Log in',
+    fr: 'Connexion',
+    zh: '登录',
+    ja: 'ログイン'
+  },
+  'Bắt Đầu Tour 360°': {
+    en: 'Start 360° Tour',
+    fr: 'Commencer la visite 360°',
+    zh: '开始360°漫游',
+    ja: '360°ツアーを開始'
+  },
+  'Chiêm Ngưỡng Cổ Vật 3D': {
+    en: 'Explore 3D Artifacts',
+    fr: 'Découvrir les objets 3D',
+    zh: '鉴赏3D文物',
+    ja: '3D文化財を鑑賞'
+  },
+  'GIAN PHÒNG 360°': {
+    en: '360° ROOMS',
+    fr: 'SALLES 360°',
+    zh: '360°展厅',
+    ja: '360°展示室'
+  },
+  'CỔ VẬT 3D': {
+    en: '3D ARTIFACTS',
+    fr: 'OBJETS 3D',
+    zh: '3D文物',
+    ja: '3D文化財'
+  },
+  'NGÔN NGỮ THUYẾT MINH': {
+    en: 'AUDIO LANGUAGES',
+    fr: 'LANGUES DE NARRATION',
+    zh: '解说语言',
+    ja: '解説言語'
+  },
+  'KHÔNG GIAN THỰC TẾ ẢO': {
+    en: 'VIRTUAL REALITY SPACE',
+    fr: 'ESPACE DE RÉALITÉ VIRTUELLE',
+    zh: '虚拟现实空间',
+    ja: 'バーチャルリアリティ空間'
+  },
+  'Hệ thống phòng tham quan 360°': {
+    en: '360° Virtual Tour Rooms System',
+    fr: 'Système de salles de visite à 360°',
+    zh: '360°全景展厅系统',
+    ja: '360°バーチャル見学展示室システム'
+  },
+  'Phòng 360° chưa được thêm': {
+    en: 'No 360° Room Added Yet',
+    fr: "La salle 360° n'a pas été ajoutée",
+    zh: '暂未添加360°展厅',
+    ja: '360°展示室はまだ追加されていません'
+  },
+  'Các không gian triển lãm sẽ sớm được cập nhật': {
+    en: 'Exhibition spaces will be updated soon',
+    fr: "Les espaces d'exposition seront bientôt mis à jour",
+    zh: '展览空间即将更新',
+    ja: '展示空間はまもなく更新されます'
+  },
+  'Khám phá tất cả các phòng 360°': {
+    en: 'Explore All 360° Rooms',
+    fr: 'Explorer toutes les salles à 360°',
+    zh: '探索全部360°展厅',
+    ja: 'すべての360°展示室を見る'
+  },
+  'Mới cập nhật': {
+    en: 'Recently Updated',
+    fr: 'Mis à jour récemment',
+    zh: '最新更新',
+    ja: '最近の更新'
+  },
+  'Thuyết minh đa ngôn ngữ': {
+    en: 'Multilingual Narration',
+    fr: 'Narration multilingue',
+    zh: '多语言解说',
+    ja: '多言語ナレーション'
+  },
+  'Chuyển phòng đa hướng': {
+    en: 'Multi-directional Navigation',
+    fr: 'Transition multidirectionnelle',
+    zh: '多向展厅切换',
+    ja: '多方向ルート移動'
+  },
+  'Không gian trưng bày': {
+    en: 'Exhibition spaces',
+    fr: "Espaces d'exposition",
+    zh: '展览空间',
+    ja: '展示空間'
+  },
+  'Hiện vật số hóa': {
+    en: 'Digitized artifacts',
+    fr: 'Objets numérisés',
+    zh: '数字化文物',
+    ja: 'デジタル化文化財'
+  },
+  'Quốc gia & vùng lãnh thổ': {
+    en: 'Countries & territories',
+    fr: 'Pays & territoires',
+    zh: '国家与地区',
+    ja: '国・地域'
+  },
+  'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia': {
+    en: 'National-Level Architectural Art Monument',
+    fr: "Monument d'art architectural de niveau national",
+    zh: '国家级建筑艺术遗迹',
+    ja: '国家級建築芸術遺産'
+  },
+  'Kiến Trúc & Không Gian': {
+    en: 'Architecture & Space',
+    fr: 'Architecture & Espace',
+    zh: '建筑与空间',
+    ja: '建築と空間'
+  },
+  'Lịch Sử & Kiến Trúc Bảo Tàng': {
+    en: 'Museum History & Architecture',
+    fr: 'Histoire & Architecture du Musée',
+    zh: '博物馆历史与建筑',
+    ja: '博物館の歴史と建築'
+  },
+  'Gần Một Thế Kỷ Gìn Giữ & Tôn Vinh Di Sản Dân Tộc': {
+    en: 'Nearly a Century of Preserving & Honoring National Heritage',
+    fr: 'Près d’un siècle de préservation et de valorisation du patrimoine national',
+    zh: '近一个世纪守护与弘扬民族遗产',
+    ja: '一世紀近くにわたり民族の遺産を守り継ぐ'
+  },
+  'Bảo Tàng Lịch Sử TP. Hồ Chí Minh': {
+    en: 'Museum of History in Ho Chi Minh City',
+    fr: "Musée d'Histoire de Hô Chi Minh-Ville",
+    zh: '胡志明市历史博物馆',
+    ja: 'ホーチミン市歴史博物館'
+  },
+  'Bảo tàng Lịch sử TP. Hồ Chí Minh': {
+    en: 'Museum of History in Ho Chi Minh City',
+    fr: "Musée d'Histoire de Hô Chi Minh-Ville",
+    zh: '胡志明市历史博物馆',
+    ja: 'ホーチミン市歴史博物館'
+  },
+  'Bảo tàng Lịch sử': {
+    en: 'History Museum',
+    fr: "Musée d'Histoire",
+    zh: '历史博物馆',
+    ja: '歴史博物館'
+  },
+  'TP. HỒ CHÍ MINH': {
+    en: 'HO CHI MINH CITY',
+    fr: 'HÔ CHI MINH-VILLE',
+    zh: '胡志明市',
+    ja: 'ホーチミン市'
+  },
+  'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.': {
+    en: 'Discover the flow of history through 360° panoramic VR technology and a vibrant 3D heritage viewing space.',
+    fr: "Découvrez le fil de l'histoire grâce à la technologie de visite virtuelle 360° et à l'espace vivant des trésors en 3D.",
+    zh: '通过360°全景虚拟现实技术与生动的3D文物空间，探索悠久的历史长河。',
+    ja: '360°パノラマVR技術と臨場感あふれる3D文化財空間を通じて、歴史の流れを体験してください。'
+  },
+  'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động': {
+    en: 'Discover the flow of history through 360° panoramic VR technology and a vibrant 3D heritage viewing space.',
+    fr: "Découvrez le fil de l'histoire grâce à la technologie de visite virtuelle 360° et à l'espace vivant des trésors en 3D.",
+    zh: '通过360°全景虚拟现实技术与生动的3D文物空间，探索悠久的历史长河。',
+    ja: '360°パノラマVR技術と臨場感あふれる3D文化財空間を通じて、歴史の流れを体験してください。'
+  },
+  'Khám phá toàn diện từng không gian trưng bày qua ảnh toàn cảnh 360° độ nét cao. Du khách có thể di chuyển giữa các phòng, tương tác với các điểm neo chú thích cổ vật và lắng nghe thuyết minh lịch sử.': {
+    en: 'Fully explore each exhibition hall through high-definition 360° panoramas. Visitors can move between rooms, interact with artifact hotspots, and listen to historical audio narrations.',
+    fr: "Explorez l'intégralité des espaces d'exposition à travers des panoramas nets à 360°. Les visiteurs peuvent se déplacer dans les pièces, interagir với les annotations des artefacts et écouter des explications historiques.",
+    zh: '通过高清晰度360°全景图像全面探索每个展厅。参观者可以在展厅之间穿梭，与文物注释热点互动，并聆听历史解说。',
+    ja: '高精細な360°パノラマ写真を通じて各展示室を余すところなく探索できます。部屋間を移動し、文化財の解説スポットを操作して歴史ナレーションを聴くことができます。'
+  },
+  'Khám phá toàn diện từng không gian trưng bày qua ảnh toàn cảnh 360° độ nét cao. Du khách có thể di chuyển giữa các phòng, tương tác với các điểm neo chú thích cổ vật và lắng nghe thuyết minh lịch sử': {
+    en: 'Fully explore each exhibition hall through high-definition 360° panoramas. Visitors can move between rooms, interact with artifact hotspots, and listen to historical audio narrations.',
+    fr: "Explorez l'intégralité des espaces d'exposition à travers des panoramas nets à 360°. Les visiteurs peuvent se déplacer dans les pièces, interagir với les annotations des artefacts et écouter des explications historiques.",
+    zh: '通过高清晰度360°全景图像全面探索每个展厅。参观者可以在展厅之间穿梭，与文物注释热点互动，并聆听历史解说。',
+    ja: '高精細な360°パノラマ写真を通じて各展示室を余すところなく探索できます。部屋間を移動し、文化財の解説スポットを操作して歴史ナレーションを聴くことができます。'
+  },
+  'Kiến Trúc Đông Dương Cổ Điển': {
+    en: 'Classic Indochine Architecture',
+    fr: 'Architecture indochinoise classique',
+    zh: '经典印度支那建筑',
+    ja: '伝統的なインドシナ建築'
+  },
+  'Kho Tàng Cổ Vật & Bảo Vật Quốc Gia': {
+    en: 'Treasury of Antiquities & National Treasures',
+    fr: "Trésor d'antiquités & trésors nationaux",
+    zh: '古物宝库与国家宝藏',
+    ja: '古美術・国宝の宝庫'
+  },
+  'Không Gian Tour 360° Thực Tế Ảo': {
+    en: '360° Virtual Reality Tour Space',
+    fr: 'Espace de visite virtuelle 360°',
+    zh: '360°虚拟现实漫游空间',
+    ja: '360°バーチャルリアリティツアー空間'
+  },
+  'Công trình di sản gần 100 năm tuổi với tháp bát giác tráng lệ và các vòm cửa hoa văn Á Đông độc đáo.': {
+    en: 'Nearly 100-year-old heritage monument featuring a magnificent octagonal tower and unique East Asian arched motifs.',
+    fr: 'Édifice patrimonial centenaire avec sa tour octogonale majestueuse et ses arcades aux motifs orientaux.',
+    zh: '拥有近百年历史的文化遗迹，建有雄伟的八角塔和独具东方特色的拱形雕饰。',
+    ja: '荘厳な八角塔と独自の東洋風アーチ模様が特徴的な、築100年近い遺産建築。'
+  },
+  'Lưu giữ nhiều bảo vật quốc gia độc bản, văn hóa Champa, Óc Eo và di sản mỹ thuật cung đình triều Nguyễn.': {
+    en: 'Preserving numerous unique national treasures, Champa, Oc Eo cultures, and Nguyen Dynasty imperial court arts.',
+    fr: "Conserve de nombreux trésors nationaux uniques, les cultures Champa, Oc Eo et l'art royal de la dynastie des Nguyen.",
+    zh: '馆藏众多独具特色的国家宝藏，包括占婆、奥高文化及阮朝宫廷艺术遗产。',
+    ja: 'ベトナム国宝、チャンパ、オケオ文化、阮朝宮廷美術の貴重な遺産を多数所蔵。'
+  },
+  'Khám phá toàn diện từng gian phòng triển lãm với ảnh toàn cảnh độ nét cao và điểm neo hiện vật tương tác.': {
+    en: 'Fully explore each exhibition room with high-definition panoramas and interactive artifact hotspots.',
+    fr: "Explorez chaque salle d'exposition grâce à des panoramas haute définition et des points d'interaction avec les artefacts.",
+    zh: '通过高清晰度全景与交互式文物热点全面探索每个展厅。',
+    ja: '高解像度パノラマと文化財インタラクティブスポットで各展示室を探索。'
+  },
   'Chưa có hiện vật nào phù hợp': {
     en: 'No matching artifacts found',
     fr: 'Aucun objet correspondant trouvé',
@@ -5955,12 +6244,6 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     fr: 'Đóng thông báo',
     zh: 'Đóng thông báo',
     ja: 'Đóng thông báo'
-  },
-  'Đăng nhập': {
-    en: 'Đăng nhập',
-    fr: 'Đăng nhập',
-    zh: 'Đăng nhập',
-    ja: 'Đăng nhập'
   },
   'Đăng nhập không thành công': {
     en: 'Đăng nhập không thành công',

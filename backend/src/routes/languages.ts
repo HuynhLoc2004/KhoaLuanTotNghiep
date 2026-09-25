@@ -266,7 +266,17 @@ languagesRouter.get('/bundle/:code', async (req: Request, res: Response) => {
   }
 });
 
-/**
+// Helper làm sạch triệt để kết quả dịch, chặn mọi trường hợp dính mã ngôn ngữ nguồn 'vi'
+export function cleanUpNMTOutput(trans: string, original: string, targetLang: string): string {
+  if (!trans) return '';
+  let cleaned = trans.trim();
+  // Khắc phục triệt để lỗi Google dict-chrome-ex ghép mã ngôn ngữ nguồn 'vi' vào cuối chuỗi (vd: "Introduirevi" -> "Introduire")
+  if (cleaned.endsWith('vi') && cleaned.length > 4 && !original.toLowerCase().endsWith('vi')) {
+    cleaned = cleaned.slice(0, -2).trim();
+  }
+  return cleaned;
+}
+
 /**
  * Helper dịch nhóm các cụm từ bằng AI (Gemini 2.5 Flash / Google NMT Grouped) kết hợp Redis Cache
  */
@@ -304,60 +314,30 @@ CRITICAL RULES:
           const parsed = JSON.parse(rawText);
           for (const key of texts) {
             if (parsed[key] && typeof parsed[key] === 'string' && parsed[key].trim()) {
-              result[key] = parsed[key].trim();
+              result[key] = cleanUpNMTOutput(parsed[key].trim(), key, cleanLang);
             }
           }
         }
       }
     } catch {
-      // Fallback sang Google Translate batch
+      // Fallback sang Google Translate song song
     }
   }
 
-  // 2. Với các cụm từ chưa được dịch (hoặc không có Gemini), dùng Google Translate batch theo lô 15 cụm từ
+  // 2. Với các cụm từ chưa được dịch, dùng Google Translate dict-chrome-ex song song siêu tốc theo từng nhóm nhỏ (12 cụm/lô)
   const remaining = texts.filter((t) => !result[t]);
   if (remaining.length > 0) {
-    const CHUNK_SIZE = 15;
-    for (let i = 0; i < remaining.length; i += CHUNK_SIZE) {
-      const chunk = remaining.slice(i, i + CHUNK_SIZE);
-      const combined = chunk.join('\n');
-      try {
-        const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(cleanLang)}&dt=t&q=${encodeURIComponent(combined)}`;
-        const gtxRes = await fetch(gtxUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
-          },
-          signal: AbortSignal.timeout(3500)
-        });
-        if (gtxRes.ok) {
-          const gtxData: any = await gtxRes.json();
-          if (Array.isArray(gtxData) && Array.isArray(gtxData[0])) {
-            const fullTranslatedText = gtxData[0].map((item: any) => item[0]).filter(Boolean).join('');
-            const lines = fullTranslatedText.split('\n');
-            if (lines.length === chunk.length) {
-              chunk.forEach((orig, idx) => {
-                const tr = lines[idx]?.trim();
-                if (tr && tr !== orig) {
-                  result[orig] = tr;
-                }
-              });
-            }
+    const BATCH_SIZE = 12;
+    for (let i = 0; i < remaining.length; i += BATCH_SIZE) {
+      const chunk = remaining.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        chunk.map(async (text) => {
+          const tr = await fetchSingleChunkNMT(text, cleanLang);
+          if (tr && tr !== text) {
+            result[text] = cleanUpNMTOutput(tr, text, cleanLang);
           }
-        }
-      } catch {
-        // Fallback sang fetchSingleChunkNMT
-      }
-
-      // Các từ chưa dịch được trong chunk này thì dùng fallback song song nhanh
-      const stillMissing = chunk.filter((t) => !result[t]);
-      if (stillMissing.length > 0) {
-        await Promise.all(
-          stillMissing.map(async (text) => {
-            const tr = await fetchSingleChunkNMT(text, cleanLang);
-            if (tr) result[text] = tr;
-          })
-        );
-      }
+        })
+      );
     }
   }
 
@@ -369,7 +349,7 @@ CRITICAL RULES:
         trans = trans.replace(new RegExp(vTerm, 'g'), tDict[cleanLang]);
       }
     }
-    result[text] = trans;
+    result[text] = cleanUpNMTOutput(trans, text, cleanLang);
   }
 
   return result;
@@ -378,7 +358,7 @@ CRITICAL RULES:
 /**
  * POST /api/languages/translate-batch
  * Dịch một mảng các cụm từ UI/văn bản sang ngôn ngữ đích (targetLang)
- * Có Redis cache và áp dụng chuẩn thuật ngữ Heritage Glossary bảo tàng
+ * Có Redis cache v2 và áp dụng chuẩn thuật ngữ Heritage Glossary bảo tàng
  */
 languagesRouter.post('/translate-batch', async (req: Request, res: Response) => {
   try {
@@ -400,13 +380,13 @@ languagesRouter.post('/translate-batch', async (req: Request, res: Response) => 
     const results: Record<string, string> = {};
     const uncachedTexts: string[] = [];
 
-    // 1. Kiểm tra cache Redis trước
+    // 1. Kiểm tra cache Redis v2 (làm sạch toàn bộ cache lỗi dính vi cũ)
     for (const text of uniqueTexts) {
       const textHash = Buffer.from(text).toString('base64').slice(0, 48);
-      const cacheKey = `cache:nmt:${cleanLang}:${textHash}`;
+      const cacheKey = `cache:nmt:v2:${cleanLang}:${textHash}`;
       const cached = await cacheGet<string>(cacheKey);
       if (cached) {
-        results[text] = cached;
+        results[text] = cleanUpNMTOutput(cached, text, cleanLang);
       } else {
         uncachedTexts.push(text);
       }
@@ -416,10 +396,11 @@ languagesRouter.post('/translate-batch', async (req: Request, res: Response) => 
     if (uncachedTexts.length > 0) {
       const translatedMap = await translateMultipleTexts(uncachedTexts, cleanLang);
       for (const [text, trans] of Object.entries(translatedMap)) {
-        results[text] = trans;
+        const cleanTrans = cleanUpNMTOutput(trans, text, cleanLang);
+        results[text] = cleanTrans;
         const textHash = Buffer.from(text).toString('base64').slice(0, 48);
-        const cacheKey = `cache:nmt:${cleanLang}:${textHash}`;
-        await cacheSet(cacheKey, trans, 7 * 24 * 3600);
+        const cacheKey = `cache:nmt:v2:${cleanLang}:${textHash}`;
+        await cacheSet(cacheKey, cleanTrans, 14 * 24 * 3600);
       }
     }
 
@@ -568,10 +549,14 @@ export async function fetchSingleChunkNMT(chunk: string, targetLang: string): Pr
       const data: any = await chromeExRes.json();
       if (Array.isArray(data) && data.length > 0) {
         if (typeof data[0] === 'string' && data[0].trim()) {
-          return data[0].trim();
+          return cleanUpNMTOutput(data[0].trim(), chunk, cleanLang);
         }
-        if (Array.isArray(data[0]) && typeof data[0][0] === 'string' && data[0][0].trim()) {
-          return data[0].map((item: any) => (Array.isArray(item) ? item[0] : item)).filter(Boolean).join('');
+        if (Array.isArray(data[0])) {
+          // data[0] có cấu trúc [translatedText, sourceLang] ví dụ ["Introduire", "vi"]
+          const first = data[0][0];
+          if (typeof first === 'string' && first.trim()) {
+            return cleanUpNMTOutput(first.trim(), chunk, cleanLang);
+          }
         }
       }
     }
