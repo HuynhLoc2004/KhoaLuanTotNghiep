@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Navigation,
   Eye,
@@ -13,9 +13,13 @@ import {
   RotateCcw,
   Info,
   Layers,
-  Building
+  Building,
+  ZoomIn,
+  ZoomOut,
+  Compass
 } from 'lucide-react';
 import { FloorPlanMap, FloorPlanNode, FloorPlanEdge } from '../../types';
+import './interactiveFloorPlanMap.css';
 
 interface InteractiveFloorPlanMapProps {
   floorPlan: FloorPlanMap;
@@ -33,6 +37,50 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   );
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [showOriginalImage, setShowOriginalImage] = useState<boolean>(false);
+
+  // Trạng thái Phóng to / Thu nhỏ / Kéo bản đồ (Zoom & Pan)
+  const [zoom, setZoom] = useState<number>(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState<boolean>(false);
+  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const handleZoomIn = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setZoom((prev) => Math.min(2.5, Math.round((prev + 0.25) * 100) / 100));
+  };
+
+  const handleZoomOut = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setZoom((prev) => {
+      const next = Math.max(1, Math.round((prev - 0.25) * 100) / 100);
+      if (next === 1) setPan({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  const handleResetZoom = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (zoom <= 1) return;
+    setIsPanning(true);
+    dragStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isPanning || zoom <= 1) return;
+    setPan({
+      x: e.clientX - dragStartRef.current.x,
+      y: e.clientY - dragStartRef.current.y
+    });
+  };
+
+  const handlePointerUp = () => {
+    setIsPanning(false);
+  };
 
   // Tự động đồng bộ node được chọn khi danh sách phòng từ MongoDB thay đổi
   React.useEffect(() => {
@@ -216,28 +264,19 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
 
   return (
     <div
-      className="interactive-floorplan-container"
+      className="ifp-container"
       style={{
         background: isLight ? '#FFFFFF' : '#111520',
         border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.09)'}`,
-        borderRadius: 14,
-        padding: '20px',
         color: isLight ? '#181C26' : '#F1F5F9',
-        boxShadow: isLight ? '0 8px 24px rgba(0, 0, 0, 0.05)' : '0 10px 30px rgba(0, 0, 0, 0.35)',
-        position: 'relative'
+        boxShadow: isLight ? '0 8px 24px rgba(0, 0, 0, 0.05)' : '0 10px 30px rgba(0, 0, 0, 0.35)'
       }}
     >
       {/* Header thanh điều khiển sơ đồ */}
       <div
+        className="ifp-header"
         style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginBottom: 16,
-          borderBottom: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)'}`,
-          paddingBottom: 14
+          borderBottom: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)'}`
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -267,7 +306,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
         </div>
 
         {/* Nút chuyển chế độ xem */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="ifp-header-badges" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {floorPlan.imageUrl && (
             <button
               type="button"
@@ -316,24 +355,18 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
       </div>
 
       {/* Khu vực Hiển thị Mặt Bằng */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.8fr) minmax(290px, 1fr)',
-          gap: 16,
-          alignItems: 'stretch'
-        }}
-      >
+      <div className="ifp-grid">
         {/* Canvas SVG Trực quan hóa Mặt Bằng Kiến Trúc Chuẩn */}
         <div
+          className="ifp-canvas-card"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           style={{
-            position: 'relative',
-            aspectRatio: '16 / 11',
-            minHeight: 390,
             background: isLight ? '#F8FAFC' : '#141720',
-            borderRadius: 10,
             border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`,
-            overflow: 'hidden'
+            cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default'
           }}
         >
           {showOriginalImage && floorPlan.imageUrl ? (
@@ -380,8 +413,15 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 </marker>
               </defs>
 
-              {/* Các đường liên kết lối đi tĩnh thanh mảnh, thể hiện hướng di chuyển rõ ràng giữa các gian */}
-              {floorPlan.edges.map((edge) => {
+              <g
+                transform={`translate(${pan.x / 4}, ${pan.y / 4}) scale(${zoom})`}
+                style={{
+                  transformOrigin: '50% 50%',
+                  transition: isPanning ? 'none' : 'transform 0.18s ease-out'
+                }}
+              >
+                {/* Các đường liên kết lối đi tĩnh thanh mảnh, thể hiện hướng di chuyển rõ ràng giữa các gian */}
+                {floorPlan.edges.map((edge) => {
                 const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
                 const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
                 if (!nodeFrom || !nodeTo) return null;
@@ -591,46 +631,58 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                   </g>
                 );
               })}
+              </g>
             </svg>
           )}
 
           {/* Chỉ báo phương vị Bắc chuẩn kiến trúc */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 10,
-              right: 12,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '4px 8px',
-              borderRadius: 6,
-              background: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 19, 29, 0.85)',
-              border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.1)'}`,
-              fontSize: 11,
-              fontWeight: 500,
-              color: isLight ? '#475569' : '#CBD5E1',
-              backdropFilter: 'blur(6px)',
-              WebkitBackdropFilter: 'blur(6px)',
-              pointerEvents: 'none'
-            }}
-          >
-            <Navigation size={11} style={{ color: isLight ? '#B45309' : '#D4A86A' }} />
-            <span>Hướng Bắc (N)</span>
+          <div className="ifp-compass-badge">
+            <Compass size={13} />
+            <span className="ifp-compass-text">Hướng Bắc (N)</span>
+          </div>
+
+          {/* Bộ công cụ Phóng to / Thu nhỏ / Reset nhanh ngay trên bản đồ (Rất tiện lợi trên Mobile) */}
+          <div className="ifp-canvas-controls">
+            <button
+              type="button"
+              className="ifp-ctrl-btn"
+              onClick={handleZoomIn}
+              title="Phóng to sơ đồ"
+              aria-label="Zoom in"
+            >
+              <ZoomIn size={14} />
+            </button>
+            <button
+              type="button"
+              className="ifp-ctrl-btn"
+              onClick={handleZoomOut}
+              title="Thu nhỏ sơ đồ"
+              aria-label="Zoom out"
+              disabled={zoom <= 1}
+              style={{ opacity: zoom <= 1 ? 0.4 : 1 }}
+            >
+              <ZoomOut size={14} />
+            </button>
+            {zoom > 1 && (
+              <button
+                type="button"
+                className="ifp-ctrl-btn"
+                onClick={handleResetZoom}
+                title="Về tỉ lệ ban đầu"
+                aria-label="Reset zoom"
+              >
+                <RotateCcw size={12} />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Panel Chi Tiết Gian Phòng Đang Chọn (Tinh gọn, rõ ràng, không màu mè rối mắt) */}
+        {/* Panel Chi Tiết Gian Phòng Đang Chọn (Responsive 100% trên Mobile & Desktop) */}
         <div
+          className="ifp-details-card"
           style={{
             background: isLight ? '#F8FAFC' : '#0E131F',
-            border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`,
-            borderRadius: 10,
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            gap: 14
+            border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`
           }}
         >
           {activeNode ? (
