@@ -429,70 +429,8 @@ export const AdminGuideCMSPage: React.FC = () => {
     { id: 'rules', num: 5, label: '5. Tiện ích & Quy định', desc: '4 quy định tham quan văn minh và tiện ích phục vụ khách', icon: ShieldCheck }
   ] as const;
 
-  // Thanh điều hướng chân phân mục (Phần trước / Lưu / Phần tiếp theo)
-  const renderSubTabFooter = (currentIndex: number, sectionName: string) => {
-    const prevTab = currentIndex > 0 ? GUIDE_SUBTABS[currentIndex - 1] : null;
-    const nextTab = currentIndex < GUIDE_SUBTABS.length - 1 ? GUIDE_SUBTABS[currentIndex + 1] : null;
-
-    return (
-      <div
-        style={{
-          marginTop: 28,
-          paddingTop: 18,
-          borderTop: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12
-        }}
-      >
-        {prevTab ? (
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            onClick={() => {
-              setGuideSubTab(prevTab.id as any);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <ArrowLeft size={14} />
-            <span>Phần trước: {prevTab.label}</span>
-          </button>
-        ) : <div />}
-
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={() => handleSave(sectionName)}
-          disabled={isSaving}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
-        >
-          <Save size={15} />
-          <span>{isSaving ? 'Đang lưu...' : `Lưu thay đổi ${sectionName}`}</span>
-        </button>
-
-        {nextTab ? (
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            onClick={() => {
-              setGuideSubTab(nextTab.id as any);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <span>Phần tiếp theo: {nextTab.label}</span>
-            <ArrowRight size={14} />
-          </button>
-        ) : <div />}
-      </div>
-    );
-  };
-
   return (
-    <div className="admin-content" style={{ paddingBottom: 100 }}>
+    <div className="admin-content" style={{ paddingBottom: 60 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG QUẢN TRỊ TRANG CẨM NANG & SƠ ĐỒ */}
       <div
         className="settings-header"
@@ -505,45 +443,44 @@ export const AdminGuideCMSPage: React.FC = () => {
           marginBottom: 16
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
-              border: '1px solid var(--accent-gold)',
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#FFF8F0',
-              boxShadow: '0 4px 12px rgba(140, 45, 25, 0.3)',
+              color: 'var(--text-main)',
               flexShrink: 0
             }}
           >
-            <Layers size={22} />
+            <Layers size={18} />
           </div>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
-              Quản Lý Giao Diện & Nội Dung Trang Cẩm Nang & Sơ Đồ
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 3px 0' }}>
+              Quản Lý Trang Cẩm Nang & Sơ Đồ
             </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, maxWidth: 740, lineHeight: 1.5 }}>
-              Quản lý độc lập toàn bộ nội dung trang Cẩm nang tham quan thực địa: Sơ đồ mặt bằng kiến trúc, thời gian mở cửa, bảng giá vé niêm yết, vị trí chỉ đường Google Maps và các quy định tiện ích.
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: 0, maxWidth: 740, lineHeight: 1.4 }}>
+              Cấu hình nội dung trang cẩm nang: Sơ đồ mặt bằng, giờ mở cửa, bảng giá vé, vị trí chỉ đường và quy định tham quan.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <a
             href="/?page=guide"
             target="_blank"
             rel="noreferrer"
             className="btn btn-secondary btn-sm"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <Globe size={15} />
-            <span>Xem Trang Cẩm Nang Khách</span>
-            <ExternalLink size={13} style={{ opacity: 0.6 }} />
+            <Globe size={14} />
+            <span>Xem trang khách</span>
+            <ExternalLink size={12} style={{ opacity: 0.6 }} />
           </a>
 
           <button
@@ -551,7 +488,7 @@ export const AdminGuideCMSPage: React.FC = () => {
             className="btn btn-secondary btn-sm"
             onClick={handleResetDefaults}
             title="Đặt lại các nội dung về mẫu chuẩn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <RotateCcw size={14} />
             <span>Khôi phục mẫu</span>
@@ -562,32 +499,28 @@ export const AdminGuideCMSPage: React.FC = () => {
             className="btn btn-primary btn-sm"
             onClick={() => handleSave()}
             disabled={isSaving}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <Save size={15} />
+            <Save size={14} />
             <span>{isSaving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}</span>
           </button>
         </div>
       </div>
 
-      {/* 2. THANH PHÂN NHÓM CHUYÊN ĐỀ (SUB-TABS) - GỌN GÀNG, CHUẨN MỰC */}
+      {/* 2. THANH SUB-TABS PHẲNG, TỐI GIẢN CHUẨN DASHBOARD ADMIN */}
       <div
         style={{
           background: 'var(--bg-surface)',
-          padding: '8px 14px',
-          borderRadius: 10,
+          padding: '6px 8px',
+          borderRadius: 8,
           border: '1px solid var(--border-color)',
-          marginBottom: 20,
+          marginBottom: 18,
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 6,
           overflowX: 'auto'
         }}
       >
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4 }}>
-          Chọn phân mục:
-        </span>
-
         {GUIDE_SUBTABS.map((tab) => {
           const isActive = guideSubTab === tab.id;
           const TabIcon = tab.icon;
@@ -601,20 +534,20 @@ export const AdminGuideCMSPage: React.FC = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '7px 16px',
-                borderRadius: 8,
+                padding: '6px 14px',
+                borderRadius: 6,
                 fontSize: 12.5,
                 fontWeight: isActive ? 600 : 500,
                 border: '1px solid',
-                borderColor: isActive ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
-                background: isActive ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-                color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
+                borderColor: isActive ? 'var(--border-color)' : 'transparent',
+                background: isActive ? 'var(--bg-subtle)' : 'transparent',
+                color: isActive ? 'var(--heading-color)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.15s ease'
               }}
             >
-              <TabIcon size={14} />
+              <TabIcon size={13} style={{ opacity: isActive ? 1 : 0.7 }} />
               <span>{tab.label}</span>
             </button>
           );
@@ -723,7 +656,6 @@ export const AdminGuideCMSPage: React.FC = () => {
                 />
               </div>
             </div>
-            {renderSubTabFooter(0, 'Phần 1: Giới thiệu chung')}
           </div>
         )}
 
@@ -731,55 +663,28 @@ export const AdminGuideCMSPage: React.FC = () => {
         {guideSubTab === 'floorplan' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             
-            {/* THANH CÔNG CỤ ĐIỀU HƯỚNG NHANH CỦA PHÂN MỤC */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 12,
-                background: 'var(--bg-card)',
-                padding: '12px 18px',
-                borderRadius: 12,
-                border: '1px solid var(--border-color)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Compass size={20} style={{ color: 'var(--accent-gold)' }} />
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--heading-color)' }}>
-                    Quản Lý Hệ Thống Sơ Đồ & Bản Đồ Không Gian
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    Định vị các gian phòng và điều hướng luồng tham quan thực địa
-                  </div>
+            {/* Header phân mục 2 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Hệ thống sơ đồ mặt bằng kiến trúc
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Quản lý danh sách các bản đồ và sơ đồ không gian phân tích bằng thuật toán Pure CV
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => loadFloorPlansRepo(repoPage, repoLimit)}
                   disabled={repoLoading}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                 >
                   <RefreshCw size={13} className={repoLoading ? 'animate-spin' : ''} />
-                  <span>{repoLoading ? 'Đang đồng bộ...' : 'Làm mới'}</span>
+                  <span>Làm mới</span>
                 </button>
-
-                <a
-                  href="/?page=guide#floorplan"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-                >
-                  <Globe size={13} />
-                  <span>Xem Trang Khách</span>
-                  <ExternalLink size={12} />
-                </a>
 
                 <button
                   type="button"
@@ -789,32 +694,22 @@ export const AdminGuideCMSPage: React.FC = () => {
                     setNewMapTitle('');
                     setIsUploadModalOpen(true);
                   }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-                    borderColor: '#D97706',
-                    boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)'
-                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                 >
-                  <Plus size={15} />
-                  <span>Tải Lên Sơ Đồ Mới (Pure CV)</span>
+                  <Plus size={14} />
+                  <span>Tải lên sơ đồ mới</span>
                 </button>
               </div>
             </div>
 
-            {/* 1. KHU VỰC BẢN ĐỒ ĐANG ÁP DỤNG TRÊN CLIENT (LIVE STATUS) */}
+            {/* 1. Bản đồ đang áp dụng trên Client (Live) */}
             {activeFloorPlan ? (
               <div
                 style={{
-                  background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%)',
-                  border: '1.5px solid rgba(16, 185, 129, 0.45)',
-                  borderRadius: 14,
-                  padding: '16px 20px',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 8,
+                  padding: '14px 16px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -822,15 +717,15 @@ export const AdminGuideCMSPage: React.FC = () => {
                   gap: 16
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 280 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div
                     style={{
-                      width: 140,
-                      height: 90,
-                      borderRadius: 8,
+                      width: 110,
+                      height: 72,
+                      borderRadius: 6,
                       overflow: 'hidden',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      background: '#0D111A',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-subtle)',
                       flexShrink: 0,
                       display: 'flex',
                       alignItems: 'center',
@@ -844,45 +739,37 @@ export const AdminGuideCMSPage: React.FC = () => {
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                       />
                     ) : (
-                      <ImageIcon size={24} style={{ opacity: 0.3, color: 'var(--text-muted)' }} />
+                      <ImageIcon size={20} style={{ opacity: 0.35, color: 'var(--text-muted)' }} />
                     )}
                   </div>
 
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <span
                         style={{
-                          background: 'rgba(16, 185, 129, 0.2)',
-                          color: '#10B981',
-                          border: '1px solid rgba(16, 185, 129, 0.45)',
-                          padding: '2px 8px',
-                          borderRadius: 12,
-                          fontSize: 11,
-                          fontWeight: 700,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          color: '#16A34A',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 4
+                          gap: 5
                         }}
                       >
-                        <Radio size={11} className="animate-pulse" />
-                        ĐANG LIVE TRÊN CLIENT
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A', display: 'inline-block' }} />
+                        Đang áp dụng trên Client
                       </span>
                     </div>
 
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent-gold)', margin: '0 0 6px 0' }}>
+                    <h4 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
                       {activeFloorPlan.title || 'Sơ đồ mặt bằng các gian trưng bày'}
-                    </h3>
+                    </h4>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 11.5, color: 'var(--text-muted)' }}>
-                      <span style={{ background: 'var(--bg-card)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-color)', color: 'var(--text-main)' }}>
-                        🏛️ <strong>{activeFloorPlan.nodes?.length || 0}</strong> gian phòng
-                      </span>
-                      <span style={{ background: 'var(--bg-card)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-color)', color: 'var(--text-main)' }}>
-                        🚪 <strong>{activeFloorPlan.edges?.length || 0}</strong> liên kết cửa
-                      </span>
-                      <span style={{ background: 'var(--bg-card)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-color)' }}>
-                        ⚙️ {activeFloorPlan.analysisAlgorithm || 'Pure CV'}
-                      </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+                      <span>{activeFloorPlan.nodes?.length || 0} gian phòng</span>
+                      <span>•</span>
+                      <span>{activeFloorPlan.edges?.length || 0} liên kết cửa</span>
+                      <span>•</span>
+                      <span>{activeFloorPlan.analysisAlgorithm || 'Pure-CV Engine'}</span>
                     </div>
                   </div>
                 </div>
@@ -892,60 +779,45 @@ export const AdminGuideCMSPage: React.FC = () => {
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={() => setPreviewModalMap(activeFloorPlan)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     <Eye size={13} />
-                    <span>Xem Đồ Thị Tô-Pô & Hướng Đi (Admin)</span>
+                    <span>Xem đồ thị tô-pô</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <div style={{ padding: '16px 20px', background: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                Chưa có sơ đồ nào được kích hoạt hiển thị cho khách tham quan.
+              <div style={{ padding: '14px 16px', background: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12.5 }}>
+                Chưa có sơ đồ nào được áp dụng cho khách tham quan.
               </div>
             )}
 
-            {/* 2. KHO LƯU TRỮ SƠ ĐỒ MẶT BẰNG & THƯ VIỆN BẢN ĐỒ */}
-            <div
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 14,
-                padding: '18px 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            {/* 2. Kho lưu trữ bản đồ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Layers size={17} style={{ color: 'var(--accent-gold)' }} />
-                  <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--heading-color)' }}>
-                    Kho Lưu Trữ Bản Đồ Trong Hệ Thống
+                  <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                    Kho lưu trữ bản đồ
                   </span>
-                  <span style={{ background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 12, fontSize: 11.5, fontWeight: 700 }}>
-                    {repoTotal} bản đồ
+                  <span style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 7px', borderRadius: 10, fontSize: 11.5, fontWeight: 600 }}>
+                    {repoTotal}
                   </span>
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  Bấm "Áp dụng cho Client" để chuyển đổi sơ đồ phục vụ khách ngay lập tức
-                </span>
               </div>
 
               {/* Lưới các thẻ bản đồ */}
               {repoLoading && floorPlansRepo.length === 0 ? (
-                <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <div className="spinner-border" style={{ width: 24, height: 24, margin: '0 auto 10px', display: 'block' }} />
-                  Đang tải danh sách bản đồ trong kho...
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  <div className="spinner-border" style={{ width: 22, height: 22, margin: '0 auto 8px', display: 'block' }} />
+                  Đang tải danh sách bản đồ...
                 </div>
               ) : floorPlansRepo.length === 0 ? (
-                <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface)', borderRadius: 10, border: '1px dashed var(--border-color)' }}>
-                  <Layers size={32} style={{ opacity: 0.35, margin: '0 auto 8px', display: 'block' }} />
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>Kho lưu trữ hiện đang trống.</p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: 12 }}>Bấm nút "Tải Lên Sơ Đồ Mới" ở phía trên để thêm bản đồ đầu tiên.</p>
+                <div style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface)', borderRadius: 8, border: '1px dashed var(--border-color)' }}>
+                  <Layers size={28} style={{ opacity: 0.3, margin: '0 auto 6px', display: 'block' }} />
+                  <p style={{ margin: 0, fontSize: 13 }}>Kho lưu trữ hiện đang trống.</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
                   {floorPlansRepo.map((item) => {
                     const isLive = item.id === activeFloorPlanId || item.active;
                     const isActivating = activatingId === item.id;
@@ -954,68 +826,66 @@ export const AdminGuideCMSPage: React.FC = () => {
                         key={item.id}
                         style={{
                           background: 'var(--bg-surface)',
-                          border: isLive ? '1.5px solid #10B981' : '1px solid var(--border-color)',
-                          borderRadius: 12,
+                          border: '1px solid var(--border-color)',
+                          borderRadius: 8,
                           overflow: 'hidden',
                           display: 'flex',
-                          flexDirection: 'column',
-                          boxShadow: isLive ? '0 0 14px rgba(16, 185, 129, 0.15)' : 'none',
-                          transition: 'all 0.2s ease'
+                          flexDirection: 'column'
                         }}
                       >
-                        {/* Ảnh thumbnail & Badge */}
-                        <div style={{ position: 'relative', width: '100%', height: 140, background: '#0D111A' }}>
+                        {/* Thumbnail */}
+                        <div style={{ position: 'relative', width: '100%', height: 130, background: 'var(--bg-subtle)' }}>
                           <img
                             src={item.imageUrl}
                             alt={item.title}
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                           />
-                          <div style={{ position: 'absolute', top: 8, left: 8 }}>
+                          <div style={{ position: 'absolute', top: 6, left: 6 }}>
                             {isLive ? (
                               <span
                                 style={{
-                                  background: 'rgba(16, 185, 129, 0.9)',
-                                  color: '#fff',
+                                  background: 'rgba(15, 23, 42, 0.85)',
+                                  color: '#4ADE80',
                                   fontSize: 10.5,
-                                  fontWeight: 700,
-                                  padding: '3px 8px',
-                                  borderRadius: 12,
+                                  fontWeight: 600,
+                                  padding: '2px 7px',
+                                  borderRadius: 4,
+                                  border: '1px solid rgba(74, 222, 128, 0.3)',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 4,
-                                  boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
+                                  gap: 4
                                 }}
                               >
-                                <Radio size={11} className="animate-pulse" />
-                                ĐANG DÙNG TRÊN CLIENT
+                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
+                                Đang dùng
                               </span>
                             ) : (
                               <span
                                 style={{
-                                  background: 'rgba(30, 41, 59, 0.85)',
-                                  color: '#94A3B8',
+                                  background: 'rgba(15, 23, 42, 0.85)',
+                                  color: 'var(--text-muted)',
                                   fontSize: 10.5,
-                                  fontWeight: 600,
-                                  padding: '3px 8px',
-                                  borderRadius: 12,
-                                  border: '1px solid rgba(255,255,255,0.1)'
+                                  fontWeight: 500,
+                                  padding: '2px 7px',
+                                  borderRadius: 4,
+                                  border: '1px solid rgba(255,255,255,0.08)'
                                 }}
                               >
-                                LƯU TRONG KHO
+                                Lưu kho
                               </span>
                             )}
                           </div>
                         </div>
 
-                        {/* Thông tin chi tiết */}
-                        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', flex: 1, gap: 8 }}>
+                        {/* Chi tiết */}
+                        <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', flex: 1, gap: 6 }}>
                           <div>
                             <h4
                               style={{
-                                fontSize: 13.5,
+                                fontSize: 13,
                                 fontWeight: 600,
-                                color: isLive ? '#10B981' : 'var(--heading-color)',
-                                margin: '0 0 3px 0',
+                                color: 'var(--heading-color)',
+                                margin: '0 0 2px 0',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'
@@ -1025,21 +895,19 @@ export const AdminGuideCMSPage: React.FC = () => {
                               {item.title || item.id}
                             </h4>
                             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                              Mã ID: {item.id}
+                              ID: {item.id}
                             </span>
                           </div>
 
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: 'var(--text-muted)' }}>
-                            <span style={{ background: 'var(--bg-card)', padding: '2px 7px', borderRadius: 4, border: '1px solid var(--border-color)' }}>
-                              🏛️ {item.nodes?.length || 0} phòng
-                            </span>
-                            <span style={{ background: 'var(--bg-card)', padding: '2px 7px', borderRadius: 4, border: '1px solid var(--border-color)' }}>
-                              🚪 {item.edges?.length || 0} cửa
-                            </span>
+                            <span>{item.nodes?.length || 0} phòng</span>
+                            <span>•</span>
+                            <span>{item.edges?.length || 0} cửa</span>
                             {(item.imageWidth || item.width) && (item.imageHeight || item.height) && (
-                              <span style={{ background: 'var(--bg-card)', padding: '2px 7px', borderRadius: 4, border: '1px solid var(--border-color)' }}>
-                                📐 {item.imageWidth || item.width}×{item.imageHeight || item.height}
-                              </span>
+                              <>
+                                <span>•</span>
+                                <span>{item.imageWidth || item.width}×{item.imageHeight || item.height}px</span>
+                              </>
                             )}
                           </div>
 
@@ -1049,24 +917,20 @@ export const AdminGuideCMSPage: React.FC = () => {
                               <button
                                 type="button"
                                 disabled
+                                className="btn btn-secondary btn-sm"
                                 style={{
                                   flex: 1,
-                                  padding: '6px 10px',
+                                  padding: '5px 8px',
                                   fontSize: 11.5,
-                                  fontWeight: 600,
-                                  background: 'rgba(16, 185, 129, 0.12)',
-                                  color: '#10B981',
-                                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                                  borderRadius: 6,
+                                  opacity: 0.65,
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  gap: 5,
-                                  cursor: 'default'
+                                  gap: 4
                                 }}
                               >
-                                <Check size={13} />
-                                <span>Đang phục vụ client</span>
+                                <Check size={12} />
+                                <span>Đang dùng</span>
                               </button>
                             ) : (
                               <button
@@ -1076,17 +940,16 @@ export const AdminGuideCMSPage: React.FC = () => {
                                 className="btn btn-primary btn-sm"
                                 style={{
                                   flex: 1,
-                                  padding: '6px 10px',
+                                  padding: '5px 8px',
                                   fontSize: 11.5,
-                                  fontWeight: 600,
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  gap: 5
+                                  gap: 4
                                 }}
                               >
-                                <Zap size={13} />
-                                <span>{isActivating ? 'Đang kích hoạt...' : 'Áp dụng cho Client'}</span>
+                                <Zap size={12} />
+                                <span>{isActivating ? 'Đang bật...' : 'Áp dụng'}</span>
                               </button>
                             )}
 
@@ -1094,27 +957,20 @@ export const AdminGuideCMSPage: React.FC = () => {
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => setPreviewModalMap(item)}
-                              title="Xem trước cấu trúc tô-pô không gian"
-                              style={{ padding: '6px 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                              title="Xem trước cấu trúc tô-pô"
+                              style={{ padding: '5px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                              <Eye size={13} />
+                              <Eye size={12} />
                             </button>
 
                             <button
                               type="button"
                               className="btn btn-outline btn-sm"
                               onClick={() => handleDeleteMap(item)}
-                              title="Xóa bản đồ khỏi kho"
-                              style={{
-                                padding: '6px 9px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#EF4444',
-                                borderColor: 'rgba(239, 68, 68, 0.3)'
-                              }}
+                              title="Xóa bản đồ"
+                              style={{ padding: '5px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}
                             >
-                              <Trash2 size={13} />
+                              <Trash2 size={12} />
                             </button>
                           </div>
                         </div>
@@ -1124,8 +980,8 @@ export const AdminGuideCMSPage: React.FC = () => {
                 </div>
               )}
 
-              {/* PHÂN TRANG THEO QUY TẮC CHUNG CỦA HỆ THỐNG */}
-              <div style={{ marginTop: 8 }}>
+              {/* Phân trang */}
+              <div style={{ marginTop: 4 }}>
                 <Pagination
                   currentPage={repoPage}
                   totalItems={repoTotal}
@@ -1144,8 +1000,6 @@ export const AdminGuideCMSPage: React.FC = () => {
                 />
               </div>
             </div>
-
-            {renderSubTabFooter(1, 'Phần 2: Sơ đồ mặt bằng')}
           </div>
         )}
 
@@ -1258,7 +1112,6 @@ export const AdminGuideCMSPage: React.FC = () => {
                 />
               </div>
             </div>
-            {renderSubTabFooter(2, 'Phần 3: Giờ mở cửa & Giá vé')}
           </div>
         )}
 
@@ -1384,7 +1237,6 @@ export const AdminGuideCMSPage: React.FC = () => {
                 </div>
               )}
             </div>
-            {renderSubTabFooter(3, 'Phần 4: Vị trí & Google Maps')}
           </div>
         )}
 
@@ -1399,9 +1251,9 @@ export const AdminGuideCMSPage: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
               {/* Mục 1 */}
-              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
                     Quy tắc 01
                   </span>
                 </div>
@@ -1422,9 +1274,9 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
 
               {/* Mục 2 */}
-              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
                     Quy tắc 02
                   </span>
                 </div>
@@ -1445,9 +1297,9 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
 
               {/* Mục 3 */}
-              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
                     Quy tắc 03
                   </span>
                 </div>
@@ -1468,9 +1320,9 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
 
               {/* Mục 4 */}
-              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
                     Quy tắc 04
                   </span>
                 </div>
@@ -1490,48 +1342,9 @@ export const AdminGuideCMSPage: React.FC = () => {
                 />
               </div>
             </div>
-            {renderSubTabFooter(4, 'Phần 5: Tiện ích & Quy định')}
           </div>
         )}
       </section>
-
-      {/* 4. THANH HÀNH ĐỘNG CỐ ĐỊNH PHÍA DƯỚI (STICKY BOTTOM ACTION BAR) */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          right: 24,
-          zIndex: 40,
-          background: 'rgba(26, 22, 19, 0.95)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid var(--accent-gold)',
-          borderRadius: 14,
-          padding: '10px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CheckCircle2 size={16} style={{ color: 'var(--accent-gold)' }} />
-          <span style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 500 }}>
-            Dữ liệu CSDL MongoDB & Đồng bộ tức thì
-          </span>
-        </div>
-
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={() => handleSave()}
-          disabled={isSaving}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
-        >
-          <Save size={15} />
-          <span>{isSaving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}</span>
-        </button>
-      </div>
 
       {/* MODAL XEM TRƯỚC ĐỒ THỊ TÔ-PÔ BẢN ĐỒ CHI TIẾT */}
       {previewModalMap && (
@@ -1575,9 +1388,9 @@ export const AdminGuideCMSPage: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Compass size={20} style={{ color: 'var(--accent-gold)' }} />
+                <Compass size={18} style={{ color: 'var(--text-main)' }} />
                 <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
                     {previewModalMap.title || 'Xem trước cấu trúc tô-pô'}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
@@ -1585,12 +1398,12 @@ export const AdminGuideCMSPage: React.FC = () => {
                       Mã: {previewModalMap.id} | {previewModalMap.nodes?.length || 0} phòng | {previewModalMap.edges?.length || 0} cửa
                     </span>
                     {(previewModalMap.id === activeFloorPlanId || previewModalMap.active) ? (
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981', background: 'rgba(16, 185, 129, 0.15)', padding: '1px 6px', borderRadius: 4 }}>
-                        ĐANG LIVE TRÊN CLIENT
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#16A34A', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
+                        ● Đang áp dụng trên Client
                       </span>
                     ) : (
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '1px 6px', borderRadius: 4 }}>
-                        LƯU TRONG KHO
+                      <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
+                        Lưu kho
                       </span>
                     )}
                   </div>
@@ -1638,9 +1451,9 @@ export const AdminGuideCMSPage: React.FC = () => {
             position: 'fixed',
             inset: 0,
             zIndex: 100,
-            background: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1651,47 +1464,48 @@ export const AdminGuideCMSPage: React.FC = () => {
             style={{
               background: 'var(--bg-surface)',
               border: '1px solid var(--border-color)',
-              borderRadius: 16,
+              borderRadius: 10,
               width: '100%',
-              maxWidth: 580,
+              maxWidth: 540,
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+              boxShadow: 'var(--shadow-lg)',
               overflow: 'hidden'
             }}
           >
             {/* Header Modal */}
             <div
               style={{
-                padding: '16px 20px',
+                padding: '14px 18px',
                 borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: 'var(--bg-card)'
+                background: 'var(--bg-surface)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 8,
-                    background: 'rgba(217, 119, 6, 0.15)',
+                    width: 32,
+                    height: 32,
+                    borderRadius: 6,
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'var(--accent-gold)'
+                    color: 'var(--text-main)'
                   }}
                 >
-                  <Compass size={18} />
+                  <Compass size={16} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                    Tải Lên & Phân Tích Sơ Đồ Mới
+                  <h3 style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
+                    Tải lên & phân tích sơ đồ mới
                   </h3>
                   <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    Thuật toán Pure CV cục bộ tự động bóc tách gian phòng & liên kết cửa
+                    Thuật toán Pure CV tự động bóc tách gian phòng & liên kết cửa
                   </span>
                 </div>
               </div>
@@ -1705,14 +1519,14 @@ export const AdminGuideCMSPage: React.FC = () => {
                   }
                 }}
                 disabled={uploadingGuideMap || analyzingMap}
-                style={{ padding: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ padding: 5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             </div>
 
             {/* Body Modal */}
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Input file ẩn */}
               <input
                 ref={guideMapInputRef}
@@ -1724,8 +1538,8 @@ export const AdminGuideCMSPage: React.FC = () => {
 
               {/* Tên / Tiêu đề sơ đồ */}
               <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Tiêu đề / Tên gọi của bản đồ
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
+                  Tiêu đề bản đồ
                 </label>
                 <input
                   type="text"
@@ -1735,12 +1549,12 @@ export const AdminGuideCMSPage: React.FC = () => {
                   disabled={uploadingGuideMap || analyzingMap}
                   style={{
                     width: '100%',
-                    padding: '9px 12px',
+                    padding: '8px 12px',
                     background: 'var(--bg-card)',
                     border: '1px solid var(--border-color)',
-                    borderRadius: 8,
+                    borderRadius: 6,
                     color: 'var(--text-main)',
-                    fontSize: 13
+                    fontSize: 12.5
                   }}
                 />
               </div>
@@ -1750,9 +1564,9 @@ export const AdminGuideCMSPage: React.FC = () => {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 9,
+                  gap: 8,
                   cursor: (uploadingGuideMap || analyzingMap) ? 'not-allowed' : 'pointer',
-                  fontSize: 12.5,
+                  fontSize: 12,
                   color: 'var(--text-main)',
                   userSelect: 'none'
                 }}
@@ -1762,58 +1576,58 @@ export const AdminGuideCMSPage: React.FC = () => {
                   checked={uploadAsActive}
                   onChange={(e) => setUploadAsActive(e.target.checked)}
                   disabled={uploadingGuideMap || analyzingMap}
-                  style={{ width: 16, height: 16, accentColor: '#D97706', cursor: 'pointer' }}
+                  style={{ width: 15, height: 15, cursor: 'pointer' }}
                 />
-                <span>Kích hoạt hiển thị cho Khách tham quan ngay sau khi phân tích xong</span>
+                <span>Áp dụng ngay cho Khách tham quan sau khi phân tích xong</span>
               </label>
 
               {/* Vùng chọn file ảnh & Preview */}
               {uploadingGuideMap || analyzingMap ? (
                 <div
                   style={{
-                    padding: '36px 20px',
-                    borderRadius: 12,
-                    background: 'var(--bg-card)',
+                    padding: '30px 16px',
+                    borderRadius: 8,
+                    background: 'var(--bg-subtle)',
                     border: '1px dashed var(--border-color)',
                     textAlign: 'center',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: 12
+                    gap: 10
                   }}
                 >
                   <div
                     className="spinner-border text-primary"
-                    style={{ width: 32, height: 32, borderWidth: 3 }}
+                    style={{ width: 28, height: 28, borderWidth: 2 }}
                   />
                   <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--accent-gold)' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)' }}>
                       {uploadingGuideMap
                         ? 'Đang tải file ảnh lên máy chủ...'
-                        : 'Thuật toán Pure CV đang phân tích không gian...'}
+                        : 'Thuật toán Pure CV đang nhận diện không gian...'}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
                       {uploadingGuideMap
                         ? 'Vui lòng chờ trong giây lát'
-                        : 'Nhận diện hình học gian phòng, tính toạ độ tâm điểm và khớp liên kết cửa'}
+                        : 'Tính toán tâm điểm gian phòng và khớp liên kết cửa'}
                     </div>
                   </div>
                 </div>
               ) : uploadModalImageUrl ? (
                 <div
                   style={{
-                    borderRadius: 12,
+                    borderRadius: 8,
                     border: '1px solid var(--border-color)',
-                    background: '#0D111A',
+                    background: 'var(--bg-subtle)',
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    padding: 12,
-                    gap: 10
+                    padding: 10,
+                    gap: 8
                   }}
                 >
-                  <div style={{ width: '100%', height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '100%', height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <img
                       src={uploadModalImageUrl}
                       alt="Bản đồ đã chọn"
@@ -1824,48 +1638,48 @@ export const AdminGuideCMSPage: React.FC = () => {
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={() => guideMapInputRef.current?.click()}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}
                   >
-                    <Upload size={13} />
-                    <span>Chọn file ảnh khác</span>
+                    <Upload size={12} />
+                    <span>Chọn file khác</span>
                   </button>
                 </div>
               ) : (
                 <div
                   onClick={() => guideMapInputRef.current?.click()}
                   style={{
-                    border: '2px dashed rgba(217, 119, 6, 0.4)',
-                    background: 'rgba(217, 119, 6, 0.04)',
-                    borderRadius: 12,
-                    padding: '28px 20px',
+                    border: '1px dashed var(--border-color)',
+                    background: 'var(--bg-subtle)',
+                    borderRadius: 8,
+                    padding: '24px 16px',
                     textAlign: 'center',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: 8,
-                    transition: 'all 0.2s ease'
+                    gap: 6
                   }}
                 >
                   <div
                     style={{
-                      width: 44,
-                      height: 44,
+                      width: 38,
+                      height: 38,
                       borderRadius: '50%',
-                      background: 'rgba(217, 119, 6, 0.15)',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-color)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: 'var(--accent-gold)'
+                      color: 'var(--text-muted)'
                     }}
                   >
-                    <Upload size={20} />
+                    <Upload size={16} />
                   </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                    Nhấn vào đây để chọn file ảnh bản đồ
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)' }}>
+                    Bấm để chọn file ảnh bản đồ
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    Hỗ trợ PNG, JPG, WEBP, CAD render (Tối đa 20MB)
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    Hỗ trợ PNG, JPG, WEBP (Tối đa 20MB)
                   </div>
                 </div>
               )}
@@ -1874,13 +1688,13 @@ export const AdminGuideCMSPage: React.FC = () => {
             {/* Footer Modal */}
             <div
               style={{
-                padding: '14px 20px',
+                padding: '12px 18px',
                 borderTop: '1px solid var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'flex-end',
-                gap: 10,
-                background: 'var(--bg-card)'
+                gap: 8,
+                background: 'var(--bg-surface)'
               }}
             >
               <button
@@ -1901,16 +1715,10 @@ export const AdminGuideCMSPage: React.FC = () => {
                     setIsUploadModalOpen(false);
                   }}
                   disabled={analyzingMap}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-                    borderColor: '#D97706'
-                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                 >
-                  <Cpu size={14} />
-                  <span>{analyzingMap ? 'Đang phân tích...' : '⚡ Bắt đầu Phân Tích Pure CV'}</span>
+                  <Cpu size={13} />
+                  <span>{analyzingMap ? 'Đang phân tích...' : 'Bắt đầu phân tích Pure CV'}</span>
                 </button>
               ) : (
                 <button
@@ -1918,16 +1726,10 @@ export const AdminGuideCMSPage: React.FC = () => {
                   className="btn btn-primary btn-sm"
                   onClick={() => guideMapInputRef.current?.click()}
                   disabled={uploadingGuideMap || analyzingMap}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-                    borderColor: '#D97706'
-                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                 >
-                  <Upload size={14} />
-                  <span>Chọn File Sơ Đồ</span>
+                  <Upload size={13} />
+                  <span>Chọn file sơ đồ</span>
                 </button>
               )}
             </div>
