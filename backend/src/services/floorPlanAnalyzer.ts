@@ -110,8 +110,9 @@ export async function analyzeFloorPlanImage(
         doorX: cvEdge.doorX,
         doorY: cvEdge.doorY,
         distance: cvEdge.distance,
-        label: `Lối sang ${targetName}`,
-        targetRoomName: targetName
+        label: cvEdge.isReturn ? `Lối quay lại ${targetName}` : `Lối sang ${targetName}`,
+        targetRoomName: targetName,
+        isReturn: cvEdge.isReturn
       });
     });
 
@@ -257,32 +258,53 @@ export async function analyzeFloorPlanImage(
 
       if (isConnectedToCentral || isGeometricallyAdjacent) {
         const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+        const azimuth = (angleDeg + 360) % 360;
 
-        let direction: 'front' | 'back' | 'left' | 'right' | 'center' = 'front';
-        let compassDirection: 'north' | 'south' | 'east' | 'west' = 'north';
+        let direction: IFloorPlanEdge['direction'];
+        let compassDirection: IFloorPlanEdge['compassDirection'];
         let doorX = (centerA.x + centerB.x) / 2;
         let doorY = (centerA.y + centerB.y) / 2;
 
-        if (angleDeg >= -45 && angleDeg < 45) {
-          direction = 'right';
+        if (azimuth >= 337.5 || azimuth < 22.5) {
           compassDirection = 'east';
+          direction = 'right';
           doorX = nodeA.x + nodeA.width;
           doorY = centerA.y;
-        } else if (angleDeg >= 45 && angleDeg < 135) {
-          direction = 'back';
+        } else if (azimuth >= 22.5 && azimuth < 67.5) {
+          compassDirection = 'southeast';
+          direction = 'southeast';
+          doorX = nodeA.x + nodeA.width;
+          doorY = nodeA.y + nodeA.height;
+        } else if (azimuth >= 67.5 && azimuth < 112.5) {
           compassDirection = 'south';
+          direction = 'down';
           doorX = centerA.x;
           doorY = nodeA.y + nodeA.height;
-        } else if (angleDeg >= -135 && angleDeg < -45) {
-          direction = 'front';
+        } else if (azimuth >= 112.5 && azimuth < 157.5) {
+          compassDirection = 'southwest';
+          direction = 'southwest';
+          doorX = nodeA.x;
+          doorY = nodeA.y + nodeA.height;
+        } else if (azimuth >= 157.5 && azimuth < 202.5) {
+          compassDirection = 'west';
+          direction = 'left';
+          doorX = nodeA.x;
+          doorY = centerA.y;
+        } else if (azimuth >= 202.5 && azimuth < 247.5) {
+          compassDirection = 'northwest';
+          direction = 'northwest';
+          doorX = nodeA.x;
+          doorY = nodeA.y;
+        } else if (azimuth >= 247.5 && azimuth < 292.5) {
           compassDirection = 'north';
+          direction = 'front';
           doorX = centerA.x;
           doorY = nodeA.y;
         } else {
-          direction = 'left';
-          compassDirection = 'west';
-          doorX = nodeA.x;
-          doorY = centerA.y;
+          compassDirection = 'northeast';
+          direction = 'northeast';
+          doorX = nodeA.x + nodeA.width;
+          doorY = nodeA.y;
         }
 
         const edgeId = `edge_${nodeA.id}_to_${nodeB.id}`;
@@ -296,7 +318,8 @@ export async function analyzeFloorPlanImage(
           doorY: Math.round(doorY * 10) / 10,
           label: `Lối sang ${nodeB.name}`,
           targetRoomName: nodeB.name,
-          distance: Math.round(distance * 10) / 10
+          distance: Math.round(distance * 10) / 10,
+          isReturn: false
         });
       }
     }

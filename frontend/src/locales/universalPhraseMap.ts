@@ -16,6 +16,122 @@ export interface UniversalPhraseItem {
 }
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
+  // --- PHƯƠNG VỊ VÀ CHỈ DẪN 8 HƯỚNG MẶT BẰNG & TOUR 360 (DỊCH TỨC THÌ 0MS) ---
+  'Bên phải (Đông)': {
+    en: 'To the right (East)',
+    fr: 'Vers la droite (Est)',
+    zh: '右侧 (东)',
+    ja: '右側 (東)'
+  },
+  'Bên trái (Tây)': {
+    en: 'To the left (West)',
+    fr: 'Vers la gauche (Ouest)',
+    zh: '左侧 (西)',
+    ja: '左側 (西)'
+  },
+  'Phía trước (Bắc)': {
+    en: 'Straight ahead (North)',
+    fr: 'Tout droit (Nord)',
+    zh: '前方 (北)',
+    ja: '正面 (北)'
+  },
+  'Phía dưới (Nam)': {
+    en: 'Downward (South)',
+    fr: 'Vers le bas (Sud)',
+    zh: '下方 (南)',
+    ja: '下側 (南)'
+  },
+  'Phía dưới - Trái (Tây Nam)': {
+    en: 'Down-left (Southwest)',
+    fr: 'En bas à gauche (Sud-ouest)',
+    zh: '左下方 (西南)',
+    ja: '左下 (南西)'
+  },
+  'Phía dưới - Phải (Đông Nam)': {
+    en: 'Down-right (Southeast)',
+    fr: 'En bas à droite (Sud-est)',
+    zh: '右下方 (东南)',
+    ja: '右下 (南東)'
+  },
+  'Phía trên - Trái (Tây Bắc)': {
+    en: 'Up-left (Northwest)',
+    fr: 'En haut à gauche (Nord-ouest)',
+    zh: '左上方 (西北)',
+    ja: '左上 (北西)'
+  },
+  'Phía trên - Phải (Đông Bắc)': {
+    en: 'Up-right (Northeast)',
+    fr: 'En haut à droite (Nord-est)',
+    zh: '右上方 (东北)',
+    ja: '右上 (北東)'
+  },
+  'Lối quay lại': {
+    en: 'Return path',
+    fr: 'Chemin de retour',
+    zh: '返回通路',
+    ja: '戻り通路'
+  },
+  'Lối thông': {
+    en: 'Connecting hallway',
+    fr: 'Couloir de liaison',
+    zh: '连通走廊',
+    ja: '連絡通路'
+  },
+  '← Trái': {
+    en: '← Left',
+    fr: '← Gauche',
+    zh: '← 左侧',
+    ja: '← 左'
+  },
+  'Phải →': {
+    en: 'Right →',
+    fr: 'Droite →',
+    zh: '右侧 →',
+    ja: '右 →'
+  },
+  '↑ Thẳng': {
+    en: '↑ Ahead',
+    fr: '↑ Tout droit',
+    zh: '↑ 前方',
+    ja: '↑ 直進'
+  },
+  '↓ Dưới': {
+    en: '↓ Down',
+    fr: '↓ En bas',
+    zh: '↓ 下方',
+    ja: '↓ 下'
+  },
+  '↙ Xuống trái': {
+    en: '↙ Down-left',
+    fr: '↙ Bas-gauche',
+    zh: '↙ 左下',
+    ja: '↙ 左下'
+  },
+  '↘ Xuống phải': {
+    en: '↘ Down-right',
+    fr: '↘ Bas-droite',
+    zh: '↘ 右下',
+    ja: '↘ 右下'
+  },
+  '↖ Lên trái': {
+    en: '↖ Up-left',
+    fr: '↖ Haut-gauche',
+    zh: '↖ 左上',
+    ja: '↖ 左上'
+  },
+  '↗ Lên phải': {
+    en: '↗ Up-right',
+    fr: '↗ Haut-droite',
+    zh: '↗ 右上',
+    ja: '↗ 右上'
+  },
+  '↶ Quay lại': {
+    en: '↶ Return',
+    fr: '↶ Retour',
+    zh: '↶ 返回',
+    ja: '↶ 戻る'
+  },
+
   // --- CLIENT PORTAL & NAVIGATION CORE TERMS (DỊCH TỨC THÌ 0MS - KHÔNG DELAY) ---
   'Sơ đồ mặt bằng các gian trưng bày': {
     en: 'Floor plan and layout of exhibition galleries',

@@ -1,6 +1,27 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type SpatialDirection = 'front' | 'back' | 'left' | 'right' | 'north' | 'south' | 'east' | 'west' | 'center';
+export type SpatialDirection =
+  | 'front'
+  | 'back'
+  | 'left'
+  | 'right'
+  | 'center'
+  | 'up'
+  | 'down'
+  | 'northeast'
+  | 'northwest'
+  | 'southeast'
+  | 'southwest';
+
+export type CompassDirection =
+  | 'north'
+  | 'south'
+  | 'east'
+  | 'west'
+  | 'northeast'
+  | 'northwest'
+  | 'southeast'
+  | 'southwest';
 
 export interface IFloorPlanNode {
   id: string;
@@ -24,13 +45,14 @@ export interface IFloorPlanEdge {
   id: string;
   fromNodeId: string;
   toNodeId: string;
-  direction: 'front' | 'back' | 'left' | 'right' | 'center';
-  compassDirection: 'north' | 'south' | 'east' | 'west';
+  direction: SpatialDirection;
+  compassDirection: CompassDirection;
   doorX: number; // Tọa độ phần trăm (0-100%) của cánh cửa thông phòng
   doorY: number;
-  label: string; // Ví dụ: 'Cửa bên phải -> Gian Điêu khắc Chăm Pa'
+  label: string; // Ví dụ: 'Lối sang Gian Điêu khắc Chăm Pa'
   targetRoomName?: string;
   distance?: number;
+  isReturn?: boolean;
 }
 
 export interface IFloorPlanMap extends Document {
@@ -72,19 +94,20 @@ const FloorPlanEdgeSchema = new Schema<IFloorPlanEdge>({
   toNodeId: { type: String, required: true },
   direction: {
     type: String,
-    enum: ['front', 'back', 'left', 'right', 'center'],
+    enum: ['front', 'back', 'left', 'right', 'center', 'up', 'down', 'northeast', 'northwest', 'southeast', 'southwest'],
     required: true
   },
   compassDirection: {
     type: String,
-    enum: ['north', 'south', 'east', 'west'],
+    enum: ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'],
     default: 'north'
   },
   doorX: { type: Number, required: true, min: 0, max: 100 },
   doorY: { type: Number, required: true, min: 0, max: 100 },
   label: { type: String, required: true },
   targetRoomName: { type: String, default: '' },
-  distance: { type: Number, default: 0 }
+  distance: { type: Number, default: 0 },
+  isReturn: { type: Boolean, default: false }
 }, { _id: false });
 
 const FloorPlanMapSchema = new Schema<IFloorPlanMap>({

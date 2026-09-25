@@ -1,5 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { Navigation, Eye, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Info, Layers, Building } from 'lucide-react';
+import {
+  Navigation,
+  Eye,
+  ArrowRight,
+  ArrowLeft,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpRight,
+  ArrowUpLeft,
+  ArrowDownRight,
+  ArrowDownLeft,
+  RotateCcw,
+  Info,
+  Layers,
+  Building
+} from 'lucide-react';
 import { FloorPlanMap, FloorPlanNode, FloorPlanEdge } from '../../types';
 
 interface InteractiveFloorPlanMapProps {
@@ -39,19 +54,57 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     return (floorPlan.edges || []).filter((e) => e.fromNodeId === activeNode.id);
   }, [floorPlan.edges, activeNode]);
 
-  // Hướng đi kèm icon và nhãn dễ hiểu
+  // Hướng đi kèm icon và nhãn trực quan theo 8 phương vị không gian chuẩn xác
   const getDirectionBadge = (dir: FloorPlanEdge['direction']) => {
     switch (dir) {
       case 'left':
-        return { label: 'Bên trái', icon: <ArrowLeft size={13} /> };
+        return { label: 'Bên trái (Tây)', icon: <ArrowLeft size={13} /> };
       case 'right':
-        return { label: 'Bên phải', icon: <ArrowRight size={13} /> };
+        return { label: 'Bên phải (Đông)', icon: <ArrowRight size={13} /> };
       case 'front':
-        return { label: 'Phía trước', icon: <ArrowUp size={13} /> };
+      case 'up':
+        return { label: 'Phía trước (Bắc)', icon: <ArrowUp size={13} /> };
+      case 'down':
+        return { label: 'Phía dưới (Nam)', icon: <ArrowDown size={13} /> };
+      case 'southwest':
+        return { label: 'Phía dưới - Trái (Tây Nam)', icon: <ArrowDownLeft size={13} /> };
+      case 'southeast':
+        return { label: 'Phía dưới - Phải (Đông Nam)', icon: <ArrowDownRight size={13} /> };
+      case 'northwest':
+        return { label: 'Phía trên - Trái (Tây Bắc)', icon: <ArrowUpLeft size={13} /> };
+      case 'northeast':
+        return { label: 'Phía trên - Phải (Đông Bắc)', icon: <ArrowUpRight size={13} /> };
       case 'back':
-        return { label: 'Phía sau', icon: <ArrowDown size={13} /> };
+        return { label: 'Lối quay lại', icon: <RotateCcw size={13} /> };
       default:
         return { label: 'Lối thông', icon: <Navigation size={13} /> };
+    }
+  };
+
+  // Nhãn ký hiệu vắn tắt hiển thị trực tiếp trên đường nối SVG
+  const getDirShortLabel = (dir: FloorPlanEdge['direction']) => {
+    switch (dir) {
+      case 'left':
+        return '← Trái';
+      case 'right':
+        return 'Phải →';
+      case 'front':
+      case 'up':
+        return '↑ Thẳng';
+      case 'down':
+        return '↓ Dưới';
+      case 'southwest':
+        return '↙ Xuống trái';
+      case 'southeast':
+        return '↘ Xuống phải';
+      case 'northwest':
+        return '↖ Lên trái';
+      case 'northeast':
+        return '↗ Lên phải';
+      case 'back':
+        return '↶ Quay lại';
+      default:
+        return '→';
     }
   };
 
@@ -333,19 +386,19 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
                 if (!nodeFrom || !nodeTo) return null;
 
-                const boxFrom = getNodeBox(nodeFrom);
-                const boxTo = getNodeBox(nodeTo);
-                const geom = getEdgeGeometry(boxFrom, boxTo);
-
                 const isOutgoing = activeNode && edge.fromNodeId === activeNode.id;
                 const isIncoming = activeNode && edge.toNodeId === activeNode.id;
                 const isConnectedToActive = isOutgoing || isIncoming;
 
-                const dirLabel =
-                  edge.direction === 'left' ? '← Trái' :
-                  edge.direction === 'right' ? 'Phải →' :
-                  edge.direction === 'front' ? '↑ Thẳng' :
-                  edge.direction === 'back' ? '↓ Sau' : '';
+                // Nếu là liên kết quay lại (isReturn) và không phải là đường ra của phòng đang chọn thì bỏ qua để không trùng nét
+                if (edge.isReturn && !isOutgoing) return null;
+
+                const boxFrom = getNodeBox(nodeFrom);
+                const boxTo = getNodeBox(nodeTo);
+                const geom = getEdgeGeometry(boxFrom, boxTo);
+
+                const dirLabel = getDirShortLabel(edge.direction);
+                const labelBoxW = Math.max(7.5, (dirLabel.length * 0.72) + 1.4);
 
                 return (
                   <g
@@ -369,9 +422,9 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     {isOutgoing && dirLabel && (
                       <g transform={`translate(${geom.midX}, ${geom.midY})`}>
                         <rect
-                          x="-4"
+                          x={-labelBoxW / 2}
                           y="-1.4"
-                          width="8"
+                          width={labelBoxW}
                           height="2.8"
                           rx="0.7"
                           fill={isLight ? '#FFFFFF' : '#141A29'}
@@ -382,7 +435,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                           x="0"
                           y="0.5"
                           textAnchor="middle"
-                          fontSize="1.05"
+                          fontSize="1.0"
                           fontWeight="bold"
                           fill={isLight ? '#B45309' : '#D4A86A'}
                         >

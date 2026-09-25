@@ -34,9 +34,29 @@ export interface ICvDetectedEdge {
   id: string;
   fromNodeId: string;
   toNodeId: string;
-  direction: 'front' | 'back' | 'left' | 'right' | 'center';
-  compassDirection: 'north' | 'south' | 'east' | 'west';
+  direction:
+    | 'front'
+    | 'back'
+    | 'left'
+    | 'right'
+    | 'center'
+    | 'up'
+    | 'down'
+    | 'northeast'
+    | 'northwest'
+    | 'southeast'
+    | 'southwest';
+  compassDirection:
+    | 'north'
+    | 'south'
+    | 'east'
+    | 'west'
+    | 'northeast'
+    | 'northwest'
+    | 'southeast'
+    | 'southwest';
   isDirected: boolean;
+  isReturn?: boolean;
   doorX: number;
   doorY: number;
   distance: number;
@@ -330,7 +350,77 @@ export async function analyzeFloorPlanWithPureCV(imageInput: string | Buffer): P
     }
   }
 
-  // 9. Dò tìm liên kết đường nối & Phân tích chiều vector mũi tên (Corridor & Endpoint Vector Tracing)
+  // Hàm trợ thủ tính toán phương vị 8 hướng không gian chuẩn xác
+  function computeEdgeDirection(
+    fromNode: ICvDetectedNode,
+    toNode: ICvDetectedNode,
+    canvasW: number,
+    canvasH: number
+  ) {
+    const edgeDx = toNode.centerX - fromNode.centerX;
+    const edgeDy = toNode.centerY - fromNode.centerY;
+    const dist = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
+    if (dist === 0) return null;
+
+    const angleDeg = (Math.atan2(edgeDy, edgeDx) * 180) / Math.PI; // [-180..180]
+    // Chuẩn hóa góc phương vị azimuth [0..360) với 0° = Trục dương X (East / Phải), 90° = Trục dương Y (South / Dưới)
+    const azimuth = (angleDeg + 360) % 360;
+
+    let direction: ICvDetectedEdge['direction'];
+    let compassDirection: ICvDetectedEdge['compassDirection'];
+    let humanDirectionVi: string;
+
+    // Phân vùng góc 8 phương vị không gian (mỗi phân vùng 45 độ đối xứng)
+    if (azimuth >= 337.5 || azimuth < 22.5) {
+      compassDirection = 'east';
+      direction = 'right';
+      humanDirectionVi = 'Bên phải (Hướng Đông)';
+    } else if (azimuth >= 22.5 && azimuth < 67.5) {
+      compassDirection = 'southeast';
+      direction = 'southeast';
+      humanDirectionVi = 'Phía dưới - Phải (Hướng Đông Nam)';
+    } else if (azimuth >= 67.5 && azimuth < 112.5) {
+      compassDirection = 'south';
+      direction = 'down';
+      humanDirectionVi = 'Phía dưới (Hướng Nam)';
+    } else if (azimuth >= 112.5 && azimuth < 157.5) {
+      compassDirection = 'southwest';
+      direction = 'southwest';
+      humanDirectionVi = 'Phía dưới - Trái (Hướng Tây Nam)';
+    } else if (azimuth >= 157.5 && azimuth < 202.5) {
+      compassDirection = 'west';
+      direction = 'left';
+      humanDirectionVi = 'Bên trái (Hướng Tây)';
+    } else if (azimuth >= 202.5 && azimuth < 247.5) {
+      compassDirection = 'northwest';
+      direction = 'northwest';
+      humanDirectionVi = 'Phía trên - Trái (Hướng Tây Bắc)';
+    } else if (azimuth >= 247.5 && azimuth < 292.5) {
+      compassDirection = 'north';
+      direction = 'front';
+      humanDirectionVi = 'Phía trước / Đi thẳng (Hướng Bắc)';
+    } else {
+      compassDirection = 'northeast';
+      direction = 'northeast';
+      humanDirectionVi = 'Phía trên - Phải (Hướng Đông Bắc)';
+    }
+
+    const dirEdgeUx = edgeDx / dist;
+    const dirEdgeUy = edgeDy / dist;
+    const doorX = Math.round(((fromNode.centerX + fromNode.radius * dirEdgeUx) / canvasW) * 100);
+    const doorY = Math.round(((fromNode.centerY + fromNode.radius * dirEdgeUy) / canvasH) * 100);
+
+    return {
+      direction,
+      compassDirection,
+      humanDirectionVi,
+      doorX: Math.max(0, Math.min(100, doorX)),
+      doorY: Math.max(0, Math.min(100, doorY)),
+      distance: Math.round(dist)
+    };
+  }
+
+  // 9. Dò tìm liên kết đường nối & Phân tích chóp mũi tên (Corridor & Arrowhead Morphological Tracing)
   const finalEdges: ICvDetectedEdge[] = [];
 
   for (let i = 0; i < finalNodes.length; i++) {
@@ -349,28 +439,31 @@ export async function analyzeFloorPlanWithPureCV(imageInput: string | Buffer): P
       const perpX = -uy;
       const perpY = ux;
 
-      const startDist = nodeA.radius + 4;
-      const endDist = totalDist - nodeB.radius - 4;
-      if (endDist <= startDist) continue;
+      const startDist = nodeA.radius + 3;
+      const endDist = totalDist - nodeB.radius - 3;
+      const corridorLength = endDist - startDist;
+      if (corridorLength <= 10) continue;
 
-      // Quét các điểm nét vẽ trong hành lang nối giữa 2 phòng
-      const sampleSteps = 30;
+      // Quét mật độ nét vẽ trong hành lang nối giữa 2 phòng
+      const sampleSteps = Math.max(30, Math.min(60, Math.round(corridorLength / 2)));
       let strokeHits = 0;
-      const corridorPoints: { x: number; y: number; projD: number }[] = [];
+      const corridorPoints: { x: number; y: number; projD: number; absW: number; t: number }[] = [];
 
       for (let s = 0; s < sampleSteps; s++) {
-        const d = startDist + ((endDist - startDist) * s) / (sampleSteps - 1);
+        const d = startDist + (corridorLength * s) / (sampleSteps - 1);
         const px = nodeA.centerX + d * ux;
         const py = nodeA.centerY + d * uy;
 
         let hitInStep = false;
-        for (let w = -22; w <= 22; w += 2) {
+        // Quét dải vuông góc từ -24px đến +24px quanh tâm đường nối
+        for (let w = -24; w <= 24; w += 2) {
           const qx = Math.round(px + w * perpX);
           const qy = Math.round(py + w * perpY);
           if (qx >= 0 && qx < width && qy >= 0 && qy < height) {
             if (edgesOnlyMap[qy * width + qx] === 1) {
               hitInStep = true;
-              corridorPoints.push({ x: qx, y: qy, projD: d });
+              const t = (d - startDist) / corridorLength; // 0.0 (sát A) -> 1.0 (sát B)
+              corridorPoints.push({ x: qx, y: qy, projD: d, absW: Math.abs(w), t });
             }
           }
         }
@@ -379,70 +472,78 @@ export async function analyzeFloorPlanWithPureCV(imageInput: string | Buffer): P
 
       const coverageRatio = strokeHits / sampleSteps;
 
-      // Nếu có nét vẽ liên tục trên ít nhất 35% hành lang
-      if (coverageRatio >= 0.35 && corridorPoints.length >= 30) {
-        corridorPoints.sort((a, b) => a.projD - b.projD);
-        const minD = corridorPoints[0].projD;
-        const maxD = corridorPoints[corridorPoints.length - 1].projD;
+      // Nếu có nét vẽ liên tục trên ít nhất 28% hành lang
+      if (coverageRatio >= 0.28 && corridorPoints.length >= 25) {
+        // Phân tích đặc trưng hình thái chóp nhọn mũi tên (Arrowhead Detection):
+        // Tại đầu có chóp nhọn, 2 cánh mũi tên xòe rộng sang 2 bên trục (absW lớn) và mật độ pixel tăng vọt
+        const ptsNearA = corridorPoints.filter((p) => p.t <= 0.40);
+        const ptsNearB = corridorPoints.filter((p) => p.t >= 0.60);
 
-        // Phân tích đầu mút xa nhất theo vector A -> B:
-        // Nếu nét vẽ xuất phát gần A (minD - nodeA.r < 35px) và kết thúc tiến về phía B (maxD > totalDist * 0.55)
-        // và tại 35px cuối có mật độ chóp nhọn mũi tên -> Chiều có hướng A -> B
-        let fromNode = nodeA;
-        let toNode = nodeB;
+        const getRegionMetrics = (pts: typeof corridorPoints) => {
+          if (pts.length === 0) return { p90Width: 0, count: 0 };
+          const sortedW = pts.map((p) => p.absW).sort((a, b) => a - b);
+          const p90 = sortedW[Math.floor(sortedW.length * 0.90)] || 0;
+          return { p90Width: p90, count: pts.length };
+        };
+
+        const metricsA = getRegionMetrics(ptsNearA);
+        const metricsB = getRegionMetrics(ptsNearB);
+
+        // Chóp mũi tên tạo nên diện tích mở rộng và mật độ cao hơn rõ rệt
+        const scoreArrowAtB = (metricsB.p90Width + 1) * Math.sqrt(metricsB.count + 1);
+        const scoreArrowAtA = (metricsA.p90Width + 1) * Math.sqrt(metricsA.count + 1);
+
+        let primaryFrom = nodeA;
+        let primaryTo = nodeB;
         let isDirected = true;
 
-        const distToA = minD - nodeA.radius;
-        const distToB = totalDist - nodeB.radius - maxD;
-
-        if (distToA < distToB) {
-          // Nét vẽ bắt đầu từ A và trỏ về phía B
-          fromNode = nodeA;
-          toNode = nodeB;
+        if (scoreArrowAtB > scoreArrowAtA * 1.25) {
+          // Chóp nhọn cắm vào B -> Chiều tiến từ A sang B
+          primaryFrom = nodeA;
+          primaryTo = nodeB;
+        } else if (scoreArrowAtA > scoreArrowAtB * 1.25) {
+          // Chóp nhọn cắm vào A -> Chiều tiến từ B sang A
+          primaryFrom = nodeB;
+          primaryTo = nodeA;
         } else {
-          // Nét vẽ bắt đầu từ B và trỏ về phía A
-          fromNode = nodeB;
-          toNode = nodeA;
+          // Độ rộng 2 đầu tương đồng -> Hành lang thông 2 chiều
+          isDirected = false;
         }
 
-        const edgeDx = toNode.centerX - fromNode.centerX;
-        const edgeDy = toNode.centerY - fromNode.centerY;
-        const angleDeg = (Math.atan2(edgeDy, edgeDx) * 180) / Math.PI;
-
-        let direction: 'front' | 'back' | 'left' | 'right' | 'center' = 'front';
-        let compass: 'north' | 'south' | 'east' | 'west' = 'north';
-
-        if (angleDeg >= -45 && angleDeg < 45) {
-          direction = 'right';
-          compass = 'east';
-        } else if (angleDeg >= 45 && angleDeg < 135) {
-          direction = 'back';
-          compass = 'south';
-        } else if (angleDeg >= -135 && angleDeg < -45) {
-          direction = 'front';
-          compass = 'north';
-        } else {
-          direction = 'left';
-          compass = 'west';
+        const primaryDir = computeEdgeDirection(primaryFrom, primaryTo, width, height);
+        if (primaryDir) {
+          finalEdges.push({
+            id: `edge_${primaryFrom.id}_to_${primaryTo.id}`,
+            fromNodeId: primaryFrom.id,
+            toNodeId: primaryTo.id,
+            direction: primaryDir.direction,
+            compassDirection: primaryDir.compassDirection,
+            isDirected,
+            isReturn: false,
+            doorX: primaryDir.doorX,
+            doorY: primaryDir.doorY,
+            distance: primaryDir.distance,
+            label: `Lối sang ${primaryTo.name}`
+          });
         }
 
-        const dirEdgeUx = edgeDx / Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
-        const dirEdgeUy = edgeDy / Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
-        const doorX = Math.round(((fromNode.centerX + fromNode.radius * dirEdgeUx) / width) * 100);
-        const doorY = Math.round(((fromNode.centerY + fromNode.radius * dirEdgeUy) / height) * 100);
-
-        finalEdges.push({
-          id: `edge_${fromNode.id}_to_${toNode.id}`,
-          fromNodeId: fromNode.id,
-          toNodeId: toNode.id,
-          direction,
-          compassDirection: compass,
-          isDirected,
-          doorX: Math.max(0, Math.min(100, doorX)),
-          doorY: Math.max(0, Math.min(100, doorY)),
-          distance: Math.round(totalDist),
-          label: `Lối sang ${toNode.name}`
-        });
+        // Tạo liên kết đối ứng (Return Passage) để khách không bao giờ bị kẹt đường khi tham quan
+        const returnDir = computeEdgeDirection(primaryTo, primaryFrom, width, height);
+        if (returnDir) {
+          finalEdges.push({
+            id: `edge_${primaryTo.id}_to_${primaryFrom.id}`,
+            fromNodeId: primaryTo.id,
+            toNodeId: primaryFrom.id,
+            direction: returnDir.direction,
+            compassDirection: returnDir.compassDirection,
+            isDirected,
+            isReturn: true,
+            doorX: returnDir.doorX,
+            doorY: returnDir.doorY,
+            distance: returnDir.distance,
+            label: isDirected ? `Lối quay lại ${primaryFrom.name}` : `Lối sang ${primaryFrom.name}`
+          });
+        }
       }
     }
   }
