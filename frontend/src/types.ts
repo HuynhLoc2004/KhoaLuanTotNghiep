@@ -332,6 +332,13 @@ export interface FloorPlanEdge {
   isReturn?: boolean;
 }
 
+export interface CompassOrientation {
+  detected: boolean;
+  northAngleDeg: number;
+  confidence: number;
+  description: string;
+}
+
 export interface FloorPlanMap {
   id: string;
   title: string;
@@ -343,6 +350,7 @@ export interface FloorPlanMap {
   height?: number;
   analyzedAt: string;
   analysisAlgorithm: string;
+  compassOrientation?: CompassOrientation;
   nodes: FloorPlanNode[];
   edges: FloorPlanEdge[];
   active: boolean;

@@ -126,12 +126,13 @@ export async function analyzeFloorPlanImage(
     const mapData = {
       id: mapId,
       title: options.title || 'Sơ đồ mặt bằng & Mạng không gian kiến trúc',
-      description: options.description || 'Bản đồ liên kết không gian được trích xuất bằng thuật toán Pure Computer Vision',
+      description: options.description || 'Bản đồ liên kết không gian được trích xuất bằng thuật toán Pure Computer Vision nâng cao',
       imageUrl: imageUrl || '',
       imageWidth,
       imageHeight,
       analyzedAt: new Date(),
       analysisAlgorithm: cvResult.algorithmName,
+      compassOrientation: cvResult.compassOrientation,
       nodes,
       edges,
       active: shouldSetActive
@@ -340,7 +341,13 @@ export async function analyzeFloorPlanImage(
     imageWidth,
     imageHeight,
     analyzedAt: new Date(),
-    analysisAlgorithm: 'Pure-CV-Fallback-Engine-v1',
+    analysisAlgorithm: 'Pure-CV-Fallback-Engine-v2',
+    compassOrientation: {
+      detected: false,
+      northAngleDeg: 0,
+      confidence: 0.5,
+      description: 'Hướng Bắc quy chuẩn mặc định'
+    },
     nodes,
     edges,
     active: shouldSetActive

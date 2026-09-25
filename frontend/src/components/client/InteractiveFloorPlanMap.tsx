@@ -635,10 +635,23 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
             </svg>
           )}
 
-          {/* Chỉ báo phương vị Bắc chuẩn kiến trúc */}
-          <div className="ifp-compass-badge">
-            <Compass size={13} />
-            <span className="ifp-compass-text">Hướng Bắc (N)</span>
+          {/* Chỉ báo phương vị Bắc chuẩn kiến trúc & La bàn thực địa */}
+          <div
+            className="ifp-compass-badge"
+            title={floorPlan.compassOrientation?.description || 'Hướng Bắc thực địa'}
+          >
+            <Compass
+              size={13}
+              style={{
+                transform: `rotate(${floorPlan.compassOrientation?.northAngleDeg || 0}deg)`,
+                transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            />
+            <span className="ifp-compass-text">
+              {floorPlan.compassOrientation?.detected && floorPlan.compassOrientation.northAngleDeg !== 0
+                ? `Hướng Bắc (${floorPlan.compassOrientation.northAngleDeg > 0 ? '+' : ''}${floorPlan.compassOrientation.northAngleDeg}°)`
+                : 'Hướng Bắc (N)'}
+            </span>
           </div>
 
           {/* Bộ công cụ Phóng to / Thu nhỏ / Reset nhanh ngay trên bản đồ (Rất tiện lợi trên Mobile) */}

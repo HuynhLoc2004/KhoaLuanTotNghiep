@@ -55,6 +55,13 @@ export interface IFloorPlanEdge {
   isReturn?: boolean;
 }
 
+export interface ICompassOrientation {
+  detected: boolean;
+  northAngleDeg: number;
+  confidence: number;
+  description: string;
+}
+
 export interface IFloorPlanMap extends Document {
   id: string;
   title: string;
@@ -64,6 +71,7 @@ export interface IFloorPlanMap extends Document {
   imageHeight: number;
   analyzedAt: Date;
   analysisAlgorithm: string;
+  compassOrientation?: ICompassOrientation;
   nodes: IFloorPlanNode[];
   edges: IFloorPlanEdge[];
   active: boolean;
@@ -119,6 +127,12 @@ const FloorPlanMapSchema = new Schema<IFloorPlanMap>({
   imageHeight: { type: Number, default: 800 },
   analyzedAt: { type: Date, default: Date.now },
   analysisAlgorithm: { type: String, default: 'Sharp-Spatial-Topology-Engine-v1' },
+  compassOrientation: {
+    detected: { type: Boolean, default: false },
+    northAngleDeg: { type: Number, default: 0 },
+    confidence: { type: Number, default: 0 },
+    description: { type: String, default: 'Hướng Bắc quy chuẩn (Phía trên)' }
+  },
   nodes: [FloorPlanNodeSchema],
   edges: [FloorPlanEdgeSchema],
   active: { type: Boolean, default: true }
