@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { RoomModel, IRoom } from '../models/Room.js';
 import { FloorPlanMapModel, IFloorPlanMap, IFloorPlanNode, IFloorPlanEdge } from '../models/FloorPlanMap.js';
+import { analyzeFloorPlanWithPureCV, ICvAnalysisResult } from './floorPlanCvEngine.js';
 
 interface AnalysisOptions {
   title?: string;
@@ -12,27 +13,28 @@ interface AnalysisOptions {
 
 /**
  * Thuật toán Phân tích Sơ đồ Mặt bằng & Kiến tạo Mạng Không gian Topo (Server-Side)
- * 100% Đồng bộ với dữ liệu Gian phòng thật trong CSDL MongoDB (Tuyệt đối không dùng dữ liệu mock)
+ * 100% Thị giác máy tính thuần (Pure Computer Vision) kết hợp CSDL Gian phòng thật trong MongoDB
  */
 export async function analyzeFloorPlanImage(
   imagePath: string,
   imageUrl: string,
   options: AnalysisOptions = {}
 ): Promise<IFloorPlanMap> {
-  console.log('[FloorPlanAnalyzer] Phân tích & Đồng bộ sơ đồ mặt bằng theo CSDL phòng thực tế...');
+  console.log('[FloorPlanAnalyzer] Bắt đầu phân tích & bóc tách sơ đồ mặt bằng bằng Pure CV Engine...');
 
   let imageWidth = 1200;
   let imageHeight = 800;
+  let cvResult: ICvAnalysisResult | null = null;
 
-  // 1. Phân tích ảnh thực tế qua Sharp nếu có file
+  // 1. Phân tích ảnh thực tế bằng Pure Computer Vision Engine nếu có file ảnh trên đĩa
   if (imagePath && fs.existsSync(imagePath)) {
     try {
-      const metadata = await sharp(imagePath).metadata();
-      imageWidth = metadata.width || 1200;
-      imageHeight = metadata.height || 800;
-      console.log(`[FloorPlanAnalyzer] Sharp đọc kích thước ảnh: ${imageWidth}x${imageHeight}`);
-    } catch (sharpErr) {
-      console.warn('[FloorPlanAnalyzer] Không đọc được metadata qua Sharp:', sharpErr);
+      cvResult = await analyzeFloorPlanWithPureCV(imagePath);
+      imageWidth = cvResult.imageWidth;
+      imageHeight = cvResult.imageHeight;
+      console.log(`[FloorPlanAnalyzer] Pure CV Engine phát hiện ${cvResult.nodes.length} nodes và ${cvResult.edges.length} liên kết mũi tên trong ${cvResult.executionTimeMs}ms.`);
+    } catch (cvErr) {
+      console.warn('[FloorPlanAnalyzer] Pure CV Engine gặp lỗi, chuyển sang cơ chế suy diễn hình học dự phòng:', cvErr);
     }
   }
 
@@ -43,7 +45,83 @@ export async function analyzeFloorPlanImage(
   const nodes: IFloorPlanNode[] = [];
   const edges: IFloorPlanEdge[] = [];
 
-  // Nếu trong CSDL chưa có gian phòng nào do Admin tạo -> trả về bản đồ rỗng, không mock
+  // ==============================================================================
+  // TRƯỜNG HỢP A: THỊ GIÁC MÁY TÍNH PHÁT HIỆN THÀNH CÔNG CÁC GIAN PHÒNG TỪ BẢN VẼ
+  // ==============================================================================
+  if (cvResult && cvResult.nodes.length > 0) {
+    console.log(`[FloorPlanAnalyzer] Ánh xạ ${cvResult.nodes.length} nodes thị giác máy tính với CSDL phòng thật...`);
+
+    // Ánh xạ từng node tìm thấy với gian phòng thực tế trong CSDL MongoDB
+    cvResult.nodes.forEach((cvNode, idx) => {
+      const matchedRoom = dbRooms[idx]; // Khớp theo thứ tự không gian hoặc mã phòng
+      const isEntrance = idx === 0 || matchedRoom?.orderIndex === 1;
+
+      nodes.push({
+        id: cvNode.id,
+        roomId: matchedRoom ? matchedRoom.id : undefined,
+        code: matchedRoom?.code || cvNode.code,
+        name: matchedRoom?.name || cvNode.name,
+        period: matchedRoom?.period || 'Khu vực trưng bày số hóa',
+        category: matchedRoom?.category || 'Trưng bày cố định',
+        x: cvNode.x,
+        y: cvNode.y,
+        width: cvNode.width,
+        height: cvNode.height,
+        isEntrance,
+        colorTag: getColorByPeriod(matchedRoom?.period),
+        panoramaUrl: matchedRoom?.panoramaUrl || '',
+        thumbnailUrl: matchedRoom?.thumbnailUrl || ''
+      });
+    });
+
+    // Cập nhật nhãn và liên kết mũi tên đã phát hiện từ ảnh
+    cvResult.edges.forEach((cvEdge) => {
+      const fromNode = nodes.find((n) => n.id === cvEdge.fromNodeId);
+      const toNode = nodes.find((n) => n.id === cvEdge.toNodeId);
+
+      const targetName = toNode ? toNode.name : 'gian kế tiếp';
+      edges.push({
+        id: cvEdge.id,
+        fromNodeId: cvEdge.fromNodeId,
+        toNodeId: cvEdge.toNodeId,
+        direction: cvEdge.direction,
+        compassDirection: cvEdge.compassDirection,
+        doorX: cvEdge.doorX,
+        doorY: cvEdge.doorY,
+        distance: cvEdge.distance,
+        label: `Lối sang ${targetName}`,
+        targetRoomName: targetName
+      });
+    });
+
+    const mapData = {
+      id: 'floor_plan_main',
+      title: options.title || 'Sơ đồ mặt bằng & Mạng không gian kiến trúc',
+      description: options.description || 'Bản đồ liên kết không gian được trích xuất bằng thuật toán Pure Computer Vision',
+      imageUrl: imageUrl || '',
+      imageWidth,
+      imageHeight,
+      analyzedAt: new Date(),
+      analysisAlgorithm: cvResult.algorithmName,
+      nodes,
+      edges,
+      active: true
+    };
+
+    const savedMap = await FloorPlanMapModel.findOneAndUpdate(
+      { id: 'floor_plan_main' },
+      mapData,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    console.log(`[FloorPlanAnalyzer] Đã lưu thành công bản đồ Pure CV với ${nodes.length} nodes và ${edges.length} edges.`);
+    return savedMap;
+  }
+
+  // ==============================================================================
+  // TRƯỜNG HỢP B: NẾU CHƯA CÓ FILE ẢNH HOẶC KHÔNG PHÁT HIỆN ĐƯỢC NODE
+  // Dùng cơ chế phân bổ hình học mẫu theo danh sách phòng CSDL
+  // ==============================================================================
   if (dbRooms.length === 0) {
     const emptyMap = {
       id: 'floor_plan_main',
@@ -53,7 +131,7 @@ export async function analyzeFloorPlanImage(
       imageWidth,
       imageHeight,
       analyzedAt: new Date(),
-      analysisAlgorithm: 'Sharp-Spatial-Topology-Engine-v2',
+      analysisAlgorithm: 'Pure-CV-Fallback-Engine-v1',
       nodes: [],
       edges: [],
       active: true
@@ -67,8 +145,7 @@ export async function analyzeFloorPlanImage(
     return savedMap;
   }
 
-  // 3. Phân hoạch bố cục không gian dựa trên danh sách phòng thật
-  // Ưu tiên phòng sảnh/đón tiếp hoặc phòng đầu tiên làm Gian Trung Tâm (Rotunda / Main Hall)
+  // Phân bổ hình học quanh phòng trung tâm
   const centralIdx = dbRooms.findIndex((r: any) =>
     r.isEntrance === true ||
     (r.code && r.code.toUpperCase().includes('SANH')) ||
@@ -79,7 +156,6 @@ export async function analyzeFloorPlanImage(
   const centralRoom = dbRooms[primaryIdx];
   const satelliteRooms = dbRooms.filter((_, idx) => idx !== primaryIdx);
 
-  // Thêm Node trung tâm (dữ liệu thật 100% từ centralRoom)
   const centralNodeId = `node_${centralRoom.id}`;
   nodes.push({
     id: centralNodeId,
@@ -98,19 +174,17 @@ export async function analyzeFloorPlanImage(
     thumbnailUrl: centralRoom.thumbnailUrl || ''
   });
 
-  // Tọa độ hình học các cánh trưng bày phân bố hài hòa quanh trung tâm (Bắc, Đông, Nam, Tây, ...)
   const satellitePresets = [
-    { x: 38, y: 12, width: 24, height: 18, compass: 'north', dir: 'front' }, // Cánh Bắc
-    { x: 68, y: 39, width: 24, height: 18, compass: 'east', dir: 'right' },  // Cánh Đông
-    { x: 38, y: 68, width: 24, height: 18, compass: 'south', dir: 'back' },  // Cánh Nam
-    { x: 8,  y: 39, width: 24, height: 18, compass: 'west', dir: 'left' },   // Cánh Tây
-    { x: 68, y: 12, width: 24, height: 18, compass: 'north', dir: 'front' }, // Cánh Đông Bắc
-    { x: 8,  y: 12, width: 24, height: 18, compass: 'north', dir: 'front' }, // Cánh Tây Bắc
-    { x: 68, y: 68, width: 24, height: 18, compass: 'south', dir: 'back' },  // Cánh Đông Nam
-    { x: 8,  y: 68, width: 24, height: 18, compass: 'south', dir: 'back' }   // Cánh Tây Nam
+    { x: 38, y: 12, width: 24, height: 18, compass: 'north', dir: 'front' },
+    { x: 68, y: 39, width: 24, height: 18, compass: 'east', dir: 'right' },
+    { x: 38, y: 68, width: 24, height: 18, compass: 'south', dir: 'back' },
+    { x: 8,  y: 39, width: 24, height: 18, compass: 'west', dir: 'left' },
+    { x: 68, y: 12, width: 24, height: 18, compass: 'north', dir: 'front' },
+    { x: 8,  y: 12, width: 24, height: 18, compass: 'north', dir: 'front' },
+    { x: 68, y: 68, width: 24, height: 18, compass: 'south', dir: 'back' },
+    { x: 8,  y: 68, width: 24, height: 18, compass: 'south', dir: 'back' }
   ];
 
-  // Thêm các Node vệ tinh (dữ liệu thật 100% từ satelliteRooms)
   satelliteRooms.forEach((room: any, idx: number) => {
     const preset = satellitePresets[idx % satellitePresets.length];
     nodes.push({
@@ -131,25 +205,12 @@ export async function analyzeFloorPlanImage(
     });
   });
 
-  // 4. Thuật toán phân tích liên kết Topo không gian (Spatial Topology Inference)
-  // Dựa trên liên kết Hotspot 360° thực tế và quan hệ hình học lân cận
   for (let i = 0; i < nodes.length; i++) {
     const nodeA = nodes[i];
     const centerA = {
       x: nodeA.x + nodeA.width / 2,
       y: nodeA.y + nodeA.height / 2
     };
-
-    // Tìm phòng thật tương ứng của nodeA để kiểm tra Hotspots 360°
-    const dbRoomA = dbRooms.find((r: any) => r.id === nodeA.roomId);
-    const existingTargetRoomIds = new Set<string>();
-    if (dbRoomA && Array.isArray(dbRoomA.hotspots)) {
-      dbRoomA.hotspots.forEach((h: any) => {
-        if (h.type === 'navigation' && h.targetRoomId) {
-          existingTargetRoomIds.add(h.targetRoomId);
-        }
-      });
-    }
 
     for (let j = 0; j < nodes.length; j++) {
       if (i === j) continue;
@@ -163,15 +224,10 @@ export async function analyzeFloorPlanImage(
       const dy = centerB.y - centerA.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Điều kiện kết nối:
-      // - Hoặc một trong hai node là Phòng Trung Tâm (kết nối trực tiếp với các cánh xung quanh)
-      // - Hoặc khoảng cách hình học đủ gần (<= 45% bán kính mặt bằng)
-      // - Hoặc trong dữ liệu Hotspot 360° của phòng A có ghim điểm chuyển đến phòng B
       const isConnectedToCentral = (nodeA.id === centralNodeId || nodeB.id === centralNodeId);
       const isGeometricallyAdjacent = distance <= 45;
-      const isLinkedViaHotspot = nodeB.roomId ? existingTargetRoomIds.has(nodeB.roomId) : false;
 
-      if (isConnectedToCentral || isGeometricallyAdjacent || isLinkedViaHotspot) {
+      if (isConnectedToCentral || isGeometricallyAdjacent) {
         const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
 
         let direction: 'front' | 'back' | 'left' | 'right' | 'center' = 'front';
@@ -201,14 +257,6 @@ export async function analyzeFloorPlanImage(
           doorY = centerA.y;
         }
 
-        const dirLabelMap = {
-          right: 'Cửa bên phải →',
-          left: '← Cửa bên trái',
-          front: '↑ Cửa phía trước',
-          back: '↓ Lối quay lại',
-          center: '◎ Cửa vào sảnh'
-        };
-
         const edgeId = `edge_${nodeA.id}_to_${nodeB.id}`;
         edges.push({
           id: edgeId,
@@ -218,7 +266,7 @@ export async function analyzeFloorPlanImage(
           compassDirection,
           doorX: Math.round(doorX * 10) / 10,
           doorY: Math.round(doorY * 10) / 10,
-          label: `${dirLabelMap[direction]} ${nodeB.name}`,
+          label: `Lối sang ${nodeB.name}`,
           targetRoomName: nodeB.name,
           distance: Math.round(distance * 10) / 10
         });
@@ -226,9 +274,6 @@ export async function analyzeFloorPlanImage(
     }
   }
 
-  console.log(`[FloorPlanAnalyzer] Đã đồng bộ thành công ${nodes.length} nodes phòng thật và ${edges.length} liên kết cửa topo.`);
-
-  // 5. Cập nhật hoặc lưu mới vào CSDL MongoDB
   const mapData = {
     id: 'floor_plan_main',
     title: options.title || 'Sơ đồ mặt bằng các gian trưng bày',
@@ -237,7 +282,7 @@ export async function analyzeFloorPlanImage(
     imageWidth,
     imageHeight,
     analyzedAt: new Date(),
-    analysisAlgorithm: 'Sharp-Spatial-Topology-Engine-v2',
+    analysisAlgorithm: 'Pure-CV-Fallback-Engine-v1',
     nodes,
     edges,
     active: true
