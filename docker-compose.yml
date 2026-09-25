@@ -38,7 +38,7 @@ services:
       - PORT=3000
       - MONGO_URI=mongodb://mongodb:27017/museum
       - REDIS_URI=redis://redis:6379
-      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://103.178.233.206}
+      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://museumhcm.duckdns.org}
       - CLOUDINARY_URL=cloudinary://525596288476341:zLtV43liy-USXPkPDMmscuXum0k@djkif9ubs
       - CLOUDINARY_CLOUD_NAME=djkif9ubs
       - CLOUDINARY_API_KEY=525596288476341

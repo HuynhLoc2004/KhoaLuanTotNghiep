@@ -313,7 +313,8 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
             status: artifact3dQueuePending > 0 ? 'processing' : 'ready'
           }
         },
-        publicIp: process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || '103.178.233.206'
+        publicIp: req.get('host')?.replace(/:\d+$/, '') || process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || 'museumhcm.duckdns.org',
+        domain: 'museumhcm.duckdns.org'
       }
     });
   } catch (err: any) {

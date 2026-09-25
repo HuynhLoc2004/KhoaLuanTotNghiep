@@ -476,7 +476,7 @@ artifactsRouter.get('/:id/qr-download', async (req: Request, res: Response) => {
     }
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.get('host') || 'localhost:3000';
+    const host = req.get('host') || process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || 'museumhcm.duckdns.org';
     const targetUrl = `${protocol}://${host}/artifact/${item.id}`;
 
     const buffer = await generateQRCodeBuffer(targetUrl, 1000);

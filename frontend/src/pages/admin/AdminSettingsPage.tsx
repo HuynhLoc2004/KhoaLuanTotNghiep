@@ -1154,7 +1154,7 @@ export const AdminSettingsPage: React.FC = () => {
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {sysInfo?.uptimeSeconds
                   ? `Uptime: ${formatUptime(sysInfo.uptimeSeconds)} • Ping ${pingLatency !== null ? `${pingLatency}ms` : '<10ms'}`
-                  : `${t('settings.vpsAddressLabel', 'Địa chỉ VPS:')} ${sysInfo?.publicIp || '103.178.233.206'}`}
+                  : `${t('settings.vpsAddressLabel', 'Tên miền / IP:')} ${sysInfo?.publicIp || 'museumhcm.duckdns.org'}`}
               </div>
             </div>
           </div>
@@ -1705,10 +1705,10 @@ export const AdminSettingsPage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 12.5 }}>
                   {/* 1. VPS Host */}
                   <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.vpsAddress', 'Địa chỉ máy chủ (VPS)')}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.vpsAddress', 'Tên miền & Máy chủ')}</span>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 600 }}>
-                        {sysInfo?.publicIp || '103.178.233.206'}
+                        {sysInfo?.publicIp && sysInfo.publicIp !== '103.178.233.206' ? `${sysInfo.publicIp} (103.178.233.206)` : 'museumhcm.duckdns.org (103.178.233.206)'}
                       </span>
                       <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
                         Uptime: {formatUptime(sysInfo?.uptimeSeconds)}
