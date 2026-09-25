@@ -28,12 +28,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { branding } = useSystemBranding();
   const { t, currentLang } = useClientTranslation();
-  const [isHomepageExpanded, setIsHomepageExpanded] = useState<boolean>(true);
+  const [isHomepageExpanded, setIsHomepageExpanded] = useState<boolean>(currentTab === 'homepage_cms');
 
-  // Tự động mở menu con Trang chủ khi người dùng đang ở tab homepage_cms
+  // Tự động mở menu con Trang chủ khi đang ở tab homepage_cms, tự động đóng gọn khi ở các tab khác
   useEffect(() => {
     if (currentTab === 'homepage_cms') {
       setIsHomepageExpanded(true);
+    } else {
+      setIsHomepageExpanded(false);
     }
   }, [currentTab]);
 
@@ -139,11 +141,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title="Quản lý giao diện & 7 phân khu trang chủ"
           >
             <LayoutTemplate size={16} />
-            <span>{t('nav.homepageCms', 'Trang chủ (Homepage)')}</span>
+            <span className="nav-item-text">{t('nav.homepageCms', 'Trang chủ (Homepage)')}</span>
             <ChevronDown
               size={14}
               style={{
                 marginLeft: 'auto',
+                flexShrink: 0,
                 transform: isHomepageExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.2s ease',
                 opacity: 0.7
@@ -173,47 +176,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* 1.2 Quản lý Trang Gian phòng 360° */}
+        {/* 1.2 Quản lý Gian phòng 360° */}
         <button
           className={`nav-item ${currentTab === 'rooms' || currentTab === 'studio' ? 'active' : ''}`}
           onClick={() => handleItemClick('rooms')}
           title="Quản lý danh sách gian trưng bày, ảnh toàn cảnh 360° và các điểm hotspot"
         >
           <Compass size={16} />
-          <span>{t('nav.roomsPage', 'Trang Gian phòng 360°')}</span>
-          <span
-            style={{
-              marginLeft: 'auto',
-              background: 'var(--primary-light)',
-              color: 'var(--primary)',
-              fontSize: 11,
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: 4
-            }}
-          >
-            {roomCount}
-          </span>
+          <span className="nav-item-text">{t('nav.roomsPage', 'Gian phòng 360°')}</span>
+          <span className="nav-item-badge">{roomCount}</span>
         </button>
 
-        {/* 1.3 Quản lý Trang Cổ vật 3D */}
+        {/* 1.3 Quản lý Cổ vật 3D */}
         <button
           className={`nav-item ${currentTab === 'artifacts' ? 'active' : ''}`}
           onClick={() => handleItemClick('artifacts')}
           title="Quản lý kho hiện vật di sản, mô hình 3D xoay 360° và thuyết minh"
         >
           <Box size={16} />
-          <span>{t('nav.artifactsPage', 'Trang Cổ vật & Bảo vật 3D')}</span>
+          <span className="nav-item-text">{t('nav.artifactsPage', 'Cổ vật & Bảo vật 3D')}</span>
         </button>
 
-        {/* 1.4 Quản lý Trang Cẩm nang & Sơ đồ */}
+        {/* 1.4 Quản lý Cẩm nang & Sơ đồ */}
         <button
           className={`nav-item ${currentTab === 'guide' ? 'active' : ''}`}
           onClick={() => handleItemClick('guide')}
           title="Quản lý sơ đồ mặt bằng tham quan, giờ mở cửa, bảng giá vé, bản đồ và tiện ích"
         >
           <Layers size={16} />
-          <span>{t('nav.guidePage', 'Trang Cẩm nang & Sơ đồ')}</span>
+          <span className="nav-item-text">{t('nav.guidePage', 'Cẩm nang & Sơ đồ')}</span>
         </button>
 
         {/* NHÓM 2: CÔNG CỤ TOUR 360° & ĐỒNG BỘ */}
@@ -228,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title="Tạo và ghép ảnh toàn cảnh equirectangular 360° từ máy ảnh hoặc webcam"
         >
           <Camera size={16} />
-          <span>{t('nav.pocStitching', 'Tạo ảnh toàn cảnh 360°')}</span>
+          <span className="nav-item-text">{t('nav.pocStitching', 'Tạo ảnh toàn cảnh 360°')}</span>
         </button>
 
         {/* NHÓM 3: HỆ THỐNG & BÁO CÁO */}
@@ -242,7 +233,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('languages')}
         >
           <Languages size={16} />
-          <span>{t('nav.languages', 'Quản trị Ngôn ngữ & Voice AI')}</span>
+          <span className="nav-item-text">{t('nav.languages', 'Quản trị Ngôn ngữ & Voice AI')}</span>
         </button>
 
         <button
@@ -250,7 +241,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('analytics')}
         >
           <BarChart3 size={16} />
-          <span>{t('nav.analytics', 'Báo cáo & Thống kê')}</span>
+          <span className="nav-item-text">{t('nav.analytics', 'Báo cáo & Thống kê')}</span>
         </button>
 
         <button
@@ -258,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => handleItemClick('settings')}
         >
           <Settings size={16} />
-          <span>{t('nav.settings', 'Cấu hình hệ thống')}</span>
+          <span className="nav-item-text">{t('nav.settings', 'Cấu hình hệ thống')}</span>
         </button>
       </nav>
 
