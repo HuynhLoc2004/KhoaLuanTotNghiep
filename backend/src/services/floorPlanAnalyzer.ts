@@ -6,8 +6,10 @@ import { FloorPlanMapModel, IFloorPlanMap, IFloorPlanNode, IFloorPlanEdge } from
 import { analyzeFloorPlanWithPureCV, ICvAnalysisResult } from './floorPlanCvEngine.js';
 
 interface AnalysisOptions {
+  mapId?: string;
   title?: string;
   description?: string;
+  setActive?: boolean;
   forceRebuild?: boolean;
 }
 
@@ -113,8 +115,15 @@ export async function analyzeFloorPlanImage(
       });
     });
 
+    const mapId = options.mapId || (options.setActive !== false ? 'floor_plan_main' : `floor_plan_${Date.now()}`);
+    const shouldSetActive = options.setActive !== false;
+
+    if (shouldSetActive) {
+      await FloorPlanMapModel.updateMany({ id: { $ne: mapId } }, { active: false });
+    }
+
     const mapData = {
-      id: 'floor_plan_main',
+      id: mapId,
       title: options.title || 'Sơ đồ mặt bằng & Mạng không gian kiến trúc',
       description: options.description || 'Bản đồ liên kết không gian được trích xuất bằng thuật toán Pure Computer Vision',
       imageUrl: imageUrl || '',
@@ -124,16 +133,16 @@ export async function analyzeFloorPlanImage(
       analysisAlgorithm: cvResult.algorithmName,
       nodes,
       edges,
-      active: true
+      active: shouldSetActive
     };
 
     const savedMap = await FloorPlanMapModel.findOneAndUpdate(
-      { id: 'floor_plan_main' },
+      { id: mapId },
       mapData,
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
-    console.log(`[FloorPlanAnalyzer] Đã lưu thành công bản đồ Pure CV với ${nodes.length} nodes và ${edges.length} edges.`);
+    console.log(`[FloorPlanAnalyzer] Đã lưu thành công bản đồ Pure CV [${mapId}] (Active: ${shouldSetActive}) với ${nodes.length} nodes và ${edges.length} edges.`);
     return savedMap;
   }
 
@@ -293,8 +302,15 @@ export async function analyzeFloorPlanImage(
     }
   }
 
+  const mapId = options.mapId || (options.setActive !== false ? 'floor_plan_main' : `floor_plan_${Date.now()}`);
+  const shouldSetActive = options.setActive !== false;
+
+  if (shouldSetActive) {
+    await FloorPlanMapModel.updateMany({ id: { $ne: mapId } }, { active: false });
+  }
+
   const mapData = {
-    id: 'floor_plan_main',
+    id: mapId,
     title: options.title || 'Sơ đồ mặt bằng các gian trưng bày',
     description: options.description || 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày',
     imageUrl: imageUrl || '',
@@ -304,13 +320,13 @@ export async function analyzeFloorPlanImage(
     analysisAlgorithm: 'Pure-CV-Fallback-Engine-v1',
     nodes,
     edges,
-    active: true
+    active: shouldSetActive
   };
 
   const savedMap = await FloorPlanMapModel.findOneAndUpdate(
-    { id: 'floor_plan_main' },
+    { id: mapId },
     mapData,
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   );
 
   return savedMap;

@@ -338,6 +338,8 @@ export interface FloorPlanMap {
   imageUrl?: string;
   imageWidth: number;
   imageHeight: number;
+  width?: number;
+  height?: number;
   analyzedAt: string;
   analysisAlgorithm: string;
   nodes: FloorPlanNode[];
