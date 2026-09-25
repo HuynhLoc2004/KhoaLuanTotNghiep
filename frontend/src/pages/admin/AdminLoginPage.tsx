@@ -79,15 +79,67 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
     }
   };
 
-  // Nhập từng chữ số OTP
+  // Xác thực OTP
+  const handleVerifyOtp = async (e?: React.FormEvent, codeOverride?: string) => {
+    if (e) e.preventDefault();
+    const otpCode = (codeOverride !== undefined ? codeOverride : otpDigits.join('')).trim();
+    if (otpCode.length < 6) {
+      showToast('Vui lòng nhập đủ 6 chữ số mã xác thực', 'warning');
+      return;
+    }
+    if (isVerifyingOtp) return;
+
+    try {
+      setIsVerifyingOtp(true);
+      await loginWithOtp(email.trim(), otpCode);
+      showToast('Đăng nhập quản trị thành công', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Mã xác thực không chính xác hoặc đã hết hạn', 'error');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  // Nhập từng chữ số OTP - Tự động đăng nhập khi điền đủ 6 số
   const handleDigitChange = (index: number, value: string) => {
-    const char = value.replace(/\D/g, '').slice(-1);
+    const cleanNumbers = value.replace(/\D/g, '');
+
+    // Nếu người dùng paste hoặc nhập chuỗi nhiều số vào một ô
+    if (cleanNumbers.length > 1) {
+      const pasteData = cleanNumbers.slice(0, 6);
+      const newDigits = [...otpDigits];
+      for (let i = 0; i < pasteData.length; i++) {
+        if (index + i < 6) {
+          newDigits[index + i] = pasteData[i];
+        }
+      }
+      setOtpDigits(newDigits);
+      const fullCode = newDigits.join('');
+      if (fullCode.length === 6) {
+        inputRefs.current[5]?.focus();
+        handleVerifyOtp(undefined, fullCode);
+      } else {
+        const nextIdx = Math.min(index + pasteData.length, 5);
+        inputRefs.current[nextIdx]?.focus();
+      }
+      return;
+    }
+
+    const char = cleanNumbers.slice(-1);
     const newDigits = [...otpDigits];
     newDigits[index] = char;
     setOtpDigits(newDigits);
 
-    if (char && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+    if (char) {
+      if (index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      } else {
+        // Đã nhập đến ô cuối cùng (ô thứ 6) -> Tự động kích hoạt đăng nhập
+        const fullCode = newDigits.join('');
+        if (fullCode.length === 6) {
+          handleVerifyOtp(undefined, fullCode);
+        }
+      }
     }
   };
 
@@ -98,39 +150,24 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
     }
   };
 
-  // Hỗ trợ Paste 6 số
+  // Hỗ trợ Paste 6 số - Điền đủ và tự động kích hoạt đăng nhập ngay lập tức
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
     if (!pasteData) return;
 
-    const newDigits = [...otpDigits];
+    const newDigits = ['', '', '', '', '', ''];
     for (let i = 0; i < pasteData.length; i++) {
       newDigits[i] = pasteData[i];
     }
     setOtpDigits(newDigits);
 
-    const nextIndex = Math.min(pasteData.length, 5);
-    inputRefs.current[nextIndex]?.focus();
-  };
-
-  // Xác thực OTP
-  const handleVerifyOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const otpCode = otpDigits.join('');
-    if (otpCode.length < 6) {
-      showToast('Vui lòng nhập đủ 6 chữ số mã xác thực', 'warning');
-      return;
-    }
-
-    try {
-      setIsVerifyingOtp(true);
-      await loginWithOtp(email.trim(), otpCode);
-      showToast('Đăng nhập quản trị thành công', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Mã xác thực không chính xác hoặc đã hết hạn', 'error');
-    } finally {
-      setIsVerifyingOtp(false);
+    if (pasteData.length === 6) {
+      inputRefs.current[5]?.focus();
+      handleVerifyOtp(undefined, pasteData);
+    } else {
+      const nextIndex = Math.min(pasteData.length, 5);
+      inputRefs.current[nextIndex]?.focus();
     }
   };
 

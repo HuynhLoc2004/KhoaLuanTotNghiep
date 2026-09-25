@@ -95,13 +95,14 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
   };
 
   // Bước 2: Xác thực OTP và đăng nhập
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanOtp = otp.trim();
+  const handleVerifyOtp = async (e?: React.FormEvent, codeOverride?: string) => {
+    if (e) e.preventDefault();
+    const cleanOtp = (codeOverride !== undefined ? codeOverride : otp).trim();
     if (cleanOtp.length < 6) {
       setError('Vui lòng nhập đủ 6 chữ số');
       return;
     }
+    if (isVerifying) return;
 
     try {
       setIsVerifying(true);
@@ -210,6 +211,9 @@ export const ClientLoginOtpModal: React.FC<ClientLoginOtpModalProps> = ({
                 onChange={(e) => {
                   const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                   setOtp(val);
+                  if (val.length === 6) {
+                    handleVerifyOtp(undefined, val);
+                  }
                 }}
                 autoFocus
                 required
