@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SystemBranding } from '../types';
-import { api } from '../services/api';
+import { api, API_ROOT } from '../services/api';
 
 const LOCAL_STORAGE_KEY = 'system_branding_cache';
 
@@ -175,13 +175,84 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
       }
     };
 
+    // Khởi tạo kênh Server-Sent Events (SSE) đồng bộ thời gian thực từ Backend
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: any = null;
+
+    const setupSSE = () => {
+      try {
+        const streamUrl = `${API_ROOT}/api/system/realtime-stream`;
+        eventSource = new EventSource(streamUrl);
+
+        eventSource.addEventListener('branding_updated', (e) => {
+          try {
+            const updated = JSON.parse(e.data);
+            if (updated && updated.museumName) {
+              setBranding((prev) => ({ ...prev, ...updated }));
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+              } catch {}
+            }
+          } catch (err) {
+            console.warn('[RealtimeSync] Lỗi đọc gói tin branding_updated:', err);
+          }
+        });
+
+        eventSource.addEventListener('rooms_updated', (e) => {
+          try {
+            const detail = JSON.parse(e.data);
+            window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail }));
+          } catch {}
+        });
+
+        eventSource.addEventListener('artifacts_updated', (e) => {
+          try {
+            const detail = JSON.parse(e.data);
+            window.dispatchEvent(new CustomEvent('museum:artifacts_updated', { detail }));
+          } catch {}
+        });
+
+        eventSource.addEventListener('maintenance_updated', (e) => {
+          try {
+            const detail = JSON.parse(e.data);
+            window.dispatchEvent(new CustomEvent('museum:maintenance_updated', { detail }));
+          } catch {}
+        });
+
+        eventSource.addEventListener('floor_plan_updated', (e) => {
+          try {
+            const detail = JSON.parse(e.data);
+            window.dispatchEvent(new CustomEvent('museum:floor_plan_updated', { detail }));
+          } catch {}
+        });
+
+        eventSource.onerror = () => {
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          if (reconnectTimeout) clearTimeout(reconnectTimeout);
+          // Tự động kết nối lại sau 4 giây nếu mạng gián đoạn
+          reconnectTimeout = setTimeout(setupSSE, 4000);
+        };
+      } catch (err) {
+        console.warn('[RealtimeSync] Lỗi thiết lập EventSource SSE:', err);
+      }
+    };
+
     if (typeof window !== 'undefined') {
+      setupSSE();
       window.addEventListener('storage', handleStorageChange);
       document.addEventListener('visibilitychange', handleVisibilityChange);
       window.addEventListener('focus', fetchBranding);
     }
 
     return () => {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleStorageChange);
         document.removeEventListener('visibilitychange', handleVisibilityChange);

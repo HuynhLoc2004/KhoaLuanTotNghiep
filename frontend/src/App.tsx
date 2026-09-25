@@ -23,6 +23,7 @@ import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminHomepageCMSPage } from './pages/admin/AdminHomepageCMSPage';
+import { AdminGuideCMSPage } from './pages/admin/AdminGuideCMSPage';
 import { ClientTranslationProvider, useClientTranslation } from './context/ClientTranslationContext';
 import { ClientHomePage } from './pages/client/ClientHomePage';
 import { ClientTourView } from './pages/client/ClientTourView';
@@ -156,6 +157,24 @@ const AppContent: React.FC = () => {
   // Nạp danh sách dữ liệu khi khởi tạo (phục vụ cả tour khách và admin)
   useEffect(() => {
     fetchRooms();
+  }, []);
+
+  // Lắng nghe sự kiện đồng bộ thời gian thực cho Rooms và Artifacts (không cần reload trang)
+  useEffect(() => {
+    const handleRoomsSync = () => {
+      api.getRooms().then((data) => setRooms(data || [])).catch(() => {});
+    };
+    const handleArtifactsSync = () => {
+      api.getArtifacts().then((data) => setArtifacts(data || [])).catch(() => {});
+    };
+
+    window.addEventListener('museum:rooms_updated', handleRoomsSync);
+    window.addEventListener('museum:artifacts_updated', handleArtifactsSync);
+
+    return () => {
+      window.removeEventListener('museum:rooms_updated', handleRoomsSync);
+      window.removeEventListener('museum:artifacts_updated', handleArtifactsSync);
+    };
   }, []);
 
   // Lắng nghe thay đổi URL khi người dùng nhấn nút Back / Forward trên trình duyệt
@@ -828,6 +847,8 @@ const AppContent: React.FC = () => {
             activeSection={homepageSection}
             onSectionChange={setHomepageSection}
           />
+        ) : currentTab === 'guide' ? (
+          <AdminGuideCMSPage />
         ) : currentTab === 'languages' ? (
           <AdminLanguagePage />
         ) : currentTab === 'settings' ? (

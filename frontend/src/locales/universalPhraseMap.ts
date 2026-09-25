@@ -16,6 +16,174 @@ export interface UniversalPhraseItem {
 }
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
+  'Chưa có hiện vật nào phù hợp': {
+    en: 'No matching artifacts found',
+    fr: 'Aucun objet correspondant trouvé',
+    zh: '未找到匹配的文物',
+    ja: '一致する遺物は見つかりませんでした'
+  },
+  'Hệ thống chưa ghi nhận cổ vật phù hợp với bộ lọc hiện tại. Bạn có thể thêm hồ sơ hiện vật mới hoặc điều chỉnh tiêu chí tìm kiếm.': {
+    en: 'The system has not recorded any relics matching the current filter. You can add a new artifact profile or adjust your search criteria.',
+    fr: "Le système n'a trouvé aucun objet correspondant au filtre actuel. Vous pouvez ajouter un nouvel objet ou ajuster vos critères de recherche.",
+    zh: '系统未找到符合当前筛选条件的文物。您可以添加新文物或调整搜索条件。',
+    ja: '現在のフィルターに一致する遺物は記録されていません。新しい遺物を登録するか、検索条件を調整してください。'
+  },
+  'Tìm theo tên hiện vật, mã HV-..., niên đại...': {
+    en: 'Search by artifact name, code HV-..., period...',
+    fr: "Rechercher par nom d'objet, code HV-..., période...",
+    zh: '按文物名称、编号 HV-...、年代搜索...',
+    ja: '遺物名、コード HV-...、年代で検索...'
+  },
+  'Hồ sơ Cổ vật': {
+    en: 'Artifact Records',
+    fr: 'Dossiers des Objets',
+    zh: '文物档案',
+    ja: '遺物記録'
+  },
+  'Số hóa 3D Không gian': {
+    en: '3D Space Digitization',
+    fr: 'Numérisation 3D de l\'Espace',
+    zh: '3D空间数字化',
+    ja: '3D空間デジタル化'
+  },
+  'Đăng ký sổ bảo tồn di sản': {
+    en: 'Registered in conservation catalog',
+    fr: 'Inscrit au registre de conservation',
+    zh: '已录入遗产保护名录',
+    ja: '遺産保護台帳に登録済み'
+  },
+  'Sẵn sàng đĩa xoay 360°': {
+    en: 'Ready for 360° turntable',
+    fr: 'Prêt pour plateau tournant 360°',
+    zh: '已就绪360°旋转台',
+    ja: '360°回転表示対応'
+  },
+  'Đồng bộ giọng đọc bản xứ': {
+    en: 'Synchronized native voice audio',
+    fr: 'Voix native synchronisée',
+    zh: '同步母语解说语音',
+    ja: 'ネイティブ音声と同期'
+  },
+  'Sẵn sàng in thẻ trưng bày': {
+    en: 'Ready to print display cards',
+    fr: 'Prêt à imprimer les fiches d\'exposition',
+    zh: '就绪打印展位标牌',
+    ja: '展示スタンドカード印刷対応'
+  },
+  'Danh Mục Hiện Vật': {
+    en: 'Artifact Catalog',
+    fr: 'Catalogue des Objets',
+    zh: '文物名录',
+    ja: '遺物カタログ'
+  },
+  'Tất cả danh mục': {
+    en: 'All categories',
+    fr: 'Toutes les catégories',
+    zh: '所有分类',
+    ja: 'すべてのカテゴリー'
+  },
+  'Tất cả trạng thái 3D': {
+    en: 'All 3D statuses',
+    fr: 'Tous les statuts 3D',
+    zh: '所有3D状态',
+    ja: 'すべての3D状態'
+  },
+  'Đã có mô hình 3D': {
+    en: '3D model ready',
+    fr: 'Modèle 3D disponible',
+    zh: '已有3D模型',
+    ja: '3Dモデル準備完了'
+  },
+  'Đang dựng 3D': {
+    en: 'Generating 3D',
+    fr: 'Génération 3D en cours',
+    zh: '正在生成3D',
+    ja: '3D生成中'
+  },
+  'Đang dựng 3D...': {
+    en: 'Generating 3D...',
+    fr: 'Génération 3D en cours...',
+    zh: '正在生成3D...',
+    ja: '3D生成中...'
+  },
+  'Chưa có 3D': {
+    en: 'No 3D yet',
+    fr: 'Pas de modèle 3D',
+    zh: '暂无3D模型',
+    ja: '3Dモデル未作成'
+  },
+  '3D Sẵn sàng': {
+    en: '3D Ready',
+    fr: '3D Prêt',
+    zh: '3D 已就绪',
+    ja: '3D 準備完了'
+  },
+  'Ảnh 2D': {
+    en: '2D Photo',
+    fr: 'Photo 2D',
+    zh: '2D 照片',
+    ja: '2D 写真'
+  },
+  'Thêm hiện vật mới': {
+    en: 'Add new artifact',
+    fr: 'Ajouter un objet',
+    zh: '添加新文物',
+    ja: '新規遺物を追加'
+  },
+  'Xem 3D đĩa xoay 360°': {
+    en: 'View 3D 360° turntable',
+    fr: 'Voir 3D plateau tournant 360°',
+    zh: '查看3D 360°旋转视图',
+    ja: '360°ターンテーブル3D表示'
+  },
+  'Thẻ Standee QR': {
+    en: 'Standee QR Card',
+    fr: 'Fiche Standee QR',
+    zh: '立牌QR码卡',
+    ja: 'スタンドQRカード'
+  },
+  'Chỉnh sửa': {
+    en: 'Edit',
+    fr: 'Modifier',
+    zh: '编辑',
+    ja: '編集'
+  },
+  'Thêm voice': {
+    en: 'Add voice',
+    fr: 'Ajouter voix',
+    zh: '添加语音',
+    ja: '音声追加'
+  },
+  'Hình ảnh': {
+    en: 'Image',
+    fr: 'Image',
+    zh: '图像',
+    ja: '画像'
+  },
+  'Tên hiện vật & Xuất xứ': {
+    en: 'Artifact Name & Origin',
+    fr: 'Nom de l\'Objet & Origine',
+    zh: '文物名称与出土地',
+    ja: '遺物名＆出土地'
+  },
+  'Niên đại & Chuyên đề': {
+    en: 'Period & Category',
+    fr: 'Période & Thème',
+    zh: '年代与主题',
+    ja: '年代＆展示テーマ'
+  },
+  'Trạng thái 3D': {
+    en: '3D Status',
+    fr: 'Statut 3D',
+    zh: '3D 状态',
+    ja: '3D ステータス'
+  },
+  'Thuyết minh AI': {
+    en: 'AI Narration',
+    fr: 'Narration IA',
+    zh: 'AI 语音解说',
+    ja: 'AI 音声解説'
+  },
   'TP. Hồ Chí Minh • Quản trị': {
     en: 'Ho Chi Minh City • Administration',
     fr: 'Hô Chi Minh-Ville • Administration',

@@ -78,7 +78,7 @@ export interface TopicItem {
   updatedAt?: string;
 }
 
-export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'homepage_cms' | 'languages' | 'analytics' | 'settings';
+export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'homepage_cms' | 'guide' | 'languages' | 'analytics' | 'settings';
 
 
 

@@ -60,21 +60,32 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    api.getFloorPlan()
-      .then((data) => {
-        if (isMounted && data) {
-          setFloorPlan(data);
-        }
-      })
-      .catch((err) => {
-        console.warn('[ClientGuidePage] Không tải được sơ đồ mặt bằng:', err);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingFloorPlan(false);
-      });
+    const fetchFloorPlan = () => {
+      api.getFloorPlan()
+        .then((data) => {
+          if (isMounted && data) {
+            setFloorPlan(data);
+          }
+        })
+        .catch((err) => {
+          console.warn('[ClientGuidePage] Không tải được sơ đồ mặt bằng:', err);
+        })
+        .finally(() => {
+          if (isMounted) setLoadingFloorPlan(false);
+        });
+    };
+
+    fetchFloorPlan();
+
+    const handleFloorPlanUpdated = () => {
+      fetchFloorPlan();
+    };
+
+    window.addEventListener('museum:floor_plan_updated', handleFloorPlanUpdated);
 
     return () => {
       isMounted = false;
+      window.removeEventListener('museum:floor_plan_updated', handleFloorPlanUpdated);
     };
   }, []);
 

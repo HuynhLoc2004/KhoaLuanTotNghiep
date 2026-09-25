@@ -2889,11 +2889,20 @@
   background-color: var(--bg-surface);
   font-size: 13px;
   color: var(--text-main);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.pagination-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .pagination-info {
   color: var(--text-muted);
   font-size: 13px;
+  line-height: 1.4;
 }
 
 .pagination-info strong {
@@ -2917,7 +2926,7 @@
   font-size: 12.5px;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .pagination-size-select:hover {
@@ -2926,13 +2935,14 @@
 
 .pagination-size-select:focus {
   border-color: var(--accent-gold);
-  box-shadow: 0 0 0 2px rgba(212, 168, 106, 0.2);
+  box-shadow: 0 0 0 2px rgba(212, 168, 106, 0.25);
 }
 
 .pagination-controls {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .pagination-pages {
@@ -2946,8 +2956,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 34px;
-  height: 34px;
+  min-width: 36px;
+  height: 36px;
   padding: 0 10px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--border-color);
@@ -2956,14 +2966,15 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
+  touch-action: manipulation;
 }
 
 .pagination-btn.nav-btn {
   padding: 0 12px;
   font-weight: 600;
-  gap: 4px;
+  gap: 6px;
 }
 
 .pagination-btn:hover:not(:disabled) {
@@ -2971,20 +2982,22 @@
   border-color: var(--accent-gold);
   color: var(--accent-gold);
   transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* Trạng thái vô hiệu hóa (Disabled): Rõ ràng, nét chữ rõ, viền nét, không bị mờ tịt */
 .pagination-btn:disabled {
-  opacity: 1 !important;
+  opacity: 0.55 !important;
   background-color: var(--bg-subtle);
   border: 1.5px solid var(--border-color);
   color: var(--text-light);
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
 }
 
 .pagination-btn:disabled svg {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .pagination-btn:disabled .pagination-btn-label {
@@ -2994,38 +3007,73 @@
 
 /* Nút trang đang chọn (Active) */
 .pagination-btn.active {
-  background-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, #A8321B 100%);
   border-color: var(--primary);
   color: #FFFFFF !important;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(140, 45, 25, 0.35);
+  box-shadow: 0 3px 10px rgba(140, 45, 25, 0.4);
 }
 
 .pagination-btn.active:hover {
-  background-color: var(--primary-hover);
+  background: linear-gradient(135deg, var(--primary-hover) 0%, #B9381E 100%);
   border-color: var(--primary-hover);
   color: #FFFFFF !important;
   transform: none;
 }
 
 .pagination-ellipsis {
-  padding: 0 4px;
+  padding: 0 6px;
   color: var(--text-light);
+  font-size: 14px;
+  user-select: none;
 }
 
-@media (max-width: 640px) {
+/* Responsive: Tablet & Mobile */
+@media (max-width: 768px) {
   .pagination-container {
     flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 12px 14px;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .pagination-meta {
+    justify-content: center;
+    width: 100%;
+    text-align: center;
   }
   .pagination-controls {
     justify-content: center;
     width: 100%;
   }
+}
+
+@media (max-width: 520px) {
+  .pagination-container {
+    padding: 12px 10px;
+    gap: 10px;
+  }
+  .pagination-meta {
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+  }
   .pagination-btn.nav-btn .pagination-btn-label {
     display: none;
+  }
+  .pagination-btn.nav-btn {
+    padding: 0 8px;
+    min-width: 34px;
+    height: 34px;
+  }
+  .pagination-btn.page-btn {
+    min-width: 32px;
+    height: 34px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+  .pagination-ellipsis {
+    padding: 0 2px;
+    font-size: 12px;
   }
 }
 

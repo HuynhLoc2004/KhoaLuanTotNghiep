@@ -88,8 +88,21 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
     };
 
     loadHomeData();
+
+    const handleRoomsSync = () => {
+      api.getRooms().then((data) => setRooms(data || [])).catch(() => {});
+    };
+    const handleArtifactsSync = () => {
+      api.getArtifacts().then((data) => setArtifacts(data || [])).catch(() => {});
+    };
+
+    window.addEventListener('museum:rooms_updated', handleRoomsSync);
+    window.addEventListener('museum:artifacts_updated', handleArtifactsSync);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('museum:rooms_updated', handleRoomsSync);
+      window.removeEventListener('museum:artifacts_updated', handleArtifactsSync);
     };
   }, []);
 

@@ -357,17 +357,21 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     }
   }, [currentLang]);
 
+  // Cờ ngăn vòng lặp MutationObserver tự kích hoạt khi thay đổi DOM
+  const isTranslatingRef = React.useRef<boolean>(false);
+  const translateTextNodesRef = React.useRef<((root?: Node) => void) | null>(null);
+
   // Hàng đợi dịch bất đồng bộ gom nhóm (batch queue)
   const pendingQueueRef = React.useRef<Set<string>>(new Set());
   const debounceTimerRef = React.useRef<any>(null);
 
   const processQueue = useCallback(async () => {
     if (pendingQueueRef.current.size === 0 || currentLang === 'vi') return;
-    const batch = Array.from(pendingQueueRef.current).slice(0, 40);
+    const batch = Array.from(pendingQueueRef.current).slice(0, 80);
     batch.forEach((txt) => pendingQueueRef.current.delete(txt));
 
     try {
-      // 1. Gọi backend POST /api/languages/translate-batch
+      // 1. Gọi backend POST /api/languages/translate-batch (Gemini 2.5 Flash / Grouped NMT + Redis)
       const res = await fetch(`${API_BASE}/languages/translate-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -381,7 +385,7 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           newDict = json.data;
         }
       } else {
-        // 2. Client fallback sang Google dict-chrome-ex trực tiếp (CORS: *, hỗ trợ 100+ ngôn ngữ, không bị rate-limit 429)
+        // 2. Client fallback sang Google dict-chrome-ex trực tiếp nếu backend bận
         await Promise.all(
           batch.map(async (txt) => {
             try {
@@ -418,6 +422,16 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           }
           return merged;
         });
+
+        // Áp dụng dịch ngay lập tức vào DOM trong frame kế tiếp
+        requestAnimationFrame(() => {
+          translateTextNodesRef.current?.(document.body);
+        });
+      }
+
+      // Nếu còn cụm từ trong hàng đợi, tiếp tục xử lý mẻ tiếp theo
+      if (pendingQueueRef.current.size > 0) {
+        setTimeout(processQueue, 30);
       }
     } catch (err) {
       console.warn('[AutoTranslateQueue] Error processing translation batch:', err);
@@ -439,7 +453,7 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     }
     debounceTimerRef.current = setTimeout(() => {
       processQueue();
-    }, 100);
+    }, 35);
   }, [currentLang, autoTranslations, processQueue]);
 
   // Cơ chế quét và dịch tự động toàn diện các Text Node trong DOM (Hybrid i18n DOM Engine)
@@ -448,175 +462,197 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
     const translateTextNodes = (root: Node = document.body) => {
-      if (currentLang === 'vi') {
-        // Phục hồi lại văn bản gốc nếu chuyển về tiếng Việt
-        document.querySelectorAll('[data-i18n-orig]').forEach((el) => {
-          const orig = el.getAttribute('data-i18n-orig');
-          if (orig) {
-            el.textContent = orig;
-            el.removeAttribute('data-i18n-orig');
-          }
-        });
-        document.querySelectorAll('input[data-i18n-orig-ph], textarea[data-i18n-orig-ph]').forEach((el) => {
-          const input = el as HTMLInputElement | HTMLTextAreaElement;
-          const orig = input.getAttribute('data-i18n-orig-ph');
-          if (orig) {
-            input.placeholder = orig;
-            input.removeAttribute('data-i18n-orig-ph');
-          }
-        });
-        document.querySelectorAll('[data-i18n-orig-title]').forEach((el) => {
-          const orig = el.getAttribute('data-i18n-orig-title');
-          if (orig) {
-            el.setAttribute('title', orig);
-            el.removeAttribute('data-i18n-orig-title');
-          }
-        });
-        document.querySelectorAll('[data-i18n-orig-aria]').forEach((el) => {
-          const orig = el.getAttribute('data-i18n-orig-aria');
-          if (orig) {
-            el.setAttribute('aria-label', orig);
-            el.removeAttribute('data-i18n-orig-aria');
-          }
-        });
-        return;
-      }
+      if (isTranslatingRef.current) return;
+      isTranslatingRef.current = true;
 
-      const targetLang = currentLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
-
-      // 1. Quét dịch placeholder của các ô nhập liệu input / textarea
-      document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((el) => {
-        const input = el as HTMLInputElement | HTMLTextAreaElement;
-        const currentPh = input.placeholder;
-        if (!currentPh) return;
-        const origPh = input.getAttribute('data-i18n-orig-ph') || (input as any).__i18nOrigPh || currentPh;
-        if (!input.hasAttribute('data-i18n-orig-ph')) {
-          input.setAttribute('data-i18n-orig-ph', origPh);
-          (input as any).__i18nOrigPh = origPh;
-        }
-        const trans = autoTranslations[origPh] || lookupUniversalPhrase(origPh, targetLang);
-        if (trans && input.placeholder !== trans) {
-          input.placeholder = trans;
-        }
-        if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[origPh] && VIETNAMESE_REGEX.test(origPh)) {
-          enqueueForTranslation(origPh);
-        } else if (!trans && VIETNAMESE_REGEX.test(origPh)) {
-          enqueueForTranslation(origPh);
-        }
-      });
-
-      // 2. Quét dịch thuộc tính title (tooltip)
-      document.querySelectorAll('[title]').forEach((el) => {
-        const title = el.getAttribute('title');
-        if (!title || !title.trim()) return;
-        const origTitle = el.getAttribute('data-i18n-orig-title') || (el as any).__i18nOrigTitle || title;
-        if (!el.hasAttribute('data-i18n-orig-title')) {
-          el.setAttribute('data-i18n-orig-title', origTitle);
-          (el as any).__i18nOrigTitle = origTitle;
-        }
-        const trans = autoTranslations[origTitle] || lookupUniversalPhrase(origTitle, targetLang);
-        if (trans && el.getAttribute('title') !== trans) {
-          el.setAttribute('title', trans);
-        }
-        if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[origTitle] && VIETNAMESE_REGEX.test(origTitle)) {
-          enqueueForTranslation(origTitle);
-        } else if (!trans && VIETNAMESE_REGEX.test(origTitle)) {
-          enqueueForTranslation(origTitle);
-        }
-      });
-
-      // 3. Quét dịch thuộc tính aria-label
-      document.querySelectorAll('[aria-label]').forEach((el) => {
-        const aria = el.getAttribute('aria-label');
-        if (!aria || !aria.trim()) return;
-        const origAria = el.getAttribute('data-i18n-orig-aria') || (el as any).__i18nOrigAria || aria;
-        if (!el.hasAttribute('data-i18n-orig-aria')) {
-          el.setAttribute('data-i18n-orig-aria', origAria);
-          (el as any).__i18nOrigAria = origAria;
-        }
-        const trans = autoTranslations[origAria] || lookupUniversalPhrase(origAria, targetLang);
-        if (trans && el.getAttribute('aria-label') !== trans) {
-          el.setAttribute('aria-label', trans);
-        }
-        if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[origAria] && VIETNAMESE_REGEX.test(origAria)) {
-          enqueueForTranslation(origAria);
-        } else if (!trans && VIETNAMESE_REGEX.test(origAria)) {
-          enqueueForTranslation(origAria);
-        }
-      });
-
-      // 4. Quét toàn bộ Text Node trong cây DOM
-      const walker = document.createTreeWalker(
-        root,
-        NodeFilter.SHOW_TEXT,
-        {
-          acceptNode(node) {
-            if (!node.textContent || !node.textContent.trim()) return NodeFilter.FILTER_REJECT;
-            const parent = node.parentElement;
-            if (!parent) return NodeFilter.FILTER_REJECT;
-            const tag = parent.tagName.toLowerCase();
-            if (tag === 'script' || tag === 'style' || tag === 'code' || tag === 'pre' || tag === 'textarea' || tag === 'input') {
-              return NodeFilter.FILTER_REJECT;
+      try {
+        if (currentLang === 'vi') {
+          // Phục hồi lại văn bản gốc nếu chuyển về tiếng Việt
+          document.querySelectorAll('[data-i18n-orig]').forEach((el) => {
+            const orig = el.getAttribute('data-i18n-orig');
+            if (orig) {
+              el.textContent = orig;
+              el.removeAttribute('data-i18n-orig');
             }
-            return NodeFilter.FILTER_ACCEPT;
-          }
+          });
+          document.querySelectorAll('input[data-i18n-orig-ph], textarea[data-i18n-orig-ph]').forEach((el) => {
+            const input = el as HTMLInputElement | HTMLTextAreaElement;
+            const orig = input.getAttribute('data-i18n-orig-ph');
+            if (orig) {
+              input.placeholder = orig;
+              input.removeAttribute('data-i18n-orig-ph');
+            }
+          });
+          document.querySelectorAll('[data-i18n-orig-title]').forEach((el) => {
+            const orig = el.getAttribute('data-i18n-orig-title');
+            if (orig) {
+              el.setAttribute('title', orig);
+              el.removeAttribute('data-i18n-orig-title');
+            }
+          });
+          document.querySelectorAll('[data-i18n-orig-aria]').forEach((el) => {
+            const orig = el.getAttribute('data-i18n-orig-aria');
+            if (orig) {
+              el.setAttribute('aria-label', orig);
+              el.removeAttribute('data-i18n-orig-aria');
+            }
+          });
+          return;
         }
-      );
 
-      const nodes: Text[] = [];
-      while (walker.nextNode()) {
-        nodes.push(walker.currentNode as Text);
-      }
+        const targetLang = currentLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
 
-      nodes.forEach((node) => {
-        const text = node.textContent;
-        if (!text) return;
-        const trimmed = text.trim();
-
-        // Khớp cụm từ trong autoTranslations hoặc UNIVERSAL_PHRASE_MAP
-        const isSingleChild = node.parentElement?.childNodes.length === 1;
-        const origText = (node as any).__i18nOrig || (isSingleChild ? node.parentElement?.getAttribute('data-i18n-orig') : null) || trimmed;
-        const trans = autoTranslations[origText] || lookupUniversalPhrase(origText, targetLang);
-        if (trans && trans !== trimmed) {
-          (node as any).__i18nOrig = origText;
-          if (node.parentElement && isSingleChild && !node.parentElement.hasAttribute('data-i18n-orig')) {
-            node.parentElement.setAttribute('data-i18n-orig', origText);
+        // 1. Quét dịch placeholder của các ô nhập liệu input / textarea
+        document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((el) => {
+          const input = el as HTMLInputElement | HTMLTextAreaElement;
+          const currentPh = input.placeholder;
+          if (!currentPh) return;
+          const origPh = input.getAttribute('data-i18n-orig-ph') || (input as any).__i18nOrigPh || currentPh;
+          if (!input.hasAttribute('data-i18n-orig-ph')) {
+            input.setAttribute('data-i18n-orig-ph', origPh);
+            (input as any).__i18nOrigPh = origPh;
           }
-          node.textContent = text.replace(trimmed, trans);
-          if (!['vi', 'en', 'fr', 'zh', 'ja'].includes(currentLang) && !autoTranslations[origText] && VIETNAMESE_REGEX.test(origText)) {
+          if ((input as any).__i18nCurLang === currentLang && input.placeholder !== origPh) {
+            return;
+          }
+          const trans = autoTranslations[origPh] || lookupUniversalPhrase(origPh, targetLang);
+          if (trans && input.placeholder !== trans) {
+            input.placeholder = trans;
+            (input as any).__i18nCurLang = currentLang;
+          }
+          if (!trans && VIETNAMESE_REGEX.test(origPh)) {
+            enqueueForTranslation(origPh);
+          }
+        });
+
+        // 2. Quét dịch thuộc tính title (tooltip)
+        document.querySelectorAll('[title]').forEach((el) => {
+          const title = el.getAttribute('title');
+          if (!title || !title.trim()) return;
+          const origTitle = el.getAttribute('data-i18n-orig-title') || (el as any).__i18nOrigTitle || title;
+          if (!el.hasAttribute('data-i18n-orig-title')) {
+            el.setAttribute('data-i18n-orig-title', origTitle);
+            (el as any).__i18nOrigTitle = origTitle;
+          }
+          if ((el as any).__i18nCurLang === currentLang && el.getAttribute('title') !== origTitle) {
+            return;
+          }
+          const trans = autoTranslations[origTitle] || lookupUniversalPhrase(origTitle, targetLang);
+          if (trans && el.getAttribute('title') !== trans) {
+            el.setAttribute('title', trans);
+            (el as any).__i18nCurLang = currentLang;
+          }
+          if (!trans && VIETNAMESE_REGEX.test(origTitle)) {
+            enqueueForTranslation(origTitle);
+          }
+        });
+
+        // 3. Quét dịch thuộc tính aria-label
+        document.querySelectorAll('[aria-label]').forEach((el) => {
+          const aria = el.getAttribute('aria-label');
+          if (!aria || !aria.trim()) return;
+          const origAria = el.getAttribute('data-i18n-orig-aria') || (el as any).__i18nOrigAria || aria;
+          if (!el.hasAttribute('data-i18n-orig-aria')) {
+            el.setAttribute('data-i18n-orig-aria', origAria);
+            (el as any).__i18nOrigAria = origAria;
+          }
+          if ((el as any).__i18nCurLang === currentLang && el.getAttribute('aria-label') !== origAria) {
+            return;
+          }
+          const trans = autoTranslations[origAria] || lookupUniversalPhrase(origAria, targetLang);
+          if (trans && el.getAttribute('aria-label') !== trans) {
+            el.setAttribute('aria-label', trans);
+            (el as any).__i18nCurLang = currentLang;
+          }
+          if (!trans && VIETNAMESE_REGEX.test(origAria)) {
+            enqueueForTranslation(origAria);
+          }
+        });
+
+        // 4. Quét toàn bộ Text Node trong cây DOM
+        const walker = document.createTreeWalker(
+          root,
+          NodeFilter.SHOW_TEXT,
+          {
+            acceptNode(node) {
+              if (!node.textContent || !node.textContent.trim()) return NodeFilter.FILTER_REJECT;
+              const parent = node.parentElement;
+              if (!parent) return NodeFilter.FILTER_REJECT;
+              const tag = parent.tagName.toLowerCase();
+              if (tag === 'script' || tag === 'style' || tag === 'code' || tag === 'pre' || tag === 'textarea' || tag === 'input') {
+                return NodeFilter.FILTER_REJECT;
+              }
+              return NodeFilter.FILTER_ACCEPT;
+            }
+          }
+        );
+
+        const nodes: Text[] = [];
+        while (walker.nextNode()) {
+          nodes.push(walker.currentNode as Text);
+        }
+
+        nodes.forEach((node) => {
+          const text = node.textContent;
+          if (!text) return;
+          const trimmed = text.trim();
+
+          const isSingleChild = node.parentElement?.childNodes.length === 1;
+          const origText = (node as any).__i18nOrig || (isSingleChild ? node.parentElement?.getAttribute('data-i18n-orig') : null) || trimmed;
+
+          // Nếu node đã được dịch sang ngôn ngữ này rồi thì bỏ qua
+          if ((node as any).__i18nCurLang === currentLang && (node as any).__i18nOrig) {
+            return;
+          }
+
+          // Khớp cụm từ trong autoTranslations hoặc UNIVERSAL_PHRASE_MAP
+          const trans = autoTranslations[origText] || lookupUniversalPhrase(origText, targetLang);
+          if (trans && trans !== trimmed) {
+            (node as any).__i18nOrig = origText;
+            (node as any).__i18nCurLang = currentLang;
+            if (node.parentElement && isSingleChild && !node.parentElement.hasAttribute('data-i18n-orig')) {
+              node.parentElement.setAttribute('data-i18n-orig', origText);
+            }
+            node.textContent = text.replace(trimmed, trans);
+            return;
+          } else if (!trans && VIETNAMESE_REGEX.test(origText) && origText.length >= 2) {
+            (node as any).__i18nOrig = origText;
             enqueueForTranslation(origText);
           }
-          return;
-        } else if (!trans && VIETNAMESE_REGEX.test(origText) && origText.length >= 2) {
-          enqueueForTranslation(origText);
-        }
 
-        // Thay thế các biến động số lượng và nhãn linh hoạt
-        let replaced = text;
-        replaced = replaced.replace(/(\d+)\s+điểm neo/g, (_, n) => getDynamicCountPhrase('anchorPoints', currentLang, n));
-        replaced = replaced.replace(/(\d+)\s+lượt quét/g, (_, n) => getDynamicCountPhrase('scans', currentLang, n));
-        replaced = replaced.replace(/(\d+)\s+góc 360°/g, (_, n) => getDynamicCountPhrase('views360', currentLang, n));
-        replaced = replaced.replace(/(\d+)\s+gian phòng/g, (_, n) => getDynamicCountPhrase('rooms', currentLang, n));
-        replaced = replaced.replace(/(\d+)\s+quốc gia & vùng lãnh thổ/g, (_, n) => getDynamicCountPhrase('countries', currentLang, n));
-        replaced = replaced.replace(/(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => getDynamicCountPhrase('languagesRatio', currentLang, a, b));
-        replaced = replaced.replace(/Tìm thấy\s+(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => getDynamicCountPhrase('foundLanguages', currentLang, a, b));
-        replaced = replaced.replace(/Tốc độ:\s*([\d.]+)x\s*\|\s*Nhà cung cấp:\s*(.*)/g, (_, spd, prov) => getDynamicCountPhrase('speedProvider', currentLang, spd, prov));
-        replaced = replaced.replace(/Tên quốc tế:\s*(.*)/g, (_, name) => getDynamicCountPhrase('intlName', currentLang, name));
-        replaced = replaced.replace(/Đang phát mẫu giọng đọc AI:\s*(.*)/g, (_, name) => getDynamicCountPhrase('playingVoiceSample', currentLang, name));
-        replaced = replaced.replace(/Tất cả trạng thái\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('allStatuses', currentLang, n));
-        replaced = replaced.replace(/Đang hiển thị trên Client\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('visibleOnClient', currentLang, n));
-        replaced = replaced.replace(/Đang tạm tắt\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('temporarilyHidden', currentLang, n));
-        replaced = replaced.replace(/Mã phòng:\s*/g, () => getDynamicCountPhrase('roomCode', currentLang, ''));
-        replaced = replaced.replace(/\((\d+)\s+ảnh\)/g, (_, n) => getDynamicCountPhrase('photosCount', currentLang, n));
+          // Thay thế các biến động số lượng và nhãn linh hoạt
+          let replaced = text;
+          replaced = replaced.replace(/(\d+)\s+điểm neo/g, (_, n) => getDynamicCountPhrase('anchorPoints', currentLang, n));
+          replaced = replaced.replace(/(\d+)\s+lượt quét/g, (_, n) => getDynamicCountPhrase('scans', currentLang, n));
+          replaced = replaced.replace(/(\d+)\s+góc 360°/g, (_, n) => getDynamicCountPhrase('views360', currentLang, n));
+          replaced = replaced.replace(/(\d+)\s+gian phòng/g, (_, n) => getDynamicCountPhrase('rooms', currentLang, n));
+          replaced = replaced.replace(/(\d+)\s+quốc gia & vùng lãnh thổ/g, (_, n) => getDynamicCountPhrase('countries', currentLang, n));
+          replaced = replaced.replace(/(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => getDynamicCountPhrase('languagesRatio', currentLang, a, b));
+          replaced = replaced.replace(/Tìm thấy\s+(\d+)\s*\/\s*(\d+)\s+ngôn ngữ/g, (_, a, b) => getDynamicCountPhrase('foundLanguages', currentLang, a, b));
+          replaced = replaced.replace(/Tốc độ:\s*([\d.]+)x\s*\|\s*Nhà cung cấp:\s*(.*)/g, (_, spd, prov) => getDynamicCountPhrase('speedProvider', currentLang, spd, prov));
+          replaced = replaced.replace(/Tên quốc tế:\s*(.*)/g, (_, name) => getDynamicCountPhrase('intlName', currentLang, name));
+          replaced = replaced.replace(/Đang phát mẫu giọng đọc AI:\s*(.*)/g, (_, name) => getDynamicCountPhrase('playingVoiceSample', currentLang, name));
+          replaced = replaced.replace(/Tất cả trạng thái\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('allStatuses', currentLang, n));
+          replaced = replaced.replace(/Đang hiển thị trên Client\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('visibleOnClient', currentLang, n));
+          replaced = replaced.replace(/Đang tạm tắt\s*\((\d+)\)/g, (_, n) => getDynamicCountPhrase('temporarilyHidden', currentLang, n));
+          replaced = replaced.replace(/Mã phòng:\s*/g, () => getDynamicCountPhrase('roomCode', currentLang, ''));
+          replaced = replaced.replace(/\((\d+)\s+ảnh\)/g, (_, n) => getDynamicCountPhrase('photosCount', currentLang, n));
 
-        if (replaced !== text) {
-          if (node.parentElement && !node.parentElement.hasAttribute('data-i18n-orig')) {
-            node.parentElement.setAttribute('data-i18n-orig', text);
+          if (replaced !== text) {
+            (node as any).__i18nOrig = text;
+            (node as any).__i18nCurLang = currentLang;
+            if (node.parentElement && !node.parentElement.hasAttribute('data-i18n-orig')) {
+              node.parentElement.setAttribute('data-i18n-orig', text);
+            }
+            node.textContent = replaced;
           }
-          node.textContent = replaced;
-        }
-      });
+        });
+      } finally {
+        isTranslatingRef.current = false;
+      }
     };
+
+    translateTextNodesRef.current = translateTextNodes;
 
     // Chạy quét ngay lập tức
     translateTextNodes();
@@ -629,31 +665,34 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       if (scanTimeout) clearTimeout(scanTimeout);
       scanTimeout = setTimeout(() => {
         translateTextNodes(document.body);
-      }, 40);
+      }, 35);
     };
 
-    const observer = new MutationObserver(() => {
-      scheduleScan();
+    const observer = new MutationObserver((mutations) => {
+      if (isTranslatingRef.current) return;
+      const hasAddedNodes = mutations.some((m) => m.type === 'childList' && m.addedNodes.length > 0);
+      if (hasAddedNodes) {
+        scheduleScan();
+      }
     });
 
     observer.observe(document.body, {
       childList: true,
-      subtree: true,
-      characterData: true
+      subtree: true
     });
 
     window.addEventListener('popstate', scheduleScan);
     window.addEventListener('hashchange', scheduleScan);
 
-    // Chuỗi kiểm tra an toàn sau khi đổi tab hoặc nạp trang (6 lần trong 3s)
+    // Chuỗi kiểm tra an toàn sau khi đổi tab hoặc nạp trang (3 lần trong 1.5s)
     let safetyCounter = 0;
     const safetyInterval = setInterval(() => {
       translateTextNodes(document.body);
       safetyCounter++;
-      if (safetyCounter >= 6) {
+      if (safetyCounter >= 3) {
         clearInterval(safetyInterval);
       }
-    }, 500);
+    }, 450);
 
     return () => {
       observer.disconnect();
@@ -714,9 +753,10 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     }
   }, [dictionaries]);
 
-  // Hàm chuyển đổi ngôn ngữ hiển thị
+  // Hàm chuyển đổi ngôn ngữ hiển thị siêu tốc tức thì
   const changeLanguage = async (langCode: string) => {
     const clean = langCode.toLowerCase().trim();
+    if (clean === currentLang) return;
     setCurrentLang(clean);
     try {
       localStorage.setItem(STORAGE_LANG_KEY, clean);
@@ -724,8 +764,25 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     } catch {
       // Ignored
     }
+
+    // Nạp đồng bộ ngay bộ nhớ đệm NMT của ngôn ngữ đích từ localStorage
+    try {
+      const raw = localStorage.getItem(DYNAMIC_I18N_STORAGE_PREFIX + clean);
+      setAutoTranslations(raw ? JSON.parse(raw) : {});
+    } catch {
+      setAutoTranslations({});
+    }
+
+    // Kích hoạt quét dịch ngay lập tức trong frame kế tiếp (16ms)
+    requestAnimationFrame(() => {
+      translateTextNodesRef.current?.(document.body);
+    });
+
     if (!BUILTIN_DICTIONARIES[clean]) {
       await ensureLanguageBundle(clean);
+      requestAnimationFrame(() => {
+        translateTextNodesRef.current?.(document.body);
+      });
     }
   };
 

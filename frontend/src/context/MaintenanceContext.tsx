@@ -108,14 +108,29 @@ export const MaintenanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     };
 
+    const handleRealtimeMaintenance = (e: any) => {
+      if (e.detail && typeof e.detail.enabled === 'boolean') {
+        const merged: MaintenanceStatus = {
+          ...DEFAULT_MAINTENANCE_STATE,
+          ...e.detail
+        };
+        setMaintenance(merged);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+        } catch {}
+      }
+    };
+
     window.addEventListener('storage', handleStorage);
     window.addEventListener('focus', handleLiveness);
     document.addEventListener('visibilitychange', handleLiveness);
+    window.addEventListener('museum:maintenance_updated', handleRealtimeMaintenance);
 
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('focus', handleLiveness);
       document.removeEventListener('visibilitychange', handleLiveness);
+      window.removeEventListener('museum:maintenance_updated', handleRealtimeMaintenance);
     };
   }, [fetchStatus]);
 

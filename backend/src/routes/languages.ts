@@ -267,6 +267,115 @@ languagesRouter.get('/bundle/:code', async (req: Request, res: Response) => {
 });
 
 /**
+/**
+ * Helper dịch nhóm các cụm từ bằng AI (Gemini 2.5 Flash / Google NMT Grouped) kết hợp Redis Cache
+ */
+async function translateMultipleTexts(texts: string[], targetLang: string): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+  if (texts.length === 0) return result;
+
+  const cleanLang = targetLang.toLowerCase().trim();
+
+  // 1. Nếu có GEMINI_API_KEY, dịch toàn bộ lô trong 1 lần gọi duy nhất với chất lượng curator bảo tàng
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey.trim().length > 10) {
+    try {
+      const systemInstruction = `You are a Senior Heritage Translator and Museum Curator for the Museum of History in Ho Chi Minh City.
+Translate the provided array of museum UI terms and labels from Vietnamese into ${cleanLang.toUpperCase()}.
+CRITICAL RULES:
+1. Output strictly valid JSON object where keys are the exact original Vietnamese phrases and values are the translated texts.
+2. Maintain academic museum phrasing and cultural dignity.`;
+
+      const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const geminiRes = await fetch(geminiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${systemInstruction}\n\nTexts to translate (JSON array):\n${JSON.stringify(texts)}` }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        }),
+        signal: AbortSignal.timeout(4000)
+      });
+
+      if (geminiRes.ok) {
+        const data: any = await geminiRes.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          const parsed = JSON.parse(rawText);
+          for (const key of texts) {
+            if (parsed[key] && typeof parsed[key] === 'string' && parsed[key].trim()) {
+              result[key] = parsed[key].trim();
+            }
+          }
+        }
+      }
+    } catch {
+      // Fallback sang Google Translate batch
+    }
+  }
+
+  // 2. Với các cụm từ chưa được dịch (hoặc không có Gemini), dùng Google Translate batch theo lô 15 cụm từ
+  const remaining = texts.filter((t) => !result[t]);
+  if (remaining.length > 0) {
+    const CHUNK_SIZE = 15;
+    for (let i = 0; i < remaining.length; i += CHUNK_SIZE) {
+      const chunk = remaining.slice(i, i + CHUNK_SIZE);
+      const combined = chunk.join('\n');
+      try {
+        const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(cleanLang)}&dt=t&q=${encodeURIComponent(combined)}`;
+        const gtxRes = await fetch(gtxUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+          },
+          signal: AbortSignal.timeout(3500)
+        });
+        if (gtxRes.ok) {
+          const gtxData: any = await gtxRes.json();
+          if (Array.isArray(gtxData) && Array.isArray(gtxData[0])) {
+            const fullTranslatedText = gtxData[0].map((item: any) => item[0]).filter(Boolean).join('');
+            const lines = fullTranslatedText.split('\n');
+            if (lines.length === chunk.length) {
+              chunk.forEach((orig, idx) => {
+                const tr = lines[idx]?.trim();
+                if (tr && tr !== orig) {
+                  result[orig] = tr;
+                }
+              });
+            }
+          }
+        }
+      } catch {
+        // Fallback sang fetchSingleChunkNMT
+      }
+
+      // Các từ chưa dịch được trong chunk này thì dùng fallback song song nhanh
+      const stillMissing = chunk.filter((t) => !result[t]);
+      if (stillMissing.length > 0) {
+        await Promise.all(
+          stillMissing.map(async (text) => {
+            const tr = await fetchSingleChunkNMT(text, cleanLang);
+            if (tr) result[text] = tr;
+          })
+        );
+      }
+    }
+  }
+
+  // 3. Áp dụng Heritage Glossary cho toàn bộ kết quả
+  for (const text of texts) {
+    let trans = result[text] || text;
+    for (const [vTerm, tDict] of Object.entries(HERITAGE_GLOSSARY)) {
+      if (tDict[cleanLang] && trans.includes(vTerm)) {
+        trans = trans.replace(new RegExp(vTerm, 'g'), tDict[cleanLang]);
+      }
+    }
+    result[text] = trans;
+  }
+
+  return result;
+}
+
+/**
  * POST /api/languages/translate-batch
  * Dịch một mảng các cụm từ UI/văn bản sang ngôn ngữ đích (targetLang)
  * Có Redis cache và áp dụng chuẩn thuật ngữ Heritage Glossary bảo tàng
@@ -303,25 +412,15 @@ languagesRouter.post('/translate-batch', async (req: Request, res: Response) => 
       }
     }
 
-    // 2. Dịch các cụm từ chưa có trong cache
+    // 2. Dịch siêu tốc các cụm từ chưa có trong cache bằng translateMultipleTexts
     if (uncachedTexts.length > 0) {
-      // Giới hạn tối đa 40 cụm từ mỗi request để phản hồi siêu tốc
-      const toTranslate = uncachedTexts.slice(0, 40);
-      await Promise.all(
-        toTranslate.map(async (text) => {
-          let trans = await fetchSingleChunkNMT(text, cleanLang);
-          // Hậu xử lý bằng Heritage Glossary
-          for (const [vTerm, tDict] of Object.entries(HERITAGE_GLOSSARY)) {
-            if (tDict[cleanLang] && trans.includes(vTerm)) {
-              trans = trans.replace(new RegExp(vTerm, 'g'), tDict[cleanLang]);
-            }
-          }
-          results[text] = trans || text;
-          const textHash = Buffer.from(text).toString('base64').slice(0, 48);
-          const cacheKey = `cache:nmt:${cleanLang}:${textHash}`;
-          await cacheSet(cacheKey, results[text], 7 * 24 * 3600);
-        })
-      );
+      const translatedMap = await translateMultipleTexts(uncachedTexts, cleanLang);
+      for (const [text, trans] of Object.entries(translatedMap)) {
+        results[text] = trans;
+        const textHash = Buffer.from(text).toString('base64').slice(0, 48);
+        const cacheKey = `cache:nmt:${cleanLang}:${textHash}`;
+        await cacheSet(cacheKey, trans, 7 * 24 * 3600);
+      }
     }
 
     res.json({ success: true, data: results });

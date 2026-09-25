@@ -7,6 +7,7 @@ import { RoomModel } from '../models/Room.js';
 import { analyzeFloorPlanImage } from '../services/floorPlanAnalyzer.js';
 import { uploadToCloudinary } from '../services/cloudinary.js';
 import { getSystemBrandingConfig } from '../models/SystemBranding.js';
+import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
 export const floorPlanRouter = Router();
 
@@ -132,6 +133,9 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
       description,
       forceRebuild: true
     });
+
+    // Phát sóng đồng bộ thời gian thực cho khách tham quan và admin
+    broadcastRealtimeEvent('floor_plan_updated', analyzedMap);
 
     res.json({
       success: true,

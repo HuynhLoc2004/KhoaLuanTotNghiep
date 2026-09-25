@@ -13,8 +13,13 @@ import {
   REDIS_BRANDING_KEY,
   DEFAULT_BRANDING
 } from '../models/SystemBranding.js';
+import { broadcastRealtimeEvent, handleRealtimeStream } from '../services/realtimeSync.js';
 
 export const systemRouter = Router();
+
+// Kênh truyền sự kiện thời gian thực Server-Sent Events (SSE)
+systemRouter.get('/realtime-stream', handleRealtimeStream);
+systemRouter.get('/stream', handleRealtimeStream);
 
 const REDIS_MAINTENANCE_KEY = 'system:maintenance:config';
 
@@ -191,6 +196,9 @@ systemRouter.post('/maintenance', authenticate, requireAdmin, async (req: AuthRe
 
     // Cập nhật Redis cache nếu có
     await cacheSet(REDIS_MAINTENANCE_KEY, newConfig, 86400);
+
+    // Đồng bộ thời gian thực cho mọi client đang xem web không cần reload trang
+    broadcastRealtimeEvent('maintenance_updated', newConfig);
 
     res.json({
       success: true,
@@ -454,6 +462,9 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
     try {
       await cacheSet(REDIS_BRANDING_KEY, updatedDoc, 86400);
     } catch {}
+
+    // Phát sóng đồng bộ thời gian thực cho toàn bộ Client mà không cần F5/Reload trang
+    broadcastRealtimeEvent('branding_updated', updatedDoc);
 
     console.log(`[SystemBranding] Quản trị viên (${req.user?.username}) đã cập nhật nhận diện bảo tàng: ${updatePayload.museumName}`);
 

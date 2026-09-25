@@ -134,9 +134,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="nav-collapsible-wrapper">
           <button
             type="button"
-            className={`nav-item ${currentTab === 'homepage_cms' && homepageSection !== 'panel-guide' ? 'active' : ''}`}
+            className={`nav-item ${currentTab === 'homepage_cms' ? 'active' : ''}`}
             onClick={handleHomepageMainClick}
-            title="Quản lý giao diện & 8 phân khu trang chủ"
+            title="Quản lý giao diện & 7 phân khu trang chủ"
           >
             <LayoutTemplate size={16} />
             <span>{t('nav.homepageCms', 'Trang chủ (Homepage)')}</span>
@@ -151,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             />
           </button>
 
-          {/* Danh sách 8 phân khu độc lập của Trang chủ */}
+          {/* Danh sách 7 phân khu độc lập của Trang chủ */}
           {isHomepageExpanded && (
             <div className="nav-sub-menu">
               {HOMEPAGE_SECTIONS.map((sec) => {
@@ -208,17 +208,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* 1.4 Quản lý Trang Cẩm nang & Sơ đồ */}
         <button
-          className={`nav-item ${currentTab === 'homepage_cms' && homepageSection === 'panel-guide' ? 'active' : ''}`}
-          onClick={() => {
-            onTabChange('homepage_cms', 'panel-guide');
-            if (onHomepageSectionChange) {
-              onHomepageSectionChange('panel-guide');
-            }
-            if (window.innerWidth <= 1024) {
-              onClose();
-            }
-          }}
-          title="Quản lý sơ đồ mặt bằng tham quan, tải ảnh bản đồ và phân tích topo phòng"
+          className={`nav-item ${currentTab === 'guide' ? 'active' : ''}`}
+          onClick={() => handleItemClick('guide')}
+          title="Quản lý sơ đồ mặt bằng tham quan, giờ mở cửa, bảng giá vé, bản đồ và tiện ích"
         >
           <Layers size={16} />
           <span>{t('nav.guidePage', 'Trang Cẩm nang & Sơ đồ')}</span>

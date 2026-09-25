@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { RoomModel, IRoom, IHotspot } from '../models/Room.js';
 import { ArtifactModel } from '../models/Artifact.js';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
+import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
 export const roomsRouter = Router();
 
@@ -95,6 +96,7 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
     });
 
     await cacheDel('rooms:all');
+    broadcastRealtimeEvent('rooms_updated', { action: 'create', room: newRoom });
     res.status(201).json({ success: true, data: newRoom });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -125,6 +127,7 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
       cacheDel(`rooms:detail:${id}`),
       cacheDel(`rooms:detail:${room.id}`)
     ]);
+    broadcastRealtimeEvent('rooms_updated', { action: 'update', room: updated.toJSON() });
     res.json({ success: true, data: updated.toJSON() });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -156,6 +159,7 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
       cacheDelPattern('artifacts:*')
     ]);
 
+    broadcastRealtimeEvent('rooms_updated', { action: 'delete', roomId: id });
     res.json({ success: true, message: 'Đã xóa gian phòng và dọn dẹp liên kết cơ sở dữ liệu' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -197,6 +201,7 @@ roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
       cacheDel(`rooms:detail:${room.id}`)
     ]);
 
+    broadcastRealtimeEvent('rooms_updated', { action: 'hotspot_create', roomId: id, hotspot: newHs });
     res.status(201).json({ success: true, data: newHs, room });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -229,6 +234,7 @@ roomsRouter.put('/:id/hotspots/:hotspotId', async (req: Request, res: Response) 
       cacheDel(`rooms:detail:${room.id}`)
     ]);
 
+    broadcastRealtimeEvent('rooms_updated', { action: 'hotspot_update', roomId: id, hotspot: hs });
     res.json({ success: true, data: hs, room });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -258,6 +264,7 @@ roomsRouter.delete('/:id/hotspots/:hotspotId', async (req: Request, res: Respons
       cacheDel(`rooms:detail:${room.id}`)
     ]);
 
+    broadcastRealtimeEvent('rooms_updated', { action: 'hotspot_delete', roomId: id, hotspotId });
     res.json({ success: true, message: 'Đã xóa hotspot khỏi cơ sở dữ liệu', room });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

@@ -61,7 +61,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div className={`pagination-container ${className}`}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+      <div className="pagination-meta">
         <div className="pagination-info">
           {t('pagination.showing')} <strong>{startItem}</strong> - <strong>{endItem}</strong> {t('pagination.of')} <strong>{totalItems}</strong> {label}
         </div>
