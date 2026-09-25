@@ -452,68 +452,66 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             <span className="heritage-stat-icon-wrapper">
               <Compass size={15} />
             </span>
-            <span className="heritage-stat-title">{t('stats.roomsTitle', 'Gian phòng Trưng bày')}</span>
+            <span className="heritage-stat-title">{t('stats.roomsTitle', 'Phòng Trưng Bày')}</span>
           </div>
           <div className="heritage-stat-body">
             <div className="heritage-stat-metric">
               <span className="heritage-stat-number">{publishedCount}</span>
               <span className="heritage-stat-denom">/{rooms.length}</span>
-              <span className="heritage-stat-unit">{t('stats.roomsUnit', 'không gian')}</span>
+              <span className="heritage-stat-unit">{t('stats.roomsUnit', 'phòng')}</span>
             </div>
             <div className="heritage-stat-sub">
-              <span>{t('stats.digitized', 'Số hóa')} {digitizationPercent}%</span>
-              <span className="heritage-stat-dot">•</span>
-              <span>{t('stats.ready', 'Sẵn sàng đón khách')}</span>
+              <span>{rooms.length > 0 ? `${publishedCount} phòng đang mở cửa tham quan` : 'Chưa có phòng trưng bày'}</span>
             </div>
           </div>
         </div>
 
-        {/* Mục 2: Cổ vật & Điểm neo Hiện vật */}
+        {/* Mục 2: Cổ vật & Điểm thông tin */}
         <div className="heritage-stat-col">
           <div className="heritage-stat-header">
             <span className="heritage-stat-icon-wrapper">
               <MapPin size={15} />
             </span>
-            <span className="heritage-stat-title">{t('stats.artifactsTitle', 'Hiện vật & Điểm khảo cứu')}</span>
+            <span className="heritage-stat-title">{t('stats.artifactsTitle', 'Hiện Vật & Điểm Tham Quan')}</span>
           </div>
           <div className="heritage-stat-body">
             <div className="heritage-stat-metric">
               <span className="heritage-stat-number">{totalHotspots}</span>
-              <span className="heritage-stat-unit">{t('stats.artifactsUnit', 'tọa độ di sản')}</span>
+              <span className="heritage-stat-unit">{t('stats.artifactsUnit', 'điểm thông tin')}</span>
             </div>
             <div className="heritage-stat-sub">
-              <span>{t('stats.artifactsSub', 'Định vị tư liệu & dẫn hướng tour 360')}</span>
+              <span>{t('stats.artifactsSub', 'Gắn thông tin hiện vật & chỉ dẫn tham quan 360°')}</span>
             </div>
           </div>
         </div>
 
-        {/* Mục 3: Thuyết minh Chuyên khảo */}
+        {/* Mục 3: Thuyết minh Giọng đọc */}
         <div className="heritage-stat-col">
           <div className="heritage-stat-header">
             <span className="heritage-stat-icon-wrapper">
               <BookOpen size={15} />
             </span>
-            <span className="heritage-stat-title">{t('stats.narrationTitle', 'Thuyết minh Di sản')}</span>
+            <span className="heritage-stat-title">{t('stats.narrationTitle', 'Thuyết Minh Tự Động')}</span>
           </div>
           <div className="heritage-stat-body">
             <div className="heritage-stat-metric">
               <span className="heritage-stat-number">{aiRoomsCount}</span>
               <span className="heritage-stat-denom">/{rooms.length}</span>
-              <span className="heritage-stat-unit">{t('stats.narrationUnit', 'chuyên khảo')}</span>
+              <span className="heritage-stat-unit">{t('stats.narrationUnit', 'phòng có giọng đọc')}</span>
             </div>
             <div className="heritage-stat-sub">
-              <span>{t('stats.narrationSub', 'Biên tập tư liệu lịch sử & âm thanh bản xứ')}</span>
+              <span>{t('stats.narrationSub', 'Giới thiệu hiện vật & âm thanh thuyết minh')}</span>
             </div>
           </div>
         </div>
 
-        {/* Mục 4: Khách tham quan quét mã Standee */}
+        {/* Mục 4: Khách tham quan quét mã QR */}
         <div className="heritage-stat-col" style={{ borderRight: 'none' }}>
           <div className="heritage-stat-header">
             <span className="heritage-stat-icon-wrapper">
               <QrCode size={15} />
             </span>
-            <span className="heritage-stat-title">{t('stats.scansTitle', 'Tương tác Thực địa')}</span>
+            <span className="heritage-stat-title">{t('stats.scansTitle', 'Lượt Quét Mã QR')}</span>
           </div>
           <div className="heritage-stat-body">
             <div className="heritage-stat-metric">
@@ -521,7 +519,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               <span className="heritage-stat-unit">{t('stats.scansUnit', 'lượt quét')}</span>
             </div>
             <div className="heritage-stat-sub">
-              <span>{t('stats.scansSub', 'Du khách quét mã tại gian trưng bày')}</span>
+              <span>{t('stats.scansSub', 'Khách tham quan quét mã tại bảo tàng')}</span>
             </div>
           </div>
         </div>
@@ -563,7 +561,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               }}
             >
               <Compass size={15} />
-              <span>{t('rooms.tabRooms', 'Gian Phòng Triển Lãm')} ({rooms.length})</span>
+              <span>{t('rooms.tabRooms', 'Danh Sách Phòng Trưng Bày')} ({rooms.length})</span>
             </button>
 
             <button
@@ -585,7 +583,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               }}
             >
               <Globe size={15} />
-              <span>{t('rooms.tabStorage', 'Kho Không Gian 360° Đã Ghép')} ({panoramas.length})</span>
+              <span>{t('rooms.tabStorage', 'Kho Ảnh Toàn Cảnh 360°')} ({panoramas.length})</span>
             </button>
           </div>
 
@@ -599,13 +597,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     if (rooms.length > 0) {
                       handleOpenQrModal(rooms[0]);
                     } else {
-                      showToast('Chưa có gian phòng nào để xuất mã QR', 'info');
+                      showToast('Chưa có phòng trưng bày nào để xuất mã QR', 'info');
                     }
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   <QrCode size={14} />
-                  <span>{t('rooms.exportStandee', 'Xuất gói QR Standee')}</span>
+                  <span>{t('rooms.exportStandee', 'Tải mã QR trưng bày')}</span>
                 </button>
 
                 <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: 2 }}>
@@ -841,7 +839,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       <div className="room-badge-code">{room.code}</div>
                       <div className="room-badge-hotspots">
                         <MapPin size={11} />
-                        <span>{room.hotspots?.length || 0} {t('rooms.anchorPoints', 'điểm neo')}</span>
+                        <span>{room.hotspots?.length || 0} {t('rooms.anchorPoints', 'điểm thông tin')}</span>
                       </div>
                     </div>
 
@@ -863,7 +861,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       </div>
 
                       <div className="room-name" title={room.name}>{localize(room, 'name', room.name)}</div>
-                      <div className="room-desc" title={room.description}>{localize(room, 'description', room.description) || 'Chưa có thông tin mô tả chi tiết cho gian phòng này.'}</div>
+                      <div className="room-desc" title={room.description}>{localize(room, 'description', room.description) || 'Chưa có thông tin mô tả chi tiết cho phòng này.'}</div>
 
                       {/* Thông số thực tế từ DB */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', padding: '6px 0', borderTop: '1px dashed var(--border-color)' }}>
@@ -885,7 +883,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             type="button"
                             className="btn btn-primary btn-sm room-card-btn-action"
                             onClick={() => onOpenStudio(room)}
-                            title={t('rooms.explore360', 'Mở trình biên tập ghim Hotspots 360°')}
+                            title={t('rooms.explore360', 'Mở trình chỉnh sửa ảnh và điểm tương tác 360°')}
                           >
                             <Compass size={13} style={{ flexShrink: 0 }} />
                             <span className="room-card-btn-label">{t('rooms.explore360', 'Biên tập 360')}</span>
@@ -895,7 +893,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             type="button"
                             className="btn btn-secondary btn-sm room-card-btn-action"
                             onClick={() => handleOpenAiDrawer(room)}
-                            title={t('rooms.narration', 'Thuyết minh & Trợ lý ảo cho gian phòng')}
+                            title={t('rooms.narration', 'Thuyết minh & Trợ lý ảo cho phòng')}
                           >
                             <Volume2 size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
                             <span className="room-card-btn-label">{t('rooms.narration', 'Thuyết minh')}</span>
@@ -907,7 +905,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm room-card-btn-action"
-                            title="Tải mã QR Standee phòng này"
+                            title="Tải mã QR phòng này"
                             onClick={() => handleOpenQrModal(room)}
                           >
                             <QrCode size={12} style={{ flexShrink: 0 }} />
@@ -927,11 +925,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm room-card-btn-action-tool room-card-btn-delete"
-                            title="Xóa gian phòng khỏi Database"
+                            title="Xóa phòng trưng bày"
                             onClick={() => {
                               triggerConfirm(
-                                'Xóa gian phòng di sản',
-                                `Bạn có chắc chắn muốn xóa vĩnh viễn gian phòng "${room.name}" khỏi cơ sở dữ liệu? Dữ liệu điểm neo và ảnh 360 liên kết cũng sẽ bị hủy bỏ.`,
+                                'Xóa phòng trưng bày',
+                                `Bạn có chắc chắn muốn xóa phòng trưng bày "${room.name}"? Dữ liệu các điểm thông tin và ảnh 360 liên kết cũng sẽ bị xóa.`,
                                 () => onDeleteRoom(room.id)
                               );
                             }}
@@ -951,12 +949,12 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       <Compass size={26} />
                     </div>
                     <div className="empty-state-title">
-                      {searchQuery ? 'Không tìm thấy gian phòng phù hợp' : 'Chưa có gian phòng trưng bày nào trong Database'}
+                      {searchQuery ? 'Không tìm thấy phòng trưng bày phù hợp' : 'Chưa có phòng trưng bày nào'}
                     </div>
                     <div className="empty-state-desc">
                       {searchQuery
-                        ? `Không tìm thấy gian phòng nào khớp với từ khóa "${searchQuery}". Vui lòng thử lại với tên hoặc mã phòng khác.`
-                        : 'Bắt đầu bằng việc thêm gian phòng mới. Bạn có thể sử dụng tính năng "Chọn mẫu phòng Bảo tàng Lịch sử TP.HCM" để nhập liệu thật nhanh chóng.'}
+                        ? `Không tìm thấy phòng trưng bày nào khớp với từ khóa "${searchQuery}". Vui lòng thử lại với tên hoặc mã phòng khác.`
+                        : 'Hãy thêm phòng trưng bày đầu tiên để bắt đầu xây dựng không gian tham quan 360° cho bảo tàng.'}
                     </div>
                     {!searchQuery && (
                       <button
@@ -968,7 +966,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         }}
                       >
                         <Plus size={14} />
-                        <span>Thêm gian phòng đầu tiên</span>
+                        <span>Thêm phòng trưng bày mới</span>
                       </button>
                     )}
                   </div>
@@ -980,11 +978,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 <table className="rooms-table">
                   <thead>
                     <tr>
-                      <th>{t('rooms.thRoom', 'Gian phòng')}</th>
+                      <th>{t('rooms.thRoom', 'Phòng trưng bày')}</th>
                       <th>{t('rooms.thCode', 'Mã số')}</th>
                       <th>{t('rooms.thTopic', 'Chuyên đề')}</th>
-                      <th>{t('rooms.thHotspots', 'Điểm neo')}</th>
-                      <th>{t('rooms.thNarration', 'Thuyết minh & Voice')}</th>
+                      <th>{t('rooms.thHotspots', 'Điểm thông tin')}</th>
+                      <th>{t('rooms.thNarration', 'Thuyết minh')}</th>
                       <th>{t('rooms.thScans', 'Lượt quét QR')}</th>
                       <th style={{ textAlign: 'right' }}>{t('rooms.thActions', 'Thao tác')}</th>
                     </tr>
@@ -1056,7 +1054,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             <button
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenAiDrawer(room)}
-                              title="Thuyết minh & Trợ lý ảo cho gian phòng"
+                              title="Thuyết minh & Trợ lý ảo cho phòng"
                               style={{ padding: '5px 8px' }}
                             >
                               <Volume2 size={13} style={{ color: 'var(--accent-gold)' }} />
@@ -1064,7 +1062,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                             <button
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenQrModal(room)}
-                              title="Tải mã QR Standee"
+                              title="Tải mã QR phòng"
                               style={{ padding: '5px 8px' }}
                             >
                               <QrCode size={13} />
@@ -1081,8 +1079,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                               className="btn btn-secondary btn-sm"
                               onClick={() => {
                                 triggerConfirm(
-                                  'Xóa gian phòng di sản',
-                                  `Bạn có chắc chắn muốn xóa vĩnh viễn gian phòng "${room.name}"?`,
+                                  'Xóa phòng trưng bày',
+                                  `Bạn có chắc chắn muốn xóa phòng trưng bày "${room.name}"?`,
                                   () => onDeleteRoom(room.id)
                                 );
                               }}
