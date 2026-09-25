@@ -183,7 +183,7 @@
   -webkit-backdrop-filter: blur(24px);
   box-shadow: 0 12px 35px -6px rgba(0, 0, 0, 0.55), 0 0 20px -4px rgba(212, 175, 55, 0.15);
   transform: translateX(0);
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
   will-change: transform;
 }
 
@@ -679,30 +679,29 @@
 }
 
 /* --- RESPONSIVE CHO CLIENT NAVBAR & MOBILE MENU DRAWER --- */
-.client-navbar.mobile-open {
-  border-radius: 20px !important;
-  background: rgba(10, 14, 22, 0.98) !important;
-  border-color: rgba(212, 175, 55, 0.55) !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(212, 175, 55, 0.25) !important;
-}
-
-.client-portal[data-client-theme="light"] .client-navbar.mobile-open {
-  background: rgba(251, 248, 243, 0.98) !important;
-  border-color: rgba(180, 138, 60, 0.55) !important;
-  box-shadow: 0 20px 50px rgba(50, 36, 18, 0.25) !important;
+/* Đảm bảo ở màn hình Desktop (min-width: 993px), toàn bộ Mobile Drawer, Backdrop và Mobile Toggle tuyệt đối không được hiển thị */
+@media (min-width: 993px) {
+  .client-mobile-drawer,
+  .client-mobile-backdrop,
+  .client-nav-mobile-toggle {
+    display: none !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
 }
 
 .client-mobile-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 999;
-  animation: mobileFadeIn 0.2s ease;
+  animation: mobileBackdropFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes mobileFadeIn {
+@keyframes mobileBackdropFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
@@ -716,6 +715,61 @@
   max-height: calc(100vh - 90px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  animation: mobileDrawerSlideDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top center;
+  will-change: transform, opacity;
+}
+
+@keyframes mobileDrawerSlideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+/* Stagger animation cho từng mục con bên trong mobile drawer tạo độ mượt tuyệt đỉnh */
+.client-mobile-drawer > * {
+  animation: mobileItemFadeUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.client-mobile-drawer > *:nth-child(1) { animation-delay: 0.03s; }
+.client-mobile-drawer > *:nth-child(2) { animation-delay: 0.06s; }
+.client-mobile-drawer > *:nth-child(3) { animation-delay: 0.09s; }
+.client-mobile-drawer > *:nth-child(4) { animation-delay: 0.12s; }
+.client-mobile-drawer > *:nth-child(5) { animation-delay: 0.15s; }
+.client-mobile-drawer > *:nth-child(6) { animation-delay: 0.18s; }
+.client-mobile-drawer > *:nth-child(7) { animation-delay: 0.21s; }
+.client-mobile-drawer > *:nth-child(8) { animation-delay: 0.24s; }
+.client-mobile-drawer > *:nth-child(n+9) { animation-delay: 0.27s; }
+
+@keyframes mobileItemFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.client-mobile-sub-menu {
+  animation: mobileSubMenuSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top center;
+}
+
+@keyframes mobileSubMenuSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .client-portal[data-client-theme="light"] .client-mobile-drawer {
@@ -752,7 +806,7 @@
   font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .client-mobile-nav-link:hover,
@@ -761,6 +815,7 @@
   border-color: rgba(212, 175, 55, 0.35);
   color: #F3E0A3;
   font-weight: 600;
+  transform: translateX(3px);
 }
 
 .client-portal[data-client-theme="light"] .client-mobile-nav-link {
@@ -773,6 +828,7 @@
   background: rgba(180, 138, 60, 0.12);
   border-color: rgba(180, 138, 60, 0.35);
   color: #8A6018;
+  transform: translateX(3px);
 }
 
 .client-mobile-lang-row {
@@ -811,6 +867,19 @@
 }
 
 @media (max-width: 992px) {
+  .client-navbar.mobile-open {
+    border-radius: 20px !important;
+    background: rgba(10, 14, 22, 0.98) !important;
+    border-color: rgba(212, 175, 55, 0.55) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(212, 175, 55, 0.25) !important;
+  }
+
+  .client-portal[data-client-theme="light"] .client-navbar.mobile-open {
+    background: rgba(251, 248, 243, 0.98) !important;
+    border-color: rgba(180, 138, 60, 0.55) !important;
+    box-shadow: 0 20px 50px rgba(50, 36, 18, 0.25) !important;
+  }
+
   .client-navbar {
     width: calc(100% - 24px);
     top: 10px;
@@ -852,16 +921,36 @@
     color: #F3E0A3;
     cursor: pointer;
     flex-shrink: 0;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .client-nav-mobile-toggle svg {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .client-nav-mobile-toggle:hover {
     background: rgba(212, 175, 55, 0.25);
     border-color: #D4AF37;
     color: #FFFFFF;
+    transform: scale(1.05);
+  }
+  .client-nav-mobile-toggle:active {
+    transform: scale(0.95);
+  }
+  .client-nav-mobile-toggle.is-active {
+    background: rgba(212, 175, 55, 0.28);
+    border-color: #D4AF37;
+    color: #FFFFFF;
+  }
+  .client-nav-mobile-toggle.is-active svg {
+    transform: rotate(90deg);
   }
   .client-portal[data-client-theme="light"] .client-nav-mobile-toggle {
     background: rgba(180, 138, 60, 0.12);
     border-color: rgba(180, 138, 60, 0.4);
+    color: #8A6018;
+  }
+  .client-portal[data-client-theme="light"] .client-nav-mobile-toggle.is-active {
+    background: rgba(180, 138, 60, 0.25);
+    border-color: #8A6018;
     color: #8A6018;
   }
 }

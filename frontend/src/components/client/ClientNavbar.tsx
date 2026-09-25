@@ -87,6 +87,17 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Tự động đóng Mobile Menu khi xoay màn hình hoặc resize lên màn hình lớn (Desktop)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 992) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Khóa cuộn trang nền khi mở Mobile Drawer
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -448,7 +459,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           {/* Nút Toggle Mobile Drawer */}
           <button
             type="button"
-            className="client-nav-mobile-toggle"
+            className={`client-nav-mobile-toggle ${isMobileMenuOpen ? 'is-active' : ''}`}
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             aria-label="Mở menu điều hướng"
           >
@@ -506,7 +517,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                   </button>
 
                   {isExpanded && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 14, marginTop: 4 }}>
+                    <div className="client-mobile-sub-menu" style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 14, marginTop: 4 }}>
                       {activeChildren.map((sub) => (
                         <button
                           key={sub.id}
