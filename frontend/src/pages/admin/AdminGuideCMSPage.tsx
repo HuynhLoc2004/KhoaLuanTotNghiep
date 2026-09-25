@@ -244,7 +244,7 @@ export const AdminGuideCMSPage: React.FC = () => {
       if (mapItem.title) {
         handleChange('guideMapTitle', mapItem.title);
       }
-      showToast(`Đã kích hoạt và đồng bộ bản đồ "${mapItem.title || mapItem.id}" lên trang Khách tham quan!`, 'success');
+      showToast(`Đã đặt sơ đồ "${mapItem.title || 'Mặt bằng'}" làm sơ đồ hiển thị chính thức!`, 'success');
       loadFloorPlansRepo(repoPage, repoLimit);
     } catch (err: any) {
       showToast(err?.message || 'Lỗi khi kích hoạt bản đồ', 'error');
@@ -256,16 +256,17 @@ export const AdminGuideCMSPage: React.FC = () => {
   const handleDeleteMap = (mapItem: FloorPlanMap) => {
     setConfirmModalConfig({
       isOpen: true,
-      title: 'Xóa Sơ Đồ Mặt Bằng Khỏi Kho',
-      message: `Bạn có chắc muốn xóa bản đồ "${mapItem.title || mapItem.id}" khỏi kho lưu trữ? Dữ liệu đồ thị và thuật toán phân tích sẽ bị xóa khỏi CSDL MongoDB.`,
+      title: 'Xóa sơ đồ mặt bằng',
+      message: `Bạn có chắc chắn muốn xóa sơ đồ "${mapItem.title || 'Mặt bằng'}"? Thao tác này sẽ xóa sơ đồ khỏi hệ thống và không thể hoàn tác.`,
       confirmText: 'Xác nhận xóa',
       cancelText: 'Hủy',
       type: 'danger',
       onConfirm: async () => {
         try {
           await api.deleteFloorPlan(mapItem.id);
-          showToast(`Đã xóa bản đồ "${mapItem.title || mapItem.id}" thành công!`, 'success');
-          loadFloorPlansRepo(repoPage, repoLimit);
+          showToast(`Đã xóa sơ đồ "${mapItem.title || 'Mặt bằng'}" thành công!`, 'success');
+          setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
+          await loadFloorPlansRepo(repoPage, repoLimit);
           const currentFp = await api.getFloorPlan();
           if (currentFp) {
             setActiveFloorPlan(currentFp);
@@ -274,6 +275,8 @@ export const AdminGuideCMSPage: React.FC = () => {
           }
         } catch (err: any) {
           showToast(err?.message || 'Lỗi khi xóa sơ đồ mặt bằng', 'error');
+        } finally {
+          setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
         }
       }
     });
@@ -321,12 +324,12 @@ export const AdminGuideCMSPage: React.FC = () => {
             await updateBranding({ guideMapUrl: res.url });
           } catch {}
         }
-        showToast('Đã tải ảnh lên server! Đang kích hoạt phân tích không gian Pure CV...', 'success');
+        showToast('Đã tải ảnh lên hệ thống, đang tự động nhận diện các gian phòng...', 'success');
         await handleAnalyzeFloorPlan(res.url);
         setIsUploadModalOpen(false);
       }
     } catch (err: any) {
-      showToast(err?.message || 'Lỗi khi tải ảnh sơ đồ mặt bằng lên server', 'error');
+      showToast(err?.message || 'Lỗi khi tải ảnh sơ đồ mặt bằng lên hệ thống', 'error');
     } finally {
       setUploadingGuideMap(false);
       if (guideMapInputRef.current) {
@@ -360,7 +363,7 @@ export const AdminGuideCMSPage: React.FC = () => {
         }
       }
       showToast(
-        `⚡ Đã phân tích bản đồ thành công qua Pure CV! Nhận diện ${res.summary?.nodeCount || 0} phòng và ${res.summary?.edgeCount || 0} liên kết cửa (${res.data?.analysisAlgorithm || 'Pure-CV'}).`,
+        `Đã nhận diện sơ đồ thành công: ${res.summary?.nodeCount || 0} gian phòng và ${res.summary?.edgeCount || 0} cửa thông phòng.`,
         'success'
       );
       loadFloorPlansRepo(1, repoLimit);
@@ -782,7 +785,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     <Eye size={13} />
-                    <span>Xem đồ thị tô-pô</span>
+                    <span>Xem cấu trúc không gian</span>
                   </button>
                 </div>
               </div>
@@ -792,12 +795,12 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
             )}
 
-            {/* 2. Kho lưu trữ bản đồ */}
+            {/* 2. Thư viện sơ đồ mặt bằng */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                    Kho lưu trữ bản đồ
+                    Thư viện sơ đồ mặt bằng
                   </span>
                   <span style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 7px', borderRadius: 10, fontSize: 11.5, fontWeight: 600 }}>
                     {repoTotal}
@@ -809,12 +812,12 @@ export const AdminGuideCMSPage: React.FC = () => {
               {repoLoading && floorPlansRepo.length === 0 ? (
                 <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
                   <div className="spinner-border" style={{ width: 22, height: 22, margin: '0 auto 8px', display: 'block' }} />
-                  Đang tải danh sách bản đồ...
+                  Đang tải danh sách sơ đồ...
                 </div>
               ) : floorPlansRepo.length === 0 ? (
                 <div style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface)', borderRadius: 8, border: '1px dashed var(--border-color)' }}>
                   <Layers size={28} style={{ opacity: 0.3, margin: '0 auto 6px', display: 'block' }} />
-                  <p style={{ margin: 0, fontSize: 13 }}>Kho lưu trữ hiện đang trống.</p>
+                  <p style={{ margin: 0, fontSize: 13 }}>Chưa có sơ đồ nào trong thư viện.</p>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
@@ -871,7 +874,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                                   border: '1px solid rgba(255,255,255,0.08)'
                                 }}
                               >
-                                Lưu kho
+                                Chưa áp dụng
                               </span>
                             )}
                           </div>
@@ -1718,7 +1721,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                 >
                   <Cpu size={13} />
-                  <span>{analyzingMap ? 'Đang phân tích...' : 'Bắt đầu phân tích Pure CV'}</span>
+                  <span>{analyzingMap ? 'Đang phân tích...' : 'Tự động nhận diện sơ đồ'}</span>
                 </button>
               ) : (
                 <button

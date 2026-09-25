@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -176,20 +177,26 @@ floorPlanRouter.post('/activate/:id', async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/floor-plan/:id
- * Xóa bản đồ khỏi kho lưu trữ
+ * Xóa bản đồ khỏi danh sách
  */
 floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const target = await FloorPlanMapModel.findOne({ id });
+    const query = {
+      $or: [
+        { id },
+        ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])
+      ]
+    };
+    const target = await FloorPlanMapModel.findOne(query);
     if (!target) {
-      return res.status(404).json({ success: false, message: 'Bản đồ không tồn tại trong kho' });
+      return res.json({ success: true, message: 'Bản đồ không còn tồn tại hoặc đã được xóa' });
     }
 
     const wasActive = target.active;
-    await FloorPlanMapModel.deleteOne({ id });
+    await FloorPlanMapModel.deleteOne(query);
 
-    // Nếu vừa xóa bản đồ đang active, tự động kích hoạt bản đồ mới nhất còn lại trong kho
+    // Nếu vừa xóa bản đồ đang áp dụng, tự động kích hoạt bản đồ mới nhất còn lại nếu có
     if (wasActive) {
       const remaining = await FloorPlanMapModel.findOne().sort({ updatedAt: -1 });
       if (remaining) {
@@ -201,11 +208,11 @@ floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      message: 'Đã xóa bản đồ khỏi kho lưu trữ thành công'
+      message: 'Đã xóa sơ đồ mặt bằng thành công'
     });
   } catch (err: any) {
     console.error('[FloorPlanRoute DELETE Error]:', err);
-    res.status(500).json({ success: false, message: 'Lỗi xóa bản đồ: ' + (err.message || '') });
+    res.status(500).json({ success: false, message: 'Lỗi khi xóa sơ đồ: ' + (err.message || '') });
   }
 });
 

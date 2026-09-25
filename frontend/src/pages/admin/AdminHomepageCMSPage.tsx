@@ -496,7 +496,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               Quản Lý Giao Diện & Nội Dung Trang Chủ
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, maxWidth: 720, lineHeight: 1.5 }}>
-              Quản lý độc lập từng phần hiển thị trên Trang chủ di sản. Dữ liệu được lưu trữ trực tiếp vào MongoDB và đồng bộ tức thì cho Khách tham quan.
+              Quản lý độc lập từng phần hiển thị trên trang chủ bảo tàng. Mọi thay đổi được lưu trữ an toàn và đồng bộ tức thì đến khách tham quan.
             </p>
           </div>
         </div>
