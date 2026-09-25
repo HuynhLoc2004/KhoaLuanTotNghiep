@@ -81,6 +81,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   const [uploadingGuideMap, setUploadingGuideMap] = useState(false);
   const [analyzingFloorPlan, setAnalyzingFloorPlan] = useState(false);
   const [analysisSummary, setAnalysisSummary] = useState<{ nodeCount: number; edgeCount: number; dimensions?: string } | null>(null);
+  const [guideSubTab, setGuideSubTab] = useState<'info' | 'hours' | 'transit' | 'rules'>('info');
 
   // Quản lý gian phòng 360 thực tế từ cơ sở dữ liệu
   const [availableRooms, setAvailableRooms] = useState<MuseumRoom[]>([]);
@@ -2037,19 +2038,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Layers size={18} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  7. Khung Cẩm Nang & Sơ Đồ Tham Quan Thực Địa
-                </h2>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  Quản lý thẻ khối, tiêu đề khối, tải ảnh bản đồ/sơ đồ mặt bằng bảo tàng và nút điều hướng
-                </span>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 16 }}>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
+                7. Khung Cẩm Nang & Sơ Đồ Tham Quan
+              </h2>
+              <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                Cấu hình tiêu đề, sơ đồ mặt bằng kiến trúc, giờ mở cửa, bảng giá vé và bản đồ chỉ đường
+              </span>
             </div>
 
             <button
@@ -2064,154 +2060,253 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Thẻ định danh khối (Tagline pill)
-              </label>
-              <input
-                type="text"
-                value={form.guideTag || ''}
-                onChange={(e) => handleChange('guideTag', e.target.value)}
-                placeholder="Kế Hoạch & Sơ Đồ"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Tiêu đề khối cẩm nang
-              </label>
-              <input
-                type="text"
-                value={form.guideTitle || ''}
-                onChange={(e) => handleChange('guideTitle', e.target.value)}
-                placeholder="Cẩm Nang & Sơ Đồ Tham Quan Thực Địa"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Nhãn nút hành động CTA
-              </label>
-              <input
-                type="text"
-                value={form.guideCtaText || ''}
-                onChange={(e) => handleChange('guideCtaText', e.target.value)}
-                placeholder="Xem cẩm nang & sơ đồ tham quan"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-              />
-            </div>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Đoạn mô tả cẩm nang tham quan
-              </label>
-              <textarea
-                rows={2}
-                value={form.guideDesc || ''}
-                onChange={(e) => handleChange('guideDesc', e.target.value)}
-                placeholder="VD: Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản."
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Tiêu đề Sơ đồ mặt bằng bảo tàng
-              </label>
-              <input
-                type="text"
-                value={form.guideMapTitle || ''}
-                onChange={(e) => handleChange('guideMapTitle', e.target.value)}
-                placeholder="Sơ đồ mặt bằng các gian trưng bày"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Mô tả chi tiết Sơ đồ mặt bằng
-              </label>
-              <input
-                type="text"
-                value={form.guideMapDesc || ''}
-                onChange={(e) => handleChange('guideMapDesc', e.target.value)}
-                placeholder="Bản đồ kiến trúc không gian và vị trí các gian phòng..."
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-              />
-            </div>
+          {/* Thanh phân nhóm tối giản (Sub-tabs) */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 8,
+              padding: 4,
+              marginBottom: 20,
+              gap: 4,
+              flexWrap: 'wrap'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setGuideSubTab('info')}
+              style={{
+                padding: '6px 14px',
+                fontSize: 12.5,
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                background: guideSubTab === 'info' ? 'var(--primary)' : 'transparent',
+                color: guideSubTab === 'info' ? '#FFFFFF' : 'var(--text-muted)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Thông tin & Sơ đồ
+            </button>
+            <button
+              type="button"
+              onClick={() => setGuideSubTab('hours')}
+              style={{
+                padding: '6px 14px',
+                fontSize: 12.5,
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                background: guideSubTab === 'hours' ? 'var(--primary)' : 'transparent',
+                color: guideSubTab === 'hours' ? '#FFFFFF' : 'var(--text-muted)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Giờ mở cửa & Giá vé
+            </button>
+            <button
+              type="button"
+              onClick={() => setGuideSubTab('transit')}
+              style={{
+                padding: '6px 14px',
+                fontSize: 12.5,
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                background: guideSubTab === 'transit' ? 'var(--primary)' : 'transparent',
+                color: guideSubTab === 'transit' ? '#FFFFFF' : 'var(--text-muted)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Vị trí & Google Maps
+            </button>
+            <button
+              type="button"
+              onClick={() => setGuideSubTab('rules')}
+              style={{
+                padding: '6px 14px',
+                fontSize: 12.5,
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                background: guideSubTab === 'rules' ? 'var(--primary)' : 'transparent',
+                color: guideSubTab === 'rules' ? '#FFFFFF' : 'var(--text-muted)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Tiện ích & Quy định
+            </button>
           </div>
 
-          {/* Quản lý file ảnh Sơ đồ mặt bằng */}
-          <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px dashed var(--border-color)' }}>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 8 }}>
-              File ảnh Sơ đồ mặt bằng kiến trúc Bảo tàng (Sẽ hiển thị trong Lightbox phóng to ở trang Cẩm nang)
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <input
-                  type="text"
-                  value={form.guideMapUrl || ''}
-                  onChange={(e) => handleChange('guideMapUrl', e.target.value)}
-                  placeholder="https://... hoặc tải sơ đồ kiến trúc bên phải"
-                  style={{ flex: 1, minWidth: 260, padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-                />
-                <input
-                  type="file"
-                  ref={guideMapInputRef}
-                  accept="image/*"
-                  onChange={handleUploadGuideMap}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => guideMapInputRef.current?.click()}
-                  disabled={uploadingGuideMap}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
-                  <Upload size={14} />
-                  <span>{uploadingGuideMap ? 'Đang tải lên...' : 'Tải sơ đồ mặt bằng lên'}</span>
-                </button>
+          {/* TAB 1: THÔNG TIN CHUNG & SƠ ĐỒ MẶT BẰNG */}
+          {guideSubTab === 'info' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Nội dung hiển thị trên trang chủ
+                </div>
               </div>
 
-              {form.guideMapUrl && (
-                <div style={{ position: 'relative', width: '100%', maxHeight: 240, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                  <img src={form.guideMapUrl} alt="Guide Map Preview" style={{ width: '100%', height: 240, objectFit: 'contain', background: '#111' }} />
-                  <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', padding: '3px 8px', borderRadius: 4, fontSize: 11, color: '#FFF' }}>
-                    Xem trước sơ đồ mặt bằng
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Thẻ định danh (Tagline pill)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.guideTag || ''}
+                    onChange={(e) => handleChange('guideTag', e.target.value)}
+                    placeholder="Kế Hoạch & Sơ Đồ"
+                    style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Tiêu đề khối cẩm nang
+                  </label>
+                  <input
+                    type="text"
+                    value={form.guideTitle || ''}
+                    onChange={(e) => handleChange('guideTitle', e.target.value)}
+                    placeholder="Cẩm Nang & Sơ Đồ Tham Quan Thực Địa"
+                    style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Nhãn nút hành động CTA
+                  </label>
+                  <input
+                    type="text"
+                    value={form.guideCtaText || ''}
+                    onChange={(e) => handleChange('guideCtaText', e.target.value)}
+                    placeholder="Xem cẩm nang & sơ đồ tham quan"
+                    style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Đoạn mô tả cẩm nang tham quan
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={form.guideDesc || ''}
+                    onChange={(e) => handleChange('guideDesc', e.target.value)}
+                    placeholder="Khám phá sơ đồ không gian kiến trúc bảo tàng..."
+                    style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10, marginTop: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Sơ đồ mặt bằng kiến trúc bảo tàng
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Tiêu đề sơ đồ mặt bằng
+                  </label>
+                  <input
+                    type="text"
+                    value={form.guideMapTitle || ''}
+                    onChange={(e) => handleChange('guideMapTitle', e.target.value)}
+                    placeholder="Sơ đồ mặt bằng các gian trưng bày"
+                    style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Mô tả sơ đồ mặt bằng
+                  </label>
+                  <input
+                    type="text"
+                    value={form.guideMapDesc || ''}
+                    onChange={(e) => handleChange('guideMapDesc', e.target.value)}
+                    placeholder="Bản đồ kiến trúc không gian và vị trí các gian phòng..."
+                    style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Đường dẫn hoặc tải file ảnh sơ đồ
+                  </label>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      value={form.guideMapUrl || ''}
+                      onChange={(e) => handleChange('guideMapUrl', e.target.value)}
+                      placeholder="https://... hoặc bấm tải ảnh bên phải"
+                      style={{ flex: 1, minWidth: 260, padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                    />
+                    <input
+                      type="file"
+                      ref={guideMapInputRef}
+                      accept="image/*"
+                      onChange={handleUploadGuideMap}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => guideMapInputRef.current?.click()}
+                      disabled={uploadingGuideMap}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Upload size={14} />
+                      <span>{uploadingGuideMap ? 'Đang tải...' : 'Tải sơ đồ lên'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleAnalyzeFloorPlan()}
+                      disabled={analyzingFloorPlan || !form.guideMapUrl}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Compass size={14} />
+                      <span>{analyzingFloorPlan ? 'Đang phân tích...' : 'Phân tích sơ đồ & Liên kết không gian'}</span>
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* Tính năng Phân tích Sơ đồ Mặt bằng & Kiến tạo Mạng Không gian Topo (Server Sharp Engine) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() => handleAnalyzeFloorPlan()}
-                  disabled={analyzingFloorPlan || !form.guideMapUrl}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#D4AF37', borderColor: '#D4AF37', color: '#000', fontWeight: 600 }}
-                >
-                  <Compass size={14} />
-                  <span>{analyzingFloorPlan ? 'Máy chủ đang phân tích qua Sharp & Topo...' : '⚡ Phân tích Sơ đồ Kiến trúc & Tạo Liên Kết Không Gian'}</span>
-                </button>
+                {form.guideMapUrl && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ width: '100%', maxHeight: 220, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                      <img src={form.guideMapUrl} alt="Preview sơ đồ" style={{ width: '100%', height: 220, objectFit: 'contain', background: '#111' }} />
+                    </div>
+                  </div>
+                )}
+
+                {analysisSummary && (
+                  <div style={{ gridColumn: '1 / -1', padding: '10px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 8, fontSize: 12.5, color: '#10B981' }}>
+                    ✓ Đã phân tích thành công: Nhận diện <strong>{analysisSummary.nodeCount}</strong> phân khu và thiết lập <strong>{analysisSummary.edgeCount}</strong> cửa liên kết hướng đi.
+                  </div>
+                )}
               </div>
-
-              {analysisSummary && (
-                <div style={{ padding: '10px 14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 8, fontSize: 12.5, color: '#10B981' }}>
-                  ✓ Đã phân tích thành công: Nhận diện <strong>{analysisSummary.nodeCount}</strong> phân khu và thiết lập <strong>{analysisSummary.edgeCount}</strong> cửa liên kết hướng đi (Trái/Phải/Trước/Sau). Dữ liệu đã lưu vào MongoDB và tự động đồng bộ sang trang Cẩm nang tham quan!
-                </div>
-              )}
             </div>
+          )}
 
-            {/* QUẢN LÝ THÔNG TIN THỰC ĐỊA & BẢN ĐỒ GOOGLE MAPS DO ADMIN CẤU HÌNH */}
-            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed var(--border-color)' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>📍 Thông Tin Giờ Mở Cửa & Biểu Phí Vé Tham Quan</span>
-              </h3>
+          {/* TAB 2: GIỜ MỞ CỬA & BIỂU PHÍ VÉ */}
+          {guideSubTab === 'hours' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Thời gian hoạt động
+                </div>
+              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
                 <div>
@@ -2229,7 +2324,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Khung giờ mở cửa ca Sáng
+                    Khung giờ ca sáng
                   </label>
                   <input
                     type="text"
@@ -2242,7 +2337,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Khung giờ mở cửa ca Chiều
+                    Khung giờ ca chiều
                   </label>
                   <input
                     type="text"
@@ -2261,11 +2356,19 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                     type="text"
                     value={form.guideClosedNote || ''}
                     onChange={(e) => handleChange('guideClosedNote', e.target.value)}
-                    placeholder="Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật. Quầy vé ngưng nhận khách trước giờ đóng cửa 30 phút."
+                    placeholder="Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật..."
                     style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
                   />
                 </div>
+              </div>
 
+              <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10, marginTop: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Biểu phí tham quan niêm yết
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                     Giá vé: Người lớn
@@ -2306,12 +2409,16 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 </div>
               </div>
             </div>
+          )}
 
-            {/* QUẢN LÝ VỊ TRÍ, CHỈ DẪN ĐI LẠI & BẢN ĐỒ GOOGLE MAPS */}
-            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed var(--border-color)' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>🗺️ Chỉ Dẫn Di Chuyển & Tích Hợp Google Maps (Dẫn Đường & Nhúng Bản Đồ)</span>
-              </h3>
+          {/* TAB 3: CHỈ DẪN DI CHUYỂN & GOOGLE MAPS */}
+          {guideSubTab === 'transit' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Chỉ dẫn phương tiện di chuyển
+                </div>
+              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                 <div>
@@ -2339,26 +2446,34 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                     style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
                   />
                 </div>
+              </div>
 
-                <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10, marginTop: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Tích hợp bản đồ Google Maps
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
+                <div>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Đường link Google Maps chỉ đường (Dẫn tới ứng dụng / web Google Maps khi bấm nút)
+                    Đường dẫn Google Maps (Chỉ đường khi khách bấm nút)
                   </label>
                   <input
                     type="text"
                     value={form.guideGoogleMapsUrl || ''}
                     onChange={(e) => handleChange('guideGoogleMapsUrl', e.target.value)}
-                    placeholder="VD: https://maps.app.goo.gl/3f9m4xVjM8k3E4wz9 hoặc https://www.google.com/maps?cid=..."
+                    placeholder="VD: https://maps.app.goo.gl/... hoặc https://www.google.com/maps?cid=..."
                     style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
                   />
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                     Khách tham quan bấm nút "Mở chỉ đường Google Maps" sẽ chuyển hướng tới đúng địa điểm này.
                   </span>
                 </div>
 
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Mã nhúng Bản đồ Google Maps (Embed Iframe hoặc Link Embed để chèn trực tiếp lên trang)
+                    Mã nhúng Bản đồ Google Maps (Dán mã iframe hoặc liên kết nhúng)
                   </label>
                   <textarea
                     rows={3}
@@ -2367,16 +2482,16 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                     placeholder='Dán toàn bộ thẻ <iframe src="https://www.google.com/maps/embed?..." ...></iframe> hoặc link https://www.google.com/maps/embed?...'
                     style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 12.5, fontFamily: 'monospace' }}
                   />
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                    Hệ thống tự động nhận diện cả thẻ &lt;iframe&gt; lẫn URL embed để hiển thị bản đồ tương tác sống động trên trang web.
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                    Hệ thống tự động nhận diện cả thẻ &lt;iframe&gt; lẫn URL embed để hiển thị bản đồ trực tiếp trên trang.
                   </span>
                 </div>
 
                 {form.guideGoogleMapsEmbed && (
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
                       Xem trước bản đồ Google Maps nhúng:
-                    </div>
+                    </label>
                     <div style={{ width: '100%', height: 220, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                       <iframe
                         src={form.guideGoogleMapsEmbed.includes('src=') ? (form.guideGoogleMapsEmbed.match(/src=["']([^"']+)["']/i)?.[1] || '') : form.guideGoogleMapsEmbed}
@@ -2393,87 +2508,94 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 )}
               </div>
             </div>
+          )}
 
-            {/* QUẢN LÝ TIỆN ÍCH & QUY ĐỊNH THAM QUAN */}
-            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed var(--border-color)' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>📋 Quản Lý 4 Tiện Ích & Quy Định Tham Quan</span>
-              </h3>
+          {/* TAB 4: TIỆN ÍCH & QUY ĐỊNH THAM QUAN */}
+          {guideSubTab === 'rules' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Tiện ích & Quy định tham quan (4 mục hiển thị trên trang cẩm nang)
+                </div>
+              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-                <div style={{ background: 'var(--bg-card)', padding: 14, borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 6 }}>Mục 01</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+                <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Mục 1</div>
                   <input
                     type="text"
                     value={form.guideRule1Title || ''}
                     onChange={(e) => handleChange('guideRule1Title', e.target.value)}
                     placeholder="Tiêu đề mục 1 (vd: Quét mã QR tại tủ hiện vật)"
-                    style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}
+                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}
                   />
                   <textarea
                     rows={2}
                     value={form.guideRule1Desc || ''}
                     onChange={(e) => handleChange('guideRule1Desc', e.target.value)}
                     placeholder="Nội dung mô tả mục 1..."
-                    style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12 }}
+                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                   />
                 </div>
 
-                <div style={{ background: 'var(--bg-card)', padding: 14, borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 6 }}>Mục 02</div>
+                <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Mục 2</div>
                   <input
                     type="text"
                     value={form.guideRule2Title || ''}
                     onChange={(e) => handleChange('guideRule2Title', e.target.value)}
                     placeholder="Tiêu đề mục 2 (vd: Thuyết minh Audio Guide)"
-                    style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}
+                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}
                   />
                   <textarea
                     rows={2}
                     value={form.guideRule2Desc || ''}
                     onChange={(e) => handleChange('guideRule2Desc', e.target.value)}
                     placeholder="Nội dung mô tả mục 2..."
-                    style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12 }}
+                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                   />
                 </div>
 
-                <div style={{ background: 'var(--bg-card)', padding: 14, borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 6 }}>Mục 03</div>
+                <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Mục 3</div>
                   <input
                     type="text"
                     value={form.guideRule3Title || ''}
                     onChange={(e) => handleChange('guideRule3Title', e.target.value)}
                     placeholder="Tiêu đề mục 3 (vd: Bảo quản di sản & Hiện vật)"
-                    style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}
+                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}
                   />
                   <textarea
                     rows={2}
                     value={form.guideRule3Desc || ''}
                     onChange={(e) => handleChange('guideRule3Desc', e.target.value)}
                     placeholder="Nội dung mô tả mục 3..."
-                    style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12 }}
+                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                   />
                 </div>
 
-                <div style={{ background: 'var(--bg-card)', padding: 14, borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 6 }}>Mục 04</div>
+                <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Mục 4</div>
                   <input
                     type="text"
                     value={form.guideRule4Title || ''}
                     onChange={(e) => handleChange('guideRule4Title', e.target.value)}
                     placeholder="Tiêu đề mục 4 (vd: Trang phục & Văn minh tham quan)"
-                    style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}
+                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}
                   />
                   <textarea
                     rows={2}
                     value={form.guideRule4Desc || ''}
                     onChange={(e) => handleChange('guideRule4Desc', e.target.value)}
                     placeholder="Nội dung mô tả mục 4..."
-                    style={{ width: '100%', padding: '7px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12 }}
+                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                   />
                 </div>
               </div>
             </div>
+          )}
+
+          <div style={{ marginTop: 20 }}>
             {renderSectionNavFooter(6, 'Phần 7: Cẩm nang & Sơ đồ')}
           </div>
         </section>
