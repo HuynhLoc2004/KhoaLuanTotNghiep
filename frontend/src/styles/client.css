@@ -288,19 +288,19 @@
   align-items: center;
   justify-content: space-between;
   height: 64px;
-  gap: 20px;
-  padding: 0 24px;
-  position: relative;
+  gap: clamp(12px, 1.6vw, 24px);
+  padding: 0 clamp(14px, 2vw, 24px);
 }
 
 .client-nav-brand {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 12px;
   text-decoration: none;
   color: #FFFFFF;
   cursor: pointer;
-  flex-shrink: 0;
+  flex: 1 1 0%;
+  min-width: 0;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -414,32 +414,21 @@
   50% { opacity: 0.35; transform: scale(0.85); }
 }
 
-/* 2. Menu Điều hướng Dạng Floating Capsule Island (Căn giữa tuyệt đối trên Desktop) */
+/* 2. Menu Điều hướng Dạng Floating Capsule Island (Cân bằng tự nhiên giữa Navbar) */
 .client-nav-menu-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 auto;
-}
-
-@media (min-width: 993px) {
-  .client-nav-menu-wrapper {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: auto;
-    z-index: 2;
-  }
+  flex: 0 0 auto;
 }
 
 .client-nav-menu {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   list-style: none;
   margin: 0;
-  padding: 4px 6px;
+  padding: 3px 5px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--c-radius-pill);
@@ -450,9 +439,9 @@
 .client-nav-link {
   color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 500;
-  padding: 7px 18px;
+  padding: 6px clamp(8px, 1.1vw, 15px);
   border-radius: var(--c-radius-pill);
   transition: var(--c-transition);
   display: inline-flex;
@@ -550,12 +539,14 @@
   color: #8A6018;
 }
 
-/* 3. Cụm Hành động Góc Phải */
+/* 3. Cụm Hành động Góc Phải (Cân bằng đối xứng với Brand bên trái) */
 .client-nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: clamp(6px, 0.8vw, 10px);
+  flex: 1 1 0%;
+  min-width: 0;
 }
 
 .client-theme-toggle {
@@ -569,6 +560,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
   transition: var(--c-transition);
 }
 
@@ -579,18 +571,60 @@
   transform: translateY(-1px);
 }
 
+.client-nav-lang-btn {
+  width: auto;
+  padding: 0 10px;
+  gap: 5px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.client-nav-lang-flag {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.client-nav-lang-code {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.client-nav-qr-btn {
+  width: auto;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+@media (max-width: 1260px) {
+  .client-nav-qr-btn {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .client-nav-qr-text {
+    display: none;
+  }
+}
+
 .client-nav-login-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 20px;
+  gap: 6px;
+  padding: 7px clamp(10px, 1.1vw, 18px);
   border-radius: var(--c-radius-pill);
   border: 1px solid rgba(212, 175, 55, 0.4);
   background: rgba(212, 175, 55, 0.18);
   color: #F3E0A3;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: var(--c-transition);
 }
 
