@@ -134,6 +134,22 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
       forceRebuild: true
     });
 
+    // Tự động đồng bộ đường dẫn ảnh và tiêu đề vào System Branding để không bị mất khi load lại
+    try {
+      const { SystemBranding } = await import('../models/SystemBranding.js');
+      await SystemBranding.findOneAndUpdate(
+        { id: 'default_branding' },
+        {
+          guideMapUrl: finalImageUrl,
+          guideMapTitle: title,
+          guideMapDesc: description
+        },
+        { upsert: true, returnDocument: 'after' }
+      );
+    } catch (bErr) {
+      console.warn('[FloorPlanRoute] Không thể cập nhật branding guideMapUrl:', bErr);
+    }
+
     // Phát sóng đồng bộ thời gian thực cho khách tham quan và admin
     broadcastRealtimeEvent('floor_plan_updated', analyzedMap);
 

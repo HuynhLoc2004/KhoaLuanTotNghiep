@@ -113,58 +113,61 @@ export const AdminGuideCMSPage: React.FC = () => {
   });
 
   useEffect(() => {
-    setForm({
-      guideTag: branding.guideTag || 'Kế Hoạch & Sơ Đồ',
-      guideTitle: branding.guideTitle || 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa',
-      guideCtaText: branding.guideCtaText || 'Xem cẩm nang & sơ đồ tham quan',
-      guideDesc:
-        branding.guideDesc ||
-        'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.',
-
-      guideMapTitle: branding.guideMapTitle || 'Sơ đồ mặt bằng các gian trưng bày',
-      guideMapDesc:
-        branding.guideMapDesc ||
-        'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày giúp quý khách định hướng lộ trình thuận tiện nhất.',
-      guideMapUrl: branding.guideMapUrl || '',
-
-      guideOpeningDays: branding.guideOpeningDays || 'Thứ Ba – Chủ Nhật',
-      guideMorningHours: branding.guideMorningHours || '08:00 – 11:30',
-      guideAfternoonHours: branding.guideAfternoonHours || '13:30 – 17:00',
-      guideClosedNote:
-        branding.guideClosedNote || 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật và vệ sinh chuyên sâu',
-      guideTicketAdult: branding.guideTicketAdult || '30.000 ₫',
-      guideTicketStudent: branding.guideTicketStudent || '15.000 ₫',
-      guideTicketChild: branding.guideTicketChild || 'Miễn phí cho trẻ em dưới 6 tuổi, người cao tuổi & người khuyết tật',
-
-      address: branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-      hotline: branding.hotline || '(028) 3829 8146',
-      guideBusRoutes:
-        branding.guideBusRoutes ||
-        'Tuyến xe buýt số 05, 06, 14, 19, 52 dừng tại trạm Thảo Cầm Viên (ngay cổng đường Nguyễn Bỉnh Khiêm).',
-      guideParkingInfo:
-        branding.guideParkingInfo ||
-        'Bãi đỗ xe máy và ô tô thuận tiện ngay trong khuôn viên sân bảo tàng, có nhân viên an ninh hướng dẫn.',
-      guideGoogleMapsUrl: branding.guideGoogleMapsUrl || '',
-      guideGoogleMapsEmbed: branding.guideGoogleMapsEmbed || '',
-
-      guideRule1Title: branding.guideRule1Title || 'Quét mã QR tại tủ hiện vật',
-      guideRule1Desc:
-        branding.guideRule1Desc ||
-        'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
-      guideRule2Title: branding.guideRule2Title || 'Thuyết minh Audio Guide song ngữ',
-      guideRule2Desc:
-        branding.guideRule2Desc ||
-        'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
-      guideRule3Title: branding.guideRule3Title || 'Bảo quản di sản & Hiện vật',
-      guideRule3Desc:
-        branding.guideRule3Desc ||
-        'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
-      guideRule4Title: branding.guideRule4Title || 'Trang phục & Văn minh tham quan',
-      guideRule4Desc:
-        branding.guideRule4Desc ||
-        'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.'
-    });
+    setForm(prev => ({
+      ...prev,
+      guideTag: branding.guideTag || prev.guideTag,
+      guideTitle: branding.guideTitle || prev.guideTitle,
+      guideCtaText: branding.guideCtaText || prev.guideCtaText,
+      guideDesc: branding.guideDesc || prev.guideDesc,
+      guideMapTitle: branding.guideMapTitle || prev.guideMapTitle,
+      guideMapDesc: branding.guideMapDesc || prev.guideMapDesc,
+      guideMapUrl: branding.guideMapUrl || prev.guideMapUrl || '',
+      guideOpeningDays: branding.guideOpeningDays || prev.guideOpeningDays,
+      guideMorningHours: branding.guideMorningHours || prev.guideMorningHours,
+      guideAfternoonHours: branding.guideAfternoonHours || prev.guideAfternoonHours,
+      guideClosedNote: branding.guideClosedNote || prev.guideClosedNote,
+      guideTicketAdult: branding.guideTicketAdult || prev.guideTicketAdult,
+      guideTicketStudent: branding.guideTicketStudent || prev.guideTicketStudent,
+      guideTicketChild: branding.guideTicketChild || prev.guideTicketChild,
+      address: branding.address || prev.address,
+      hotline: branding.hotline || prev.hotline,
+      guideBusRoutes: branding.guideBusRoutes || prev.guideBusRoutes,
+      guideParkingInfo: branding.guideParkingInfo || prev.guideParkingInfo,
+      guideGoogleMapsUrl: branding.guideGoogleMapsUrl || prev.guideGoogleMapsUrl,
+      guideGoogleMapsEmbed: branding.guideGoogleMapsEmbed || prev.guideGoogleMapsEmbed,
+      guideRule1Title: branding.guideRule1Title || prev.guideRule1Title,
+      guideRule1Desc: branding.guideRule1Desc || prev.guideRule1Desc,
+      guideRule2Title: branding.guideRule2Title || prev.guideRule2Title,
+      guideRule2Desc: branding.guideRule2Desc || prev.guideRule2Desc,
+      guideRule3Title: branding.guideRule3Title || prev.guideRule3Title,
+      guideRule3Desc: branding.guideRule3Desc || prev.guideRule3Desc,
+      guideRule4Title: branding.guideRule4Title || prev.guideRule4Title,
+      guideRule4Desc: branding.guideRule4Desc || prev.guideRule4Desc
+    }));
   }, [branding]);
+
+  // Nạp sơ đồ mặt bằng đã phân tích từ CSDL MongoDB ngay khi mở trang
+  useEffect(() => {
+    api.getFloorPlan()
+      .then(fp => {
+        if (fp && fp.nodes && fp.nodes.length > 0) {
+          setAnalysisResult({
+            data: fp,
+            summary: {
+              nodeCount: fp.nodes.length,
+              edgeCount: fp.edges.length
+            }
+          });
+          if (fp.imageUrl) {
+            setForm(prev => ({
+              ...prev,
+              guideMapUrl: prev.guideMapUrl || fp.imageUrl || ''
+            }));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleChange = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -202,6 +205,9 @@ export const AdminGuideCMSPage: React.FC = () => {
       const res = await api.uploadBrandingImage(file);
       if (res && res.url) {
         handleChange('guideMapUrl', res.url);
+        try {
+          await updateBranding({ guideMapUrl: res.url });
+        } catch {}
         showToast('Đã tải ảnh sơ đồ thành công! Đang kích hoạt phân tích Pure CV...', 'success');
         handleAnalyzeFloorPlan(res.url);
       }
