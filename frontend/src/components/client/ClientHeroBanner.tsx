@@ -107,7 +107,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
       <div className="client-hero-overlay" />
 
       {/* 2. NỘI DUNG CHÍNH (TYPOGRAPHY THOÁNG ĐÃNG) */}
-      <div className="client-container" style={{ position: 'relative', zIndex: 10 }}>
+      <div className="client-container client-hero-container" style={{ position: 'relative', zIndex: 10 }}>
         <div className="client-hero-content">
           <span className="client-hero-tag">
             {t('hero.tag', 'Bảo Tàng Số • Di Sản Văn Hóa & Không Gian Tương Tác')}
