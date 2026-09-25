@@ -87,16 +87,16 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
           </span>
 
           <h1 className="client-hero-headline">
-            {branding.heroTitle || branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}
+            {t(branding.heroTitle || branding.museumName || 'hero.title', branding.heroTitle || branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh')}
           </h1>
 
           <p className="client-hero-lead">
-            {branding.heroTagline ||
-              branding.tagline ||
-              t(
-                'hero.subtitle',
+            {t(
+              branding.heroTagline || branding.tagline || 'hero.subtitle',
+              branding.heroTagline ||
+                branding.tagline ||
                 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.'
-              )}
+            )}
           </p>
 
           {/* Các nút hành động CTA */}
@@ -106,7 +106,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               className="client-btn-primary"
               onClick={onExploreTourClick}
             >
-              <span>{branding.heroCta1Text || t('hero.btnTour', 'Bắt Đầu Tour 360°')}</span>
+              <span>{t(branding.heroCta1Text || 'hero.btnTour', branding.heroCta1Text || 'Bắt Đầu Tour 360°')}</span>
               <ArrowRight size={16} />
             </button>
 
@@ -115,7 +115,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               className="client-btn-secondary"
               onClick={onExploreArtifactsClick}
             >
-              <span>{branding.heroCta2Text || t('hero.btnArtifacts', 'Chiêm Ngưỡng Cổ Vật 3D')}</span>
+              <span>{t(branding.heroCta2Text || 'hero.btnArtifacts', branding.heroCta2Text || 'Chiêm Ngưỡng Cổ Vật 3D')}</span>
             </button>
           </div>
 

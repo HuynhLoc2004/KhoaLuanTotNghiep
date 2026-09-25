@@ -46,27 +46,27 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
               </div>
             )}
             <div className="client-zigzag-badge-float">
-              <span>{branding.introBadgeText || 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia'}</span>
+              <span>{t(branding.introBadgeText || 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia', branding.introBadgeText || 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia')}</span>
             </div>
           </div>
 
           {/* CỘT NỘI DUNG: TRANG NHÃ, KHÔNG TÈM LEM MÀU, KHÔNG ICON DƯ THỪA */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
-              {branding.introTag || t('intro.tag', 'Kiến Trúc & Không Gian')}
+              {t(branding.introTag || 'intro.tag', branding.introTag || 'Kiến Trúc & Không Gian')}
             </span>
 
             <h2 className="client-zigzag-title">
-              {branding.introTitle || branding.museumName || t('intro.title', 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh')}
+              {t(branding.introTitle || branding.museumName || 'intro.title', branding.introTitle || branding.museumName || 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh')}
             </h2>
 
             <p className="client-zigzag-desc">
-              {branding.introDesc ||
-                branding.tagline ||
-                t(
-                  'intro.desc',
+              {t(
+                branding.introDesc || branding.tagline || 'intro.desc',
+                branding.introDesc ||
+                  branding.tagline ||
                   'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.'
-                )}
+              )}
             </p>
 
             {/* DÒNG THÔNG SỐ ĐỒNG BỘ THẬT: TỐI GIẢN, LỊCH THIỆP, KHÔNG ICON LÒE LOẸT */}
@@ -92,7 +92,7 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
                   className="client-zigzag-btn-primary"
                   onClick={onExploreRooms}
                 >
-                  {branding.introCtaText || t('intro.btnExplore', 'Khám phá gian trưng bày')}
+                  {t(branding.introCtaText || 'intro.btnExplore', branding.introCtaText || 'Khám phá gian trưng bày')}
                 </button>
               </div>
             )}

@@ -149,11 +149,14 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
             <div className="client-guide-floorplan-header">
               <div>
                 <h2 className="client-guide-floorplan-title" style={{ fontSize: 'clamp(1.4rem, 2.2vw, 1.85rem)' }}>
-                  {branding.guideMapTitle || t('guide.mapTitle', 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày')}
+                  {t(branding.guideMapTitle || 'guide.mapTitle', branding.guideMapTitle || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày')}
                 </h2>
                 <p className="client-guide-floorplan-desc" style={{ maxWidth: 720 }}>
-                  {branding.guideMapDesc ||
-                    t('guide.mapDesc', 'Chọn từng gian phòng trên sơ đồ để tra cứu tên hiện vật, quan sát hướng đi và các lối thông phòng liên kết thực tế.')}
+                  {t(
+                    branding.guideMapDesc || 'guide.mapDesc',
+                    branding.guideMapDesc ||
+                      'Chọn từng gian phòng trên sơ đồ để tra cứu tên hiện vật, quan sát hướng đi và các lối thông phòng liên kết thực tế.'
+                  )}
                 </p>
               </div>
 
@@ -257,7 +260,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                     <div>
                       <h3 className="client-guide-essential-title">{t('guide.openingHours', 'Giờ Mở Cửa')}</h3>
                       <span className="client-guide-essential-badge">
-                        {branding.guideOpeningDays || 'Thứ Ba – Chủ Nhật'}
+                        {t(branding.guideOpeningDays || 'Thứ Ba – Chủ Nhật', branding.guideOpeningDays || 'Thứ Ba – Chủ Nhật')}
                       </span>
                     </div>
                   </div>
@@ -267,14 +270,14 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                       <div className="client-guide-hour-slot">
                         <span className="client-guide-hour-period">{t('guide.morning', 'Sáng')}</span>
                         <strong className="client-guide-hour-time">
-                          {branding.guideMorningHours || '08:00 – 11:30'}
+                          {t(branding.guideMorningHours || '08:00 – 11:30', branding.guideMorningHours || '08:00 – 11:30')}
                         </strong>
                       </div>
                       <div className="client-guide-hour-divider" />
                       <div className="client-guide-hour-slot">
                         <span className="client-guide-hour-period">{t('guide.afternoon', 'Chiều')}</span>
                         <strong className="client-guide-hour-time">
-                          {branding.guideAfternoonHours || '13:30 – 17:00'}
+                          {t(branding.guideAfternoonHours || '13:30 – 17:00', branding.guideAfternoonHours || '13:30 – 17:00')}
                         </strong>
                       </div>
                     </div>
@@ -283,12 +286,15 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                       <li>
                         <span className="bullet">•</span>
                         <span>
-                          {branding.guideClosedNote || 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.'}
+                          {t(
+                            branding.guideClosedNote || 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.',
+                            branding.guideClosedNote || 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.'
+                          )}
                         </span>
                       </li>
                       <li>
                         <span className="bullet">•</span>
-                        <span>Quầy vé ngưng nhận khách trước giờ đóng cửa 30 phút.</span>
+                        <span>{t('Quầy vé ngưng nhận khách trước giờ đóng cửa 30 phút.', 'Quầy vé ngưng nhận khách trước giờ đóng cửa 30 phút.')}</span>
                       </li>
                     </ul>
                   </div>
@@ -364,13 +370,21 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                       <li>
                         <span className="bullet">•</span>
                         <span>
-                          <strong>{t('guide.bus', 'Xe buýt')}:</strong> {branding.guideBusRoutes || 'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.'}
+                          <strong>{t('guide.bus', 'Xe buýt')}:</strong>{' '}
+                          {t(
+                            branding.guideBusRoutes || 'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.',
+                            branding.guideBusRoutes || 'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.'
+                          )}
                         </span>
                       </li>
                       <li>
                         <span className="bullet">•</span>
                         <span>
-                          <strong>{t('guide.parking', 'Gửi xe')}:</strong> {branding.guideParkingInfo || 'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.'}
+                          <strong>{t('guide.parking', 'Gửi xe')}:</strong>{' '}
+                          {t(
+                            branding.guideParkingInfo || 'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.',
+                            branding.guideParkingInfo || 'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.'
+                          )}
                         </span>
                       </li>
                       <li>
@@ -396,10 +410,13 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                         <div className="client-guide-map-embed-empty">
                           <MapPin size={26} style={{ color: '#C5A059' }} />
                           <strong style={{ color: 'var(--c-text-primary)', fontSize: '0.88rem' }}>
-                            Chưa cấu hình mã nhúng bản đồ trực tiếp
+                            {t('Chưa cấu hình mã nhúng bản đồ trực tiếp', 'Chưa cấu hình mã nhúng bản đồ trực tiếp')}
                           </strong>
                           <span style={{ fontSize: '0.78rem', color: '#64748B', maxWidth: 360 }}>
-                            Quản trị viên có thể dán mã nhúng Iframe hoặc URL Google Maps trong CMS để hiển thị bản đồ trực tiếp tại đây.
+                            {t(
+                              'Quản trị viên có thể dán mã nhúng Iframe hoặc URL Google Maps trong CMS để hiển thị bản đồ trực tiếp tại đây.',
+                              'Quản trị viên có thể dán mã nhúng Iframe hoặc URL Google Maps trong CMS để hiển thị bản đồ trực tiếp tại đây.'
+                            )}
                           </span>
                         </div>
                       )}
@@ -432,37 +449,53 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
             <div className="client-guide-amenities-grid">
               <div className="client-guide-amenity-card">
                 <div className="client-guide-amenity-num">01</div>
-                <h4>{branding.guideRule1Title || 'Quét mã QR tại tủ hiện vật'}</h4>
+                <h4>{t(branding.guideRule1Title || 'Quét mã QR tại tủ hiện vật', branding.guideRule1Title || 'Quét mã QR tại tủ hiện vật')}</h4>
                 <p>
-                  {branding.guideRule1Desc ||
-                    'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.'}
+                  {t(
+                    branding.guideRule1Desc ||
+                      'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
+                    branding.guideRule1Desc ||
+                      'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.'
+                  )}
                 </p>
               </div>
 
               <div className="client-guide-amenity-card">
                 <div className="client-guide-amenity-num">02</div>
-                <h4>{branding.guideRule2Title || 'Thuyết minh Audio Guide song ngữ'}</h4>
+                <h4>{t(branding.guideRule2Title || 'Thuyết minh Audio Guide song ngữ', branding.guideRule2Title || 'Thuyết minh Audio Guide song ngữ')}</h4>
                 <p>
-                  {branding.guideRule2Desc ||
-                    'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.'}
+                  {t(
+                    branding.guideRule2Desc ||
+                      'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
+                    branding.guideRule2Desc ||
+                      'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.'
+                  )}
                 </p>
               </div>
 
               <div className="client-guide-amenity-card">
                 <div className="client-guide-amenity-num">03</div>
-                <h4>{branding.guideRule3Title || 'Bảo quản di sản & Hiện vật'}</h4>
+                <h4>{t(branding.guideRule3Title || 'Bảo quản di sản & Hiện vật', branding.guideRule3Title || 'Bảo quản di sản & Hiện vật')}</h4>
                 <p>
-                  {branding.guideRule3Desc ||
-                    'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.'}
+                  {t(
+                    branding.guideRule3Desc ||
+                      'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
+                    branding.guideRule3Desc ||
+                      'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.'
+                  )}
                 </p>
               </div>
 
               <div className="client-guide-amenity-card">
                 <div className="client-guide-amenity-num">04</div>
-                <h4>{branding.guideRule4Title || 'Trang phục & Văn minh tham quan'}</h4>
+                <h4>{t(branding.guideRule4Title || 'Trang phục & Văn minh tham quan', branding.guideRule4Title || 'Trang phục & Văn minh tham quan')}</h4>
                 <p>
-                  {branding.guideRule4Desc ||
-                    'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.'}
+                  {t(
+                    branding.guideRule4Desc ||
+                      'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.',
+                    branding.guideRule4Desc ||
+                      'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.'
+                  )}
                 </p>
               </div>
             </div>
@@ -488,10 +521,10 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
             <div className="client-guide-lightbox-header">
               <div>
                 <h3 className="client-guide-lightbox-title">
-                  {branding.guideMapTitle || 'Sơ Đồ Mặt Bằng & Không Gian Trưng Bày'}
+                  {t(branding.guideMapTitle || 'guide.mapTitle', branding.guideMapTitle || 'Sơ Đồ Mặt Bằng & Không Gian Trưng Bày')}
                 </h3>
                 <span className="client-guide-lightbox-sub">
-                  Bảo tàng Lịch sử TP. Hồ Chí Minh • {address}
+                  {t('intro.title', 'Bảo tàng Lịch sử TP. Hồ Chí Minh')} • {t(address, address)}
                 </span>
               </div>
 
@@ -500,7 +533,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   type="button"
                   className="client-guide-ctrl-btn"
                   onClick={() => setZoomLevel((prev) => Math.min(prev + 0.25, 2.5))}
-                  title="Phóng to"
+                  title={t('guide.zoomIn', 'Phóng to')}
                 >
                   <ZoomIn size={16} />
                 </button>
@@ -508,7 +541,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   type="button"
                   className="client-guide-ctrl-btn"
                   onClick={() => setZoomLevel((prev) => Math.max(prev - 0.25, 0.75))}
-                  title="Thu nhỏ"
+                  title={t('guide.zoomOut', 'Thu nhỏ')}
                 >
                   <ZoomOut size={16} />
                 </button>
@@ -516,7 +549,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   type="button"
                   className="client-guide-ctrl-btn"
                   onClick={() => setZoomLevel(1)}
-                  title="Đặt lại kích thước"
+                  title={t('guide.resetZoom', 'Đặt lại kích thước')}
                 >
                   <RotateCcw size={16} />
                 </button>
@@ -524,7 +557,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   type="button"
                   className="client-guide-ctrl-btn close"
                   onClick={() => setIsMapLightboxOpen(false)}
-                  title="Đóng (Esc)"
+                  title={t('guide.closeModal', 'Đóng (Esc)')}
                 >
                   <X size={18} />
                 </button>

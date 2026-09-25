@@ -44,6 +44,33 @@ function isValidTranslation(trans: string | undefined | null, original: string, 
   return trans;
 }
 
+// Hàm chuẩn hóa chuỗi tra cứu (loại bỏ khác biệt giữa các loại dấu gạch ngang, khoảng trắng và chữ hoa/thường)
+function normalizePhraseKey(key: string): string {
+  if (!key) return '';
+  return key
+    .toLowerCase()
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Bảng tra cứu chuẩn hóa toàn diện (Normalized Universal Phrase Map O(1))
+const NORMALIZED_PHRASE_MAP: Record<string, any> = (() => {
+  const map: Record<string, any> = {};
+  for (const [key, val] of Object.entries(UNIVERSAL_PHRASE_MAP)) {
+    map[normalizePhraseKey(key)] = val;
+  }
+  return map;
+})();
+
+function getPhraseItem(key: string): any {
+  if (!key) return null;
+  if (UNIVERSAL_PHRASE_MAP[key]) return UNIVERSAL_PHRASE_MAP[key];
+  const norm = normalizePhraseKey(key);
+  if (NORMALIZED_PHRASE_MAP[norm]) return NORMALIZED_PHRASE_MAP[norm];
+  return null;
+}
+
 // Bộ trợ giúp tra cứu cụm từ đa năng mở rộng (xử lý dấu câu, hai chấm, ngoặc đơn, đạn tròn, dấu gạch)
 export function lookupUniversalPhrase(raw: string, targetLang: string): string | null {
   if (!raw) return null;
@@ -52,20 +79,31 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
 
   const tLang = targetLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
 
-  // 1. Khớp chính xác 100% trong từ điển cụm từ
-  if (UNIVERSAL_PHRASE_MAP[clean]) {
-    const item = UNIVERSAL_PHRASE_MAP[clean];
-    const trans = (item as any)[targetLang] || item[tLang] || item.en || null;
+  // 1. Khớp chính xác hoặc không phân biệt chữ hoa/thường 100% trong từ điển cụm từ
+  const itemExact = getPhraseItem(clean);
+  if (itemExact) {
+    const trans = (itemExact as any)[targetLang] || itemExact[tLang] || itemExact.en || null;
     const valid = isValidTranslation(trans, clean, targetLang);
     if (valid) return valid;
+  }
+
+  // 1b. Xử lý dấu chấm ở cuối: "Thứ Hai: Đóng cửa..." -> loại bỏ dấu chấm để tra cứu
+  if (clean.endsWith('.')) {
+    const withoutDot = clean.slice(0, -1).trim();
+    const itemNoDot = getPhraseItem(withoutDot);
+    if (itemNoDot) {
+      const trans = (itemNoDot as any)[targetLang] || itemNoDot[tLang] || itemNoDot.en;
+      const valid = isValidTranslation(trans, withoutDot, targetLang);
+      if (valid) return `${valid}.`;
+    }
   }
 
   // 2. Xử lý dấu hai chấm ở cuối: "Mã phòng:" -> "Room Code:"
   if (clean.endsWith(':')) {
     const core = clean.slice(0, -1).trim();
-    if (UNIVERSAL_PHRASE_MAP[core]) {
-      const item = UNIVERSAL_PHRASE_MAP[core];
-      const trans = (item as any)[targetLang] || item[tLang] || item.en;
+    const itemColon = getPhraseItem(core);
+    if (itemColon) {
+      const trans = (itemColon as any)[targetLang] || itemColon[tLang] || itemColon.en;
       const valid = isValidTranslation(trans, core, targetLang);
       if (valid) return `${valid}:`;
     }
@@ -74,9 +112,9 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
   // 3. Xử lý dấu ba chấm: "Đang tải..." -> "Loading..."
   if (clean.endsWith('...') || clean.endsWith('…')) {
     const core = clean.replace(/\.{3}$|…$/, '').trim();
-    if (UNIVERSAL_PHRASE_MAP[core]) {
-      const item = UNIVERSAL_PHRASE_MAP[core];
-      const trans = (item as any)[targetLang] || item[tLang] || item.en;
+    const itemEllipsis = getPhraseItem(core);
+    if (itemEllipsis) {
+      const trans = (itemEllipsis as any)[targetLang] || itemEllipsis[tLang] || itemEllipsis.en;
       const valid = isValidTranslation(trans, core, targetLang);
       if (valid) return `${valid}...`;
     }
@@ -85,9 +123,9 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
   // 4. Xử lý trong dấu ngoặc đơn: "(Tối đa 5MB)" -> "(Max 5MB)"
   if (clean.startsWith('(') && clean.endsWith(')')) {
     const core = clean.slice(1, -1).trim();
-    if (UNIVERSAL_PHRASE_MAP[core]) {
-      const item = UNIVERSAL_PHRASE_MAP[core];
-      const trans = (item as any)[targetLang] || item[tLang] || item.en;
+    const itemParen = getPhraseItem(core);
+    if (itemParen) {
+      const trans = (itemParen as any)[targetLang] || itemParen[tLang] || itemParen.en;
       const valid = isValidTranslation(trans, core, targetLang);
       if (valid) return `(${valid})`;
     }
@@ -98,9 +136,9 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
   if (bulletMatch) {
     const prefix = bulletMatch[1];
     const core = bulletMatch[2].trim();
-    if (UNIVERSAL_PHRASE_MAP[core]) {
-      const item = UNIVERSAL_PHRASE_MAP[core];
-      const trans = (item as any)[targetLang] || item[tLang] || item.en;
+    const itemBullet = getPhraseItem(core);
+    if (itemBullet) {
+      const trans = (itemBullet as any)[targetLang] || itemBullet[tLang] || itemBullet.en;
       const valid = isValidTranslation(trans, core, targetLang);
       if (valid) return `${prefix}${valid}`;
     }

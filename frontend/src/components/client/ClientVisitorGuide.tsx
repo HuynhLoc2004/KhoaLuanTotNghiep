@@ -53,7 +53,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             {museumPhoto && (
               <div className="client-zigzag-media-caption">
                 <span style={{ fontWeight: 600 }}>
-                  {branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM'}
+                  {t(branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM', branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM')}
                 </span>
               </div>
             )}
@@ -62,19 +62,19 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
           {/* CỘT NỘI DUNG: TỐI GIẢN, TINH TẾ, TUYỆT ĐỐI KHÔNG DÙNG HỘP DỮ LIỆU ẢO */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
-              {branding.guideTag || t('guide.tag', 'Kế Hoạch & Sơ Đồ')}
+              {t(branding.guideTag || 'guide.tag', branding.guideTag || 'Kế Hoạch & Sơ Đồ')}
             </span>
 
             <h2 className="client-zigzag-title">
-              {branding.guideTitle || t('guide.headline', 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa')}
+              {t(branding.guideTitle || 'guide.headline', branding.guideTitle || 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa')}
             </h2>
 
             <p className="client-zigzag-desc">
-              {branding.guideDesc ||
-                t(
-                  'guide.sub',
+              {t(
+                branding.guideDesc || 'guide.sub',
+                branding.guideDesc ||
                   'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.'
-                )}
+              )}
             </p>
 
             {/* DÒNG THÔNG SỐ ĐỒNG BỘ TINH TẾ */}
