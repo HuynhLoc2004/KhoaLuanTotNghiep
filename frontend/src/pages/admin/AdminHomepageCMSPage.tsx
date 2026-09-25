@@ -44,11 +44,13 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 interface AdminHomepageCMSPageProps {
   activeSection?: string;
   onSectionChange?: (sectionId: string) => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   activeSection,
-  onSectionChange
+  onSectionChange,
+  onNavigateTab
 }) => {
   const { showToast } = useToast();
   const { branding, updateBranding, refreshBranding } = useSystemBranding();
@@ -1970,7 +1972,137 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         </section>
         )}
 
-        {/* KHUNG 7: CHÂN TRANG & THÔNG TIN LIÊN HỆ */}
+        {/* KHUNG 7: KHỐI CẨM NANG & SƠ ĐỒ THAM QUAN (HIỂN THỊ TRANG CHỦ) */}
+        {activeSectionId === 'panel-guide-preview' && (
+        <section
+          id="panel-guide-preview"
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 14,
+            padding: 24,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Layers size={18} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
+                  7. Khối Cẩm Nang & Sơ Đồ Tham Quan (Hiển thị Trang Chủ)
+                </h2>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Quản lý thẻ định danh, tiêu đề, mô tả và nút điều hướng của khối cẩm nang trên Trang chủ
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => handleSave('Khối Cẩm nang tham quan')}
+              disabled={isSaving}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Save size={14} />
+              <span>Lưu Khối Cẩm nang</span>
+            </button>
+          </div>
+
+          {/* Banner thông báo điều hướng chuyên nghiệp */}
+          <div
+            style={{
+              padding: '14px 18px',
+              borderRadius: 10,
+              background: 'rgba(212, 168, 106, 0.08)',
+              border: '1px solid rgba(212, 168, 106, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+              marginBottom: 20
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Info size={18} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: 'var(--text-main)', lineHeight: 1.5 }}>
+                Toàn bộ nội dung chuyên sâu của trang tham quan thực địa (gồm <strong>Sơ đồ mặt bằng kiến trúc</strong>, <strong>Giờ mở cửa</strong>, <strong>Bảng giá vé</strong>, <strong>Google Maps chỉ đường</strong> và <strong>Quy định tham quan</strong>) được quản lý độc lập tại phân hệ riêng biệt.
+              </span>
+            </div>
+            {onNavigateTab && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => onNavigateTab('guide')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', fontWeight: 600 }}
+              >
+                <span>Chuyển sang Trang Cẩm nang & Sơ đồ</span>
+                <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                Thẻ định danh khối (Tagline pill)
+              </label>
+              <input
+                type="text"
+                value={form.guideTag || ''}
+                onChange={(e) => handleChange('guideTag', e.target.value)}
+                placeholder="Kế Hoạch & Sơ Đồ"
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                Tiêu đề khối cẩm nang
+              </label>
+              <input
+                type="text"
+                value={form.guideTitle || ''}
+                onChange={(e) => handleChange('guideTitle', e.target.value)}
+                placeholder="Cẩm Nang & Sơ Đồ Tham Quan Thực Địa"
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                Nhãn nút hành động CTA
+              </label>
+              <input
+                type="text"
+                value={form.guideCtaText || ''}
+                onChange={(e) => handleChange('guideCtaText', e.target.value)}
+                placeholder="Xem cẩm nang & sơ đồ tham quan"
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+              />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                Đoạn mô tả khối cẩm nang trên Trang chủ
+              </label>
+              <textarea
+                rows={3}
+                value={form.guideDesc || ''}
+                onChange={(e) => handleChange('guideDesc', e.target.value)}
+                placeholder="Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế..."
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
+              />
+            </div>
+            {renderSectionNavFooter(6, 'Phần 7: Khối Cẩm nang')}
+          </div>
+        </section>
+        )}
+
+        {/* KHUNG 8: CHÂN TRANG & THÔNG TIN LIÊN HỆ */}
         {activeSectionId === 'panel-footer' && (
         <section
           id="panel-footer"
@@ -1989,7 +2121,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  7. Khung Chân Trang & Thông Tin Liên Hệ (Footer)
+                  8. Khung Chân Trang & Thông Tin Liên Hệ (Footer)
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Quản lý địa chỉ thực tế, đường dây nóng, email tiếp nhận thông tin và bản quyền hiển thị
@@ -2090,7 +2222,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 Hệ thống tự động thêm biểu tượng © và năm hiện hành {new Date().getFullYear()} vào trước dòng này.
               </span>
             </div>
-            {renderSectionNavFooter(6, 'Phần 7: Chân trang & Liên hệ')}
+            {renderSectionNavFooter(7, 'Phần 8: Chân trang & Liên hệ')}
           </div>
         </section>
         )}

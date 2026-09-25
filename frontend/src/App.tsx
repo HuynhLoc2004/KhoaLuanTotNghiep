@@ -846,6 +846,7 @@ const AppContent: React.FC = () => {
           <AdminHomepageCMSPage
             activeSection={homepageSection}
             onSectionChange={setHomepageSection}
+            onNavigateTab={(tab) => setCurrentTab(tab as any)}
           />
         ) : currentTab === 'guide' ? (
           <AdminGuideCMSPage />

@@ -68,10 +68,18 @@ export const HOMEPAGE_SECTIONS: HomepageSectionDef[] = [
     icon: Box
   },
   {
-    id: 'panel-footer',
+    id: 'panel-guide-preview',
     num: 7,
-    label: '7. Chân trang & Liên hệ',
-    shortLabel: '7. Chân trang & Liên hệ',
+    label: '7. Khối Cẩm nang tham quan',
+    shortLabel: '7. Khối Cẩm nang',
+    desc: 'Thẻ định danh, tiêu đề, mô tả và nút xem cẩm nang hiển thị trên Trang chủ',
+    icon: Layers
+  },
+  {
+    id: 'panel-footer',
+    num: 8,
+    label: '8. Chân trang & Liên hệ',
+    shortLabel: '8. Chân trang & Liên hệ',
     desc: 'Địa chỉ bảo tàng, hotline, email tiếp nhận, thành phố và dòng chữ bản quyền chân trang',
     icon: Phone
   }

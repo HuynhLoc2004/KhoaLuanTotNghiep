@@ -6,17 +6,20 @@ import {
   Globe,
   ExternalLink,
   Upload,
-  Compass,
   CheckCircle2,
   Clock,
   Ticket,
   MapPin,
   ShieldCheck,
-  Info
+  Info,
+  ArrowLeft,
+  ArrowRight,
+  Compass,
+  Trash2
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { api, API_ROOT } from '../../services/api';
+import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
@@ -25,10 +28,11 @@ export const AdminGuideCMSPage: React.FC = () => {
   const { branding, updateBranding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  const [guideSubTab, setGuideSubTab] = useState<'info' | 'hours' | 'transit' | 'rules'>('info');
+  // 5 phân mục con chuẩn mực quản lý độc lập cho Trang Cẩm nang & Sơ đồ
+  const [guideSubTab, setGuideSubTab] = useState<'info' | 'floorplan' | 'hours' | 'transit' | 'rules'>('info');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Modal Xác nhận đồng bộ
+  // Modal Xác nhận
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -44,14 +48,12 @@ export const AdminGuideCMSPage: React.FC = () => {
     onConfirm: () => {}
   });
 
-  // Upload sơ đồ & phân tích topo
+  // Tải file ảnh sơ đồ mặt bằng
   const guideMapInputRef = useRef<HTMLInputElement>(null);
   const [uploadingGuideMap, setUploadingGuideMap] = useState(false);
-  const [analyzingFloorPlan, setAnalyzingFloorPlan] = useState(false);
-  const [analysisSummary, setAnalysisSummary] = useState<{ nodeCount: number; edgeCount: number } | null>(null);
 
   const [form, setForm] = useState({
-    // Thẻ và tiêu đề cẩm nang
+    // Phân mục 1: Giới thiệu chung & Tiêu đề
     guideTag: branding.guideTag || 'Kế Hoạch & Sơ Đồ',
     guideTitle: branding.guideTitle || 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa',
     guideCtaText: branding.guideCtaText || 'Xem cẩm nang & sơ đồ tham quan',
@@ -59,14 +61,14 @@ export const AdminGuideCMSPage: React.FC = () => {
       branding.guideDesc ||
       'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.',
 
-    // Sơ đồ mặt bằng
+    // Phân mục 2: Sơ đồ mặt bằng kiến trúc
     guideMapTitle: branding.guideMapTitle || 'Sơ đồ mặt bằng các gian trưng bày',
     guideMapDesc:
       branding.guideMapDesc ||
       'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày giúp quý khách định hướng lộ trình thuận tiện nhất.',
     guideMapUrl: branding.guideMapUrl || '',
 
-    // Giờ mở cửa & Vé
+    // Phân mục 3: Giờ mở cửa & Bảng giá vé
     guideOpeningDays: branding.guideOpeningDays || 'Thứ Ba – Chủ Nhật',
     guideMorningHours: branding.guideMorningHours || '08:00 – 11:30',
     guideAfternoonHours: branding.guideAfternoonHours || '13:30 – 17:00',
@@ -75,7 +77,7 @@ export const AdminGuideCMSPage: React.FC = () => {
     guideTicketStudent: branding.guideTicketStudent || '15.000 ₫',
     guideTicketChild: branding.guideTicketChild || 'Miễn phí cho trẻ em dưới 6 tuổi, người cao tuổi & người khuyết tật',
 
-    // Di chuyển & Bản đồ Google Maps
+    // Phân mục 4: Vị trí, Di chuyển & Google Maps
     address: branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
     hotline: branding.hotline || '(028) 3829 8146',
     guideBusRoutes:
@@ -87,16 +89,16 @@ export const AdminGuideCMSPage: React.FC = () => {
     guideGoogleMapsUrl: branding.guideGoogleMapsUrl || '',
     guideGoogleMapsEmbed: branding.guideGoogleMapsEmbed || '',
 
-    // Tiện ích & Quy định tham quan (4 mục)
-    guideRule1Title: branding.guideRule1Title || 'Gửi đồ & Tủ khóa cá nhân',
+    // Phân mục 5: Tiện ích & Quy định tham quan (4 mục chuẩn)
+    guideRule1Title: branding.guideRule1Title || 'Quét mã QR tại tủ hiện vật',
     guideRule1Desc:
       branding.guideRule1Desc ||
-      'Quý khách vui lòng gửi hành lý cồng kềnh, balo lớn tại quầy giữ đồ trước khi vào tham quan các gian trưng bày.',
-    guideRule2Title: branding.guideRule2Title || 'Thuyết minh tự động (Audio Guide)',
+      'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
+    guideRule2Title: branding.guideRule2Title || 'Thuyết minh Audio Guide song ngữ',
     guideRule2Desc:
       branding.guideRule2Desc ||
-      'Hỗ trợ quét mã QR tại các tủ hiện vật để nghe thuyết minh song ngữ và khám phá mô hình cổ vật 3D tương tác.',
-    guideRule3Title: branding.guideRule3Title || 'Bảo quản di sản & Quy định chụp ảnh',
+      'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
+    guideRule3Title: branding.guideRule3Title || 'Bảo quản di sản & Hiện vật',
     guideRule3Desc:
       branding.guideRule3Desc ||
       'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
@@ -141,15 +143,15 @@ export const AdminGuideCMSPage: React.FC = () => {
       guideGoogleMapsUrl: branding.guideGoogleMapsUrl || '',
       guideGoogleMapsEmbed: branding.guideGoogleMapsEmbed || '',
 
-      guideRule1Title: branding.guideRule1Title || 'Gửi đồ & Tủ khóa cá nhân',
+      guideRule1Title: branding.guideRule1Title || 'Quét mã QR tại tủ hiện vật',
       guideRule1Desc:
         branding.guideRule1Desc ||
-        'Quý khách vui lòng gửi hành lý cồng kềnh, balo lớn tại quầy giữ đồ trước khi vào tham quan các gian trưng bày.',
-      guideRule2Title: branding.guideRule2Title || 'Thuyết minh tự động (Audio Guide)',
+        'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
+      guideRule2Title: branding.guideRule2Title || 'Thuyết minh Audio Guide song ngữ',
       guideRule2Desc:
         branding.guideRule2Desc ||
-        'Hỗ trợ quét mã QR tại các tủ hiện vật để nghe thuyết minh song ngữ và khám phá mô hình cổ vật 3D tương tác.',
-      guideRule3Title: branding.guideRule3Title || 'Bảo quản di sản & Quy định chụp ảnh',
+        'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
+      guideRule3Title: branding.guideRule3Title || 'Bảo quản di sản & Hiện vật',
       guideRule3Desc:
         branding.guideRule3Desc ||
         'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
@@ -196,7 +198,7 @@ export const AdminGuideCMSPage: React.FC = () => {
       const res = await api.uploadBrandingImage(file);
       if (res && res.url) {
         handleChange('guideMapUrl', res.url);
-        showToast('Đã tải ảnh sơ đồ mặt bằng thành công! Nhớ nhấn "Lưu thay đổi" để áp dụng.', 'success');
+        showToast('Đã tải ảnh sơ đồ mặt bằng thành công! Nhớ nhấn "Lưu phân mục này" để áp dụng.', 'success');
       }
     } catch (err: any) {
       showToast(err?.message || 'Lỗi khi tải ảnh sơ đồ mặt bằng lên server', 'error');
@@ -208,42 +210,13 @@ export const AdminGuideCMSPage: React.FC = () => {
     }
   };
 
-  const handleAnalyzeFloorPlan = async (fileToUpload?: File) => {
-    if (!form.guideMapUrl && !fileToUpload) {
-      showToast('Vui lòng chọn file ảnh hoặc cung cấp URL sơ đồ mặt bằng để phân tích', 'info');
-      return;
-    }
-    try {
-      setAnalyzingFloorPlan(true);
-      const formData = new FormData();
-      if (fileToUpload) {
-        formData.append('file', fileToUpload);
-      } else if (form.guideMapUrl) {
-        formData.append('imageUrl', form.guideMapUrl);
-      }
-      formData.append('title', form.guideMapTitle || 'Sơ Đồ Mặt Bằng & Cẩm Nang Tham Quan');
-      formData.append('description', form.guideMapDesc || 'Mạng lưới liên kết không gian và cửa thông phòng');
-
-      const res = await api.analyzeFloorPlan(formData);
-      if (res.data?.imageUrl) {
-        handleChange('guideMapUrl', res.data.imageUrl);
-      }
-      setAnalysisSummary(res.summary);
-      showToast(`Phân tích thành công! Đã tạo ${res.summary?.nodeCount || 0} phòng và ${res.summary?.edgeCount || 0} liên kết cửa thông phòng.`, 'success');
-    } catch (err: any) {
-      showToast(err?.message || 'Lỗi khi máy chủ phân tích sơ đồ', 'error');
-    } finally {
-      setAnalyzingFloorPlan(false);
-    }
-  };
-
   const handleResetDefaults = () => {
     setConfirmModalConfig({
       isOpen: true,
-      title: 'Khôi phục nội dung Cẩm nang mẫu?',
+      title: 'Khôi phục nội dung Cẩm nang mẫu chuẩn?',
       message: 'Hành động này sẽ điền lại toàn bộ thông tin chuẩn về giờ mở cửa, giá vé, bản đồ và quy định tham quan của Bảo tàng Lịch sử TP.HCM.',
       confirmText: 'Khôi phục mẫu',
-      cancelText: 'Hủy',
+      cancelText: 'Hủy bỏ',
       type: 'warning',
       onConfirm: () => {
         setForm((prev) => ({
@@ -259,31 +232,102 @@ export const AdminGuideCMSPage: React.FC = () => {
           guideOpeningDays: 'Thứ Ba – Chủ Nhật',
           guideMorningHours: '08:00 – 11:30',
           guideAfternoonHours: '13:30 – 17:00',
-          guideClosedNote: 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật và vệ sinh chuyên sâu',
+          guideClosedNote: 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.',
           guideTicketAdult: '30.000 ₫',
           guideTicketStudent: '15.000 ₫',
-          guideTicketChild: 'Miễn phí cho trẻ em dưới 6 tuổi, người cao tuổi & người khuyết tật',
+          guideTicketChild: 'Miễn phí',
           guideBusRoutes:
-            'Tuyến xe buýt số 05, 06, 14, 19, 52 dừng tại trạm Thảo Cầm Viên (ngay cổng đường Nguyễn Bỉnh Khiêm).',
+            'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.',
           guideParkingInfo:
-            'Bãi đỗ xe máy và ô tô thuận tiện ngay trong khuôn viên sân bảo tàng, có nhân viên an ninh hướng dẫn.',
-          guideRule1Title: 'Gửi đồ & Tủ khóa cá nhân',
+            'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.',
+          guideRule1Title: 'Quét mã QR tại tủ hiện vật',
           guideRule1Desc:
-            'Quý khách vui lòng gửi hành lý cồng kềnh, balo lớn tại quầy giữ đồ trước khi vào tham quan các gian trưng bày.',
-          guideRule2Title: 'Thuyết minh tự động (Audio Guide)',
+            'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
+          guideRule2Title: 'Thuyết minh Audio Guide song ngữ',
           guideRule2Desc:
-            'Hỗ trợ quét mã QR tại các tủ hiện vật để nghe thuyết minh song ngữ và khám phá mô hình cổ vật 3D tương tác.',
-          guideRule3Title: 'Bảo quản di sản & Quy định chụp ảnh',
+            'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
+          guideRule3Title: 'Bảo quản di sản & Hiện vật',
           guideRule3Desc:
             'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
           guideRule4Title: 'Trang phục & Văn minh tham quan',
           guideRule4Desc:
             'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.'
         }));
-        showToast('Đã khôi phục nội dung mẫu. Nhấn "Lưu thay đổi" để áp dụng.', 'info');
+        showToast('Đã khôi phục nội dung mẫu. Nhấn "Lưu tất cả thay đổi" để áp dụng.', 'info');
         setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
       }
     });
+  };
+
+  // Danh sách 5 phân mục chuẩn mực của Trang Cẩm nang
+  const GUIDE_SUBTABS = [
+    { id: 'info', num: 1, label: '1. Giới thiệu chung', desc: 'Tiêu đề trang, thẻ định danh và đoạn mô tả giới thiệu', icon: Info },
+    { id: 'floorplan', num: 2, label: '2. Sơ đồ mặt bằng', desc: 'Tiêu đề, mô tả và file ảnh sơ đồ kiến trúc tham quan', icon: Compass },
+    { id: 'hours', num: 3, label: '3. Giờ mở cửa & Giá vé', desc: 'Khung giờ đón khách, lưu ý đóng cửa và biểu phí vé niêm yết', icon: Clock },
+    { id: 'transit', num: 4, label: '4. Vị trí & Google Maps', desc: 'Địa chỉ, hotline, xe buýt, bãi xe và bản đồ tương tác', icon: MapPin },
+    { id: 'rules', num: 5, label: '5. Tiện ích & Quy định', desc: '4 quy định tham quan văn minh và tiện ích phục vụ khách', icon: ShieldCheck }
+  ] as const;
+
+  // Thanh điều hướng chân phân mục (Phần trước / Lưu / Phần tiếp theo)
+  const renderSubTabFooter = (currentIndex: number, sectionName: string) => {
+    const prevTab = currentIndex > 0 ? GUIDE_SUBTABS[currentIndex - 1] : null;
+    const nextTab = currentIndex < GUIDE_SUBTABS.length - 1 ? GUIDE_SUBTABS[currentIndex + 1] : null;
+
+    return (
+      <div
+        style={{
+          marginTop: 28,
+          paddingTop: 18,
+          borderTop: '1px solid var(--border-color)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12
+        }}
+      >
+        {prevTab ? (
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => {
+              setGuideSubTab(prevTab.id as any);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <ArrowLeft size={14} />
+            <span>Phần trước: {prevTab.label}</span>
+          </button>
+        ) : <div />}
+
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={() => handleSave(sectionName)}
+          disabled={isSaving}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
+        >
+          <Save size={15} />
+          <span>{isSaving ? 'Đang lưu...' : `Lưu thay đổi ${sectionName}`}</span>
+        </button>
+
+        {nextTab ? (
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => {
+              setGuideSubTab(nextTab.id as any);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>Phần tiếp theo: {nextTab.label}</span>
+            <ArrowRight size={14} />
+          </button>
+        ) : <div />}
+      </div>
+    );
   };
 
   return (
@@ -323,7 +367,7 @@ export const AdminGuideCMSPage: React.FC = () => {
               Quản Lý Giao Diện & Nội Dung Trang Cẩm Nang & Sơ Đồ
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, maxWidth: 740, lineHeight: 1.5 }}>
-              Quản lý độc lập sơ đồ mặt bằng kiến trúc bảo tàng, mạng liên kết không gian, giờ mở cửa, bảng giá vé, Google Maps chỉ đường và các tiện ích quy định tham quan.
+              Quản lý độc lập toàn bộ nội dung trang Cẩm nang tham quan thực địa: Sơ đồ mặt bằng kiến trúc, thời gian mở cửa, bảng giá vé niêm yết, vị trí chỉ đường Google Maps và các quy định tiện ích.
             </p>
           </div>
         </div>
@@ -365,7 +409,7 @@ export const AdminGuideCMSPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. THANH PHÂN NHÓM CHUYÊN ĐỀ (SUB-TABS) */}
+      {/* 2. THANH PHÂN NHÓM CHUYÊN ĐỀ (SUB-TABS) - GỌN GÀNG, CHUẨN MỰC */}
       <div
         style={{
           background: 'var(--bg-surface)',
@@ -383,101 +427,37 @@ export const AdminGuideCMSPage: React.FC = () => {
           Chọn phân mục:
         </span>
 
-        <button
-          type="button"
-          onClick={() => setGuideSubTab('info')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '7px 16px',
-            borderRadius: 8,
-            fontSize: 12.5,
-            fontWeight: guideSubTab === 'info' ? 600 : 500,
-            border: '1px solid',
-            borderColor: guideSubTab === 'info' ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
-            background: guideSubTab === 'info' ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-            color: guideSubTab === 'info' ? 'var(--accent-gold)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <Info size={14} />
-          <span>1. Thông tin & Sơ đồ mặt bằng</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setGuideSubTab('hours')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '7px 16px',
-            borderRadius: 8,
-            fontSize: 12.5,
-            fontWeight: guideSubTab === 'hours' ? 600 : 500,
-            border: '1px solid',
-            borderColor: guideSubTab === 'hours' ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
-            background: guideSubTab === 'hours' ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-            color: guideSubTab === 'hours' ? 'var(--accent-gold)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <Clock size={14} />
-          <span>2. Giờ mở cửa & Giá vé</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setGuideSubTab('transit')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '7px 16px',
-            borderRadius: 8,
-            fontSize: 12.5,
-            fontWeight: guideSubTab === 'transit' ? 600 : 500,
-            border: '1px solid',
-            borderColor: guideSubTab === 'transit' ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
-            background: guideSubTab === 'transit' ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-            color: guideSubTab === 'transit' ? 'var(--accent-gold)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <MapPin size={14} />
-          <span>3. Vị trí & Google Maps</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setGuideSubTab('rules')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '7px 16px',
-            borderRadius: 8,
-            fontSize: 12.5,
-            fontWeight: guideSubTab === 'rules' ? 600 : 500,
-            border: '1px solid',
-            borderColor: guideSubTab === 'rules' ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
-            background: guideSubTab === 'rules' ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-            color: guideSubTab === 'rules' ? 'var(--accent-gold)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <ShieldCheck size={14} />
-          <span>4. Tiện ích & Quy định</span>
-        </button>
+        {GUIDE_SUBTABS.map((tab) => {
+          const isActive = guideSubTab === tab.id;
+          const TabIcon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setGuideSubTab(tab.id as any)}
+              title={tab.desc}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 16px',
+                borderRadius: 8,
+                fontSize: 12.5,
+                fontWeight: isActive ? 600 : 500,
+                border: '1px solid',
+                borderColor: isActive ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
+                background: isActive ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
+                color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <TabIcon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* 3. NỘI DUNG TỪNG PHÂN MỤC */}
@@ -490,19 +470,22 @@ export const AdminGuideCMSPage: React.FC = () => {
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
         }}
       >
+        {/* Header phân mục hiện tại */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 16 }}>
           <div>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
-              {guideSubTab === 'info' && '1. Tiêu Đề & Sơ Đồ Mặt Bằng Tham Quan'}
-              {guideSubTab === 'hours' && '2. Thời Gian Đón Khách & Biểu Phí Vé Tham Quan'}
-              {guideSubTab === 'transit' && '3. Chỉ Dẫn Di Chuyển & Tích Hợp Bản Đồ Google Maps'}
-              {guideSubTab === 'rules' && '4. Tiện Ích Phục Vụ & Nội Quy Tham Quan Văn Minh'}
+              {guideSubTab === 'info' && '1. Giới Thiệu Chung & Tiêu Đề Trang Cẩm Nang'}
+              {guideSubTab === 'floorplan' && '2. Sơ Đồ Mặt Bằng & Bản Đồ Kiến Trúc'}
+              {guideSubTab === 'hours' && '3. Thời Gian Hoạt Động & Biểu Phí Vé Niêm Yết'}
+              {guideSubTab === 'transit' && '4. Vị Trí, Chỉ Dẫn Di Chuyển & Google Maps'}
+              {guideSubTab === 'rules' && '5. Tiện Ích Phục Vụ & Nội Quy Tham Quan Văn Minh'}
             </h2>
             <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-              {guideSubTab === 'info' && 'Cấu hình tiêu đề trang, mô tả hướng dẫn, ảnh sơ đồ kiến trúc và phân tích mạng topo liên kết cửa.'}
-              {guideSubTab === 'hours' && 'Cập nhật khung giờ đón khách các ngày trong tuần, ngày nghỉ định kỳ và bảng giá vé các đối tượng.'}
-              {guideSubTab === 'transit' && 'Địa chỉ bảo tàng, tuyến xe buýt, thông tin bãi đỗ xe và mã nhúng bản đồ Google Maps tương tác.'}
-              {guideSubTab === 'rules' && 'Thiết lập 4 khối quy định, tiện ích gửi đồ, thuyết minh tự động và bảo quản di sản.'}
+              {guideSubTab === 'info' && 'Cấu hình tiêu đề chính, thẻ định danh, đoạn văn giới thiệu và nút điều hướng của trang cẩm nang.'}
+              {guideSubTab === 'floorplan' && 'Tải lên hình ảnh sơ đồ mặt bằng kiến trúc bảo tàng, định vị các cánh trưng bày phục vụ khách thực địa.'}
+              {guideSubTab === 'hours' && 'Cập nhật khung giờ đón khách ca sáng/chiều, các ngày mở cửa trong tuần và bảng giá vé các đối tượng.'}
+              {guideSubTab === 'transit' && 'Địa chỉ thực tế, số điện thoại đường dây nóng, tuyến xe buýt, bãi xe và mã nhúng bản đồ trực tiếp.'}
+              {guideSubTab === 'rules' && 'Thiết lập 4 quy tắc văn minh và tiện ích trải nghiệm (mã QR hiện vật, thuyết minh audio guide, bảo quản).'}
             </span>
           </div>
 
@@ -510,7 +493,8 @@ export const AdminGuideCMSPage: React.FC = () => {
             type="button"
             className="btn btn-primary btn-sm"
             onClick={() => handleSave(
-              guideSubTab === 'info' ? 'Sơ đồ mặt bằng' :
+              guideSubTab === 'info' ? 'Giới thiệu chung' :
+              guideSubTab === 'floorplan' ? 'Sơ đồ mặt bằng' :
               guideSubTab === 'hours' ? 'Giờ mở cửa & Giá vé' :
               guideSubTab === 'transit' ? 'Vị trí & Google Maps' : 'Tiện ích & Quy định'
             )}
@@ -522,15 +506,9 @@ export const AdminGuideCMSPage: React.FC = () => {
           </button>
         </div>
 
-        {/* PHÂN MỤC 1: TIÊU ĐỀ & SƠ ĐỒ MẶT BẰNG */}
+        {/* PHÂN MỤC 1: GIỚI THIỆU CHUNG & TIÊU ĐỀ TRANG CẨM NANG */}
         {guideSubTab === 'info' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                Tiêu đề & Giới thiệu chung trang Cẩm nang
-              </div>
-            </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
@@ -573,24 +551,24 @@ export const AdminGuideCMSPage: React.FC = () => {
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Đoạn mô tả cẩm nang tham quan
+                  Đoạn mô tả giới thiệu cẩm nang tham quan
                 </label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={form.guideDesc || ''}
                   onChange={(e) => handleChange('guideDesc', e.target.value)}
-                  placeholder="Khám phá sơ đồ không gian kiến trúc bảo tàng..."
+                  placeholder="Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế..."
                   style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
                 />
               </div>
             </div>
+            {renderSubTabFooter(0, 'Phần 1: Giới thiệu chung')}
+          </div>
+        )}
 
-            <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10, marginTop: 10 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                Sơ đồ mặt bằng kiến trúc bảo tàng
-              </div>
-            </div>
-
+        {/* PHÂN MỤC 2: SƠ ĐỒ MẶT BẰNG KIẾN TRÚC */}
+        {guideSubTab === 'floorplan' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
@@ -620,14 +598,14 @@ export const AdminGuideCMSPage: React.FC = () => {
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Đường dẫn hoặc tải file ảnh sơ đồ
+                  Đường dẫn hoặc tải file ảnh sơ đồ mặt bằng
                 </label>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <input
                     type="text"
                     value={form.guideMapUrl || ''}
                     onChange={(e) => handleChange('guideMapUrl', e.target.value)}
-                    placeholder="https://... hoặc bấm tải ảnh bên phải"
+                    placeholder="https://... hoặc bấm nút tải ảnh bên cạnh"
                     style={{ flex: 1, minWidth: 260, padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
                   />
                   <input
@@ -645,44 +623,46 @@ export const AdminGuideCMSPage: React.FC = () => {
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     <Upload size={14} />
-                    <span>{uploadingGuideMap ? 'Đang tải...' : 'Tải sơ đồ lên'}</span>
+                    <span>{uploadingGuideMap ? 'Đang tải...' : 'Tải ảnh sơ đồ lên'}</span>
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => handleAnalyzeFloorPlan()}
-                    disabled={analyzingFloorPlan || !form.guideMapUrl}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <Compass size={14} />
-                    <span>{analyzingFloorPlan ? 'Đang phân tích...' : 'Phân tích sơ đồ & Liên kết không gian'}</span>
-                  </button>
+                  {form.guideMapUrl && (
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => handleChange('guideMapUrl', '')}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                    >
+                      <Trash2 size={14} />
+                      <span>Xóa ảnh</span>
+                    </button>
+                  )}
                 </div>
+                <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                  Hỗ trợ các định dạng hình ảnh PNG, JPG, WEBP chất lượng cao. Ảnh sẽ hiển thị tại phần Sơ đồ mặt bằng trang Cẩm nang và hỗ trợ người xem phóng to xem chi tiết.
+                </span>
               </div>
 
               {form.guideMapUrl && (
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <div style={{ width: '100%', maxHeight: 240, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                    <img src={form.guideMapUrl} alt="Preview sơ đồ" style={{ width: '100%', height: 240, objectFit: 'contain', background: '#111' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                    Xem trước ảnh sơ đồ mặt bằng:
+                  </label>
+                  <div style={{ width: '100%', maxHeight: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                    <img src={form.guideMapUrl} alt="Preview sơ đồ" style={{ width: '100%', height: 280, objectFit: 'contain', background: '#0D111A' }} />
                   </div>
                 </div>
               )}
-
-              {analysisSummary && (
-                <div style={{ gridColumn: '1 / -1', padding: '10px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 8, fontSize: 12.5, color: '#10B981' }}>
-                  ✓ Đã phân tích thành công: Nhận diện <strong>{analysisSummary.nodeCount}</strong> phân khu và thiết lập <strong>{analysisSummary.edgeCount}</strong> cửa liên kết hướng đi.
-                </div>
-              )}
             </div>
+            {renderSubTabFooter(1, 'Phần 2: Sơ đồ mặt bằng')}
           </div>
         )}
 
-        {/* PHÂN MỤC 2: GIỜ MỞ CỬA & BIỂU PHÍ VÉ */}
+        {/* PHÂN MỤC 3: GIỜ MỞ CỬA & BIỂU PHÍ VÉ */}
         {guideSubTab === 'hours' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                Thời gian hoạt động
+                Thời gian hoạt động đón khách
               </div>
             </div>
 
@@ -734,7 +714,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                   type="text"
                   value={form.guideClosedNote || ''}
                   onChange={(e) => handleChange('guideClosedNote', e.target.value)}
-                  placeholder="Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật..."
+                  placeholder="Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật."
                   style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
                 />
               </div>
@@ -742,14 +722,14 @@ export const AdminGuideCMSPage: React.FC = () => {
 
             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10, marginTop: 10 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                Biểu phí tham quan niêm yết
+                Biểu phí vé tham quan niêm yết
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Giá vé: Người lớn
+                  Giá vé: Người lớn (Khách VN & Quốc tế)
                 </label>
                 <input
                   type="text"
@@ -786,35 +766,36 @@ export const AdminGuideCMSPage: React.FC = () => {
                 />
               </div>
             </div>
+            {renderSubTabFooter(2, 'Phần 3: Giờ mở cửa & Giá vé')}
           </div>
         )}
 
-        {/* PHÂN MỤC 3: CHỈ DẪN DI CHUYỂN & GOOGLE MAPS */}
+        {/* PHÂN MỤC 4: VỊ TRÍ, DI CHUYỂN & GOOGLE MAPS */}
         {guideSubTab === 'transit' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                Địa chỉ & Chỉ dẫn phương tiện di chuyển
+                Địa chỉ thực địa & Chỉ dẫn phương tiện di chuyển
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Địa chỉ bảo tàng
+                  Địa chỉ thực địa bảo tàng
                 </label>
                 <input
                   type="text"
                   value={form.address || ''}
                   onChange={(e) => handleChange('address', e.target.value)}
-                  placeholder="Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM"
+                  placeholder="Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
                   style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Hotline liên hệ & Hướng dẫn viên
+                  Đường dây nóng / Hotline hỗ trợ
                 </label>
                 <input
                   type="text"
@@ -840,7 +821,7 @@ export const AdminGuideCMSPage: React.FC = () => {
 
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Chỉ dẫn bãi đỗ xe
+                  Chỉ dẫn bãi đỗ xe máy & ô tô
                 </label>
                 <input
                   type="text"
@@ -861,7 +842,7 @@ export const AdminGuideCMSPage: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Đường dẫn Google Maps (Chỉ đường khi khách bấm nút)
+                  Đường dẫn Google Maps (Chỉ đường khi khách bấm nút trên trang)
                 </label>
                 <input
                   type="text"
@@ -871,32 +852,32 @@ export const AdminGuideCMSPage: React.FC = () => {
                   style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
                 />
                 <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                  Khách tham quan bấm nút "Mở chỉ đường Google Maps" sẽ chuyển hướng tới đúng địa điểm này.
+                  Khách tham quan bấm nút "Mở chỉ đường trên ứng dụng Google Maps" sẽ chuyển hướng tới đúng vị trí bảo tàng.
                 </span>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Mã nhúng Bản đồ Google Maps (Dán mã iframe hoặc liên kết nhúng)
+                  Mã nhúng Bản đồ Google Maps (Dán mã iframe hoặc liên kết embed)
                 </label>
                 <textarea
                   rows={3}
                   value={form.guideGoogleMapsEmbed || ''}
                   onChange={(e) => handleChange('guideGoogleMapsEmbed', e.target.value)}
-                  placeholder='Dán toàn bộ thẻ <iframe src="https://www.google.com/maps/embed?..." ...></iframe> hoặc link https://www.google.com/maps/embed?...'
+                  placeholder='Dán mã <iframe src="https://www.google.com/maps/embed?..." ...></iframe> hoặc link https://www.google.com/maps/embed?...'
                   style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 12.5, fontFamily: 'monospace' }}
                 />
                 <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                  Hệ thống tự động nhận diện cả thẻ &lt;iframe&gt; lẫn URL embed để hiển thị bản đồ trực tiếp trên trang.
+                  Hệ thống tự động trích xuất URL từ mã thẻ &lt;iframe&gt; để hiển thị bản đồ trực tiếp trên trang Cẩm nang.
                 </span>
               </div>
 
               {form.guideGoogleMapsEmbed && (
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
-                    Xem trước bản đồ Google Maps nhúng:
+                    Xem trước khung bản đồ Google Maps:
                   </label>
-                  <div style={{ width: '100%', height: 240, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                  <div style={{ width: '100%', height: 260, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                     <iframe
                       src={form.guideGoogleMapsEmbed.includes('src=') ? (form.guideGoogleMapsEmbed.match(/src=["']([^"']+)["']/i)?.[1] || '') : form.guideGoogleMapsEmbed}
                       width="100%"
@@ -911,91 +892,113 @@ export const AdminGuideCMSPage: React.FC = () => {
                 </div>
               )}
             </div>
+            {renderSubTabFooter(3, 'Phần 4: Vị trí & Google Maps')}
           </div>
         )}
 
-        {/* PHÂN MỤC 4: TIỆN ÍCH & QUY ĐỊNH THAM QUAN */}
+        {/* PHÂN MỤC 5: TIỆN ÍCH & QUY ĐỊNH THAM QUAN */}
         {guideSubTab === 'rules' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                Tiện ích & Quy định tham quan (4 mục hiển thị trên trang cẩm nang)
+                4 quy định tham quan văn minh & tiện ích phục vụ khách
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Mục 1</div>
+              {/* Mục 1 */}
+              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+                    Quy tắc 01
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={form.guideRule1Title || ''}
                   onChange={(e) => handleChange('guideRule1Title', e.target.value)}
-                  placeholder="Tiêu đề mục 1 (vd: Gửi đồ & Tủ khóa cá nhân)"
+                  placeholder="Tiêu đề quy tắc 01"
                   style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}
                 />
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={form.guideRule1Desc || ''}
                   onChange={(e) => handleChange('guideRule1Desc', e.target.value)}
-                  placeholder="Nội dung mô tả mục 1..."
+                  placeholder="Nội dung chi tiết quy tắc 01..."
                   style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                 />
               </div>
 
-              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Mục 2</div>
+              {/* Mục 2 */}
+              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+                    Quy tắc 02
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={form.guideRule2Title || ''}
                   onChange={(e) => handleChange('guideRule2Title', e.target.value)}
-                  placeholder="Tiêu đề mục 2 (vd: Thuyết minh Audio Guide)"
+                  placeholder="Tiêu đề quy tắc 02"
                   style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}
                 />
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={form.guideRule2Desc || ''}
                   onChange={(e) => handleChange('guideRule2Desc', e.target.value)}
-                  placeholder="Nội dung mô tả mục 2..."
+                  placeholder="Nội dung chi tiết quy tắc 02..."
                   style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                 />
               </div>
 
-              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Mục 3</div>
+              {/* Mục 3 */}
+              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+                    Quy tắc 03
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={form.guideRule3Title || ''}
                   onChange={(e) => handleChange('guideRule3Title', e.target.value)}
-                  placeholder="Tiêu đề mục 3 (vd: Bảo quản di sản & Hiện vật)"
+                  placeholder="Tiêu đề quy tắc 03"
                   style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}
                 />
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={form.guideRule3Desc || ''}
                   onChange={(e) => handleChange('guideRule3Desc', e.target.value)}
-                  placeholder="Nội dung mô tả mục 3..."
+                  placeholder="Nội dung chi tiết quy tắc 03..."
                   style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                 />
               </div>
 
-              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Mục 4</div>
+              {/* Mục 4 */}
+              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+                    Quy tắc 04
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={form.guideRule4Title || ''}
                   onChange={(e) => handleChange('guideRule4Title', e.target.value)}
-                  placeholder="Tiêu đề mục 4 (vd: Trang phục & Văn minh tham quan)"
+                  placeholder="Tiêu đề quy tắc 04"
                   style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}
                 />
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={form.guideRule4Desc || ''}
                   onChange={(e) => handleChange('guideRule4Desc', e.target.value)}
-                  placeholder="Nội dung mô tả mục 4..."
+                  placeholder="Nội dung chi tiết quy tắc 04..."
                   style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                 />
               </div>
             </div>
+            {renderSubTabFooter(4, 'Phần 5: Tiện ích & Quy định')}
           </div>
         )}
       </section>
@@ -1022,7 +1025,7 @@ export const AdminGuideCMSPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CheckCircle2 size={16} style={{ color: 'var(--accent-gold)' }} />
           <span style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 500 }}>
-            Dữ liệu CSDL MongoDB & Đồng bộ Khách
+            Dữ liệu CSDL MongoDB & Đồng bộ tức thì
           </span>
         </div>
 
