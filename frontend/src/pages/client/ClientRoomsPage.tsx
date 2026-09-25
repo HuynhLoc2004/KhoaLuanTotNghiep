@@ -275,7 +275,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                     }}
                   >
                     <div style={{ fontSize: '11px', fontWeight: 600, color: '#D4A86A', textTransform: 'uppercase', letterSpacing: 0.5, padding: '4px 8px 6px 8px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 2 }}>
-                      Lọc theo thời kỳ & không gian
+                      {t('rooms.filterTitle', 'Lọc theo thời kỳ & không gian')}
                     </div>
 
                     {/* Option: Tất cả */}
@@ -381,7 +381,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                   }}
                 >
                   <RotateCcw size={12} />
-                  <span>Xóa lọc</span>
+                  <span>{t('common.clearFilter', 'Xóa lọc')}</span>
                 </button>
               )}
             </div>
@@ -435,16 +435,16 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                             <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
                               <Compass size={22} strokeWidth={1.5} />
                             </div>
-                            <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>Chưa có ảnh 360°</span>
+                            <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>{t('rooms.noPanorama', 'Chưa có ảnh 360°')}</span>
                           </div>
                         )}
                         <div className="client-zigzag-badge-float">
-                          <span>{thumb ? '360° Sẵn sàng' : 'Đang cập nhật'}</span>
+                          <span>{thumb ? t('rooms.ready360', '360° Sẵn sàng') : t('rooms.updating', 'Đang cập nhật')}</span>
                         </div>
                         {hotspotCount > 0 && (
                           <div className="client-gallery-hotspot-pill">
                             <Layers size={13} style={{ color: '#D4A86A' }} />
-                            <span>{hotspotCount} điểm chú thích</span>
+                            <span>{hotspotCount} {t('rooms.hotspotsCount', 'điểm chú thích')}</span>
                           </div>
                         )}
                       </div>

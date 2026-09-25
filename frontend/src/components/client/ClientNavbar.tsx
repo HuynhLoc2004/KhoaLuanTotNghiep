@@ -210,13 +210,13 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             </div>
           )}
           <div className="client-nav-title-group">
-            <span className="client-nav-title">{branding.shortName || 'Bảo tàng Lịch sử'}</span>
+            <span className="client-nav-title">{t(branding.shortName || 'Bảo tàng Lịch sử', branding.shortName || 'Bảo tàng Lịch sử')}</span>
             <div className="client-nav-subtitle-row">
-              <span className="client-nav-tagline">{branding.city || 'TP. HỒ CHÍ MINH'}</span>
+              <span className="client-nav-tagline">{t(branding.city || 'TP. HỒ CHÍ MINH', branding.city || 'TP. HỒ CHÍ MINH')}</span>
               <span className="client-nav-dot">•</span>
               <span className="client-nav-badge">
                 <span className="client-nav-pulse-dot" />
-                <span>TOUR 360°</span>
+                <span>{t('nav.badgeTour', 'TOUR 360°')}</span>
               </span>
             </div>
           </div>
@@ -230,6 +230,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               const hasChildren = activeChildren.length > 0;
               const isParentActive = isItemActive(item) || activeChildren.some(isItemActive);
               const isDropdownOpen = activeDropdownId === item.id;
+              const translatedLabel = t(item.label, item.label);
 
               if (hasChildren) {
                 return (
@@ -262,7 +263,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                         gap: 5
                       }}
                     >
-                      <span>{item.label}</span>
+                      <span>{translatedLabel}</span>
                       <ChevronDown
                         size={13}
                         style={{
@@ -282,7 +283,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                             className={`client-nav-dropdown-item ${isItemActive(sub) ? 'active' : ''}`}
                             onClick={() => handleNavItemClick(sub)}
                           >
-                            <span>{sub.label}</span>
+                            <span>{t(sub.label, sub.label)}</span>
                             {sub.linkType === 'custom' && <ExternalLink size={12} style={{ opacity: 0.6 }} />}
                           </button>
                         ))}
@@ -305,7 +306,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                       font: 'inherit'
                     }}
                   >
-                    {item.label}
+                    {translatedLabel}
                   </button>
                 </li>
               );
@@ -385,11 +386,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               className="client-theme-toggle client-nav-qr-btn"
               style={{ width: 'auto', padding: '0 12px', gap: 6, fontSize: '0.82rem' }}
               onClick={onOpenQRScanner}
-              title="Quét mã QR hiện vật hoặc gian phòng bằng Camera"
-              aria-label="Quét mã QR"
+              title={t('nav.scanQrTooltip', 'Quét mã QR hiện vật hoặc gian phòng bằng Camera')}
+              aria-label={t('nav.scanQr', 'Quét QR')}
             >
               <QrCode size={16} style={{ color: '#D4AF37' }} />
-              <span style={{ fontWeight: 600 }}>Quét QR</span>
+              <span style={{ fontWeight: 600 }}>{t('nav.scanQr', 'Quét QR')}</span>
             </button>
           )}
 
@@ -398,8 +399,8 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             type="button"
             className="client-theme-toggle"
             onClick={onToggleClientTheme}
-            title={clientTheme === 'light' ? 'Chuyển sang chế độ ban đêm' : 'Chuyển sang chế độ ban ngày'}
-            aria-label="Chuyển chế độ sáng tối"
+            title={clientTheme === 'light' ? t('nav.themeNight', 'Chuyển sang chế độ ban đêm') : t('nav.themeDay', 'Chuyển sang chế độ ban ngày')}
+            aria-label={t('nav.themeToggle', 'Chuyển chế độ sáng tối')}
           >
             {clientTheme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
@@ -440,7 +441,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                     style={{ color: '#EF4444' }}
                   >
                     <LogOut size={15} />
-                    <span>Đăng xuất</span>
+                    <span>{t('nav.logout', 'Đăng xuất')}</span>
                   </button>
                 </div>
               )}
@@ -482,7 +483,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                   {user.fullName || user.username}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>
-                  {user.role === 'admin' ? 'Quản trị viên hệ thống' : user.email}
+                  {user.role === 'admin' ? t('nav.adminRole', 'Quản trị viên hệ thống') : user.email}
                 </div>
               </div>
             </div>
@@ -494,6 +495,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             const hasChildren = activeChildren.length > 0;
             const isParentActive = isItemActive(item) || activeChildren.some(isItemActive);
             const isExpanded = !!mobileExpandedIds[item.id];
+            const translatedLabel = t(item.label, item.label);
 
             if (hasChildren) {
               return (
@@ -505,7 +507,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                       setMobileExpandedIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
                     }}
                   >
-                    <span>{item.label}</span>
+                    <span>{translatedLabel}</span>
                     <ChevronDown
                       size={16}
                       style={{
@@ -526,7 +528,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                           onClick={() => handleNavItemClick(sub)}
                           style={{ fontSize: '0.86rem', opacity: 0.95 }}
                         >
-                          <span>└─ {sub.label}</span>
+                          <span>└─ {t(sub.label, sub.label)}</span>
                           {sub.linkType === 'custom' && <ExternalLink size={12} style={{ opacity: 0.5 }} />}
                         </button>
                       ))}
@@ -543,7 +545,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 className={`client-mobile-nav-link ${isItemActive(item) ? 'active' : ''}`}
                 onClick={() => handleNavItemClick(item)}
               >
-                <span>{item.label}</span>
+                <span>{translatedLabel}</span>
               </button>
             );
           })}
@@ -575,7 +577,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               }}
             >
               <QrCode size={18} />
-              <span>Quét Mã QR Bằng Camera</span>
+              <span>{t('nav.scanQRCamera', 'Quét Mã QR Bằng Camera')}</span>
             </button>
           )}
 
@@ -616,7 +618,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <LogOut size={16} />
-                  <span>Đăng xuất tài khoản</span>
+                  <span>{t('nav.logout', 'Đăng xuất tài khoản')}</span>
                 </span>
               </button>
             </div>

@@ -80,7 +80,7 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
                         }
                       }}
                     >
-                      {item.label}
+                      {t(item.label, item.label)}
                     </a>
                   </li>
                 ))
@@ -175,19 +175,19 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
             <h4 className="client-footer-col-title">{t('footer.contact', 'Liên Hệ Trực Tiếp')}</h4>
             <ul className="client-footer-links">
               <li className="client-footer-contact-item">
-                <span className="client-footer-contact-lbl">Địa chỉ:</span>
+                <span className="client-footer-contact-lbl">{t('footer.address', 'Địa chỉ')}:</span>
                 <span className="client-footer-contact-val">
-                  {branding.address ? branding.address : 'Chưa bổ sung'}
+                  {branding.address ? branding.address : t('common.notUpdated', 'Chưa bổ sung')}
                 </span>
               </li>
               <li className="client-footer-contact-item">
-                <span className="client-footer-contact-lbl">Điện thoại:</span>
+                <span className="client-footer-contact-lbl">{t('footer.phone', 'Điện thoại')}:</span>
                 <span className="client-footer-contact-val">
-                  {branding.hotline ? branding.hotline : 'Chưa bổ sung'}
+                  {branding.hotline ? branding.hotline : t('common.notUpdated', 'Chưa bổ sung')}
                 </span>
               </li>
               <li className="client-footer-contact-item">
-                <span className="client-footer-contact-lbl">Thư điện tử:</span>
+                <span className="client-footer-contact-lbl">{t('footer.email', 'Thư điện tử')}:</span>
                 <span className="client-footer-contact-val">
                   {branding.contactEmail ? (
                     <a
@@ -199,7 +199,7 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
                       {branding.contactEmail}
                     </a>
                   ) : (
-                    'Chưa bổ sung'
+                    t('common.notUpdated', 'Chưa bổ sung')
                   )}
                 </span>
               </li>

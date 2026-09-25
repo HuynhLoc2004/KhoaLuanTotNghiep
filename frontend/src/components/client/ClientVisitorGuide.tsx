@@ -80,15 +80,15 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             {/* DÒNG THÔNG SỐ ĐỒNG BỘ TINH TẾ */}
             <div className="client-zigzag-meta-line">
               <span className="client-zigzag-meta-item">
-                {branding.city || 'TP. Hồ Chí Minh'}
+                {t(branding.city || 'TP. Hồ Chí Minh', branding.city || 'TP. Hồ Chí Minh')}
               </span>
               <span className="client-zigzag-meta-sep">•</span>
               <span className="client-zigzag-meta-item">
-                Sơ đồ mặt bằng số hóa
+                {t('guide.digitizedMap', 'Sơ đồ mặt bằng số hóa')}
               </span>
               <span className="client-zigzag-meta-sep">•</span>
               <span className="client-zigzag-meta-item">
-                Thuyết minh Audio Guide
+                {t('guide.audioGuide', 'Thuyết minh Audio Guide')}
               </span>
             </div>
 

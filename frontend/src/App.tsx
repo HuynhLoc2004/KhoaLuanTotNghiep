@@ -548,11 +548,11 @@ const AppContent: React.FC = () => {
           type="button"
           className="client-floating-qr-btn"
           onClick={() => setIsQRScannerOpen(true)}
-          title="Quét mã QR hiện vật tại bảo tàng bằng Camera"
-          aria-label="Quét mã QR"
+          title={t('nav.scanQrTooltip', 'Quét mã QR hiện vật tại bảo tàng bằng Camera')}
+          aria-label={t('nav.scanQr', 'Quét QR')}
         >
           <QrCode size={20} />
-          <span className="client-floating-qr-label">Quét QR</span>
+          <span className="client-floating-qr-label">{t('nav.scanQr', 'Quét QR')}</span>
         </button>
       </>
     );

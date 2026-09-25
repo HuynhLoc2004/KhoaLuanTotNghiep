@@ -17,6 +17,12 @@ export interface UniversalPhraseItem {
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
   // --- CLIENT PORTAL & NAVIGATION CORE TERMS (DỊCH TỨC THÌ 0MS - KHÔNG DELAY) ---
+  'Trang chủ': {
+    en: 'Home',
+    fr: 'Accueil',
+    zh: '首页',
+    ja: 'ホーム'
+  },
   'Giới thiệu': {
     en: 'Introduction',
     fr: 'Introduction',
@@ -34,6 +40,168 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     fr: 'Objets 3D',
     zh: '3D文物',
     ja: '3D文化財'
+  },
+  'Cổ vật & Hiện vật di sản': {
+    en: 'Antiquities & Heritage Artifacts',
+    fr: 'Antiquités & Objets du Patrimoine',
+    zh: '古物与遗产文物',
+    ja: '古代遺物・遺産文化財'
+  },
+  'Gian phòng trưng bày 360°': {
+    en: '360° Virtual Exhibition Rooms',
+    fr: 'Salles d’Exposition Virtuelle 360°',
+    zh: '360°全景虚拟展厅',
+    ja: '360°バーチャル展示室'
+  },
+  'Cẩm Nang & Sơ Đồ Tham Quan': {
+    en: 'Visitor Guide & Museum Floor Plan',
+    fr: 'Guide de Visite & Plan du Musée',
+    zh: '参观指南与展馆平面图',
+    ja: '見学案内・フロアマップ'
+  },
+  'Cẩm nang tham quan': {
+    en: 'Visitor Guide',
+    fr: 'Guide de Visite',
+    zh: '参观指南',
+    ja: '見学案内'
+  },
+  'Khám phá các hiện vật lịch sử và cổ vật được số hóa 3D.': {
+    en: 'Explore historical artifacts and antiquities digitized in 3D.',
+    fr: 'Explorez les objets historiques et les antiquités numérisés en 3D.',
+    zh: '探索通过3D数字化呈现的历史文物与古代器具。',
+    ja: '3Dデジタル化された歴史的遺物や古代の品々を鑑賞。'
+  },
+  'Tìm kiếm cổ vật, chất liệu, niên đại...': {
+    en: 'Search artifacts, materials, periods...',
+    fr: 'Rechercher des objets, matériaux, périodes...',
+    zh: '按文物名称、材质、年代搜索...',
+    ja: '遺物、材質、年代で検索...'
+  },
+  'Có mô hình 3D xoay': {
+    en: 'Rotating 3D Model',
+    fr: 'Modèle 3D interactif',
+    zh: '配有3D旋转模型',
+    ja: '3D回転モデルあり'
+  },
+  'Không tìm thấy cổ vật phù hợp với điều kiện tìm kiếm.': {
+    en: 'No artifacts found matching the search criteria.',
+    fr: 'Aucun objet correspondant aux critères de recherche.',
+    zh: '未找到符合搜索条件的文物。',
+    ja: '検索条件に一致する遺物が見つかりませんでした。'
+  },
+  'Vào tham quan 360°': {
+    en: 'Enter 360° Tour',
+    fr: 'Entrer dans la visite 360°',
+    zh: '进入360°全景漫游',
+    ja: '360°見学に入る'
+  },
+  '360° Sẵn sàng': {
+    en: '360° Ready',
+    fr: '360° Prêt',
+    zh: '360°全景就绪',
+    ja: '360°準備完了'
+  },
+  'Đang cập nhật': {
+    en: 'Updating',
+    fr: 'En mise à jour',
+    zh: '更新中',
+    ja: '更新中'
+  },
+  'Lọc theo thời kỳ & không gian': {
+    en: 'Filter by period & gallery',
+    fr: 'Filtrer par période & salle',
+    zh: '按历史时期与空间筛选',
+    ja: '時代・空間で絞り込み'
+  },
+  'Xóa lọc': {
+    en: 'Clear filter',
+    fr: 'Effacer le filtre',
+    zh: '清除筛选',
+    ja: '解除'
+  },
+  'Tất cả thời kỳ': {
+    en: 'All periods',
+    fr: 'Toutes les périodes',
+    zh: '所有时期',
+    ja: 'すべての時代'
+  },
+  'Chưa có ảnh 360°': {
+    en: 'No 360° image available',
+    fr: 'Aucune image 360° disponible',
+    zh: '暂无360°全景图',
+    ja: '360°画像未登録'
+  },
+  'điểm chú thích': {
+    en: 'hotspots',
+    fr: 'points d’intérêt',
+    zh: '处交互注释点',
+    ja: 'か所の注釈ポイント'
+  },
+  'Phóng to sơ đồ': {
+    en: 'Zoom in map',
+    fr: 'Agrandir le plan',
+    zh: '放大平面图',
+    ja: 'マップを拡大'
+  },
+  'Thông Tin Cần Biết Khi Đến Tham Quan': {
+    en: 'Essential Visitor Information',
+    fr: 'Informations Pratiques Essentielles',
+    zh: '参观须知要点',
+    ja: '見学に必要な基本情報'
+  },
+  'Giờ Mở Cửa': {
+    en: 'Opening Hours',
+    fr: 'Horaires d’Ouverture',
+    zh: '开放时间',
+    ja: '開館時間'
+  },
+  'Giá Vé Niêm Yết': {
+    en: 'Admission Fares',
+    fr: 'Tarifs des Billets',
+    zh: '门票价格',
+    ja: '観覧料金'
+  },
+  'Người lớn': {
+    en: 'Adult',
+    fr: 'Adulte',
+    zh: '成人',
+    ja: '一般・大人'
+  },
+  'Học sinh, Sinh viên': {
+    en: 'Students & Pupils',
+    fr: 'Étudiants & Écoliers',
+    zh: '大中小学生',
+    ja: '生徒・学生'
+  },
+  'Trẻ em < 6 tuổi, Người cao tuổi': {
+    en: 'Children < 6 years, Seniors',
+    fr: 'Enfants < 6 ans, Personnes âgées',
+    zh: '6岁以下儿童及长者',
+    ja: '6歳未満の小児・高齢者'
+  },
+  'Miễn phí': {
+    en: 'Free',
+    fr: 'Gratuit',
+    zh: '免费',
+    ja: '無料'
+  },
+  'Vị Trí & Bản Đồ Chỉ Đường': {
+    en: 'Location & Directions',
+    fr: 'Localisation & Itinéraires',
+    zh: '地理位置与路线指引',
+    ja: '所在地・道案内マップ'
+  },
+  'Tiện Ích & Quy Định Tham Quan': {
+    en: 'Amenities & Visitor Regulations',
+    fr: 'Services & Règles de Visite',
+    zh: '馆内便利设施与参观守则',
+    ja: '館内設備と見学規則'
+  },
+  'Mở chỉ đường trên ứng dụng Google Maps': {
+    en: 'Open directions in Google Maps',
+    fr: 'Ouvrir l’itinéraire dans Google Maps',
+    zh: '在Google地图应用中打开导航',
+    ja: 'Googleマップで道案内を開く'
   },
   'Tham quan': {
     en: 'Visit',
