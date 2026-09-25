@@ -567,14 +567,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '6px 12px',
+                padding: '6px 14px',
                 borderRadius: 8,
                 fontSize: 12.5,
                 fontWeight: isActive ? 600 : 500,
                 border: '1px solid',
-                borderColor: isActive ? 'var(--primary)' : 'transparent',
-                background: isActive ? 'var(--primary-light)' : 'rgba(255, 255, 255, 0.03)',
-                color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+                borderColor: isActive ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
+                background: isActive ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
+                color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.2s ease'
@@ -585,8 +585,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   width: 18,
                   height: 18,
                   borderRadius: 4,
-                  background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
-                  color: isActive ? '#FFFFFF' : 'var(--text-muted)',
+                  background: isActive ? 'var(--accent-gold)' : 'rgba(255,255,255,0.06)',
+                  color: isActive ? '#1A1512' : 'var(--text-muted)',
                   fontSize: 10.5,
                   fontWeight: 700,
                   display: 'flex',
@@ -634,7 +634,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               onClick={() => handleSave('Nhận diện & Logo')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -819,7 +819,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className="btn btn-accent btn-sm"
                 onClick={handleAddMenuItem}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
@@ -829,7 +829,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
+                className="btn btn-primary btn-sm"
                 onClick={() => handleSave('Menu Header')}
                 disabled={isSaving}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1093,11 +1093,10 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
                           {/* Cột 5: Thao tác */}
                           <td style={{ padding: '8px 12px', textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                               <button
                                 type="button"
-                                className="btn btn-outline btn-sm"
-                                style={{ padding: '3px 7px', fontSize: 11.5, color: 'var(--accent-gold)' }}
+                                className="btn-icon-action accent"
                                 onClick={() => handleAddSubItem(idx)}
                                 title="Thêm mục con cấp 2 cho mục này"
                               >
@@ -1106,8 +1105,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                               </button>
                               <button
                                 type="button"
-                                className="btn btn-outline btn-sm"
-                                style={{ padding: '3px 6px' }}
+                                className="btn-icon-action"
                                 disabled={idx === 0}
                                 onClick={() => handleMoveMenuItem(idx, 'up')}
                                 title="Chuyển lên trước"
@@ -1116,8 +1114,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                               </button>
                               <button
                                 type="button"
-                                className="btn btn-outline btn-sm"
-                                style={{ padding: '3px 6px' }}
+                                className="btn-icon-action"
                                 disabled={idx === menuItems.length - 1}
                                 onClick={() => handleMoveMenuItem(idx, 'down')}
                                 title="Chuyển xuống sau"
@@ -1126,8 +1123,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                               </button>
                               <button
                                 type="button"
-                                className="btn btn-outline btn-sm"
-                                style={{ padding: '3px 6px', color: '#EF4444' }}
+                                className="btn-icon-action danger"
                                 onClick={() => handleDeleteMenuItem(idx)}
                                 title="Xóa mục menu này"
                               >
@@ -1280,8 +1276,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                             <td style={{ padding: '6px 12px', textAlign: 'right' }}>
                               <button
                                 type="button"
-                                className="btn btn-outline btn-sm"
-                                style={{ padding: '2px 5px', color: '#EF4444' }}
+                                className="btn-icon-action danger"
+                                style={{ padding: '3px 6px' }}
                                 onClick={() => handleDeleteSubItem(idx, sIdx)}
                                 title="Xóa menu con này"
                               >
@@ -1312,7 +1308,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             >
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
+                className="btn btn-accent btn-sm"
                 onClick={handleAddMenuItem}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
               >
@@ -1323,7 +1319,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button
                   type="button"
-                  className="btn btn-outline btn-sm"
+                  className="btn btn-secondary btn-sm"
                   onClick={handleResetDefaultMenu}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                 >
@@ -1377,7 +1373,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               onClick={() => handleSave('Banner Hero')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1533,7 +1529,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               onClick={() => handleSave('Giới thiệu Không gian')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1683,7 +1679,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               onClick={() => handleSave('Gian phòng 360°')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1910,7 +1906,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               onClick={() => handleSave('Cổ vật 3D')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -2006,7 +2002,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               onClick={() => handleSave('Cẩm nang & Sơ đồ')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -2460,7 +2456,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               onClick={() => handleSave('Chân trang & Liên hệ')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
