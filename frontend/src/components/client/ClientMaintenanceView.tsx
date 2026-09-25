@@ -33,9 +33,9 @@ export const ClientMaintenanceView: React.FC<ClientMaintenanceViewProps> = ({
       const endStr = expectedEndTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
       if (remainingMinutes > 0) {
-        setTimeRemainingText(`Dự kiến hoàn tất trong khoảng ${remainingMinutes} phút (${startStr} - ${endStr})`);
+        setTimeRemainingText(`Dự kiến hoàn tất trong khoảng ${remainingMinutes} phút nữa (khoảng ${endStr})`);
       } else {
-        setTimeRemainingText(`Hệ thống đang hoàn thiện những khâu cuối cùng (${startStr} - ${endStr})`);
+        setTimeRemainingText('Hệ thống đang hoàn thiện những khâu kiểm tra cuối cùng và sẽ mở lại trong ít phút');
       }
     };
 

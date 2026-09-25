@@ -337,6 +337,9 @@ export const api = {
     title?: string;
     message?: string;
     estimatedMinutes?: number;
+    startTime?: string;
+    expectedEndTime?: string;
+    remainingMinutes?: number;
   }): Promise<MaintenanceStatus> {
     const res = await fetch(`${API_BASE}/system/maintenance`, {
       method: 'POST',

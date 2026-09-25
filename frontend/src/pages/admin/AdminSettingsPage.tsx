@@ -32,7 +32,9 @@ import {
   Mail,
   Trash2,
   Landmark,
-  Lock
+  Lock,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 
 const DEFAULT_MUSEUM_TITLE = 'Hệ Thống Đang Nâng Cấp & Bảo Trì';
@@ -73,6 +75,9 @@ export const AdminSettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const lastToggleToastTime = useRef<number>(0);
   const [pinging, setPinging] = useState(false);
   const [pingLatency, setPingLatency] = useState<number | null>(null);
   const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
@@ -226,36 +231,91 @@ export const AdminSettingsPage: React.FC = () => {
   }, []);
 
   const handleToggle = async () => {
+    if (toggling || saving) return;
     const nextState = !maintenance.enabled;
+    const nowIso = new Date().toISOString();
+    const estMin = Number(maintenance.estimatedMinutes) || 30;
+    const expEndIso = new Date(Date.now() + estMin * 60000).toISOString();
+
     try {
-      setSaving(true);
+      setToggling(true);
       const updated = await api.updateMaintenanceStatus({
         ...maintenance,
-        enabled: nextState
+        enabled: nextState,
+        startTime: nowIso,
+        expectedEndTime: expEndIso,
+        remainingMinutes: nextState ? estMin : 0
       });
       setMaintenance(updated);
       setLocalMaintenance(updated);
+      lastToggleToastTime.current = Date.now();
       showToast(
-        nextState ? 'Đã kích hoạt chế độ bảo trì hệ thống' : 'Đã tắt bảo trì, hệ thống trực tuyến',
+        nextState
+          ? `Đã kích hoạt chế độ bảo trì (Dự kiến trong ${estMin} phút, đến ${formatTime(expEndIso)})`
+          : 'Đã tắt bảo trì, hệ thống đang mở cửa đón khách tham quan',
         'success'
       );
     } catch (err: any) {
       showToast(err.message || 'Lỗi cập nhật bảo trì', 'error');
     } finally {
-      setSaving(false);
+      setToggling(false);
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving || toggling) return;
+
+    const nowIso = new Date().toISOString();
+    const estMin = Number(maintenance.estimatedMinutes) || 30;
+    const expEndIso = new Date(Date.now() + estMin * 60000).toISOString();
+
     try {
       setSaving(true);
-      const updated = await api.updateMaintenanceStatus(maintenance);
+      const updated = await api.updateMaintenanceStatus({
+        ...maintenance,
+        startTime: nowIso,
+        expectedEndTime: expEndIso,
+        remainingMinutes: maintenance.enabled ? estMin : 0
+      });
       setMaintenance(updated);
       setLocalMaintenance(updated);
-      showToast('Đã lưu và áp dụng cấu hình thành công', 'success');
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+
+      // Nếu vừa gạt toggle trong vòng 2.5s thì không bắn thêm toast thứ 2 để tránh 2 thông báo chồng nhau
+      if (Date.now() - lastToggleToastTime.current > 2500) {
+        showToast('Đã lưu và áp dụng cấu hình bảo trì thành công', 'success');
+      }
     } catch (err: any) {
       showToast(err.message || 'Lỗi lưu cấu hình', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleQuickExtend = async (addedMinutes: number) => {
+    if (saving || toggling) return;
+    const currentEst = Number(maintenance.estimatedMinutes) || 30;
+    const newEst = currentEst + addedMinutes;
+    const nowIso = new Date().toISOString();
+    const expEndIso = new Date(Date.now() + newEst * 60000).toISOString();
+
+    try {
+      setSaving(true);
+      const updated = await api.updateMaintenanceStatus({
+        ...maintenance,
+        enabled: true,
+        estimatedMinutes: newEst,
+        startTime: nowIso,
+        expectedEndTime: expEndIso,
+        remainingMinutes: newEst
+      });
+      setMaintenance(updated);
+      setLocalMaintenance(updated);
+      showToast(`Đã gia hạn thêm ${addedMinutes} phút bảo trì (Dự kiến đến ${formatTime(expEndIso)})`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi gia hạn bảo trì', 'error');
     } finally {
       setSaving(false);
     }
@@ -979,16 +1039,83 @@ export const AdminSettingsPage: React.FC = () => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                {maintenance.enabled
-                  ? `${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} ${t('settings.minsRemaining', 'phút còn lại')}`
-                  : `${maintenance.estimatedMinutes} ${t('settings.minsBackup', 'phút (Dự phòng)')}`}
+              <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {maintenance.enabled ? (
+                  (maintenance.remainingMinutes !== undefined && maintenance.remainingMinutes <= 0) ? (
+                    <span style={{ color: '#F59E0B', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <Clock size={16} /> Đã quá hạn (0p)
+                    </span>
+                  ) : (
+                    <span>{`${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} ${t('settings.minsRemaining', 'phút còn lại')}`}</span>
+                  )
+                ) : (
+                  `${maintenance.estimatedMinutes} ${t('settings.minsBackup', 'phút (Dự phòng)')}`
+                )}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {maintenance.enabled
                   ? `${t('settings.startAt', 'Bắt đầu:')} ${formatTime(maintenance.startTime || maintenance.updatedAt)} • ${t('settings.expectedAt', 'Dự kiến:')} ${formatTime(maintenance.expectedEndTime)}`
                   : t('settings.systemOnline', 'Hệ thống đang mở cửa trực tuyến')}
               </div>
+              {maintenance.enabled && (
+                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Gia hạn nhanh:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickExtend(15)}
+                    disabled={saving || toggling}
+                    title="Gia hạn thêm 15 phút từ bây giờ"
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      background: 'rgba(212, 175, 55, 0.15)',
+                      border: '1px solid rgba(212, 175, 55, 0.35)',
+                      color: 'var(--accent-gold)',
+                      fontSize: 11,
+                      cursor: saving || toggling ? 'wait' : 'pointer',
+                      fontWeight: 600
+                    }}
+                  >
+                    +15p
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickExtend(30)}
+                    disabled={saving || toggling}
+                    title="Gia hạn thêm 30 phút từ bây giờ"
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      background: 'rgba(212, 175, 55, 0.15)',
+                      border: '1px solid rgba(212, 175, 55, 0.35)',
+                      color: 'var(--accent-gold)',
+                      fontSize: 11,
+                      cursor: saving || toggling ? 'wait' : 'pointer',
+                      fontWeight: 600
+                    }}
+                  >
+                    +30p
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickExtend(60)}
+                    disabled={saving || toggling}
+                    title="Gia hạn thêm 1 giờ từ bây giờ"
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      background: 'rgba(212, 175, 55, 0.15)',
+                      border: '1px solid rgba(212, 175, 55, 0.35)',
+                      color: 'var(--accent-gold)',
+                      fontSize: 11,
+                      cursor: saving || toggling ? 'wait' : 'pointer',
+                      fontWeight: 600
+                    }}
+                  >
+                    +1 giờ
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1085,8 +1212,13 @@ export const AdminSettingsPage: React.FC = () => {
               {/* Hàng chuyển mạch BẬT / TẮT */}
               <div className="settings-maintenance-toggle-row">
                 <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 2 }}>
-                    {maintenance.enabled ? t('settings.modeOn', 'Chế độ bảo trì: ĐANG BẬT') : t('settings.modeOff', 'Chế độ bảo trì: ĐANG TẮT')}
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>{maintenance.enabled ? t('settings.modeOn', 'Chế độ bảo trì: ĐANG BẬT') : t('settings.modeOff', 'Chế độ bảo trì: ĐANG TẮT')}</span>
+                    {toggling && (
+                      <span style={{ fontSize: 12, color: 'var(--accent-gold)', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                        <Loader2 size={13} className="spin" /> Đang cập nhật máy chủ...
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                     {maintenance.enabled
@@ -1101,41 +1233,48 @@ export const AdminSettingsPage: React.FC = () => {
                       fontSize: 12,
                       fontWeight: 600,
                       letterSpacing: 0.5,
-                      color: maintenance.enabled ? 'var(--primary)' : 'var(--text-muted)'
+                      color: toggling ? 'var(--accent-gold)' : maintenance.enabled ? 'var(--primary)' : 'var(--text-muted)'
                     }}
                   >
-                    {maintenance.enabled ? t('settings.badgeOn', 'BẬT') : t('settings.badgeOff', 'TẮT')}
+                    {toggling ? 'ĐANG LƯU...' : maintenance.enabled ? t('settings.badgeOn', 'BẬT') : t('settings.badgeOff', 'TẮT')}
                   </span>
                   <button
                     type="button"
                     onClick={handleToggle}
-                    disabled={saving}
+                    disabled={saving || toggling}
                     aria-label="Chuyển đổi trạng thái bảo trì"
+                    title={maintenance.enabled ? 'Bấm để tắt bảo trì' : 'Bấm để bật bảo trì'}
                     style={{
                       position: 'relative',
-                      width: 48,
-                      height: 26,
-                      borderRadius: 13,
+                      width: 52,
+                      height: 28,
+                      borderRadius: 14,
                       backgroundColor: maintenance.enabled ? 'var(--primary)' : '#332D28',
                       border: '1px solid ' + (maintenance.enabled ? 'var(--primary)' : 'var(--border-color)'),
-                      cursor: 'pointer',
+                      cursor: saving || toggling ? 'wait' : 'pointer',
                       transition: 'all 0.2s ease',
-                      padding: 0
+                      padding: 0,
+                      opacity: toggling ? 0.8 : 1
                     }}
                   >
                     <span
                       style={{
                         position: 'absolute',
-                        top: 2,
-                        left: maintenance.enabled ? 24 : 2,
+                        top: 3,
+                        left: maintenance.enabled ? 27 : 3,
                         width: 20,
                         height: 20,
                         borderRadius: '50%',
                         backgroundColor: '#FFFFFF',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}
-                    />
+                    >
+                      {toggling && <Loader2 size={12} className="spin" style={{ color: 'var(--primary)' }} />}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -1246,6 +1385,15 @@ export const AdminSettingsPage: React.FC = () => {
                         </button>
                       ))}
                     </div>
+                    <div style={{ fontSize: 12, color: 'var(--accent-gold)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Clock size={13} />
+                      <span>
+                        Dự kiến hoàn tất nếu áp dụng bây giờ: khoảng{' '}
+                        <strong>
+                          {new Date(Date.now() + (Number(maintenance.estimatedMinutes) || 30) * 60000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        </strong>
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1287,19 +1435,36 @@ export const AdminSettingsPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <button
                       type="submit"
-                      className="btn btn-primary"
-                      disabled={saving}
+                      className={`btn ${saveSuccess ? 'btn-success' : 'btn-primary'}`}
+                      disabled={saving || toggling}
                       style={{
                         padding: '9px 20px',
                         fontSize: 13,
                         fontWeight: 500,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 6
+                        gap: 6,
+                        backgroundColor: saveSuccess ? '#16A34A' : undefined,
+                        borderColor: saveSuccess ? '#16A34A' : undefined,
+                        transition: 'all 0.25s ease'
                       }}
                     >
-                      {saving ? <RefreshCw size={14} className="spin" /> : <Check size={15} />}
-                      <span>{t('settings.btnSaveApply', 'Lưu & Áp dụng')}</span>
+                      {saving ? (
+                        <>
+                          <Loader2 size={14} className="spin" />
+                          <span>Đang lưu & áp dụng...</span>
+                        </>
+                      ) : saveSuccess ? (
+                        <>
+                          <CheckCircle2 size={15} />
+                          <span>Đã áp dụng thành công!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check size={15} />
+                          <span>{t('settings.btnSaveApply', 'Lưu & Áp dụng')}</span>
+                        </>
+                      )}
                     </button>
 
                     <button
