@@ -170,27 +170,27 @@
 .client-navbar {
   position: fixed;
   top: 16px;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1002;
   width: calc(100% - 48px);
-  max-width: 1380px;
-  margin: 0 auto;
+  max-width: 1400px;
+  margin: 0;
   border-radius: var(--c-radius-pill);
   border: 1px solid rgba(212, 175, 55, 0.35);
-  background: rgba(10, 14, 22, 0.82);
+  background: rgba(10, 14, 22, 0.84);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   box-shadow: 0 12px 35px -6px rgba(0, 0, 0, 0.55), 0 0 20px -4px rgba(212, 175, 55, 0.15);
-  transform: translateX(0);
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease, top 0.35s ease;
   will-change: transform;
 }
 
-/* KHI CUỘN XUỐNG: GIỮ NGUYÊN KÍCH THƯỚC VIÊN THUỐC, MƯỢT MÀ TRƯỢT SANG TRÁI */
+/* KHI CUỘN XUỐNG: CĂN GIỮA TUYỆT ĐỐI KHÔNG BỊ TRƯỢT SANG TRÁI, NỀN ĐẬM HƠN VÀ BÓNG NỔI DI SẢN */
 .client-navbar.is-scrolled {
-  transform: translateX(-48px);
-  background: rgba(10, 14, 22, 0.92);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 14, 22, 0.94);
   border-color: rgba(212, 175, 55, 0.45);
   box-shadow: 0 18px 45px -8px rgba(0, 0, 0, 0.7), 0 0 25px -4px rgba(212, 175, 55, 0.25);
 }
@@ -199,9 +199,12 @@
   .client-navbar {
     width: calc(100% - 20px);
     top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
   }
   .client-navbar.is-scrolled {
-    transform: translateX(0);
+    left: 50%;
+    transform: translateX(-50%);
   }
 }
 
@@ -414,6 +417,8 @@
 .client-nav-menu-wrapper {
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
 }
 
 .client-nav-menu {
@@ -1048,17 +1053,23 @@
 }
 
 /* --- 5. CINEMATIC HERO BANNER (HIỂN THỊ RÕ NÉT CẢ LIGHT & DARK MODE, KHÔNG BAO GIỜ MẤT ẢNH) --- */
+/* --- 5. CINEMATIC HERO BANNER (HIỂN THỊ RÕ NÉT CẢ LIGHT & DARK MODE, KHÔNG BAO GIỜ MẤT ẢNH) --- */
 .client-hero {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
   overflow: hidden;
   background-color: var(--c-bg);
   background-image: radial-gradient(ellipse at 50% 35%, rgba(212, 175, 55, 0.16) 0%, rgba(10, 13, 20, 0.95) 75%);
   transition: background-color 0.3s ease;
+  padding-top: clamp(100px, 14vh, 140px);
+  padding-bottom: clamp(40px, 6vh, 70px);
+  box-sizing: border-box;
 }
 
 .client-portal[data-client-theme="light"] .client-hero {
@@ -1102,41 +1113,47 @@
   position: relative;
   z-index: 10;
   text-align: center;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 130px 20px 50px 20px;
+  max-width: 1020px;
+  width: 100%;
+  margin: auto 0;
+  padding: 0 clamp(16px, 3vw, 32px);
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .client-hero-tag {
   display: inline-block;
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 0.9vw, 0.85rem);
   font-weight: 700;
   letter-spacing: 0.2em;
   color: #F3E0A3;
   text-transform: uppercase;
-  margin-bottom: 20px;
+  margin-bottom: clamp(10px, 1.8vh, 18px);
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
 .client-hero-headline {
   font-family: 'Lora', serif;
-  font-size: clamp(2.4rem, 5vw, 4.4rem);
+  font-size: clamp(2rem, 4.4vw, 3.9rem);
   font-weight: 700;
   line-height: 1.18;
   color: #FFFFFF !important;
-  margin: 0 0 20px 0;
+  margin: 0 0 clamp(12px, 1.8vh, 18px) 0;
   text-shadow: 0 4px 28px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.95);
 }
 
 .client-hero-lead {
-  font-size: clamp(1.05rem, 1.3vw, 1.25rem);
-  line-height: 1.8;
+  font-size: clamp(0.95rem, 1.15vw, 1.15rem);
+  line-height: 1.72;
   color: rgba(255, 255, 255, 0.92) !important;
-  max-width: 740px;
-  margin: 0 auto 38px auto;
+  max-width: 760px;
+  margin: 0 auto clamp(22px, 3.5vh, 34px) auto;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
 }
 
@@ -1144,20 +1161,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: clamp(10px, 1.4vw, 16px);
   flex-wrap: wrap;
-  margin-bottom: 50px;
+  margin-bottom: clamp(26px, 4.2vh, 44px);
 }
 
 .client-btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 32px;
+  padding: 13px 30px;
   border-radius: var(--c-radius-pill);
   background: var(--c-primary);
   color: #FFFFFF;
-  font-size: 0.98rem;
+  font-size: 0.96rem;
   font-weight: 600;
   border: none;
   cursor: pointer;
@@ -1175,13 +1192,13 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 30px;
+  padding: 12px 28px;
   border-radius: var(--c-radius-pill);
   background: rgba(255, 255, 255, 0.12) !important;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   color: #FFFFFF !important;
-  font-size: 0.98rem;
+  font-size: 0.96rem;
   font-weight: 600;
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   cursor: pointer;
@@ -1201,16 +1218,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 32px;
+  padding: 12px clamp(20px, 3vw, 36px);
   border-radius: var(--c-radius-pill);
-  background: rgba(10, 14, 22, 0.72) !important;
+  background: rgba(10, 14, 22, 0.76) !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(212, 175, 55, 0.35) !important;
-  max-width: 660px;
+  max-width: 680px;
+  width: 100%;
   margin: 0 auto;
   box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .client-hero-stats:hover {
@@ -3269,7 +3288,8 @@
 /* THẺ ZIG-ZAG ĐƠN LẺ */
 .client-zigzag-card {
   width: 100%;
-  max-width: 1140px;
+  max-width: 1220px;
+  margin: 0 auto;
   background: linear-gradient(145deg, rgba(20, 26, 38, 0.9) 0%, rgba(11, 15, 23, 0.96) 100%);
   border: 1px solid rgba(212, 175, 55, 0.18);
   border-radius: 20px;
@@ -3292,12 +3312,12 @@
 /* BỐ CỤC 2 CỘT NGHỆ THUẬT (HORIZONTAL SPLIT CHO DESKTOP) */
 .client-zigzag-card.horizontal-split {
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  grid-template-columns: 1.08fr 1fr;
 }
 
 /* ĐẢO VỊ TRÍ CỘT: NỘI DUNG TRÁI - MEDIA PHẢI */
 .client-zigzag-card.horizontal-split.reverse-columns {
-  grid-template-columns: 1fr 1.05fr;
+  grid-template-columns: 1fr 1.08fr;
 }
 
 .client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-media {
@@ -3310,11 +3330,11 @@
 
 .client-zigzag-card.horizontal-split .client-zigzag-card-media {
   height: 100%;
-  min-height: 400px;
+  min-height: 420px;
 }
 
 .client-zigzag-card.horizontal-split .client-zigzag-card-body {
-  padding: clamp(32px, 3.6vw, 48px);
+  padding: clamp(32px, 3.8vw, 52px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -3340,16 +3360,11 @@
   }
 }
 
-/* THẰNG BÊN CÙNG BÊN PHẢI (Right Aligned) */
-.client-zigzag-card.align-right {
-  margin-left: auto;
-  margin-right: 0;
-}
-
-/* THẰNG BÊN CÙNG BÊN TRÁI (Left Aligned) */
+/* CĂN GIỮA VỮNG CHÃI TRÊN MỌI MÀN HÌNH */
+.client-zigzag-card.align-right,
 .client-zigzag-card.align-left {
+  margin-left: auto;
   margin-right: auto;
-  margin-left: 0;
 }
 
 @media (max-width: 1200px) {
@@ -5450,8 +5465,8 @@
 /* Floating QR Scanner Button (Quick Action for Visitors in Museum) */
 .client-floating-qr-btn {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
+  bottom: 24px;
+  right: 24px;
   z-index: 999;
   display: inline-flex;
   align-items: center;
@@ -5471,7 +5486,7 @@
 }
 
 .client-floating-qr-btn:hover {
-  transform: translateY(-3px) scale(1.04);
+  transform: translateY(-3px) scale(1.05);
   box-shadow: 0 14px 32px -4px rgba(212, 175, 55, 0.65), 0 6px 14px rgba(0, 0, 0, 0.5);
   background: linear-gradient(135deg, #E5C358 0%, #C9A432 100%);
 }
@@ -5480,12 +5495,56 @@
   transform: translateY(-1px) scale(0.98);
 }
 
+@media (min-width: 993px) {
+  /* Trên màn hình Desktop lớn: Nút Quét QR đã có sẵn trên Navbar,
+     nút nổi dưới góc thu gọn thành icon tròn sang trọng 48px để KHÔNG đè lên thanh stats hay nội dung */
+  .client-floating-qr-btn {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+  }
+  .client-floating-qr-btn .client-floating-qr-label {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .client-floating-qr-btn {
-    bottom: 20px;
-    right: 20px;
-    padding: 11px 16px;
+    bottom: 18px;
+    right: 18px;
+    padding: 10px 16px;
     font-size: 0.85rem;
+  }
+}
+
+/* --- HỖ TRỢ MÀN HÌNH CỰC LỚN (2K, 4K, 1600PX+) --- */
+@media (min-width: 1600px) {
+  .client-container {
+    max-width: 1560px;
+  }
+  .client-navbar {
+    max-width: 1500px;
+  }
+  .client-hero-content {
+    max-width: 1140px;
+  }
+  .client-hero-headline {
+    font-size: 4.2rem;
+  }
+  .client-hero-lead {
+    font-size: 1.22rem;
+    max-width: 820px;
+  }
+  .client-hero-stats {
+    max-width: 740px;
+  }
+  .client-zigzag-card {
+    max-width: 1360px;
+  }
+  .client-zigzag-card.horizontal-split .client-zigzag-card-media {
+    min-height: 460px;
   }
 }
 
