@@ -26,10 +26,29 @@ export async function analyzeFloorPlanImage(
   let imageHeight = 800;
   let cvResult: ICvAnalysisResult | null = null;
 
-  // 1. Phân tích ảnh thực tế bằng Pure Computer Vision Engine nếu có file ảnh trên đĩa
+  // 1. Phân tích ảnh thực tế bằng Pure Computer Vision Engine
+  let imageInput: string | Buffer | null = null;
   if (imagePath && fs.existsSync(imagePath)) {
+    imageInput = imagePath;
+  } else if (imageUrl) {
+    if (imageUrl.startsWith('/uploads/')) {
+      const local = path.join(process.cwd(), 'public', imageUrl);
+      if (fs.existsSync(local)) imageInput = local;
+    } else if (imageUrl.startsWith('http')) {
+      try {
+        const resp = await fetch(imageUrl);
+        if (resp.ok) {
+          imageInput = Buffer.from(await resp.arrayBuffer());
+        }
+      } catch (fErr) {
+        console.warn('[FloorPlanAnalyzer] Không thể tải ảnh từ URL:', fErr);
+      }
+    }
+  }
+
+  if (imageInput) {
     try {
-      cvResult = await analyzeFloorPlanWithPureCV(imagePath);
+      cvResult = await analyzeFloorPlanWithPureCV(imageInput);
       imageWidth = cvResult.imageWidth;
       imageHeight = cvResult.imageHeight;
       console.log(`[FloorPlanAnalyzer] Pure CV Engine phát hiện ${cvResult.nodes.length} nodes và ${cvResult.edges.length} liên kết mũi tên trong ${cvResult.executionTimeMs}ms.`);

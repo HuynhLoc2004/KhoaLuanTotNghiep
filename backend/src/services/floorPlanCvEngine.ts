@@ -55,21 +55,21 @@ export interface ICvAnalysisResult {
 /**
  * Hàm phân tích Thị giác máy tính thuần túy từ file ảnh mặt bằng hoặc sơ đồ vẽ tay
  */
-export async function analyzeFloorPlanWithPureCV(imagePath: string): Promise<ICvAnalysisResult> {
+export async function analyzeFloorPlanWithPureCV(imageInput: string | Buffer): Promise<ICvAnalysisResult> {
   const startTime = Date.now();
 
-  if (!imagePath || !fs.existsSync(imagePath)) {
-    throw new Error(`File ảnh không tồn tại tại đường dẫn: ${imagePath}`);
+  if (typeof imageInput === 'string' && !fs.existsSync(imageInput)) {
+    throw new Error(`File ảnh không tồn tại tại đường dẫn: ${imageInput}`);
   }
 
   // 1. Đọc metadata ảnh gốc
-  const originalMetadata = await sharp(imagePath).metadata();
+  const originalMetadata = await sharp(imageInput).metadata();
   const origWidth = originalMetadata.width || 1200;
   const origHeight = originalMetadata.height || 800;
 
   // 2. Chuẩn hóa kích thước xử lý về độ rộng 800px để đạt tốc độ xử lý siêu tốc (dưới 100ms)
   const normWidth = 800;
-  const { data: grayscaleBuffer, info } = await sharp(imagePath)
+  const { data: grayscaleBuffer, info } = await sharp(imageInput)
     .resize(normWidth, null, { fit: 'inside' })
     .grayscale()
     .raw()

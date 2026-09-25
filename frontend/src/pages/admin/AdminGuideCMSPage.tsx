@@ -15,7 +15,9 @@ import {
   ArrowLeft,
   ArrowRight,
   Compass,
-  Trash2
+  Trash2,
+  Cpu,
+  Zap
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
@@ -51,6 +53,8 @@ export const AdminGuideCMSPage: React.FC = () => {
   // Tải file ảnh sơ đồ mặt bằng
   const guideMapInputRef = useRef<HTMLInputElement>(null);
   const [uploadingGuideMap, setUploadingGuideMap] = useState(false);
+  const [analyzingMap, setAnalyzingMap] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   const [form, setForm] = useState({
     // Phân mục 1: Giới thiệu chung & Tiêu đề
@@ -198,7 +202,8 @@ export const AdminGuideCMSPage: React.FC = () => {
       const res = await api.uploadBrandingImage(file);
       if (res && res.url) {
         handleChange('guideMapUrl', res.url);
-        showToast('Đã tải ảnh sơ đồ mặt bằng thành công! Nhớ nhấn "Lưu phân mục này" để áp dụng.', 'success');
+        showToast('Đã tải ảnh sơ đồ thành công! Đang kích hoạt phân tích Pure CV...', 'success');
+        handleAnalyzeFloorPlan(res.url);
       }
     } catch (err: any) {
       showToast(err?.message || 'Lỗi khi tải ảnh sơ đồ mặt bằng lên server', 'error');
@@ -207,6 +212,33 @@ export const AdminGuideCMSPage: React.FC = () => {
       if (guideMapInputRef.current) {
         guideMapInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleAnalyzeFloorPlan = async (targetUrl?: string) => {
+    const urlToAnalyze = targetUrl || form.guideMapUrl;
+    if (!urlToAnalyze) {
+      showToast('Vui lòng tải ảnh sơ đồ lên trước khi phân tích', 'info');
+      return;
+    }
+
+    try {
+      setAnalyzingMap(true);
+      const formData = new FormData();
+      formData.append('imageUrl', urlToAnalyze);
+      formData.append('title', form.guideMapTitle || 'Sơ đồ mặt bằng các gian trưng bày');
+      formData.append('description', form.guideMapDesc || '');
+
+      const res = await api.analyzeFloorPlan(formData);
+      setAnalysisResult(res);
+      showToast(
+        `⚡ Đã phân tích bản đồ thành công qua Pure CV! Nhận diện ${res.summary?.nodeCount || 0} phòng và ${res.summary?.edgeCount || 0} liên kết cửa (${res.data?.analysisAlgorithm || 'Pure-CV'}).`,
+        'success'
+      );
+    } catch (err: any) {
+      showToast(err?.message || 'Lỗi khi phân tích sơ đồ', 'error');
+    } finally {
+      setAnalyzingMap(false);
     }
   };
 
@@ -643,13 +675,49 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
 
               {form.guideMapUrl && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
-                    Xem trước ảnh sơ đồ mặt bằng:
-                  </label>
-                  <div style={{ width: '100%', maxHeight: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                    <img src={form.guideMapUrl} alt="Preview sơ đồ" style={{ width: '100%', height: 280, objectFit: 'contain', background: '#0D111A' }} />
+                <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+                      Xem trước ảnh sơ đồ mặt bằng & phân tích không gian:
+                    </label>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleAnalyzeFloorPlan()}
+                      disabled={analyzingMap}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#D97706', borderColor: '#D97706' }}
+                    >
+                      <Zap size={14} />
+                      <span>{analyzingMap ? 'Đang phân tích Pure CV...' : 'Phân tích bản đồ (Pure CV Engine)'}</span>
+                    </button>
                   </div>
+                  <div style={{ width: '100%', maxHeight: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
+                    <img src={form.guideMapUrl} alt="Preview sơ đồ" style={{ width: '100%', height: 280, objectFit: 'contain', background: '#0D111A' }} />
+                    {analyzingMap && (
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', gap: 8 }}>
+                        <div className="spinner-border" style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ fontSize: 12, fontWeight: 500 }}>Đang phân tích cấu trúc điểm ảnh & tô-pô không gian...</span>
+                      </div>
+                    )}
+                  </div>
+                  {analysisResult && (
+                    <div style={{ padding: '10px 14px', background: 'rgba(217, 119, 6, 0.08)', border: '1px solid rgba(217, 119, 6, 0.25)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Cpu size={18} style={{ color: '#D97706' }} />
+                        <div>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                            Đã nhận diện thành công: {analysisResult.summary?.nodeCount || 0} Gian phòng & {analysisResult.summary?.edgeCount || 0} Liên kết cửa
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            Thuật toán: {analysisResult.data?.analysisAlgorithm || 'Pure-CV-RayCast-Otsu-v1'} (100% Cục bộ không qua AI)
+                          </div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '3px 8px', borderRadius: 4 }}>
+                        Đã đồng bộ CSDL MongoDB
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
