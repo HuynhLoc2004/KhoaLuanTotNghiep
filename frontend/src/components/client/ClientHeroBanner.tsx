@@ -41,6 +41,33 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
     setMediaSrc('');
   };
 
+  // Trợ thủ typography: Không bao giờ để rớt chữ đơn lẻ "Minh" hay xé lẻ "TP. Hồ Chí Minh"
+  const formatHeroTitle = (titleText: string) => {
+    const targetPrimary = 'TP. Hồ Chí Minh';
+    if (titleText.includes(targetPrimary)) {
+      const parts = titleText.split(targetPrimary);
+      return (
+        <>
+          {parts[0]}
+          <span style={{ whiteSpace: 'nowrap', display: 'inline-block' }}>{targetPrimary}</span>
+          {parts.slice(1).join(targetPrimary)}
+        </>
+      );
+    }
+    const targetAlt = 'Hồ Chí Minh';
+    if (titleText.includes(targetAlt)) {
+      const parts = titleText.split(targetAlt);
+      return (
+        <>
+          {parts[0]}
+          <span style={{ whiteSpace: 'nowrap', display: 'inline-block' }}>{targetAlt}</span>
+          {parts.slice(1).join(targetAlt)}
+        </>
+      );
+    }
+    return titleText;
+  };
+
   return (
     <section id="hero" className="client-hero">
       {/* 1. KHỐI MEDIA TOÀN CẢNH TRÀN KHUNG 100VH */}
@@ -70,7 +97,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
             style={{
               width: '100%',
               height: '100%',
-              background: 'radial-gradient(ellipse at 50% 30%, #3D1C14 0%, #1A1715 65%, #0E0C0B 100%)'
+              background: 'radial-gradient(ellipse at 50% 32%, rgba(212, 175, 55, 0.22) 0%, rgba(55, 25, 18, 0.55) 45%, #0A0D14 100%)'
             }}
           />
         )}
@@ -87,7 +114,12 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
           </span>
 
           <h1 className="client-hero-headline">
-            {t(branding.heroTitle || branding.museumName || 'hero.title', branding.heroTitle || branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh')}
+            {formatHeroTitle(
+              t(
+                branding.heroTitle || branding.museumName || 'hero.title',
+                branding.heroTitle || branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'
+              )
+            )}
           </h1>
 
           <p className="client-hero-lead">

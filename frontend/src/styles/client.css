@@ -290,6 +290,7 @@
   height: 64px;
   gap: 20px;
   padding: 0 24px;
+  position: relative;
 }
 
 .client-nav-brand {
@@ -413,12 +414,23 @@
   50% { opacity: 0.35; transform: scale(0.85); }
 }
 
-/* 2. Menu Điều hướng Dạng Floating Capsule Island */
+/* 2. Menu Điều hướng Dạng Floating Capsule Island (Căn giữa tuyệt đối trên Desktop) */
 .client-nav-menu-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
+}
+
+@media (min-width: 993px) {
+  .client-nav-menu-wrapper {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    z-index: 2;
+  }
 }
 
 .client-nav-menu {
@@ -1053,7 +1065,6 @@
 }
 
 /* --- 5. CINEMATIC HERO BANNER (HIỂN THỊ RÕ NÉT CẢ LIGHT & DARK MODE, KHÔNG BAO GIỜ MẤT ẢNH) --- */
-/* --- 5. CINEMATIC HERO BANNER (HIỂN THỊ RÕ NÉT CẢ LIGHT & DARK MODE, KHÔNG BAO GIỜ MẤT ẢNH) --- */
 .client-hero {
   position: relative;
   min-height: 100vh;
@@ -1067,8 +1078,8 @@
   background-color: var(--c-bg);
   background-image: radial-gradient(ellipse at 50% 35%, rgba(212, 175, 55, 0.16) 0%, rgba(10, 13, 20, 0.95) 75%);
   transition: background-color 0.3s ease;
-  padding-top: clamp(100px, 14vh, 140px);
-  padding-bottom: clamp(40px, 6vh, 70px);
+  padding-top: clamp(76px, 10vh, 100px);
+  padding-bottom: clamp(24px, 4.5vh, 48px);
   box-sizing: border-box;
 }
 
@@ -1113,7 +1124,7 @@
   position: relative;
   z-index: 10;
   text-align: center;
-  max-width: 1020px;
+  max-width: 1200px;
   width: 100%;
   margin: auto 0;
   padding: 0 clamp(16px, 3vw, 32px);
@@ -1134,27 +1145,30 @@
   letter-spacing: 0.2em;
   color: #F3E0A3;
   text-transform: uppercase;
-  margin-bottom: clamp(10px, 1.8vh, 18px);
+  margin-bottom: clamp(8px, 1.4vh, 14px);
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
 .client-hero-headline {
   font-family: 'Lora', serif;
-  font-size: clamp(2rem, 4.4vw, 3.9rem);
+  font-size: clamp(1.9rem, 3.6vw, 3.5rem);
   font-weight: 700;
-  line-height: 1.18;
+  line-height: 1.22;
   color: #FFFFFF !important;
-  margin: 0 0 clamp(12px, 1.8vh, 18px) 0;
+  margin: 0 0 clamp(10px, 1.5vh, 16px) 0;
   text-shadow: 0 4px 28px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.95);
+  text-wrap: balance;
+  max-width: 1100px;
 }
 
 .client-hero-lead {
-  font-size: clamp(0.95rem, 1.15vw, 1.15rem);
-  line-height: 1.72;
+  font-size: clamp(0.92rem, 1.1vw, 1.12rem);
+  line-height: 1.65;
   color: rgba(255, 255, 255, 0.92) !important;
   max-width: 760px;
-  margin: 0 auto clamp(22px, 3.5vh, 34px) auto;
+  margin: 0 auto clamp(18px, 2.8vh, 28px) auto;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
+  text-wrap: pretty;
 }
 
 .client-hero-actions {
@@ -1163,7 +1177,7 @@
   justify-content: center;
   gap: clamp(10px, 1.4vw, 16px);
   flex-wrap: wrap;
-  margin-bottom: clamp(26px, 4.2vh, 44px);
+  margin-bottom: clamp(18px, 2.8vh, 32px);
 }
 
 .client-btn-primary {
@@ -1218,7 +1232,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px clamp(20px, 3vw, 36px);
+  padding: 10px clamp(16px, 2.5vw, 32px);
   border-radius: var(--c-radius-pill);
   background: rgba(10, 14, 22, 0.76) !important;
   backdrop-filter: blur(24px);
