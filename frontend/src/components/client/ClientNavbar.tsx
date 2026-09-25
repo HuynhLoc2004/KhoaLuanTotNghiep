@@ -187,7 +187,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
         />
       )}
 
-      <nav className={`client-navbar ${isScrolled ? 'is-scrolled' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+      <nav className={`client-navbar ${isScrolled ? 'is-scrolled' : ''}`}>
         <div className="client-container client-nav-inner">
         {/* 1. Logo & Tên bảo tàng sang trọng chuẩn di sản */}
         <a
@@ -468,10 +468,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           </button>
         </div>
       </div>
+    </nav>
 
-      {/* Mobile Drawer Menu */}
-      {isMobileMenuOpen && (
-        <div className="client-mobile-drawer">
+    {/* Mobile Drawer Menu - Độc lập, không làm phình to hoặc biến dạng góc của Navbar */}
+    {isMobileMenuOpen && (
+      <div className="client-mobile-drawer">
           {/* Thông tin người dùng nếu đã đăng nhập */}
           {user && (
             <div className="client-mobile-user-card">
@@ -638,7 +639,6 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           )}
         </div>
       )}
-    </nav>
     </>
   );
 };
