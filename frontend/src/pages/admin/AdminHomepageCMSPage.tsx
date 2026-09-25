@@ -1411,7 +1411,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Tên nút CTA 1 (Nút chính - Bắt đầu Tour)
+                Tên nút bấm chính (Nút 1 - Bắt đầu Tour 360°)
               </label>
               <input
                 type="text"
@@ -1424,7 +1424,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Tên nút CTA 2 (Nút phụ - Xem cổ vật)
+                Tên nút bấm phụ (Nút 2 - Chiêm ngưỡng Cổ vật 3D)
               </label>
               <input
                 type="text"
@@ -1541,7 +1541,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Thẻ định danh khối (Tagline pill)
+                Dòng chữ phụ phía trên (Tag)
               </label>
               <input
                 type="text"
@@ -1567,7 +1567,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Huy hiệu nổi bật trên ảnh kiến trúc
+                Huy hiệu danh hiệu (Hiển thị góc ảnh)
               </label>
               <input
                 type="text"
@@ -1580,7 +1580,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Nhãn nút khám phá (CTA)
+                Chữ trên nút bấm chuyển trang
               </label>
               <input
                 type="text"
@@ -1691,7 +1691,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Thẻ định danh khối (Tagline pill)
+                Dòng chữ phụ phía trên (Tag nhỏ)
               </label>
               <input
                 type="text"
@@ -1704,7 +1704,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Tiêu đề khối phòng trưng bày
+                Tiêu đề chính của khối
               </label>
               <input
                 type="text"
@@ -1717,7 +1717,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Nhãn nút hành động CTA
+                Chữ trên nút bấm chuyển trang
               </label>
               <input
                 type="text"
@@ -1730,7 +1730,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Đoạn mô tả trải nghiệm Tour 360°
+                Đoạn văn giới thiệu ngắn
               </label>
               <textarea
                 rows={3}
@@ -1744,13 +1744,13 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             <div style={{ gridColumn: '1 / -1', padding: '16px', background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: 10 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Compass size={16} />
-                <span>Đồng Bộ Dữ Liệu Gian Phòng Thực Tế & Ảnh Trưng Bày Tiêu Biểu</span>
+                <span>Cài đặt gian phòng đại diện & hình ảnh hiển thị</span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Gian phòng số hóa tiêu biểu trên Trang Chủ:
+                    Chọn gian phòng đại diện hiển thị ở Trang Chủ:
                   </label>
                   <select
                     value={form.roomsFeaturedId || ''}
@@ -1765,7 +1765,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                       fontSize: 13
                     }}
                   >
-                    <option value="">-- Tự động chọn gian phòng đầu tiên có trong CSDL --</option>
+                    <option value="">-- Mặc định (Tự động lấy gian phòng đầu tiên) --</option>
                     {availableRooms.map((r) => (
                       <option key={r.id} value={r.id}>
                         {r.code ? `[${r.code}] ` : ''}{r.name} {r.period ? `— ${r.period}` : ''}
@@ -1774,21 +1774,21 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   </select>
                   <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                     {availableRooms.length > 0
-                      ? `Đang có ${availableRooms.length} gian phòng số hóa trong hệ thống MongoDB.`
-                      : 'Hệ thống hiện chưa có gian phòng nào. Quản trị viên hãy thêm gian phòng thực tế tại phân hệ "Quản lý gian phòng".'}
+                      ? `Hiện có ${availableRooms.length} gian phòng sẵn sàng hiển thị.`
+                      : 'Hệ thống hiện chưa có gian phòng nào. Quản trị viên vui lòng thêm phòng tại mục "Trang Gian phòng 360°".'}
                   </span>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Ảnh đại diện tùy chỉnh cho khối Tour 360° (Tùy chọn):
+                    Ảnh bìa đại diện riêng (Không bắt buộc):
                   </label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input
                       type="text"
                       value={form.roomsShowcaseImageUrl || ''}
                       onChange={(e) => handleChange('roomsShowcaseImageUrl', e.target.value)}
-                      placeholder="URL ảnh hoặc bấm tải lên (để trống sẽ dùng ảnh của phòng)"
+                      placeholder="Dán link ảnh hoặc bấm nút Tải ảnh bên cạnh"
                       style={{ flex: 1, padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 12.5 }}
                     />
                     <button
@@ -1837,7 +1837,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                     />
                   </div>
                   <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Nếu để trống, hệ thống sẽ tự động dùng ảnh toàn cảnh 360° thực tế của gian phòng được chọn.
+                    Nếu không chọn ảnh riêng, hệ thống sẽ tự động dùng ảnh 360° thực tế của gian phòng được chọn.
                   </span>
                 </div>
               </div>
@@ -1866,7 +1866,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                     }}
                   >
                     <Trash2 size={12} />
-                    <span>Xóa ảnh tùy chỉnh (Dùng ảnh phòng)</span>
+                    <span>Xóa ảnh riêng (Quay lại dùng ảnh phòng)</span>
                   </button>
                 </div>
               )}
@@ -1918,7 +1918,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Thẻ định danh khối (Tagline pill)
+                Dòng chữ phụ phía trên (Tag nhỏ)
               </label>
               <input
                 type="text"
@@ -1931,7 +1931,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Tiêu đề khối cổ vật
+                Tiêu đề chính của khối
               </label>
               <input
                 type="text"
@@ -1944,7 +1944,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Nhãn nút hành động CTA
+                Chữ trên nút bấm chuyển trang
               </label>
               <input
                 type="text"
@@ -1957,7 +1957,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Đoạn mô tả kho hiện vật và mô hình 3D
+                Đoạn văn giới thiệu ngắn
               </label>
               <textarea
                 rows={3}
@@ -2048,7 +2048,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Thẻ định danh khối (Tagline pill)
+                Dòng chữ phụ phía trên (Tag nhỏ)
               </label>
               <input
                 type="text"
@@ -2061,7 +2061,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Tiêu đề khối cẩm nang
+                Tiêu đề chính của khối
               </label>
               <input
                 type="text"
@@ -2074,7 +2074,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Nhãn nút hành động CTA
+                Chữ trên nút bấm chuyển trang
               </label>
               <input
                 type="text"
@@ -2087,7 +2087,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                Đoạn mô tả khối cẩm nang trên Trang chủ
+                Đoạn văn giới thiệu ngắn
               </label>
               <textarea
                 rows={3}
@@ -2251,7 +2251,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CheckCircle2 size={16} style={{ color: 'var(--accent-gold)' }} />
           <span style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 500 }}>
-            Dữ liệu MongoDB & Redis Sync
+            Hệ thống đã kết nối & Tự động đồng bộ
           </span>
         </div>
 
