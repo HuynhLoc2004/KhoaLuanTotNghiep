@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { api } from '../../services/api';
+import { api, API_ROOT } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination } from '../../components/Pagination';
@@ -253,6 +253,16 @@ export const AdminGuideCMSPage: React.FC = () => {
     }
   };
 
+  // Helper xử lý đường dẫn hình ảnh sơ đồ từ backend an toàn 100%
+  const resolveImageUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${API_ROOT}${cleanPath}`;
+  };
+
   const handleDeleteMap = (mapItem: FloorPlanMap) => {
     setConfirmModalConfig({
       isOpen: true,
@@ -272,6 +282,11 @@ export const AdminGuideCMSPage: React.FC = () => {
             setActiveFloorPlan(currentFp);
             setActiveFloorPlanId(currentFp.id);
             handleChange('guideMapUrl', currentFp.imageUrl || '');
+          } else {
+            // Không còn sơ đồ nào trong hệ thống!
+            setActiveFloorPlan(null);
+            setActiveFloorPlanId('');
+            handleChange('guideMapUrl', '');
           }
         } catch (err: any) {
           showToast(err?.message || 'Lỗi khi xóa sơ đồ mặt bằng', 'error');
@@ -673,7 +688,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                   Hệ thống sơ đồ mặt bằng kiến trúc
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  Quản lý danh sách các bản đồ và sơ đồ không gian phân tích bằng thuật toán Pure CV
+                  Quản lý danh sách sơ đồ mặt bằng và các gian phòng trưng bày
                 </div>
               </div>
 
@@ -737,9 +752,12 @@ export const AdminGuideCMSPage: React.FC = () => {
                   >
                     {activeFloorPlan.imageUrl ? (
                       <img
-                        src={activeFloorPlan.imageUrl}
+                        src={resolveImageUrl(activeFloorPlan.imageUrl)}
                         alt={activeFloorPlan.title}
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
                       />
                     ) : (
                       <ImageIcon size={20} style={{ opacity: 0.35, color: 'var(--text-muted)' }} />
@@ -772,7 +790,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                       <span>•</span>
                       <span>{activeFloorPlan.edges?.length || 0} liên kết cửa</span>
                       <span>•</span>
-                      <span>{activeFloorPlan.analysisAlgorithm || 'Pure-CV Engine'}</span>
+                      <span>Tự động nhận diện</span>
                     </div>
                   </div>
                 </div>
@@ -837,12 +855,21 @@ export const AdminGuideCMSPage: React.FC = () => {
                         }}
                       >
                         {/* Thumbnail */}
-                        <div style={{ position: 'relative', width: '100%', height: 130, background: 'var(--bg-subtle)' }}>
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                          />
+                        <div style={{ position: 'relative', width: '100%', height: 130, background: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {item.imageUrl ? (
+                            <img
+                              src={resolveImageUrl(item.imageUrl)}
+                              alt={item.title}
+                              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                              <ImageIcon size={28} style={{ opacity: 0.35 }} />
+                            </div>
+                          )}
                           <div style={{ position: 'absolute', top: 6, left: 6 }}>
                             {isLive ? (
                               <span
@@ -1508,7 +1535,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                     Tải lên & phân tích sơ đồ mới
                   </h3>
                   <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    Thuật toán Pure CV tự động bóc tách gian phòng & liên kết cửa
+                    Hệ thống tự động nhận diện các gian phòng & cửa thông phòng
                   </span>
                 </div>
               </div>
@@ -1606,13 +1633,13 @@ export const AdminGuideCMSPage: React.FC = () => {
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)' }}>
                       {uploadingGuideMap
-                        ? 'Đang tải file ảnh lên máy chủ...'
-                        : 'Thuật toán Pure CV đang nhận diện không gian...'}
+                        ? 'Đang tải file ảnh lên hệ thống...'
+                        : 'Đang tự động nhận diện không gian...'}
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
                       {uploadingGuideMap
                         ? 'Vui lòng chờ trong giây lát'
-                        : 'Tính toán tâm điểm gian phòng và khớp liên kết cửa'}
+                        : 'Đang xử lý vị trí các gian phòng và cửa thông phòng'}
                     </div>
                   </div>
                 </div>

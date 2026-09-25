@@ -46,37 +46,16 @@ const upload = multer({
  */
 floorPlanRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const dbRooms = await RoomModel.find({ active: true }).sort({ orderIndex: 1 }).lean();
-    
-    // Tìm bản đồ đang active
+    // 1. Tìm bản đồ đang active
     let floorPlan = await FloorPlanMapModel.findOne({ active: true }).sort({ updatedAt: -1 }).lean();
     if (!floorPlan) {
-      floorPlan = await FloorPlanMapModel.findOne({ id: 'floor_plan_main' }).lean();
-    }
-    if (!floorPlan) {
-      floorPlan = await FloorPlanMapModel.findOne().sort({ createdAt: -1 }).lean();
+      floorPlan = await FloorPlanMapModel.findOne().sort({ updatedAt: -1, createdAt: -1 }).lean();
     }
 
-    // Nếu chưa có bất kỳ bản đồ nào trong CSDL, tự động sinh bản đồ chuẩn
-    if (!floorPlan) {
-      console.log('[FloorPlanRoute] Chưa có bản đồ nào trong CSDL, đang khởi tạo bản đồ chuẩn ban đầu...');
-      const branding = await getSystemBrandingConfig();
-      const newMap = await analyzeFloorPlanImage(
-        '',
-        branding?.guideMapUrl || '',
-        {
-          mapId: 'floor_plan_main',
-          title: branding?.guideMapTitle || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày',
-          description: branding?.guideMapDesc || 'Bản đồ kiến trúc không gian và vị trí các gian phòng',
-          setActive: true
-        }
-      );
-      floorPlan = newMap.toObject ? newMap.toObject() : newMap;
-    }
-
+    // Nếu CSDL không có bản đồ nào (hoặc đã bị xóa), trả về null, tuyệt đối KHÔNG tự sinh mock rác
     res.json({
       success: true,
-      data: floorPlan
+      data: floorPlan || null
     });
   } catch (error: any) {
     console.error('[FloorPlanRoute GET Error]:', error);
@@ -203,6 +182,33 @@ floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
         remaining.active = true;
         await remaining.save();
         broadcastRealtimeEvent('floor_plan_updated', remaining.toObject ? remaining.toObject() : remaining);
+        if (remaining.imageUrl) {
+          try {
+            const { SystemBranding } = await import('../models/SystemBranding.js');
+            await SystemBranding.findOneAndUpdate(
+              { id: 'default_branding' },
+              {
+                guideMapUrl: remaining.imageUrl,
+                guideMapTitle: remaining.title,
+                guideMapDesc: remaining.description
+              }
+            );
+          } catch {}
+        }
+      } else {
+        // Không còn bản đồ nào trong CSDL: Xóa sạch liên kết mặt bằng trong Branding
+        try {
+          const { SystemBranding } = await import('../models/SystemBranding.js');
+          await SystemBranding.findOneAndUpdate(
+            { id: 'default_branding' },
+            {
+              guideMapUrl: '',
+              guideMapTitle: '',
+              guideMapDesc: ''
+            }
+          );
+        } catch {}
+        broadcastRealtimeEvent('floor_plan_updated', null);
       }
     }
 
