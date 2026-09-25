@@ -11,8 +11,22 @@ import {
   Home,
   Navigation,
   CheckCircle2,
-  Camera
+  Camera,
+  Info
 } from 'lucide-react';
+
+const cleanHotspotLabel = (rawTitle: string): string => {
+  if (!rawTitle) return '';
+  return rawTitle
+    .replace(/^Bước vào\s+/i, '')
+    .replace(/^Quay lại\s+Sảnh Đón Khách/i, 'Sảnh Chính')
+    .replace(/^Quay lại\s+/i, '')
+    .replace(/^Sang\s+/i, '')
+    .replace(/Gian Thời Tiền Sử/i, 'Phòng Thời Tiền Sử')
+    .replace(/Gian Văn Hóa Óc Eo\s*-\s*Phù Nam/i, 'Phòng Văn hóa Óc Eo – Phù Nam')
+    .replace(/Bia đá lưu niệm kiến trúc bảo tàng/i, 'Văn bia kỷ niệm khánh thành (1929)')
+    .replace(/Tượng Phật Gỗ Cổ Óc Eo/i, 'Tượng Phật gỗ cổ Óc Eo (Bảo vật Quốc gia)');
+};
 
 interface ThreePanoramaViewerProps {
   room: MuseumRoom;
@@ -22,6 +36,8 @@ interface ThreePanoramaViewerProps {
   onCanvasPinClick?: (coords: { pitch: number; yaw: number }) => void;
   onHotspotClick?: (hotspot: Hotspot) => void;
   onCaptureInitialView?: (view: { pitch: number; yaw: number; fov: number }) => void;
+  hideTopBanner?: boolean;
+  isClientView?: boolean;
 }
 
 export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
@@ -31,7 +47,9 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
   onTogglePinMode,
   onCanvasPinClick,
   onHotspotClick,
-  onCaptureInitialView
+  onCaptureInitialView,
+  hideTopBanner = false,
+  isClientView = false
 }) => {
   const { branding } = useSystemBranding();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -389,12 +407,14 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
         touchAction: 'none'
       }}
     >
-      {/* Top Banner: Name of Room */}
-      <div className="viewer-top-banner">
-        <Navigation size={15} />
-        <span>{room.name}</span>
-        <span style={{ opacity: 0.75, fontSize: 11 }}>({room.code})</span>
-      </div>
+      {/* Top Banner: Name of Room (chỉ hiện khi không ẩn) */}
+      {!hideTopBanner && (
+        <div className="viewer-top-banner">
+          <Navigation size={15} />
+          <span>{room.name}</span>
+          <span style={{ opacity: 0.75, fontSize: 11 }}>({room.code})</span>
+        </div>
+      )}
 
       {/* Pin Mode Indicator */}
       {isPinMode && (
@@ -431,41 +451,44 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
       )}
 
       {/* Direct DOM Hotspot Elements */}
-      {room.hotspots?.map((hs) => (
-        <div
-          key={hs.id}
-          ref={(el) => {
-            hotspotElementsRef.current[hs.id] = el;
-          }}
-          className={hs.type === 'navigation' ? 'hotspot-marker walking-arrow-hotspot' : 'hotspot-marker'}
-          style={{ display: 'none' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onHotspotClick) onHotspotClick(hs);
-          }}
-          title={hs.title}
-        >
-          {hs.type === 'navigation' ? (
-            <>
-              <div className="walking-arrow-label">
-                <span>{hs.title}</span>
-              </div>
-              <div className="walking-arrow-disc">
-                <svg className="walking-arrow-svg" viewBox="0 0 24 24">
-                  <polyline points="18 15 12 9 6 15"></polyline>
-                </svg>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="hotspot-icon-wrapper">
-                <Navigation size={20} style={{ transform: 'rotate(-45deg)' }} />
-              </div>
-              <div className="hotspot-label">{hs.title}</div>
-            </>
-          )}
-        </div>
-      ))}
+      {room.hotspots?.map((hs) => {
+        const cleanedTitle = cleanHotspotLabel(hs.title);
+        return (
+          <div
+            key={hs.id}
+            ref={(el) => {
+              hotspotElementsRef.current[hs.id] = el;
+            }}
+            className={hs.type === 'navigation' ? 'hotspot-marker walking-arrow-hotspot' : 'hotspot-marker'}
+            style={{ display: 'none' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onHotspotClick) onHotspotClick({ ...hs, title: cleanedTitle });
+            }}
+            title={cleanedTitle}
+          >
+            {hs.type === 'navigation' ? (
+              <>
+                <div className="walking-arrow-label">
+                  <span>{cleanedTitle}</span>
+                </div>
+                <div className="walking-arrow-disc">
+                  <svg className="walking-arrow-svg" viewBox="0 0 24 24">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="hotspot-icon-wrapper">
+                  <Info size={18} />
+                </div>
+                <div className="hotspot-label">{cleanedTitle}</div>
+              </>
+            )}
+          </div>
+        );
+      })}
 
       {/* Bottom Floating Control Bar */}
       <div className="viewer-bottom-toolbar" onClick={(e) => e.stopPropagation()}>
@@ -493,15 +516,18 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
           <ZoomIn size={18} />
         </button>
 
-        <div className="viewer-tool-separator" />
-
-        <button
-          className={`viewer-tool-btn ${isPinMode ? 'active' : ''}`}
-          title={isPinMode ? 'Tắt chế độ ghim' : 'Ghim điểm liên kết (Hotspot)'}
-          onClick={onTogglePinMode}
-        >
-          <MapPin size={18} />
-        </button>
+        {!isClientView && (
+          <>
+            <div className="viewer-tool-separator" />
+            <button
+              className={`viewer-tool-btn ${isPinMode ? 'active' : ''}`}
+              title={isPinMode ? 'Tắt chế độ ghim' : 'Ghim điểm liên kết (Hotspot)'}
+              onClick={onTogglePinMode}
+            >
+              <MapPin size={18} />
+            </button>
+          </>
+        )}
 
         <button
           className={`viewer-tool-btn ${autoRotate ? 'active' : ''}`}
@@ -511,13 +537,15 @@ export const ThreePanoramaViewer: React.FC<ThreePanoramaViewerProps> = ({
           <RotateCw size={18} />
         </button>
 
-        <button
-          className="viewer-tool-btn"
-          title="Lưu góc nhìn hiện tại làm góc mở đầu"
-          onClick={() => viewerApiRef.current?.captureView()}
-        >
-          <Camera size={18} />
-        </button>
+        {!isClientView && (
+          <button
+            className="viewer-tool-btn"
+            title="Lưu góc nhìn hiện tại làm góc mở đầu"
+            onClick={() => viewerApiRef.current?.captureView()}
+          >
+            <Camera size={18} />
+          </button>
+        )}
 
         <div className="viewer-tool-separator" />
 

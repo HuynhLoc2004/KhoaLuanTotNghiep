@@ -13,8 +13,13 @@ import {
   REDIS_BRANDING_KEY,
   DEFAULT_BRANDING
 } from '../models/SystemBranding.js';
+import { broadcastRealtimeEvent, handleRealtimeStream } from '../services/realtimeSync.js';
 
 export const systemRouter = Router();
+
+// Kênh truyền sự kiện thời gian thực Server-Sent Events (SSE)
+systemRouter.get('/realtime-stream', handleRealtimeStream);
+systemRouter.get('/stream', handleRealtimeStream);
 
 const REDIS_MAINTENANCE_KEY = 'system:maintenance:config';
 
@@ -192,6 +197,9 @@ systemRouter.post('/maintenance', authenticate, requireAdmin, async (req: AuthRe
     // Cập nhật Redis cache nếu có
     await cacheSet(REDIS_MAINTENANCE_KEY, newConfig, 86400);
 
+    // Đồng bộ thời gian thực cho mọi client đang xem web không cần reload trang
+    broadcastRealtimeEvent('maintenance_updated', newConfig);
+
     res.json({
       success: true,
       message: newConfig.enabled
@@ -305,7 +313,8 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
             status: artifact3dQueuePending > 0 ? 'processing' : 'ready'
           }
         },
-        publicIp: process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || '103.178.233.206'
+        publicIp: req.get('host')?.replace(/:\d+$/, '') || process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || 'museumhcm.duckdns.org',
+        domain: 'museumhcm.duckdns.org'
       }
     });
   } catch (err: any) {
@@ -383,6 +392,64 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       contactEmail: contactEmail !== undefined ? String(contactEmail).trim() : current.contactEmail,
       hotline: hotline !== undefined ? String(hotline).trim() : current.hotline,
       emailSenderName: emailSenderName !== undefined ? String(emailSenderName).trim() : current.emailSenderName,
+      // Header Dynamic Menu Items (Hỗ trợ Dropdown đa cấp)
+      headerMenuItems: req.body.headerMenuItems !== undefined ? req.body.headerMenuItems : current.headerMenuItems,
+      // Hero Showcase
+      heroTitle: req.body.heroTitle !== undefined ? String(req.body.heroTitle).trim() : current.heroTitle,
+      heroTagline: req.body.heroTagline !== undefined ? String(req.body.heroTagline).trim() : current.heroTagline,
+      heroBannerUrl: req.body.heroBannerUrl !== undefined ? String(req.body.heroBannerUrl).trim() : current.heroBannerUrl,
+      heroVideoUrl: req.body.heroVideoUrl !== undefined ? String(req.body.heroVideoUrl).trim() : current.heroVideoUrl,
+      heroCta1Text: req.body.heroCta1Text !== undefined ? String(req.body.heroCta1Text).trim() : current.heroCta1Text,
+      heroCta2Text: req.body.heroCta2Text !== undefined ? String(req.body.heroCta2Text).trim() : current.heroCta2Text,
+      // Intro Section
+      introTag: req.body.introTag !== undefined ? String(req.body.introTag).trim() : current.introTag,
+      introTitle: req.body.introTitle !== undefined ? String(req.body.introTitle).trim() : current.introTitle,
+      introDesc: req.body.introDesc !== undefined ? String(req.body.introDesc).trim() : current.introDesc,
+      introBadgeText: req.body.introBadgeText !== undefined ? String(req.body.introBadgeText).trim() : current.introBadgeText,
+      introImageUrl: req.body.introImageUrl !== undefined ? String(req.body.introImageUrl).trim() : current.introImageUrl,
+      introCtaText: req.body.introCtaText !== undefined ? String(req.body.introCtaText).trim() : current.introCtaText,
+      // Rooms Section
+      roomsTag: req.body.roomsTag !== undefined ? String(req.body.roomsTag).trim() : current.roomsTag,
+      roomsTitle: req.body.roomsTitle !== undefined ? String(req.body.roomsTitle).trim() : current.roomsTitle,
+      roomsDesc: req.body.roomsDesc !== undefined ? String(req.body.roomsDesc).trim() : current.roomsDesc,
+      roomsCtaText: req.body.roomsCtaText !== undefined ? String(req.body.roomsCtaText).trim() : current.roomsCtaText,
+      roomsFeaturedId: req.body.roomsFeaturedId !== undefined ? String(req.body.roomsFeaturedId).trim() : current.roomsFeaturedId,
+      roomsShowcaseImageUrl: req.body.roomsShowcaseImageUrl !== undefined ? String(req.body.roomsShowcaseImageUrl).trim() : current.roomsShowcaseImageUrl,
+      // Artifacts Section
+      artifactsTag: req.body.artifactsTag !== undefined ? String(req.body.artifactsTag).trim() : current.artifactsTag,
+      artifactsTitle: req.body.artifactsTitle !== undefined ? String(req.body.artifactsTitle).trim() : current.artifactsTitle,
+      artifactsDesc: req.body.artifactsDesc !== undefined ? String(req.body.artifactsDesc).trim() : current.artifactsDesc,
+      artifactsCtaText: req.body.artifactsCtaText !== undefined ? String(req.body.artifactsCtaText).trim() : current.artifactsCtaText,
+      // Guide & Floor Plan Section
+      guideTag: req.body.guideTag !== undefined ? String(req.body.guideTag).trim() : current.guideTag,
+      guideTitle: req.body.guideTitle !== undefined ? String(req.body.guideTitle).trim() : current.guideTitle,
+      guideDesc: req.body.guideDesc !== undefined ? String(req.body.guideDesc).trim() : current.guideDesc,
+      guideCtaText: req.body.guideCtaText !== undefined ? String(req.body.guideCtaText).trim() : current.guideCtaText,
+      guideMapUrl: req.body.guideMapUrl !== undefined ? String(req.body.guideMapUrl).trim() : current.guideMapUrl,
+      guideMapTitle: req.body.guideMapTitle !== undefined ? String(req.body.guideMapTitle).trim() : current.guideMapTitle,
+      guideMapDesc: req.body.guideMapDesc !== undefined ? String(req.body.guideMapDesc).trim() : current.guideMapDesc,
+      // Thông tin thực địa & Bản đồ Google Maps do Admin quản lý
+      guideOpeningDays: req.body.guideOpeningDays !== undefined ? String(req.body.guideOpeningDays).trim() : current.guideOpeningDays,
+      guideMorningHours: req.body.guideMorningHours !== undefined ? String(req.body.guideMorningHours).trim() : current.guideMorningHours,
+      guideAfternoonHours: req.body.guideAfternoonHours !== undefined ? String(req.body.guideAfternoonHours).trim() : current.guideAfternoonHours,
+      guideClosedNote: req.body.guideClosedNote !== undefined ? String(req.body.guideClosedNote).trim() : current.guideClosedNote,
+      guideTicketAdult: req.body.guideTicketAdult !== undefined ? String(req.body.guideTicketAdult).trim() : current.guideTicketAdult,
+      guideTicketStudent: req.body.guideTicketStudent !== undefined ? String(req.body.guideTicketStudent).trim() : current.guideTicketStudent,
+      guideTicketChild: req.body.guideTicketChild !== undefined ? String(req.body.guideTicketChild).trim() : current.guideTicketChild,
+      guideBusRoutes: req.body.guideBusRoutes !== undefined ? String(req.body.guideBusRoutes).trim() : current.guideBusRoutes,
+      guideParkingInfo: req.body.guideParkingInfo !== undefined ? String(req.body.guideParkingInfo).trim() : current.guideParkingInfo,
+      guideGoogleMapsUrl: req.body.guideGoogleMapsUrl !== undefined ? String(req.body.guideGoogleMapsUrl).trim() : current.guideGoogleMapsUrl,
+      guideGoogleMapsEmbed: req.body.guideGoogleMapsEmbed !== undefined ? String(req.body.guideGoogleMapsEmbed).trim() : current.guideGoogleMapsEmbed,
+      guideRule1Title: req.body.guideRule1Title !== undefined ? String(req.body.guideRule1Title).trim() : current.guideRule1Title,
+      guideRule1Desc: req.body.guideRule1Desc !== undefined ? String(req.body.guideRule1Desc).trim() : current.guideRule1Desc,
+      guideRule2Title: req.body.guideRule2Title !== undefined ? String(req.body.guideRule2Title).trim() : current.guideRule2Title,
+      guideRule2Desc: req.body.guideRule2Desc !== undefined ? String(req.body.guideRule2Desc).trim() : current.guideRule2Desc,
+      guideRule3Title: req.body.guideRule3Title !== undefined ? String(req.body.guideRule3Title).trim() : current.guideRule3Title,
+      guideRule3Desc: req.body.guideRule3Desc !== undefined ? String(req.body.guideRule3Desc).trim() : current.guideRule3Desc,
+      guideRule4Title: req.body.guideRule4Title !== undefined ? String(req.body.guideRule4Title).trim() : current.guideRule4Title,
+      guideRule4Desc: req.body.guideRule4Desc !== undefined ? String(req.body.guideRule4Desc).trim() : current.guideRule4Desc,
+      // Footer
+      footerCopyrightText: req.body.footerCopyrightText !== undefined ? String(req.body.footerCopyrightText).trim() : current.footerCopyrightText,
       updatedBy: req.user?.username || 'admin'
     };
 
@@ -396,6 +463,9 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
     try {
       await cacheSet(REDIS_BRANDING_KEY, updatedDoc, 86400);
     } catch {}
+
+    // Phát sóng đồng bộ thời gian thực cho toàn bộ Client mà không cần F5/Reload trang
+    broadcastRealtimeEvent('branding_updated', updatedDoc);
 
     console.log(`[SystemBranding] Quản trị viên (${req.user?.username}) đã cập nhật nhận diện bảo tàng: ${updatePayload.museumName}`);
 

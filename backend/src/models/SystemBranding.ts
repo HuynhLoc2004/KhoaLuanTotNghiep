@@ -1,6 +1,26 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { cacheGet, cacheSet } from '../services/redis.js';
 
+export interface IHeaderSubMenuItem {
+  id: string;
+  label: string;
+  linkType: 'page' | 'anchor' | 'custom';
+  target: string;
+  active: boolean;
+  isNewTab?: boolean;
+}
+
+export interface IHeaderMenuItem {
+  id: string;
+  label: string;
+  linkType: 'page' | 'anchor' | 'custom' | 'dropdown_only';
+  target: string;
+  active: boolean;
+  isNewTab?: boolean;
+  order: number;
+  children?: IHeaderSubMenuItem[];
+}
+
 export interface ISystemBranding extends Document {
   museumName: string;
   shortName: string;
@@ -12,6 +32,64 @@ export interface ISystemBranding extends Document {
   contactEmail: string;
   hotline: string;
   emailSenderName: string;
+  // Header Dynamic Menu Items (Hỗ trợ Dropdown đa cấp)
+  headerMenuItems?: IHeaderMenuItem[];
+  // Hero Showcase
+  heroTitle?: string;
+  heroTagline?: string;
+  heroBannerUrl?: string;
+  heroVideoUrl?: string;
+  heroCta1Text?: string;
+  heroCta2Text?: string;
+  // Intro Section
+  introTag?: string;
+  introTitle?: string;
+  introDesc?: string;
+  introBadgeText?: string;
+  introImageUrl?: string;
+  introCtaText?: string;
+  // Rooms Section
+  roomsTag?: string;
+  roomsTitle?: string;
+  roomsDesc?: string;
+  roomsCtaText?: string;
+  roomsFeaturedId?: string;
+  roomsShowcaseImageUrl?: string;
+  // Artifacts Section
+  artifactsTag?: string;
+  artifactsTitle?: string;
+  artifactsDesc?: string;
+  artifactsCtaText?: string;
+  // Guide & Floor Plan Section
+  guideTag?: string;
+  guideTitle?: string;
+  guideDesc?: string;
+  guideCtaText?: string;
+  guideMapUrl?: string;
+  guideMapTitle?: string;
+  guideMapDesc?: string;
+  // Thông tin thực địa & Bản đồ Google Maps do Admin quản lý
+  guideOpeningDays?: string;
+  guideMorningHours?: string;
+  guideAfternoonHours?: string;
+  guideClosedNote?: string;
+  guideTicketAdult?: string;
+  guideTicketStudent?: string;
+  guideTicketChild?: string;
+  guideBusRoutes?: string;
+  guideParkingInfo?: string;
+  guideGoogleMapsUrl?: string;
+  guideGoogleMapsEmbed?: string;
+  guideRule1Title?: string;
+  guideRule1Desc?: string;
+  guideRule2Title?: string;
+  guideRule2Desc?: string;
+  guideRule3Title?: string;
+  guideRule3Desc?: string;
+  guideRule4Title?: string;
+  guideRule4Desc?: string;
+  // Footer
+  footerCopyrightText?: string;
   updatedAt: Date;
   updatedBy: string;
 }
@@ -72,6 +150,300 @@ const SystemBrandingSchema = new Schema<ISystemBranding>(
       trim: true,
       default: 'Bảo Tàng Lịch Sử TP.HCM'
     },
+    // Header Dynamic Menu Items (Hỗ trợ Dropdown đa cấp)
+    headerMenuItems: {
+      type: Array,
+      default: () => [
+        {
+          id: 'menu-intro',
+          label: 'Giới thiệu',
+          linkType: 'anchor',
+          target: 'intro',
+          active: true,
+          order: 1,
+          children: []
+        },
+        {
+          id: 'menu-rooms',
+          label: 'Gian phòng 360°',
+          linkType: 'page',
+          target: 'rooms',
+          active: true,
+          order: 2,
+          children: []
+        },
+        {
+          id: 'menu-artifacts',
+          label: 'Cổ vật 3D',
+          linkType: 'page',
+          target: 'artifacts',
+          active: true,
+          order: 3,
+          children: []
+        },
+        {
+          id: 'menu-guide',
+          label: 'Tham quan',
+          linkType: 'page',
+          target: 'guide',
+          active: true,
+          order: 4,
+          children: []
+        }
+      ]
+    },
+    // Hero Showcase
+    heroTitle: {
+      type: String,
+      trim: true,
+      default: 'Bảo tàng Lịch sử TP. Hồ Chí Minh'
+    },
+    heroTagline: {
+      type: String,
+      trim: true,
+      default: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.'
+    },
+    heroBannerUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    heroVideoUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    heroCta1Text: {
+      type: String,
+      trim: true,
+      default: 'Bắt Đầu Tour 360°'
+    },
+    heroCta2Text: {
+      type: String,
+      trim: true,
+      default: 'Chiêm Ngưỡng Cổ Vật 3D'
+    },
+    // Intro Section
+    introTag: {
+      type: String,
+      trim: true,
+      default: 'Kiến Trúc & Không Gian'
+    },
+    introTitle: {
+      type: String,
+      trim: true,
+      default: 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh'
+    },
+    introDesc: {
+      type: String,
+      trim: true,
+      default: 'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.'
+    },
+    introBadgeText: {
+      type: String,
+      trim: true,
+      default: 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia'
+    },
+    introImageUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    introCtaText: {
+      type: String,
+      trim: true,
+      default: 'Khám phá gian trưng bày'
+    },
+    // Rooms Section
+    roomsTag: {
+      type: String,
+      trim: true,
+      default: 'Không Gian Thực Tế Ảo'
+    },
+    roomsTitle: {
+      type: String,
+      trim: true,
+      default: 'Hệ Thống Gian Phòng Tour 360°'
+    },
+    roomsDesc: {
+      type: String,
+      trim: true,
+      default: 'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.'
+    },
+    roomsCtaText: {
+      type: String,
+      trim: true,
+      default: 'Khám phá tất cả gian phòng 360°'
+    },
+    roomsFeaturedId: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    roomsShowcaseImageUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    // Artifacts Section
+    artifactsTag: {
+      type: String,
+      trim: true,
+      default: 'Bảo Vật Di Sản & Mô Hình 3D'
+    },
+    artifactsTitle: {
+      type: String,
+      trim: true,
+      default: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản'
+    },
+    artifactsDesc: {
+      type: String,
+      trim: true,
+      default: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.'
+    },
+    artifactsCtaText: {
+      type: String,
+      trim: true,
+      default: 'Khám phá toàn bộ kho hiện vật'
+    },
+    // Guide & Floor Plan Section
+    guideTag: {
+      type: String,
+      trim: true,
+      default: 'Kế Hoạch & Sơ Đồ'
+    },
+    guideTitle: {
+      type: String,
+      trim: true,
+      default: 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa'
+    },
+    guideDesc: {
+      type: String,
+      trim: true,
+      default: 'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.'
+    },
+    guideCtaText: {
+      type: String,
+      trim: true,
+      default: 'Xem cẩm nang & sơ đồ tham quan'
+    },
+    guideMapUrl: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    guideMapTitle: {
+      type: String,
+      default: 'Sơ đồ mặt bằng các gian trưng bày',
+      trim: true
+    },
+    guideMapDesc: {
+      type: String,
+      default: 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày tại Bảo tàng Lịch sử TP.HCM',
+      trim: true
+    },
+    // Thông tin thực địa & Bản đồ Google Maps do Admin quản lý
+    guideOpeningDays: {
+      type: String,
+      default: 'Thứ Ba – Chủ Nhật',
+      trim: true
+    },
+    guideMorningHours: {
+      type: String,
+      default: '08:00 – 11:30',
+      trim: true
+    },
+    guideAfternoonHours: {
+      type: String,
+      default: '13:30 – 17:00',
+      trim: true
+    },
+    guideClosedNote: {
+      type: String,
+      default: 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.',
+      trim: true
+    },
+    guideTicketAdult: {
+      type: String,
+      default: '30.000 ₫',
+      trim: true
+    },
+    guideTicketStudent: {
+      type: String,
+      default: '15.000 ₫',
+      trim: true
+    },
+    guideTicketChild: {
+      type: String,
+      default: 'Miễn phí',
+      trim: true
+    },
+    guideBusRoutes: {
+      type: String,
+      default: 'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.',
+      trim: true
+    },
+    guideParkingInfo: {
+      type: String,
+      default: 'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.',
+      trim: true
+    },
+    guideGoogleMapsUrl: {
+      type: String,
+      default: 'https://maps.app.goo.gl/3f9m4xVjM8k3E4wz9',
+      trim: true
+    },
+    guideGoogleMapsEmbed: {
+      type: String,
+      default: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.2974959146194!2d106.70295171120286!3d10.788506858925585!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f4ae1b9338f%3A0x6b09337ec5c8d626!2zQuG6o28gdMOgbmcgTOG7i2NoIHPhu60gVGjDoG5oIHBo4buRIEjhu5MgQ2jDrSBNaW5o!5e0!3m2!1svi!2svn!4v1700000000000!5m2!1svi!2svn',
+      trim: true
+    },
+    guideRule1Title: {
+      type: String,
+      default: 'Quét mã QR tại tủ hiện vật',
+      trim: true
+    },
+    guideRule1Desc: {
+      type: String,
+      default: 'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
+      trim: true
+    },
+    guideRule2Title: {
+      type: String,
+      default: 'Thuyết minh Audio Guide song ngữ',
+      trim: true
+    },
+    guideRule2Desc: {
+      type: String,
+      default: 'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
+      trim: true
+    },
+    guideRule3Title: {
+      type: String,
+      default: 'Bảo quản di sản & Hiện vật',
+      trim: true
+    },
+    guideRule3Desc: {
+      type: String,
+      default: 'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
+      trim: true
+    },
+    guideRule4Title: {
+      type: String,
+      default: 'Trang phục & Văn minh tham quan',
+      trim: true
+    },
+    guideRule4Desc: {
+      type: String,
+      default: 'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.',
+      trim: true
+    },
+    // Footer
+    footerCopyrightText: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     updatedBy: {
       type: String,
       default: 'Hệ thống'
@@ -87,6 +459,45 @@ export const SystemBranding = mongoose.model<ISystemBranding>('SystemBranding', 
 
 export const REDIS_BRANDING_KEY = 'system:branding:config';
 
+export const DEFAULT_HEADER_MENU: IHeaderMenuItem[] = [
+  {
+    id: 'menu-intro',
+    label: 'Giới thiệu',
+    linkType: 'anchor',
+    target: 'intro',
+    active: true,
+    order: 1,
+    children: []
+  },
+  {
+    id: 'menu-rooms',
+    label: 'Gian phòng 360°',
+    linkType: 'page',
+    target: 'rooms',
+    active: true,
+    order: 2,
+    children: []
+  },
+  {
+    id: 'menu-artifacts',
+    label: 'Cổ vật 3D',
+    linkType: 'page',
+    target: 'artifacts',
+    active: true,
+    order: 3,
+    children: []
+  },
+  {
+    id: 'menu-guide',
+    label: 'Tham quan',
+    linkType: 'page',
+    target: 'guide',
+    active: true,
+    order: 4,
+    children: []
+  }
+];
+
 export const DEFAULT_BRANDING = {
   museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
   shortName: 'Bảo tàng Lịch sử',
@@ -98,6 +509,56 @@ export const DEFAULT_BRANDING = {
   contactEmail: 'huynhtanlocpp09@gmail.com',
   hotline: '(028) 3829 8146',
   emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM',
+  headerMenuItems: DEFAULT_HEADER_MENU,
+  heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
+  heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
+  heroBannerUrl: '',
+  heroVideoUrl: '',
+  heroCta1Text: 'Bắt Đầu Tour 360°',
+  heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
+  introTag: 'Kiến Trúc & Không Gian',
+  introTitle: 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh',
+  introDesc: 'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.',
+  introBadgeText: 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia',
+  introImageUrl: '',
+  introCtaText: 'Khám phá gian trưng bày',
+  roomsTag: 'Không Gian Thực Tế Ảo',
+  roomsTitle: 'Hệ Thống Gian Phòng Tour 360°',
+  roomsDesc: 'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.',
+  roomsCtaText: 'Khám phá tất cả gian phòng 360°',
+  roomsFeaturedId: '',
+  roomsShowcaseImageUrl: '',
+  artifactsTag: 'Bảo Vật Di Sản & Mô Hình 3D',
+  artifactsTitle: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản',
+  artifactsDesc: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.',
+  artifactsCtaText: 'Khám phá toàn bộ kho hiện vật',
+  guideTag: 'Kế Hoạch & Sơ Đồ',
+  guideTitle: 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa',
+  guideDesc: 'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.',
+  guideCtaText: 'Xem cẩm nang & sơ đồ tham quan',
+  guideMapUrl: '',
+  guideMapTitle: 'Sơ đồ mặt bằng các gian trưng bày',
+  guideMapDesc: 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày tại Bảo tàng Lịch sử TP.HCM',
+  guideOpeningDays: 'Thứ Ba – Chủ Nhật',
+  guideMorningHours: '08:00 – 11:30',
+  guideAfternoonHours: '13:30 – 17:00',
+  guideClosedNote: 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.',
+  guideTicketAdult: '30.000 ₫',
+  guideTicketStudent: '15.000 ₫',
+  guideTicketChild: 'Miễn phí',
+  guideBusRoutes: 'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.',
+  guideParkingInfo: 'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.',
+  guideGoogleMapsUrl: 'https://maps.app.goo.gl/3f9m4xVjM8k3E4wz9',
+  guideGoogleMapsEmbed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.2974959146194!2d106.70295171120286!3d10.788506858925585!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f4ae1b9338f%3A0x6b09337ec5c8d626!2zQuG6o28gdMOgbmcgTOG7i2NoIHPhu60gVGjDoG5oIHBo4buRIEjhu5MgQ2jDrSBNaW5o!5e0!3m2!1svi!2svn!4v1700000000000!5m2!1svi!2svn',
+  guideRule1Title: 'Quét mã QR tại tủ hiện vật',
+  guideRule1Desc: 'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
+  guideRule2Title: 'Thuyết minh Audio Guide song ngữ',
+  guideRule2Desc: 'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
+  guideRule3Title: 'Bảo quản di sản & Hiện vật',
+  guideRule3Desc: 'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
+  guideRule4Title: 'Trang phục & Văn minh tham quan',
+  guideRule4Desc: 'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.',
+  footerCopyrightText: '',
   updatedBy: 'Hệ thống'
 };
 
@@ -109,6 +570,9 @@ export async function getSystemBrandingConfig(): Promise<any> {
   try {
     const cached = await cacheGet<any>(REDIS_BRANDING_KEY);
     if (cached && cached.museumName) {
+      if (!cached.headerMenuItems || cached.headerMenuItems.length === 0) {
+        cached.headerMenuItems = DEFAULT_HEADER_MENU;
+      }
       return cached;
     }
   } catch {
@@ -120,6 +584,10 @@ export async function getSystemBrandingConfig(): Promise<any> {
     if (!branding) {
       const created = await SystemBranding.create(DEFAULT_BRANDING);
       branding = created.toObject();
+    }
+
+    if (!branding.headerMenuItems || branding.headerMenuItems.length === 0) {
+      branding.headerMenuItems = DEFAULT_HEADER_MENU;
     }
 
     try {

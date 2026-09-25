@@ -122,5 +122,6 @@ PUBLIC_IP=$(curl -s ifconfig.me || echo "103.178.233.206")
 echo -e "\n${GREEN}==============================================================================${NC}"
 echo -e "${GREEN}🎉 HỆ THỐNG ĐÃ NÂNG CẤP VÀ KHỞI ĐỘNG LẠI THÀNH CÔNG!${NC}"
 echo -e "Trình duyệt của khách tham quan và admin sẽ tự động kết nối lại vào hệ thống."
-echo -e "Địa chỉ truy cập: http://${PUBLIC_IP}"
+echo -e "Tên miền truy cập chính: http://museumhcm.duckdns.org"
+echo -e "Địa chỉ IP dự phòng:     http://${PUBLIC_IP}"
 echo -e "${GREEN}==============================================================================${NC}"

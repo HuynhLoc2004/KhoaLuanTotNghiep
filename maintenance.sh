@@ -98,7 +98,7 @@ EOF
         echo -e "\n${GREEN}==============================================================================${NC}"
         echo -e "${GREEN}✓ ĐÃ TẮT BẢO TRÌ - HỆ THỐNG ĐÃ TRỰC TUYẾN TRỞ LẠI!${NC}"
         echo -e "Tất cả các trình duyệt của khách đang mở trang bảo trì sẽ tự động tải lại."
-        echo -e "Website: http://$(curl -s ifconfig.me 2>/dev/null || echo '103.178.233.206')"
+        echo -e "Website chính: http://museumhcm.duckdns.org (hoặc http://$(curl -s ifconfig.me 2>/dev/null || echo '103.178.233.206'))"
         echo -e "${GREEN}==============================================================================${NC}"
         ;;
 

@@ -13,11 +13,13 @@ import { topicsRouter } from './routes/topics.js';
 import { authRouter } from './routes/auth.js';
 import { systemRouter } from './routes/system.js';
 import { artifactsRouter } from './routes/artifacts.js';
+import { floorPlanRouter } from './routes/floorPlan.js';
 import { seedDefaultLanguages } from './models/Language.js';
 import { seedDefaultRoles } from './models/Role.js';
 import { seedDefaultAdmin } from './models/User.js';
 import { getRedisStatus } from './services/redis.js';
 import { startArtifact3DConsumer } from './services/artifact3dQueue.js';
+import { initRealtimeRedisSubscriber } from './services/realtimeSync.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
 dotenv.config();
@@ -139,6 +141,7 @@ app.use('/api/mail', mailRouter);
 app.use('/api/languages', languagesRouter);
 app.use('/api/system', systemRouter);
 app.use('/api/artifacts', artifactsRouter);
+app.use('/api/floor-plan', floorPlanRouter);
 
 // Health check with real statuses
 app.get('/api/health', async (req, res) => {
@@ -191,6 +194,9 @@ connectMongoDB().then(async () => {
 
   // Khởi động Worker Consumer lắng nghe hàng đợi xử lý 3D
   startArtifact3DConsumer();
+
+  // Khởi động kênh Redis Pub/Sub đồng bộ thời gian thực cho mọi container/client
+  initRealtimeRedisSubscriber();
 
   app.listen(PORT, () => {
     console.log(`[Bảo tàng Lịch sử TP.HCM API] Máy chủ chạy tại http://localhost:${PORT}`);

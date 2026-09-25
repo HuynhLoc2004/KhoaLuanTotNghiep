@@ -10,22 +10,10 @@
       <stop offset="100%" stop-color="#AA7C39" />
     </linearGradient>
   </defs>
-  <!-- Nền đỏ sơn son di sản với góc bo mềm mại -->
+  <!-- Nền đỏ sơn son di sản với góc bo mềm mại đồng bộ biểu trưng bảo tàng -->
   <rect width="64" height="64" rx="14" fill="url(#bgGrad)" />
   <rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-opacity="0.85" />
   
-  <!-- Mái đền bảo tàng cổ kính hoàng gia -->
-  <path d="M32 12 L13 24 L51 24 Z" fill="url(#goldGrad)" />
-  <!-- Trán tường bảo tàng -->
-  <rect x="15" y="24" width="34" height="3" fill="url(#goldGrad)" />
-  
-  <!-- 4 Trụ cột bảo tàng di sản thanh thoát -->
-  <rect x="18" y="29" width="4.5" height="16" rx="1" fill="url(#goldGrad)" />
-  <rect x="26.5" y="29" width="4.5" height="16" rx="1" fill="url(#goldGrad)" />
-  <rect x="35" y="29" width="4.5" height="16" rx="1" fill="url(#goldGrad)" />
-  <rect x="43.5" y="29" width="4.5" height="16" rx="1" fill="url(#goldGrad)" />
-  
-  <!-- Bậc tam cấp bảo tàng -->
-  <rect x="14" y="47" width="36" height="3.5" rx="1" fill="url(#goldGrad)" />
-  <rect x="11" y="52" width="42" height="3" rx="1" fill="url(#goldGrad)" />
+  <!-- Biểu trưng chữ BT hoàng gia sắc nét đồng bộ 100% với logo website -->
+  <text x="32" y="44" font-family="'Be Vietnam Pro', system-ui, -apple-system, sans-serif, Arial" font-size="28" font-weight="800" text-anchor="middle" fill="#FFFFFF" letter-spacing="1">BT</text>
 </svg>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertTriangle, HelpCircle, Info, X } from 'lucide-react';
 import { useClientTranslation } from '../context/ClientTranslationContext';
 
@@ -27,35 +27,86 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const effectiveConfirmText = confirmText || t('common.confirm', 'Xác nhận');
   const effectiveCancelText = cancelText || t('common.cancel', 'Hủy bỏ');
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
-  const getIcon = () => {
+  const getTypeConfig = () => {
     switch (type) {
       case 'danger':
-        return <AlertTriangle size={22} style={{ color: 'var(--error)' }} />;
+        return {
+          icon: <AlertTriangle size={20} />,
+          iconBg: 'var(--error-bg)',
+          iconBorder: 'var(--error-border)',
+          iconColor: 'var(--error)',
+          confirmBtnClass: 'btn btn-danger'
+        };
       case 'warning':
-        return <HelpCircle size={22} style={{ color: 'var(--accent-gold)' }} />;
+        return {
+          icon: <HelpCircle size={20} />,
+          iconBg: 'var(--warning-bg)',
+          iconBorder: 'var(--warning-border)',
+          iconColor: 'var(--warning)',
+          confirmBtnClass: 'btn btn-primary'
+        };
       case 'info':
       default:
-        return <Info size={22} style={{ color: 'var(--primary)' }} />;
+        return {
+          icon: <Info size={20} />,
+          iconBg: 'var(--primary-light)',
+          iconBorder: 'var(--primary-border)',
+          iconColor: 'var(--primary)',
+          confirmBtnClass: 'btn btn-primary'
+        };
     }
   };
 
-  const getConfirmButtonClass = () => {
-    if (type === 'danger') return 'btn btn-danger';
-    return 'btn btn-primary';
-  };
+  const config = getTypeConfig();
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 1100 }}>
+    <div
+      className="modal-backdrop"
+      style={{ zIndex: 1100 }}
+      onClick={onCancel}
+    >
       <div
         className="modal-card"
         style={{ maxWidth: 440, padding: 0, overflow: 'hidden' }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
       >
-        <div className="modal-header" style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {getIcon()}
-            <h2 className="modal-title" style={{ fontSize: '15px' }}>{title}</h2>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: config.iconBg,
+                border: `1px solid ${config.iconBorder}`,
+                color: config.iconColor,
+                flexShrink: 0
+              }}
+            >
+              {config.icon}
+            </div>
+            <h2 id="confirm-modal-title" className="modal-title">
+              {title}
+            </h2>
           </div>
           <button
             type="button"
@@ -67,20 +118,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </button>
         </div>
 
-        <div className="modal-body" style={{ padding: '20px', fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        <div className="modal-body">
           {message}
         </div>
 
-        <div
-          className="modal-footer"
-          style={{
-            padding: '14px 20px',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 10,
-            background: 'var(--bg-card-header)'
-          }}
-        >
+        <div className="modal-footer">
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -90,7 +132,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </button>
           <button
             type="button"
-            className={`${getConfirmButtonClass()} btn-sm`}
+            className={`${config.confirmBtnClass} btn-sm`}
             onClick={() => {
               onConfirm();
             }}

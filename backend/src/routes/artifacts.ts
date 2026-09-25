@@ -5,8 +5,9 @@ import fs from 'fs';
 import { ArtifactModel } from '../models/Artifact';
 import { RoomModel } from '../models/Room';
 import { generateQRCodeBuffer, generateQRCodeDataURL } from '../services/qr';
-import { enqueue3DReconstruction, getJobStatus } from '../services/artifact3dQueue';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis';
+import { broadcastRealtimeEvent } from '../services/realtimeSync';
+import { enqueue3DReconstruction } from '../services/artifact3dQueue';
 
 export const artifactsRouter = Router();
 
@@ -201,6 +202,7 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
     // Xóa cache danh sách để phản ánh dữ liệu mới lập tức
     await cacheDelPattern('artifacts:*');
 
+    broadcastRealtimeEvent('artifacts_updated', { action: 'create', artifact: created });
     res.status(201).json({ success: true, data: created });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi tạo hiện vật: ' + err.message });
@@ -226,6 +228,7 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
       cacheDel(`artifacts:item:${updated.code}`)
     ]);
 
+    broadcastRealtimeEvent('artifacts_updated', { action: 'update', artifact: updated });
     res.json({ success: true, data: updated });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi cập nhật hiện vật: ' + err.message });
@@ -274,6 +277,7 @@ artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
       cacheDel('rooms:all')
     ]);
 
+    broadcastRealtimeEvent('artifacts_updated', { action: 'delete', artifactId: id });
     res.json({ success: true, message: 'Đã xóa hiện vật và dọn dẹp liên kết thành công' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi xóa hiện vật: ' + err.message });
@@ -472,7 +476,7 @@ artifactsRouter.get('/:id/qr-download', async (req: Request, res: Response) => {
     }
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.get('host') || 'localhost:3000';
+    const host = req.get('host') || process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || 'museumhcm.duckdns.org';
     const targetUrl = `${protocol}://${host}/artifact/${item.id}`;
 
     const buffer = await generateQRCodeBuffer(targetUrl, 1000);

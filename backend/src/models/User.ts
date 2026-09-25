@@ -85,54 +85,91 @@ UserSchema.methods.comparePassword = async function (candidate: string): Promise
 export const User = mongoose.model<IUser>('User', UserSchema);
 
 /**
- * Khởi tạo tài khoản Quản trị viên Tối cao (Toàn quyền)
- * Sử dụng email thật từ biến môi trường SMTP_USER để nhận OTP thực tế
+ * Lấy danh sách email quản trị viên được cấp quyền truy cập từ biến môi trường.
+ * Hỗ trợ các biến: ADMIN_EMAIL, ADMIN_EMAILS, hoặc SMTP_USER.
+ * Hỗ trợ nhiều email phân tách bởi dấu phẩy (,) hoặc dấu chấm phẩy (;).
+ * Hoàn toàn không fix cứng trong code, đảm bảo bảo mật và chạy thật ở production.
+ */
+export const getAllowedAdminEmails = (): string[] => {
+  const envRaw = process.env.ADMIN_EMAIL || process.env.ADMIN_EMAILS || process.env.SMTP_USER || '';
+  const list = envRaw
+    .split(/[,;]/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return list;
+};
+
+/**
+ * Kiểm tra xem một email có nằm trong danh sách Quản trị viên được cấp quyền hay không
+ */
+export const isAllowedAdminEmail = (email: string): boolean => {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  const allowed = getAllowedAdminEmails();
+  return allowed.includes(clean);
+};
+
+/**
+ * Khởi tạo hoặc đồng bộ các tài khoản Quản trị viên Tối cao (Toàn quyền)
+ * Căn cứ trực tiếp theo danh sách Email cấu hình trong biến môi trường
  */
 export const seedDefaultAdmin = async (): Promise<any> => {
   try {
-    const adminEmail = (process.env.SMTP_USER || 'huynhtanlocpp09@gmail.com').trim().toLowerCase();
-    
-    // Tìm theo username 'admin' hoặc theo email SMTP
-    let adminUser = await User.findOne({
-      $or: [{ username: 'admin' }, { email: adminEmail }]
-    });
+    const adminEmails = getAllowedAdminEmails();
+    if (adminEmails.length === 0) {
+      console.warn('[Admin Seed] Chưa có biến môi trường ADMIN_EMAIL hoặc SMTP_USER!');
+      return await User.findOne({ role: 'admin' });
+    }
 
-    if (!adminUser) {
-      adminUser = await User.create({
-        username: 'admin',
-        email: adminEmail,
-        password: 'admin',
-        fullName: 'Ban Quản trị Bảo tàng Lịch sử TP.HCM',
-        role: 'admin',
-        permissions: ['*'],
-        isActive: true
+    let primaryAdmin: any = null;
+
+    for (const email of adminEmails) {
+      const username = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'admin';
+      let adminUser = await User.findOne({
+        $or: [{ email }, { username: 'admin' }]
       });
-      console.log(`[Admin Seed] Đã khởi tạo Quản trị viên mặc định: admin / ${adminEmail}`);
-    } else {
-      // Đảm bảo admin luôn có đầy đủ quyền và đúng email cấu hình
-      let updated = false;
-      if (adminUser.role !== 'admin') {
-        adminUser.role = 'admin';
-        updated = true;
+
+      if (!adminUser) {
+        adminUser = await User.create({
+          username,
+          email,
+          password: 'NO_PASSWORD_OTP_ONLY',
+          fullName: 'Quản trị viên Bảo tàng Lịch sử TP.HCM',
+          role: 'admin',
+          permissions: ['*'],
+          isActive: true
+        });
+        console.log(`[Admin Seed] Đã khởi tạo Quản trị viên theo biến môi trường: ${email}`);
+      } else {
+        let updated = false;
+        if (adminUser.email !== email && adminUser.username === 'admin') {
+          adminUser.email = email;
+          updated = true;
+        }
+        if (adminUser.role !== 'admin') {
+          adminUser.role = 'admin';
+          updated = true;
+        }
+        if (!adminUser.permissions || !adminUser.permissions.includes('*')) {
+          adminUser.permissions = ['*'];
+          updated = true;
+        }
+        if (!adminUser.isActive) {
+          adminUser.isActive = true;
+          updated = true;
+        }
+        if (updated) {
+          await adminUser.save();
+          console.log(`[Admin Seed] Đã đồng bộ quyền Admin cho tài khoản: ${adminUser.email}`);
+        }
       }
-      if (!adminUser.permissions || !adminUser.permissions.includes('*')) {
-        adminUser.permissions = ['*'];
-        updated = true;
-      }
-      if (adminUser.email !== adminEmail && adminUser.username === 'admin') {
-        adminUser.email = adminEmail;
-        updated = true;
-      }
-      if (!adminUser.isActive) {
-        adminUser.isActive = true;
-        updated = true;
-      }
-      if (updated) {
-        await adminUser.save();
-        console.log(`[Admin Seed] Đã cập nhật quyền Admin tối cao cho tài khoản: ${adminUser.username} (${adminUser.email})`);
+
+      if (!primaryAdmin) {
+        primaryAdmin = adminUser;
       }
     }
-    return adminUser;
+
+    return primaryAdmin;
   } catch (err: any) {
     console.warn('[Admin Seed Warning]:', err.message);
     try {

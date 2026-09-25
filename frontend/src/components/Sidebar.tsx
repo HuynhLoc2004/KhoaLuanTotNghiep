@@ -1,15 +1,19 @@
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate, ChevronDown, Layers } from 'lucide-react';
 import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 import { useClientTranslation } from '../context/ClientTranslationContext';
+import { HOMEPAGE_SECTIONS } from '../constants/homepageSections';
 
 interface SidebarProps {
   currentTab: AdminTab;
   isOpen: boolean;
   onClose: () => void;
   onToggle: () => void;
-  onTabChange: (tab: AdminTab) => void;
+  onTabChange: (tab: AdminTab, sectionId?: string) => void;
   roomCount: number;
+  homepageSection?: string;
+  onHomepageSectionChange?: (sectionId: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -18,13 +22,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   onToggle,
   onTabChange,
-  roomCount
+  roomCount,
+  homepageSection,
+  onHomepageSectionChange
 }) => {
   const { branding } = useSystemBranding();
   const { t, currentLang } = useClientTranslation();
+  const [isHomepageExpanded, setIsHomepageExpanded] = useState<boolean>(true);
+
+  // Tự động mở menu con Trang chủ khi người dùng đang ở tab homepage_cms
+  useEffect(() => {
+    if (currentTab === 'homepage_cms') {
+      setIsHomepageExpanded(true);
+    }
+  }, [currentTab]);
 
   const handleItemClick = (tab: AdminTab) => {
     onTabChange(tab);
+    if (window.innerWidth <= 1024) {
+      onClose();
+    }
+  };
+
+  const handleHomepageMainClick = () => {
+    if (currentTab !== 'homepage_cms') {
+      onTabChange('homepage_cms', homepageSection || 'panel-brand');
+      setIsHomepageExpanded(true);
+    } else {
+      setIsHomepageExpanded(!isHomepageExpanded);
+    }
+  };
+
+  const handleSubSectionClick = (sectionId: string) => {
+    if (onHomepageSectionChange) {
+      onHomepageSectionChange(sectionId);
+    }
+    onTabChange('homepage_cms', sectionId);
     if (window.innerWidth <= 1024) {
       onClose();
     }
@@ -92,12 +125,62 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <nav className="sidebar-nav">
+        {/* NHÓM 1: QUẢN LÝ CÁC TRANG (PAGES CMS) */}
+        <div className="sidebar-group-label" style={{ marginTop: 2 }}>
+          <span>QUẢN LÝ CÁC TRANG</span>
+        </div>
+
+        {/* 1.1 Quản lý Trang chủ */}
+        <div className="nav-collapsible-wrapper">
+          <button
+            type="button"
+            className={`nav-item ${currentTab === 'homepage_cms' ? 'active' : ''}`}
+            onClick={handleHomepageMainClick}
+            title="Quản lý giao diện & 7 phân khu trang chủ"
+          >
+            <LayoutTemplate size={16} />
+            <span>{t('nav.homepageCms', 'Trang chủ (Homepage)')}</span>
+            <ChevronDown
+              size={14}
+              style={{
+                marginLeft: 'auto',
+                transform: isHomepageExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+                opacity: 0.7
+              }}
+            />
+          </button>
+
+          {/* Danh sách 7 phân khu độc lập của Trang chủ */}
+          {isHomepageExpanded && (
+            <div className="nav-sub-menu">
+              {HOMEPAGE_SECTIONS.map((sec) => {
+                const isSecActive = currentTab === 'homepage_cms' && (homepageSection || 'panel-brand') === sec.id;
+                return (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    className={`nav-sub-item ${isSecActive ? 'active' : ''}`}
+                    onClick={() => handleSubSectionClick(sec.id)}
+                    title={sec.desc}
+                  >
+                    <span className="nav-sub-num">{sec.num}</span>
+                    <span className="nav-sub-text">{sec.shortLabel.replace(/^\d+\.\s*/, '')}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 1.2 Quản lý Trang Gian phòng 360° */}
         <button
           className={`nav-item ${currentTab === 'rooms' || currentTab === 'studio' ? 'active' : ''}`}
           onClick={() => handleItemClick('rooms')}
+          title="Quản lý danh sách gian trưng bày, ảnh toàn cảnh 360° và các điểm hotspot"
         >
           <Compass size={16} />
-          <span>{t('nav.rooms', 'Gian trưng bày & Tour 360')}</span>
+          <span>{t('nav.roomsPage', 'Trang Gian phòng 360°')}</span>
           <span
             style={{
               marginLeft: 'auto',
@@ -113,21 +196,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </button>
 
+        {/* 1.3 Quản lý Trang Cổ vật 3D */}
+        <button
+          className={`nav-item ${currentTab === 'artifacts' ? 'active' : ''}`}
+          onClick={() => handleItemClick('artifacts')}
+          title="Quản lý kho hiện vật di sản, mô hình 3D xoay 360° và thuyết minh"
+        >
+          <Box size={16} />
+          <span>{t('nav.artifactsPage', 'Trang Cổ vật & Bảo vật 3D')}</span>
+        </button>
+
+        {/* 1.4 Quản lý Trang Cẩm nang & Sơ đồ */}
+        <button
+          className={`nav-item ${currentTab === 'guide' ? 'active' : ''}`}
+          onClick={() => handleItemClick('guide')}
+          title="Quản lý sơ đồ mặt bằng tham quan, giờ mở cửa, bảng giá vé, bản đồ và tiện ích"
+        >
+          <Layers size={16} />
+          <span>{t('nav.guidePage', 'Trang Cẩm nang & Sơ đồ')}</span>
+        </button>
+
+        {/* NHÓM 2: CÔNG CỤ TOUR 360° & ĐỒNG BỘ */}
+        <div className="sidebar-group-divider" />
+        <div className="sidebar-group-label">
+          <span>CÔNG CỤ TOUR 360°</span>
+        </div>
+
         <button
           className={`nav-item ${currentTab === 'poc_stitching' ? 'active' : ''}`}
           onClick={() => handleItemClick('poc_stitching')}
+          title="Tạo và ghép ảnh toàn cảnh equirectangular 360° từ máy ảnh hoặc webcam"
         >
           <Camera size={16} />
           <span>{t('nav.pocStitching', 'Tạo ảnh toàn cảnh 360°')}</span>
         </button>
 
-        <button
-          className={`nav-item ${currentTab === 'artifacts' ? 'active' : ''}`}
-          onClick={() => handleItemClick('artifacts')}
-        >
-          <Box size={16} />
-          <span>{t('nav.artifacts', 'Hiện vật & Cổ vật di sản')}</span>
-        </button>
+        {/* NHÓM 3: HỆ THỐNG & BÁO CÁO */}
+        <div className="sidebar-group-divider" />
+        <div className="sidebar-group-label">
+          <span>HỆ THỐNG & BÁO CÁO</span>
+        </div>
 
         <button
           className={`nav-item ${currentTab === 'languages' ? 'active' : ''}`}

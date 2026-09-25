@@ -16,6 +16,865 @@ export interface UniversalPhraseItem {
 }
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
+  // --- CLIENT PORTAL & NAVIGATION CORE TERMS (DỊCH TỨC THÌ 0MS - KHÔNG DELAY) ---
+  'Sơ đồ mặt bằng các gian trưng bày': {
+    en: 'Floor plan and layout of exhibition galleries',
+    fr: 'Plan d’ensemble et emplacement des salles d’exposition',
+    zh: '展厅空间总平面图与布局',
+    ja: '展示室フロアマップ・配置図'
+  },
+  'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày': {
+    en: 'Floor plan and layout of exhibition galleries',
+    fr: 'Plan d’ensemble et emplacement des salles d’exposition',
+    zh: '展厅空间总平面图与布局',
+    ja: '展示室フロアマップ・配置図'
+  },
+  'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày tại Bảo tàng Lịch sử TP.HCM': {
+    en: 'Spatial architectural map and locations of exhibition galleries at the History Museum of Ho Chi Minh City',
+    fr: 'Carte architecturale de l’espace et emplacement des salles d’exposition au Musée d’Histoire de Hô Chi Minh-Ville',
+    zh: '胡志明市历史博物馆空间建筑平面图与各展厅位置分布',
+    ja: 'ホーチミン市歴史博物館の空間建築マップと各展示室の配置'
+  },
+  'Chọn từng gian phòng trên sơ đồ để tra cứu tên hiện vật, quan sát hướng đi và các lối thông phòng liên kết thực tế.': {
+    en: 'Select each room on the map to look up artifact names, observe tour paths and interconnected galleries.',
+    fr: 'Sélectionnez chaque salle sur le plan pour consulter les objets, suivre les parcours et les liaisons entre les salles.',
+    zh: '在平面图上选择各展厅以查阅文物名称、观察参观路线及实际连通走廊。',
+    ja: 'マップ上の各展示室を選択して、文化財名の確認、見学順路や連絡通路の確認ができます。'
+  },
+  'Thứ Ba – Chủ Nhật': {
+    en: 'Tuesday – Sunday',
+    fr: 'Mardi – Dimanche',
+    zh: '周二至周日',
+    ja: '火曜日〜日曜日'
+  },
+  'Thứ Ba - Chủ Nhật': {
+    en: 'Tuesday – Sunday',
+    fr: 'Mardi – Dimanche',
+    zh: '周二至周日',
+    ja: '火曜日〜日曜日'
+  },
+  '08:00 – 11:30': {
+    en: '08:00 AM – 11:30 AM',
+    fr: '08h00 – 11h30',
+    zh: '08:00 – 11:30',
+    ja: '08:00 – 11:30'
+  },
+  '13:30 – 17:00': {
+    en: '01:30 PM – 05:00 PM',
+    fr: '13h30 – 17h00',
+    zh: '13:30 – 17:00',
+    ja: '13:30 – 17:00'
+  },
+  'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.': {
+    en: 'Monday: Periodically closed for artifact preservation.',
+    fr: 'Lundi : Fermeture périodique pour la conservation des objets.',
+    zh: '周一：定期闭馆进行文物保养维护。',
+    ja: '月曜日：文化財保存・定期メンテナンスのため休館。'
+  },
+  'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật': {
+    en: 'Monday: Periodically closed for artifact preservation.',
+    fr: 'Lundi : Fermeture périodique pour la conservation des objets.',
+    zh: '周一：定期闭馆进行文物保养维护。',
+    ja: '月曜日：文化財保存・定期メンテナンスのため休館。'
+  },
+  'Quầy vé ngưng nhận khách trước giờ đóng cửa 30 phút.': {
+    en: 'Ticket counter stops admitting visitors 30 minutes before closing.',
+    fr: 'La billetterie cesse d’accueillir les visiteurs 30 minutes avant la fermeture.',
+    zh: '售票处于闭馆前30分钟停止售票与入馆。',
+    ja: 'チケット販売および入場は閉館の30分前に終了します。'
+  },
+  'Quầy vé ngưng nhận khách trước giờ đóng cửa 30 phút': {
+    en: 'Ticket counter stops admitting visitors 30 minutes before closing.',
+    fr: 'La billetterie cesse d’accueillir les visiteurs 30 minutes avant la fermeture.',
+    zh: '售票处于闭馆前30分钟停止售票与入馆。',
+    ja: 'チケット販売および入場は閉館の30分前に終了します。'
+  },
+  'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.': {
+    en: 'Bus routes 05, 06, 14, 19, 52 stop right at Nguyen Binh Khiem gate.',
+    fr: 'Lignes de bus 05, 06, 14, 19, 52 avec arrêt à la porte Nguyen Binh Khiem.',
+    zh: '05、06、14、19、52路公交车在阮秉谦路门前停靠。',
+    ja: 'バス路線05、06、14、19、52番がグエン・ビン・キエム通り正門前に停車します。'
+  },
+  'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm': {
+    en: 'Bus routes 05, 06, 14, 19, 52 stop right at Nguyen Binh Khiem gate.',
+    fr: 'Lignes de bus 05, 06, 14, 19, 52 avec arrêt à la porte Nguyen Binh Khiem.',
+    zh: '05、06、14、19、52路公交车在阮秉谦路门前停靠。',
+    ja: 'バス路線05、06、14、19、52番がグエン・ビン・キエム通り正門前に停車します。'
+  },
+  'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.': {
+    en: 'Convenient motorbike and car parking right inside the museum yard.',
+    fr: 'Stationnement facile pour motos et voitures directement dans la cour du musée.',
+    zh: '博物馆院内提供便捷的摩托车和汽车停放场地。',
+    ja: '博物館構内にバイクおよび乗用車用の便利な駐車場を完備。'
+  },
+  'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng': {
+    en: 'Convenient motorbike and car parking right inside the museum yard.',
+    fr: 'Stationnement facile pour motos et voitures directement dans la cour du musée.',
+    zh: '博物馆院内提供便捷的摩托车和汽车停放场地。',
+    ja: '博物館構内にバイクおよび乗用車用の便利な駐車場を完備。'
+  },
+  'Chưa cấu hình mã nhúng bản đồ trực tiếp': {
+    en: 'Live embedded map has not been configured',
+    fr: 'Carte intégrée en direct non encore configurée',
+    zh: '尚未配置实时地图嵌入代码',
+    ja: 'ライブマップ埋め込みコードは未設定です'
+  },
+  'Quản trị viên có thể dán mã nhúng Iframe hoặc URL Google Maps trong CMS để hiển thị bản đồ trực tiếp tại đây.': {
+    en: 'Administrators can paste an Iframe embed code or Google Maps URL in CMS to display the interactive map here.',
+    fr: 'Les administrateurs peuvent coller un code d’intégration Iframe ou une URL Google Maps dans le CMS pour afficher la carte interactive ici.',
+    zh: '管理员可在后台CMS中粘贴Iframe嵌入代码或Google地图链接以在此处展示实时互动地图。',
+    ja: '管理者はCMSでIframe埋め込みコードまたはGoogleマップURLを貼り付けることで、インタラクティブマップを直接表示できます。'
+  },
+  'Quản trị viên có thể dán mã nhúng Iframe hoặc URL Google Maps trong CMS để hiển thị bản đồ trực tiếp tại đây': {
+    en: 'Administrators can paste an Iframe embed code or Google Maps URL in CMS to display the interactive map here.',
+    fr: 'Les administrateurs peuvent coller un code d’intégration Iframe ou une URL Google Maps dans le CMS pour afficher la carte interactive ici.',
+    zh: '管理员可在后台CMS中粘贴Iframe嵌入代码或Google地图链接以在此处展示实时互动地图。',
+    ja: '管理者はCMSでIframe埋め込みコードまたはGoogleマップURLを貼り付けることで、インタラクティブマップを直接表示できます。'
+  },
+  'Quét mã QR tại tủ hiện vật': {
+    en: 'Scan QR code at display cases',
+    fr: 'Scanner le code QR sur les vitrines',
+    zh: '在展品陈列柜扫描二维码',
+    ja: '展示ケースのQRコードをスキャン'
+  },
+  'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.': {
+    en: 'Each showcase is equipped with a QR code to open 360° rotating 3D models and detailed archaeological records directly on your smartphone.',
+    fr: 'Chaque vitrine est dotée d’un code QR pour afficher le modèle 3D rotatif 360° et la notice scientifique détaillée directement sur smartphone.',
+    zh: '每个展柜均配有二维码，可直接在手机上查看360°可旋转3D模型与详细文物考据档案。',
+    ja: '各展示ケースにはQRコードが設置されており、スマートフォンで360°回転3Dモデルや詳細な学術記録を閲覧できます。'
+  },
+  'Thuyết minh Audio Guide song ngữ': {
+    en: 'Bilingual Audio Guide narration',
+    fr: 'Narration Audio Guide bilingue',
+    zh: '双语语音导览解说',
+    ja: '2言語対応の音声ガイド'
+  },
+  'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.': {
+    en: 'Visitors can listen to automated narration in Vietnamese, English or other languages directly in their browser.',
+    fr: 'Les visiteurs peuvent écouter la narration automatique directement dans leur navigateur.',
+    zh: '参观游客可直接在浏览器中收听多种语言的自动语音讲解。',
+    ja: '来館者はブラウザ上で直接、多言語の自動音声解説を聴取できます。'
+  },
+  'Bảo quản di sản & Hiện vật': {
+    en: 'Heritage & artifact preservation',
+    fr: 'Préservation du patrimoine & des objets',
+    zh: '遗产与文物保护',
+    ja: '文化財・遺産の保存管理'
+  },
+  'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.': {
+    en: 'Please do not touch artifacts and avoid using flash photography in sensitive antiquity galleries.',
+    fr: 'Prière de ne pas toucher les objets et de ne pas utiliser le flash dans les salles abritant des antiquités fragiles.',
+    zh: '请勿触摸展出文物，在敏感文物展厅内拍照请勿使用闪光灯。',
+    ja: '展示品には触れず、デリケートな文化財の展示室ではフラッシュ撮影をご遠慮ください。'
+  },
+  'Trang phục & Văn minh tham quan': {
+    en: 'Dress code & visitor etiquette',
+    fr: 'Tenue vestimentaire & civisme',
+    zh: '参观着装与礼仪规范',
+    ja: '服装規定と見学マナー'
+  },
+  'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.': {
+    en: 'Polite attire required. Maintain quiet in exhibition spaces. Children under 12 must be accompanied by an adult.',
+    fr: 'Tenue correcte exigée. Merci de respecter le calme dans les galeries. Les enfants de moins de 12 ans doivent être accompagnés d’un adulte.',
+    zh: '着装得体，请在展厅内保持安静。12岁以下儿童须由成年人陪同参观。',
+    ja: '節度ある服装でお越しいただき、展示室内では静粛にお願いいたします。12歳未満のお子様には大人の同伴が必要です。'
+  },
+  'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia': {
+    en: 'National Architectural and Artistic Monument',
+    fr: 'Monument Architectural et Artistique National',
+    zh: '国家级建筑艺术遗迹',
+    ja: '国家指定建築芸術記念建造物'
+  },
+  'Kiến Trúc & Không Gian': {
+    en: 'Architecture & Heritage Space',
+    fr: 'Architecture & Espace du Patrimoine',
+    zh: '建筑与遗产空间',
+    ja: '建築と遺産空間'
+  },
+  'Khám phá gian trưng bày': {
+    en: 'Explore Exhibition Galleries',
+    fr: 'Explorer les Galeries d’Exposition',
+    zh: '探索主题展厅',
+    ja: '展示室を探索する'
+  },
+  'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.': {
+    en: 'A distinctive Indochinese architectural landmark in the heart of the city, preserving and digitizing heritage collections for immersive multimodal visitor experiences.',
+    fr: 'Un joyau architectural indochinois au cœur de la ville, préservant et numérisant les collections patrimoniales pour une visite interactive immersive.',
+    zh: '坐落于市中心的特色印度支那建筑杰作，悉心保存并数字化呈现各项珍贵文化遗产，为游客带来沉浸式多维参观体验。',
+    ja: '市内中心部に佇むインドシナ建築の傑作。貴重な文化遺産を保存・デジタル化し、臨場感あふれる多角的な鑑賞体験を提供します。'
+  },
+  'Đón khách tham quan': {
+    en: 'Open for Visitors',
+    fr: 'Ouvert aux Visiteurs',
+    zh: '开放接待游客',
+    ja: '見学受付中'
+  },
+  'Kế Hoạch & Sơ Đồ': {
+    en: 'Plan & Floor Map',
+    fr: 'Plan & Carte de Visite',
+    zh: '参观规划与平面图',
+    ja: '見学プラン・フロア図'
+  },
+  'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa': {
+    en: 'Visitor Guide & On-Site Floor Plan',
+    fr: 'Guide de Visite & Plan Réel du Musée',
+    zh: '实地参观指南与展馆平面图',
+    ja: '現地見学案内・フロア配置図'
+  },
+  'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.': {
+    en: 'Explore the museum architectural layout, locate exhibition wings, and look up practical information for your heritage journey.',
+    fr: 'Découvrez le plan architectural du musée, localisez les ailes d’exposition et recherchez les informations pratiques pour votre parcours.',
+    zh: '探索博物馆建筑空间平面图，定位各展览展翼并查阅实地参观实用信息。',
+    ja: '博物館の建築空間図面を探索し、各展示ウィングの位置を確認して有意義な見学プランにお役立てください。'
+  },
+  'Sơ đồ mặt bằng số hóa': {
+    en: 'Digitized Floor Plan',
+    fr: 'Plan Numérisé',
+    zh: '数字化平面图',
+    ja: 'デジタルフロアマップ'
+  },
+  'Thuyết minh Audio Guide': {
+    en: 'Audio Guide Narration',
+    fr: 'Narration Audio Guide',
+    zh: '语音导览解说',
+    ja: '音声ガイド解説'
+  },
+  'Bảo Tàng Số • Di Sản Văn Hóa & Không Gian Tương Tác': {
+    en: 'Digital Museum • Cultural Heritage & Interactive Spaces',
+    fr: 'Musée Numérique • Patrimoine Culturel & Espaces Interactifs',
+    zh: '数字博物馆 • 文化遗产与互动空间',
+    ja: 'デジタルミュージアム • 文化遺産とインタラクティブ空間'
+  },
+  'Bắt Đầu Tour 360°': {
+    en: 'Start 360° Tour',
+    fr: 'Commencer la Visite 360°',
+    zh: '开启360°全景漫游',
+    ja: '360°ツアーを開始'
+  },
+  'Khám Phá Cổ Vật 3D': {
+    en: 'Explore 3D Artifacts',
+    fr: 'Explorer les Objets 3D',
+    zh: '探索3D文物',
+    ja: '3D文化財を探索'
+  },
+  'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.': {
+    en: 'Explore historical journeys through immersive 360° virtual tours and vibrant 3D artifact presentations.',
+    fr: 'Explorez le cours de l’histoire à travers des visites virtuelles 360° immersives et des objets 3D interactifs.',
+    zh: '通过360°全景虚拟漫游与生动3D文物鉴赏空间，探索历史长河的璀璨文明。',
+    ja: '臨場感あふれる360°バーチャルツアーと躍動感ある3D文化財展示空間を通じて、歴史の息吹をご体感ください。'
+  },
+  'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh': {
+    en: 'No. 2 Nguyen Binh Khiem, Ben Nghe Ward, District 1, Ho Chi Minh City',
+    fr: 'N° 2 Nguyen Binh Khiem, quartier Ben Nghe, district 1, Hô Chi Minh-Ville',
+    zh: '胡志明市第1郡滨义坊阮秉谦路2号',
+    ja: 'ホーチミン市1区ベンゲー街区グエン・ビン・キエム通り2番地'
+  },
+  'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM': {
+    en: 'No. 2 Nguyen Binh Khiem, District 1, Ho Chi Minh City',
+    fr: 'N° 2 Nguyen Binh Khiem, district 1, Hô Chi Minh-Ville',
+    zh: '胡志明市第1郡阮秉谦路2号',
+    ja: 'ホーチミン市1区グエン・ビン・キエム通り2番地'
+  },
+  'Trang chủ': {
+    en: 'Home',
+    fr: 'Accueil',
+    zh: '首页',
+    ja: 'ホーム'
+  },
+  'Giới thiệu': {
+    en: 'Introduction',
+    fr: 'Introduction',
+    zh: '简介',
+    ja: 'ご紹介'
+  },
+  'Gian phòng 360°': {
+    en: '360° Rooms',
+    fr: 'Salles 360°',
+    zh: '360°展厅',
+    ja: '360°展示室'
+  },
+  'Cổ vật 3D': {
+    en: '3D Artifacts',
+    fr: 'Objets 3D',
+    zh: '3D文物',
+    ja: '3D文化財'
+  },
+  'Cổ vật & Hiện vật di sản': {
+    en: 'Antiquities & Heritage Artifacts',
+    fr: 'Antiquités & Objets du Patrimoine',
+    zh: '古物与遗产文物',
+    ja: '古代遺物・遺産文化財'
+  },
+  'Gian phòng trưng bày 360°': {
+    en: '360° Virtual Exhibition Rooms',
+    fr: 'Salles d’Exposition Virtuelle 360°',
+    zh: '360°全景虚拟展厅',
+    ja: '360°バーチャル展示室'
+  },
+  'Cẩm Nang & Sơ Đồ Tham Quan': {
+    en: 'Visitor Guide & Museum Floor Plan',
+    fr: 'Guide de Visite & Plan du Musée',
+    zh: '参观指南与展馆平面图',
+    ja: '見学案内・フロアマップ'
+  },
+  'Cẩm nang tham quan': {
+    en: 'Visitor Guide',
+    fr: 'Guide de Visite',
+    zh: '参观指南',
+    ja: '見学案内'
+  },
+  'Khám phá các hiện vật lịch sử và cổ vật được số hóa 3D.': {
+    en: 'Explore historical artifacts and antiquities digitized in 3D.',
+    fr: 'Explorez les objets historiques et les antiquités numérisés en 3D.',
+    zh: '探索通过3D数字化呈现的历史文物与古代器具。',
+    ja: '3Dデジタル化された歴史的遺物や古代の品々を鑑賞。'
+  },
+  'Tìm kiếm cổ vật, chất liệu, niên đại...': {
+    en: 'Search artifacts, materials, periods...',
+    fr: 'Rechercher des objets, matériaux, périodes...',
+    zh: '按文物名称、材质、年代搜索...',
+    ja: '遺物、材質、年代で検索...'
+  },
+  'Có mô hình 3D xoay': {
+    en: 'Rotating 3D Model',
+    fr: 'Modèle 3D interactif',
+    zh: '配有3D旋转模型',
+    ja: '3D回転モデルあり'
+  },
+  'Không tìm thấy cổ vật phù hợp với điều kiện tìm kiếm.': {
+    en: 'No artifacts found matching the search criteria.',
+    fr: 'Aucun objet correspondant aux critères de recherche.',
+    zh: '未找到符合搜索条件的文物。',
+    ja: '検索条件に一致する遺物が見つかりませんでした。'
+  },
+  'Vào tham quan 360°': {
+    en: 'Enter 360° Tour',
+    fr: 'Entrer dans la visite 360°',
+    zh: '进入360°全景漫游',
+    ja: '360°見学に入る'
+  },
+  '360° Sẵn sàng': {
+    en: '360° Ready',
+    fr: '360° Prêt',
+    zh: '360°全景就绪',
+    ja: '360°準備完了'
+  },
+  'Đang cập nhật': {
+    en: 'Updating',
+    fr: 'En mise à jour',
+    zh: '更新中',
+    ja: '更新中'
+  },
+  'Lọc theo thời kỳ & không gian': {
+    en: 'Filter by period & gallery',
+    fr: 'Filtrer par période & salle',
+    zh: '按历史时期与空间筛选',
+    ja: '時代・空間で絞り込み'
+  },
+  'Xóa lọc': {
+    en: 'Clear filter',
+    fr: 'Effacer le filtre',
+    zh: '清除筛选',
+    ja: '解除'
+  },
+  'Tất cả thời kỳ': {
+    en: 'All periods',
+    fr: 'Toutes les périodes',
+    zh: '所有时期',
+    ja: 'すべての時代'
+  },
+  'Chưa có ảnh 360°': {
+    en: 'No 360° image available',
+    fr: 'Aucune image 360° disponible',
+    zh: '暂无360°全景图',
+    ja: '360°画像未登録'
+  },
+  'điểm chú thích': {
+    en: 'hotspots',
+    fr: 'points d’intérêt',
+    zh: '处交互注释点',
+    ja: 'か所の注釈ポイント'
+  },
+  'Phóng to sơ đồ': {
+    en: 'Zoom in map',
+    fr: 'Agrandir le plan',
+    zh: '放大平面图',
+    ja: 'マップを拡大'
+  },
+  'Thông Tin Cần Biết Khi Đến Tham Quan': {
+    en: 'Essential Visitor Information',
+    fr: 'Informations Pratiques Essentielles',
+    zh: '参观须知要点',
+    ja: '見学に必要な基本情報'
+  },
+  'Giờ Mở Cửa': {
+    en: 'Opening Hours',
+    fr: 'Horaires d’Ouverture',
+    zh: '开放时间',
+    ja: '開館時間'
+  },
+  'Giá Vé Niêm Yết': {
+    en: 'Admission Fares',
+    fr: 'Tarifs des Billets',
+    zh: '门票价格',
+    ja: '観覧料金'
+  },
+  'Người lớn': {
+    en: 'Adult',
+    fr: 'Adulte',
+    zh: '成人',
+    ja: '一般・大人'
+  },
+  'Học sinh, Sinh viên': {
+    en: 'Students & Pupils',
+    fr: 'Étudiants & Écoliers',
+    zh: '大中小学生',
+    ja: '生徒・学生'
+  },
+  'Trẻ em < 6 tuổi, Người cao tuổi': {
+    en: 'Children < 6 years, Seniors',
+    fr: 'Enfants < 6 ans, Personnes âgées',
+    zh: '6岁以下儿童及长者',
+    ja: '6歳未満の小児・高齢者'
+  },
+  'Miễn phí': {
+    en: 'Free',
+    fr: 'Gratuit',
+    zh: '免费',
+    ja: '無料'
+  },
+  'Vị Trí & Bản Đồ Chỉ Đường': {
+    en: 'Location & Directions',
+    fr: 'Localisation & Itinéraires',
+    zh: '地理位置与路线指引',
+    ja: '所在地・道案内マップ'
+  },
+  'Tiện Ích & Quy Định Tham Quan': {
+    en: 'Amenities & Visitor Regulations',
+    fr: 'Services & Règles de Visite',
+    zh: '馆内便利设施与参观守则',
+    ja: '館内設備と見学規則'
+  },
+  'Mở chỉ đường trên ứng dụng Google Maps': {
+    en: 'Open directions in Google Maps',
+    fr: 'Ouvrir l’itinéraire dans Google Maps',
+    zh: '在Google地图应用中打开导航',
+    ja: 'Googleマップで道案内を開く'
+  },
+  'Tham quan': {
+    en: 'Visit',
+    fr: 'Visite',
+    zh: '参观指南',
+    ja: '見学案内'
+  },
+  'Quét QR': {
+    en: 'Scan QR',
+    fr: 'Scanner QR',
+    zh: '扫码',
+    ja: 'QRスキャン'
+  },
+  'Quét Mã QR Bằng Camera': {
+    en: 'Scan QR Code with Camera',
+    fr: "Scanner le code QR à l'aide de l'appareil photo",
+    zh: '使用相机扫描二维码',
+    ja: 'カメラでQRコードをスキャン'
+  },
+  'Quét Mã QR': {
+    en: 'Scan QR Code',
+    fr: 'Scanner le code QR',
+    zh: '扫描二维码',
+    ja: 'QRコードをスキャン'
+  },
+  'Ngôn ngữ:': {
+    en: 'Language:',
+    fr: 'Langue :',
+    zh: '语言:',
+    ja: '言語:'
+  },
+  'Ngôn ngữ': {
+    en: 'Language',
+    fr: 'Langue',
+    zh: '语言',
+    ja: '言語'
+  },
+  'Ban Quản trị Bảo tàng Lịch sử TP.HCM': {
+    en: 'Board of Management - HCMC History Museum',
+    fr: "Conseil d'administration du Musée d'histoire de Hô Chi Minh-Ville",
+    zh: '胡志明市历史博物馆管理委员会',
+    ja: 'ホーチミン市歴史博物館管理委員会'
+  },
+  'Ban Quản trị Bảo tàng Lịch sử TP. Hồ Chí Minh': {
+    en: 'Board of Management - HCMC History Museum',
+    fr: "Conseil d'administration du Musée d'histoire de Hô Chi Minh-Ville",
+    zh: '胡志明市历史博物馆管理委员会',
+    ja: 'ホーチミン市歴史博物館管理委员会'
+  },
+  'Quản trị viên hệ thống': {
+    en: 'System Administrator',
+    fr: 'Administrateur du système',
+    zh: '系统管理员',
+    ja: 'システム管理者'
+  },
+  'Đăng xuất tài khoản': {
+    en: 'Log out',
+    fr: 'Déconnecter-vous de votre compte',
+    zh: '退出账号',
+    ja: 'ログアウト'
+  },
+  'Đăng nhập': {
+    en: 'Log in',
+    fr: 'Connexion',
+    zh: '登录',
+    ja: 'ログイン'
+  },
+  'Chiêm Ngưỡng Cổ Vật 3D': {
+    en: 'Explore 3D Artifacts',
+    fr: 'Découvrir les objets 3D',
+    zh: '鉴赏3D文物',
+    ja: '3D文化財を鑑賞'
+  },
+  'GIAN PHÒNG 360°': {
+    en: '360° ROOMS',
+    fr: 'SALLES 360°',
+    zh: '360°展厅',
+    ja: '360°展示室'
+  },
+  'CỔ VẬT 3D': {
+    en: '3D ARTIFACTS',
+    fr: 'OBJETS 3D',
+    zh: '3D文物',
+    ja: '3D文化財'
+  },
+  'NGÔN NGỮ THUYẾT MINH': {
+    en: 'AUDIO LANGUAGES',
+    fr: 'LANGUES DE NARRATION',
+    zh: '解说语言',
+    ja: '解説言語'
+  },
+  'KHÔNG GIAN THỰC TẾ ẢO': {
+    en: 'VIRTUAL REALITY SPACE',
+    fr: 'ESPACE DE RÉALITÉ VIRTUELLE',
+    zh: '虚拟现实空间',
+    ja: 'バーチャルリアリティ空間'
+  },
+  'Hệ thống phòng tham quan 360°': {
+    en: '360° Virtual Tour Rooms System',
+    fr: 'Système de salles de visite à 360°',
+    zh: '360°全景展厅系统',
+    ja: '360°バーチャル見学展示室システム'
+  },
+  'Phòng 360° chưa được thêm': {
+    en: 'No 360° Room Added Yet',
+    fr: "La salle 360° n'a pas été ajoutée",
+    zh: '暂未添加360°展厅',
+    ja: '360°展示室はまだ追加されていません'
+  },
+  'Các không gian triển lãm sẽ sớm được cập nhật': {
+    en: 'Exhibition spaces will be updated soon',
+    fr: "Les espaces d'exposition seront bientôt mis à jour",
+    zh: '展览空间即将更新',
+    ja: '展示空間はまもなく更新されます'
+  },
+  'Khám phá tất cả các phòng 360°': {
+    en: 'Explore All 360° Rooms',
+    fr: 'Explorer toutes les salles à 360°',
+    zh: '探索全部360°展厅',
+    ja: 'すべての360°展示室を見る'
+  },
+  'Mới cập nhật': {
+    en: 'Recently Updated',
+    fr: 'Mis à jour récemment',
+    zh: '最新更新',
+    ja: '最近の更新'
+  },
+  'Thuyết minh đa ngôn ngữ': {
+    en: 'Multilingual Narration',
+    fr: 'Narration multilingue',
+    zh: '多语言解说',
+    ja: '多言語ナレーション'
+  },
+  'Chuyển phòng đa hướng': {
+    en: 'Multi-directional Navigation',
+    fr: 'Transition multidirectionnelle',
+    zh: '多向展厅切换',
+    ja: '多方向ルート移動'
+  },
+  'Không gian trưng bày': {
+    en: 'Exhibition spaces',
+    fr: "Espaces d'exposition",
+    zh: '展览空间',
+    ja: '展示空間'
+  },
+  'Hiện vật số hóa': {
+    en: 'Digitized artifacts',
+    fr: 'Objets numérisés',
+    zh: '数字化文物',
+    ja: 'デジタル化文化財'
+  },
+  'Quốc gia & vùng lãnh thổ': {
+    en: 'Countries & territories',
+    fr: 'Pays & territoires',
+    zh: '国家与地区',
+    ja: '国・地域'
+  },
+  'Lịch Sử & Kiến Trúc Bảo Tàng': {
+    en: 'Museum History & Architecture',
+    fr: 'Histoire & Architecture du Musée',
+    zh: '博物馆历史与建筑',
+    ja: '博物館の歴史と建築'
+  },
+  'Gần Một Thế Kỷ Gìn Giữ & Tôn Vinh Di Sản Dân Tộc': {
+    en: 'Nearly a Century of Preserving & Honoring National Heritage',
+    fr: 'Près d’un siècle de préservation et de valorisation du patrimoine national',
+    zh: '近一个世纪守护与弘扬民族遗产',
+    ja: '一世紀近くにわたり民族の遺産を守り継ぐ'
+  },
+  'Bảo Tàng Lịch Sử TP. Hồ Chí Minh': {
+    en: 'Museum of History in Ho Chi Minh City',
+    fr: "Musée d'Histoire de Hô Chi Minh-Ville",
+    zh: '胡志明市历史博物馆',
+    ja: 'ホーチミン市歴史博物館'
+  },
+  'Bảo tàng Lịch sử TP. Hồ Chí Minh': {
+    en: 'Museum of History in Ho Chi Minh City',
+    fr: "Musée d'Histoire de Hô Chi Minh-Ville",
+    zh: '胡志明市历史博物馆',
+    ja: 'ホーチミン市歴史博物館'
+  },
+  'Bảo tàng Lịch sử': {
+    en: 'History Museum',
+    fr: "Musée d'Histoire",
+    zh: '历史博物馆',
+    ja: '歴史博物館'
+  },
+  'TP. HỒ CHÍ MINH': {
+    en: 'HO CHI MINH CITY',
+    fr: 'HÔ CHI MINH-VILLE',
+    zh: '胡志明市',
+    ja: 'ホーチミン市'
+  },
+  'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động': {
+    en: 'Discover the flow of history through 360° panoramic VR technology and a vibrant 3D heritage viewing space.',
+    fr: "Découvrez le fil de l'histoire grâce à la technologie de visite virtuelle 360° et à l'espace vivant des trésors en 3D.",
+    zh: '通过360°全景虚拟现实技术与生动的3D文物空间，探索悠久的历史长河。',
+    ja: '360°パノラマVR技術と臨場感あふれる3D文化財空間を通じて、歴史の流れを体験してください。'
+  },
+  'Khám phá toàn diện từng không gian trưng bày qua ảnh toàn cảnh 360° độ nét cao. Du khách có thể di chuyển giữa các phòng, tương tác với các điểm neo chú thích cổ vật và lắng nghe thuyết minh lịch sử.': {
+    en: 'Fully explore each exhibition hall through high-definition 360° panoramas. Visitors can move between rooms, interact with artifact hotspots, and listen to historical audio narrations.',
+    fr: "Explorez l'intégralité des espaces d'exposition à travers des panoramas nets à 360°. Les visiteurs peuvent se déplacer dans les pièces, interagir với les annotations des artefacts et écouter des explications historiques.",
+    zh: '通过高清晰度360°全景图像全面探索每个展厅。参观者可以在展厅之间穿梭，与文物注释热点互动，并聆听历史解说。',
+    ja: '高精細な360°パノラマ写真を通じて各展示室を余すところなく探索できます。部屋間を移動し、文化財の解説スポットを操作して歴史ナレーションを聴くことができます。'
+  },
+  'Khám phá toàn diện từng không gian trưng bày qua ảnh toàn cảnh 360° độ nét cao. Du khách có thể di chuyển giữa các phòng, tương tác với các điểm neo chú thích cổ vật và lắng nghe thuyết minh lịch sử': {
+    en: 'Fully explore each exhibition hall through high-definition 360° panoramas. Visitors can move between rooms, interact with artifact hotspots, and listen to historical audio narrations.',
+    fr: "Explorez l'intégralité des espaces d'exposition à travers des panoramas nets à 360°. Les visiteurs peuvent se déplacer dans les pièces, interagir với les annotations des artefacts et écouter des explications historiques.",
+    zh: '通过高清晰度360°全景图像全面探索每个展厅。参观者可以在展厅之间穿梭，与文物注释热点互动，并聆听历史解说。',
+    ja: '高精細な360°パノラマ写真を通じて各展示室を余すところなく探索できます。部屋間を移動し、文化財の解説スポットを操作して歴史ナレーションを聴くことができます。'
+  },
+  'Kiến Trúc Đông Dương Cổ Điển': {
+    en: 'Classic Indochine Architecture',
+    fr: 'Architecture indochinoise classique',
+    zh: '经典印度支那建筑',
+    ja: '伝統的なインドシナ建築'
+  },
+  'Kho Tàng Cổ Vật & Bảo Vật Quốc Gia': {
+    en: 'Treasury of Antiquities & National Treasures',
+    fr: "Trésor d'antiquités & trésors nationaux",
+    zh: '古物宝库与国家宝藏',
+    ja: '古美術・国宝の宝庫'
+  },
+  'Không Gian Tour 360° Thực Tế Ảo': {
+    en: '360° Virtual Reality Tour Space',
+    fr: 'Espace de visite virtuelle 360°',
+    zh: '360°虚拟现实漫游空间',
+    ja: '360°バーチャルリアリティツアー空間'
+  },
+  'Công trình di sản gần 100 năm tuổi với tháp bát giác tráng lệ và các vòm cửa hoa văn Á Đông độc đáo.': {
+    en: 'Nearly 100-year-old heritage monument featuring a magnificent octagonal tower and unique East Asian arched motifs.',
+    fr: 'Édifice patrimonial centenaire avec sa tour octogonale majestueuse et ses arcades aux motifs orientaux.',
+    zh: '拥有近百年历史的文化遗迹，建有雄伟的八角塔和独具东方特色的拱形雕饰。',
+    ja: '荘厳な八角塔と独自の東洋風アーチ模様が特徴的な、築100年近い遺産建築。'
+  },
+  'Lưu giữ nhiều bảo vật quốc gia độc bản, văn hóa Champa, Óc Eo và di sản mỹ thuật cung đình triều Nguyễn.': {
+    en: 'Preserving numerous unique national treasures, Champa, Oc Eo cultures, and Nguyen Dynasty imperial court arts.',
+    fr: "Conserve de nombreux trésors nationaux uniques, les cultures Champa, Oc Eo et l'art royal de la dynastie des Nguyen.",
+    zh: '馆藏众多独具特色的国家宝藏，包括占婆、奥高文化及阮朝宫廷艺术遗产。',
+    ja: 'ベトナム国宝、チャンパ、オケオ文化、阮朝宮廷美術の貴重な遺産を多数所蔵。'
+  },
+  'Khám phá toàn diện từng gian phòng triển lãm với ảnh toàn cảnh độ nét cao và điểm neo hiện vật tương tác.': {
+    en: 'Fully explore each exhibition room with high-definition panoramas and interactive artifact hotspots.',
+    fr: "Explorez chaque salle d'exposition grâce à des panoramas haute définition et des points d'interaction avec les artefacts.",
+    zh: '通过高清晰度全景与交互式文物热点全面探索每个展厅。',
+    ja: '高解像度パノラマと文化財インタラクティブスポットで各展示室を探索。'
+  },
+  'Chưa có hiện vật nào phù hợp': {
+    en: 'No matching artifacts found',
+    fr: 'Aucun objet correspondant trouvé',
+    zh: '未找到匹配的文物',
+    ja: '一致する遺物は見つかりませんでした'
+  },
+  'Hệ thống chưa ghi nhận cổ vật phù hợp với bộ lọc hiện tại. Bạn có thể thêm hồ sơ hiện vật mới hoặc điều chỉnh tiêu chí tìm kiếm.': {
+    en: 'The system has not recorded any relics matching the current filter. You can add a new artifact profile or adjust your search criteria.',
+    fr: "Le système n'a trouvé aucun objet correspondant au filtre actuel. Vous pouvez ajouter un nouvel objet ou ajuster vos critères de recherche.",
+    zh: '系统未找到符合当前筛选条件的文物。您可以添加新文物或调整搜索条件。',
+    ja: '現在のフィルターに一致する遺物は記録されていません。新しい遺物を登録するか、検索条件を調整してください。'
+  },
+  'Tìm theo tên hiện vật, mã HV-..., niên đại...': {
+    en: 'Search by artifact name, code HV-..., period...',
+    fr: "Rechercher par nom d'objet, code HV-..., période...",
+    zh: '按文物名称、编号 HV-...、年代搜索...',
+    ja: '遺物名、コード HV-...、年代で検索...'
+  },
+  'Hồ sơ Cổ vật': {
+    en: 'Artifact Records',
+    fr: 'Dossiers des Objets',
+    zh: '文物档案',
+    ja: '遺物記録'
+  },
+  'Số hóa 3D Không gian': {
+    en: '3D Space Digitization',
+    fr: 'Numérisation 3D de l\'Espace',
+    zh: '3D空间数字化',
+    ja: '3D空間デジタル化'
+  },
+  'Đăng ký sổ bảo tồn di sản': {
+    en: 'Registered in conservation catalog',
+    fr: 'Inscrit au registre de conservation',
+    zh: '已录入遗产保护名录',
+    ja: '遺産保護台帳に登録済み'
+  },
+  'Sẵn sàng đĩa xoay 360°': {
+    en: 'Ready for 360° turntable',
+    fr: 'Prêt pour plateau tournant 360°',
+    zh: '已就绪360°旋转台',
+    ja: '360°回転表示対応'
+  },
+  'Đồng bộ giọng đọc bản xứ': {
+    en: 'Synchronized native voice audio',
+    fr: 'Voix native synchronisée',
+    zh: '同步母语解说语音',
+    ja: 'ネイティブ音声と同期'
+  },
+  'Sẵn sàng in thẻ trưng bày': {
+    en: 'Ready to print display cards',
+    fr: 'Prêt à imprimer les fiches d\'exposition',
+    zh: '就绪打印展位标牌',
+    ja: '展示スタンドカード印刷対応'
+  },
+  'Danh Mục Hiện Vật': {
+    en: 'Artifact Catalog',
+    fr: 'Catalogue des Objets',
+    zh: '文物名录',
+    ja: '遺物カタログ'
+  },
+  'Tất cả danh mục': {
+    en: 'All categories',
+    fr: 'Toutes les catégories',
+    zh: '所有分类',
+    ja: 'すべてのカテゴリー'
+  },
+  'Tất cả trạng thái 3D': {
+    en: 'All 3D statuses',
+    fr: 'Tous les statuts 3D',
+    zh: '所有3D状态',
+    ja: 'すべての3D状態'
+  },
+  'Đã có mô hình 3D': {
+    en: '3D model ready',
+    fr: 'Modèle 3D disponible',
+    zh: '已有3D模型',
+    ja: '3Dモデル準備完了'
+  },
+  'Đang dựng 3D': {
+    en: 'Generating 3D',
+    fr: 'Génération 3D en cours',
+    zh: '正在生成3D',
+    ja: '3D生成中'
+  },
+  'Đang dựng 3D...': {
+    en: 'Generating 3D...',
+    fr: 'Génération 3D en cours...',
+    zh: '正在生成3D...',
+    ja: '3D生成中...'
+  },
+  'Chưa có 3D': {
+    en: 'No 3D yet',
+    fr: 'Pas de modèle 3D',
+    zh: '暂无3D模型',
+    ja: '3Dモデル未作成'
+  },
+  '3D Sẵn sàng': {
+    en: '3D Ready',
+    fr: '3D Prêt',
+    zh: '3D 已就绪',
+    ja: '3D 準備完了'
+  },
+  'Ảnh 2D': {
+    en: '2D Photo',
+    fr: 'Photo 2D',
+    zh: '2D 照片',
+    ja: '2D 写真'
+  },
+  'Thêm hiện vật mới': {
+    en: 'Add new artifact',
+    fr: 'Ajouter un objet',
+    zh: '添加新文物',
+    ja: '新規遺物を追加'
+  },
+  'Xem 3D đĩa xoay 360°': {
+    en: 'View 3D 360° turntable',
+    fr: 'Voir 3D plateau tournant 360°',
+    zh: '查看3D 360°旋转视图',
+    ja: '360°ターンテーブル3D表示'
+  },
+  'Thẻ Standee QR': {
+    en: 'Standee QR Card',
+    fr: 'Fiche Standee QR',
+    zh: '立牌QR码卡',
+    ja: 'スタンドQRカード'
+  },
+  'Chỉnh sửa': {
+    en: 'Edit',
+    fr: 'Modifier',
+    zh: '编辑',
+    ja: '編集'
+  },
+  'Thêm voice': {
+    en: 'Add voice',
+    fr: 'Ajouter voix',
+    zh: '添加语音',
+    ja: '音声追加'
+  },
+  'Hình ảnh': {
+    en: 'Image',
+    fr: 'Image',
+    zh: '图像',
+    ja: '画像'
+  },
+  'Tên hiện vật & Xuất xứ': {
+    en: 'Artifact Name & Origin',
+    fr: 'Nom de l\'Objet & Origine',
+    zh: '文物名称与出土地',
+    ja: '遺物名＆出土地'
+  },
+  'Niên đại & Chuyên đề': {
+    en: 'Period & Category',
+    fr: 'Période & Thème',
+    zh: '年代与主题',
+    ja: '年代＆展示テーマ'
+  },
+  'Trạng thái 3D': {
+    en: '3D Status',
+    fr: 'Statut 3D',
+    zh: '3D 状态',
+    ja: '3D ステータス'
+  },
+  'Thuyết minh AI': {
+    en: 'AI Narration',
+    fr: 'Narration IA',
+    zh: 'AI 语音解说',
+    ja: 'AI 音声解説'
+  },
   'TP. Hồ Chí Minh • Quản trị': {
     en: 'Ho Chi Minh City • Administration',
     fr: 'Hô Chi Minh-Ville • Administration',
@@ -4300,12 +5159,6 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     zh: 'Sẵn sàng đón khách',
     ja: 'Sẵn sàng đón khách'
   },
-  'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh': {
-    en: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-    fr: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-    zh: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-    ja: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh'
-  },
   'Số hóa': {
     en: 'Số hóa',
     fr: 'Số hóa',
@@ -5787,12 +6640,6 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     fr: 'Đóng thông báo',
     zh: 'Đóng thông báo',
     ja: 'Đóng thông báo'
-  },
-  'Đăng nhập': {
-    en: 'Đăng nhập',
-    fr: 'Đăng nhập',
-    zh: 'Đăng nhập',
-    ja: 'Đăng nhập'
   },
   'Đăng nhập không thành công': {
     en: 'Đăng nhập không thành công',

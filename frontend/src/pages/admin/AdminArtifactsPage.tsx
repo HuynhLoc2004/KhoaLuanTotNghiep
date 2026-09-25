@@ -1320,7 +1320,7 @@ export const AdminArtifactsPage: React.FC = () => {
         )}
 
         {/* Phân trang chuẩn mực của hệ thống */}
-        <div style={{ borderTop: '1px solid var(--border-color)', padding: '12px 20px', background: 'var(--bg-card-header)' }}>
+        {filteredArtifacts.length > 0 && (
           <Pagination
             currentPage={currentPage}
             totalItems={filteredArtifacts.length}
@@ -1330,9 +1330,10 @@ export const AdminArtifactsPage: React.FC = () => {
               setPageSize(newSize);
               setCurrentPage(1);
             }}
+            pageSizeOptions={[6, 9, 12, 18, 24]}
             itemLabel="cổ vật"
           />
-        </div>
+        )}
       </div>
 
       {/* =========================================================================
