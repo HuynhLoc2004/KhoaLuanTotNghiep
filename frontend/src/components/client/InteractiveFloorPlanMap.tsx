@@ -77,12 +77,14 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     };
   };
 
-  // Tính toán kích thước hộp gian phòng đảm bảo vừa chữ và bố cục hài hòa
+  // Tính toán kích thước hộp gian phòng đảm bảo vừa chữ, không bị tràn ra ngoài biên sơ đồ
   const getNodeBox = (node: FloorPlanNode) => {
-    const width = Math.max(node.width, 24);
-    const height = Math.max(node.height, 18);
-    const x = node.x - (width - node.width) / 2;
-    const y = node.y - (height - node.height) / 2;
+    const width = Math.max(Math.min(node.width || 22, 28), 20);
+    const height = Math.max(Math.min(node.height || 16, 22), 14);
+    const rawX = node.x - (width - (node.width || width)) / 2;
+    const rawY = node.y - (height - (node.height || height)) / 2;
+    const x = Math.max(3, Math.min(rawX, 100 - width - 3));
+    const y = Math.max(3, Math.min(rawY, 100 - height - 3));
     return { x, y, width, height };
   };
 
@@ -325,20 +327,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 </marker>
               </defs>
 
-              {/* Ảnh bản vẽ gốc thực tế nằm nền nếu có */}
-              {floorPlan.imageUrl && (
-                <image
-                  href={floorPlan.imageUrl}
-                  x="0"
-                  y="0"
-                  width="100"
-                  height="100"
-                  preserveAspectRatio="xMidYMid meet"
-                  opacity={isLight ? 0.6 : 0.55}
-                />
-              )}
-
-              {/* Các đường liên kết lối đi tĩnh thanh mảnh, không chuyển động rối mắt */}
+              {/* Các đường liên kết lối đi tĩnh thanh mảnh, thể hiện hướng di chuyển rõ ràng giữa các gian */}
               {floorPlan.edges.map((edge) => {
                 const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
                 const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
@@ -352,6 +341,12 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 const isIncoming = activeNode && edge.toNodeId === activeNode.id;
                 const isConnectedToActive = isOutgoing || isIncoming;
 
+                const dirLabel =
+                  edge.direction === 'left' ? '← Trái' :
+                  edge.direction === 'right' ? 'Phải →' :
+                  edge.direction === 'front' ? '↑ Thẳng' :
+                  edge.direction === 'back' ? '↓ Sau' : '';
+
                 return (
                   <g
                     key={edge.id}
@@ -363,12 +358,38 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       y1={geom.y1}
                       x2={geom.x2}
                       y2={geom.y2}
-                      stroke={isConnectedToActive ? (isLight ? '#334155' : '#D4A86A') : isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)'}
-                      strokeWidth={isConnectedToActive ? 0.6 : 0.35}
-                      strokeDasharray={isConnectedToActive ? '2, 1.2' : '1.2, 1.2'}
+                      stroke={isConnectedToActive ? (isLight ? '#B45309' : '#D4A86A') : isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'}
+                      strokeWidth={isConnectedToActive ? 0.7 : 0.4}
+                      strokeDasharray={isConnectedToActive ? '2.5, 1.2' : '1.5, 1.2'}
                       markerEnd={isConnectedToActive ? 'url(#edge-arrow-active)' : 'url(#edge-arrow-default)'}
-                      opacity={isConnectedToActive ? 1 : 0.6}
+                      opacity={isConnectedToActive ? 1 : 0.65}
                     />
+
+                    {/* Nhãn hướng đi tượng trưng trên đường nối khi gian phòng đang được chọn */}
+                    {isOutgoing && dirLabel && (
+                      <g transform={`translate(${geom.midX}, ${geom.midY})`}>
+                        <rect
+                          x="-4"
+                          y="-1.4"
+                          width="8"
+                          height="2.8"
+                          rx="0.7"
+                          fill={isLight ? '#FFFFFF' : '#141A29'}
+                          stroke={isLight ? 'rgba(180, 83, 9, 0.4)' : 'rgba(212, 168, 106, 0.5)'}
+                          strokeWidth="0.2"
+                        />
+                        <text
+                          x="0"
+                          y="0.5"
+                          textAnchor="middle"
+                          fontSize="1.05"
+                          fontWeight="bold"
+                          fill={isLight ? '#B45309' : '#D4A86A'}
+                        >
+                          {dirLabel}
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}
@@ -501,6 +522,19 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                         {label.line1}
                       </text>
                     )}
+
+                    {/* Phân loại gian phòng ở đáy thẻ */}
+                    <text
+                      x={box.x + box.width / 2}
+                      y={box.y + box.height - 1.8}
+                      fill={isSelected ? (isLight ? '#B45309' : '#D4A86A') : isLight ? '#64748B' : '#94A3B8'}
+                      fontSize="1.15"
+                      fontWeight="500"
+                      textAnchor="middle"
+                      opacity={0.85}
+                    >
+                      {node.category || 'Gian Trưng Bày'}
+                    </text>
                   </g>
                 );
               })}
