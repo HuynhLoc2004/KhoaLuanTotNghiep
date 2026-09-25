@@ -48,30 +48,16 @@ floorPlanRouter.get('/', async (req: Request, res: Response) => {
     const dbRooms = await RoomModel.find({ active: true }).sort({ orderIndex: 1 }).lean();
     let floorPlan = await FloorPlanMapModel.findOne({ id: 'floor_plan_main', active: true }).lean();
 
-    // Kiểm tra tính đồng bộ giữa floorPlan và dbRooms thật:
-    // 1. Chưa có floorPlan trong CSDL
-    // 2. Số lượng node khác số lượng phòng thực tế trong CSDL
-    // 3. Có node mock cũ (như node_central_rotunda) hoặc node trỏ tới roomId không còn tồn tại
-    // 4. Tên phòng hoặc mã phòng trong node bị lệch so với dữ liệu thật trong CSDL
-    const roomSet = new Set(dbRooms.map((r: any) => r.id));
-    const hasMockNode = floorPlan?.nodes?.some((n: any) => n.id === 'node_central_rotunda' || !n.roomId || !roomSet.has(n.roomId));
-    const nodeCountMismatch = (floorPlan?.nodes?.length || 0) !== dbRooms.length;
-    const roomDataMismatch = dbRooms.some((r: any) => {
-      const node = floorPlan?.nodes?.find((n: any) => n.roomId === r.id);
-      return !node || node.name !== r.name || node.code !== r.code;
-    });
-
-    const needsResync = !floorPlan || hasMockNode || nodeCountMismatch || roomDataMismatch;
-
-    if (needsResync) {
-      console.log('[FloorPlanRoute] Phát hiện dữ liệu gian phòng thay đổi trong MongoDB, đang tự động đồng bộ lại sơ đồ mặt bằng...');
+    // Chỉ tự động khởi tạo nếu trong CSDL chưa có sơ đồ nào
+    if (!floorPlan) {
+      console.log('[FloorPlanRoute] Chưa có sơ đồ trong MongoDB, đang khởi tạo sơ đồ mặc định...');
       const branding = await getSystemBrandingConfig();
       const updatedMap = await analyzeFloorPlanImage(
         '',
-        branding?.guideMapUrl || floorPlan?.imageUrl || '',
+        branding?.guideMapUrl || '',
         {
-          title: branding?.guideMapTitle || floorPlan?.title || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày',
-          description: branding?.guideMapDesc || floorPlan?.description || 'Bản đồ kiến trúc không gian và vị trí các gian phòng'
+          title: branding?.guideMapTitle || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày',
+          description: branding?.guideMapDesc || 'Bản đồ kiến trúc không gian và vị trí các gian phòng'
         }
       );
       floorPlan = updatedMap.toObject ? updatedMap.toObject() : updatedMap;
