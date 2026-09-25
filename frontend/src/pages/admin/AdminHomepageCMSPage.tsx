@@ -39,6 +39,7 @@ import {
   CornerDownRight
 } from 'lucide-react';
 import { HOMEPAGE_SECTIONS } from '../../constants/homepageSections';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 interface AdminHomepageCMSPageProps {
   activeSection?: string;
@@ -56,6 +57,22 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   const [form, setForm] = useState<SystemBranding>(branding);
   const [isSaving, setIsSaving] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState<string>(activeSection || 'panel-brand');
+
+  // Hộp thoại xác nhận thay thế window.confirm / alert
+  const [confirmModalConfig, setConfirmModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   // Quản lý upload file
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -126,6 +143,23 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   };
 
   const handleDeleteMenuItem = (index: number) => {
+    const item = menuItems[index];
+    if (item && item.children && item.children.length > 0) {
+      setConfirmModalConfig({
+        isOpen: true,
+        title: 'Xóa mục Menu',
+        message: `Mục "${item.label}" đang có ${item.children.length} menu con. Bạn có chắc chắn muốn xóa không?`,
+        confirmText: 'Xóa mục',
+        cancelText: 'Hủy',
+        type: 'danger',
+        onConfirm: () => {
+          const updated = menuItems.filter((_, i) => i !== index);
+          updateMenuItems(updated);
+          setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
+        }
+      });
+      return;
+    }
     const updated = menuItems.filter((_, i) => i !== index);
     updateMenuItems(updated);
   };
@@ -175,10 +209,19 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   };
 
   const handleResetDefaultMenu = () => {
-    if (window.confirm('Khôi phục danh sách Menu điều hướng Header về cấu hình chuẩn ban đầu?')) {
-      updateMenuItems(DEFAULT_HEADER_MENU);
-      showToast('Đã khôi phục Menu Header mặc định', 'success');
-    }
+    setConfirmModalConfig({
+      isOpen: true,
+      title: 'Khôi phục Menu điều hướng',
+      message: 'Đặt lại danh sách thanh điều hướng về cấu hình 4 mục mặc định ban đầu?',
+      confirmText: 'Khôi phục Menu',
+      cancelText: 'Hủy',
+      type: 'warning',
+      onConfirm: () => {
+        updateMenuItems(DEFAULT_HEADER_MENU);
+        showToast('Đã khôi phục Menu Header mặc định', 'success');
+        setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const selectSection = (id: string) => {
@@ -339,70 +382,79 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
   // Khôi phục dữ liệu mẫu chuẩn của bảo tàng
   const handleResetDefaults = () => {
-    if (window.confirm('Bạn có chắc chắn muốn đặt lại tất cả nội dung trang chủ về giá trị mặc định của Bảo tàng Lịch sử TP.HCM không?')) {
-      setForm({
-        museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
-        shortName: 'Bảo tàng Lịch sử',
-        emblemText: 'BT',
-        logoUrl: '',
-        tagline: 'Hệ thống Tour 360 Không gian Di sản',
-        city: 'TP. Hồ Chí Minh',
-        address: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-        contactEmail: 'huynhtanlocpp09@gmail.com',
-        hotline: '(028) 3829 8146',
-        emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM',
-        heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
-        heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
-        heroBannerUrl: '',
-        heroVideoUrl: '',
-        heroCta1Text: 'Bắt Đầu Tour 360°',
-        heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
-        introTag: 'Kiến Trúc & Không Gian',
-        introTitle: 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh',
-        introDesc: 'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.',
-        introBadgeText: 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia',
-        introImageUrl: '',
-        introCtaText: 'Khám phá gian trưng bày',
-        roomsTag: 'Không Gian Thực Tế Ảo',
-        roomsTitle: 'Hệ Thống Gian Phòng Tour 360°',
-        roomsDesc: 'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.',
-        roomsCtaText: 'Khám phá tất cả gian phòng 360°',
-        roomsFeaturedId: '',
-        roomsShowcaseImageUrl: '',
-        artifactsTag: 'Bảo Vật Di Sản & Mô Hình 3D',
-        artifactsTitle: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản',
-        artifactsDesc: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.',
-        artifactsCtaText: 'Khám phá toàn bộ kho hiện vật',
-        guideTag: 'Kế Hoạch & Sơ Đồ',
-        guideTitle: 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa',
-        guideDesc: 'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.',
-        guideCtaText: 'Xem cẩm nang & sơ đồ tham quan',
-        guideMapUrl: '',
-        guideMapTitle: 'Sơ đồ mặt bằng các gian trưng bày',
-        guideMapDesc: 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày tại Bảo tàng Lịch sử TP.HCM',
-        guideOpeningDays: 'Thứ Ba – Chủ Nhật',
-        guideMorningHours: '08:00 – 11:30',
-        guideAfternoonHours: '13:30 – 17:00',
-        guideClosedNote: 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.',
-        guideTicketAdult: '30.000 ₫',
-        guideTicketStudent: '15.000 ₫',
-        guideTicketChild: 'Miễn phí',
-        guideBusRoutes: 'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.',
-        guideParkingInfo: 'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.',
-        guideGoogleMapsUrl: 'https://maps.app.goo.gl/3f9m4xVjM8k3E4wz9',
-        guideGoogleMapsEmbed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.2974959146194!2d106.70295171120286!3d10.788506858925585!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f4ae1b9338f%3A0x6b09337ec5c8d626!2zQuG6o28gdMOgbmcgTOG7i2NoIHPhu60gVGjDoG5oIHBo4buRIEjhu5MgQ2jDrSBNaW5o!5e0!3m2!1svi!2svn!4v1700000000000!5m2!1svi!2svn',
-        guideRule1Title: 'Quét mã QR tại tủ hiện vật',
-        guideRule1Desc: 'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
-        guideRule2Title: 'Thuyết minh Audio Guide song ngữ',
-        guideRule2Desc: 'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
-        guideRule3Title: 'Bảo quản di sản & Hiện vật',
-        guideRule3Desc: 'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
-        guideRule4Title: 'Trang phục & Văn minh tham quan',
-        guideRule4Desc: 'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.',
-        footerCopyrightText: ''
-      });
-      showToast('Đã khôi phục nội dung mẫu. Nhấn "Lưu tất cả" để áp dụng lên trang chủ.', 'info');
-    }
+    setConfirmModalConfig({
+      isOpen: true,
+      title: 'Khôi phục nội dung mẫu chuẩn',
+      message: 'Toàn bộ nội dung Trang chủ sẽ được đặt lại về giá trị mẫu chuẩn của Bảo tàng Lịch sử TP.HCM. Bạn có chắc chắn muốn thực hiện?',
+      confirmText: 'Khôi phục nội dung mẫu',
+      cancelText: 'Hủy bỏ',
+      type: 'danger',
+      onConfirm: () => {
+        setForm({
+          museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
+          shortName: 'Bảo tàng Lịch sử',
+          emblemText: 'BT',
+          logoUrl: '',
+          tagline: 'Hệ thống Tour 360 Không gian Di sản',
+          city: 'TP. Hồ Chí Minh',
+          address: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+          contactEmail: 'huynhtanlocpp09@gmail.com',
+          hotline: '(028) 3829 8146',
+          emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM',
+          heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
+          heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
+          heroBannerUrl: '',
+          heroVideoUrl: '',
+          heroCta1Text: 'Bắt Đầu Tour 360°',
+          heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
+          introTag: 'Kiến Trúc & Không Gian',
+          introTitle: 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh',
+          introDesc: 'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.',
+          introBadgeText: 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia',
+          introImageUrl: '',
+          introCtaText: 'Khám phá gian trưng bày',
+          roomsTag: 'Không Gian Thực Tế Ảo',
+          roomsTitle: 'Hệ Thống Gian Phòng Tour 360°',
+          roomsDesc: 'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.',
+          roomsCtaText: 'Khám phá tất cả gian phòng 360°',
+          roomsFeaturedId: '',
+          roomsShowcaseImageUrl: '',
+          artifactsTag: 'Bảo Vật Di Sản & Mô Hình 3D',
+          artifactsTitle: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản',
+          artifactsDesc: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.',
+          artifactsCtaText: 'Khám phá toàn bộ kho hiện vật',
+          guideTag: 'Kế Hoạch & Sơ Đồ',
+          guideTitle: 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa',
+          guideDesc: 'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.',
+          guideCtaText: 'Xem cẩm nang & sơ đồ tham quan',
+          guideMapUrl: '',
+          guideMapTitle: 'Sơ đồ mặt bằng các gian trưng bày',
+          guideMapDesc: 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày tại Bảo tàng Lịch sử TP.HCM',
+          guideOpeningDays: 'Thứ Ba – Chủ Nhật',
+          guideMorningHours: '08:00 – 11:30',
+          guideAfternoonHours: '13:30 – 17:00',
+          guideClosedNote: 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật.',
+          guideTicketAdult: '30.000 ₫',
+          guideTicketStudent: '15.000 ₫',
+          guideTicketChild: 'Miễn phí',
+          guideBusRoutes: 'Tuyến 05, 06, 14, 19, 52 dừng ngay cổng đường Nguyễn Bỉnh Khiêm.',
+          guideParkingInfo: 'Bãi đỗ xe máy và ô tô thuận tiện ngay trong sân bảo tàng.',
+          guideGoogleMapsUrl: 'https://maps.app.goo.gl/3f9m4xVjM8k3E4wz9',
+          guideGoogleMapsEmbed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.2974959146194!2d106.70295171120286!3d10.788506858925585!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f4ae1b9338f%3A0x6b09337ec5c8d626!2zQuG6o28gdMOgbmcgTOG7i2NoIHPhu60gVGjDoG5oIHBo4buRIEjhu5MgQ2jDrSBNaW5o!5e0!3m2!1svi!2svn!4v1700000000000!5m2!1svi!2svn',
+          guideRule1Title: 'Quét mã QR tại tủ hiện vật',
+          guideRule1Desc: 'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
+          guideRule2Title: 'Thuyết minh Audio Guide song ngữ',
+          guideRule2Desc: 'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
+          guideRule3Title: 'Bảo quản di sản & Hiện vật',
+          guideRule3Desc: 'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
+          guideRule4Title: 'Trang phục & Văn minh tham quan',
+          guideRule4Desc: 'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.',
+          footerCopyrightText: ''
+        });
+        showToast('Đã khôi phục nội dung mẫu. Nhấn "Lưu tất cả" để áp dụng lên trang chủ.', 'info');
+        setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const renderSectionNavFooter = (sectionIndex: number, sectionName: string) => {
@@ -2591,6 +2643,17 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           <span>{isSaving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}</span>
         </button>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmModalConfig.isOpen}
+        title={confirmModalConfig.title}
+        message={confirmModalConfig.message}
+        confirmText={confirmModalConfig.confirmText}
+        cancelText={confirmModalConfig.cancelText}
+        type={confirmModalConfig.type}
+        onConfirm={confirmModalConfig.onConfirm}
+        onCancel={() => setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };
