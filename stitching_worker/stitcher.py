@@ -550,66 +550,32 @@ def build_robust_cylindrical_panorama(images, image_paths=None):
 # ============================================================================
 
 def auto_level_panorama(image):
-    """
-    Dựng thẳng đứng kiến trúc:
-    1. Kiểm tra nếu toàn bộ ảnh bị nằm ngang (90 độ) do ảnh chụp điện thoại thiếu EXIF: Tự động nắn đứng lại.
-    2. Dựng thẳng đứng 90° kiến trúc bằng góc nghiêng Hough Line (-12° đến +12°).
-    """
+    """Dựng thẳng đứng 90° kiến trúc bằng góc nghiêng Hough Line (-12° đến +12°)."""
     if image is None or image.size == 0:
         return image
-
-    h, w = image.shape[:2]
-
-    # Nếu chiều cao lớn hơn chiều rộng, chắc chắn ảnh panorama bị dựng dọc
-    if h > w:
-        log("[*] Phát hiện panorama bị dựng dọc (H > W). Tự động xoay 90° theo chiều ngang...")
-        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-        h, w = image.shape[:2]
-
     try:
+        h, w = image.shape[:2]
         small = cv2.resize(image, (min(w, 1200), int(h * min(w, 1200) / float(w))))
         gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
         edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-        lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=80, minLineLength=int(small.shape[0] * 0.15), maxLineGap=15)
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=90, minLineLength=int(small.shape[0] * 0.25), maxLineGap=15)
 
         if lines is not None and len(lines) >= 6:
-            angles = []
+            tilts = []
             for line in lines:
                 x1, y1, x2, y2 = map(int, line.ravel())
                 deg = np.degrees(np.arctan2(y2 - y1, x2 - x1))
-                angles.append(deg)
+                if 70.0 <= abs(deg) <= 110.0:
+                    tilt = deg - 90.0 if deg > 0 else deg + 90.0
+                    if abs(tilt) <= 12.0:
+                        tilts.append(tilt)
 
-            # Kiểm tra nếu đa số đường thẳng kiến trúc nằm ngang (~0°) thay vì đứng (~90°)
-            near_horizontal = sum(1 for a in angles if abs(a) <= 20.0 or abs(a) >= 160.0)
-            near_vertical = sum(1 for a in angles if 70.0 <= abs(a) <= 110.0)
-
-            # Nếu số đường ngang áp đảo số đường đứng, ảnh đang bị xoay ngang 90 độ
-            if near_horizontal >= 15 and near_horizontal > max(1, near_vertical * 3.0):
-                log("[*] Phát hiện kiến trúc bị xoay nghiêng 90° (cột và cửa nằm ngang). Tự động nắn đứng lại...")
-                image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-                h, w = image.shape[:2]
-                small = cv2.resize(image, (min(w, 1200), int(h * min(w, 1200) / float(w))))
-                gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-                edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-                lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=80, minLineLength=int(small.shape[0] * 0.15), maxLineGap=15)
-
-            # Nắn góc nghiêng nhẹ (-12° đến +12°)
-            if lines is not None:
-                tilts = []
-                for line in lines:
-                    x1, y1, x2, y2 = map(int, line.ravel())
-                    deg = np.degrees(np.arctan2(y2 - y1, x2 - x1))
-                    if 70.0 <= abs(deg) <= 110.0:
-                        tilt = deg - 90.0 if deg > 0 else deg + 90.0
-                        if abs(tilt) <= 12.0:
-                            tilts.append(tilt)
-
-                if len(tilts) >= 4:
-                    med_tilt = float(np.median(tilts))
-                    if abs(med_tilt) > 0.4:
-                        log(f"[*] Phát hiện góc nghiêng quang học {med_tilt:.1f}°. Tự động nắn thẳng đứng 90° kiến trúc...")
-                        M = cv2.getRotationMatrix2D((w / 2.0, h / 2.0), -med_tilt, 1.0)
-                        return cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+            if len(tilts) >= 4:
+                med_tilt = float(np.median(tilts))
+                if abs(med_tilt) > 0.4:
+                    log(f"[*] Phát hiện góc nghiêng quang học {med_tilt:.1f}°. Tự động nắn thẳng đứng 90° kiến trúc...")
+                    M = cv2.getRotationMatrix2D((w / 2.0, h / 2.0), -med_tilt, 1.0)
+                    return cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
     except Exception:
         pass
     return image
