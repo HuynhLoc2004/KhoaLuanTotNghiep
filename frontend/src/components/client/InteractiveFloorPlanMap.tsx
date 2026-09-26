@@ -18,7 +18,8 @@ import {
   ZoomOut,
   Compass,
   MapPin,
-  Maximize2
+  ExternalLink,
+  Trees
 } from 'lucide-react';
 import { FloorPlanMap, FloorPlanNode, FloorPlanEdge } from '../../types';
 import './interactiveFloorPlanMap.css';
@@ -28,8 +29,6 @@ interface InteractiveFloorPlanMapProps {
   onSelectRoom360?: (roomId: string) => void;
   clientTheme?: 'light' | 'dark';
 }
-
-type MapViewMode = 'heritage' | 'topology' | 'original';
 
 const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
 const resolveImageUrl = (url?: string) => {
@@ -50,14 +49,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     floorPlan.nodes?.[0]?.id || ''
   );
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-
-  // Chế độ xem: 'heritage' (Bản đồ di sản trên nền ảnh gốc), 'topology' (Sơ đồ khối 2D), 'original' (Ảnh gốc)
-  const [viewMode, setViewMode] = useState<MapViewMode>(() => {
-    return floorPlan.imageUrl ? 'heritage' : 'topology';
-  });
-
-  // Tỉ lệ khung hình của ảnh sơ đồ gốc (Width / Height)
-  const [imageRatio, setImageRatio] = useState<number | null>(null);
+  const [showOriginalModal, setShowOriginalModal] = useState<boolean>(false);
 
   // Trạng thái Phóng to / Thu nhỏ / Kéo bản đồ (Zoom & Pan)
   const [zoom, setZoom] = useState<number>(1);
@@ -103,7 +95,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     setIsPanning(false);
   };
 
-  // Tự động đồng bộ node được chọn khi danh sách phòng từ MongoDB thay đổi
+  // Đồng bộ node đang chọn khi dữ liệu thay đổi
   useEffect(() => {
     if (floorPlan.nodes?.length) {
       if (!floorPlan.nodes.some((n) => n.id === selectedNodeId)) {
@@ -112,25 +104,18 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     }
   }, [floorPlan.nodes, selectedNodeId]);
 
-  // Nếu sơ đồ có ảnh mới và chưa đặt chế độ xem thì ưu tiên chế độ Heritage
-  useEffect(() => {
-    if (floorPlan.imageUrl && viewMode === 'topology') {
-      setViewMode('heritage');
-    }
-  }, [floorPlan.imageUrl]);
-
-  // Node đang được chọn
+  // Node đang chọn
   const activeNode = useMemo(() => {
     return floorPlan.nodes?.find((n) => n.id === selectedNodeId) || floorPlan.nodes?.[0];
   }, [floorPlan.nodes, selectedNodeId]);
 
-  // Các liên kết cửa đi ra từ node đang được chọn (outgoing doors)
+  // Các liên kết cửa đi ra từ node đang chọn (outgoing doors)
   const connectedEdges = useMemo(() => {
     if (!activeNode) return [];
     return (floorPlan.edges || []).filter((e) => e.fromNodeId === activeNode.id);
   }, [floorPlan.edges, activeNode]);
 
-  // Hướng đi kèm icon và nhãn trực quan theo 8 phương vị không gian chuẩn xác
+  // Hướng đi kèm icon và nhãn trực quan
   const getDirectionBadge = (dir: FloorPlanEdge['direction']) => {
     switch (dir) {
       case 'left':
@@ -157,7 +142,6 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     }
   };
 
-  // Nhãn ký hiệu vắn tắt hiển thị trên đường nối SVG
   const getDirShortLabel = (dir: FloorPlanEdge['direction']) => {
     switch (dir) {
       case 'left':
@@ -184,7 +168,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     }
   };
 
-  // Trích xuất số phòng hiển thị gọn gàng (ví dụ P-01 -> 1, P-18 -> 18, SANH -> S)
+  // Trích xuất số phòng hiển thị gọn gàng (P-01 -> 1)
   const getNodeDisplayNumber = (node: FloorPlanNode, fallbackIndex: number) => {
     const codeMatch = node.code?.match(/\d+/);
     if (codeMatch) return parseInt(codeMatch[0], 10);
@@ -193,45 +177,47 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     return fallbackIndex + 1;
   };
 
-  // Tính toán kích thước hộp gian phòng trong chế độ Sơ đồ khối Topology (Thu nhỏ để thoáng đãng)
-  const getTopologyBox = (node: FloorPlanNode) => {
-    const width = Math.max(Math.min(node.width || 13, 16), 11);
-    const height = Math.max(Math.min(node.height || 8.5, 11), 7.5);
+  // Rút gọn tên phòng để hiển thị tinh gọn 1 dòng trên sơ đồ 2D
+  const getShortNodeName = (name: string) => {
+    const clean = (name || '').trim();
+    if (!clean) return 'Gian phòng';
+    if (clean.length <= 16) return clean;
+    return clean.slice(0, 15) + '…';
+  };
+
+  // Tính toán hộp gian phòng trên sơ đồ 2D thoáng đãng
+  const getNodeBox = (node: FloorPlanNode) => {
+    const width = Math.max(Math.min(node.width || 14, 18), 11);
+    const height = Math.max(Math.min(node.height || 7.5, 12), 6.5);
     const rawX = node.x - (width - (node.width || width)) / 2;
     const rawY = node.y - (height - (node.height || height)) / 2;
-    const x = Math.max(2, Math.min(rawX, 100 - width - 2));
-    const y = Math.max(2, Math.min(rawY, 100 - height - 2));
+    const x = Math.max(3, Math.min(rawX, 100 - width - 3));
+    const y = Math.max(3, Math.min(rawY, 100 - height - 3));
     return { x, y, width, height };
   };
 
-  // Tính toán tâm của gian phòng để cắm ghim Hotspot trong chế độ Heritage
-  const getNodeCenter = (node: FloorPlanNode) => {
-    const cx = node.x + (node.width || 8) / 2;
-    const cy = node.y + (node.height || 6) / 2;
-    return {
-      x: Math.max(3, Math.min(97, cx)),
-      y: Math.max(3, Math.min(97, cy))
-    };
-  };
-
-  // Tính toán hình học đường nối chuẩn giữa 2 điểm tâm hoặc 2 mép hộp
+  // Tính toán hình học đường nối giữa 2 phòng
   const getEdgeGeometry = (
-    fromCenter: { x: number; y: number },
-    toCenter: { x: number; y: number },
-    marginOffset = 3.2
+    boxFrom: { x: number; y: number; width: number; height: number },
+    boxTo: { x: number; y: number; width: number; height: number }
   ) => {
-    const dx = toCenter.x - fromCenter.x;
-    const dy = toCenter.y - fromCenter.y;
+    const c1x = boxFrom.x + boxFrom.width / 2;
+    const c1y = boxFrom.y + boxFrom.height / 2;
+    const c2x = boxTo.x + boxTo.width / 2;
+    const c2y = boxTo.y + boxTo.height / 2;
+
+    const dx = c2x - c1x;
+    const dy = c2y - c1y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist === 0) return { x1: fromCenter.x, y1: fromCenter.y, x2: toCenter.x, y2: toCenter.y, midX: fromCenter.x, midY: fromCenter.y };
+    if (dist === 0) return { x1: c1x, y1: c1y, x2: c2x, y2: c2y, midX: c1x, midY: c1y };
 
     const ux = dx / dist;
     const uy = dy / dist;
 
-    const x1 = fromCenter.x + ux * marginOffset;
-    const y1 = fromCenter.y + uy * marginOffset;
-    const x2 = toCenter.x - ux * (marginOffset + 1.2);
-    const y2 = toCenter.y - uy * (marginOffset + 1.2);
+    const x1 = c1x + (boxFrom.width / 2) * ux;
+    const y1 = c1y + (boxFrom.height / 2) * uy;
+    const x2 = c2x - (boxTo.width / 2 + 1.6) * ux;
+    const y2 = c2y - (boxTo.height / 2 + 1.6) * uy;
 
     return {
       x1,
@@ -244,6 +230,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   };
 
   const isLight = clientTheme === 'light';
+  const resolvedFloorPlanImageUrl = resolveImageUrl(floorPlan.imageUrl);
 
   if (!floorPlan.nodes || floorPlan.nodes.length === 0) {
     return (
@@ -268,13 +255,11 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     );
   }
 
-  const resolvedFloorPlanImageUrl = resolveImageUrl(floorPlan.imageUrl);
-
   return (
     <div
       className="ifp-container"
       style={{
-        background: isLight ? '#FFFFFF' : '#111520',
+        background: isLight ? '#FFFFFF' : '#0F141F',
         border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.09)'}`,
         color: isLight ? '#181C26' : '#F1F5F9',
         boxShadow: isLight ? '0 8px 24px rgba(0, 0, 0, 0.05)' : '0 10px 30px rgba(0, 0, 0, 0.35)'
@@ -306,102 +291,38 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
           </div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: isLight ? '#111827' : '#FFFFFF' }}>
-              {floorPlan.title || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Phòng'}
+              {floorPlan.title || 'Sơ Đồ Mặt Bằng Các Gian Trưng Bày'}
             </div>
             <div style={{ fontSize: 12, color: isLight ? '#64748B' : '#94A3B8', marginTop: 1 }}>
-              {viewMode === 'heritage'
-                ? 'Bản đồ kiến trúc trực quan: Bấm vào số phòng hoặc điểm ghim để xem lối đi thực tế'
-                : 'Sơ đồ khối liên kết không gian: Xem hướng kết nối giữa các gian trưng bày'}
+              Bản đồ 2D kiến trúc trực quan: Chọn từng gian phòng để xem hướng di chuyển và liên kết tour thực tế
             </div>
           </div>
         </div>
 
-        {/* Thanh công cụ Chuyển Chế Độ Xem (View Mode Switcher) & Thống kê */}
-        <div className="ifp-header-badges" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {/* Bộ nút 3 Chế độ Xem Thoáng đãng */}
+        {/* Nút Xem Ảnh Gốc & Badge Thống Kê */}
+        <div className="ifp-header-badges" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {resolvedFloorPlanImageUrl && (
-            <div
+            <button
+              type="button"
+              onClick={() => setShowOriginalModal(true)}
               style={{
                 display: 'inline-flex',
-                background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.06)',
-                padding: 3,
-                borderRadius: 7,
-                border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.1)'}`,
-                gap: 2
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                background: isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)',
+                border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)'}`,
+                color: isLight ? '#475569' : '#CBD5E1',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
             >
-              <button
-                type="button"
-                onClick={() => setViewMode('heritage')}
-                title="Bản đồ kiến trúc trực quan trên nền bản vẽ di sản thật"
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: 5,
-                  fontSize: 12,
-                  fontWeight: viewMode === 'heritage' ? 600 : 500,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: viewMode === 'heritage' ? (isLight ? '#FFFFFF' : '#D4A86A') : 'transparent',
-                  color: viewMode === 'heritage' ? (isLight ? '#B45309' : '#0F131D') : (isLight ? '#64748B' : '#CBD5E1'),
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  transition: 'all 0.15s ease',
-                  boxShadow: viewMode === 'heritage' ? '0 1px 3px rgba(0, 0, 0, 0.15)' : 'none'
-                }}
-              >
-                <Compass size={13} />
-                <span>Bản đồ Di sản</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('topology')}
-                title="Sơ đồ khối 2D tinh gọn với không gian thoáng đãng"
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: 5,
-                  fontSize: 12,
-                  fontWeight: viewMode === 'topology' ? 600 : 500,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: viewMode === 'topology' ? (isLight ? '#FFFFFF' : '#D4A86A') : 'transparent',
-                  color: viewMode === 'topology' ? (isLight ? '#B45309' : '#0F131D') : (isLight ? '#64748B' : '#CBD5E1'),
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  transition: 'all 0.15s ease',
-                  boxShadow: viewMode === 'topology' ? '0 1px 3px rgba(0, 0, 0, 0.15)' : 'none'
-                }}
-              >
-                <Layers size={13} />
-                <span>Sơ đồ Khối 2D</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('original')}
-                title="Xem ảnh bản in gốc"
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: 5,
-                  fontSize: 12,
-                  fontWeight: viewMode === 'original' ? 600 : 500,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: viewMode === 'original' ? (isLight ? '#FFFFFF' : '#D4A86A') : 'transparent',
-                  color: viewMode === 'original' ? (isLight ? '#B45309' : '#0F131D') : (isLight ? '#64748B' : '#CBD5E1'),
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  transition: 'all 0.15s ease',
-                  boxShadow: viewMode === 'original' ? '0 1px 3px rgba(0, 0, 0, 0.15)' : 'none'
-                }}
-              >
-                <Eye size={13} />
-                <span>Bản vẽ gốc</span>
-              </button>
-            </div>
+              <Eye size={13} />
+              <span>Xem ảnh sơ đồ gốc</span>
+            </button>
           )}
 
           <div
@@ -418,7 +339,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               color: isLight ? '#64748B' : '#94A3B8'
             }}
           >
-            <span>{floorPlan.nodes.length} gian phòng</span>
+            <span>{floorPlan.nodes.length} gian trưng bày</span>
             <span>•</span>
             <span>{floorPlan.edges.length} lối thông phòng</span>
           </div>
@@ -427,7 +348,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
 
       {/* Khu vực Hiển thị Mặt Bằng */}
       <div className="ifp-grid">
-        {/* Canvas Hiển thị Bản đồ */}
+        {/* Canvas Sơ Đồ 2D Kiến Trúc Thoáng Đãng */}
         <div
           className="ifp-canvas-card"
           onPointerDown={handlePointerDown}
@@ -435,490 +356,382 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           style={{
-            background: isLight ? '#F8FAFC' : '#0B0F19',
+            background: isLight ? '#F8FAFC' : '#0B0F18',
             border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`,
             cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden'
+            position: 'relative'
           }}
         >
-          {/* CHẾ ĐỘ 1: BẢN ĐỒ DI SẢN TRỰC QUAN (HERITAGE OVERLAY) - Đột phá không gian thoáng đãng */}
-          {viewMode === 'heritage' && resolvedFloorPlanImageUrl && (
-            <div
-              style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                transformOrigin: '50% 50%',
-                transition: isPanning ? 'none' : 'transform 0.18s ease-out'
-              }}
-            >
-              {/* Lớp 1: Khung chứa ảnh gốc và SVG overlay căn chỉnh 100% hoàn hảo */}
-              <div
-                style={{
-                  position: 'relative',
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {/* Ảnh nền sơ đồ kiến trúc gốc */}
-                <img
-                  src={resolvedFloorPlanImageUrl}
-                  alt={floorPlan.title || 'Sơ đồ mặt bằng'}
-                  onLoad={(e) => {
-                    const { naturalWidth, naturalHeight } = e.currentTarget;
-                    if (naturalWidth && naturalHeight) {
-                      setImageRatio(naturalWidth / naturalHeight);
-                    }
-                  }}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain',
-                    display: 'block',
-                    userSelect: 'none',
-                    pointerEvents: 'none',
-                    filter: isLight ? 'none' : 'brightness(0.92) contrast(1.05)'
-                  }}
+          <svg
+            viewBox="0 0 100 100"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <defs>
+              {/* Lưới tọa độ kiến trúc mờ tinh tế */}
+              <pattern id="arch-grid" width="5" height="5" patternUnits="userSpaceOnUse">
+                <path
+                  d="M 5 0 L 0 0 0 5"
+                  fill="none"
+                  stroke={isLight ? 'rgba(0, 0, 0, 0.035)' : 'rgba(255, 255, 255, 0.025)'}
+                  strokeWidth="0.2"
                 />
+              </pattern>
 
-                {/* Lớp 2: Lớp SVG tương tác trong suốt nằm đè lên mặt ảnh */}
-                <svg
-                  viewBox="0 0 100 100"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'auto'
-                  }}
-                  preserveAspectRatio="none"
-                >
-                  <defs>
-                    {/* Đầu mũi tên phát sáng vàng neon */}
-                    <marker
-                      id="heritage-arrow-active"
-                      viewBox="0 0 10 10"
-                      refX="7"
-                      refY="5"
-                      markerWidth="4"
-                      markerHeight="4"
-                      orient="auto"
-                    >
-                      <path d="M 0 1.5 L 8 5 L 0 8.5 Z" fill="#D4A86A" />
-                    </marker>
-
-                    {/* Vòng hào quang phát sáng hoàng gia */}
-                    <filter id="gold-glow" x="-30%" y="-30%" width="160%" height="160%">
-                      <feGaussianBlur stdDeviation="1.2" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                  </defs>
-
-                  {/* 1. KHUNG HIGHLIGHT GIAN PHÒNG ĐANG CHỌN (Glassmorphic Gold Wash) */}
-                  {activeNode && (
-                    <g>
-                      <rect
-                        x={activeNode.x}
-                        y={activeNode.y}
-                        width={activeNode.width || 12}
-                        height={activeNode.height || 8}
-                        rx="1.5"
-                        fill="rgba(212, 168, 106, 0.22)"
-                        stroke="#D4A86A"
-                        strokeWidth="0.5"
-                        strokeDasharray="1.8, 1.2"
-                      />
-                    </g>
-                  )}
-
-                  {/* 2. CÁC MŨI TÊN CHỈ HƯỚNG TỪ PHÒNG ĐANG CHỌN SANG CÁC PHÒNG KẾ TIẾP */}
-                  {activeNode &&
-                    connectedEdges.map((edge) => {
-                      const targetNode = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
-                      if (!targetNode) return null;
-
-                      const cFrom = getNodeCenter(activeNode);
-                      const cTo = getNodeCenter(targetNode);
-                      const geom = getEdgeGeometry(cFrom, cTo, 2.6);
-                      const dirLabel = getDirShortLabel(edge.direction);
-
-                      return (
-                        <g
-                          key={edge.id}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedNodeId(edge.toNodeId)}
-                        >
-                          <line
-                            x1={geom.x1}
-                            y1={geom.y1}
-                            x2={geom.x2}
-                            y2={geom.y2}
-                            stroke="#D4A86A"
-                            strokeWidth="0.65"
-                            strokeDasharray="2, 1.2"
-                            markerEnd="url(#heritage-arrow-active)"
-                            filter="url(#gold-glow)"
-                          />
-                          {/* Nhãn hướng đi nhẹ nhàng trên đường chỉ dẫn */}
-                          <g transform={`translate(${geom.midX}, ${geom.midY})`}>
-                            <rect
-                              x="-4.5"
-                              y="-1.3"
-                              width="9"
-                              height="2.6"
-                              rx="0.6"
-                              fill="rgba(15, 23, 42, 0.9)"
-                              stroke="rgba(212, 168, 106, 0.6)"
-                              strokeWidth="0.2"
-                            />
-                            <text
-                              x="0"
-                              y="0.5"
-                              textAnchor="middle"
-                              fontSize="0.95"
-                              fontWeight="bold"
-                              fill="#FDE68A"
-                            >
-                              {dirLabel}
-                            </text>
-                          </g>
-                        </g>
-                      );
-                    })}
-
-                  {/* 3. CÁC ĐIỂM GHIM HERITAGE PIN HOTSPOTS CỦA TẤT CẢ CÁC GIAN PHÒNG */}
-                  {floorPlan.nodes.map((node, nodeIdx) => {
-                    const isSelected = activeNode?.id === node.id;
-                    const isHovered = hoveredNodeId === node.id;
-                    const center = getNodeCenter(node);
-                    const roomNumber = getNodeDisplayNumber(node, nodeIdx);
-
-                    return (
-                      <g
-                        key={node.id}
-                        transform={`translate(${center.x}, ${center.y})`}
-                        onClick={() => setSelectedNodeId(node.id)}
-                        onMouseEnter={() => setHoveredNodeId(node.id)}
-                        onMouseLeave={() => setHoveredNodeId(null)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {/* Vòng pulse lan tỏa khi phòng được chọn */}
-                        {isSelected && (
-                          <circle
-                            r="3.8"
-                            fill="none"
-                            stroke="#D4A86A"
-                            strokeWidth="0.4"
-                            opacity="0.7"
-                          >
-                            <animate
-                              attributeName="r"
-                              from="2.4"
-                              to="4.5"
-                              dur="1.8s"
-                              repeatCount="indefinite"
-                            />
-                            <animate
-                              attributeName="opacity"
-                              from="0.9"
-                              to="0"
-                              dur="1.8s"
-                              repeatCount="indefinite"
-                            />
-                          </circle>
-                        )}
-
-                        {/* Vòng bóng mờ pin */}
-                        <circle
-                          r={isSelected ? '2.8' : isHovered ? '2.5' : '2.2'}
-                          fill={isSelected ? '#D4A86A' : isLight ? '#1E293B' : '#0F172A'}
-                          stroke={isSelected ? '#FFFFFF' : '#D4A86A'}
-                          strokeWidth={isSelected ? '0.45' : '0.35'}
-                          filter={isSelected ? 'url(#gold-glow)' : undefined}
-                          style={{ transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)' }}
-                        />
-
-                        {/* Con số thứ tự phòng hiển thị trong tâm pin */}
-                        <text
-                          y="0.8"
-                          textAnchor="middle"
-                          fill={isSelected ? '#0F172A' : '#F8FAFC'}
-                          fontSize={isSelected ? '1.8' : '1.5'}
-                          fontWeight="bold"
-                          style={{ pointerEvents: 'none', userSelect: 'none' }}
-                        >
-                          {roomNumber}
-                        </text>
-
-                        {/* Tooltip nổi tên phòng khi hover */}
-                        {isHovered && !isSelected && (
-                          <g transform="translate(0, -3.8)">
-                            <rect
-                              x="-14"
-                              y="-2.8"
-                              width="28"
-                              height="3.6"
-                              rx="0.8"
-                              fill="rgba(15, 23, 42, 0.95)"
-                              stroke="#D4A86A"
-                              strokeWidth="0.25"
-                            />
-                            <text
-                              y="-0.4"
-                              textAnchor="middle"
-                              fill="#FDE68A"
-                              fontSize="1.15"
-                              fontWeight="600"
-                            >
-                              {node.name.length > 20 ? node.name.slice(0, 18) + '…' : node.name}
-                            </text>
-                          </g>
-                        )}
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
-            </div>
-          )}
-
-          {/* CHẾ ĐỘ 2: SƠ ĐỒ KHỐI 2D TINH GỌN (TOPOLOGY) - Không gian thoáng đãng, các khối nhỏ gọn */}
-          {viewMode === 'topology' && (
-            <svg
-              viewBox="0 0 100 100"
-              style={{ width: '100%', height: '100%', display: 'block' }}
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <defs>
-                <marker
-                  id="topo-arrow-active"
-                  viewBox="0 0 10 10"
-                  refX="8"
-                  refY="5"
-                  markerWidth="3.2"
-                  markerHeight="3.2"
-                  orient="auto"
-                >
-                  <path d="M 0 2 L 7 5 L 0 8 Z" fill={isLight ? '#B45309' : '#D4A86A'} />
-                </marker>
-
-                <marker
-                  id="topo-arrow-default"
-                  viewBox="0 0 10 10"
-                  refX="8"
-                  refY="5"
-                  markerWidth="2.5"
-                  markerHeight="2.5"
-                  orient="auto"
-                >
-                  <path
-                    d="M 0 2.5 L 6 5 L 0 7.5 Z"
-                    fill={isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.25)'}
-                  />
-                </marker>
-              </defs>
-
-              <g
-                transform={`translate(${pan.x / 4}, ${pan.y / 4}) scale(${zoom})`}
-                style={{
-                  transformOrigin: '50% 50%',
-                  transition: isPanning ? 'none' : 'transform 0.18s ease-out'
-                }}
+              {/* Mũi tên chỉ hướng lối đi phòng đang chọn */}
+              <marker
+                id="edge-arrow-active"
+                viewBox="0 0 10 10"
+                refX="7"
+                refY="5"
+                markerWidth="3.2"
+                markerHeight="3.2"
+                orient="auto"
               >
-                {/* Các đường liên kết lối đi thanh mảnh, thoáng đãng */}
-                {floorPlan.edges.map((edge) => {
-                  const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
-                  const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
-                  if (!nodeFrom || !nodeTo) return null;
+                <path d="M 0 1.5 L 8 5 L 0 8.5 Z" fill={isLight ? '#B45309' : '#D4A86A'} />
+              </marker>
 
-                  const isOutgoing = activeNode && edge.fromNodeId === activeNode.id;
-                  const isIncoming = activeNode && edge.toNodeId === activeNode.id;
-                  const isConnectedToActive = isOutgoing || isIncoming;
+              {/* Mũi tên mặc định */}
+              <marker
+                id="edge-arrow-default"
+                viewBox="0 0 10 10"
+                refX="7"
+                refY="5"
+                markerWidth="2.4"
+                markerHeight="2.4"
+                orient="auto"
+              >
+                <path
+                  d="M 0 2 L 6 5 L 0 8 Z"
+                  fill={isLight ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.2)'}
+                />
+              </marker>
+            </defs>
 
-                  if (edge.isReturn && !isOutgoing) return null;
+            {/* Nền Grid */}
+            <rect width="100" height="100" fill="url(#arch-grid)" />
 
-                  const boxFrom = getTopologyBox(nodeFrom);
-                  const boxTo = getTopologyBox(nodeTo);
-                  const c1 = { x: boxFrom.x + boxFrom.width / 2, y: boxFrom.y + boxFrom.height / 2 };
-                  const c2 = { x: boxTo.x + boxTo.width / 2, y: boxTo.y + boxTo.height / 2 };
-                  const geom = getEdgeGeometry(c1, c2, Math.max(boxFrom.width, boxFrom.height) / 2 + 1.2);
-                  const dirLabel = getDirShortLabel(edge.direction);
-
-                  return (
-                    <g
-                      key={edge.id}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setSelectedNodeId(edge.toNodeId)}
-                    >
-                      <line
-                        x1={geom.x1}
-                        y1={geom.y1}
-                        x2={geom.x2}
-                        y2={geom.y2}
-                        stroke={
-                          isConnectedToActive
-                            ? isLight ? '#B45309' : '#D4A86A'
-                            : isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)'
-                        }
-                        strokeWidth={isConnectedToActive ? 0.65 : 0.35}
-                        strokeDasharray={isConnectedToActive ? '2.2, 1.2' : '1.5, 1.2'}
-                        markerEnd={isConnectedToActive ? 'url(#topo-arrow-active)' : 'url(#topo-arrow-default)'}
-                        opacity={isConnectedToActive ? 1 : 0.6}
-                      />
-
-                      {isOutgoing && dirLabel && (
-                        <g transform={`translate(${geom.midX}, ${geom.midY})`}>
-                          <rect
-                            x="-4"
-                            y="-1.3"
-                            width="8"
-                            height="2.6"
-                            rx="0.6"
-                            fill={isLight ? '#FFFFFF' : '#141A29'}
-                            stroke={isLight ? 'rgba(180, 83, 9, 0.4)' : 'rgba(212, 168, 106, 0.5)'}
-                            strokeWidth="0.2"
-                          />
-                          <text
-                            x="0"
-                            y="0.5"
-                            textAnchor="middle"
-                            fontSize="0.95"
-                            fontWeight="bold"
-                            fill={isLight ? '#B45309' : '#D4A86A'}
-                          >
-                            {dirLabel}
-                          </text>
-                        </g>
-                      )}
-                    </g>
-                  );
-                })}
-
-                {/* Các Gian phòng nhỏ gọn, để hở không gian hành lang và sân vườn rộng rãi */}
-                {floorPlan.nodes.map((node, nodeIdx) => {
-                  const isSelected = activeNode?.id === node.id;
-                  const isHovered = hoveredNodeId === node.id;
-                  const box = getTopologyBox(node);
-                  const roomNumber = getNodeDisplayNumber(node, nodeIdx);
-
-                  return (
-                    <g
-                      key={node.id}
-                      onClick={() => setSelectedNodeId(node.id)}
-                      onMouseEnter={() => setHoveredNodeId(node.id)}
-                      onMouseLeave={() => setHoveredNodeId(null)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {/* Khối gian phòng */}
-                      <rect
-                        x={box.x}
-                        y={box.y}
-                        width={box.width}
-                        height={box.height}
-                        rx="1.5"
-                        fill={
-                          isSelected
-                            ? isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(28, 38, 58, 0.95)'
-                            : isHovered
-                            ? isLight ? 'rgba(241, 245, 249, 0.9)' : 'rgba(22, 30, 46, 0.9)'
-                            : isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(17, 24, 38, 0.82)'
-                        }
-                        stroke={
-                          isSelected
-                            ? isLight ? '#B45309' : '#D4A86A'
-                            : isHovered
-                            ? isLight ? '#94A3B8' : '#64748B'
-                            : isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.14)'
-                        }
-                        strokeWidth={isSelected ? 0.7 : 0.3}
-                      />
-
-                      {/* Huy hiệu số phòng */}
-                      <circle
-                        cx={box.x + 2.4}
-                        cy={box.y + 2.4}
-                        r="1.4"
-                        fill={isSelected ? (isLight ? '#B45309' : '#D4A86A') : isLight ? '#E2E8F0' : '#2D3748'}
-                      />
-                      <text
-                        x={box.x + 2.4}
-                        y={box.y + 2.9}
-                        fill={isSelected ? '#FFFFFF' : isLight ? '#334155' : '#CBD5E1'}
-                        fontSize="1.15"
-                        fontWeight="bold"
-                        textAnchor="middle"
-                      >
-                        {roomNumber}
-                      </text>
-
-                      {/* Mã phòng vắn tắt */}
-                      <text
-                        x={box.x + box.width - 1.2}
-                        y={box.y + 2.8}
-                        fill={isSelected ? (isLight ? '#B45309' : '#D4A86A') : isLight ? '#64748B' : '#94A3B8'}
-                        fontSize="0.95"
-                        fontWeight="bold"
-                        textAnchor="end"
-                      >
-                        {node.code}
-                      </text>
-
-                      {/* Tên gian phòng 1 dòng gọn gàng */}
-                      <text
-                        x={box.x + box.width / 2}
-                        y={box.y + box.height - 2.0}
-                        fill={isSelected ? (isLight ? '#0F172A' : '#FFFFFF') : isLight ? '#334155' : '#E2E8F0'}
-                        fontSize="1.1"
-                        fontWeight={isSelected ? 'bold' : '500'}
-                        textAnchor="middle"
-                      >
-                        {node.name.length > 13 ? node.name.slice(0, 11) + '…' : node.name}
-                      </text>
-                    </g>
-                  );
-                })}
-              </g>
-            </svg>
-          )}
-
-          {/* CHẾ ĐỘ 3: ẢNH GỐC NGUYÊN BẢN */}
-          {viewMode === 'original' && resolvedFloorPlanImageUrl && (
-            <div
+            <g
+              transform={`translate(${pan.x / 4}, ${pan.y / 4}) scale(${zoom})`}
               style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                 transformOrigin: '50% 50%',
                 transition: isPanning ? 'none' : 'transform 0.18s ease-out'
               }}
             >
-              <img
-                src={resolvedFloorPlanImageUrl}
-                alt="Floor Plan Source"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain'
-                }}
-              />
-            </div>
-          )}
+              {/* 1. KHU VỰC SÂN VƯỜN NỘI VIỆN (COURTYARD GARDEN) - Tạo không gian thở thoáng mát */}
+              <g>
+                <rect
+                  x="45"
+                  y="23"
+                  width="26"
+                  height="13"
+                  rx="2"
+                  fill={isLight ? 'rgba(34, 197, 94, 0.09)' : 'rgba(34, 197, 94, 0.08)'}
+                  stroke={isLight ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.22)'}
+                  strokeWidth="0.3"
+                  strokeDasharray="1, 1"
+                />
+                <circle cx="58" cy="29.5" r="3.2" fill={isLight ? 'rgba(34, 197, 94, 0.15)' : 'rgba(34, 197, 94, 0.12)'} />
+                <text
+                  x="58"
+                  y="29.2"
+                  textAnchor="middle"
+                  fill={isLight ? '#15803D' : '#4ADE80'}
+                  fontSize="1.1"
+                  fontWeight="600"
+                >
+                  🌿 SÂN VƯỜN NỘI VIỆN
+                </text>
+                <text
+                  x="58"
+                  y="31.2"
+                  textAnchor="middle"
+                  fill={isLight ? '#16A34A' : '#86EFAC'}
+                  fontSize="0.8"
+                  opacity="0.8"
+                >
+                  Thảm cỏ & Hồ rối nước
+                </text>
+              </g>
 
-          {/* Chỉ báo phương vị Bắc chuẩn kiến trúc & La bàn thực địa */}
+              {/* 2. CỔNG 1 (LỐI VÀO CHÍNH - NAM) */}
+              <g>
+                <rect
+                  x="45"
+                  y="88"
+                  width="10"
+                  height="6"
+                  rx="1.2"
+                  fill={isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)'}
+                  stroke={isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)'}
+                  strokeWidth="0.3"
+                />
+                <text
+                  x="50"
+                  y="91.2"
+                  textAnchor="middle"
+                  fill={isLight ? '#475569' : '#CBD5E1'}
+                  fontSize="1.15"
+                  fontWeight="bold"
+                >
+                  CỔNG 1
+                </text>
+                <text
+                  x="50"
+                  y="92.8"
+                  textAnchor="middle"
+                  fill={isLight ? '#64748B' : '#94A3B8'}
+                  fontSize="0.75"
+                >
+                  Lối vào chính (Gate 1)
+                </text>
+                <line
+                  x1="50"
+                  y1="87.8"
+                  x2="50"
+                  y2="85.5"
+                  stroke="#D4A86A"
+                  strokeWidth="0.4"
+                  strokeDasharray="1, 0.8"
+                />
+              </g>
+
+              {/* 3. CỔNG 2 & QUẦY VÉ (TÂY) */}
+              <g>
+                <rect
+                  x="14"
+                  y="30"
+                  width="10"
+                  height="10"
+                  rx="1.2"
+                  fill="rgba(234, 88, 12, 0.08)"
+                  stroke="rgba(234, 88, 12, 0.3)"
+                  strokeWidth="0.3"
+                />
+                <text
+                  x="19"
+                  y="34.5"
+                  textAnchor="middle"
+                  fill={isLight ? '#C2410C' : '#FB923C'}
+                  fontSize="1.1"
+                  fontWeight="bold"
+                >
+                  CỔNG 2
+                </text>
+                <text
+                  x="19"
+                  y="36.5"
+                  textAnchor="middle"
+                  fill={isLight ? '#EA580C' : '#FDBA74'}
+                  fontSize="0.8"
+                >
+                  Quầy vé (Ticket)
+                </text>
+              </g>
+
+              {/* 4. SẢNH TRUNG TÂM (CHUYÊN ĐỀ NGẮN HẠN / BÁT GIÁC) */}
+              <g>
+                <circle
+                  cx="50"
+                  cy="65"
+                  r="5.5"
+                  fill={isLight ? 'rgba(212, 168, 106, 0.15)' : 'rgba(212, 168, 106, 0.12)'}
+                  stroke="#D4A86A"
+                  strokeWidth="0.4"
+                  strokeDasharray="1.2, 0.8"
+                />
+                <text
+                  x="50"
+                  y="64.5"
+                  textAnchor="middle"
+                  fill={isLight ? '#B45309' : '#D4A86A'}
+                  fontSize="0.95"
+                  fontWeight="bold"
+                >
+                  SẢNH
+                </text>
+                <text
+                  x="50"
+                  y="66.2"
+                  textAnchor="middle"
+                  fill={isLight ? '#B45309' : '#FDE68A'}
+                  fontSize="0.75"
+                >
+                  Bát Giác
+                </text>
+              </g>
+
+              {/* 5. CÁC ĐƯỜNG KẾT NỐI (EDGES) - Thanh mảnh, chỉ sáng rực cho phòng đang chọn */}
+              {floorPlan.edges.map((edge) => {
+                const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
+                const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
+                if (!nodeFrom || !nodeTo) return null;
+
+                const isOutgoing = activeNode && edge.fromNodeId === activeNode.id;
+                const isIncoming = activeNode && edge.toNodeId === activeNode.id;
+                const isConnectedToActive = isOutgoing || isIncoming;
+
+                if (edge.isReturn && !isOutgoing) return null;
+
+                const boxFrom = getNodeBox(nodeFrom);
+                const boxTo = getNodeBox(nodeTo);
+                const geom = getEdgeGeometry(boxFrom, boxTo);
+                const dirLabel = getDirShortLabel(edge.direction);
+
+                return (
+                  <g
+                    key={edge.id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelectedNodeId(edge.toNodeId)}
+                  >
+                    <line
+                      x1={geom.x1}
+                      y1={geom.y1}
+                      x2={geom.x2}
+                      y2={geom.y2}
+                      stroke={
+                        isConnectedToActive
+                          ? isLight ? '#B45309' : '#D4A86A'
+                          : isLight ? 'rgba(0, 0, 0, 0.16)' : 'rgba(255, 255, 255, 0.15)'
+                      }
+                      strokeWidth={isConnectedToActive ? 0.65 : 0.28}
+                      strokeDasharray={isConnectedToActive ? '2.2, 1.2' : '1.2, 1.2'}
+                      markerEnd={isConnectedToActive ? 'url(#edge-arrow-active)' : 'url(#edge-arrow-default)'}
+                      opacity={isConnectedToActive ? 1 : 0.55}
+                    />
+
+                    {/* Nhãn hướng đi trên đường nối khi phòng đang chọn */}
+                    {isOutgoing && dirLabel && (
+                      <g transform={`translate(${geom.midX}, ${geom.midY})`}>
+                        <rect
+                          x="-3.8"
+                          y="-1.2"
+                          width="7.6"
+                          height="2.4"
+                          rx="0.5"
+                          fill={isLight ? '#FFFFFF' : '#141A29'}
+                          stroke={isLight ? 'rgba(180, 83, 9, 0.4)' : 'rgba(212, 168, 106, 0.5)'}
+                          strokeWidth="0.2"
+                        />
+                        <text
+                          x="0"
+                          y="0.45"
+                          textAnchor="middle"
+                          fontSize="0.85"
+                          fontWeight="bold"
+                          fill={isLight ? '#B45309' : '#D4A86A'}
+                        >
+                          {dirLabel}
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* 6. CÁC GIAN PHÒNG (NODES) - Rộng rãi, thoáng đãng, sắc nét */}
+              {floorPlan.nodes.map((node, nodeIdx) => {
+                const isSelected = activeNode?.id === node.id;
+                const isHovered = hoveredNodeId === node.id;
+                const box = getNodeBox(node);
+                const roomNumber = getNodeDisplayNumber(node, nodeIdx);
+                const shortName = getShortNodeName(node.name);
+
+                return (
+                  <g
+                    key={node.id}
+                    onClick={() => setSelectedNodeId(node.id)}
+                    onMouseEnter={() => setHoveredNodeId(node.id)}
+                    onMouseLeave={() => setHoveredNodeId(null)}
+                    style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                  >
+                    {/* Hộp phòng */}
+                    <rect
+                      x={box.x}
+                      y={box.y}
+                      width={box.width}
+                      height={box.height}
+                      rx="1.5"
+                      fill={
+                        isSelected
+                          ? isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(28, 38, 58, 0.96)'
+                          : isHovered
+                          ? isLight ? 'rgba(248, 250, 252, 0.95)' : 'rgba(20, 28, 42, 0.92)'
+                          : isLight ? 'rgba(255, 255, 255, 0.88)' : 'rgba(16, 22, 34, 0.84)'
+                      }
+                      stroke={
+                        isSelected
+                          ? isLight ? '#B45309' : '#D4A86A'
+                          : isHovered
+                          ? isLight ? '#94A3B8' : '#64748B'
+                          : isLight ? 'rgba(0, 0, 0, 0.14)' : 'rgba(255, 255, 255, 0.13)'
+                      }
+                      strokeWidth={isSelected ? 0.75 : 0.3}
+                    />
+
+                    {/* Vòng pulse sáng hoàng gia khi chọn */}
+                    {isSelected && (
+                      <rect
+                        x={box.x - 0.4}
+                        y={box.y - 0.4}
+                        width={box.width + 0.8}
+                        height={box.height + 0.8}
+                        rx="1.9"
+                        fill="none"
+                        stroke="#D4A86A"
+                        strokeWidth="0.25"
+                        opacity="0.4"
+                      />
+                    )}
+
+                    {/* Badge số phòng tròn góc trái */}
+                    <circle
+                      cx={box.x + 2.3}
+                      cy={box.y + 2.3}
+                      r="1.4"
+                      fill={isSelected ? (isLight ? '#B45309' : '#D4A86A') : isLight ? '#E2E8F0' : '#283446'}
+                    />
+                    <text
+                      x={box.x + 2.3}
+                      y={box.y + 2.8}
+                      fill={isSelected ? '#FFFFFF' : isLight ? '#334155' : '#CBD5E1'}
+                      fontSize="1.1"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                    >
+                      {roomNumber}
+                    </text>
+
+                    {/* Mã phòng vắn tắt góc phải */}
+                    <text
+                      x={box.x + box.width - 1.2}
+                      y={box.y + 2.7}
+                      fill={isSelected ? (isLight ? '#B45309' : '#D4A86A') : isLight ? '#64748B' : '#94A3B8'}
+                      fontSize="0.85"
+                      fontWeight="bold"
+                      textAnchor="end"
+                    >
+                      {node.code}
+                    </text>
+
+                    {/* Tên gian phòng căn giữa */}
+                    <text
+                      x={box.x + box.width / 2}
+                      y={box.y + box.height - 2.0}
+                      fill={isSelected ? (isLight ? '#0F172A' : '#FFFFFF') : isLight ? '#334155' : '#E2E8F0'}
+                      fontSize="1.0"
+                      fontWeight={isSelected ? 'bold' : '500'}
+                      textAnchor="middle"
+                    >
+                      {shortName}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          </svg>
+
+          {/* Chỉ báo La Bàn Hướng Bắc */}
           <div
             className="ifp-compass-badge"
             title={floorPlan.compassOrientation?.description || 'Hướng Bắc thực địa'}
@@ -937,7 +750,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
             </span>
           </div>
 
-          {/* Bộ công cụ Phóng to / Thu nhỏ / Reset nhanh ngay trên bản đồ */}
+          {/* Bộ công cụ Zoom & Pan */}
           <div className="ifp-canvas-controls">
             <button
               type="button"
@@ -977,13 +790,13 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
         <div
           className="ifp-details-card"
           style={{
-            background: isLight ? '#F8FAFC' : '#0E131F',
+            background: isLight ? '#F8FAFC' : '#0B0F19',
             border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`
           }}
         >
           {activeNode ? (
             <div>
-              {/* Mã & Phân loại nhẹ nhàng */}
+              {/* Mã phòng & Phân loại */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span
                   style={{
@@ -1020,7 +833,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 {activeNode.period || 'Hiện vật trưng bày lịch sử'}
               </div>
 
-              {/* Các lối đi thông sang phòng liền kề */}
+              {/* Lối đi sang các phòng kế tiếp */}
               <div
                 style={{
                   borderTop: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)'}`,
@@ -1152,6 +965,72 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
           </div>
         </div>
       </div>
+
+      {/* Modal Xem Ảnh Sơ Đồ Gốc Phóng To */}
+      {showOriginalModal && resolvedFloorPlanImageUrl && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+          onClick={() => setShowOriginalModal(false)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '85vh',
+              background: '#0B0F19',
+              borderRadius: 12,
+              padding: 12,
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#F8FAFC' }}>
+                Ảnh sơ đồ mặt bằng gốc
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowOriginalModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  padding: '2px 8px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <img
+              src={resolvedFloorPlanImageUrl}
+              alt="Bản vẽ gốc"
+              style={{
+                maxWidth: '85vw',
+                maxHeight: '75vh',
+                objectFit: 'contain',
+                borderRadius: 8
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
