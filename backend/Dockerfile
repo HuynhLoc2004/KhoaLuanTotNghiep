@@ -45,7 +45,7 @@ RUN mkdir -p /app/backend/public/uploads
 
 ENV PORT=3000
 ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=512"
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV PYTHON_PATH=python3
 ENV STITCHER_SCRIPT=/app/stitching_worker/stitcher.py
 ENV ARTIFACT_3D_SCRIPT=/app/stitching_worker/artifact_3d_generator.py
