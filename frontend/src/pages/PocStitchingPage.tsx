@@ -1090,6 +1090,7 @@ function normalizePanoUrl(rawUrl: string): string {
                 </div>
               )}
 
+              {stitchResult ? (
                 <Pannellum360Viewer
                   panoramaUrl={stitchResult.panoramaUrl}
                   title={stitchResult.filename}
@@ -1097,6 +1098,7 @@ function normalizePanoUrl(rawUrl: string): string {
                   initialPitch={0}
                   initialHfov={95}
                 />
+              ) : (
                 <div className="studio-empty-viewer">
                   <div className="studio-empty-icon">
                     <Globe size={26} />
