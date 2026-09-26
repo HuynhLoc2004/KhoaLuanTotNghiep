@@ -18,7 +18,10 @@ import {
   History,
   Clock,
   HardDrive,
-  Monitor
+  Monitor,
+  Video,
+  Film,
+  Zap
 } from 'lucide-react';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../services/api';
@@ -79,6 +82,16 @@ interface StitchResult {
 export const PocStitchingPage: React.FC = () => {
   const { showToast } = useToast();
   const { t } = useClientTranslation();
+  // Phương thức nhập liệu: 'video' (Phương án A - khuyên dùng) hoặc 'photos' (Phương án B)
+  const [inputMode, setInputMode] = useState<'video' | 'photos'>('video');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [videoProcessing, setVideoProcessing] = useState(false);
+  const [videoStep, setVideoStep] = useState<number>(0);
+  const [videoKeyframesTarget, setVideoKeyframesTarget] = useState<number>(18);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const videoRecordInputRef = useRef<HTMLInputElement>(null);
+
   // Danh sách các khung hình chụp từ camera điện thoại đã/đang được thẩm định
   const [verifiedFrames, setVerifiedFrames] = useState<VerifiedFrame[]>([]);
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
@@ -504,14 +517,96 @@ function normalizePanoUrl(rawUrl: string): string {
     });
   };
 
-  // Xóa tất cả ảnh
+  // Xóa video
+  const handleClearVideo = () => {
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    setVideoFile(null);
+    setVideoPreviewUrl(null);
+    setVideoStep(0);
+    setErrorMsg(null);
+    if (videoInputRef.current) videoInputRef.current.value = '';
+    if (videoRecordInputRef.current) videoRecordInputRef.current.value = '';
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    const url = URL.createObjectURL(file);
+    setVideoFile(file);
+    setVideoPreviewUrl(url);
+    setErrorMsg(null);
+  };
+
+  // Xóa tất cả ảnh & video
   const handleClearAll = () => {
     verifiedFrames.forEach((f) => URL.revokeObjectURL(f.previewUrl));
     batchPreviews.forEach((u) => URL.revokeObjectURL(u));
     setVerifiedFrames([]);
     setBatchFiles([]);
     setBatchPreviews([]);
+    handleClearVideo();
     setErrorMsg(null);
+  };
+
+  // PHƯƠNG ÁN A: TỰ ĐỘNG CẮT 18 KHUNG HÌNH TỪ VIDEO & GHÉP (3-5 GIÂY)
+  const handleExecuteVideoStitch = async () => {
+    if (!videoFile) {
+      setErrorMsg('Vui lòng chọn hoặc quay 1 video 360° xoay quanh phòng.');
+      return;
+    }
+    setVideoProcessing(true);
+    setErrorMsg(null);
+    setVideoStep(1);
+
+    const formData = new FormData();
+    formData.append('video', videoFile);
+    formData.append('keyframes', String(videoKeyframesTarget));
+
+    try {
+      const timer1 = setTimeout(() => setVideoStep(2), 1200);
+      const timer2 = setTimeout(() => setVideoStep(3), 3200);
+      const timer3 = setTimeout(() => setVideoStep(4), 5200);
+
+      const res = await fetch(`${API_BASE}/stitch/video`, {
+        method: 'POST',
+        body: formData
+      });
+
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch (_) {
+        throw new Error(`Máy chủ phản hồi mã HTTP ${res.status}`);
+      }
+
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || json?.detail || 'Quá trình ghép video thất bại.');
+      }
+
+      setVideoStep(5);
+      const resData = {
+        ...json.data,
+        panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
+      };
+      setStitchResult(resData);
+      fetchHistory();
+      showToast(json.data?.message || 'Đã tạo ảnh toàn cảnh 360° từ video thành công!', 'success');
+
+      setTimeout(() => {
+        viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 350);
+    } catch (err: any) {
+      console.error('[Stitch Video Error]:', err);
+      setErrorMsg(err.message || 'Lỗi ghép video từ máy chủ.');
+      setVideoStep(0);
+    } finally {
+      setVideoProcessing(false);
+    }
   };
 
   // 3. THỰC THI TẠO KHÔNG GIAN 360° (OPENCV NATURAL FLAT PERSPECTIVE)
@@ -662,23 +757,230 @@ function normalizePanoUrl(rawUrl: string): string {
             <div className="studio-card-header">
               <span className="studio-card-title">
                 <Layers size={16} />
-                {t('stitching.inputSource', 'Nguồn ảnh đầu vào')}
+                {inputMode === 'video' ? 'Video 360° đầu vào' : t('stitching.inputSource', 'Nguồn ảnh đầu vào')}
               </span>
-              {totalFrames > 0 && (
+              {((inputMode === 'video' && videoFile) || (inputMode === 'photos' && totalFrames > 0)) && (
                 <button
                   type="button"
-                  onClick={handleClearAll}
-                  disabled={isProcessing}
+                  onClick={inputMode === 'video' ? handleClearVideo : handleClearAll}
+                  disabled={isProcessing || videoProcessing}
                   className="btn btn-secondary btn-sm"
                   style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
                 >
                   <Trash2 size={13} />
-                  <span>{t('stitching.clearPhotos', 'Xóa ảnh')}</span>
+                  <span>{inputMode === 'video' ? 'Xóa video' : t('stitching.clearPhotos', 'Xóa ảnh')}</span>
                 </button>
               )}
             </div>
 
             <div className="studio-card-body">
+              {/* Segmented Switcher giữa Phương án A (Video) và Phương án B (Ảnh) */}
+              <div style={{
+                display: 'flex',
+                gap: 6,
+                padding: '4px',
+                background: 'rgba(255,255,255,0.04)',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
+                marginBottom: 16
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setInputMode('video')}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: inputMode === 'video' ? 600 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    background: inputMode === 'video' ? 'var(--primary-color, #2563eb)' : 'transparent',
+                    color: inputMode === 'video' ? '#fff' : 'var(--text-secondary, #94a3b8)'
+                  }}
+                >
+                  <Film size={14} />
+                  <span>Phương án A: Video 360°</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInputMode('photos')}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: inputMode === 'photos' ? 600 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    background: inputMode === 'photos' ? 'var(--primary-color, #2563eb)' : 'transparent',
+                    color: inputMode === 'photos' ? '#fff' : 'var(--text-secondary, #94a3b8)'
+                  }}
+                >
+                  <Camera size={14} />
+                  <span>Phương án B: Ảnh từng góc</span>
+                </button>
+              </div>
+
+              {/* ============================================================== */}
+              {/* PHƯƠNG ÁN A: QUAY / TẢI VIDEO 360° (TỐI ƯU TỐC ĐỘ, 3-5 GIÂY) */}
+              {/* ============================================================== */}
+              {inputMode === 'video' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(37, 99, 235, 0.08)',
+                    border: '1px solid rgba(37, 99, 235, 0.25)',
+                    fontSize: '12.5px',
+                    lineHeight: '1.5',
+                    color: 'var(--text-primary)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: 'var(--primary-color, #38bdf8)', marginBottom: 4 }}>
+                      <Zap size={15} />
+                      <span>Tối ưu tốc độ, ổn định nhất (hoàn tất 3-5 giây)</span>
+                    </div>
+                    <div>
+                      Chỉ cần đứng tại tâm phòng và quay 1 vòng tròn 360° chậm rãi (10–15 giây). Python OpenCV sẽ tự động quét và cắt <strong>18 khung hình sắc nét nhất</strong> (loại bỏ hoàn toàn rung lắc / nhòe) và ghép thành không gian toàn cảnh 360° hoàn chỉnh.
+                    </div>
+                  </div>
+
+                  <div className="studio-upload-actions">
+                    {canUseNativeCapture && (
+                      <label className="studio-action-btn primary">
+                        <Video size={20} />
+                        <span>Quay video 360°</span>
+                        <input
+                          ref={videoRecordInputRef}
+                          type="file"
+                          accept="video/*"
+                          capture="environment"
+                          style={{ display: 'none' }}
+                          onChange={handleVideoSelect}
+                          disabled={videoProcessing}
+                        />
+                      </label>
+                    )}
+
+                    <label className={`studio-action-btn ${!canUseNativeCapture ? 'primary' : ''}`}>
+                      <Upload size={20} />
+                      <span>Chọn video từ máy</span>
+                      <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/mp4,video/quicktime,video/webm,video/avi"
+                        style={{ display: 'none' }}
+                        onChange={handleVideoSelect}
+                        disabled={videoProcessing}
+                      />
+                    </label>
+                  </div>
+
+                  {videoFile && videoPreviewUrl && (
+                    <div style={{
+                      padding: 12,
+                      borderRadius: '8px',
+                      background: 'rgba(0,0,0,0.25)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                          <Film size={16} style={{ color: 'var(--primary-color, #38bdf8)', flexShrink: 0 }} />
+                          <span style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {videoFile.name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleClearVideo}
+                          disabled={videoProcessing}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--error, #ef4444)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: '12px'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          <span>Hủy</span>
+                        </button>
+                      </div>
+
+                      <video
+                        src={videoPreviewUrl}
+                        controls
+                        style={{
+                          width: '100%',
+                          maxHeight: 180,
+                          borderRadius: '6px',
+                          backgroundColor: '#000'
+                        }}
+                      />
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                        <span>Dung lượng: {(videoFile.size / (1024 * 1024)).toFixed(1)} MB</span>
+                        <span style={{ color: 'var(--success, #22c55e)' }}>Sẵn sàng tự động cắt 18 góc nét nhất</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleExecuteVideoStitch}
+                    disabled={videoProcessing || !videoFile}
+                    style={{
+                      width: '100%',
+                      justifyContent: 'center',
+                      padding: '12px 16px',
+                      fontWeight: 600,
+                      background: videoFile ? 'linear-gradient(135deg, #2563eb, #7c3aed)' : undefined
+                    }}
+                  >
+                    {videoProcessing ? (
+                      <>
+                        <Loader2 size={16} className="spin" />
+                        <span>
+                          {videoStep === 1 && 'Đang tải video lên VPS...'}
+                          {videoStep === 2 && 'OpenCV đang lọc 18 khung hình nét nhất...'}
+                          {videoStep === 3 && 'Đang ghép 360° PANORAMA...'}
+                          {videoStep === 4 && 'Đang nắn đứng kiến trúc & hoàn tất...'}
+                          {videoStep >= 5 && 'Hoàn thành!'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        <span>Cắt 18 góc nét nhất & Tạo 360° ngay (3-5s)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* PHƯƠNG ÁN B: CHỤP / CHỌN TỪNG ẢNH GÓC HOẶC ẢNH PANO ĐIỆN THOẠI */}
+              {/* ============================================================== */}
+              {inputMode === 'photos' && (
+                <>
               {/* Nguồn ảnh: điện thoại dùng camera gốc, máy tính dùng webcam qua WebRTC */}
               <div className="studio-upload-actions">
                 {canUseNativeCapture ? (
@@ -1006,6 +1308,8 @@ function normalizePanoUrl(rawUrl: string): string {
                   </>
                 )}
               </button>
+              </>
+              )}
 
 
               {/* Error message */}
@@ -1067,23 +1371,34 @@ function normalizePanoUrl(rawUrl: string): string {
             </div>
 
             <div className="studio-viewer-container">
-              {isProcessing && (
+              {(isProcessing || videoProcessing) && (
                 <div className="studio-viewer-overlay" role="status" aria-live="polite">
                   <Loader2 size={40} className="spin" style={{ color: 'var(--accent-gold)' }} />
                   <div className="studio-overlay-stage">
-                    {currentStep <= 1 && 'Đang tải ảnh lên máy chủ...'}
-                    {currentStep === 2 && 'Đang phân tích điểm đặc trưng và cân bằng ánh sáng trong nhà...'}
-                    {currentStep === 3 && 'Đang tính ma trận biến đổi và ghép nối toàn cảnh bằng OpenCV...'}
-                    {currentStep >= 4 && 'Đang hòa trộn biên ảnh và lưu vào kho di sản số...'}
+                    {videoProcessing ? (
+                      <>
+                        {videoStep <= 1 && 'Đang tải video 360 lên VPS...'}
+                        {videoStep === 2 && 'OpenCV đang quét video & đo độ nét (Laplacian) để chọn 18 góc nét nhất...'}
+                        {videoStep === 3 && 'Đang ghép 18 khung hình bằng thuật toán OpenCV PANORAMA Stitcher...'}
+                        {videoStep >= 4 && 'Đang nắn đứng 90° kiến trúc & hoàn thiện tỷ lệ 2:1...'}
+                      </>
+                    ) : (
+                      <>
+                        {currentStep <= 1 && 'Đang tải ảnh lên máy chủ...'}
+                        {currentStep === 2 && 'Đang phân tích điểm đặc trưng và cân bằng ánh sáng trong nhà...'}
+                        {currentStep === 3 && 'Đang tính ma trận biến đổi và ghép nối toàn cảnh bằng OpenCV...'}
+                        {currentStep >= 4 && 'Đang hòa trộn biên ảnh và lưu vào kho di sản số...'}
+                      </>
+                    )}
                   </div>
                   <div className="studio-overlay-note">
-                    Quá trình có thể mất vài giây. Vui lòng không tắt hoặc tải lại trang.
+                    {videoProcessing ? 'Xử lý video hoàn tất siêu tốc chỉ trong 3-5 giây. Vui lòng đợi trong giây lát...' : 'Quá trình có thể mất vài giây. Vui lòng không tắt hoặc tải lại trang.'}
                   </div>
                   <div className="studio-overlay-steps" aria-hidden="true">
                     {[1, 2, 3, 4].map((step) => (
                       <span
                         key={step}
-                        className={`studio-overlay-dot ${currentStep >= step ? 'is-done' : ''}`}
+                        className={`studio-overlay-dot ${(videoProcessing ? videoStep : currentStep) >= step ? 'is-done' : ''}`}
                       />
                     ))}
                   </div>

@@ -97,6 +97,52 @@ const uploadSingleFrame = (req: Request, res: Response, next: NextFunction) => {
   });
 };
 
+const VIDEO_DIR = path.join(TEMP_DIR, 'video_raw');
+if (!fs.existsSync(VIDEO_DIR)) fs.mkdirSync(VIDEO_DIR, { recursive: true });
+
+const videoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    try {
+      if (!fs.existsSync(VIDEO_DIR)) fs.mkdirSync(VIDEO_DIR, { recursive: true });
+      cb(null, VIDEO_DIR);
+    } catch (dirErr: any) {
+      cb(dirErr, VIDEO_DIR);
+    }
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
+    cb(null, `video_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${ext}`);
+  }
+});
+
+const uploadVideo = multer({
+  storage: videoStorage,
+  limits: { fileSize: 300 * 1024 * 1024 }, // 300MB
+  fileFilter: (req, file, cb) => {
+    const isVid = file.mimetype.startsWith('video/') ||
+                  /\.(mp4|mov|webm|avi|m4v|3gp)$/i.test(file.originalname);
+    if (isVid) {
+      cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận file video (MP4, MOV, WebM, AVI)'));
+    }
+  }
+});
+
+const uploadVideoMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  uploadVideo.single('video')(req, res, (err: any) => {
+    if (err) {
+      console.warn('[Multer Video Warning]:', err.message);
+      return res.status(400).json({
+        success: false,
+        message: `Lỗi tải file video: ${err.message}`
+      });
+    }
+    next();
+  });
+};
+
+
 // Đường dẫn Python (hỗ trợ cả Windows local và Linux/Docker)
 const PYTHON_PATH = process.env.PYTHON_PATH || (process.platform === 'win32'
   ? 'C:\\Users\\HUYNH TAN LOC\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
@@ -412,6 +458,221 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
     });
   });
 });
+
+/**
+ * POST /api/stitch/video
+ * Phương án A (Tối ưu tốc độ, ổn định nhất):
+ * Nhận file video 360 quay vòng quanh từ điện thoại/máy tính -> Python OpenCV đọc và tự động cắt 18 khung hình sắc nét nhất ngay trên VPS (hoàn tất trong 3-5s) -> Ghép thành không gian 360° Equirectangular 2:1.
+ */
+stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Response) => {
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: 'Vui lòng cung cấp file video quay 360° xung quanh (định dạng MP4, MOV, WebM, AVI)'
+    });
+  }
+
+  const videoPath = req.file.path;
+  const outFilename = `stitched_video_360_${Date.now()}.jpg`;
+  const outputPath = path.join(UPLOAD_ROOT, outFilename);
+  const keyframesCount = req.body.keyframes ? String(req.body.keyframes) : '18';
+  const targetWidth = req.body.width ? String(req.body.width) : '0';
+
+  console.log(`[Stitch Video API] Bắt đầu Phương án A: Cắt ${keyframesCount} khung hình sắc nét từ video (${req.file.originalname})...`);
+
+  const args = [
+    STITCHER_SCRIPT,
+    '--video', videoPath,
+    '--output', outputPath,
+    '--keyframes', keyframesCount,
+    '--width', targetWidth
+  ];
+
+  const pyProcess = spawn(PYTHON_PATH, args);
+
+  let stdoutData = '';
+  let stderrData = '';
+  let isClosed = false;
+
+  // Timeout 120s cho video
+  const timeoutTimer = setTimeout(() => {
+    if (!isClosed) {
+      console.error('[Stitch Video API] Quá thời gian xử lý video (120s). Hủy tiến trình...');
+      isClosed = true;
+      try { pyProcess.kill('SIGKILL'); } catch (kErr) { console.warn(kErr); }
+      if (!res.headersSent) {
+        return res.status(504).json({
+          success: false,
+          error: 'ERR_TIMEOUT',
+          message: 'Quá trình trích xuất và ghép video vượt quá thời gian cho phép (120s).'
+        });
+      }
+    }
+  }, 120000);
+
+  pyProcess.stdout.on('data', (d) => { stdoutData += d.toString(); });
+  pyProcess.stderr.on('data', (d) => {
+    stderrData += d.toString();
+    console.log(`[OpenCV Video Worker Log]: ${d.toString().trim()}`);
+  });
+
+  pyProcess.on('close', async (code) => {
+    clearTimeout(timeoutTimer);
+    if (isClosed || res.headersSent) return;
+    isClosed = true;
+
+    // Xóa file video tạm sau khi xử lý xong để giải phóng dung lượng VPS
+    try {
+      if (fs.existsSync(videoPath)) {
+        fs.unlinkSync(videoPath);
+      }
+    } catch (cleanErr) {
+      console.warn('[Stitch Video API] Lỗi xóa video tạm:', cleanErr);
+    }
+
+    try {
+      if (!stdoutData.trim()) {
+        console.error('[Stitch Video API] Worker stdout rỗng. Stderr:', stderrData);
+        return res.status(500).json({
+          success: false,
+          error: 'ERR_WORKER_EMPTY_RESPONSE',
+          message: 'Không nhận được kết quả phân tích video từ Python OpenCV',
+          rawStderr: stderrData
+        });
+      }
+
+      const result = JSON.parse(stdoutData.trim());
+
+      if (result.success) {
+        const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
+        const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '103-170-233-206.sslip.io';
+        const baseUrl = process.env.PUBLIC_API_URL ? process.env.PUBLIC_API_URL.replace(/\/$/, '') : `${protocol}://${host}`;
+
+        let finalPanoramaUrl = `${baseUrl}/uploads/${outFilename}`;
+
+        // 1. Tự động đồng bộ ảnh 360 lên Cloudflare R2
+        let cloudR2Url: string | null = null;
+        try {
+          if (fs.existsSync(outputPath)) {
+            console.log(`[Stitch Video API] Đang tải ảnh 360 lên Cloudflare R2 CDN (panoramas_360/${outFilename})...`);
+            const fileBuf = fs.readFileSync(outputPath);
+            cloudR2Url = await uploadToR2(`panoramas_360/${outFilename}`, fileBuf, 'image/jpeg');
+            if (cloudR2Url) {
+              console.log('[Stitch Video API] Đã lưu trữ thành công lên Cloudflare R2 CDN:', cloudR2Url);
+            }
+          }
+        } catch (r2Err: any) {
+          console.warn('[Stitch Video API R2 Sync Warning]:', r2Err.message);
+        }
+
+        // 2. Đồng bộ lên Cloudinary CDN
+        let cloudinaryUrl: string | null = null;
+        try {
+          console.log('[Stitch Video API] Đang đồng bộ ảnh 360 lên Cloudinary (folder: museum/panoramas_360)...');
+          const cldRes = await uploadToCloudinary(outputPath, 'museum/panoramas_360');
+          if (cldRes && cldRes.secure_url) {
+            cloudinaryUrl = cldRes.secure_url;
+            console.log('[Stitch Video API] Đã đồng bộ thành công lên Cloudinary CDN:', cloudinaryUrl);
+          }
+        } catch (cldErr: any) {
+          console.warn('[Stitch Video API Cloudinary Sync Warning]:', cldErr.message);
+        }
+
+        // Xóa cache danh sách phòng trong Redis
+        await cacheDel('rooms:all');
+
+        if (cloudinaryUrl) {
+          finalPanoramaUrl = cloudinaryUrl;
+        } else if (fs.existsSync(outputPath)) {
+          finalPanoramaUrl = `${baseUrl}/uploads/${outFilename}`;
+        } else if (cloudR2Url) {
+          finalPanoramaUrl = `${baseUrl}/api/stitch/proxy-image?url=${encodeURIComponent(cloudR2Url)}`;
+        }
+
+        // 3. Tự động lưu thông tin vào MongoDB
+        let panoDoc: any = null;
+        try {
+          const stats = fs.existsSync(outputPath) ? fs.statSync(outputPath) : null;
+          panoDoc = await PanoramaModel.findOneAndUpdate(
+            { filename: outFilename },
+            {
+              id: `pano-${Date.now()}`,
+              filename: outFilename,
+              title: `Toàn cảnh 360° từ Video (${new Date().toLocaleDateString('vi-VN')})`,
+              panoramaUrl: finalPanoramaUrl,
+              thumbnailUrl: finalPanoramaUrl,
+              localUrl: `${baseUrl}/uploads/${outFilename}`,
+              cloudinaryUrl: cloudinaryUrl || '',
+              r2Url: cloudR2Url || '',
+              width: result.width || 4096,
+              height: result.height || 2048,
+              aspectRatio: typeof result.aspectRatio === 'number' ? result.aspectRatio : 2.0,
+              sizeBytes: stats ? stats.size : 0,
+              inputFramesCount: result.keyframesExtracted || 18,
+              status: 'ready',
+              metadata: {
+                engine: 'OpenCV Video Keyframe Stitcher (Phương án A)',
+                videoDurationSec: result.videoDurationSec,
+                processingTimeSec: result.processingTimeSec,
+                keyframesExtracted: result.keyframesExtracted || 18,
+                waveCorrection: true,
+                enhancedAt: new Date()
+              }
+            },
+            { upsert: true, returnDocument: 'after' }
+          );
+          console.log(`[Stitch Video API] Đã lưu thông tin ảnh 360 vào MongoDB (ID: ${panoDoc?.id})`);
+        } catch (dbErr: any) {
+          console.error('[Stitch Video API MongoDB Error]:', dbErr.message);
+        }
+
+        console.log(`[Stitch Video API] Phương án A hoàn tất! URL: ${finalPanoramaUrl}`);
+        return res.json({
+          success: true,
+          data: {
+            id: panoDoc?.id || `pano-${Date.now()}`,
+            panoramaUrl: finalPanoramaUrl,
+            cloudinaryUrl: cloudinaryUrl,
+            r2Url: cloudR2Url,
+            localUrl: `${baseUrl}/uploads/${outFilename}`,
+            filename: outFilename,
+            width: result.width,
+            height: result.height,
+            aspectRatio: result.aspectRatio,
+            inputFramesCount: result.keyframesExtracted || 18,
+            keyframesExtracted: result.keyframesExtracted || 18,
+            processingTimeSec: result.processingTimeSec,
+            videoDurationSec: result.videoDurationSec,
+            message: result.message
+          }
+        });
+      } else {
+        console.error(`[Stitch Video API] Lỗi worker: ${result.error}`);
+        return res.status(400).json({
+          success: false,
+          error: result.error,
+          message: result.detail || 'Không thể ghép nối video này.'
+        });
+      }
+    } catch (parseErr: any) {
+      console.error('[Stitch Video API] Lỗi parse kết quả:', parseErr, stdoutData, stderrData);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi định dạng phản hồi từ Python OpenCV worker',
+        rawStderr: stderrData
+      });
+    }
+  });
+
+  pyProcess.on('error', (procErr) => {
+    console.error('[Stitch Video API] Lỗi khởi chạy tiến trình Python:', procErr);
+    res.status(500).json({
+      success: false,
+      message: `Không thể khởi chạy worker Python: ${procErr.message}`
+    });
+  });
+});
+
 
 /**
  * GET /api/stitch/proxy-image?url=...

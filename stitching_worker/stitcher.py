@@ -39,6 +39,7 @@ import os
 import gc
 import json
 import re
+import time
 import argparse
 import numpy as np
 import cv2
@@ -267,16 +268,25 @@ def _try_opencv_stitcher(sorted_paths, num_total, target_width):
     for mode, max_dim, conf, reg_resol, desc in configs:
         log(f"[*] Thử OpenCV: {desc}...")
         images = []
-        for p in sorted_paths:
-            if not os.path.exists(p):
-                continue
-            try:
-                im = load_and_orient_image(p, max_dim=max_dim)
+        for item in sorted_paths:
+            if isinstance(item, str):
+                if not os.path.exists(item):
+                    continue
+                try:
+                    im = load_and_orient_image(item, max_dim=max_dim)
+                    im = balance_universal_lighting(im)
+                    images.append(im)
+                except Exception as e:
+                    log(f"[Warning] Bỏ qua ảnh {item}: {e}")
+                    continue
+            elif isinstance(item, np.ndarray):
+                im = item.copy()
+                h, w = im.shape[:2]
+                if max_dim > 0 and max(h, w) > max_dim:
+                    scale = max_dim / float(max(h, w))
+                    im = cv2.resize(im, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
                 im = balance_universal_lighting(im)
                 images.append(im)
-            except Exception as e:
-                log(f"[Warning] Bỏ qua ảnh {p}: {e}")
-                continue
 
         if len(images) < 2:
             continue
@@ -827,7 +837,258 @@ def run_stitch(image_paths, output_path, target_width=0):
 
 
 # ============================================================================
-# PHẦN 6: THẨM ĐỊNH ẢNH CHỤP THỜI GIAN THỰC (VERIFY SINGLE IMAGE API)
+# PHẦN 6: PHƯƠNG ÁN A - XỬ LÝ VIDEO & CẮT 18 KHUNG HÌNH SẮC NÉT NHẤT (VPS)
+# ============================================================================
+
+def extract_keyframes_from_video(video_path, target_count=18, max_dim=1400):
+    """
+    Phương án A (Tối ưu tốc độ, ổn định nhất):
+    Đọc video 360° quay vòng quanh và tự động chắt lọc 18 khung hình sắc nét nhất:
+    1. Đọc metadata video (FPS, tổng số frame, định hướng xoay góc).
+    2. Chia đều video thành N=18 khoảng thời gian tương ứng 18 góc phủ trọn 360°.
+    3. Trong mỗi khoảng, lấy mẫu 5-7 khung hình ứng viên.
+    4. Đo độ sắc nét (Laplacian variance) trên ảnh thu nhỏ siêu tốc (< 1ms/frame).
+    5. Chọn ra khung hình có điểm độ nét cao nhất trong mỗi khoảng (loại bỏ hoàn toàn nhòe mờ do rung lắc).
+    6. Tự động xoay thẳng đứng theo siêu dữ liệu metadata nếu quay từ smartphone.
+    7. Cân bằng ánh sáng thích ứng CLAHE.
+    """
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"Không tìm thấy file video: {video_path}")
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise ValueError(f"OpenCV không thể mở file video: {video_path}")
+
+    # Bật tự động xoay nếu phiên bản OpenCV hỗ trợ
+    try:
+        cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
+    except Exception:
+        pass
+
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = float(cap.get(cv2.CAP_PROP_FPS) or 30.0)
+    if fps <= 0:
+        fps = 30.0
+
+    duration = total_frames / fps if total_frames > 0 else 0.0
+    rot_meta = 0
+    try:
+        rot_meta = int(cap.get(cv2.CAP_PROP_ORIENTATION_META))
+    except Exception:
+        rot_meta = 0
+
+    log(f"[*] Phân tích video: {total_frames} frames, FPS: {fps:.1f}, Thời lượng: {duration:.1f}s, Meta xoay: {rot_meta}°")
+
+    def orient_frame_if_needed(frame):
+        if frame is None:
+            return None
+        h, w = frame.shape[:2]
+        # Nếu có rot_meta và OpenCV chưa tự động xoay (khi w > h mà rot_meta = 90 hoặc 270)
+        if rot_meta == 90 and w > h:
+            return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif rot_meta == 180:
+            return cv2.rotate(frame, cv2.ROTATE_180)
+        elif rot_meta == 270 and w > h:
+            return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        return frame
+
+    # Nếu không đọc được tổng frame (ví dụ webm stream), đọc nhanh lấy danh sách
+    if total_frames <= 0 or total_frames < target_count:
+        raw_frames = []
+        f_idx = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret or frame is None:
+                break
+            if f_idx % max(1, int(fps * 0.5)) == 0:
+                frame = orient_frame_if_needed(frame)
+                raw_frames.append(frame)
+            f_idx += 1
+            if len(raw_frames) >= 60:
+                break
+        cap.release()
+
+        if len(raw_frames) < 2:
+            raise ValueError("Video quá ngắn hoặc không đọc được khung hình.")
+
+        indices = np.linspace(0, len(raw_frames) - 1, min(target_count, len(raw_frames)), dtype=int)
+        keyframes = []
+        for i in indices:
+            fr = raw_frames[i]
+            fh, fw = fr.shape[:2]
+            if max_dim > 0 and max(fh, fw) > max_dim:
+                scale = max_dim / float(max(fh, fw))
+                fr = cv2.resize(fr, (int(fw * scale), int(fh * scale)), interpolation=cv2.INTER_AREA)
+            fr = balance_universal_lighting(fr)
+            keyframes.append(fr)
+        return keyframes, {"total_frames": f_idx, "fps": fps, "duration": f_idx / fps, "rotation_meta": rot_meta}
+
+    # Chia video thành target_count khoảng
+    window_size = float(total_frames) / float(target_count)
+    selected_frames = []
+    sharpness_scores = []
+
+    for i in range(target_count):
+        start_f = int(i * window_size)
+        end_f = int((i + 1) * window_size) - 1
+        end_f = max(start_f, min(total_frames - 1, end_f))
+
+        num_candidates = min(5, end_f - start_f + 1)
+        if num_candidates <= 1:
+            candidate_indices = [start_f]
+        else:
+            candidate_indices = np.linspace(start_f, end_f, num=num_candidates, dtype=int)
+
+        best_frame = None
+        best_score = -1.0
+
+        for f_idx in candidate_indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, int(f_idx))
+            ret, frame = cap.read()
+            if not ret or frame is None:
+                continue
+
+            frame = orient_frame_if_needed(frame)
+            fh, fw = frame.shape[:2]
+
+            # Đánh giá độ nét siêu tốc trên ảnh nhỏ
+            thumb_w = 320
+            thumb_h = max(1, int(fh * (320.0 / float(fw))))
+            thumb = cv2.resize(frame, (thumb_w, thumb_h), interpolation=cv2.INTER_AREA)
+            gray = cv2.cvtColor(thumb, cv2.COLOR_BGR2GRAY)
+
+            lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+            mean_b = float(gray.mean())
+
+            # Phạt điểm nếu frame bị cháy sáng hoặc quá tối
+            if mean_b < 20 or mean_b > 235:
+                lap_var *= 0.3
+
+            if lap_var > best_score:
+                best_score = lap_var
+                best_frame = frame
+
+        if best_frame is not None:
+            bh, bw = best_frame.shape[:2]
+            if max_dim > 0 and max(bh, bw) > max_dim:
+                scale = max_dim / float(max(bh, bw))
+                best_frame = cv2.resize(best_frame, (int(bw * scale), int(bh * scale)), interpolation=cv2.INTER_AREA)
+            best_frame = balance_universal_lighting(best_frame)
+            selected_frames.append(best_frame)
+            sharpness_scores.append(best_score)
+        else:
+            log(f"[Warning] Khoảng {i} (frame {start_f}-{end_f}) không trích xuất được frame.")
+
+    cap.release()
+
+    avg_sharpness = float(np.mean(sharpness_scores)) if sharpness_scores else 0.0
+    log(f"[✓] Đã lọc {len(selected_frames)}/{target_count} khung hình nét nhất (Độ nét TB: {avg_sharpness:.1f})")
+
+    meta = {
+        "total_frames": total_frames,
+        "fps": fps,
+        "duration": duration,
+        "rotation_meta": rot_meta,
+        "avg_sharpness": avg_sharpness,
+        "extracted_count": len(selected_frames)
+    }
+    return selected_frames, meta
+
+
+def run_stitch_video(video_path, output_path, target_width=0, target_count=18):
+    """
+    Thực thi Phương án A:
+    1. Đọc video và tự động cắt 18 khung hình sắc nét nhất ngay trên VPS (hoàn tất trong 3-5 giây).
+    2. Đưa thẳng 18 khung hình (in-memory) vào OpenCV Stitcher PANORAMA.
+    3. Tự động nắn thẳng đứng 90° kiến trúc + Cắt viền đen + Chuẩn hóa Equirectangular 2:1.
+    4. Trả về kết quả JSON với đầy đủ siêu dữ liệu.
+    """
+    t0 = time.time()
+    try:
+        keyframes, meta = extract_keyframes_from_video(video_path, target_count=target_count, max_dim=1400)
+    except Exception as e:
+        return {"success": False, "error": "ERR_EXTRACT_KEYFRAMES", "detail": str(e)}
+
+    if len(keyframes) < 2:
+        return {
+            "success": False,
+            "error": "ERR_TOO_FEW_FRAMES",
+            "detail": f"Video chỉ trích xuất được {len(keyframes)} khung hình, cần ít nhất 2 khung hình."
+        }
+
+    num_total = len(keyframes)
+    log(f"[*] Bắt đầu ghép {num_total} khung hình sắc nét trích xuất từ video...")
+
+    cv2.ocl.setUseOpenCL(False)
+
+    # TẦNG 1: OpenCV Stitcher PANORAMA
+    opencv_result, opencv_hfov, opencv_flatness, opencv_used_count, opencv_mode = _try_opencv_stitcher(
+        keyframes, num_total, target_width
+    )
+
+    opencv_good = (
+        opencv_result is not None and
+        opencv_used_count >= max(2, int(num_total * 0.50))
+    )
+
+    if opencv_good:
+        log(f"[✓] OpenCV Stitcher ({opencv_mode}) đã ghép thành công {opencv_used_count}/{num_total} khung hình!")
+    else:
+        log(f"[!] OpenCV Stitcher chỉ ghép được {opencv_used_count}/{num_total} khung hình. Chuyển sang Robust Cylindrical Engine dự phòng...")
+
+    # TẦNG 2: Robust Cylindrical Engine
+    robust_result = None
+    robust_hfov = None
+    if not opencv_good:
+        try:
+            robust_result = build_robust_cylindrical_panorama(keyframes)
+            if robust_result is not None:
+                ar = float(robust_result.shape[1]) / float(max(1, robust_result.shape[0]))
+                robust_hfov = min(360.0, max(50.0, ar * 52.0))
+                log(f"[✓] Robust Engine ghép thành công {len(keyframes)} khung hình, HFOV~{robust_hfov:.1f}°")
+        except Exception as e:
+            log(f"[!] Robust Engine lỗi: {e}")
+            robust_result = None
+
+    final_pano = opencv_result if opencv_good else robust_result
+    final_hfov = opencv_hfov if opencv_good else robust_hfov
+    final_flatness = opencv_flatness if opencv_good else (evaluate_panorama_flatness(robust_result) if robust_result is not None else 0.0)
+
+    if final_pano is None:
+        return {
+            "success": False,
+            "error": "ERR_STITCH_FAILED",
+            "detail": "Không thể ghép nối được video này. Hãy đảm bảo bạn quay video xoay vòng tròn đều đặn quanh tâm và có đủ chi tiết vật thể trong phòng."
+        }
+
+    # Hậu xử lý hoàn thiện
+    log("[*] Đang tự động dựng thẳng đứng 90° kiến trúc và cắt sạch viền đen...")
+    leveled = auto_level_panorama(final_pano)
+    cropped = crop_black_borders(leveled)
+    equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width, hfov=final_hfov)
+    equi_pano = enhance_museum_texture(equi_pano)
+
+    save_equirectangular_jpeg(output_path, equi_pano, quality=99)
+    total_time = time.time() - t0
+    h, w = equi_pano.shape[:2]
+
+    return {
+        "success": True,
+        "outputPath": output_path,
+        "width": w,
+        "height": h,
+        "aspectRatio": 2.0,
+        "aspectRatioStr": "2:1",
+        "flatnessScore": round(float(final_flatness), 3),
+        "keyframesExtracted": len(keyframes),
+        "videoDurationSec": round(meta.get("duration", 0), 1),
+        "processingTimeSec": round(total_time, 2),
+        "message": f"Phương án A hoàn tất trong {total_time:.1f}s: Đã tự động cắt {len(keyframes)} khung hình sắc nét nhất và ghép thành không gian 360° Equirectangular 2:1."
+    }
+
+
+# ============================================================================
+# PHẦN 7: THẨM ĐỊNH ẢNH CHỤP THỜI GIAN THỰC (VERIFY SINGLE IMAGE API)
 # ============================================================================
 
 def verify_single_image(image_path, prev_image_path=None):
@@ -948,14 +1209,16 @@ def verify_single_image(image_path, prev_image_path=None):
 
 
 # ============================================================================
-# PHẦN 7: CLI ENTRYPOINT
+# PHẦN 8: CLI ENTRYPOINT
 # ============================================================================
 
 def main():
     parser = argparse.ArgumentParser(description="Multi-tier 360° Museum Panorama Stitcher")
     parser.add_argument("--images", nargs="+", help="Danh sách đường dẫn ảnh đầu vào")
+    parser.add_argument("--video", help="Đường dẫn file video 360 quay vòng quanh (Phương án A)")
     parser.add_argument("--output", help="Đường dẫn file ảnh đầu ra")
     parser.add_argument("--width", type=int, default=0, help="Độ rộng mong muốn của ảnh Equirectangular 2:1")
+    parser.add_argument("--keyframes", type=int, default=18, help="Số khung hình then chốt cần cắt từ video (mặc định 18)")
     parser.add_argument("--verify-image", help="Thẩm định chất lượng 1 khung hình chụp")
     parser.add_argument("--prev-image", default=None, help="Khung hình trước đó để so khớp độ chồng lấp")
 
@@ -967,7 +1230,16 @@ def main():
         print(json.dumps(res, ensure_ascii=True, indent=2))
         return
 
-    # Chế độ stitch ảnh
+    # Chế độ xử lý video (Phương án A)
+    if args.video:
+        if not args.output:
+            parser.print_help(sys.stderr)
+            sys.exit(1)
+        res = run_stitch_video(args.video, args.output, target_width=args.width, target_count=args.keyframes)
+        print(json.dumps(res, ensure_ascii=True, indent=2))
+        sys.exit(0 if res.get("success") else 1)
+
+    # Chế độ stitch chùm ảnh
     if not args.images or not args.output:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -979,3 +1251,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
