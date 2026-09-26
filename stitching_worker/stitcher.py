@@ -620,172 +620,74 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
 # PHẦN 6: ĐỘNG CƠ OPENCV DETAIL TÙY BIẾN TỐI ƯU (PHƯƠNG ÁN 2)
 # ============================================================================
 
-def run_opencv_custom_stitch(image_paths, target_width=0):
+def run_opencv_native_stitcher(image_paths, target_width=0):
     """
-    Quy trình ghép ảnh hình cầu 360° bằng OpenCV tùy biến chi tiết (Custom Pipeline):
-    1. Tiền xử lý ánh sáng CLAHE Luminance từng ảnh.
-    2. Chiếu ảnh lên mặt cầu / mặt trụ (Spherical Warper) với tiêu cự f ước tính chuẩn xác,
-       triệt tiêu biến dạng hình chữ nhật và méo góc phối cảnh (perspective distortion).
-    3. Ước tính góc quay 3D SO(3) chống xoắn vặn giữa các khung hình liên tiếp.
-    4. Căn chỉnh mặt phẳng chân trời (Wave Correction ngang).
-    5. Hòa trộn kim tự tháp đa băng tần (cv2.detail_MultiBandBlender) triệt tiêu vết mí nối.
+    Thực thi quy trình ghép ảnh toàn cảnh đa góc bằng OpenCV Native C++ Engine:
+    - Tiền xử lý ánh sáng thích ứng CLAHE trên kênh Luminance (L/V) chống lóa và giữ chi tiết vùng tối.
+    - Chạy thuật toán căn chỉnh ma trận homography và Bundle Adjustment toàn cục (Global Bundle Adjuster).
+    - Thử nghiệm tuần tự 4 cấu hình từ chuẩn xác đến nhạy cảm để đảm bảo luôn khép vòng thành công.
+    - Tự động bật Wave Correction căn chỉnh phương ngang đường chân trời.
     """
     num_imgs = len(image_paths)
     log(f"[*] Kích hoạt Động cơ OpenCV Native: Đang nạp và tiền xử lý CLAHE {num_imgs} bức ảnh...")
 
-    images = []
-    for p in image_paths:
+    configs = [
+        (cv2.Stitcher_PANORAMA, 1400, 0.12, "PANORAMA Chuẩn 360"),
+        (cv2.Stitcher_PANORAMA, 1200, 0.06, "PANORAMA Cầm Tay Nhạy"),
+        (cv2.Stitcher_PANORAMA, 1000, 0.03, "PANORAMA Siêu Nhạy"),
+        (cv2.Stitcher_SCANS, 1200, 0.04, "SCANS Cầm Tay"),
+    ]
+
+    for mode, max_dim, conf, desc in configs:
+        log(f"[*] Thử OpenCV Native: {desc} (max_dim={max_dim}, conf={conf})...")
+        images = []
+        for p in image_paths:
+            try:
+                im = load_and_orient_image(p, max_dim=max_dim)
+                im = preprocess_lighting_clahe(im)
+                images.append(im)
+            except Exception as e:
+                continue
+
+        if len(images) < 2:
+            continue
+
         try:
-            im = load_and_orient_image(p, max_dim=1600)
-            im = preprocess_lighting_clahe(im)
-            images.append(im)
+            s = cv2.Stitcher_create(mode)
+            try:
+                s.setWaveCorrection(True)
+            except Exception:
+                pass
+            try:
+                s.setPanoConfidenceThresh(conf)
+            except Exception:
+                pass
+            try:
+                s.setRegistrationResol(0.35)
+            except Exception:
+                pass
+            try:
+                s.setSeamEstimationResol(0.15)
+            except Exception:
+                pass
+
+            status, pano = s.stitch(images)
+            if status == cv2.Stitcher_OK and pano is not None:
+                used = len(s.component()) if hasattr(s, 'component') else len(images)
+                total = len(images)
+                log(f"[✓] OpenCV Native ({desc}) ghép thành công rực rỡ {used}/{total} ảnh!")
+                ar = float(pano.shape[1]) / float(max(1, pano.shape[0]))
+                is_full = (used >= 10) or (ar >= 2.8)
+                return pano, is_full
+            else:
+                log(f"[!] Cấu hình {desc} trả về status={status}")
         except Exception as err:
-            log(f"[Warning] Bỏ qua ảnh lỗi {p}: {err}")
+            log(f"[!] Lỗi khi chạy cấu hình {desc}: {err}")
+        finally:
+            del images
+            gc.collect()
 
-    if len(images) < 2:
-        return None, False
-
-    n = len(images)
-    h, w = images[0].shape[:2]
-
-    # Ước lượng tiêu cự camera góc nhìn điện thoại (HFOV ~ 65°)
-    fov_rad = np.radians(65.0)
-    f_px = (w / 2.0) / np.tan(fov_rad / 2.0)
-    K = np.array([[f_px, 0, w / 2.0], [0, f_px, h / 2.0], [0, 0, 1]], dtype=np.float64)
-
-    # 1. Trích xuất đặc trưng RootSIFT
-    log("[*] Trích xuất đặc trưng RootSIFT trên từng khung hình...")
-    all_kps = []
-    all_descs = []
-    for i, img in enumerate(images):
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        kps, descs = extract_rootsift_features(gray)
-        all_kps.append(kps)
-        all_descs.append(descs)
-
-    # 2. So khớp đặc trưng và tính toán góc quay tương đối SO(3)
-    flann = cv2.FlannBasedMatcher(dict(algorithm=1, trees=5), dict(checks=50))
-    camera_rotations = [np.eye(3, dtype=np.float32)]
-    current_R = np.eye(3, dtype=np.float32)
-
-    total_yaw = 0.0
-    for i in range(n - 1):
-        des1, des2 = all_descs[i], all_descs[i + 1]
-        kp1, kp2 = all_kps[i], all_kps[i + 1]
-
-        R_rel = None
-        if des1 is not None and des2 is not None and len(des1) >= 10 and len(des2) >= 10:
-            matches = flann.knnMatch(des1, des2, k=2)
-            good = [m for m, m2 in matches if m.distance < 0.75 * m2.distance]
-            if len(good) >= 8:
-                pts1 = np.float32([kp1[m.queryIdx].pt for m in good])
-                pts2 = np.float32([kp2[m.trainIdx].pt for m in good])
-
-                # Tính Essential Matrix với RANSAC
-                E, mask = cv2.findEssentialMat(pts1, pts2, focal=f_px, pp=(w / 2.0, h / 2.0), method=cv2.RANSAC, prob=0.999, threshold=1.5)
-                if E is not None and E.shape == (3, 3):
-                    _, R_est, _, _ = cv2.recoverPose(E, pts1, pts2, K, mask=mask)
-                    if R_est is not None:
-                        R_rel = R_est.astype(np.float32)
-
-        if R_rel is None:
-            # Ước lượng xoay ngang đều nếu thiếu đặc trưng cục bộ
-            d_yaw = 2.0 * np.pi / float(n)
-            cy, sy = np.cos(d_yaw), np.sin(d_yaw)
-            R_rel = np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]], dtype=np.float32)
-
-        # Trích xuất góc yaw
-        y_step = float(np.arctan2(-R_rel[2, 0], np.sqrt(R_rel[0, 0]**2 + R_rel[1, 0]**2)))
-        total_yaw += abs(y_step)
-
-        current_R = current_R @ R_rel.T
-        camera_rotations.append(current_R.copy())
-
-    # 3. Khép vòng 360° (Loop Closure)
-    des_first, des_last = all_descs[0], all_descs[-1]
-    kp_first, kp_last = all_kps[0], all_kps[-1]
-    is_closed = False
-    if des_first is not None and des_last is not None and len(des_first) >= 10 and len(des_last) >= 10:
-        matches = flann.knnMatch(des_last, des_first, k=2)
-        good_loop = [m for m, m2 in matches if m.distance < 0.75 * m2.distance]
-        if len(good_loop) >= 8:
-            pts_last = np.float32([kp_last[m.queryIdx].pt for m in good_loop])
-            pts_first = np.float32([kp_first[m.trainIdx].pt for m in good_loop])
-            E_loop, m_loop = cv2.findEssentialMat(pts_last, pts_first, focal=f_px, pp=(w / 2.0, h / 2.0), method=cv2.RANSAC, prob=0.999, threshold=1.5)
-            if E_loop is not None and E_loop.shape == (3, 3):
-                _, R_loop, _, _ = cv2.recoverPose(E_loop, pts_last, pts_first, K, mask=m_loop)
-                if R_loop is not None:
-                    is_closed = True
-                    log("[✓] Phát hiện khép kín vòng xoay 360° -> Tự động cân bằng sai số góc...")
-                    err_rot = camera_rotations[-1] @ R_loop.T.astype(np.float32)
-                    rvec, _ = cv2.Rodrigues(err_rot)
-                    for k in range(n):
-                        frac = float(k) / float(n)
-                        R_corr, _ = cv2.Rodrigues(-rvec * frac)
-                        camera_rotations[k] = (R_corr.astype(np.float32)) @ camera_rotations[k]
-
-    # 4. Phép chiếu Spherical Warping & MultiBandBlender
-    log("[*] Chiếu mặt cầu Spherical Warping & Hòa trộn kim tự tháp đa băng tần...")
-    warper = cv2.PyRotationWarper('spherical', float(f_px))
-    blender = cv2.detail_MultiBandBlender()
-    blender.setNumBands(5)
-
-    corners = []
-    sizes = []
-    images_warped = []
-    masks_warped = []
-
-    for i in range(n):
-        img_f = images[i].astype(np.float32)
-        R_f = camera_rotations[i]
-        K_f = K.astype(np.float32)
-
-        corner, w_img = warper.warp(img_f, K_f, R_f, cv2.INTER_LINEAR, cv2.BORDER_REFLECT)
-        mask = np.ones((h, w), dtype=np.uint8) * 255
-        _, w_mask = warper.warp(mask, K_f, R_f, cv2.INTER_NEAREST, cv2.BORDER_CONSTANT)
-
-        corners.append(corner)
-        sizes.append((w_img.shape[1], w_img.shape[0]))
-        images_warped.append(w_img.astype(np.int16))
-        masks_warped.append((w_mask > 128).astype(np.uint8) * 255)
-
-    dst_roi = cv2.detail.resultRoi(corners=corners, sizes=sizes)
-    blender.prepare(dst_roi)
-
-    for i in range(n):
-        blender.feed(images_warped[i], masks_warped[i], corners[i])
-
-    result_pano = None
-    result_mask = None
-    try:
-        result_pano, result_mask = blender.blend(result_pano, result_mask)
-        result_pano = np.clip(result_pano, 0, 255).astype(np.uint8)
-    except Exception as b_err:
-        log(f"[!] Lỗi MultiBandBlender: {b_err}, kích hoạt hòa trộn khoảng cách...")
-        canvas_h, canvas_w = dst_roi[3], dst_roi[2]
-        accum = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
-        weight_acc = np.zeros((canvas_h, canvas_w), dtype=np.float32)
-        for i in range(n):
-            cx, cy = corners[i][0] - dst_roi[0], corners[i][1] - dst_roi[1]
-            ih, iw = images_warped[i].shape[:2]
-            im_c = np.clip(images_warped[i], 0, 255).astype(np.float32)
-            m_c = (masks_warped[i] > 128).astype(np.uint8)
-            dt = cv2.distanceTransform(m_c, cv2.DIST_L2, 3)
-            dt_max = dt.max()
-            w_map = dt / dt_max if dt_max > 0 else m_c.astype(np.float32)
-            accum[cy : cy + ih, cx : cx + iw] += im_c * w_map[:, :, np.newaxis]
-            weight_acc[cy : cy + ih, cx : cx + iw] += w_map
-
-        valid = weight_acc > 1e-4
-        result_pano = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
-        for c in range(3):
-            result_pano[:, :, c][valid] = np.clip(accum[:, :, c][valid] / weight_acc[valid], 0, 255).astype(np.uint8)
-
-    del images_warped, masks_warped, images
-    gc.collect()
-
-    is_full = is_closed or (total_yaw >= np.radians(280.0)) or (n >= 12)
-    return result_pano, is_full
+    return None, False
 
 
 # ============================================================================
@@ -862,33 +764,11 @@ def run_stitch(image_paths, output_path, target_width=0):
                 "message": f"Đã ghép thành công không gian 360° Equirectangular chuẩn công nghiệp bằng Hugin CLI trong {total_time}s."
             }
 
-    # Ưu tiên 2: Động cơ OpenCV Native Tùy biến
+    # Ưu tiên 2: Động cơ OpenCV Native C++ Engine với 4 tầng cấu hình thích ứng
     try:
-        final_pano, is_full_360 = run_opencv_custom_stitch(sorted_paths, target_width=out_w)
+        final_pano, is_full_360 = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
     except Exception as e:
-        log(f"[!] Động cơ OpenCV Custom lỗi: {e}")
-
-    # Fallback dự phòng: OpenCV Stitcher PANORAMA có Wave Correction
-    if final_pano is None:
-        log("[*] Thử chế độ OpenCV Stitcher Native có Wave Correction...")
-        try:
-            native_images = []
-            for sp in sorted_paths:
-                im = load_and_orient_image(sp, max_dim=1400)
-                im = preprocess_lighting_clahe(im)
-                native_images.append(im)
-            s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
-            try:
-                s.setWaveCorrection(True)
-                s.setPanoConfidenceThresh(0.08)
-            except Exception:
-                pass
-            status, pano = s.stitch(native_images)
-            if status == cv2.Stitcher_OK and pano is not None:
-                final_pano = pano
-                is_full_360 = len(native_images) >= 8
-        except Exception as e:
-            log(f"[!] Fallback Stitcher lỗi: {e}")
+        log(f"[!] Động cơ OpenCV Native gặp sự cố: {e}")
 
     if final_pano is None:
         return {
