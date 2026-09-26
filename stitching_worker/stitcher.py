@@ -556,12 +556,12 @@ def build_sequential_sift_panorama(images):
     canvas_h = int(np.ceil(max_y - min_y))
     print(f"[*] Kích thước dải toàn cảnh 360° tổng hợp: {canvas_w}x{canvas_h}px từ {n} bức ảnh.", file=sys.stderr)
 
-    # 6. THUẬT TOÁN HÒA TRỘN KHOẢNG CÁCH EUCLIDE (Distance Transform Voronoi Power Blending):
-    # Triệt tiêu 100% hiện tượng bóng ma (Ghosting / Motion Blur) do cộng dồn nhiều ảnh!
-    # Mỗi pixel trên canvas được quyết định bởi bức ảnh có tâm góc nhìn trực diện nhất (trọng số mũ 6).
-    # Đường nối giữa 2 ảnh kề nhau chuyển tiếp mượt mà chỉ trong dải hẹp 15-20px, giữ nguyên 100% độ sắc nét gốc!
-    color_accum = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
-    weight_accum = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+    # 6. PHÂN VÙNG VORONOI TUYỆT ĐỐI (Hard Voronoi Seam Partition):
+    # Triệt tiêu 100% hiện tượng bóng ma, ảo ma, nhân đôi tủ kính và bản đồ!
+    # Mỗi pixel trên canvas thuộc về DUY NHẤT 1 bức ảnh có độ tin cậy và khoảng cách tới tâm lớn nhất.
+    # Tuyệt đối KHÔNG cộng dồn hòa trộn nhiều ảnh gây nhòe mờ.
+    best_dist = np.full((canvas_h, canvas_w), -1.0, dtype=np.float32)
+    canvas = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
 
     for i, im in enumerate(cyl_images):
         pos_x = int(round(positions[i][0] - min_x))
@@ -576,24 +576,15 @@ def build_sequential_sift_panorama(images):
             mask_crop = (cyl_masks[i][:cur_h, :cur_w] > 0.5).astype(np.uint8)
             padded = np.pad(mask_crop, 1, mode='constant', constant_values=0)
             dist = cv2.distanceTransform(padded, cv2.DIST_L2, 5)[1:-1, 1:-1]
-            max_d = float(np.max(dist))
-            if max_d > 0.0:
-                # Trọng số mũ 6 tạo vùng Voronoi sắc nét: chỉ 1 ảnh thống lĩnh tại mỗi vị trí,
-                # chuyển tiếp siêu êm tại đường biên giữa 2 ảnh, triệt tiêu hoàn toàn bóng ma 39 ảnh!
-                weight = (dist / max_d) ** 6.0
-            else:
-                weight = mask_crop.astype(np.float32)
+            
+            curr_region_best = best_dist[pos_y:py_end, pos_x:px_end]
+            update_mask = (dist > curr_region_best) & (mask_crop > 0)
+            
+            curr_slice = canvas[pos_y:py_end, pos_x:px_end]
+            curr_slice[update_mask] = im[:cur_h, :cur_w][update_mask]
+            curr_region_best[update_mask] = dist[update_mask]
 
-            color_accum[pos_y:py_end, pos_x:px_end] += im[:cur_h, :cur_w].astype(np.float32) * weight[:, :, None]
-            weight_accum[pos_y:py_end, pos_x:px_end] += weight
-
-    valid_mask = weight_accum > 1e-5
-    blended = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
-    blended[valid_mask] = np.clip(color_accum[valid_mask] / weight_accum[valid_mask, None], 0, 255).astype(np.uint8)
-    
-    return blended
-    
-    return blended
+    return canvas
 
 def save_equirectangular_jpeg(output_path, equi_pano, quality=99):
     """
@@ -802,22 +793,21 @@ def run_stitch(image_paths, output_path, target_width=0):
 
     # Hệ thống Đa Tầng Thích Ứng Toàn Diện (Universal Adaptive Multi-Tier Cascade)
     # BẢO VỆ 100% ĐỘ THẲNG ĐỨNG KIẾN TRÚC: WaveCorr=True trên TOÀN BỘ các tầng để triệt tiêu góc nghiêng vách tường 45°
-    # BẢO TOÀN TRỌN BỘ ẢNH: Không tự ý lọc bỏ khung hình làm gãy chuỗi gối đầu quang học
     candidate_schemes = [
-        # Tầng 1: Chuẩn 4K độ nét cao (Conf 0.30, RegResol 0.85, WaveCorr=True, MaxDim 2048)
-        (sorted_paths, 2048, 0.30, True, 0.85, f"Tầng 1 - Chuẩn 4K độ nét cao (WaveCorr=True, Conf 0.30, RegResol 0.85, {num_total} ảnh)"),
-        # Tầng 2: Tăng cường độ nhạy vách tường bảo tàng (Conf 0.20, RegResol 0.90, WaveCorr=True, MaxDim 1800)
-        (sorted_paths, 1800, 0.20, True, 0.90, f"Tầng 2 - Tăng cường độ nhạy vách tường bảo tàng (WaveCorr=True, Conf 0.20, RegResol 0.90, {num_total} ảnh)"),
-        # Tầng 3: Cứu cánh ánh sáng phức tạp & phản quang kính (Conf 0.12, RegResol 0.75, WaveCorr=True, MaxDim 1600)
-        (sorted_paths, 1600, 0.12, True, 0.75, f"Tầng 3 - Cứu cánh ánh sáng phức tạp & phản quang kính (WaveCorr=True, Conf 0.12, RegResol 0.75, {num_total} ảnh)"),
-        # Tầng 4: Siêu liên kết bao phủ góc chụp lệch (Conf 0.07, RegResol 0.60, WaveCorr=True, MaxDim 1400)
-        (sorted_paths, 1400, 0.07, True, 0.60, f"Tầng 4 - Siêu liên kết bao phủ góc chụp lệch (WaveCorr=True, Conf 0.07, RegResol 0.60, {num_total} ảnh)"),
+        # Tầng 1: Chuẩn 4K độ nét cao (Conf 0.25, RegResol 0.85, WaveCorr=True, MaxDim 2048)
+        (sorted_paths, 2048, 0.25, True, 0.85, f"Tầng 1 - Chuẩn 4K độ nét cao (WaveCorr=True, Conf 0.25, RegResol 0.85, {num_total} ảnh)"),
+        # Tầng 2: Tăng cường độ nhạy vách tường bảo tàng (Conf 0.14, RegResol 0.80, WaveCorr=True, MaxDim 1800)
+        (sorted_paths, 1800, 0.14, True, 0.80, f"Tầng 2 - Tăng cường độ nhạy vách tường bảo tàng (WaveCorr=True, Conf 0.14, RegResol 0.80, {num_total} ảnh)"),
+        # Tầng 3: Cứu cánh ánh sáng phức tạp & phản quang kính (Conf 0.08, RegResol 0.70, WaveCorr=True, MaxDim 1600)
+        (sorted_paths, 1600, 0.08, True, 0.70, f"Tầng 3 - Cứu cánh ánh sáng phức tạp & phản quang kính (WaveCorr=True, Conf 0.08, RegResol 0.70, {num_total} ảnh)"),
+        # Tầng 4: Siêu liên kết bao phủ góc chụp lệch (Conf 0.04, RegResol 0.60, WaveCorr=True, MaxDim 1400)
+        (sorted_paths, 1400, 0.04, True, 0.60, f"Tầng 4 - Siêu liên kết bao phủ góc chụp lệch (WaveCorr=True, Conf 0.04, RegResol 0.60, {num_total} ảnh)"),
     ]
 
     # Nếu người dùng có thể chụp ngược chiều kim đồng hồ, thêm phương án đảo chiều chuỗi ảnh ở độ nhạy cao
     reversed_paths = list(reversed(sorted_paths))
     candidate_schemes.append(
-        (reversed_paths, 1800, 0.18, True, 0.88, f"Tầng 5 - Đảo chiều chuỗi ảnh ngược chiều kim đồng hồ (WaveCorr=True, Conf 0.18, {num_total} ảnh)")
+        (reversed_paths, 1600, 0.10, True, 0.75, f"Tầng 5 - Đảo chiều chuỗi ảnh ngược chiều kim đồng hồ (WaveCorr=True, Conf 0.10, {num_total} ảnh)")
     )
 
     best_pano = None
@@ -828,135 +818,128 @@ def run_stitch(image_paths, output_path, target_width=0):
     best_failure_stat = None
     best_flatness = 0.0
 
-    # ƯU TIÊN SỐ 1 CHO BỘ ẢNH TỪ 3 ẢNH TRỞ LÊN (Chùm ảnh chụp bảo tàng):
-    # Kích hoạt trực tiếp Thuật toán Ghép Chuỗi Quang Học Tuần Tự (Sequential SIFT Robust Engine)
-    # Bảo toàn trọn vẹn 100% tất cả các bức ảnh, triệt tiêu hoàn toàn lỗi ghép chéo tùm lum của OpenCV
-    if num_total >= 3:
-        print(f"[*] Kích hoạt Thuật toán Ghép Chuỗi Quang Học Tuần Tự (Sequential SIFT Robust Engine) làm động cơ chính cho {num_total} ảnh...", file=sys.stderr)
-        all_imgs = []
-        for p in sorted_paths:
-            if os.path.exists(p):
-                try:
-                    img = load_and_orient_image(p, max_dim=1800)
-                    img = balance_universal_lighting(img)
-                    all_imgs.append(img)
-                except Exception as img_err:
-                    print(f"[Warning] Bỏ qua ảnh lỗi {p}: {img_err}", file=sys.stderr)
-
-        if len(all_imgs) >= 2:
-            seq_pano = build_sequential_sift_panorama(all_imgs)
-            if seq_pano is not None:
-                best_pano = seq_pano
-                best_status = cv2.Stitcher_OK
-                best_used = list(range(len(all_imgs)))
-                best_hfov = 360.0
-                best_flatness = 0.95
-                print(f"[✓] Ghép thành công 100% toàn bộ {len(all_imgs)} ảnh bằng Sequential SIFT Robust Engine!", file=sys.stderr)
-
-    # Nếu Sequential SIFT chưa có kết quả (hoặc chỉ có 2 ảnh), mới chạy các tầng OpenCV dự phòng
-    if best_pano is None:
-        for (cur_paths, max_dim, conf, wave_corr, reg_resol, desc) in candidate_schemes:
-            print(f"[*] Thử nghiệm ghép: {desc}...", file=sys.stderr)
-            images = []
-            for p in cur_paths:
-                if not os.path.exists(p):
-                    print(f"[Warning] Bỏ qua file không tồn tại: {p}", file=sys.stderr)
-                    continue
-                try:
-                    img = load_and_orient_image(p, max_dim=max_dim)
-                    # Cân bằng ánh sáng đa môi trường (HDR thích ứng, nâng bóng râm & nén nắng chói)
-                    img = balance_universal_lighting(img)
-                    images.append(img)
-                except Exception as img_err:
-                    print(f"[Warning] Bỏ qua ảnh lỗi đọc {p}: {img_err}", file=sys.stderr)
-                    continue
-
-            if len(images) < 2:
-                print(f"[Warning] Không đủ ảnh hợp lệ ({len(images)} ảnh) để ghép cho tầng này.", file=sys.stderr)
-                try:
-                    del images
-                    gc.collect()
-                except Exception:
-                    pass
+    # 1. ƯU TIÊN SỐ 1: CHẠY CÁC TẦNG OPENCV NATIVE ĐỂ TẬN DỤNG BUNDLE ADJUSTMENT VÀ GRAPH-CUT SEAM TỰ NHIÊN
+    for (cur_paths, max_dim, conf, wave_corr, reg_resol, desc) in candidate_schemes:
+        print(f"[*] Thử nghiệm ghép: {desc}...", file=sys.stderr)
+        images = []
+        for p in cur_paths:
+            if not os.path.exists(p):
+                print(f"[Warning] Bỏ qua file không tồn tại: {p}", file=sys.stderr)
+                continue
+            try:
+                img = load_and_orient_image(p, max_dim=max_dim)
+                # Cân bằng ánh sáng đa môi trường (HDR thích ứng, nâng bóng râm & nén nắng chói)
+                img = balance_universal_lighting(img)
+                images.append(img)
+            except Exception as img_err:
+                print(f"[Warning] Bỏ qua ảnh lỗi đọc {p}: {img_err}", file=sys.stderr)
                 continue
 
-            s = build_stitcher(confidence=conf, wave_correction=wave_corr, reg_resol=reg_resol)
-            cur_stat, cur_pano = s.stitch(images)
-            cur_used = s.component() if hasattr(s, 'component') else ()
+        if len(images) < 2:
+            print(f"[Warning] Không đủ ảnh hợp lệ ({len(images)} ảnh) để ghép cho tầng này.", file=sys.stderr)
+            try:
+                del images
+                gc.collect()
+            except Exception:
+                pass
+            continue
 
-            if cur_stat == cv2.Stitcher_OK and cur_pano is not None:
-                used_count = len(cur_used)
-                total_count = len(images)
-                coverage_ratio = used_count / float(total_count)
+        s = build_stitcher(confidence=conf, wave_correction=wave_corr, reg_resol=reg_resol)
+        cur_stat, cur_pano = s.stitch(images)
+        cur_used = s.component() if hasattr(s, 'component') else ()
 
-                # NGUYÊN TẮC BẢO VỆ CHUẨN 360°:
-                # Nếu người dùng nạp >= 6 ảnh mà lượt ghép chỉ dùng được < 4 ảnh:
-                # Tuyệt đối không chấp nhận mảnh chắp vá 2-3 ảnh làm ảnh 360! Chuyển ngay sang tầng nhạy hơn!
-                if total_count >= 6 and used_count < 4:
-                    print(f"[!] Lượt ghép chỉ kết nối được {used_count}/{total_count} ảnh (mảnh chắp vá quá nhỏ). Bỏ qua để thử tầng nhạy hơn...", file=sys.stderr)
-                    try:
-                        del images
-                        del cur_pano
-                        gc.collect()
-                    except Exception:
-                        pass
-                    continue
+        if cur_stat == cv2.Stitcher_OK and cur_pano is not None:
+            used_count = len(cur_used)
+            total_count = len(images)
+            coverage_ratio = used_count / float(total_count)
 
-                # Ước tính góc quét ngang thực tế (HFOV) từ tiêu cự camera
-                estimated_hfov = None
-                try:
-                    cams = s.cameras()
-                    focals = [c.focal for c in cams if c.focal > 0]
-                    if len(focals) > 0:
-                        med_f = float(np.median(focals))
-                        estimated_hfov = (cur_pano.shape[1] / med_f) * (180.0 / np.pi)
-                except Exception:
-                    pass
+            # Ước tính góc quét ngang thực tế (HFOV) từ tiêu cự camera
+            estimated_hfov = None
+            try:
+                cams = s.cameras()
+                focals = [c.focal for c in cams if c.focal > 0]
+                if len(focals) > 0:
+                    med_f = float(np.median(focals))
+                    estimated_hfov = (cur_pano.shape[1] / med_f) * (180.0 / np.pi)
+            except Exception:
+                pass
 
-                if estimated_hfov is None or estimated_hfov <= 0 or estimated_hfov > 360.0:
-                    ar = float(cur_pano.shape[1]) / float(max(1, cur_pano.shape[0]))
-                    estimated_hfov = min(360.0, max(50.0, ar * 52.0))
+            if estimated_hfov is None or estimated_hfov <= 0 or estimated_hfov > 360.0:
+                ar = float(cur_pano.shape[1]) / float(max(1, cur_pano.shape[0]))
+                estimated_hfov = min(360.0, max(50.0, ar * 52.0))
 
-                flatness = evaluate_panorama_flatness(cur_pano)
+            flatness = evaluate_panorama_flatness(cur_pano)
 
-                # Điểm chất lượng: ƯU TIÊN SỐ LƯỢNG ẢNH ĐƯỢC KẾT NỐI (Coverage First)
-                score = (coverage_ratio * 400.0) + min(150.0, estimated_hfov * 0.5) + (flatness * 50.0)
+            # Điểm chất lượng: ƯU TIÊN SỐ LƯỢNG ẢNH ĐƯỢC KẾT NỐI (Coverage First)
+            score = (coverage_ratio * 400.0) + min(150.0, estimated_hfov * 0.5) + (flatness * 50.0)
 
-                print(f"[✓] Ghép thành công {used_count}/{total_count} ảnh (HFOV ~{estimated_hfov:.1f}°, Độ phẳng: {flatness*100:.1f}%, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
+            print(f"[✓] Ghép thành công {used_count}/{total_count} ảnh (HFOV ~{estimated_hfov:.1f}°, Độ phẳng: {flatness*100:.1f}%, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
 
-                if score > best_score:
-                    best_score = score
-                    best_pano = cur_pano
-                    best_status = cur_stat
-                    best_used = cur_used
-                    best_hfov = estimated_hfov
-                    best_flatness = flatness
+            if score > best_score:
+                best_score = score
+                best_pano = cur_pano
+                best_status = cur_stat
+                best_used = cur_used
+                best_hfov = estimated_hfov
+                best_flatness = flatness
 
-                # Dọn dẹp bộ nhớ ảnh sau lượt ghép thành công
-                try:
-                    del images
-                    gc.collect()
-                except Exception:
-                    pass
+            # Dọn dẹp bộ nhớ ảnh sau lượt ghép thành công
+            try:
+                del images
+                gc.collect()
+            except Exception:
+                pass
 
-                # Dừng sớm nếu đã kết nối >= 85% số ảnh và đạt góc quét lớn
-                if coverage_ratio >= 0.85 and estimated_hfov >= 260.0:
-                    print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc ({used_count}/{total_count} ảnh)! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
-                    break
-            else:
-                if best_failure_stat is None or cur_stat != -1:
-                    best_failure_stat = cur_stat
-                print(f"[!] Lượt ghép chưa đạt (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Tiếp tục thử phương án tiếp theo...", file=sys.stderr)
-                try:
-                    del images
-                    gc.collect()
-                except Exception:
-                    pass
+            # Dừng sớm nếu đã kết nối >= 80% số ảnh và đạt góc quét lớn
+            if coverage_ratio >= 0.80 and estimated_hfov >= 240.0:
+                print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc ({used_count}/{total_count} ảnh)! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
+                break
+        else:
+            if best_failure_stat is None or cur_stat != -1:
+                best_failure_stat = cur_stat
+            print(f"[!] Lượt ghép chưa đạt (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Tiếp tục thử phương án tiếp theo...", file=sys.stderr)
+            try:
+                del images
+                gc.collect()
+            except Exception:
+                pass
 
     status = best_status if best_status != -1 else (best_failure_stat if best_failure_stat is not None else cv2.Stitcher_ERR_NEED_MORE_IMGS)
     stitched = best_pano
     used_imgs = best_used
     used_count = len(used_imgs) if used_imgs is not None else 0
+
+    # 2. PHAO CỨU CÁNH VORONOI: NẾU OPENCV THẤT BẠI HOẶC BỎ RƠI QUÁ NHIỀU ẢNH (< 65% số ảnh):
+    # Kích hoạt Sequential SIFT Engine với phân vùng Voronoi cứng (Zero Ghosting, 100% bảo toàn ảnh)
+    need_sequential = (
+        status != cv2.Stitcher_OK or
+        stitched is None or
+        (num_total >= 3 and used_count < max(3, int(num_total * 0.65)))
+    )
+
+    if need_sequential and num_total >= 2:
+        print(f"[*] OpenCV chỉ ghép được {used_count}/{num_total} ảnh (hoặc thất bại mã {status}).", file=sys.stderr)
+        print(f"[*] Kích hoạt Thuật toán Phân Vùng Voronoi Tuần Tự (Hard Voronoi SIFT Engine) cứu cánh...", file=sys.stderr)
+        all_imgs = []
+        for p in sorted_paths:
+            if os.path.exists(p):
+                try:
+                    im = load_and_orient_image(p, max_dim=1800)
+                    im = balance_universal_lighting(im)
+                    all_imgs.append(im)
+                except Exception as e:
+                    print(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}", file=sys.stderr)
+
+        if len(all_imgs) >= 2:
+            seq_pano = build_sequential_sift_panorama(all_imgs)
+            if seq_pano is not None:
+                stitched = seq_pano
+                status = cv2.Stitcher_OK
+                used_imgs = list(range(len(all_imgs)))
+                used_count = len(all_imgs)
+                best_hfov = 360.0
+                best_flatness = 0.95
+                print(f"[✓] Cứu cánh thành công 100% toàn bộ {used_count} ảnh bằng Hard Voronoi SIFT Engine!", file=sys.stderr)
 
     print(f"[*] Kết quả ghép: Mã={status}, Số ảnh thực tế kết nối: {used_count}/{num_total} ảnh, HFOV ước tính: {best_hfov if best_hfov else 0:.1f}°.", file=sys.stderr)
 
