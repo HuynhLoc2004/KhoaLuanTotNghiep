@@ -70,6 +70,7 @@ services:
     volumes:
       - uploads_data:/app/backend/public/uploads
       - ./maintenance_flag:/app/maintenance_flag
+      - ./stitching_worker:/app/stitching_worker
     logging:
       driver: "json-file"
       options:
