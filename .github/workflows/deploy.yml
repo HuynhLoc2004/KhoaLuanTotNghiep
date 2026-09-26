@@ -13,6 +13,11 @@ on:
         required: false
         default: 'main'
 
+# Tự động huỷ job deploy cũ nếu có commit mới được push lên (tránh 2-3 job chạy đè nhau làm nghẽn VPS)
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
