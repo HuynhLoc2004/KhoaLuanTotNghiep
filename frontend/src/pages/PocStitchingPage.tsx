@@ -82,8 +82,8 @@ interface StitchResult {
 export const PocStitchingPage: React.FC = () => {
   const { showToast } = useToast();
   const { t } = useClientTranslation();
-  // Phương thức nhập liệu: 'video' (Phương án A - khuyên dùng) hoặc 'photos' (Phương án B)
-  const [inputMode, setInputMode] = useState<'video' | 'photos'>('video');
+  // Phương thức nhập liệu: 'photos' (Chụp/Tải ảnh góc hoặc Pano) hoặc 'video'
+  const [inputMode, setInputMode] = useState<'video' | 'photos'>('photos');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [videoProcessing, setVideoProcessing] = useState(false);
