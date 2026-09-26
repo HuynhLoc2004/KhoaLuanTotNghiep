@@ -194,12 +194,12 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         showControls: false,
         compass: false,
         hfov: initialHfov || 100, // Góc nhìn chuẩn rộng thoáng đãng 100°, triệt tiêu hoàn toàn hiệu ứng ống hút (tunnel) và làm phẳng không gian
-        minHfov: 45,
-        maxHfov: 125, // Cho phép zoom rộng thoải mái để bao quát toàn phòng
+        minHfov: 35,
+        maxHfov: 130, // Cho phép zoom rộng thoải mái để bao quát toàn phòng
         pitch: initialPitch || 0,
         yaw: initialYaw || 0,
-        minPitch: -58, // Cho phép nhìn thấy toàn bộ sàn nhà và chân đồ vật, nhưng dừng lại tự nhiên trước khi nhìn thẳng vào chân người chụp
-        maxPitch: 80,  // Góc ngước cao tự nhiên chiêm ngưỡng trần nhà
+        minPitch: -85, // Cho phép nhìn toàn cảnh từ sàn nhà lên trần nhà mà không bị chặn cụt
+        maxPitch: 85,  // Góc ngước cao tự nhiên chiêm ngưỡng trần nhà
         friction: 0.15,
         hotSpots: formattedHotSpots,
       });

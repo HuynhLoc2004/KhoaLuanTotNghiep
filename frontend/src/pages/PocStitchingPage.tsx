@@ -996,16 +996,6 @@ function normalizePanoUrl(rawUrl: string): string {
                 )}
               </button>
 
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleLoadDemoPano}
-                disabled={isProcessing}
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                <Eye size={15} />
-                <span>{t('stitching.loadSample', 'Nạp ảnh mẫu 360° chuẩn')}</span>
-              </button>
 
               {/* Error message */}
               {errorMsg && (
