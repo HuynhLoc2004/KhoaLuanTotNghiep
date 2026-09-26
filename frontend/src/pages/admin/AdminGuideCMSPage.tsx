@@ -333,15 +333,19 @@ export const AdminGuideCMSPage: React.FC = () => {
       const res = await api.uploadBrandingImage(file);
       if (res && res.url) {
         setUploadModalImageUrl(res.url);
+        // Tự động gợi ý tên sơ đồ thông minh nếu người dùng chưa nhập
+        if (!newMapTitle) {
+          const rawName = file.name.replace(/\.[^/.]+$/, '').trim();
+          const cleanName = rawName.length > 3 ? rawName : 'Sơ đồ tham quan Bảo tàng Lịch sử TP.HCM';
+          setNewMapTitle(cleanName);
+        }
         if (uploadAsActive) {
           handleChange('guideMapUrl', res.url);
           try {
             await updateBranding({ guideMapUrl: res.url });
           } catch {}
         }
-        showToast('Đã tải ảnh lên hệ thống, đang tự động nhận diện các gian phòng...', 'success');
-        await handleAnalyzeFloorPlan(res.url);
-        setIsUploadModalOpen(false);
+        showToast('Đã tải ảnh lên xem trước. Quý khách vui lòng kiểm tra tiêu đề và nhấn "Xác nhận tải lên & Phân tích sơ đồ".', 'info');
       }
     } catch (err: any) {
       showToast(err?.message || 'Lỗi khi tải ảnh sơ đồ mặt bằng lên hệ thống', 'error');
@@ -1744,11 +1748,11 @@ export const AdminGuideCMSPage: React.FC = () => {
                     await handleAnalyzeFloorPlan(uploadModalImageUrl);
                     setIsUploadModalOpen(false);
                   }}
-                  disabled={analyzingMap}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  disabled={uploadingGuideMap || analyzingMap}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600, padding: '7px 16px' }}
                 >
-                  <Cpu size={13} />
-                  <span>{analyzingMap ? 'Đang phân tích...' : 'Tự động nhận diện sơ đồ'}</span>
+                  <Cpu size={14} />
+                  <span>{analyzingMap ? 'Đang phân tích không gian...' : 'Xác nhận tải lên & Phân tích sơ đồ'}</span>
                 </button>
               ) : (
                 <button
