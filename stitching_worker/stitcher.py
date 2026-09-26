@@ -183,31 +183,39 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
     target_height = target_width // 2
     canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
 
-    # ĐẢM BẢO CHIỀU RỘNG LUÔN PHỦ 100% CANVAS (Từ 0° đến 360°):
-    # Tuyệt đối KHÔNG ĐỂ VIỀN ĐEN RỖNG Ở 2 BÊN TRÁI PHẢI làm người xem 360° nhìn vào hố đen!
-    new_w = target_width
-    natural_h = int(round(target_width / aspect_ratio))
-    
-    # Chiều cao nội thất chiếm từ 52% đến 85% canvas để cân đối góc nhìn đứng
-    new_h = min(int(target_height * 0.85), max(int(target_height * 0.52), natural_h))
-    resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+    # Phân biệt rõ giữa:
+    # 1. Ảnh toàn cảnh 360° vòng tròn thực sự (is_full_360=True): Phủ trọn 100% canvas 360°
+    # 2. Ảnh chùm góc quét một phần (Partial Panorama, ví dụ vách tường 90°-150°):
+    #    BẢO TỒN NGUYÊN BẢN TỶ LỆ KHUNG HÌNH (Natural Aspect Ratio), tuyệt đối KHÔNG kéo bè ngang 400% làm méo dị dạng!
+    if is_full_360:
+        new_w = target_width
+        natural_h = int(round(target_width / aspect_ratio))
+        new_h = min(int(target_height * 0.85), max(int(target_height * 0.52), natural_h))
+        resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+        x_offset = 0
 
-    # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) với smoothstep liền mạch
-    seam_blend_width = min(60, new_w // 30)
-    for i in range(seam_blend_width):
-        alpha = float(i) / float(seam_blend_width)
-        s_alpha = alpha * alpha * (3.0 - 2.0 * alpha)
-        left_col = resized_pano[:, i].astype(np.float32)
-        right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
-        blended = (1.0 - s_alpha) * right_col + s_alpha * left_col
-        resized_pano[:, i] = np.clip(blended, 0, 255).astype(np.uint8)
+        # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) với smoothstep liền mạch
+        seam_blend_width = min(60, new_w // 30)
+        for i in range(seam_blend_width):
+            alpha = float(i) / float(seam_blend_width)
+            s_alpha = alpha * alpha * (3.0 - 2.0 * alpha)
+            left_col = resized_pano[:, i].astype(np.float32)
+            right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
+            blended = (1.0 - s_alpha) * right_col + s_alpha * left_col
+            resized_pano[:, i] = np.clip(blended, 0, 255).astype(np.uint8)
+    else:
+        # Trường hợp góc quét cục bộ: giữ nguyên tỷ lệ quang học thật
+        new_h = int(round(target_height * 0.70))
+        new_w = min(target_width, int(round(new_h * aspect_ratio)))
+        resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+        x_offset = (target_width - new_w) // 2
 
     y_offset = (target_height - new_h) // 2
-    canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
+    canvas[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized_pano
 
     # Khởi tạo mặt nạ vùng ảnh thật (True = có dữ liệu ảnh thật)
     content_mask = np.zeros((target_height, target_width), dtype=bool)
-    content_mask[y_offset:y_offset+new_h, 0:target_width] = (
+    content_mask[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = (
         (resized_pano[:, :, 0] > 2) | (resized_pano[:, :, 1] > 2) | (resized_pano[:, :, 2] > 2)
     )
 
