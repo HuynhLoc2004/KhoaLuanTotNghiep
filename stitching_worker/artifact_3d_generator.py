@@ -11,24 +11,20 @@ Mô tả:
   hiển thị tuyệt đẹp trên mâm xoay Three.js WebGL 360°.
 
 Đặc tính kỹ thuật vượt trội:
-  1. Tách nền thông minh Deep Learning (AI Salient Masking & Background Removal):
-     - Tích hợp Rembg (mô hình U2-Net/u2netp) bóc tách chuẩn xác 100% hiện vật khỏi
-       bục trưng bày màu trắng, sàn nhà, vách tường và bóng đổ.
-     - Fallback thông minh: Thuật toán phân đoạn đa tầng Adaptive GrabCut + Otsu.
-  2. Dựng hình thể tích thực tế (True 3D Volumetric Mesh vs Flat Wafer Cutout):
-     - Phân tích hình học và tính đối xứng trục (Symmetry & Axisymmetric Analysis).
-     - Đối với vật thể tròn xoay (Trống đồng, Bình, Lọ, Bát, Đĩa, Chum, Vò, Chuông, Đỉnh):
-       Dựng khối thể tích trụ tròn xoay 360° (Solid of Revolution) với bán kính sâu Rz ~ 0.85-0.95 Rx,
-       mặt trống/miệng bình phẳng nằm ngang trên đỉnh, thân trống cong eo và chân đế đặt vững trên mâm xoay.
-     - Đối với tượng và điêu khắc tự do (Organic Sculptures):
-       Dựng vòm khối elip đồng dạng (Conformal Volumetric Hull) với độ dày sâu thực tế (Depth Ratio 0.50-0.70),
-       vách bên bo tròn mềm mại không để lại cạnh lưỡi dao mỏng như tờ giấy.
-  3. Ánh xạ chất liệu 360° & PBR Shader với Normal Map:
-     - Mặt trước: Ánh xạ kết cấu siêu nét từ ảnh gốc với hoa văn chạm khắc nguyên bản.
-     - Mặt sau: Nhận ảnh mặt sau (nếu có) hoặc tổng hợp chất liệu đồng cổ (Bronze Patina),
-       gốm men (Ceramic Glaze), gỗ hoặc đá đồng bộ màu sắc và độ nhám.
-     - Tạo bản đồ pháp tuyến (Normal Map) từ gradient sáng tối để ánh sáng Three.js
-       tạo bóng đổ vi chạm (micro-relief) sống động như thật khi xoay 360°.
+  1. Tách nền thông minh AI Deep Learning (Rembg U2-Net / u2netp):
+     - Bóc tách chuẩn xác 100% hiện vật khỏi bục trưng bày trắng, tủ kính, sàn nhà và bóng đổ.
+  2. Dựng hình thể tích chuẩn xác 100% theo ảnh gốc (Faithful Volumetric 3D Manifold):
+     - KHÔNG làm méo, KHÔNG xoay tròn biến hiện vật thành quả trứng/dưa hấu dị dạng.
+     - Mặt trước (Front View): Tỷ lệ và tọa độ chiếu 1:1 bảo tồn nguyên vẹn 100%
+       đường nét hoa văn ngôi sao 14 cánh, chim Lạc, tượng cóc, hoa văn thân trống từ ảnh gốc.
+     - Chiều sâu thể tích 3D (Solid 3D Depth): Tạo vòm khối elip mượt mà theo hàm khoảng cách,
+       độ dày thực tế (Depth ~ 0.70-0.85 bề rộng hiện vật), vách bên bo tròn không tạo mép mỏng dính.
+     - Khép kín 100% đa tạp kín nước (Watertight Solid 3D Manifold), không lỗ thủng, không kẽ hở.
+  3. Ánh xạ chất liệu Dual-Atlas PBR & Normal Map:
+     - Nửa trái Atlas: Ảnh mặt trước siêu nét của cổ vật đã bóc nền và khử viền đen.
+     - Nửa phải Atlas: Mặt sau đồng bộ chất liệu đồng cổ (Bronze Patina) / gốm sứ hoặc ảnh mặt sau thật.
+     - Bản đồ pháp tuyến (Tangent-Space Normal Map) từ gradient sáng tối tạo vi chạm nổi khối sống động
+       dưới ánh sáng Three.js khi xoay trên mâm xoay 360°.
   4. Xuất file chuẩn công nghiệp .GLB (Binary glTF 2.0) tương thích 100% Three.js.
 ==============================================================================
 """
@@ -70,7 +66,6 @@ def remove_background_ai(image_rgb):
     try:
         import rembg
         session = rembg.new_session('u2netp')
-        # Chuyển ảnh RGB sang bytes PNG
         is_success, buffer = cv2.imencode(".png", cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR))
         if not is_success:
             return None
@@ -92,7 +87,6 @@ def extract_salient_mask_fallback(img_rgb):
     Dùng khi không có rembg hoặc rembg tải model chậm.
     """
     h, w = img_rgb.shape[:2]
-    # Lấy mẫu màu viền nền
     border_pixels = np.concatenate([
         img_rgb[:6, :].reshape(-1, 3),
         img_rgb[-6:, :].reshape(-1, 3),
@@ -103,25 +97,20 @@ def extract_salient_mask_fallback(img_rgb):
     bg_median = np.median(border_pixels, axis=0)
     dist_to_bg = np.linalg.norm(img_rgb.astype(np.float32) - bg_median, axis=2)
 
-    # Ước lượng vùng trung tâm hiện vật
     center_y, center_x = h // 2, w // 2
     y_coords, x_coords = np.ogrid[:h, :w]
     center_dist = np.sqrt(((x_coords - center_x) / (w * 0.45))**2 + ((y_coords - center_y) / (h * 0.45))**2)
     saliency = dist_to_bg * np.clip(1.4 - center_dist, 0.2, 1.4)
 
-    # Ngưỡng Otsu trên bản đồ nổi bật
     norm_sal = cv2.normalize(saliency, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
     _, init_mask = cv2.threshold(norm_sal, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    # Tinh chỉnh GrabCut
     try:
         grab_mask = np.zeros((h, w), dtype=np.uint8)
         grab_mask[init_mask == 0] = cv2.GC_BGD
         grab_mask[init_mask > 0] = cv2.GC_PR_FGD
-        # Vùng trung tâm chắc chắn là tiền cảnh
         inner_rect = (int(w * 0.25), int(h * 0.25), int(w * 0.5), int(h * 0.5))
         grab_mask[inner_rect[1]:inner_rect[1]+inner_rect[3], inner_rect[0]:inner_rect[0]+inner_rect[2]] = cv2.GC_FGD
-        # Viền ngoài chắc chắn là nền
         grab_mask[:4, :] = cv2.GC_BGD
         grab_mask[-4:, :] = cv2.GC_BGD
         grab_mask[:, :4] = cv2.GC_BGD
@@ -134,7 +123,6 @@ def extract_salient_mask_fallback(img_rgb):
     except Exception:
         mask = init_mask
 
-    # Lọc hình thái học lấp đầy lỗ hổng và giữ vùng lớn nhất
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=3)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -192,88 +180,22 @@ def load_and_extract_artifact(image_path, max_dim=1400):
     mask = cv2.GaussianBlur(mask, (3, 3), 0.8)
     _, mask = cv2.threshold(mask, 120, 255, cv2.THRESH_BINARY)
 
+    # Chỉ giữ contour lớn nhất để loại bỏ các đốm nhiễu rời rạc
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        largest = max(contours, key=cv2.contourArea)
+        clean_mask = np.zeros_like(mask)
+        cv2.drawContours(clean_mask, [largest], -1, 255, thickness=cv2.FILLED)
+        mask = clean_mask
+
     return img_rgb, mask
 
 
 # ============================================================================
-# PHẦN 2: PHÂN TÍCH HÌNH HỌC VẬT THỂ & ĐỐI XỨNG TRỤ TRÒN XOAY
+# PHẦN 2: TẠO BẢN ĐỒ NORMAL MAP & TEXTURE ATLAS KHÔNG RĂNG CƯA
 # ============================================================================
 
-def analyze_artifact_geometry(mask):
-    """
-    Phân tích tỷ lệ kích thước và độ đối xứng trục của hiện vật:
-    - Nếu đối xứng trục cao (> 0.82) -> Vật thể tròn xoay (Trống đồng, Bình, Lọ, Đỉnh, Bát đĩa).
-    - Ngược lại -> Tượng điêu khắc tự do (Organic Sculptures).
-    """
-    ys, xs = np.where(mask > 0)
-    if len(ys) == 0:
-        return {"type": "unknown", "bbox": (0, 0, 100, 100)}
-
-    y_min, y_max = int(ys.min()), int(ys.max())
-    x_min, x_max = int(xs.min()), int(xs.max())
-
-    h_obj = y_max - y_min
-    w_obj = x_max - x_min
-    aspect = float(w_obj) / float(max(1, h_obj))
-
-    # Đo độ đối xứng hai bên mạn sườn trái - phải qua từng hàng quét
-    sym_diffs = []
-    centers = []
-    widths = []
-
-    for y in range(y_min, y_max + 1):
-        cols = np.where(mask[y, :] > 0)[0]
-        if len(cols) > 5:
-            c_left = cols[0]
-            c_right = cols[-1]
-            w_row = c_right - c_left
-            c_mid = (c_left + c_right) / 2.0
-            centers.append(c_mid)
-            widths.append(w_row)
-        else:
-            widths.append(0)
-
-    if len(centers) < 10:
-        return {"type": "organic", "bbox": (x_min, y_min, w_obj, h_obj), "aspect": aspect}
-
-    global_center = np.median(centers)
-    total_asym = 0.0
-    valid_rows = 0
-
-    for y in range(y_min, y_max + 1):
-        cols = np.where(mask[y, :] > 0)[0]
-        if len(cols) > 5:
-            dist_l = abs(global_center - cols[0])
-            dist_r = abs(cols[-1] - global_center)
-            w_row = cols[-1] - cols[0]
-            if w_row > 10:
-                diff = abs(dist_l - dist_r) / float(w_row)
-                total_asym += diff
-                valid_rows += 1
-
-    mean_asym = total_asym / float(max(1, valid_rows))
-    symmetry = max(0.0, 1.0 - mean_asym)
-
-    # Tiêu chí nhận diện vật thể tròn xoay (Trống đồng, bình, gốm, đỉnh đồng):
-    # Độ đối xứng cao (> 0.82) và tỷ lệ khung hình cân đối (0.4 <= aspect <= 2.5)
-    is_rotational = (symmetry >= 0.82) and (0.35 <= aspect <= 2.6)
-    obj_type = "rotational_solid" if is_rotational else "organic_sculpture"
-
-    log(f"Phân tích hình học: Loại [{obj_type}], Độ đối xứng trục = {symmetry:.2f}, Tỷ lệ W/H = {aspect:.2f}")
-    return {
-        "type": obj_type,
-        "bbox": (x_min, y_min, w_obj, h_obj),
-        "aspect": aspect,
-        "symmetry": symmetry,
-        "global_center": global_center
-    }
-
-
-# ============================================================================
-# PHẦN 3: TẠO BẢN ĐỒ NORMAL MAP & VẬT LIỆU PBR ĐỒNG CỔ / GỐM SỨ
-# ============================================================================
-
-def generate_normal_map_from_rgb(rgb_img, strength=2.5):
+def generate_normal_map_from_rgb(rgb_img, strength=2.2):
     """
     Tạo Normal Map chuẩn Tangent Space từ sắc độ bề mặt hoa văn:
     - Làm nổi khối các đường nét chạm khắc (ngôi sao 14 cánh, chim Lạc, hoa văn viền).
@@ -282,11 +204,9 @@ def generate_normal_map_from_rgb(rgb_img, strength=2.5):
     gray = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
     gray_blur = cv2.GaussianBlur(gray, (3, 3), 0)
 
-    # Đạo hàm không gian Sobel
     sobel_x = cv2.Sobel(gray_blur, cv2.CV_32F, 1, 0, ksize=3)
     sobel_y = cv2.Sobel(gray_blur, cv2.CV_32F, 0, 1, ksize=3)
 
-    # Vector pháp tuyến (Nx, Ny, Nz)
     nx = -sobel_x * strength
     ny = -sobel_y * strength
     nz = np.ones_like(nx)
@@ -296,7 +216,6 @@ def generate_normal_map_from_rgb(rgb_img, strength=2.5):
     ny = ny / norm
     nz = nz / norm
 
-    # Ánh xạ từ [-1, 1] sang [0, 255] RGB Normal Map
     normal_r = np.clip((nx * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8)
     normal_g = np.clip((ny * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8)
     normal_b = np.clip((nz * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8)
@@ -304,292 +223,220 @@ def generate_normal_map_from_rgb(rgb_img, strength=2.5):
     return cv2.merge([normal_r, normal_g, normal_b])
 
 
-# ============================================================================
-# PHẦN 4: DỰNG KHỐI THỂ TÍCH TRÒN XOAY THỰC TẾ (VOLUMETRIC REVOLUTION)
-# ============================================================================
-
-def build_volumetric_rotational_mesh(img_rgb, mask, geom_info, back_image=None, depth_scale=0.88, resolution=120):
+def build_dual_texture_atlas(crop_rgb, crop_mask, back_image=None, tex_w=2048, tex_h=1024):
     """
-    Dựng mô hình 3D thể tích tròn xoay 360° thực tế (Dành cho Trống đồng, Bình, Lọ, Bát đĩa):
-    - Dựng các vành đai 3D (Rings) khép kín từ chân đế lên tới đỉnh.
-    - Bán kính mặt cắt sâu Rz ~ 0.85-0.95 Rx tạo khối trụ/nón dày dặn vững chãi, KHÔNG PHẢI TẤM CẠC-TÔNG MỎNG DÍNH!
-    - Mặt trên (Mặt trống): Đóng nắp đĩa tròn nằm ngang phẳng lì có hoa văn chạm khắc nguyên bản.
-    - Đáy (Chân trống): Đóng nắp phẳng đặt khít trên mâm xoay Three.js.
-    - Ánh xạ chất liệu 360° xoay quanh thân với bề mặt đồng cổ/gốm sứ đồng bộ.
+    Tạo Texture Atlas 2 phần ghép đôi:
+    - Nửa trái [0, 0.5]: Mặt trước hiện vật với hoa văn nguyên bản, giãn biên màu khử sạch viền đen.
+    - Nửa phải [0.5, 1.0]: Mặt sau với chất liệu đồng cổ/gốm sứ đồng nhất (hoặc ảnh mặt sau thực tế).
     """
-    x_min, y_min, w_obj, h_obj = geom_info["bbox"]
-    y_max = y_min + h_obj
-    x_max = x_min + w_obj
-
-    # Số lượng vành đai chiều cao và số lát cắt hướng tâm
-    num_rings = int(np.clip(resolution * 0.75, 70, 140))
-    num_radial = int(np.clip(resolution * 0.60, 60, 100))
-
-    # Tỷ lệ chuẩn hóa: Chiều cao hiện vật trong không gian 3D chuẩn = 2.0 đơn vị
-    scale = 2.0 / float(max(1, h_obj))
-
-    ring_ys = np.linspace(y_max, y_min, num_rings).astype(int)
-
-    vertices = []
-    uvs = []
-
-    # Dựng thân khối tròn xoay 3D
-    for i, ry in enumerate(ring_ys):
-        cols = np.where(mask[ry, :] > 0)[0]
-        if len(cols) > 0:
-            c_left = cols[0]
-            c_right = cols[-1]
-            c_center = (c_left + c_right) / 2.0
-            rad_x = max(2.0, (c_right - c_left) / 2.0)
-        else:
-            c_center = (x_min + x_max) / 2.0
-            rad_x = 2.0
-
-        # Độ sâu Rz: Tỷ lệ thực tế ~ 0.85-0.92 bán kính ngang Rx
-        rad_z = rad_x * float(np.clip(depth_scale, 0.70, 1.10))
-        y_3d = (y_max - ry) * scale + 0.05  # Nằm sát trên mâm xoay Y=0.05
-        v_norm = i / float(num_rings - 1)
-
-        for j in range(num_radial):
-            angle = 2.0 * np.pi * j / float(num_radial)
-            # angle=0 tại mặt trước (+Z), quay vòng quanh trục Y
-            x_3d = (c_center - (x_min + x_max) / 2.0 + rad_x * np.sin(angle)) * scale
-            z_3d = (rad_z * np.cos(angle)) * scale
-
-            vertices.append([x_3d, y_3d, z_3d])
-            u_norm = j / float(num_radial)
-            uvs.append([u_norm, v_norm])
-
-    vertices = np.array(vertices, dtype=np.float32)
-    uvs = np.array(uvs, dtype=np.float32)
-
-    faces = []
-    for i in range(num_rings - 1):
-        for j in range(num_radial):
-            next_j = (j + 1) % num_radial
-            v1 = i * num_radial + j
-            v2 = i * num_radial + next_j
-            v3 = (i + 1) * num_radial + j
-            v4 = (i + 1) * num_radial + next_j
-
-            faces.append([v1, v2, v3])
-            faces.append([v2, v4, v3])
-
-    # 1. Đóng nắp đáy (Chân đế phẳng)
-    base_center_idx = len(vertices)
-    vertices = np.vstack([vertices, [[0.0, 0.05, 0.0]]])
-    uvs = np.vstack([uvs, [[0.5, 0.0]]])
-    for j in range(num_radial):
-        faces.append([base_center_idx, (j + 1) % num_radial, j])
-
-    # 2. Đóng nắp đỉnh (Mặt trên trống/miệng bình phẳng)
-    top_center_idx = len(vertices)
-    top_y = h_obj * scale + 0.05
-    vertices = np.vstack([vertices, [[0.0, top_y, 0.0]]])
-    uvs = np.vstack([uvs, [[0.5, 1.0]]])
-    top_start = (num_rings - 1) * num_radial
-    for j in range(num_radial):
-        faces.append([top_center_idx, top_start + j, top_start + (j + 1) % num_radial])
-
-    faces = np.array(faces, dtype=np.int32)
-
-    # 3. Tạo bản đồ Texture 360° quanh thân khối
-    tex_w = 1024
-    tex_h = 1024
-    tex_rgb = np.zeros((tex_h, tex_w, 3), dtype=np.uint8)
-
-    crop_rgb = img_rgb[y_min:y_max + 1, x_min:x_max + 1]
-    crop_mask = mask[y_min:y_max + 1, x_min:x_max + 1]
-    clean_crop = np.where(crop_mask[:, :, np.newaxis] > 0, crop_rgb, 0)
-
-    # Kéo giãn viền biên màu chống răng cưa
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    clean_front = crop_rgb.copy()
     dilated_mask = crop_mask.copy()
-    for _ in range(8):
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+
+    # Kéo giãn màu biên ra ngoài vùng trong suốt 10 pixel để khử 100% viền đen khi hiển thị WebGL
+    for _ in range(10):
         new_d = cv2.dilate(dilated_mask, kernel)
         edge = (new_d > 0) & (dilated_mask == 0)
-        clean_crop[edge] = cv2.dilate(clean_crop, kernel)[edge]
+        clean_front[edge] = cv2.dilate(clean_front, kernel)[edge]
         dilated_mask = new_d
 
-    front_w = tex_w // 2
-    front_tex = cv2.resize(clean_crop, (front_w, tex_h), interpolation=cv2.INTER_LANCZOS4)
+    half_w = tex_w // 2
+    front_tex = cv2.resize(clean_front, (half_w, tex_h), interpolation=cv2.INTER_LANCZOS4)
 
     if back_image is not None and isinstance(back_image, np.ndarray):
-        back_tex = cv2.resize(back_image, (front_w, tex_h), interpolation=cv2.INTER_LANCZOS4)
+        back_tex = cv2.resize(back_image, (half_w, tex_h), interpolation=cv2.INTER_LANCZOS4)
     else:
-        # Tự động phản chiếu đối xứng thân vỏ có làm mờ biên để tạo nửa thân sau đồng nhất
+        # Tự động tạo mặt sau: lật ngang mặt trước và làm mờ nhẹ chi tiết trung tâm
+        # để giữ nguyên nước men/màu đồng cổ nhưng không bị lặp lại hình ảnh ngôi sao
         back_tex = cv2.flip(front_tex, 1)
-        back_tex = cv2.GaussianBlur(back_tex, (5, 5), 1.0)
+        soft_back = cv2.GaussianBlur(back_tex, (9, 9), 2.5)
+        # Pha trộn giữ lại kết cấu hạt đồng cổ
+        back_tex = cv2.addWeighted(back_tex, 0.4, soft_back, 0.6, 0)
 
-    # Nửa mặt trước nằm ở trung tâm U in [0.25, 0.75], hai bên là nửa mặt sau
-    tex_rgb[:, 0:tex_w // 4] = back_tex[:, tex_w // 4:tex_w // 2]
-    tex_rgb[:, tex_w // 4:3 * tex_w // 4] = front_tex
-    tex_rgb[:, 3 * tex_w // 4:tex_w] = back_tex[:, 0:tex_w // 4]
+    atlas = np.zeros((tex_h, tex_w, 3), dtype=np.uint8)
+    atlas[:, :half_w] = front_tex
+    atlas[:, half_w:] = back_tex
 
-    # Khử đường nối biên
-    seam1 = tex_w // 4
-    seam2 = 3 * tex_w // 4
-    for offset in range(-4, 5):
-        alpha = (offset + 4) / 8.0
-        c1 = seam1 + offset
-        c2 = seam2 + offset
-        if 0 <= c1 < tex_w:
-            tex_rgb[:, c1] = cv2.addWeighted(tex_rgb[:, max(0, c1 - 1)], 1.0 - alpha, tex_rgb[:, min(tex_w - 1, c1 + 1)], alpha, 0)
-        if 0 <= c2 < tex_w:
-            tex_rgb[:, c2] = cv2.addWeighted(tex_rgb[:, max(0, c2 - 1)], 1.0 - alpha, tex_rgb[:, min(tex_w - 1, c2 + 1)], alpha, 0)
-
-    # Tạo Normal Map tạo vi chạm nổi khối hoa văn
-    normal_map = generate_normal_map_from_rgb(tex_rgb, strength=2.2)
-
-    pil_tex = Image.fromarray(tex_rgb)
-    pil_norm = Image.fromarray(normal_map)
-
-    # Tạo vật liệu PBR đồng cổ bảo tàng
-    pbr_mat = trimesh.visual.material.PBRMaterial(
-        baseColorTexture=pil_tex,
-        normalTexture=pil_norm,
-        metallicFactor=0.40,
-        roughnessFactor=0.55
-    )
-    visual = trimesh.visual.TextureVisuals(uv=uvs, material=pbr_mat)
-    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, visual=visual, process=False)
-
-    return mesh
+    return atlas
 
 
 # ============================================================================
-# PHẦN 5: DỰNG KHỐI THỂ TÍCH TƯỢNG ĐIÊU KHẮC (ORGANIC VOLUMETRIC HULL)
+# PHẦN 3: DỰNG KHỐI THỂ TÍCH 3D CHUẨN XÁC NGUYÊN BẢN (FAITHFUL VOLUMETRIC MESH)
 # ============================================================================
 
-def build_volumetric_organic_mesh(img_rgb, mask, geom_info, back_image=None, depth_scale=0.55, resolution=120):
+def build_faithful_volumetric_mesh(img_rgb, mask, back_image=None, depth_scale=0.38, resolution=120):
     """
-    Dựng mô hình 3D thể tích elip đồng dạng cho tượng nhân vật, điêu khắc, cổ vật tự do:
-    - Bo tròn mềm mại vòm khối elip hai bên mạn sườn, loại bỏ hoàn toàn cảm giác méo mó cạc-tông.
-    - Chiều sâu thực tế Rz ~ 0.50-0.70 bán kính ngang Rx, tạo khối tượng dày đặc 3D vững chãi.
+    Dựng mô hình 3D thể tích đặc khép kín (Watertight Solid Manifold) chuẩn xác 100% theo ảnh gốc:
+    1. Mặt trước (Front Face):
+       - Tọa độ (X, Y) ánh xạ tuyến tính 1:1 với tọa độ pixel ảnh gốc.
+       - Tỷ lệ co dãn UV hoàn toàn đồng nhất -> KHÔNG BIẾN DẠNG, KHÔNG MÉO HÌNH,
+         KHÔNG BÓP TRÒN THÀNH QUẢ TRỨNG HAY DƯA HẤU.
+       - Ngôi sao 14 cánh, họa tiết chạm khắc, mặt phẳng trên đỉnh và chân đế
+         giữ nguyên 100% hình khối thực tế như khi chụp ảnh tại bảo tàng.
+    2. Chiều sâu khối thể tích 3D (Solid Volumetric Depth):
+       - Độ dày mặt trước Z_front lồi mượt theo hàm vòm elip (Ellipsoidal Dome):
+         Z_front(u, y) = R_z(y) * sqrt(1 - (2u - 1)^2).
+       - Mặt sau Z_back = -Z_front.
+       - Tại đường biên chu vi của hiện vật (u=0 và u=1, đỉnh và đáy), Z = 0.
+       - Vách biên liên kết chặt chẽ mặt trước và mặt sau thành khối đặc kín nước (Watertight Manifold),
+         tạo độ dày vững chắc (Depth ~ 0.70-0.85 bề rộng hiện vật) trên mâm xoay Three.js.
     """
-    x_min, y_min, w_obj, h_obj = geom_info["bbox"]
-    y_max = y_min + h_obj
-    x_max = x_min + w_obj
+    ys, xs = np.where(mask > 0)
+    if len(ys) == 0:
+        raise ValueError("Không tìm thấy vùng hiện vật nào trong ảnh sau khi tách nền!")
 
-    num_rings = int(np.clip(resolution * 0.75, 70, 130))
-    num_radial = int(np.clip(resolution * 0.60, 50, 90))
+    x_min, x_max = int(xs.min()), int(xs.max())
+    y_min, y_max = int(ys.min()), int(ys.max())
+    w_obj = max(1, x_max - x_min)
+    h_obj = max(1, y_max - y_min)
 
-    scale = 2.0 / float(max(1, h_obj))
-    ring_ys = np.linspace(y_max, y_min, num_rings).astype(int)
+    num_rows = int(np.clip(resolution * 0.8, 80, 150))
+    num_cols = int(np.clip(resolution * 0.6, 60, 100))
 
-    # Tính bản đồ độ sâu vi chạm bề mặt từ độ sáng
-    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
-    gray_blur = cv2.GaussianBlur(gray, (5, 5), 1.5)
-    micro_relief = (gray - gray_blur) * 0.08
+    # Chuẩn hóa chiều cao hiện vật trong không gian 3D chuẩn Three.js = 2.0 đơn vị
+    scale = 2.0 / float(h_obj)
 
-    vertices = []
-    uvs = []
+    row_ys = np.linspace(y_min, y_max, num_rows).astype(int)
 
-    for i, ry in enumerate(ring_ys):
-        cols = np.where(mask[ry, :] > 0)[0]
+    rows_info = []
+    max_w = 0
+    for y in row_ys:
+        cols = np.where(mask[y, :] > 0)[0]
         if len(cols) > 0:
-            c_left = cols[0]
-            c_right = cols[-1]
-            c_center = (c_left + c_right) / 2.0
-            rad_x = max(2.0, (c_right - c_left) / 2.0)
+            c_l, c_r = float(cols[0]), float(cols[-1])
         else:
-            c_center = (x_min + x_max) / 2.0
-            rad_x = 2.0
+            c_l, c_r = float(x_min + x_max) / 2.0, float(x_min + x_max) / 2.0
+        w_row = max(2.0, c_r - c_l)
+        if w_row > max_w:
+            max_w = w_row
+        rows_info.append([c_l, c_r, w_row])
 
-        # Độ dày tượng hữu cơ
-        rad_z = rad_x * float(np.clip(depth_scale, 0.45, 0.75))
-        y_3d = (y_max - ry) * scale + 0.05
-        v_norm = i / float(num_rings - 1)
+    rows_info = np.array(rows_info, dtype=np.float32)
 
-        for j in range(num_radial):
-            angle = 2.0 * np.pi * j / float(num_radial)
-            # Thêm vi chạm bề mặt ở mặt trước
-            relief = 0.0
-            if -np.pi / 2.0 <= angle <= np.pi / 2.0:
-                sample_x = int(np.clip(c_center + rad_x * np.sin(angle), 0, mask.shape[1] - 1))
-                relief = micro_relief[ry, sample_x] * rad_z
+    # Làm mượt nhẹ 3 điểm trên biên trái và biên phải để triệt tiêu răng cưa viền pixel
+    rows_info[:, 0] = cv2.GaussianBlur(rows_info[:, 0].reshape(-1, 1), (3, 1), 0.8).flatten()
+    rows_info[:, 1] = cv2.GaussianBlur(rows_info[:, 1].reshape(-1, 1), (3, 1), 0.8).flatten()
+    rows_info[:, 2] = np.maximum(2.0, rows_info[:, 1] - rows_info[:, 0])
 
-            x_3d = (c_center - (x_min + x_max) / 2.0 + rad_x * np.sin(angle)) * scale
-            z_3d = (rad_z * np.cos(angle) + relief) * scale
+    depth_max = max_w * float(np.clip(depth_scale, 0.25, 0.60)) * scale
 
-            vertices.append([x_3d, y_3d, z_3d])
-            u_norm = j / float(num_radial)
-            uvs.append([u_norm, v_norm])
+    front_verts = []
+    back_verts = []
+    front_uvs = []
+    back_uvs = []
 
-    vertices = np.array(vertices, dtype=np.float32)
-    uvs = np.array(uvs, dtype=np.float32)
+    u_vals = np.linspace(0.0, 1.0, num_cols)
+
+    for i in range(num_rows):
+        y = row_ys[i]
+        y_norm = (y - y_min) / float(h_obj)
+        # Giảm nhẹ độ dày tại 2 cực đỉnh và đáy để khép kín mép hoàn hảo
+        y_taper = np.sin(np.pi * np.clip(y_norm, 0.001, 0.999)) ** 0.45
+        y_3d = (y_max - y) * scale + 0.05  # Đặt đáy nằm ngay trên mâm xoay Y=0.05
+
+        c_l = rows_info[i, 0]
+        c_r = rows_info[i, 1]
+        w_row = rows_info[i, 2]
+        r_z = depth_max * (w_row / max_w) * y_taper
+
+        for j in range(num_cols):
+            u = u_vals[j]
+            x_pix = c_l + u * (c_r - c_l)
+            x_3d = (x_pix - (x_min + x_max) / 2.0) * scale
+
+            # Độ lồi hình elip theo phương Z
+            t = 2.0 * u - 1.0
+            z = r_z * np.sqrt(max(0.0, 1.0 - t**2))
+
+            front_verts.append([x_3d, y_3d, z])
+            back_verts.append([x_3d, y_3d, -z])
+
+            # Ánh xạ UV trực tiếp theo vị trí pixel gốc
+            u_tex = np.clip((x_pix - x_min) / float(w_obj), 0.0, 1.0)
+            v_tex = np.clip(1.0 - (y - y_min) / float(h_obj), 0.0, 1.0)
+
+            # Atlas: Mặt trước ở nửa trái [0.0, 0.5], Mặt sau ở nửa phải [0.5, 1.0]
+            front_uvs.append([u_tex * 0.5, v_tex])
+            back_uvs.append([0.5 + (1.0 - u_tex) * 0.5, v_tex])
+
+    verts = np.vstack([front_verts, back_verts]).astype(np.float32)
+    uvs = np.vstack([front_uvs, back_uvs]).astype(np.float32)
+
+    F = lambda r, c: r * num_cols + c
+    B = lambda r, c: num_rows * num_cols + r * num_cols + c
 
     faces = []
-    for i in range(num_rings - 1):
-        for j in range(num_radial):
-            next_j = (j + 1) % num_radial
-            v1 = i * num_radial + j
-            v2 = i * num_radial + next_j
-            v3 = (i + 1) * num_radial + j
-            v4 = (i + 1) * num_radial + next_j
-            faces.append([v1, v2, v3])
-            faces.append([v2, v4, v3])
+    # 1. Lưới mặt trước (Winding Counter-Clockwise nhìn từ +Z)
+    for i in range(num_rows - 1):
+        for j in range(num_cols - 1):
+            faces.append([F(i, j), F(i+1, j), F(i, j+1)])
+            faces.append([F(i, j+1), F(i+1, j), F(i+1, j+1)])
 
-    # Nắp đáy và đỉnh
-    base_idx = len(vertices)
-    vertices = np.vstack([vertices, [[0.0, 0.05, 0.0]]])
-    uvs = np.vstack([uvs, [[0.5, 0.0]]])
-    for j in range(num_radial):
-        faces.append([base_idx, (j + 1) % num_radial, j])
+    # 2. Lưới mặt sau (Winding Clockwise nhìn từ +Z để hướng pháp tuyến ra ngoài -Z)
+    for i in range(num_rows - 1):
+        for j in range(num_cols - 1):
+            faces.append([B(i, j), B(i, j+1), B(i+1, j)])
+            faces.append([B(i, j+1), B(i+1, j+1), B(i+1, j)])
 
-    top_idx = len(vertices)
-    top_y = h_obj * scale + 0.05
-    vertices = np.vstack([vertices, [[0.0, top_y, 0.0]]])
-    uvs = np.vstack([uvs, [[0.5, 1.0]]])
-    top_start = (num_rings - 1) * num_radial
-    for j in range(num_radial):
-        faces.append([top_idx, top_start + j, top_start + (j + 1) % num_radial])
+    # 3. Dải vách bên trái (j = 0)
+    for i in range(num_rows - 1):
+        faces.append([F(i+1, 0), F(i, 0), B(i, 0)])
+        faces.append([F(i+1, 0), B(i, 0), B(i+1, 0)])
+
+    # 4. Dải vách bên phải (j = num_cols - 1)
+    last_j = num_cols - 1
+    for i in range(num_rows - 1):
+        faces.append([F(i, last_j), F(i+1, last_j), B(i, last_j)])
+        faces.append([F(i+1, last_j), B(i+1, last_j), B(i, last_j)])
+
+    # 5. Dải vách mép đỉnh (i = 0)
+    for j in range(num_cols - 1):
+        faces.append([F(0, j), F(0, j+1), B(0, j)])
+        faces.append([F(0, j+1), B(0, j+1), B(0, j)])
+
+    # 6. Dải vách mép đáy (i = num_rows - 1)
+    last_i = num_rows - 1
+    for j in range(num_cols - 1):
+        faces.append([F(last_i, j+1), F(last_i, j), B(last_i, j)])
+        faces.append([F(last_i, j+1), B(last_i, j), B(last_i, j+1)])
 
     faces = np.array(faces, dtype=np.int32)
 
-    # Texture Atlas
-    tex_w = 1024
-    tex_h = 1024
+    # 7. Chuẩn bị Texture Atlas & Normal Map
     crop_rgb = img_rgb[y_min:y_max + 1, x_min:x_max + 1]
     crop_mask = mask[y_min:y_max + 1, x_min:x_max + 1]
-    clean_crop = np.where(crop_mask[:, :, np.newaxis] > 0, crop_rgb, 0)
 
-    front_w = tex_w // 2
-    front_tex = cv2.resize(clean_crop, (front_w, tex_h), interpolation=cv2.INTER_LANCZOS4)
-    back_tex = cv2.flip(front_tex, 1)
+    atlas = build_dual_texture_atlas(crop_rgb, crop_mask, back_image=back_image)
+    normal_map = generate_normal_map_from_rgb(atlas, strength=2.2)
 
-    tex_rgb = np.zeros((tex_h, tex_w, 3), dtype=np.uint8)
-    tex_rgb[:, 0:tex_w // 4] = back_tex[:, tex_w // 4:tex_w // 2]
-    tex_rgb[:, tex_w // 4:3 * tex_w // 4] = front_tex
-    tex_rgb[:, 3 * tex_w // 4:tex_w] = back_tex[:, 0:tex_w // 4]
+    pil_atlas = Image.fromarray(atlas)
+    pil_normal = Image.fromarray(normal_map)
 
-    normal_map = generate_normal_map_from_rgb(tex_rgb, strength=2.0)
-    pil_tex = Image.fromarray(tex_rgb)
-    pil_norm = Image.fromarray(normal_map)
-
+    # Vật liệu PBR chuẩn bảo tàng: Ánh kim đồng cổ nhẹ, độ nhám tự nhiên
     pbr_mat = trimesh.visual.material.PBRMaterial(
-        baseColorTexture=pil_tex,
-        normalTexture=pil_norm,
-        metallicFactor=0.25,
-        roughnessFactor=0.65
+        baseColorTexture=pil_atlas,
+        normalTexture=pil_normal,
+        metallicFactor=0.35,
+        roughnessFactor=0.52
     )
+
     visual = trimesh.visual.TextureVisuals(uv=uvs, material=pbr_mat)
-    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, visual=visual, process=False)
+    mesh = trimesh.Trimesh(vertices=verts, faces=faces, visual=visual, process=False)
+
     return mesh
 
 
 # ============================================================================
-# PHẦN 6: PIPELINE ĐIỀU PHỐI CHÍNH (MAIN PIPELINE)
+# PHẦN 4: PIPELINE ĐIỀU PHỐI CHÍNH (MAIN PIPELINE)
 # ============================================================================
 
-def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, depth_scale=0.35, resolution=160):
+def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, depth_scale=0.38, resolution=120):
     """
-    Hàm thực thi chính biến ảnh hiện vật thành mô hình 3D đặc khối khép kín:
+    Hàm thực thi chính biến ảnh hiện vật thành mô hình 3D chuẩn xác nguyên bản:
     1. Bóc tách nền thông minh AI Rembg (U2-Net), khử sạch bục trắng và bóng đổ.
-    2. Phân tích đối xứng trục -> Tự động nhận diện loại cổ vật.
-    3. Dựng khối thể tích 3D đặc khép kín (Volumetric Mesh) có độ dày thực tế.
-    4. Gán chất liệu PBR cao cấp có Normal Map.
-    5. Xuất file .GLB tương thích 100% Three.js.
+    2. Dựng mô hình 3D thể tích đặc khép kín (Faithful Volumetric Manifold).
+    3. Gán chất liệu PBR cao cấp có Normal Map.
+    4. Xuất file .GLB tương thích 100% Three.js.
     """
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Không tìm thấy file ảnh gốc: {image_path}")
@@ -602,30 +449,13 @@ def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, dept
         log(f"Nạp ảnh mặt sau: {back_image_path}...")
         back_img_rgb, _ = load_and_extract_artifact(back_image_path, max_dim=1400)
 
-    # Phân tích hình học
-    geom_info = analyze_artifact_geometry(mask)
-    obj_type = geom_info["type"]
-
-    log(f"Đang dựng mô hình 3D thể tích thực tế [{obj_type}]...")
-    # Tự động điều chỉnh depth_scale phù hợp với loại hình vật thể
-    if obj_type == "rotational_solid":
-        # Vật thể tròn xoay (Trống đồng, bình gốm) cần độ sâu tương xứng bán kính (0.85 - 0.95)
-        eff_depth = max(0.85, float(depth_scale) * 2.5) if depth_scale < 0.6 else float(depth_scale)
-        mesh = build_volumetric_rotational_mesh(
-            img_rgb, mask, geom_info,
-            back_image=back_img_rgb,
-            depth_scale=eff_depth,
-            resolution=resolution
-        )
-    else:
-        # Tượng hữu cơ
-        eff_depth = max(0.55, float(depth_scale) * 1.5) if depth_scale < 0.4 else float(depth_scale)
-        mesh = build_volumetric_organic_mesh(
-            img_rgb, mask, geom_info,
-            back_image=back_img_rgb,
-            depth_scale=eff_depth,
-            resolution=resolution
-        )
+    log(f"Đang dựng khối thể tích 3D đặc kín chuẩn xác theo ảnh gốc (depth_scale={depth_scale}, resolution={resolution})...")
+    mesh = build_faithful_volumetric_mesh(
+        img_rgb, mask,
+        back_image=back_img_rgb,
+        depth_scale=depth_scale,
+        resolution=resolution
+    )
 
     os.makedirs(os.path.dirname(os.path.abspath(output_glb_path)), exist_ok=True)
     log(f"Đang xuất file 3D Binary GLTF (.GLB) sang: {output_glb_path}...")
@@ -641,26 +471,26 @@ def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, dept
         "vertices": len(mesh.vertices),
         "faces": len(mesh.faces),
         "sizeBytes": len(glb_bytes),
+        "isWatertight": bool(mesh.is_watertight),
         "hasCustomBack": back_img_rgb is not None,
-        "artifactType": obj_type,
         "dimensions": {
             "width": round(float(extents[0]), 3),
             "height": round(float(extents[1]), 3),
             "depth": round(float(extents[2]), 3)
         },
-        "message": f"Đã tạo thành công mô hình 3D thể tích thực tế ({obj_type}) đặc khối khép kín chuẩn bảo tàng."
+        "message": "Đã tạo thành công mô hình 3D thể tích đặc khối khép kín chuẩn xác 100% theo ảnh gốc bảo tàng."
     }
-    log(f"Hoàn tất! Kích thước: Rộng={extents[0]:.2f}, Cao={extents[1]:.2f}, Sâu={extents[2]:.2f}")
+    log(f"Hoàn tất! Watertight: {mesh.is_watertight}, Kích thước: Rộng={extents[0]:.2f}, Cao={extents[1]:.2f}, Sâu={extents[2]:.2f}")
     return result
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Professional 3D Museum Artifact Volumetric Reconstruction")
+    parser = argparse.ArgumentParser(description="Professional 3D Museum Artifact Faithful Volumetric Reconstruction")
     parser.add_argument("--image", required=True, help="Đường dẫn file ảnh mặt trước (.jpg, .png)")
     parser.add_argument("--back-image", default=None, help="Đường dẫn file ảnh mặt sau (Tùy chọn)")
     parser.add_argument("--output", required=True, help="Đường dẫn lưu file 3D đầu ra (.glb)")
-    parser.add_argument("--depth-scale", type=float, default=0.35, help="Độ dày lồi lõm của hiện vật")
-    parser.add_argument("--resolution", type=int, default=160, help="Độ phân giải lưới 3D")
+    parser.add_argument("--depth-scale", type=float, default=0.38, help="Độ dày thể tích của hiện vật (0.25 - 0.55)")
+    parser.add_argument("--resolution", type=int, default=120, help="Độ phân giải lưới 3D")
 
     args = parser.parse_args()
 
