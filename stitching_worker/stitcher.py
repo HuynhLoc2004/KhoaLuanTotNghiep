@@ -384,6 +384,47 @@ def evaluate_panorama_flatness(pano):
     except Exception:
         return 0.85
 
+def auto_level_panorama(pano):
+    """
+    Tự động đo độ nghiêng (Tilt / Roll) và dựng thẳng đứng vách tường:
+    - Quét các đường thẳng kiến trúc thật (cạnh tủ kính, mép biển bảng, góc tường).
+    - Tính góc nghiêng trung vị của các đường thẳng so với phương thẳng đứng 90°.
+    - Tự động xoay cân bằng bức ảnh về phương thẳng đứng tuyệt đối, xóa sạch độ dốc nghiêng 45° đồi núi.
+    """
+    try:
+        h, w = pano.shape[:2]
+        scale = 800.0 / float(max(h, w))
+        small = cv2.resize(pano, (int(w * scale), int(h * scale)))
+        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 50, 150)
+        lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=60, minLineLength=int(small.shape[0] * 0.15), maxLineGap=15)
+        if lines is None or len(lines) < 3:
+            return pano
+
+        tilts = []
+        for arr in lines:
+            v = arr.reshape(-1)
+            x1, y1, x2, y2 = v[0], v[1], v[2], v[3]
+            deg = np.degrees(np.arctan2(float(y2 - y1), float(x2 - x1)))
+            # Xét các đường gần phương thẳng đứng (từ 45° đến 135°, hoặc -135° đến -45°)
+            if 45.0 <= abs(deg) <= 135.0:
+                tilt = deg - 90.0 if deg > 0 else deg + 90.0
+                if abs(tilt) <= 45.0:
+                    tilts.append(tilt)
+
+        if len(tilts) >= 3:
+            med_tilt = float(np.median(tilts))
+            if abs(med_tilt) > 1.2:
+                print(f"[*] Phát hiện góc nghiêng quang học {med_tilt:.1f}°. Đang tự động dựng thẳng đứng 90° kiến trúc...", file=sys.stderr)
+                center = (w / 2.0, h / 2.0)
+                M = cv2.getRotationMatrix2D(center, med_tilt, 1.0)
+                straightened = cv2.warpAffine(pano, M, (w, h), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT_101)
+                return straightened
+        return pano
+    except Exception as e:
+        print(f"[Warning] Lỗi cân bằng phương thẳng đứng: {e}", file=sys.stderr)
+        return pano
+
 def cylindrical_warp_image(img, focal_length=None):
     """
     Nắn ảnh sang hệ tọa độ hình trụ (Cylindrical Projection):
@@ -960,8 +1001,9 @@ def run_stitch(image_paths, output_path, target_width=0):
             "detail": error_details.get(status_name, "Thuật toán ghép ảnh chưa thể kết nối đầy đủ các bức ảnh do thiếu điểm tương đồng thị giác hoặc góc chụp lệch nhiều.")
         }
 
-    print("[*] Ghép ảnh thành công! Đang cắt sạch viền đen và nắn chỉnh Equirectangular 2:1...", file=sys.stderr)
-    cropped = crop_black_borders(stitched)
+    print("[*] Ghép ảnh thành công! Đang tự động dựng thẳng đứng 90° kiến trúc và cắt sạch viền đen...", file=sys.stderr)
+    leveled = auto_level_panorama(stitched)
+    cropped = crop_black_borders(leveled)
 
     # Chuẩn hóa về tỷ lệ Equirectangular 2:1 với HFOV thực tế
     equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width, hfov=best_hfov)
