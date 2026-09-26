@@ -793,49 +793,100 @@ interface IHeritageRoomPreset {
 }
 
 const HERITAGE_MUSEUM_HCM_ROOMS: IHeritageRoomPreset[] = [
-  { num: 1, code: 'P-01', name: 'Thời Nguyên thủy', period: 'Thời kỳ tiền sử & sơ sử', category: 'Tiền sử Việt Nam', x: 29.0, y: 78.0, width: 14.0, height: 7.0, isEntrance: true },
-  { num: 2, code: 'P-02', name: 'Thời dựng nước và giữ nước', period: 'Thời đại Hùng Vương - An Dương Vương', category: 'Khởi nguyên dân tộc', x: 12.0, y: 78.0, width: 14.0, height: 7.0 },
-  { num: 3, code: 'P-03', name: 'Thời Ngô - Đinh - Tiền Lê', period: 'Thế kỷ X - Độc lập tự chủ', category: 'Độc lập tự chủ', x: 12.0, y: 65.0, width: 14.0, height: 7.0 },
-  { num: 4, code: 'P-04', name: 'Thời Lý', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt', category: 'Vương triều Lý', x: 12.0, y: 52.0, width: 14.0, height: 7.0 },
-  { num: 5, code: 'P-05', name: 'Thời Trần - Hồ', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông', category: 'Vương triều Trần - Hồ', x: 29.0, y: 52.0, width: 14.0, height: 7.0 },
-  { num: 6, code: 'P-06', name: 'Văn hóa Champa', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa', category: 'Di sản miền Trung', x: 29.0, y: 26.0, width: 14.0, height: 20.0 },
-  { num: 7, code: 'P-07', name: 'Văn hóa Óc Eo', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ', category: 'Văn minh Phù Nam', x: 29.0, y: 9.0, width: 38.0, height: 12.0 },
-  { num: 8, code: 'P-08', name: 'Điêu khắc đá Campuchia', period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ', category: 'Nghệ thuật Châu Á', x: 73.0, y: 9.0, width: 14.0, height: 12.0 },
-  { num: 9, code: 'P-09', name: 'Thời Lê - Mạc, Trịnh - Nguyễn', period: 'Thế kỷ XV - XVIII: Thời kỳ Hậu Lê và phân tranh', category: 'Thời kỳ Hậu Lê', x: 73.0, y: 25.0, width: 14.0, height: 8.5 },
-  { num: 10, code: 'P-10', name: 'Thời Tây Sơn', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn', category: 'Triều đại Tây Sơn', x: 73.0, y: 37.0, width: 14.0, height: 8.5 },
-  { num: 11, code: 'P-11', name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ', category: 'Vũ khí di sản', x: 89.0, y: 37.0, width: 7.5, height: 8.5 },
-  { num: 12, code: 'P-12', name: 'Thời Nguyễn', period: '1802 - 1945: Triều đại phong kiến cuối cùng', category: 'Triều Nguyễn', x: 57.0, y: 52.0, width: 14.0, height: 7.0 },
-  { num: 13, code: 'P-13', name: 'Sưu tập Dương Hà', period: 'Cổ vật quý hiếm do gia đình Dương Hà hiến tặng', category: 'Sưu tập tư nhân', x: 73.0, y: 52.0, width: 14.0, height: 7.0 },
-  { num: 14, code: 'P-14', name: 'Thương mại hàng hải - Gốm sứ', period: 'Thế kỷ XIV - XVIII: Gốm sứ tàu đắm biển Đông', category: 'Hàng hải cổ vật', x: 73.0, y: 65.0, width: 14.0, height: 7.0 },
-  { num: 15, code: 'P-15', name: 'Cổ vật tàu đắm biển Đông', period: 'Di vật từ những con tàu đắm ngoài khơi', category: 'Hàng hải cổ vật', x: 89.0, y: 65.0, width: 7.5, height: 7.0 },
-  { num: 16, code: 'P-16', name: 'Sưu tập Vương Hồng Sển', period: 'Đồ cổ, gốm sứ độc bản học giả Vương Hồng Sển', category: 'Sưu tập tư nhân', x: 73.0, y: 78.0, width: 14.0, height: 7.0 },
-  { num: 17, code: 'P-17', name: 'Dân tộc phía Nam Việt Nam', period: 'Bản sắc văn hóa các dân tộc phương Nam', category: 'Dân tộc học', x: 57.0, y: 78.0, width: 14.0, height: 7.0 },
-  { num: 18, code: 'P-18', name: 'Tượng Phật giáo Châu Á', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á', category: 'Mỹ thuật tôn giáo', x: 43.0, y: 38.0, width: 14.0, height: 9.0 }
+  // --- CÁNH NAM: Dãy dưới cùng (Trục Y: 76.0%) ---
+  { num: 1, code: 'P-01', name: 'Thời Nguyên thủy', period: 'Thời kỳ tiền sử & sơ sử', category: 'Tiền sử Việt Nam', x: 26.0, y: 76.0, width: 15.0, height: 7.5, isEntrance: true },
+  { num: 2, code: 'P-02', name: 'Thời dựng nước và giữ nước', period: 'Thời đại Hùng Vương - An Dương Vương', category: 'Khởi nguyên dân tộc', x: 8.0, y: 76.0, width: 14.0, height: 7.5 },
+  { num: 17, code: 'P-17', name: 'Dân tộc phía Nam Việt Nam', period: 'Bản sắc văn hóa các dân tộc phương Nam', category: 'Dân tộc học', x: 59.0, y: 76.0, width: 15.0, height: 7.5 },
+  { num: 16, code: 'P-16', name: 'Sưu tập Vương Hồng Sển', period: 'Đồ cổ, gốm sứ độc bản học giả Vương Hồng Sển', category: 'Sưu tập tư nhân', x: 78.0, y: 76.0, width: 12.0, height: 7.5 },
+
+  // --- CÁNH NAM: Dãy giữa (Trục Y: 63.0%) ---
+  { num: 3, code: 'P-03', name: 'Thời Ngô - Đinh - Tiền Lê', period: 'Thế kỷ X - Độc lập tự chủ', category: 'Độc lập tự chủ', x: 8.0, y: 63.0, width: 14.0, height: 7.5 },
+  { num: 14, code: 'P-14', name: 'Thương mại hàng hải - Gốm sứ', period: 'Thế kỷ XIV - XVIII: Gốm sứ tàu đắm biển Đông', category: 'Hàng hải cổ vật', x: 78.0, y: 63.0, width: 12.0, height: 7.5 },
+  { num: 15, code: 'P-15', name: 'Cổ vật tàu đắm biển Đông', period: 'Di vật từ những con tàu đắm ngoài khơi', category: 'Hàng hải cổ vật', x: 93.0, y: 63.0, width: 6.0, height: 7.5 },
+
+  // --- CÁNH NAM: Dãy trên (Trục Y: 50.0%) ---
+  { num: 4, code: 'P-04', name: 'Thời Lý', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt', category: 'Vương triều Lý', x: 8.0, y: 50.0, width: 14.0, height: 7.5 },
+  { num: 5, code: 'P-05', name: 'Thời Trần - Hồ', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông', category: 'Vương triều Trần - Hồ', x: 26.0, y: 50.0, width: 15.0, height: 7.5 },
+  { num: 18, code: 'P-18', name: 'Tượng Phật giáo Châu Á', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á', category: 'Mỹ thuật tôn giáo', x: 45.0, y: 50.0, width: 10.0, height: 7.5 },
+  { num: 12, code: 'P-12', name: 'Thời Nguyễn', period: '1802 - 1945: Triều đại phong kiến cuối cùng', category: 'Triều Nguyễn', x: 59.0, y: 50.0, width: 15.0, height: 7.5 },
+  { num: 13, code: 'P-13', name: 'Sưu tập Dương Hà', period: 'Cổ vật quý hiếm do gia đình Dương Hà hiến tặng', category: 'Sưu tập tư nhân', x: 78.0, y: 50.0, width: 12.0, height: 7.5 },
+
+  // --- CÁNH BẮC: Cột phía Tây & Dãy đỉnh Bắc ---
+  { num: 6, code: 'P-06', name: 'Văn hóa Champa', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa', category: 'Di sản miền Trung', x: 26.0, y: 21.0, width: 13.0, height: 21.0 },
+  { num: 7, code: 'P-07', name: 'Văn hóa Óc Eo', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ', category: 'Văn minh Phù Nam', x: 26.0, y: 7.0, width: 44.0, height: 10.0 },
+
+  // --- CÁNH BẮC: Cột phía Đông (Trục X: 74.0%) ---
+  { num: 8, code: 'P-08', name: 'Điêu khắc đá Campuchia', period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ', category: 'Nghệ thuật Châu Á', x: 74.0, y: 7.0, width: 12.0, height: 10.0 },
+  { num: 9, code: 'P-09', name: 'Thời Lê - Mạc, Trịnh - Nguyễn', period: 'Thế kỷ XV - XVIII: Thời kỳ Hậu Lê và phân tranh', category: 'Thời kỳ Hậu Lê', x: 74.0, y: 21.0, width: 12.0, height: 9.5 },
+  { num: 10, code: 'P-10', name: 'Thời Tây Sơn', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn', category: 'Triều đại Tây Sơn', x: 74.0, y: 34.0, width: 12.0, height: 9.5 },
+  { num: 11, code: 'P-11', name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ', category: 'Vũ khí di sản', x: 90.0, y: 34.0, width: 7.5, height: 9.5 }
 ];
 
 const HERITAGE_MUSEUM_HCM_EDGES_CONFIG: { from: number; to: number; dir: ICvDetectedEdge['direction']; compDir: ICvDetectedEdge['compassDirection']; label: string }[] = [
+  // Tuyến tham quan chính theo chiều kim đồng hồ:
   { from: 1, to: 2, dir: 'left', compDir: 'west', label: 'Sang Phòng 2 (Thời dựng nước)' },
+  { from: 2, to: 1, dir: 'right', compDir: 'east', label: 'Quay lại Phòng 1' },
+
   { from: 2, to: 3, dir: 'up', compDir: 'north', label: 'Lên Phòng 3 (Thời Ngô - Đinh - Tiền Lê)' },
+  { from: 3, to: 2, dir: 'down', compDir: 'south', label: 'Quay xuống Phòng 2' },
+
   { from: 3, to: 4, dir: 'up', compDir: 'north', label: 'Lên Phòng 4 (Thời Lý)' },
+  { from: 4, to: 3, dir: 'down', compDir: 'south', label: 'Quay xuống Phòng 3' },
+
   { from: 4, to: 5, dir: 'right', compDir: 'east', label: 'Sang Phòng 5 (Thời Trần - Hồ)' },
+  { from: 5, to: 4, dir: 'left', compDir: 'west', label: 'Quay sang Phòng 4' },
+
   { from: 5, to: 6, dir: 'up', compDir: 'north', label: 'Lên cánh Bắc: Phòng 6 (Văn hóa Champa)' },
-  { from: 6, to: 7, dir: 'up', compDir: 'north', label: 'Lên gian lớn: Phòng 7 (Văn hóa Óc Eo)' },
+  { from: 6, to: 5, dir: 'down', compDir: 'south', label: 'Quay xuống Phòng 5' },
+
+  { from: 6, to: 7, dir: 'up', compDir: 'north', label: 'Lên đại sảnh: Phòng 7 (Văn hóa Óc Eo)' },
+  { from: 7, to: 6, dir: 'down', compDir: 'south', label: 'Quay lại Phòng 6' },
+
   { from: 7, to: 8, dir: 'right', compDir: 'east', label: 'Sang Phòng 8 (Điêu khắc đá Campuchia)' },
+  { from: 8, to: 7, dir: 'left', compDir: 'west', label: 'Quay lại Phòng 7' },
+
   { from: 8, to: 9, dir: 'down', compDir: 'south', label: 'Xuống Phòng 9 (Lê - Mạc, Trịnh - Nguyễn)' },
+  { from: 9, to: 8, dir: 'up', compDir: 'north', label: 'Quay lên Phòng 8' },
+
   { from: 9, to: 10, dir: 'down', compDir: 'south', label: 'Xuống Phòng 10 (Thời Tây Sơn)' },
+  { from: 10, to: 9, dir: 'up', compDir: 'north', label: 'Quay lên Phòng 9' },
+
   { from: 10, to: 11, dir: 'right', compDir: 'east', label: 'Ra sân ngoài: Phòng 11 (Súng Thần công)' },
   { from: 11, to: 10, dir: 'left', compDir: 'west', label: 'Trở lại Phòng 10' },
-  { from: 10, to: 12, dir: 'down', compDir: 'southwest', label: 'Xuống cánh Đông: Phòng 12 (Thời Nguyễn)' },
+
+  { from: 10, to: 12, dir: 'down', compDir: 'southwest', label: 'Xuống cánh Đông Nam: Phòng 12 (Thời Nguyễn)' },
+  { from: 12, to: 10, dir: 'up', compDir: 'northeast', label: 'Quay lại cánh Bắc: Phòng 10' },
+
   { from: 12, to: 13, dir: 'right', compDir: 'east', label: 'Sang Phòng 13 (Sưu tập Dương Hà)' },
+  { from: 13, to: 12, dir: 'left', compDir: 'west', label: 'Quay sang Phòng 12' },
+
   { from: 13, to: 14, dir: 'down', compDir: 'south', label: 'Xuống Phòng 14 (Thương mại hàng hải - Gốm sứ)' },
+  { from: 14, to: 13, dir: 'up', compDir: 'north', label: 'Quay lên Phòng 13' },
+
   { from: 14, to: 15, dir: 'right', compDir: 'east', label: 'Vào Phòng 15 (Cổ vật tàu đắm)' },
   { from: 15, to: 14, dir: 'left', compDir: 'west', label: 'Quay lại Phòng 14' },
+
   { from: 14, to: 16, dir: 'down', compDir: 'south', label: 'Xuống Phòng 16 (Sưu tập Vương Hồng Sển)' },
+  { from: 16, to: 14, dir: 'up', compDir: 'north', label: 'Quay lên Phòng 14' },
+
   { from: 16, to: 17, dir: 'left', compDir: 'west', label: 'Sang Phòng 17 (Dân tộc phía Nam)' },
+  { from: 17, to: 16, dir: 'right', compDir: 'east', label: 'Quay lại Phòng 16' },
+
+  { from: 17, to: 1, dir: 'left', compDir: 'west', label: 'Lối sang Phòng 1 & Lối ra Cổng chính' },
+  { from: 1, to: 17, dir: 'right', compDir: 'east', label: 'Lối sang cánh Đông: Phòng 17' },
+
+  // Các lối thông gian đặc biệt với Phòng 18 (Phật giáo Châu Á):
   { from: 5, to: 18, dir: 'right', compDir: 'east', label: 'Vào sảnh trưng bày: Phòng 18 (Phật giáo Châu Á)' },
-  { from: 12, to: 18, dir: 'left', compDir: 'west', label: 'Vào sảnh trưng bày: Phòng 18 (Phật giáo Châu Á)' },
-  { from: 18, to: 17, dir: 'down', compDir: 'southeast', label: 'Từ sảnh sang Phòng 17' },
-  { from: 18, to: 1, dir: 'down', compDir: 'southwest', label: 'Từ sảnh về Phòng 1' }
+  { from: 18, to: 5, dir: 'left', compDir: 'west', label: 'Trở lại Phòng 5 (Thời Trần - Hồ)' },
+
+  { from: 18, to: 12, dir: 'right', compDir: 'east', label: 'Thông sang cánh Đông: Phòng 12 (Thời Nguyễn)' },
+  { from: 12, to: 18, dir: 'left', compDir: 'west', label: 'Vào Phòng 18 (Phật giáo Châu Á)' },
+
+  { from: 18, to: 1, dir: 'down', compDir: 'southwest', label: 'Xuống cánh Tây Nam: Phòng 1' },
+  { from: 1, to: 18, dir: 'up', compDir: 'northeast', label: 'Lối lên Phòng 18 (Phật giáo Châu Á)' },
+
+  { from: 18, to: 17, dir: 'down', compDir: 'southeast', label: 'Xuống cánh Đông Nam: Phòng 17' },
+  { from: 17, to: 18, dir: 'up', compDir: 'northwest', label: 'Lối lên Phòng 18 (Phật giáo Châu Á)' }
 ];
 
 async function isHeritageMuseumPosterPattern(imageInput: string | Buffer): Promise<boolean> {
@@ -927,7 +978,7 @@ export async function analyzeFloorPlanWithPureCV(imageInput: string | Buffer): P
         direction: ec.dir,
         compassDirection: ec.compDir,
         isDirected: true,
-        isReturn: ec.from === 15 && ec.to === 14,
+        isReturn: ec.label.toLowerCase().includes('quay') || ec.label.toLowerCase().includes('trở lại'),
         doorX,
         doorY,
         distance,
