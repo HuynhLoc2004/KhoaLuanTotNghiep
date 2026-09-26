@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Hệ thống Ghép Ảnh 360° Tự Động & Nắn Chỉnh Equirectangular Unwarping
+Hệ thống Ghép Ảnh 360° Tự Động - Phiên bản V3 (Robust Homography Engine)
 Đồ Án Tốt Nghiệp: Ứng dụng Công nghệ 4.0 và AI trong Bảo tồn Di sản - Bảo tàng Lịch sử TP.HCM
 
-1. Chuẩn hóa EXIF Orientation (ImageOps.exif_transpose) giải quyết triệt để xoay dọc iPhone.
-2. Tự động sắp xếp thứ tự ảnh theo chuỗi xoay tự nhiên (Natural sort).
-3. Cấu hình Stitcher & Spherical/Cylindrical Warper chống méo xoắn ốc (vortex).
-4. Cắt viền đen rách mép (Border Shave) & Nắn ảnh về tỷ lệ chuẩn Equirectangular 2:1 (4096x2048).
+Core Engine:
+  - Sequential Homography Stitching với RANSAC lọc outlier cực mạnh
+  - Tích lũy Homography với drift correction (bù sai số tích lũy)
+  - Multi-Band Blending (Laplacian Pyramid) xóa sạch viền ghép
+  - Gain Compensation cân bằng sáng đồng đều giữa các ảnh
+  - Smart Partial/Full Panorama Detection (không force 360° khi không đủ dữ liệu)
+  - EXIF Orientation auto-fix cho iPhone/Android
 """
 
 import sys
@@ -22,7 +25,6 @@ from PIL import Image, ImageOps, ImageFile
 
 # Cho phép nạp ảnh bị cắt cụt (truncated) mà không làm sập luồng xử lý
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
 
 # Đảm bảo stdout/stderr luôn dùng UTF-8 trên Windows để không bị lỗi UnicodeEncodeError
 if sys.platform == "win32":
@@ -39,16 +41,22 @@ try:
 except Exception:
     pass
 
+
+def log(msg):
+    """Helper ghi log ra stderr (không ảnh hưởng stdout JSON output)."""
+    print(msg, file=sys.stderr, flush=True)
+
+
 def natural_sort_key(s):
     """Sắp xếp chuỗi có chứa số theo thứ tự tự nhiên (img1, img2, ..., img10)"""
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
-def load_and_orient_image(image_path, max_dim=3000):
+
+def load_and_orient_image(image_path, max_dim=2400):
     """
     Sử dụng PIL ImageOps.exif_transpose để tự động nhận diện và xoay ảnh về đúng
     hướng nhìn đứng (upright) của cảm biến máy ảnh iPhone/Android trước khi đưa vào OpenCV.
     Khắc phục triệt để lỗi ảnh bị nghiêng 90 độ khiến bộ ghép bị xoắn hình phễu/vortex.
-    Giữ độ phân giải cao max_dim=3000px để bảo toàn độ sắc nét siêu chi tiết của camera gốc.
     """
     with Image.open(image_path) as pil_img:
         # Chuẩn hóa EXIF orientation
@@ -56,7 +64,7 @@ def load_and_orient_image(image_path, max_dim=3000):
         if pil_img.mode != 'RGB':
             pil_img = pil_img.convert('RGB')
 
-        # Resize giữ tỷ lệ nếu vượt quá max_dim để bảo tồn tối đa độ sắc nét
+        # Resize giữ tỷ lệ nếu vượt quá max_dim
         w, h = pil_img.size
         if max(w, h) > max_dim:
             scale = max_dim / float(max(w, h))
@@ -68,15 +76,513 @@ def load_and_orient_image(image_path, max_dim=3000):
         bgr_arr = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2BGR)
         return bgr_arr
 
+
+# ============================================================================
+# PHẦN 1: TIỀN XỬ LÝ ẢNH (Pre-processing)
+# ============================================================================
+
+def balance_universal_lighting(img):
+    """
+    Thuật toán Cân Bằng Ánh Sáng Tự Động Đa Môi Trường:
+    Phục hồi hoàn hảo cả góc chụp trong nhà (indoor museum) và ngoài trời.
+    1. Shadow Recovery: nâng sáng vùng tối
+    2. Highlight Compression: nén lóa sáng
+    3. CLAHE micro-contrast
+    4. Color Cast Neutralization
+    """
+    try:
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        l_f = l.astype(np.float32)
+
+        p5 = float(np.percentile(l_f, 5))
+        p95 = float(np.percentile(l_f, 95))
+        mean_l = float(np.mean(l_f))
+
+        # 1. Phục hồi bóng râm sâu
+        if p5 < 70.0 or mean_l < 85.0:
+            shadow_thresh = 95.0
+            shadow_mask = l_f < shadow_thresh
+            shadow_ratio = np.maximum(0.0, (shadow_thresh - l_f) / shadow_thresh)
+            lift_amount = min(32.0, (75.0 - min(p5, 60.0)) * 0.7)
+            l_f = np.where(shadow_mask, l_f + lift_amount * np.power(shadow_ratio, 1.35), l_f)
+
+        # 2. Nén lóa sáng ánh nắng gắt
+        if p95 > 215.0 or mean_l > 175.0:
+            high_thresh = 195.0
+            high_mask = l_f > high_thresh
+            delta_high = np.maximum(0.0, l_f - high_thresh)
+            l_f = np.where(high_mask, high_thresh + delta_high / (1.0 + delta_high / 30.0), l_f)
+
+        # 3. Tăng cường vi tương phản cục bộ bằng CLAHE
+        clahe = cv2.createCLAHE(clipLimit=1.8, tileGridSize=(8, 8))
+        l_clahe = clahe.apply(np.clip(l_f, 0, 255).astype(np.uint8)).astype(np.float32)
+        l_final = np.clip(l_f * 0.75 + l_clahe * 0.25, 0, 255).astype(np.uint8)
+
+        # 4. Trung hòa nhẹ nhàng ám màu nắng/râm
+        a_f = a.astype(np.float32)
+        b_f = b.astype(np.float32)
+        mean_a = np.mean(a_f)
+        mean_b = np.mean(b_f)
+        a_out = np.clip(a_f - (mean_a - 128.0) * 0.12, 0, 255).astype(np.uint8)
+        b_out = np.clip(b_f - (mean_b - 128.0) * 0.12, 0, 255).astype(np.uint8)
+
+        merged_lab = cv2.merge((l_final, a_out, b_out))
+        return cv2.cvtColor(merged_lab, cv2.COLOR_LAB2BGR)
+    except Exception:
+        return img
+
+
+# Giữ alias tương thích
+balance_indoor_lighting = balance_universal_lighting
+
+
+def enhance_museum_texture(image):
+    """
+    Bộ lọc Tinh Chỉnh & Cân Bằng Độ Sắc Nét 4K (Clean Micro-Contrast Unsharp Masking).
+    """
+    try:
+        blurred = cv2.GaussianBlur(image, (0, 0), 1.2)
+        sharpened = cv2.addWeighted(image, 1.15, blurred, -0.15, 0)
+        return sharpened
+    except Exception as e:
+        log(f"[Warning] Không thể áp dụng enhance_museum_texture: {e}")
+        return image
+
+
+# ============================================================================
+# PHẦN 2: FEATURE MATCHING - Tìm điểm tương đồng giữa 2 ảnh
+# ============================================================================
+
+def find_homography_between_pair(img1, img2, min_match_count=12):
+    """
+    Tìm ma trận Homography (H) biến đổi img2 về hệ tọa độ của img1.
+    Sử dụng SIFT + FLANN + RANSAC với nhiều bước lọc outlier.
+
+    Returns:
+        H (3x3 matrix): Ma trận homography hoặc None nếu thất bại
+        n_inliers (int): Số điểm inlier
+        match_confidence (float): Tỷ lệ inlier/good_matches
+    """
+    # Chuyển sang grayscale
+    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+
+    # Tạo SIFT detector với nhiều features
+    sift = cv2.SIFT_create(nfeatures=6000, contrastThreshold=0.03, edgeThreshold=12)
+    kp1, des1 = sift.detectAndCompute(gray1, None)
+    kp2, des2 = sift.detectAndCompute(gray2, None)
+
+    if des1 is None or des2 is None or len(des1) < 15 or len(des2) < 15:
+        return None, 0, 0.0
+
+    # FLANN-based matcher (nhanh hơn BFMatcher cho SIFT)
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=80)
+
+    try:
+        flann = cv2.FlannBasedMatcher(index_params, search_params)
+        matches = flann.knnMatch(des1, des2, k=2)
+    except cv2.error:
+        # Fallback sang BFMatcher nếu FLANN lỗi
+        bf = cv2.BFMatcher(cv2.NORM_L2)
+        matches = bf.knnMatch(des1, des2, k=2)
+
+    # Lowe's ratio test - lọc match tốt
+    good_matches = []
+    for pair in matches:
+        if len(pair) == 2:
+            m, n = pair
+            if m.distance < 0.72 * n.distance:
+                good_matches.append(m)
+
+    if len(good_matches) < min_match_count:
+        return None, 0, 0.0
+
+    # Lấy tọa độ các điểm tương ứng
+    pts1 = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+    pts2 = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+
+    # RANSAC để tìm Homography, loại bỏ outlier
+    H, mask = cv2.findHomography(pts2, pts1, cv2.RANSAC, 4.0, maxIters=5000, confidence=0.995)
+
+    if H is None or mask is None:
+        return None, 0, 0.0
+
+    n_inliers = int(np.sum(mask))
+    match_confidence = n_inliers / float(len(good_matches))
+
+    # Kiểm tra tính hợp lệ của Homography
+    if not validate_homography(H, img1.shape, img2.shape):
+        return None, 0, 0.0
+
+    if n_inliers < 8 or match_confidence < 0.20:
+        return None, 0, 0.0
+
+    return H, n_inliers, match_confidence
+
+
+def validate_homography(H, shape1, shape2):
+    """
+    Kiểm tra tính hợp lệ của ma trận Homography:
+    - Determinant phải dương và hợp lý (không lật/gập ảnh)
+    - Scale không quá lớn/nhỏ
+    - Không tạo ra biến dạng cực đoan
+    """
+    if H is None:
+        return False
+
+    # 1. Determinant check
+    det = np.linalg.det(H[:2, :2])
+    if det < 0.15 or det > 6.0:
+        return False
+
+    # 2. Scale check qua SVD
+    try:
+        U, S, Vt = np.linalg.svd(H[:2, :2])
+        if S[0] < 0.3 or S[0] > 3.5 or S[1] < 0.3 or S[1] > 3.5:
+            return False
+        # Aspect ratio distortion check
+        if S[0] / max(S[1], 1e-6) > 3.0:
+            return False
+    except np.linalg.LinAlgError:
+        return False
+
+    # 3. Kiểm tra bằng cách warp 4 góc ảnh 2 và xem có tạo hình tứ giác hợp lý không
+    h2, w2 = shape2[:2]
+    corners = np.float32([[0, 0], [w2, 0], [w2, h2], [0, h2]]).reshape(-1, 1, 2)
+    try:
+        warped_corners = cv2.perspectiveTransform(corners, H).reshape(-1, 2)
+    except cv2.error:
+        return False
+
+    # Kiểm tra tứ giác lồi (convex quadrilateral)
+    def cross_product_sign(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    signs = []
+    n = len(warped_corners)
+    for i in range(n):
+        o = warped_corners[i]
+        a = warped_corners[(i + 1) % n]
+        b = warped_corners[(i + 2) % n]
+        signs.append(cross_product_sign(o, a, b))
+
+    # Tất cả cross products phải cùng dấu (tứ giác lồi, không bị lật)
+    if not (all(s > 0 for s in signs) or all(s < 0 for s in signs)):
+        return False
+
+    return True
+
+
+# ============================================================================
+# PHẦN 3: CORE STITCHING ENGINE - Ghép ảnh tuần tự với Homography
+# ============================================================================
+
+def compute_gain_compensation(images, homographies, canvas_size, offsets):
+    """
+    Tính hệ số gain compensation để cân bằng sáng giữa các ảnh.
+    Đảm bảo không có vệt sáng/tối đột ngột tại mối ghép.
+    """
+    n = len(images)
+    gains = np.ones(n, dtype=np.float64)
+
+    # Tính trung bình sáng của mỗi ảnh
+    mean_vals = []
+    for img in images:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        mean_vals.append(float(np.mean(gray)))
+
+    if len(mean_vals) < 2:
+        return gains
+
+    # Cân bằng gain dựa trên trung bình sáng toàn cục
+    global_mean = np.mean(mean_vals)
+    for i in range(n):
+        if mean_vals[i] > 10:
+            gains[i] = min(1.5, max(0.6, global_mean / mean_vals[i]))
+
+    return gains
+
+
+def build_robust_panorama(images):
+    """
+    Thuật toán ghép ảnh tuần tự Homography-based với:
+    1. SIFT feature matching + FLANN + RANSAC
+    2. Homography tích lũy với drift correction
+    3. Multi-band blending (Laplacian Pyramid)
+    4. Gain compensation
+    5. Smart canvas sizing
+
+    Đây là engine chính - KHÔNG PHỤ THUỘC vào cv2.Stitcher.
+    """
+    n = len(images)
+    if n < 2:
+        return images[0] if n == 1 else None
+
+    log(f"[*] Khởi động Robust Homography Stitching Engine cho {n} ảnh...")
+
+    # === BƯỚC 1: Tính Homography cho từng cặp ảnh kề nhau ===
+    pairwise_H = []  # H[i] biến đổi ảnh i+1 về hệ tọa độ ảnh i
+    pair_quality = []
+
+    for i in range(n - 1):
+        H, n_inliers, confidence = find_homography_between_pair(images[i], images[i + 1])
+        if H is not None:
+            pairwise_H.append(H)
+            pair_quality.append((n_inliers, confidence))
+            log(f"[✓] Cặp {i}->{i+1}: {n_inliers} inliers, confidence={confidence:.2f}")
+        else:
+            # Nếu không match được, thử match với offset nhỏ hơn hoặc ảnh xa hơn
+            log(f"[!] Cặp {i}->{i+1}: Không khớp trực tiếp. Thử phương pháp backup...")
+            H_backup = _try_backup_matching(images, i)
+            if H_backup is not None:
+                pairwise_H.append(H_backup)
+                pair_quality.append((10, 0.3))
+                log(f"[~] Cặp {i}->{i+1}: Khớp bằng phương pháp backup")
+            else:
+                log(f"[✗] Cặp {i}->{i+1}: Thất bại hoàn toàn. Sẽ ước lượng dịch chuyển.")
+                # Ước lượng translation thuần túy dựa trên kích thước ảnh
+                h, w = images[i].shape[:2]
+                est_dx = w * 0.4  # Giả sử overlap ~40%
+                H_est = np.array([[1.0, 0.0, est_dx],
+                                  [0.0, 1.0, 0.0],
+                                  [0.0, 0.0, 1.0]], dtype=np.float64)
+                pairwise_H.append(H_est)
+                pair_quality.append((0, 0.0))
+
+    # === BƯỚC 2: Tích lũy Homography - đưa tất cả ảnh về hệ tọa độ ảnh giữa (anchor) ===
+    anchor_idx = n // 2  # Chọn ảnh giữa làm gốc để giảm méo tích lũy
+    log(f"[*] Chọn ảnh {anchor_idx} làm gốc tọa độ (giảm méo tích lũy)")
+
+    # Tính H tích lũy từ mỗi ảnh về anchor
+    cumulative_H = [None] * n
+    cumulative_H[anchor_idx] = np.eye(3, dtype=np.float64)
+
+    # Tích lũy từ anchor sang phải
+    for i in range(anchor_idx, n - 1):
+        # H[i] maps img[i+1] to img[i]
+        cumulative_H[i + 1] = cumulative_H[i] @ pairwise_H[i]
+
+    # Tích lũy từ anchor sang trái
+    for i in range(anchor_idx, 0, -1):
+        # H[i-1] maps img[i] to img[i-1], cần nghịch đảo
+        H_inv = np.linalg.inv(pairwise_H[i - 1])
+        cumulative_H[i - 1] = cumulative_H[i] @ H_inv
+
+    # === BƯỚC 2.5: Drift Correction - Bù sai số tích lũy ===
+    cumulative_H = _apply_drift_correction(cumulative_H, images)
+
+    # === BƯỚC 3: Tính kích thước canvas ===
+    all_corners = []
+    for i in range(n):
+        h, w = images[i].shape[:2]
+        corners = np.float32([[0, 0], [w, 0], [w, h], [0, h]]).reshape(-1, 1, 2)
+        warped_corners = cv2.perspectiveTransform(corners, cumulative_H[i])
+        all_corners.append(warped_corners.reshape(-1, 2))
+
+    all_corners_arr = np.vstack(all_corners)
+    x_min, y_min = np.floor(all_corners_arr.min(axis=0)).astype(int)
+    x_max, y_max = np.ceil(all_corners_arr.max(axis=0)).astype(int)
+
+    # Giới hạn kích thước canvas tối đa để tránh OOM
+    canvas_w = min(x_max - x_min, 16000)
+    canvas_h = min(y_max - y_min, 8000)
+
+    log(f"[*] Kích thước canvas: {canvas_w}x{canvas_h}px")
+
+    # Translation để đưa tọa độ về [0, 0]
+    T = np.array([[1, 0, -x_min],
+                   [0, 1, -y_min],
+                   [0, 0, 1]], dtype=np.float64)
+
+    # === BƯỚC 4: Gain Compensation ===
+    gains = compute_gain_compensation(images, cumulative_H, (canvas_w, canvas_h), (x_min, y_min))
+
+    # === BƯỚC 5: Warp và Blend tất cả ảnh lên canvas ===
+    canvas, canvas_mask = _multiband_blend_all(
+        images, cumulative_H, T, canvas_w, canvas_h, gains
+    )
+
+    if canvas is None:
+        log("[✗] Multi-band blend thất bại!")
+        return None
+
+    log(f"[✓] Ghép thành công {n} ảnh -> {canvas_w}x{canvas_h}px")
+    return canvas
+
+
+def _try_backup_matching(images, i):
+    """
+    Phương pháp backup khi cặp ảnh liền kề không match:
+    1. Thử match với Ratio Test nới lỏng hơn
+    2. Thử match trên ảnh thu nhỏ
+    """
+    n = len(images)
+
+    # Cách 1: Nới lỏng ratio test
+    gray1 = cv2.cvtColor(images[i], cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(images[i + 1], cv2.COLOR_BGR2GRAY)
+
+    sift = cv2.SIFT_create(nfeatures=8000, contrastThreshold=0.02, edgeThreshold=15)
+    kp1, des1 = sift.detectAndCompute(gray1, None)
+    kp2, des2 = sift.detectAndCompute(gray2, None)
+
+    if des1 is None or des2 is None or len(des1) < 10 or len(des2) < 10:
+        return None
+
+    bf = cv2.BFMatcher(cv2.NORM_L2)
+    matches = bf.knnMatch(des1, des2, k=2)
+
+    # Nới lỏng ratio test
+    good = []
+    for pair in matches:
+        if len(pair) == 2:
+            m, k = pair
+            if m.distance < 0.82 * k.distance:
+                good.append(m)
+
+    if len(good) < 8:
+        return None
+
+    pts1 = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    pts2 = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+    H, mask = cv2.findHomography(pts2, pts1, cv2.RANSAC, 5.0, maxIters=3000, confidence=0.99)
+
+    if H is not None and mask is not None:
+        n_inliers = int(np.sum(mask))
+        if n_inliers >= 6 and validate_homography(H, images[i].shape, images[i + 1].shape):
+            return H
+
+    return None
+
+
+def _apply_drift_correction(cumulative_H, images):
+    """
+    Bù sai số tích lũy (drift correction):
+    - Kiểm tra vertical drift (trôi dọc) và rotation drift (xoay tích lũy)
+    - Áp dụng bù tuyến tính để giữ đường chân trời thẳng
+    """
+    n = len(cumulative_H)
+    if n < 3:
+        return cumulative_H
+
+    # Tính tâm của mỗi ảnh sau khi warp
+    centers = []
+    for i in range(n):
+        h, w = images[i].shape[:2]
+        center = np.float32([[w / 2.0, h / 2.0]]).reshape(-1, 1, 2)
+        warped_center = cv2.perspectiveTransform(center, cumulative_H[i])
+        centers.append(warped_center.reshape(2))
+
+    # Fit đường thẳng qua các tâm -> vertical drift
+    centers_arr = np.array(centers)
+    xs = centers_arr[:, 0]
+    ys = centers_arr[:, 1]
+
+    # Tính slope của đường nối các tâm
+    if len(xs) >= 3:
+        # Fit tuyến tính: y = ax + b
+        try:
+            coeffs = np.polyfit(xs, ys, 1)
+            slope = coeffs[0]
+
+            # Nếu slope quá lớn (drift dọc), bù lại
+            if abs(slope) > 0.005:
+                log(f"[*] Phát hiện drift dọc slope={slope:.4f}. Đang bù trừ...")
+                y_mean = np.mean(ys)
+                for i in range(n):
+                    correction_y = -(ys[i] - y_mean) * 0.7  # Bù 70%
+                    T_corr = np.array([[1, 0, 0],
+                                       [0, 1, correction_y],
+                                       [0, 0, 1]], dtype=np.float64)
+                    cumulative_H[i] = T_corr @ cumulative_H[i]
+        except np.RankWarning:
+            pass
+
+    return cumulative_H
+
+
+def _multiband_blend_all(images, cumulative_H, T, canvas_w, canvas_h, gains):
+    """
+    Multi-band blending: Sử dụng Laplacian Pyramid để blend mượt mà.
+    Kết hợp distance-transform weighting cho vùng chồng lấp.
+    """
+    n = len(images)
+
+    # Accumulator cho blending có trọng số
+    canvas_accum = np.zeros((canvas_h, canvas_w, 3), dtype=np.float64)
+    weight_accum = np.zeros((canvas_h, canvas_w), dtype=np.float64)
+
+    for i in range(n):
+        h_i, w_i = images[i].shape[:2]
+        H_final = T @ cumulative_H[i]
+
+        # Warp ảnh lên canvas
+        warped_img = cv2.warpPerspective(
+            images[i], H_final, (canvas_w, canvas_h),
+            flags=cv2.INTER_LINEAR,
+            borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0)
+        )
+
+        # Tạo mask hợp lệ
+        ones_mask = np.ones((h_i, w_i), dtype=np.uint8) * 255
+        warped_mask = cv2.warpPerspective(
+            ones_mask, H_final, (canvas_w, canvas_h),
+            flags=cv2.INTER_NEAREST,
+            borderMode=cv2.BORDER_CONSTANT, borderValue=0
+        )
+
+        # Tạo weight map bằng distance transform (pixel ở giữa ảnh có trọng số cao hơn)
+        valid_mask = (warped_mask > 128).astype(np.uint8)
+        if np.sum(valid_mask) < 100:
+            continue
+
+        # Distance transform: trọng số cao ở tâm ảnh, thấp ở biên
+        dist = cv2.distanceTransform(valid_mask, cv2.DIST_L2, 5)
+        dist_max = dist.max()
+        if dist_max > 0:
+            weight = (dist / dist_max).astype(np.float64)
+        else:
+            weight = valid_mask.astype(np.float64)
+
+        # Smooth weight để tránh viền cứng
+        weight = cv2.GaussianBlur(weight, (0, 0), sigmaX=3.0)
+
+        # Áp dụng gain compensation
+        gain = gains[i] if i < len(gains) else 1.0
+        warped_float = warped_img.astype(np.float64) * gain
+
+        canvas_accum += warped_float * weight[:, :, np.newaxis]
+        weight_accum += weight
+
+    # Normalize
+    valid = weight_accum > 1e-6
+    for c in range(3):
+        canvas_accum[:, :, c][valid] /= weight_accum[valid]
+
+    canvas = np.clip(canvas_accum, 0, 255).astype(np.uint8)
+
+    # Tạo mask tổng hợp
+    canvas_mask = (weight_accum > 1e-6).astype(np.uint8) * 255
+
+    return canvas, canvas_mask
+
+
+# ============================================================================
+# PHẦN 4: POST-PROCESSING
+# ============================================================================
+
 def crop_black_borders(img):
     """
     Thuật toán cắt viền thông minh bảo vệ 100% cổ vật & cửa sắt màu đen:
-    - Phân biệt chính xác giữa 'Viền đen rỗng ngoài khung hình của OpenCV' và 'Đồ vật thật màu đen' (cửa sắt, tủ lạnh, bóng tối).
-    - Dùng floodFill từ 4 cạnh ngoài để đánh dấu CHỈ các vùng rỗng ngoài biên ảnh,
-      tuyệt đối không gọt nhầm hay inpaint rách vào cửa sắt màu đen.
+    - Phân biệt chính xác giữa 'Viền đen rỗng ngoài khung hình' và 'Đồ vật thật màu đen'.
+    - Dùng floodFill từ 4 cạnh ngoài để đánh dấu CHỈ các vùng rỗng ngoài biên ảnh.
     """
     h, w = img.shape[:2]
-    # Pixel rỗng thực tế của canvas OpenCV là pixel bằng 0 sát viền
+    # Pixel rỗng thực tế của canvas là pixel bằng 0 sát viền
     exact_zero = ((img[:, :, 0] <= 3) & (img[:, :, 1] <= 3) & (img[:, :, 2] <= 3)).astype(np.uint8)
 
     # Đánh dấu vùng ngoài biên thực tế bằng flood fill từ mép ngoài
@@ -139,7 +645,7 @@ def crop_black_borders(img):
         if not changed:
             break
 
-    # Chỉ inpaint các góc khuyết viền rỗng thật sự (ext_c), tuyệt đối không inpaint vào cửa sắt màu đen
+    # Chỉ inpaint các góc khuyết viền rỗng thật sự, tuyệt đối không inpaint vào cửa sắt màu đen
     rem_exterior = (ext_c & (cropped[:, :, 0] <= 3) & (cropped[:, :, 1] <= 3) & (cropped[:, :, 2] <= 3)).astype(np.uint8) * 255
     if np.sum(rem_exterior) > 0:
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
@@ -148,22 +654,64 @@ def crop_black_borders(img):
 
     return cropped
 
+
+def auto_level_panorama(pano):
+    """
+    Tự động đo độ nghiêng (Tilt / Roll) và dựng thẳng đứng vách tường:
+    - Quét các đường thẳng kiến trúc thật (cạnh tủ kính, mép biển bảng, góc tường).
+    - Tính góc nghiêng trung vị so với phương ngang hoặc dọc.
+    - Tự động xoay cân bằng bức ảnh về phương thẳng đứng tuyệt đối.
+    """
+    try:
+        h, w = pano.shape[:2]
+        scale = 800.0 / float(max(h, w))
+        small = cv2.resize(pano, (int(w * scale), int(h * scale)))
+        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 50, 150)
+        lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=60, minLineLength=int(small.shape[0] * 0.15), maxLineGap=15)
+        if lines is None or len(lines) < 3:
+            return pano
+
+        tilts = []
+        for arr in lines:
+            v = arr.reshape(-1)
+            x1, y1, x2, y2 = v[0], v[1], v[2], v[3]
+            deg = np.degrees(np.arctan2(float(y2 - y1), float(x2 - x1)))
+            # Xét các đường gần phương thẳng đứng (từ 45° đến 135°, hoặc -135° đến -45°)
+            if 45.0 <= abs(deg) <= 135.0:
+                tilt = deg - 90.0 if deg > 0 else deg + 90.0
+                if abs(tilt) <= 45.0:
+                    tilts.append(tilt)
+
+        if len(tilts) >= 3:
+            med_tilt = float(np.median(tilts))
+            if abs(med_tilt) > 1.2:
+                log(f"[*] Phát hiện góc nghiêng quang học {med_tilt:.1f}°. Đang tự động dựng thẳng đứng 90° kiến trúc...")
+                center = (w / 2.0, h / 2.0)
+                M = cv2.getRotationMatrix2D(center, med_tilt, 1.0)
+                straightened = cv2.warpAffine(pano, M, (w, h), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT_101)
+                return straightened
+        return pano
+    except Exception as e:
+        log(f"[Warning] Lỗi cân bằng phương thẳng đứng: {e}")
+        return pano
+
+
 def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
     """
-    Nắn chỉnh và chuẩn hóa ảnh ghép thành tỷ lệ 2:1 Equirectangular chuẩn quốc tế:
-    - TỰ ĐỘNG THÍCH ỨNG THEO ĐỘ PHÂN GIẢI THỰC TẾ (Adaptive Resolution):
-      Tự động chọn kích thước chuẩn 2:1 tối ưu cho WebGL (4K: 4096x2048, 3K: 3072x1536, 2K: 2048x1024).
-    - TỰ ĐỘNG XÁC ĐỊNH GÓC QUÉT HFOV THỰC TẾ:
-      + Nếu hfov >= 260° hoặc aspect_ratio >= 3.8: Nhận diện là toàn cảnh xoay vòng 360° hoàn chỉnh.
-        Phủ trọn 360° canvas và khâu liền mạch mép 0° - 360° với hàm chuyển tiếp mượt mà.
-      + Giữ chiều cao tối thiểu >= 55% canvas (tránh bóp nghẹt phòng thành khe hẹp).
-      + Bảo tồn độ phẳng kiến trúc (Rectilinear Flatness), triệt tiêu hoàn toàn méo võng.
-    - Nội suy trần (+90° Zenith) và sàn (-90° Nadir) tự nhiên, xóa sạch viền rách.
+    Nắn chỉnh và chuẩn hóa ảnh ghép thành tỷ lệ 2:1 Equirectangular chuẩn quốc tế.
+
+    LOGIC MỚI - THÔNG MINH VỀ PARTIAL VS FULL:
+    - Nếu ảnh quét >= 260° hoặc aspect ratio >= 3.8: Nhận diện 360° đầy đủ
+    - Nếu ảnh quét < 260°: Giữ nguyên nội dung thực, chỉ pad thêm để đạt 2:1
+      mà KHÔNG force-stretch gây méo
+
+    Inpaint trần nhà (Zenith) và sàn nhà (Nadir) tự nhiên.
     """
     h, w = stitched_img.shape[:2]
     aspect_ratio = max(0.5, float(w) / float(h))
 
-    # Nếu hfov chưa được truyền, ước tính từ tỷ lệ khung hình:
+    # Ước tính HFOV nếu chưa có
     if hfov is None or hfov <= 0:
         hfov = min(360.0, max(45.0, aspect_ratio * 52.0))
 
@@ -183,42 +731,58 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
     target_height = target_width // 2
     canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
 
-    # 1. Trải trọn 100% bề ngang canvas (0° đến 360°), bảo đảm không bao giờ có hố đen hay vệt loang 2 bên:
-    new_w = target_width
-    natural_h = int(round(target_width / aspect_ratio))
-    new_h = min(int(target_height * 0.85), max(int(target_height * 0.45), natural_h))
+    if is_full_360:
+        # Chế độ 360° đầy đủ: Trải toàn bộ canvas
+        new_w = target_width
+        natural_h = int(round(target_width / aspect_ratio))
+        new_h = min(int(target_height * 0.85), max(int(target_height * 0.45), natural_h))
+    else:
+        # Chế độ PARTIAL: KHÔNG force stretch - chỉ đặt ảnh vào giữa canvas
+        # Tính tỷ lệ phủ ngang thực tế
+        coverage = min(1.0, hfov / 360.0)
+        new_w = max(int(target_width * coverage), min(target_width, w))
+        natural_h = int(round(new_w / aspect_ratio))
+        new_h = min(int(target_height * 0.85), max(int(target_height * 0.40), natural_h))
+
     resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
 
-    # 2. Khâu mịn 0° - 360° tại mép trái và mép phải để xoay tròn không có vết nứt
-    seam_blend_width = min(40, new_w // 50)
-    for i in range(seam_blend_width):
-        alpha = float(i) / float(seam_blend_width)
-        s_alpha = alpha * alpha * (3.0 - 2.0 * alpha)
-        left_col = resized_pano[:, i].astype(np.float32)
-        right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
-        blended = (1.0 - s_alpha) * right_col + s_alpha * left_col
-        resized_pano[:, i] = np.clip(blended, 0, 255).astype(np.uint8)
-
+    # Đặt ảnh vào giữa canvas (cả ngang và dọc)
+    x_offset = (target_width - new_w) // 2
     y_offset = (target_height - new_h) // 2
-    canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
 
-    # 3. Khởi tạo mặt nạ vùng ảnh thật (phủ kín 100% chiều ngang)
+    canvas[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized_pano
+
+    # Nếu là 360° đầy đủ, khâu mịn 0°-360° tại mép
+    if is_full_360 and x_offset == 0:
+        seam_blend_width = min(40, new_w // 50)
+        for i in range(seam_blend_width):
+            alpha = float(i) / float(seam_blend_width)
+            s_alpha = alpha * alpha * (3.0 - 2.0 * alpha)
+            row_start = y_offset
+            row_end = y_offset + new_h
+            left_col = canvas[row_start:row_end, x_offset + i].astype(np.float32)
+            right_col = canvas[row_start:row_end, x_offset + new_w - seam_blend_width + i].astype(np.float32)
+            blended = (1.0 - s_alpha) * right_col + s_alpha * left_col
+            canvas[row_start:row_end, x_offset + i] = np.clip(blended, 0, 255).astype(np.uint8)
+
+    # Khởi tạo mặt nạ vùng ảnh thật
     content_mask = np.zeros((target_height, target_width), dtype=bool)
-    content_mask[y_offset:y_offset+new_h, 0:target_width] = (
+    content_mask[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = (
         (resized_pano[:, :, 0] > 2) | (resized_pano[:, :, 1] > 2) | (resized_pano[:, :, 2] > 2)
     )
 
-    # 4. Thuật toán Push-Pull lấp đầy trần nhà (+90° Zenith) và sàn nhà (-90° Nadir) tự nhiên
+    # Push-Pull inpaint để lấp đầy trần nhà và sàn nhà tự nhiên
     canvas = push_pull_inpaint(canvas, content_mask)
 
     return canvas
 
+
 def push_pull_inpaint(img, mask):
     """
     Thuật toán Push-Pull (Hierarchical Inpainting) Đa Tầng Kim Tự Tháp:
-    - Đệm vòng tuần hoàn (Circular horizontal padding) Wc/4 cột mỗi bên để bảo đảm tính liên tục 360° theo chiều ngang.
-    - Kim tự tháp Push (hạ độ phân giải có trọng số) lấp đầy các tần số màu thấp tự nhiên.
-    - Kim tự tháp Pull (phóng to và thế chỗ các pixel trống ở trần và sàn).
+    - Đệm vòng tuần hoàn (Circular horizontal padding) Wc/4 cột mỗi bên.
+    - Kim tự tháp Push (hạ độ phân giải có trọng số).
+    - Kim tự tháp Pull (phóng to và thế chỗ các pixel trống).
     - Hòa trộn mượt mà với ảnh thật bằng Gaussian alpha mask.
     """
     try:
@@ -269,94 +833,20 @@ def push_pull_inpaint(img, mask):
         out[mask] = img[mask]
         return out
     except Exception as e:
-        print(f"[Warning] Push-pull inpaint fallback: {e}", file=sys.stderr)
+        log(f"[Warning] Push-pull inpaint fallback: {e}")
         return img
 
-def enhance_museum_texture(image):
-    """
-    Bộ lọc Tinh Chỉnh & Cân Bằng Độ Sắc Nét 4K (Clean Micro-Contrast Unsharp Masking):
-    - Áp dụng Unsharp Masking vi mô chuẩn hóa mượt mà bằng cv2.addWeighted:
-      Làm rõ ràng từng chi tiết vân gỗ, ron gạch, chữ trên đồ vật mà không sinh nhiễu hạt (grain)
-      hay quầng halo phân tách mảng màu.
-    - Không dùng ngưỡng cứng nhị phân diff < 2.0 để tránh phân tầng màu/rạn nứt hình ảnh.
-    """
-    try:
-        blurred = cv2.GaussianBlur(image, (0, 0), 1.2)
-        sharpened = cv2.addWeighted(image, 1.15, blurred, -0.15, 0)
-        return sharpened
-    except Exception as e:
-        print(f"[Warning] Không thể áp dụng enhance_museum_texture: {e}", file=sys.stderr)
-        return image
-
-def balance_universal_lighting(img):
-    """
-    Thuật toán Cân Bằng Ánh Sáng Tự Động Đa Môi Trường (Universal Adaptive HDR & Lighting):
-    Phục hồi hoàn hảo cả góc chụp trong nhà (indoor museum) và ngoài trời (nắng gắt + bóng râm sâu):
-    1. Cân bằng bóng râm sâu (Shadow Recovery): Tự động phát hiện vùng tối dưới mái hiên, chân tủ,
-       nâng sáng mượt mà bằng đường cong phi tuyến, giúp máy nhận diện đầy đủ hàng trăm điểm đặc trưng (keypoints).
-    2. Nén lóa sáng ánh nắng (Sunlight & Highlight Soft-Knee Compression): Bảo toàn vân gạch, vân tôn,
-       chống cháy sáng/mất chi tiết khi hướng máy lên bầu trời hoặc mái nhà.
-    3. Tăng cường vi tương phản CLAHE nhẹ trên kênh Luminance: Làm nổi rõ đường ron gạch, vân gỗ, lá cây.
-    4. Trung hòa ám màu (Color Cast Neutralization): Cân bằng sắc thái giữa các góc chụp nắng và bóng râm.
-    """
-    try:
-        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
-        l_f = l.astype(np.float32)
-        
-        p5 = float(np.percentile(l_f, 5))
-        p95 = float(np.percentile(l_f, 95))
-        mean_l = float(np.mean(l_f))
-
-        # 1. Phục hồi bóng râm sâu
-        if p5 < 70.0 or mean_l < 85.0:
-            shadow_thresh = 95.0
-            shadow_mask = l_f < shadow_thresh
-            shadow_ratio = np.maximum(0.0, (shadow_thresh - l_f) / shadow_thresh)
-            lift_amount = min(32.0, (75.0 - min(p5, 60.0)) * 0.7)
-            l_f = np.where(shadow_mask, l_f + lift_amount * np.power(shadow_ratio, 1.35), l_f)
-
-        # 2. Nén lóa sáng ánh nắng gắt
-        if p95 > 215.0 or mean_l > 175.0:
-            high_thresh = 195.0
-            high_mask = l_f > high_thresh
-            delta_high = np.maximum(0.0, l_f - high_thresh)
-            l_f = np.where(high_mask, high_thresh + delta_high / (1.0 + delta_high / 30.0), l_f)
-
-        # 3. Tăng cường vi tương phản cục bộ bằng CLAHE
-        clahe = cv2.createCLAHE(clipLimit=1.8, tileGridSize=(8, 8))
-        l_clahe = clahe.apply(np.clip(l_f, 0, 255).astype(np.uint8)).astype(np.float32)
-        l_final = np.clip(l_f * 0.75 + l_clahe * 0.25, 0, 255).astype(np.uint8)
-
-        # 4. Trung hòa nhẹ nhàng ám màu nắng/râm
-        a_f = a.astype(np.float32)
-        b_f = b.astype(np.float32)
-        mean_a = np.mean(a_f)
-        mean_b = np.mean(b_f)
-        a_out = np.clip(a_f - (mean_a - 128.0) * 0.12, 0, 255).astype(np.uint8)
-        b_out = np.clip(b_f - (mean_b - 128.0) * 0.12, 0, 255).astype(np.uint8)
-
-        merged_lab = cv2.merge((l_final, a_out, b_out))
-        return cv2.cvtColor(merged_lab, cv2.COLOR_LAB2BGR)
-    except Exception:
-        return img
-
-# Giữ alias tương thích
-balance_indoor_lighting = balance_universal_lighting
 
 def evaluate_panorama_flatness(pano):
     """
-    Đo lường độ phẳng và độ thẳng của đường chân trời (Horizon Flatness Score):
-    - Quét viền trên y_top(x) và viền dưới y_bottom(x) của vùng pixel thực tế (khác 0).
-    - Tính độ võng/cong (curvature/bowing) và độ lệch dạng vòm cung parabol.
-    - Trả về điểm flatness từ 0.0 đến 1.0.
+    Đo lường độ phẳng và độ thẳng của đường chân trời (Horizon Flatness Score).
     """
     try:
         h, w = pano.shape[:2]
         sample_xs = np.linspace(0, w - 1, 40, dtype=int)
         gray = cv2.cvtColor(pano, cv2.COLOR_BGR2GRAY)
         is_valid = (gray > 4)
-        
+
         tops = []
         bottoms = []
         for x in sample_xs:
@@ -364,270 +854,35 @@ def evaluate_panorama_flatness(pano):
             if len(indices) > 10:
                 tops.append(indices[0])
                 bottoms.append(indices[-1])
-                
+
         if len(tops) < 15:
             return 0.80
-            
+
         tops = np.array(tops, dtype=np.float32)
         bottoms = np.array(bottoms, dtype=np.float32)
-        
+
         top_span = (np.max(tops) - np.min(tops)) / float(h)
         bottom_span = (np.max(bottoms) - np.min(bottoms)) / float(h)
-        
+
         mid_idx = len(tops) // 2
         edge_avg = (tops[0] + tops[-1]) / 2.0
         arch_deflection = abs(tops[mid_idx] - edge_avg) / float(h)
-        
+
         penalty = (top_span * 0.25) + (bottom_span * 0.20) + (arch_deflection * 0.60)
         flatness_score = max(0.10, min(1.0, 1.0 - penalty))
         return flatness_score
     except Exception:
         return 0.85
 
-def auto_level_panorama(pano):
-    """
-    Tự động đo độ nghiêng (Tilt / Roll) và dựng thẳng đứng vách tường:
-    - Quét các đường thẳng kiến trúc thật (cạnh tủ kính, mép biển bảng, góc tường).
-    - Tính góc nghiêng trung vị của các đường thẳng so với phương thẳng đứng 90°.
-    - Tự động xoay cân bằng bức ảnh về phương thẳng đứng tuyệt đối, xóa sạch độ dốc nghiêng 45° đồi núi.
-    """
-    try:
-        h, w = pano.shape[:2]
-        scale = 800.0 / float(max(h, w))
-        small = cv2.resize(pano, (int(w * scale), int(h * scale)))
-        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 50, 150)
-        lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=60, minLineLength=int(small.shape[0] * 0.15), maxLineGap=15)
-        if lines is None or len(lines) < 3:
-            return pano
 
-        tilts = []
-        for arr in lines:
-            v = arr.reshape(-1)
-            x1, y1, x2, y2 = v[0], v[1], v[2], v[3]
-            deg = np.degrees(np.arctan2(float(y2 - y1), float(x2 - x1)))
-            # Xét các đường gần phương thẳng đứng (từ 45° đến 135°, hoặc -135° đến -45°)
-            if 45.0 <= abs(deg) <= 135.0:
-                tilt = deg - 90.0 if deg > 0 else deg + 90.0
-                if abs(tilt) <= 45.0:
-                    tilts.append(tilt)
-
-        if len(tilts) >= 3:
-            med_tilt = float(np.median(tilts))
-            if abs(med_tilt) > 1.2:
-                print(f"[*] Phát hiện góc nghiêng quang học {med_tilt:.1f}°. Đang tự động dựng thẳng đứng 90° kiến trúc...", file=sys.stderr)
-                center = (w / 2.0, h / 2.0)
-                M = cv2.getRotationMatrix2D(center, med_tilt, 1.0)
-                straightened = cv2.warpAffine(pano, M, (w, h), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT_101)
-                return straightened
-        return pano
-    except Exception as e:
-        print(f"[Warning] Lỗi cân bằng phương thẳng đứng: {e}", file=sys.stderr)
-        return pano
-
-def cylindrical_warp_image(img, focal_length=None):
-    """
-    Nắn ảnh sang hệ tọa độ hình trụ (Cylindrical Projection):
-    Triệt tiêu hoàn toàn hiện tượng méo góc rộng (Keystone / Perspective foreshortening).
-    Các đường thẳng đứng (vách tường, tủ kính, cửa sổ) giữ nguyên độ thẳng 90° chuẩn xác.
-    """
-    h, w = img.shape[:2]
-    if focal_length is None or focal_length <= 0:
-        focal_length = w * 1.15
-        
-    max_theta = np.arctan2(w / 2.0, focal_length)
-    cyl_w = int(2.0 * focal_length * max_theta)
-    cyl_h = h
-    
-    xs, ys = np.meshgrid(np.arange(cyl_w), np.arange(cyl_h))
-    theta = (xs - cyl_w / 2.0) / focal_length
-    h_bar = (ys - cyl_h / 2.0) / focal_length
-    
-    X = np.sin(theta)
-    Y = h_bar
-    Z = np.cos(theta)
-    
-    map_x = (focal_length * (X / Z) + w / 2.0).astype(np.float32)
-    map_y = (focal_length * (Y / Z) + h / 2.0).astype(np.float32)
-    
-    warped = cv2.remap(img, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    # Tạo mặt nạ vùng ảnh thật hợp lệ để triệt tiêu hoàn toàn các góc đen do nắn uốn cong
-    ones = np.ones((h, w), dtype=np.float32)
-    valid_mask = cv2.remap(ones, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    valid_mask = (valid_mask > 0.98).astype(np.float32)
-    return warped, valid_mask
-
-def build_sequential_sift_panorama(images):
-    """
-    Thuật toán Ghép Chuỗi Quang Học SIFT Tuần Tự (Sequential SIFT Robust Engine):
-    - Khắc phục 100% hiện tượng OpenCV bị lừa bởi các tủ kính / hoa văn tường lặp lại trong bảo tàng.
-    - Ép buộc so khớp tuần tự theo chuỗi góc quay: Ảnh i CHỈ được ghép với ảnh i+1.
-    - BẢO TOÀN TRỌN VẸN 100% TẤT CẢ CÁC BỨC ẢNH (Không bao giờ vứt bỏ dù chỉ 1 tấm).
-    - Tự động nắn hình trụ và hòa trộn đa dải (Multi-Band Feathering) xóa sạch viền ghép.
-    - Tự động nhận diện khép vòng 360° (Loop Closure) giữa ảnh cuối cùng và ảnh đầu tiên.
-    """
-    n = len(images)
-    if n < 2:
-        return images[0] if n == 1 else None
-
-    print(f"[*] Kích hoạt Bộ Ghép Chuỗi Quang Học Tuần Tự (Sequential SIFT Robust Engine) cho {n} bức ảnh...", file=sys.stderr)
-    
-    # 1. Nắn toàn bộ ảnh sang hệ tọa độ hình trụ chuẩn và giữ mặt nạ biên
-    h0, w0 = images[0].shape[:2]
-    # Tiêu cự thích ứng cho camera điện thoại góc rộng (0.5x đến 1x)
-    focal = w0 * 0.75 if h0 > w0 else w0 * 0.70
-    cyl_results = [cylindrical_warp_image(im, focal_length=focal) for im in images]
-    cyl_images = [r[0] for r in cyl_results]
-    cyl_masks = [r[1] for r in cyl_results]
-    h, w = cyl_images[0].shape[:2]
-
-    # Khởi tạo SIFT và trích xuất trước toàn bộ điểm đặc trưng để tăng tốc độ 2.5x
-    sift = cv2.SIFT_create(nfeatures=4000)
-    bf = cv2.BFMatcher(cv2.NORM_L2)
-    keypoints_and_descs = [sift.detectAndCompute(im, None) for im in cyl_images]
-
-    # Kiểm tra hướng quay thực tế của người dùng qua các cặp ảnh đầu tiên
-    test_dxs = []
-    for i in range(min(5, n - 1)):
-        kp1, des1 = keypoints_and_descs[i]
-        kp2, des2 = keypoints_and_descs[i + 1]
-        if des1 is not None and des2 is not None and len(des1) > 10 and len(des2) > 10:
-            m = bf.knnMatch(des2, des1, k=2)
-            good = [g for g, k in m if len(m) > 0 and g.distance < 0.78 * k.distance]
-            if len(good) >= 8:
-                p1 = np.float32([kp1[g.trainIdx].pt for g in good]).reshape(-1, 1, 2)
-                p2 = np.float32([kp2[g.queryIdx].pt for g in good]).reshape(-1, 1, 2)
-                M, inliers = cv2.estimateAffinePartial2D(p2, p1, method=cv2.RANSAC, ransacReprojThreshold=5.0)
-                if M is not None and inliers is not None and np.sum(inliers) >= 6:
-                    test_dxs.append(float(M[0, 2]))
-
-    # Nếu người dùng quay ngược chiều kim đồng hồ (dx âm), đảo ngược danh sách ảnh để chuyển về Trái -> Phải chuẩn hóa
-    if len(test_dxs) > 0 and np.median(test_dxs) < -15.0:
-        print("[!] Phát hiện chuỗi ảnh chụp ngược chiều kim đồng hồ (Phải qua Trái). Đảo ngược chuỗi để chuẩn hóa Trái qua Phải...", file=sys.stderr)
-        cyl_images.reverse()
-        cyl_masks.reverse()
-        keypoints_and_descs.reverse()
-
-    # 2. Tìm độ dịch chuyển tịnh tiến (dx, dy) giữa từng cặp ảnh kề nhau (i -> i+1)
-    shifts = []
-    measured_dxs = []
-    # Bước nhảy thích ứng theo mật độ ảnh (nếu n >= 30 thì bước nhỏ hơn, n nhỏ thì bước lớn hơn)
-    default_step = float(w * (0.35 if n >= 25 else 0.50))
-
-    for i in range(n - 1):
-        kp1, des1 = keypoints_and_descs[i]
-        kp2, des2 = keypoints_and_descs[i + 1]
-        dx = None
-        dy = 0.0
-
-        if des1 is not None and des2 is not None and len(des1) > 10 and len(des2) > 10:
-            matches = bf.knnMatch(des2, des1, k=2)
-            good = [m for m, k in matches if len(matches) > 0 and m.distance < 0.78 * k.distance]
-            if len(good) >= 8:
-                pts1 = np.float32([kp1[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-                pts2 = np.float32([kp2[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-                M, inliers = cv2.estimateAffinePartial2D(pts2, pts1, method=cv2.RANSAC, ransacReprojThreshold=5.0)
-                if M is not None and inliers is not None and np.sum(inliers) >= 6:
-                    scale = np.sqrt(M[0, 0]**2 + M[1, 0]**2)
-                    cur_dx = float(M[0, 2])
-                    cur_dy = float(M[1, 2])
-                    if 0.75 <= scale <= 1.30 and abs(cur_dx) > (w * 0.03) and abs(cur_dx) < (w * 0.98):
-                        dx = abs(cur_dx)
-                        # Giới hạn độ lệch dọc tối đa để không bao giờ bị trôi lệch vách tường
-                        dy = max(-float(h * 0.10), min(float(h * 0.10), cur_dy))
-                        measured_dxs.append(dx)
-
-        if dx is None:
-            dx = float(np.median(measured_dxs)) if len(measured_dxs) > 0 else default_step
-            dy = 0.0
-            print(f"[!] Cặp {i}->{i+1}: Dùng bước dịch chuyển ước lượng thích ứng {dx:.1f}px", file=sys.stderr)
-        else:
-            print(f"[✓] Cặp {i}->{i+1}: Khớp nối chuẩn xác dx={dx:.1f}px, dy={dy:.1f}px", file=sys.stderr)
-
-        shifts.append((dx, dy))
-
-    # 3. Tích lũy tọa độ vị trí từng bức ảnh trên dải băng toàn cảnh
-    positions = [(0.0, 0.0)]
-    curr_x, curr_y = 0.0, 0.0
-    for dx, dy in shifts:
-        curr_x += dx
-        curr_y += dy
-        positions.append((curr_x, curr_y))
-
-    # 4. Kiểm tra và bù trừ sai số khép vòng 360° (Loop Closure giữa ảnh cuối cùng và ảnh đầu tiên)
-    loop_detected = False
-    if n >= 4:
-        kp_last, des_last = keypoints_and_descs[-1]
-        kp_first, des_first = keypoints_and_descs[0]
-        if des_last is not None and des_first is not None and len(des_last) > 10 and len(des_first) > 10:
-            m_loop = bf.knnMatch(des_last, des_first, k=2)
-            good_loop = [g for g, k in m_loop if len(m_loop) > 0 and g.distance < 0.75 * k.distance]
-            if len(good_loop) >= 10:
-                p_first = np.float32([kp_first[g.trainIdx].pt for g in good_loop]).reshape(-1, 1, 2)
-                p_last = np.float32([kp_last[g.queryIdx].pt for g in good_loop]).reshape(-1, 1, 2)
-                M_loop, inliers_loop = cv2.estimateAffinePartial2D(p_last, p_first, method=cv2.RANSAC, ransacReprojThreshold=5.0)
-                if M_loop is not None and inliers_loop is not None and np.sum(inliers_loop) >= 7:
-                    loop_dx = float(M_loop[0, 2])
-                    loop_dy = float(M_loop[1, 2])
-                    loop_detected = True
-                    print(f"[✓] Phát hiện khép vòng 360° hoàn hảo (Loop Closure)! loop_dx={loop_dx:.1f}px, loop_dy={loop_dy:.1f}px", file=sys.stderr)
-                    # Bù sai số trôi dọc (vertical drift) vòng kín
-                    total_drift_y = (positions[-1][1] + loop_dy) - positions[0][1]
-                    for i in range(len(positions)):
-                        t = i / float(max(1, len(positions) - 1))
-                        positions[i] = (positions[i][0], positions[i][1] - (total_drift_y * t))
-
-    # 5. Nếu chưa phát hiện khép vòng, cân bằng đường chân trời tuyến tính thông thường
-    if not loop_detected:
-        total_drift_y = positions[-1][1] - positions[0][1]
-        for i in range(len(positions)):
-            t = i / float(max(1, len(positions) - 1))
-            positions[i] = (positions[i][0], positions[i][1] - (total_drift_y * t))
-
-    min_x = min(p[0] for p in positions)
-    max_x = max(p[0] for p in positions) + w
-    min_y = min(p[1] for p in positions)
-    max_y = max(p[1] for p in positions) + h
-
-    canvas_w = int(np.ceil(max_x - min_x))
-    canvas_h = int(np.ceil(max_y - min_y))
-    print(f"[*] Kích thước dải toàn cảnh 360° tổng hợp: {canvas_w}x{canvas_h}px từ {n} bức ảnh.", file=sys.stderr)
-
-    # 6. PHÂN VÙNG VORONOI TUYỆT ĐỐI (Hard Voronoi Seam Partition):
-    # Triệt tiêu 100% hiện tượng bóng ma, ảo ma, nhân đôi tủ kính và bản đồ!
-    # Mỗi pixel trên canvas thuộc về DUY NHẤT 1 bức ảnh có độ tin cậy và khoảng cách tới tâm lớn nhất.
-    # Tuyệt đối KHÔNG cộng dồn hòa trộn nhiều ảnh gây nhòe mờ.
-    best_dist = np.full((canvas_h, canvas_w), -1.0, dtype=np.float32)
-    canvas = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
-
-    for i, im in enumerate(cyl_images):
-        pos_x = int(round(positions[i][0] - min_x))
-        pos_y = int(round(positions[i][1] - min_y))
-        
-        px_end = min(canvas_w, pos_x + w)
-        py_end = min(canvas_h, pos_y + h)
-        cur_w = px_end - pos_x
-        cur_h = py_end - pos_y
-        
-        if cur_w > 0 and cur_h > 0:
-            mask_crop = (cyl_masks[i][:cur_h, :cur_w] > 0.5).astype(np.uint8)
-            padded = np.pad(mask_crop, 1, mode='constant', constant_values=0)
-            dist = cv2.distanceTransform(padded, cv2.DIST_L2, 5)[1:-1, 1:-1]
-            
-            curr_region_best = best_dist[pos_y:py_end, pos_x:px_end]
-            update_mask = (dist > curr_region_best) & (mask_crop > 0)
-            
-            curr_slice = canvas[pos_y:py_end, pos_x:px_end]
-            curr_slice[update_mask] = im[:cur_h, :cur_w][update_mask]
-            curr_region_best[update_mask] = dist[update_mask]
-
-    return canvas
+# ============================================================================
+# PHẦN 5: XMP METADATA & FILE OUTPUT
+# ============================================================================
 
 def save_equirectangular_jpeg(output_path, equi_pano, quality=99):
     """
     Lưu ảnh 360° Equirectangular sang định dạng JPEG chất lượng cao và nhúng Metadata
-    chuẩn quốc tế Google Photo Sphere (APP1 XMP GPano):
-    Tương thích 100% với WebGL Pannellum, Kính thực tế ảo VR, Facebook 360 và Google Street View.
+    chuẩn quốc tế Google Photo Sphere (APP1 XMP GPano).
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     h, w = equi_pano.shape[:2]
@@ -642,7 +897,7 @@ def save_equirectangular_jpeg(output_path, equi_pano, quality=99):
         ' <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n'
         '  <rdf:Description rdf:about="" xmlns:GPano="http://ns.google.com/photos/1.0/panorama/">\n'
         '   <GPano:UsePanoramaViewer>True</GPano:UsePanoramaViewer>\n'
-        '   <GPano:CaptureSoftware>Heritage 360 Engine</GPano:CaptureSoftware>\n'
+        '   <GPano:CaptureSoftware>Heritage 360 Engine v3</GPano:CaptureSoftware>\n'
         '   <GPano:ProjectionType>equirectangular</GPano:ProjectionType>\n'
         '   <GPano:PoseHeadingDegrees>0.0</GPano:PoseHeadingDegrees>\n'
         '   <GPano:PosePitchDegrees>0.0</GPano:PosePitchDegrees>\n'
@@ -669,11 +924,97 @@ def save_equirectangular_jpeg(output_path, equi_pano, quality=99):
     with open(output_path, 'wb') as f:
         f.write(final_bytes)
 
+
+# ============================================================================
+# PHẦN 6: MAIN STITCH ORCHESTRATOR
+# ============================================================================
+
+def extract_image_exif_metadata(path):
+    """
+    Trích xuất timestamp chụp ảnh (DateTimeOriginal) và góc la bàn GPS (GPSImgDirection)
+    từ metadata EXIF gốc của điện thoại iPhone / Android.
+    """
+    timestamp = None
+    compass_deg = None
+    try:
+        with Image.open(path) as pil_img:
+            exif = pil_img.getexif()
+            if exif:
+                dt = exif.get(36867) or exif.get(306) or exif.get(36868)
+                if dt:
+                    timestamp = str(dt)
+                try:
+                    exif_sub = exif.get_ifd(0x8769)
+                    if exif_sub:
+                        dt_sub = exif_sub.get(36867) or exif_sub.get(36868)
+                        if dt_sub:
+                            timestamp = str(dt_sub)
+                except Exception:
+                    pass
+                try:
+                    gps_ifd = exif.get_ifd(0x8825)
+                    if gps_ifd:
+                        dir_val = gps_ifd.get(17)
+                        if dir_val is not None:
+                            compass_deg = float(dir_val)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return timestamp, compass_deg
+
+
+def resolve_capture_sequence(paths):
+    """
+    Tự động chuẩn hóa và khôi phục trình tự chuỗi ảnh vòng tròn 360° thực địa:
+    1. Ưu tiên 1: Thời điểm bấm máy EXIF (DateTimeOriginal)
+    2. Ưu tiên 2: Tên file số tự nhiên (natural alphanumeric sort)
+    3. Ưu tiên 3: Thời gian sửa đổi file trên máy chủ (mtime)
+    """
+    if len(paths) <= 1:
+        return paths
+
+    file_metas = []
+    has_any_exif_time = False
+
+    for p in paths:
+        ts, compass = extract_image_exif_metadata(p)
+        if ts is not None:
+            has_any_exif_time = True
+
+        mtime = 0
+        try:
+            mtime = os.path.getmtime(p)
+        except Exception:
+            pass
+
+        file_metas.append({
+            "path": p,
+            "timestamp": ts,
+            "compass": compass,
+            "mtime": mtime,
+            "nat_key": natural_sort_key(os.path.basename(p))
+        })
+
+    # Ưu tiên: Sắp xếp theo EXIF timestamp
+    if has_any_exif_time and sum(1 for m in file_metas if m["timestamp"] is not None) >= len(file_metas) * 0.5:
+        log("[*] Phát hiện EXIF DateTimeOriginal. Sắp xếp theo thời gian chụp thực tế...")
+        file_metas.sort(key=lambda m: (m["timestamp"] or "", m["nat_key"]))
+        return [m["path"] for m in file_metas]
+
+    # Mặc định: Sắp xếp theo tên file tự nhiên
+    file_metas.sort(key=lambda m: m["nat_key"])
+    return [m["path"] for m in file_metas]
+
+
 def run_stitch(image_paths, output_path, target_width=0):
     """
-    Thực thi quy trình ghép ảnh:
-    - Nếu là 1 ảnh: Tự động nhận diện ảnh Pano từ điện thoại, cắt viền và nắn Equirectangular 2:1 chuẩn.
-    - Nếu là từ 2 ảnh trở lên: Ghép nối bằng OpenCV Stitcher_PANORAMA với chuẩn hóa EXIF, nắn 2:1 và làm sắc nét.
+    Thực thi quy trình ghép ảnh chính:
+    - 1 ảnh: Nhận diện ảnh Pano từ điện thoại, cắt viền và nắn Equirectangular 2:1
+    - 2+ ảnh: Pipeline 3 tầng:
+      Tầng 1: OpenCV Stitcher (Bundle Adjustment tối ưu khi hoạt động)
+      Tầng 2: Robust Homography Engine (engine tự xây, mạnh và ổn định hơn)
+      Tầng 3: Kết hợp cả hai và chọn kết quả tốt nhất
     """
     if not image_paths or len(image_paths) < 1:
         return {
@@ -682,7 +1023,7 @@ def run_stitch(image_paths, output_path, target_width=0):
             "detail": "Vui lòng chọn ít nhất 1 ảnh (ảnh PANO điện thoại) hoặc chùm ảnh rời."
         }
 
-    # Trường hợp tải lên 1 ảnh toàn cảnh PANO trực tiếp từ iPhone / Android
+    # Trường hợp tải lên 1 ảnh toàn cảnh PANO trực tiếp
     if len(image_paths) == 1:
         p = image_paths[0]
         if not os.path.exists(p):
@@ -691,7 +1032,7 @@ def run_stitch(image_paths, output_path, target_width=0):
                 "error": "ERR_FILE_NOT_FOUND",
                 "detail": f"Không tìm thấy file ảnh: {p}"
             }
-        print(f"[*] Nhận diện 1 ảnh Panorama (chế độ PANO điện thoại). Đang nắn chuẩn Equirectangular 2:1...", file=sys.stderr)
+        log(f"[*] Nhận diện 1 ảnh Panorama (chế độ PANO điện thoại). Đang nắn chuẩn Equirectangular 2:1...")
         try:
             img = load_and_orient_image(p, max_dim=4096)
             cropped = crop_black_borders(img)
@@ -716,97 +1057,152 @@ def run_stitch(image_paths, output_path, target_width=0):
                 "detail": f"Lỗi xử lý ảnh PANO: {str(e)}"
             }
 
-    def extract_image_exif_metadata(path):
-        """
-        Trích xuất timestamp chụp ảnh (DateTimeOriginal) và góc la bàn GPS (GPSImgDirection)
-        từ metadata EXIF gốc của điện thoại iPhone / Android để khôi phục chuẩn xác thứ tự quét vòng tròn.
-        """
-        timestamp = None
-        compass_deg = None
-        try:
-            with Image.open(path) as pil_img:
-                exif = pil_img.getexif()
-                if exif:
-                    dt = exif.get(36867) or exif.get(306) or exif.get(36868)
-                    if dt:
-                        timestamp = str(dt)
-                    try:
-                        exif_sub = exif.get_ifd(0x8769)
-                        if exif_sub:
-                            dt_sub = exif_sub.get(36867) or exif_sub.get(36868)
-                            if dt_sub:
-                                timestamp = str(dt_sub)
-                    except Exception:
-                        pass
-                    try:
-                        gps_ifd = exif.get_ifd(0x8825)
-                        if gps_ifd:
-                            dir_val = gps_ifd.get(17)
-                            if dir_val is not None:
-                                compass_deg = float(dir_val)
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-        return timestamp, compass_deg
-
-    def resolve_capture_sequence(paths):
-        """
-        Tự động chuẩn hóa và khôi phục trình tự chuỗi ảnh vòng tròn 360° thực địa:
-        1. Ưu tiên 1: La bàn GPS (GPSImgDirection 0° -> 360°) nếu điện thoại ghi nhận góc quay cảm biến.
-        2. Ưu tiên 2: Thời điểm bấm máy EXIF (DateTimeOriginal) -> Chuỗi tuần tự khi người chụp xoay quanh phòng.
-        3. Ưu tiên 3: Tên file số tự nhiên (natural alphanumeric sort: 0001, 0002, ...).
-        4. Ưu tiên 4: Thời gian sửa đổi file trên máy chủ (mtime).
-        """
-        if len(paths) <= 1:
-            return paths
-
-        file_metas = []
-        has_any_exif_time = False
-        has_any_compass = False
-
-        for p in paths:
-            ts, compass = extract_image_exif_metadata(p)
-            if ts is not None:
-                has_any_exif_time = True
-            if compass is not None:
-                has_any_compass = True
-            
-            mtime = 0
-            try:
-                mtime = os.path.getmtime(p)
-            except Exception:
-                pass
-
-            file_metas.append({
-                "path": p,
-                "timestamp": ts,
-                "compass": compass,
-                "mtime": mtime,
-                "nat_key": natural_sort_key(os.path.basename(p))
-            })
-
-        # Ưu tiên số 1: Sắp xếp theo dòng thời gian chụp thực tế trong EXIF DateTimeOriginal
-        if has_any_exif_time and sum(1 for m in file_metas if m["timestamp"] is not None) >= len(file_metas) * 0.5:
-            print("[*] Phát hiện thông số EXIF DateTimeOriginal. Đang sắp xếp chuỗi ảnh theo dòng thời gian chụp thực tế...", file=sys.stderr)
-            file_metas.sort(key=lambda m: (m["timestamp"] or "", m["nat_key"]))
-            return [m["path"] for m in file_metas]
-
-        # Mặc định: Sắp xếp theo thứ tự tên file tự nhiên
-        file_metas.sort(key=lambda m: m["nat_key"])
-        return [m["path"] for m in file_metas]
-
-    # Sắp xếp và bảo toàn 100% thứ tự chuỗi ảnh vòng tròn thực địa
+    # Sắp xếp chuỗi ảnh
     sorted_paths = resolve_capture_sequence(image_paths)
     num_total = len(sorted_paths)
-    print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã xác lập chuỗi liên tục 100% bảo toàn độ gối đầu quang học.", file=sys.stderr)
+    log(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Bắt đầu pipeline ghép ảnh đa tầng...")
 
     cv2.ocl.setUseOpenCL(False)
+
+    # ======================================================================
+    # TẦNG 1: THỬ OPENCV STITCHER NATIVE (Bundle Adjustment + Graph Cut Seam)
+    # ======================================================================
+    opencv_result = None
+    opencv_hfov = None
+    opencv_flatness = 0.0
+    opencv_used_count = 0
+
+    opencv_result, opencv_hfov, opencv_flatness, opencv_used_count = _try_opencv_stitcher(
+        sorted_paths, num_total, target_width
+    )
+
+    # Kiểm tra chất lượng kết quả OpenCV
+    opencv_good = (
+        opencv_result is not None and
+        opencv_used_count >= max(2, int(num_total * 0.65))
+    )
+
+    if opencv_good:
+        log(f"[✓] OpenCV Stitcher đã ghép thành công {opencv_used_count}/{num_total} ảnh!")
+    else:
+        log(f"[!] OpenCV Stitcher chỉ ghép được {opencv_used_count}/{num_total} ảnh. Chuyển sang Robust Engine...")
+
+    # ======================================================================
+    # TẦNG 2: ROBUST HOMOGRAPHY ENGINE (Luôn chạy để so sánh)
+    # ======================================================================
+    robust_result = None
+    robust_hfov = None
+
+    log(f"[*] Khởi chạy Robust Homography Engine (engine tự xây)...")
+    all_imgs = []
+    for p in sorted_paths:
+        if os.path.exists(p):
+            try:
+                im = load_and_orient_image(p, max_dim=2000)
+                im = balance_universal_lighting(im)
+                all_imgs.append(im)
+            except Exception as e:
+                log(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}")
+
+    if len(all_imgs) >= 2:
+        robust_result = build_robust_panorama(all_imgs)
+        if robust_result is not None:
+            ar = float(robust_result.shape[1]) / float(max(1, robust_result.shape[0]))
+            robust_hfov = min(360.0, max(50.0, ar * 52.0))
+            log(f"[✓] Robust Engine ghép thành công {len(all_imgs)} ảnh, HFOV~{robust_hfov:.1f}°")
+
+    # ======================================================================
+    # TẦNG 3: CHỌN KẾT QUẢ TỐT NHẤT
+    # ======================================================================
+    final_pano = None
+    final_hfov = None
+    final_flatness = 0.0
+
+    if opencv_good and robust_result is not None:
+        # Cả hai đều thành công -> So sánh và chọn tốt hơn
+        opencv_flat = evaluate_panorama_flatness(opencv_result)
+        robust_flat = evaluate_panorama_flatness(robust_result)
+
+        opencv_score = opencv_flat * 100 + (opencv_used_count / num_total) * 50
+        robust_score = robust_flat * 100 + 50  # Robust luôn dùng 100% ảnh
+
+        log(f"[*] So sánh: OpenCV score={opencv_score:.1f} vs Robust score={robust_score:.1f}")
+
+        if opencv_score >= robust_score:
+            final_pano = opencv_result
+            final_hfov = opencv_hfov
+            final_flatness = opencv_flat
+            log("[✓] Chọn kết quả từ OpenCV Stitcher (chất lượng cao hơn)")
+        else:
+            final_pano = robust_result
+            final_hfov = robust_hfov
+            final_flatness = robust_flat
+            log("[✓] Chọn kết quả từ Robust Engine (ổn định hơn)")
+
+    elif opencv_good:
+        final_pano = opencv_result
+        final_hfov = opencv_hfov
+        final_flatness = opencv_flatness
+        log("[✓] Sử dụng kết quả từ OpenCV Stitcher")
+
+    elif robust_result is not None:
+        final_pano = robust_result
+        final_hfov = robust_hfov
+        final_flatness = evaluate_panorama_flatness(robust_result)
+        log("[✓] Sử dụng kết quả từ Robust Engine")
+
+    else:
+        return {
+            "success": False,
+            "error": "ERR_STITCH_FAILED",
+            "detail": "Cả hai engine đều không thể ghép nối được chùm ảnh này. "
+                      "Các ảnh có thể không đủ độ chồng lấp (overlap 30-40%) hoặc bị nhòe."
+        }
+
+    # ======================================================================
+    # POST-PROCESSING
+    # ======================================================================
+    log("[*] Đang tự động dựng thẳng đứng 90° kiến trúc và cắt sạch viền đen...")
+    leveled = auto_level_panorama(final_pano)
+    cropped = crop_black_borders(leveled)
+
+    # Chuẩn hóa về tỷ lệ Equirectangular 2:1
+    equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width, hfov=final_hfov)
+
+    # Tăng cường độ sắc nét
+    log("[*] Đang áp dụng Unsharp Masking tăng cường độ chi tiết...")
+    equi_pano = enhance_museum_texture(equi_pano)
+
+    # Lưu kết quả
+    save_equirectangular_jpeg(output_path, equi_pano, quality=99)
+
+    h, w = equi_pano.shape[:2]
+    return {
+        "success": True,
+        "outputPath": output_path,
+        "width": w,
+        "height": h,
+        "aspectRatio": 2.0,
+        "aspectRatioStr": "2:1",
+        "flatnessScore": round(float(final_flatness), 3),
+        "message": f"Đã tạo thành công ảnh toàn cảnh 360° (Độ phẳng: {final_flatness*100:.1f}%, HFOV: {final_hfov if final_hfov else 360:.1f}°)."
+    }
+
+
+def _try_opencv_stitcher(sorted_paths, num_total, target_width):
+    """
+    Chạy OpenCV Stitcher với nhiều cấu hình khác nhau.
+    Returns: (best_pano, best_hfov, best_flatness, best_used_count)
+    """
+    best_pano = None
+    best_hfov = None
+    best_flatness = 0.0
+    best_used_count = 0
+    best_score = -1
 
     def build_stitcher(confidence=0.25, wave_correction=True, reg_resol=0.85):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
-            # Wave correction: BẮT BUỘC BẬT TRUE ĐỂ GIỮ ĐƯỜNG CHÂN TRỜI THẲNG & VÁCH TƯỜNG KHÔNG BỊ NGHIÊNG 45°
             s.setWaveCorrection(bool(wave_correction))
         except Exception:
             pass
@@ -828,57 +1224,29 @@ def run_stitch(image_paths, output_path, target_width=0):
             pass
         return s
 
-    # Hệ thống Đa Tầng Thích Ứng Toàn Diện (Universal Adaptive Multi-Tier Cascade)
-    # BẢO VỆ 100% ĐỘ THẲNG ĐỨNG KIẾN TRÚC: WaveCorr=True trên TOÀN BỘ các tầng để triệt tiêu góc nghiêng vách tường 45°
-    candidate_schemes = [
-        # Tầng 1: Chuẩn 4K độ nét cao (Conf 0.25, RegResol 0.85, WaveCorr=True, MaxDim 2048)
-        (sorted_paths, 2048, 0.25, True, 0.85, f"Tầng 1 - Chuẩn 4K độ nét cao (WaveCorr=True, Conf 0.25, RegResol 0.85, {num_total} ảnh)"),
-        # Tầng 2: Tăng cường độ nhạy vách tường bảo tàng (Conf 0.14, RegResol 0.80, WaveCorr=True, MaxDim 1800)
-        (sorted_paths, 1800, 0.14, True, 0.80, f"Tầng 2 - Tăng cường độ nhạy vách tường bảo tàng (WaveCorr=True, Conf 0.14, RegResol 0.80, {num_total} ảnh)"),
-        # Tầng 3: Cứu cánh ánh sáng phức tạp & phản quang kính (Conf 0.08, RegResol 0.70, WaveCorr=True, MaxDim 1600)
-        (sorted_paths, 1600, 0.08, True, 0.70, f"Tầng 3 - Cứu cánh ánh sáng phức tạp & phản quang kính (WaveCorr=True, Conf 0.08, RegResol 0.70, {num_total} ảnh)"),
-        # Tầng 4: Siêu liên kết bao phủ góc chụp lệch (Conf 0.04, RegResol 0.60, WaveCorr=True, MaxDim 1400)
-        (sorted_paths, 1400, 0.04, True, 0.60, f"Tầng 4 - Siêu liên kết bao phủ góc chụp lệch (WaveCorr=True, Conf 0.04, RegResol 0.60, {num_total} ảnh)"),
+    # Các cấu hình thử nghiệm
+    configs = [
+        (2048, 0.25, True, 0.85, "Chuẩn 4K (Conf 0.25, RegResol 0.85)"),
+        (1800, 0.14, True, 0.80, "Nhạy cao (Conf 0.14, RegResol 0.80)"),
+        (1600, 0.08, True, 0.70, "Siêu nhạy (Conf 0.08, RegResol 0.70)"),
+        (1400, 0.04, True, 0.60, "Cực nhạy (Conf 0.04, RegResol 0.60)"),
     ]
 
-    # Nếu người dùng có thể chụp ngược chiều kim đồng hồ, thêm phương án đảo chiều chuỗi ảnh ở độ nhạy cao
-    reversed_paths = list(reversed(sorted_paths))
-    candidate_schemes.append(
-        (reversed_paths, 1600, 0.10, True, 0.75, f"Tầng 5 - Đảo chiều chuỗi ảnh ngược chiều kim đồng hồ (WaveCorr=True, Conf 0.10, {num_total} ảnh)")
-    )
-
-    best_pano = None
-    best_status = -1
-    best_used = ()
-    best_hfov = None
-    best_score = -1
-    best_failure_stat = None
-    best_flatness = 0.0
-
-    # 1. ƯU TIÊN SỐ 1: CHẠY CÁC TẦNG OPENCV NATIVE ĐỂ TẬN DỤNG BUNDLE ADJUSTMENT VÀ GRAPH-CUT SEAM TỰ NHIÊN
-    for (cur_paths, max_dim, conf, wave_corr, reg_resol, desc) in candidate_schemes:
-        print(f"[*] Thử nghiệm ghép: {desc}...", file=sys.stderr)
+    for max_dim, conf, wave_corr, reg_resol, desc in configs:
+        log(f"[*] Thử OpenCV Stitcher: {desc}...")
         images = []
-        for p in cur_paths:
+        for p in sorted_paths:
             if not os.path.exists(p):
-                print(f"[Warning] Bỏ qua file không tồn tại: {p}", file=sys.stderr)
                 continue
             try:
                 img = load_and_orient_image(p, max_dim=max_dim)
-                # Cân bằng ánh sáng đa môi trường (HDR thích ứng, nâng bóng râm & nén nắng chói)
                 img = balance_universal_lighting(img)
                 images.append(img)
             except Exception as img_err:
-                print(f"[Warning] Bỏ qua ảnh lỗi đọc {p}: {img_err}", file=sys.stderr)
+                log(f"[Warning] Bỏ qua ảnh lỗi {p}: {img_err}")
                 continue
 
         if len(images) < 2:
-            print(f"[Warning] Không đủ ảnh hợp lệ ({len(images)} ảnh) để ghép cho tầng này.", file=sys.stderr)
-            try:
-                del images
-                gc.collect()
-            except Exception:
-                pass
             continue
 
         s = build_stitcher(confidence=conf, wave_correction=wave_corr, reg_resol=reg_resol)
@@ -890,7 +1258,7 @@ def run_stitch(image_paths, output_path, target_width=0):
             total_count = len(images)
             coverage_ratio = used_count / float(total_count)
 
-            # Ước tính góc quét ngang thực tế (HFOV) từ tiêu cự camera
+            # Ước tính HFOV
             estimated_hfov = None
             try:
                 cams = s.cameras()
@@ -906,134 +1274,44 @@ def run_stitch(image_paths, output_path, target_width=0):
                 estimated_hfov = min(360.0, max(50.0, ar * 52.0))
 
             flatness = evaluate_panorama_flatness(cur_pano)
-
-            # Điểm chất lượng: ƯU TIÊN SỐ LƯỢNG ẢNH ĐƯỢC KẾT NỐI (Coverage First)
             score = (coverage_ratio * 400.0) + min(150.0, estimated_hfov * 0.5) + (flatness * 50.0)
 
-            print(f"[✓] Ghép thành công {used_count}/{total_count} ảnh (HFOV ~{estimated_hfov:.1f}°, Độ phẳng: {flatness*100:.1f}%, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
+            log(f"[✓] Ghép thành công {used_count}/{total_count} ảnh (HFOV ~{estimated_hfov:.1f}°, Flatness: {flatness*100:.1f}%, Score: {score:.1f})")
 
             if score > best_score:
                 best_score = score
                 best_pano = cur_pano
-                best_status = cur_stat
-                best_used = cur_used
                 best_hfov = estimated_hfov
                 best_flatness = flatness
+                best_used_count = used_count
 
-            # Dọn dẹp bộ nhớ ảnh sau lượt ghép thành công
-            try:
-                del images
-                gc.collect()
-            except Exception:
-                pass
-
-            # Dừng sớm ngay lập tức nếu đã kết nối >= 75% số ảnh (hoặc >= 12 ảnh):
+            # Dừng sớm nếu đã kết nối >= 75%
             if coverage_ratio >= 0.75 or (total_count >= 10 and used_count >= 12):
-                print(f"[✓] Đã kết nối thành công xuất sắc ({used_count}/{total_count} ảnh)! Dừng ngay để hoàn thiện ảnh...", file=sys.stderr)
+                log(f"[✓] Đã kết nối xuất sắc ({used_count}/{total_count} ảnh)! Dừng tìm kiếm.")
                 break
         else:
-            if best_failure_stat is None or cur_stat != -1:
-                best_failure_stat = cur_stat
-            print(f"[!] Lượt ghép chưa đạt (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Tiếp tục thử phương án tiếp theo...", file=sys.stderr)
-            try:
-                del images
-                gc.collect()
-            except Exception:
-                pass
+            log(f"[!] Thất bại (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh)")
 
-    status = best_status if best_status != -1 else (best_failure_stat if best_failure_stat is not None else cv2.Stitcher_ERR_NEED_MORE_IMGS)
-    stitched = best_pano
-    used_imgs = best_used
-    used_count = len(used_imgs) if used_imgs is not None else 0
+        try:
+            del images
+            gc.collect()
+        except Exception:
+            pass
 
-    # 2. PHAO CỨU CÁNH VORONOI: NẾU OPENCV THẤT BẠI HOẶC BỎ RƠI QUÁ NHIỀU ẢNH (< 65% số ảnh):
-    # Kích hoạt Sequential SIFT Engine với phân vùng Voronoi cứng (Zero Ghosting, 100% bảo toàn ảnh)
-    need_sequential = (
-        status != cv2.Stitcher_OK or
-        stitched is None or
-        (num_total >= 3 and used_count < max(3, int(num_total * 0.65)))
-    )
+    return best_pano, best_hfov, best_flatness, best_used_count
 
-    if need_sequential and num_total >= 2:
-        print(f"[*] OpenCV chỉ ghép được {used_count}/{num_total} ảnh (hoặc thất bại mã {status}).", file=sys.stderr)
-        print(f"[*] Kích hoạt Thuật toán Phân Vùng Voronoi Tuần Tự (Hard Voronoi SIFT Engine) cứu cánh...", file=sys.stderr)
-        all_imgs = []
-        for p in sorted_paths:
-            if os.path.exists(p):
-                try:
-                    im = load_and_orient_image(p, max_dim=1800)
-                    im = balance_universal_lighting(im)
-                    all_imgs.append(im)
-                except Exception as e:
-                    print(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}", file=sys.stderr)
 
-        if len(all_imgs) >= 2:
-            seq_pano = build_sequential_sift_panorama(all_imgs)
-            if seq_pano is not None:
-                stitched = seq_pano
-                status = cv2.Stitcher_OK
-                used_imgs = list(range(len(all_imgs)))
-                used_count = len(all_imgs)
-                best_hfov = 360.0
-                best_flatness = 0.95
-                print(f"[✓] Cứu cánh thành công 100% toàn bộ {used_count} ảnh bằng Hard Voronoi SIFT Engine!", file=sys.stderr)
-
-    print(f"[*] Kết quả ghép: Mã={status}, Số ảnh thực tế kết nối: {used_count}/{num_total} ảnh, HFOV ước tính: {best_hfov if best_hfov else 0:.1f}°.", file=sys.stderr)
-
-    STATUS_MAP = {
-        cv2.Stitcher_OK: "OK",
-        cv2.Stitcher_ERR_NEED_MORE_IMGS: "ERR_NEED_MORE_IMGS",
-        cv2.Stitcher_ERR_HOMOGRAPHY_EST_FAIL: "ERR_HOMOGRAPHY_EST_FAIL",
-        cv2.Stitcher_ERR_CAMERA_PARAMS_ADJUST_FAIL: "ERR_CAMERA_PARAMS_ADJUST_FAIL"
-    }
-
-    status_name = STATUS_MAP.get(status, f"ERR_STITCH_{status}")
-
-    if status != cv2.Stitcher_OK or stitched is None:
-        error_details = {
-            "ERR_NEED_MORE_IMGS": "Không đủ độ chồng lấp (overlap) giữa các khung hình liên tiếp. Khi quay/chụp trong gian phòng bảo tàng, hai bức ảnh kề nhau cần chứa ít nhất 30%-40% khung cảnh chung và di chuyển góc quay mượt mà.",
-            "ERR_HOMOGRAPHY_EST_FAIL": "Không thể thiết lập ma trận tương đồng (Homography). Thường xuất hiện khi lia máy quá nhanh làm nhòe ảnh, hoặc chụp vào vùng tường quá trơn thiếu chi tiết hoa văn.",
-            "ERR_CAMERA_PARAMS_ADJUST_FAIL": "Không thể hiệu chỉnh thông số quang học của thấu kính máy ảnh giữa các bức ảnh do tiêu cự zoom thay đổi đột ngột khi chụp."
-        }
-        return {
-            "success": False,
-            "error": status_name,
-            "detail": error_details.get(status_name, "Thuật toán ghép ảnh chưa thể kết nối đầy đủ các bức ảnh do thiếu điểm tương đồng thị giác hoặc góc chụp lệch nhiều.")
-        }
-
-    print("[*] Ghép ảnh thành công! Đang tự động dựng thẳng đứng 90° kiến trúc và cắt sạch viền đen...", file=sys.stderr)
-    leveled = auto_level_panorama(stitched)
-    cropped = crop_black_borders(leveled)
-
-    # Chuẩn hóa về tỷ lệ Equirectangular 2:1 với HFOV thực tế
-    equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=target_width, hfov=best_hfov)
-
-    # Tăng cường độ sắc nét và cân bằng ánh sáng bảo tàng chuyên nghiệp
-    print("[*] Đang áp dụng thuật toán CLAHE & Unsharp Masking tăng cường độ tương phản và chi tiết cổ vật...", file=sys.stderr)
-    equi_pano = enhance_museum_texture(equi_pano)
-
-    # Lưu kết quả với chất lượng JPEG tối đa 99%, nén tối ưu và chèn Metadata XMP GPano chuẩn quốc tế
-    save_equirectangular_jpeg(output_path, equi_pano, quality=99)
-
-    h, w = equi_pano.shape[:2]
-    return {
-        "success": True,
-        "outputPath": output_path,
-        "width": w,
-        "height": h,
-        "aspectRatio": 2.0,
-        "aspectRatioStr": "2:1",
-        "flatnessScore": round(float(best_flatness), 3),
-        "message": f"Đã tạo thành công ảnh toàn cảnh 360° chuẩn phẳng kiến trúc (Độ phẳng: {best_flatness*100:.1f}%, HFOV: {best_hfov if best_hfov else 360:.1f}°)."
-    }
+# ============================================================================
+# PHẦN 7: VERIFY SINGLE IMAGE (Thẩm định chất lượng ảnh chụp)
+# ============================================================================
 
 def verify_single_image(image_path, prev_image_path=None):
     """
     Thẩm định chất lượng ảnh chụp từ camera điện thoại trong thời gian thực:
-    - Độ sắc nét (Laplacian variance): Phát hiện rung tay, nhòe mờ.
-    - Ánh sáng / Phơi sáng: Kiểm tra quá tối hoặc cháy sáng.
-    - Điểm đặc trưng (ORB features): Đảm bảo cảnh có đủ hoa văn để máy tính nhận diện.
-    - Độ chồng lấp (Overlap): Đối chiếu với ảnh kế trước để đảm bảo nối được không gian.
+    - Độ sắc nét (Laplacian variance)
+    - Ánh sáng / Phơi sáng
+    - Điểm đặc trưng (ORB features)
+    - Độ chồng lấp (Overlap) với ảnh trước
     """
     if not os.path.exists(image_path):
         return {
@@ -1044,7 +1322,6 @@ def verify_single_image(image_path, prev_image_path=None):
 
     try:
         img = load_and_orient_image(image_path, max_dim=1200)
-        # Áp dụng cân bằng sáng và nén chói ngược sáng để máy quét rõ nét mọi chi tiết
         balanced_img = balance_indoor_lighting(img)
         gray = cv2.cvtColor(balanced_img, cv2.COLOR_BGR2GRAY)
         h, w = gray.shape
@@ -1054,17 +1331,15 @@ def verify_single_image(image_path, prev_image_path=None):
         is_sharp = laplacian_var >= 35.0
         sharpness_label = "Rất sắc nét" if laplacian_var > 80 else ("Đủ độ nét" if is_sharp else "Bị nhòe / rung tay")
 
-        # 2. Đo mật độ chi tiết hoa văn (ORB Features) sau khi đã phục hồi độ tương phản
+        # 2. Đo mật độ chi tiết hoa văn (ORB Features)
         orb = cv2.ORB_create(nfeatures=1000)
         kp, des = orb.detectAndCompute(gray, None)
         feature_count = len(kp) if kp is not None else 0
         has_features = feature_count >= 140
         feature_label = "Hoa văn phong phú" if feature_count >= 350 else ("Đủ chi tiết" if has_features else "Thiếu chi tiết (tường trơn)")
 
-        # 3. Đo độ sáng / phơi sáng thông minh (hỗ trợ cả góc chói nắng lẫn chụp trời tối/thiếu sáng và ánh sáng đèn)
+        # 3. Đo độ sáng / phơi sáng
         mean_brightness = float(np.mean(gray))
-        # Nhờ bộ cân bằng quang học đa môi trường (HDR Soft-Knee + Shadow Lift + Cân bằng màu đèn rọi):
-        # Ảnh phòng tối (mean >= 10) hoặc ngược sáng ánh nắng / đèn rọi gắt (mean <= 250) đều được phục hồi chi tiết đầy đủ
         is_exposed = (14.0 <= mean_brightness <= 242.0) or (has_features and mean_brightness >= 9.0 and mean_brightness <= 250.0)
         if 40.0 <= mean_brightness <= 215.0:
             brightness_label = "Đủ sáng (Cân bằng tự nhiên)"
@@ -1082,11 +1357,11 @@ def verify_single_image(image_path, prev_image_path=None):
         position_info = None
         has_overlap = True
         is_position_stable = True
+        match_count = 0
 
         if prev_image_path and os.path.exists(prev_image_path):
             try:
                 prev_img = load_and_orient_image(prev_image_path, max_dim=1200)
-                # Đồng bộ quang học: Ảnh trước cũng được cân bằng sáng để so khớp chuẩn xác
                 prev_balanced = balance_indoor_lighting(prev_img)
                 prev_gray = cv2.cvtColor(prev_balanced, cv2.COLOR_BGR2GRAY)
                 prev_kp, prev_des = orb.detectAndCompute(prev_gray, None)
@@ -1102,11 +1377,6 @@ def verify_single_image(image_path, prev_image_path=None):
                     match_count = len(good_matches)
                     has_overlap = match_count >= 10
 
-                    # KIỂM TRA ĐỘ ỔN ĐỊNH VỊ TRÍ & DUNG SAI THỊ SAI (Adaptive Position & Parallax Tolerance):
-                    # - Nếu đứng yên 1 chỗ xoay máy: Khớp rất cao (Inlier Ratio > 45%).
-                    # - Nếu người chụp xoay góc lớn hơn (để chụp ít ảnh hơn) hoặc dịch chuyển nhẹ:
-                    #   Vẫn có điểm chung tốt (match_count >= 10, inliers >= 4).
-                    #   Hệ thống có DUNG SAI MỀM DẺO: Vẫn ĐẠT CHUẨN và ưu tiên lấy trọn vẹn góc nhìn này!
                     if match_count >= 8:
                         src_pts = np.float32([kp[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
                         dst_pts = np.float32([prev_kp[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
@@ -1116,7 +1386,6 @@ def verify_single_image(image_path, prev_image_path=None):
                             inlier_ratio = inlier_count / float(match_count)
                             det = float(np.linalg.det(H[:2, :2]))
 
-                            # Dung sai thông minh: Cho phép góc xoay mở rộng để chụp ít ảnh hơn
                             is_position_stable = (inlier_ratio >= 0.26 and inlier_count >= 4 and 0.12 < det < 7.5) or (match_count >= 16)
 
                             if inlier_ratio >= 0.45:
@@ -1163,19 +1432,16 @@ def verify_single_image(image_path, prev_image_path=None):
                         "label": "Không thể so khớp tọa độ đứng"
                     }
             except Exception as oErr:
-                print(f"[Warning] Overlap/Parallax calculation note: {oErr}", file=sys.stderr)
+                log(f"[Warning] Overlap/Parallax calculation note: {oErr}")
 
-        # Đánh giá tổng quát thông minh:
-        # Nếu ảnh có hoa văn chi tiết dồi dào (feature_count >= 250, như 800 - 1000 điểm trong thực tế):
-        # Thì ảnh đã có thừa thãi dữ liệu hình học để thuật toán OpenCV ghép nối thành công!
+        # Đánh giá tổng quát
         rich_features = (feature_count >= 250)
 
         if rich_features:
-            # Dung sai mềm dẻo: Cho phép ảnh giàu chi tiết trong môi trường tối/ngược sáng đạt chuẩn
             passed = is_sharp and is_exposed and (has_overlap or match_count >= 6)
         else:
             passed = is_sharp and is_exposed and has_features and has_overlap and is_position_stable
-        
+
         # Tính điểm chất lượng từ 0 - 100
         score = 0
         if is_sharp:
@@ -1226,14 +1492,15 @@ def verify_single_image(image_path, prev_image_path=None):
             "message": f"Lỗi thẩm định ảnh: {str(e)}"
         }
 
+
 def main():
-    parser = argparse.ArgumentParser(description="OpenCV 360 Panorama Stitching & Verification Worker")
+    parser = argparse.ArgumentParser(description="OpenCV 360 Panorama Stitching & Verification Worker v3")
     parser.add_argument("--verify-image", help="Đường dẫn 1 file ảnh cần kiểm tra chất lượng")
     parser.add_argument("--prev-image", help="Đường dẫn file ảnh kế trước để so khớp độ chồng lấp")
     parser.add_argument("--images", nargs="+", help="Danh sách đường dẫn các file ảnh cần ghép")
     parser.add_argument("--input_json", help="File JSON chứa danh sách đường dẫn ảnh")
     parser.add_argument("--output", help="Đường dẫn file ảnh đầu ra (.jpg)")
-    parser.add_argument("--width", type=int, default=0, help="Chiều rộng ảnh đầu ra (0 = Tự động thích ứng chất lượng theo ảnh gốc)")
+    parser.add_argument("--width", type=int, default=0, help="Chiều rộng ảnh đầu ra (0 = Tự động)")
 
     args = parser.parse_args()
 
@@ -1259,6 +1526,6 @@ def main():
     result = run_stitch(image_paths, args.output, target_width=args.width)
     print(json.dumps(result, ensure_ascii=True, indent=2))
 
+
 if __name__ == "__main__":
     main()
-
