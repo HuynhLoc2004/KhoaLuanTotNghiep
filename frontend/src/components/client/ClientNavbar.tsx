@@ -323,9 +323,9 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               className="client-theme-toggle client-nav-lang-btn"
               onClick={() => setIsLangDropdownOpen((prev) => !prev)}
               aria-label="Chọn ngôn ngữ"
+              title={`Ngôn ngữ: ${currentLangObj.name || 'Tiếng Việt'}`}
             >
-              <span className="client-nav-lang-flag">{currentLangObj.flagIcon}</span>
-              <span className="client-nav-lang-code">{currentLangObj.code}</span>
+              <span className="client-nav-lang-code">{currentLangObj.code ? currentLangObj.code.toUpperCase() : 'VI'}</span>
             </button>
 
             {isLangDropdownOpen && (
