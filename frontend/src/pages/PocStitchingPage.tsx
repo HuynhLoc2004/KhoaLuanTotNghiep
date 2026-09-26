@@ -536,13 +536,24 @@ function normalizePanoUrl(rawUrl: string): string {
 
     const formData = new FormData();
 
+    // Nếu chùm ảnh quá dày (>32 ảnh), tự động chắt lọc 30 góc then chốt đều đặn quanh vòng 360°
+    // Giữ nguyên ảnh đầu và ảnh cuối để khép vòng, tối ưu băng thông mạng và tránh nghẽn RAM
+    let targetFrames = framesToStitch;
+    if (framesToStitch.length > 32) {
+      const targetCount = 30;
+      const step = (framesToStitch.length - 1) / (targetCount - 1);
+      const chosenIndices = Array.from({ length: targetCount }, (_, i) => Math.round(i * step));
+      const uniqueIndices = Array.from(new Set(chosenIndices));
+      targetFrames = uniqueIndices.map((idx) => framesToStitch[idx]);
+    }
+
     // Ưu tiên nạp các serverPath đã được server lưu sẵn từ bước thẩm định
-    const serverPaths = framesToStitch.map((f) => f.serverPath).filter(Boolean);
-    if (serverPaths.length === framesToStitch.length && serverPaths.length > 0) {
+    const serverPaths = targetFrames.map((f) => f.serverPath).filter(Boolean);
+    if (serverPaths.length === targetFrames.length && serverPaths.length > 0) {
       formData.append('serverPaths', JSON.stringify(serverPaths));
     } else {
       // Nếu có frame chưa lưu serverPath, gửi trực tiếp toàn bộ file ảnh trong chuỗi
-      framesToStitch.forEach((frame, index) => {
+      targetFrames.forEach((frame, index) => {
         formData.append('images', frame.file, `frame_${String(index).padStart(4, '0')}_${frame.file.name}`);
       });
     }
@@ -1079,13 +1090,13 @@ function normalizePanoUrl(rawUrl: string): string {
                 </div>
               )}
 
-              {stitchResult ? (
                 <Pannellum360Viewer
                   panoramaUrl={stitchResult.panoramaUrl}
                   title={stitchResult.filename}
-                  autoStartLittlePlanet={true}
+                  autoStartLittlePlanet={false}
+                  initialPitch={0}
+                  initialHfov={95}
                 />
-              ) : (
                 <div className="studio-empty-viewer">
                   <div className="studio-empty-icon">
                     <Globe size={26} />
