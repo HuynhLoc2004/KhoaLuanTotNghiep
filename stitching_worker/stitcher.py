@@ -414,7 +414,11 @@ def cylindrical_warp_image(img, focal_length=None):
     map_y = (focal_length * (Y / Z) + h / 2.0).astype(np.float32)
     
     warped = cv2.remap(img, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    return warped
+    # Tạo mặt nạ vùng ảnh thật hợp lệ để triệt tiêu hoàn toàn các góc đen do nắn uốn cong
+    ones = np.ones((h, w), dtype=np.float32)
+    valid_mask = cv2.remap(ones, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    valid_mask = (valid_mask > 0.98).astype(np.float32)
+    return warped, valid_mask
 
 def build_sequential_sift_panorama(images):
     """
@@ -431,10 +435,12 @@ def build_sequential_sift_panorama(images):
 
     print(f"[*] Kích hoạt Bộ Ghép Chuỗi Quang Học Tuần Tự (Sequential SIFT Robust Engine) cho {n} bức ảnh...", file=sys.stderr)
     
-    # 1. Nắn toàn bộ ảnh sang hệ tọa độ hình trụ chuẩn
+    # 1. Nắn toàn bộ ảnh sang hệ tọa độ hình trụ chuẩn và giữ mặt nạ biên
     h0, w0 = images[0].shape[:2]
-    focal = w0 * 1.10 if h0 > w0 else w0 * 0.85
-    cyl_images = [cylindrical_warp_image(im, focal_length=focal) for im in images]
+    focal = w0 * 1.05 if h0 > w0 else w0 * 0.85
+    cyl_results = [cylindrical_warp_image(im, focal_length=focal) for im in images]
+    cyl_images = [r[0] for r in cyl_results]
+    cyl_masks = [r[1] for r in cyl_results]
     h, w = cyl_images[0].shape[:2]
 
     # Khởi tạo SIFT và trích xuất trước toàn bộ điểm đặc trưng để tăng tốc độ 2.5x
@@ -461,6 +467,7 @@ def build_sequential_sift_panorama(images):
     if len(test_dxs) > 0 and np.median(test_dxs) < -15.0:
         print("[!] Phát hiện chuỗi ảnh chụp ngược chiều kim đồng hồ (Phải qua Trái). Đảo ngược chuỗi để chuẩn hóa Trái qua Phải...", file=sys.stderr)
         cyl_images.reverse()
+        cyl_masks.reverse()
         keypoints_and_descs.reverse()
 
     # 2. Tìm độ dịch chuyển tịnh tiến (dx, dy) giữa từng cặp ảnh kề nhau (i -> i+1)
@@ -487,7 +494,8 @@ def build_sequential_sift_panorama(images):
                     cur_dy = float(M[1, 2])
                     if 0.80 <= scale <= 1.25 and abs(cur_dx) > (w * 0.05) and abs(cur_dx) < (w * 0.98):
                         dx = abs(cur_dx)
-                        dy = cur_dy
+                        # Giới hạn độ lệch dọc tối đa để không bao giờ bị trôi lệch vách tường
+                        dy = max(-float(h * 0.12), min(float(h * 0.12), cur_dy))
                         measured_dxs.append(dx)
 
         if dx is None:
@@ -545,7 +553,7 @@ def build_sequential_sift_panorama(images):
     ramp_x = np.clip(ramp_x, 0.02, 1.0)
     ramp_y = np.minimum(np.arange(h), np.arange(h)[::-1]) / float(max(1, int(h * 0.20)))
     ramp_y = np.clip(ramp_y, 0.02, 1.0)
-    feather_mask = np.outer(ramp_y, ramp_x).astype(np.float32)
+    feather_base = np.outer(ramp_y, ramp_x).astype(np.float32)
 
     for i, im in enumerate(cyl_images):
         pos_x = int(round(positions[i][0] - min_x))
@@ -557,8 +565,9 @@ def build_sequential_sift_panorama(images):
         cur_h = py_end - pos_y
         
         if cur_w > 0 and cur_h > 0:
-            color_accum[pos_y:py_end, pos_x:px_end] += im[:cur_h, :cur_w].astype(np.float32) * feather_mask[:cur_h, :cur_w, None]
-            weight_accum[pos_y:py_end, pos_x:px_end] += feather_mask[:cur_h, :cur_w]
+            eff_mask = feather_base[:cur_h, :cur_w] * cyl_masks[i][:cur_h, :cur_w]
+            color_accum[pos_y:py_end, pos_x:px_end] += im[:cur_h, :cur_w].astype(np.float32) * eff_mask[:, :, None]
+            weight_accum[pos_y:py_end, pos_x:px_end] += eff_mask
 
     valid_mask = weight_accum > 1e-4
     blended = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
@@ -729,19 +738,13 @@ def run_stitch(image_paths, output_path, target_width=0):
                 "nat_key": natural_sort_key(os.path.basename(p))
             })
 
-        # Nếu có la bàn cho >= 70% số ảnh -> Sắp xếp theo góc quét la bàn
-        if has_any_compass and sum(1 for m in file_metas if m["compass"] is not None) >= len(file_metas) * 0.7:
-            print("[*] Phát hiện la bàn điện thoại (GPS Compass). Đang sắp xếp chuỗi ảnh theo góc quay 0° -> 360°...", file=sys.stderr)
-            file_metas.sort(key=lambda m: (m["compass"] if m["compass"] is not None else 999.0, m["nat_key"]))
-            return [m["path"] for m in file_metas]
-
-        # Nếu có timestamp chụp ảnh EXIF cho >= 50% số ảnh -> Sắp xếp theo dòng thời gian chụp thực tế
+        # Ưu tiên số 1: Sắp xếp theo dòng thời gian chụp thực tế trong EXIF DateTimeOriginal
         if has_any_exif_time and sum(1 for m in file_metas if m["timestamp"] is not None) >= len(file_metas) * 0.5:
             print("[*] Phát hiện thông số EXIF DateTimeOriginal. Đang sắp xếp chuỗi ảnh theo dòng thời gian chụp thực tế...", file=sys.stderr)
             file_metas.sort(key=lambda m: (m["timestamp"] or "", m["nat_key"]))
             return [m["path"] for m in file_metas]
 
-        # Mặc định sắp xếp theo tên file tự nhiên
+        # Mặc định: Sắp xếp theo thứ tự tên file tự nhiên
         file_metas.sort(key=lambda m: m["nat_key"])
         return [m["path"] for m in file_metas]
 
@@ -805,143 +808,137 @@ def run_stitch(image_paths, output_path, target_width=0):
     best_failure_stat = None
     best_flatness = 0.0
 
-    for (cur_paths, max_dim, conf, wave_corr, reg_resol, desc) in candidate_schemes:
-        print(f"[*] Thử nghiệm ghép: {desc}...", file=sys.stderr)
-        images = []
-        for p in cur_paths:
-            if not os.path.exists(p):
-                print(f"[Warning] Bỏ qua file không tồn tại: {p}", file=sys.stderr)
-                continue
-            try:
-                img = load_and_orient_image(p, max_dim=max_dim)
-                # Cân bằng ánh sáng đa môi trường (HDR thích ứng, nâng bóng râm & nén nắng chói)
-                img = balance_universal_lighting(img)
-                images.append(img)
-            except Exception as img_err:
-                print(f"[Warning] Bỏ qua ảnh lỗi đọc {p}: {img_err}", file=sys.stderr)
-                continue
+    # ƯU TIÊN SỐ 1 CHO BỘ ẢNH TỪ 3 ẢNH TRỞ LÊN (Chùm ảnh chụp bảo tàng):
+    # Kích hoạt trực tiếp Thuật toán Ghép Chuỗi Quang Học Tuần Tự (Sequential SIFT Robust Engine)
+    # Bảo toàn trọn vẹn 100% tất cả các bức ảnh, triệt tiêu hoàn toàn lỗi ghép chéo tùm lum của OpenCV
+    if num_total >= 3:
+        print(f"[*] Kích hoạt Thuật toán Ghép Chuỗi Quang Học Tuần Tự (Sequential SIFT Robust Engine) làm động cơ chính cho {num_total} ảnh...", file=sys.stderr)
+        all_imgs = []
+        for p in sorted_paths:
+            if os.path.exists(p):
+                try:
+                    img = load_and_orient_image(p, max_dim=1800)
+                    img = balance_universal_lighting(img)
+                    all_imgs.append(img)
+                except Exception as img_err:
+                    print(f"[Warning] Bỏ qua ảnh lỗi {p}: {img_err}", file=sys.stderr)
 
-        if len(images) < 2:
-            print(f"[Warning] Không đủ ảnh hợp lệ ({len(images)} ảnh) để ghép cho tầng này.", file=sys.stderr)
-            try:
-                del images
-                gc.collect()
-            except Exception:
-                pass
-            continue
+        if len(all_imgs) >= 2:
+            seq_pano = build_sequential_sift_panorama(all_imgs)
+            if seq_pano is not None:
+                best_pano = seq_pano
+                best_status = cv2.Stitcher_OK
+                best_used = list(range(len(all_imgs)))
+                best_hfov = 360.0
+                best_flatness = 0.95
+                print(f"[✓] Ghép thành công 100% toàn bộ {len(all_imgs)} ảnh bằng Sequential SIFT Robust Engine!", file=sys.stderr)
 
-        s = build_stitcher(confidence=conf, wave_correction=wave_corr, reg_resol=reg_resol)
-        cur_stat, cur_pano = s.stitch(images)
-        cur_used = s.component() if hasattr(s, 'component') else ()
+    # Nếu Sequential SIFT chưa có kết quả (hoặc chỉ có 2 ảnh), mới chạy các tầng OpenCV dự phòng
+    if best_pano is None:
+        for (cur_paths, max_dim, conf, wave_corr, reg_resol, desc) in candidate_schemes:
+            print(f"[*] Thử nghiệm ghép: {desc}...", file=sys.stderr)
+            images = []
+            for p in cur_paths:
+                if not os.path.exists(p):
+                    print(f"[Warning] Bỏ qua file không tồn tại: {p}", file=sys.stderr)
+                    continue
+                try:
+                    img = load_and_orient_image(p, max_dim=max_dim)
+                    # Cân bằng ánh sáng đa môi trường (HDR thích ứng, nâng bóng râm & nén nắng chói)
+                    img = balance_universal_lighting(img)
+                    images.append(img)
+                except Exception as img_err:
+                    print(f"[Warning] Bỏ qua ảnh lỗi đọc {p}: {img_err}", file=sys.stderr)
+                    continue
 
-        if cur_stat == cv2.Stitcher_OK and cur_pano is not None:
-            used_count = len(cur_used)
-            total_count = len(images)
-            coverage_ratio = used_count / float(total_count)
-
-            # NGUYÊN TẮC BẢO VỆ CHUẨN 360°:
-            # Nếu người dùng nạp >= 6 ảnh mà lượt ghép chỉ dùng được < 4 ảnh:
-            # Tuyệt đối không chấp nhận mảnh chắp vá 2-3 ảnh làm ảnh 360! Chuyển ngay sang tầng nhạy hơn!
-            if total_count >= 6 and used_count < 4:
-                print(f"[!] Lượt ghép chỉ kết nối được {used_count}/{total_count} ảnh (mảnh chắp vá quá nhỏ). Bỏ qua để thử tầng nhạy hơn...", file=sys.stderr)
+            if len(images) < 2:
+                print(f"[Warning] Không đủ ảnh hợp lệ ({len(images)} ảnh) để ghép cho tầng này.", file=sys.stderr)
                 try:
                     del images
-                    del cur_pano
                     gc.collect()
                 except Exception:
                     pass
                 continue
 
-            # Ước tính góc quét ngang thực tế (HFOV) từ tiêu cự camera
-            estimated_hfov = None
-            try:
-                cams = s.cameras()
-                focals = [c.focal for c in cams if c.focal > 0]
-                if len(focals) > 0:
-                    med_f = float(np.median(focals))
-                    estimated_hfov = (cur_pano.shape[1] / med_f) * (180.0 / np.pi)
-            except Exception:
-                pass
+            s = build_stitcher(confidence=conf, wave_correction=wave_corr, reg_resol=reg_resol)
+            cur_stat, cur_pano = s.stitch(images)
+            cur_used = s.component() if hasattr(s, 'component') else ()
 
-            if estimated_hfov is None or estimated_hfov <= 0 or estimated_hfov > 360.0:
-                ar = float(cur_pano.shape[1]) / float(max(1, cur_pano.shape[0]))
-                estimated_hfov = min(360.0, max(50.0, ar * 52.0))
+            if cur_stat == cv2.Stitcher_OK and cur_pano is not None:
+                used_count = len(cur_used)
+                total_count = len(images)
+                coverage_ratio = used_count / float(total_count)
 
-            flatness = evaluate_panorama_flatness(cur_pano)
+                # NGUYÊN TẮC BẢO VỆ CHUẨN 360°:
+                # Nếu người dùng nạp >= 6 ảnh mà lượt ghép chỉ dùng được < 4 ảnh:
+                # Tuyệt đối không chấp nhận mảnh chắp vá 2-3 ảnh làm ảnh 360! Chuyển ngay sang tầng nhạy hơn!
+                if total_count >= 6 and used_count < 4:
+                    print(f"[!] Lượt ghép chỉ kết nối được {used_count}/{total_count} ảnh (mảnh chắp vá quá nhỏ). Bỏ qua để thử tầng nhạy hơn...", file=sys.stderr)
+                    try:
+                        del images
+                        del cur_pano
+                        gc.collect()
+                    except Exception:
+                        pass
+                    continue
 
-            # Điểm chất lượng: ƯU TIÊN SỐ LƯỢNG ẢNH ĐƯỢC KẾT NỐI (Coverage First)
-            # Lượt ghép kết nối 28/30 ảnh sẽ luôn luôn chiến thắng áp đảo lượt ghép chỉ có 5 ảnh!
-            score = (coverage_ratio * 400.0) + min(150.0, estimated_hfov * 0.5) + (flatness * 50.0)
+                # Ước tính góc quét ngang thực tế (HFOV) từ tiêu cự camera
+                estimated_hfov = None
+                try:
+                    cams = s.cameras()
+                    focals = [c.focal for c in cams if c.focal > 0]
+                    if len(focals) > 0:
+                        med_f = float(np.median(focals))
+                        estimated_hfov = (cur_pano.shape[1] / med_f) * (180.0 / np.pi)
+                except Exception:
+                    pass
 
-            print(f"[✓] Ghép thành công {used_count}/{total_count} ảnh (HFOV ~{estimated_hfov:.1f}°, Độ phẳng: {flatness*100:.1f}%, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
+                if estimated_hfov is None or estimated_hfov <= 0 or estimated_hfov > 360.0:
+                    ar = float(cur_pano.shape[1]) / float(max(1, cur_pano.shape[0]))
+                    estimated_hfov = min(360.0, max(50.0, ar * 52.0))
 
-            if score > best_score:
-                best_score = score
-                best_pano = cur_pano
-                best_status = cur_stat
-                best_used = cur_used
-                best_hfov = estimated_hfov
-                best_flatness = flatness
+                flatness = evaluate_panorama_flatness(cur_pano)
 
-            # Dọn dẹp bộ nhớ ảnh sau lượt ghép thành công
-            try:
-                del images
-                gc.collect()
-            except Exception:
-                pass
+                # Điểm chất lượng: ƯU TIÊN SỐ LƯỢNG ẢNH ĐƯỢC KẾT NỐI (Coverage First)
+                score = (coverage_ratio * 400.0) + min(150.0, estimated_hfov * 0.5) + (flatness * 50.0)
 
-            # Dừng sớm nếu đã kết nối >= 85% số ảnh và đạt góc quét lớn
-            if coverage_ratio >= 0.85 and estimated_hfov >= 260.0:
-                print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc ({used_count}/{total_count} ảnh)! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
-                break
-        else:
-            if best_failure_stat is None or cur_stat != -1:
-                best_failure_stat = cur_stat
-            print(f"[!] Lượt ghép chưa đạt (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Tiếp tục thử phương án tiếp theo...", file=sys.stderr)
-            try:
-                del images
-                gc.collect()
-            except Exception:
-                pass
+                print(f"[✓] Ghép thành công {used_count}/{total_count} ảnh (HFOV ~{estimated_hfov:.1f}°, Độ phẳng: {flatness*100:.1f}%, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
+
+                if score > best_score:
+                    best_score = score
+                    best_pano = cur_pano
+                    best_status = cur_stat
+                    best_used = cur_used
+                    best_hfov = estimated_hfov
+                    best_flatness = flatness
+
+                # Dọn dẹp bộ nhớ ảnh sau lượt ghép thành công
+                try:
+                    del images
+                    gc.collect()
+                except Exception:
+                    pass
+
+                # Dừng sớm nếu đã kết nối >= 85% số ảnh và đạt góc quét lớn
+                if coverage_ratio >= 0.85 and estimated_hfov >= 260.0:
+                    print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc ({used_count}/{total_count} ảnh)! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
+                    break
+            else:
+                if best_failure_stat is None or cur_stat != -1:
+                    best_failure_stat = cur_stat
+                print(f"[!] Lượt ghép chưa đạt (Mã={cur_stat}, ghép được {len(cur_used)}/{len(images)} ảnh). Tiếp tục thử phương án tiếp theo...", file=sys.stderr)
+                try:
+                    del images
+                    gc.collect()
+                except Exception:
+                    pass
 
     status = best_status if best_status != -1 else (best_failure_stat if best_failure_stat is not None else cv2.Stitcher_ERR_NEED_MORE_IMGS)
     stitched = best_pano
     used_imgs = best_used
     used_count = len(used_imgs) if used_imgs is not None else 0
 
-    print(f"[*] Kết quả ghép OpenCV: Mã={status}, Số ảnh thực tế kết nối: {used_count}/{num_total} ảnh, HFOV ước tính: {best_hfov if best_hfov else 0:.1f}°.", file=sys.stderr)
-
-    # KÍCH HOẠT SEQUENTIAL SIFT ROBUST ENGINE NẾU OPENCV THẤT BẠI HOẶC BỎ RƠI ẢNH:
-    # Nếu OpenCV không thành công, hoặc người dùng nạp >= 3 ảnh mà OpenCV chỉ kết nối được < 70% số ảnh:
-    need_sequential = (
-        status != cv2.Stitcher_OK or 
-        stitched is None or 
-        (num_total >= 3 and used_count < max(3, int(num_total * 0.70)))
-    )
-
-    if need_sequential and num_total >= 2:
-        print(f"[*] OpenCV chỉ ghép được {used_count}/{num_total} ảnh (hoặc thất bại mã {status}).", file=sys.stderr)
-        print(f"[*] Kích hoạt Thuật toán Ghép Chuỗi Quang Học SIFT Tuần Tự (Sequential SIFT Robust Engine)...", file=sys.stderr)
-        all_imgs = []
-        for p in sorted_paths:
-            if os.path.exists(p):
-                try:
-                    im = load_and_orient_image(p, max_dim=1800)
-                    im = balance_universal_lighting(im)
-                    all_imgs.append(im)
-                except Exception as e:
-                    print(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}", file=sys.stderr)
-
-        if len(all_imgs) >= 2:
-            seq_pano = build_sequential_sift_panorama(all_imgs)
-            if seq_pano is not None:
-                stitched = seq_pano
-                status = cv2.Stitcher_OK
-                used_imgs = list(range(len(all_imgs)))
-                used_count = len(all_imgs)
-                best_hfov = 360.0
-                best_flatness = 0.95
-                print(f"[✓] Ghép thành công 100% toàn bộ {used_count} ảnh bằng Sequential SIFT Robust Engine!", file=sys.stderr)
+    print(f"[*] Kết quả ghép: Mã={status}, Số ảnh thực tế kết nối: {used_count}/{num_total} ảnh, HFOV ước tính: {best_hfov if best_hfov else 0:.1f}°.", file=sys.stderr)
 
     STATUS_MAP = {
         cv2.Stitcher_OK: "OK",
