@@ -12,6 +12,7 @@ import {
   Eye,
   Check,
   RotateCw,
+  RotateCcw,
   HelpCircle,
   Copy,
   History,
@@ -315,11 +316,13 @@ function normalizePanoUrl(rawUrl: string): string {
     const rawFiles = Array.from(e.target.files || []);
     if (rawFiles.length === 0) return;
 
-    // Sắp xếp các ảnh chọn từ máy theo thứ tự tên tự nhiên (IMG_001, IMG_002, ...)
-    // để đảm bảo chuỗi góc quay quanh phòng theo đúng thứ tự thực tế
-    const files = [...rawFiles].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-    );
+    // Sắp xếp các ảnh theo thời gian chụp thực tế từ camera nếu có, hoặc tên file tự nhiên
+    const files = [...rawFiles].sort((a, b) => {
+      if (Math.abs(a.lastModified - b.lastModified) > 500) {
+        return a.lastModified - b.lastModified;
+      }
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    });
 
     // Reset input để người dùng có thể chọn thêm nếu muốn
     e.target.value = '';
@@ -333,6 +336,38 @@ function normalizePanoUrl(rawUrl: string): string {
     }
 
     await verifyFrameSequence(files, 'album');
+  };
+
+  // Đảo ngược chuỗi ảnh (hỗ trợ trường hợp người chụp đi ngược chiều kim đồng hồ)
+  const handleReverseFrames = () => {
+    setVerifiedFrames((prev) => [...prev].reverse());
+    showToast('Đã đảo ngược thứ tự chuỗi ảnh 180°', 'info');
+  };
+
+  // Sắp xếp lại theo thời điểm chụp
+  const handleSortByTime = () => {
+    setVerifiedFrames((prev) =>
+      [...prev].sort((a, b) => {
+        if (Math.abs(a.file.lastModified - b.file.lastModified) > 500) {
+          return a.file.lastModified - b.file.lastModified;
+        }
+        return a.file.name.localeCompare(b.file.name, undefined, { numeric: true, sensitivity: 'base' });
+      })
+    );
+    showToast('Đã sắp xếp lại chuỗi ảnh theo thời gian bấm máy', 'info');
+  };
+
+  // Di chuyển ảnh sang trái hoặc phải
+  const handleMoveFrame = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= verifiedFrames.length) return;
+    setVerifiedFrames((prev) => {
+      const next = [...prev];
+      const temp = next[idx];
+      next[idx] = next[targetIdx];
+      next[targetIdx] = temp;
+      return next;
+    });
   };
 
   // Ảnh chụp bằng webcam máy tính đi qua đúng quy trình thẩm định như ảnh album
@@ -781,6 +816,47 @@ function normalizePanoUrl(rawUrl: string): string {
                 </div>
               )}
 
+              {/* Thanh công cụ quản lý chuỗi ảnh góc quay */}
+              {verifiedFrames.length > 1 && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0 6px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px' }}
+                    onClick={handleReverseFrames}
+                    disabled={isProcessing}
+                    title="Đảo ngược chuỗi ảnh 180° (khi bạn quay ngược chiều kim đồng hồ)"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Đảo chiều 180°</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px' }}
+                    onClick={handleSortByTime}
+                    disabled={isProcessing}
+                    title="Sắp xếp lại theo thời điểm chụp của camera điện thoại"
+                  >
+                    <Clock size={12} />
+                    <span>Xếp theo giờ chụp</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px', color: '#ef4444' }}
+                    onClick={handleClearAll}
+                    disabled={isProcessing}
+                    title="Xóa toàn bộ ảnh đang chọn"
+                  >
+                    <Trash2 size={12} />
+                    <span>Xóa tất cả</span>
+                  </button>
+                </div>
+              )}
+
               {/* Lưới ảnh thu gọn, giới hạn chiều cao để nút thao tác không bị đẩy xuống đáy trang */}
               {verifiedFrames.length > 0 && (
                 <div className="studio-frame-grid">
@@ -801,7 +877,8 @@ function normalizePanoUrl(rawUrl: string): string {
                       <div
                         key={frame.id}
                         className={`studio-frame-cell is-${state}`}
-                        title={`Góc nhìn ${idx + 1}. ${statusText}`}
+                        title={`Góc nhìn ${idx + 1}: ${frame.file?.name || 'Ảnh'}. ${statusText}`}
+                        style={{ position: 'relative' }}
                       >
                         <img src={frame.previewUrl} alt={`Góc nhìn ${idx + 1}`} />
                         <span className="studio-frame-index">{idx + 1}</span>
@@ -810,6 +887,51 @@ function normalizePanoUrl(rawUrl: string): string {
                             <Loader2 size={13} className="spin" />
                           </span>
                         )}
+
+                        {/* Nút dịch chuyển vị trí ảnh trong chuỗi */}
+                        <div style={{ position: 'absolute', bottom: 4, left: 4, display: 'flex', gap: 2, zIndex: 3 }}>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveFrame(idx, -1)}
+                            disabled={idx === 0 || isProcessing}
+                            style={{
+                              background: 'rgba(0,0,0,0.65)',
+                              color: idx === 0 ? 'rgba(255,255,255,0.3)' : '#fff',
+                              border: 'none',
+                              borderRadius: 3,
+                              width: 16,
+                              height: 16,
+                              fontSize: 10,
+                              lineHeight: '16px',
+                              cursor: idx === 0 ? 'default' : 'pointer',
+                              padding: 0
+                            }}
+                            title="Đổi chỗ với ảnh trước"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveFrame(idx, 1)}
+                            disabled={idx === verifiedFrames.length - 1 || isProcessing}
+                            style={{
+                              background: 'rgba(0,0,0,0.65)',
+                              color: idx === verifiedFrames.length - 1 ? 'rgba(255,255,255,0.3)' : '#fff',
+                              border: 'none',
+                              borderRadius: 3,
+                              width: 16,
+                              height: 16,
+                              fontSize: 10,
+                              lineHeight: '16px',
+                              cursor: idx === verifiedFrames.length - 1 ? 'default' : 'pointer',
+                              padding: 0
+                            }}
+                            title="Đổi chỗ với ảnh sau"
+                          >
+                            ›
+                          </button>
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => handleRemoveVerifiedFrame(frame.id)}

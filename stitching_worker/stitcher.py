@@ -336,11 +336,10 @@ balance_indoor_lighting = balance_universal_lighting
 
 def evaluate_panorama_flatness(pano):
     """
-    Đo lường độ phẳng và độ thẳng của đường chân trời (Horizon Flatness & Anti-Arch Score):
+    Đo lường độ phẳng và độ thẳng của đường chân trời (Horizon Flatness Score):
     - Quét viền trên y_top(x) và viền dưới y_bottom(x) của vùng pixel thực tế (khác 0).
     - Tính độ võng/cong (curvature/bowing) và độ lệch dạng vòm cung parabol.
-    - Trả về điểm flatness từ 0.0 (cong vênh, hình cầu vồng/vòm cung méo mó) đến 1.0 (phẳng, thẳng đứng chuẩn kiến trúc).
-    - Phạt triệt để (về 0.02) các trường hợp bị uốn lượn thành vòm cung cầu vồng (arch_deflection > 0.13 hoặc span > 0.40).
+    - Trả về điểm flatness từ 0.0 đến 1.0.
     """
     try:
         h, w = pano.shape[:2]
@@ -357,7 +356,7 @@ def evaluate_panorama_flatness(pano):
                 bottoms.append(indices[-1])
                 
         if len(tops) < 15:
-            return 0.70
+            return 0.80
             
         tops = np.array(tops, dtype=np.float32)
         bottoms = np.array(bottoms, dtype=np.float32)
@@ -369,16 +368,11 @@ def evaluate_panorama_flatness(pano):
         edge_avg = (tops[0] + tops[-1]) / 2.0
         arch_deflection = abs(tops[mid_idx] - edge_avg) / float(h)
         
-        # Nếu có độ lệch vòm cung cầu vồng lớn (horseshoe arch) hoặc viền xé chéo quá 38% chiều cao:
-        # Lập tức đánh rớt phương án này về 0.02 để bảo vệ 100% độ phẳng kiến trúc!
-        if arch_deflection > 0.13 or top_span > 0.38 or bottom_span > 0.38:
-            return 0.02
-            
-        penalty = (top_span * 0.45) + (bottom_span * 0.35) + (arch_deflection * 1.50)
-        flatness_score = max(0.05, min(1.0, 1.0 - penalty))
+        penalty = (top_span * 0.25) + (bottom_span * 0.20) + (arch_deflection * 0.60)
+        flatness_score = max(0.10, min(1.0, 1.0 - penalty))
         return flatness_score
     except Exception:
-        return 0.75
+        return 0.85
 
 def run_stitch(image_paths, output_path, target_width=0):
     """
@@ -427,95 +421,104 @@ def run_stitch(image_paths, output_path, target_width=0):
                 "detail": f"Lỗi xử lý ảnh PANO: {str(e)}"
             }
 
-    # Sắp xếp ảnh theo thứ tự tự nhiên (img1, img2, ..., img100)
-    sorted_paths = sorted(image_paths, key=natural_sort_key)
-    num_total = len(sorted_paths)
+    def extract_image_exif_metadata(path):
+        """
+        Trích xuất timestamp chụp ảnh (DateTimeOriginal) và góc la bàn GPS (GPSImgDirection)
+        từ metadata EXIF gốc của điện thoại iPhone / Android để khôi phục chuẩn xác thứ tự quét vòng tròn.
+        """
+        timestamp = None
+        compass_deg = None
+        try:
+            with Image.open(path) as pil_img:
+                exif = pil_img.getexif()
+                if exif:
+                    dt = exif.get(36867) or exif.get(306) or exif.get(36868)
+                    if dt:
+                        timestamp = str(dt)
+                    try:
+                        exif_sub = exif.get_ifd(0x8769)
+                        if exif_sub:
+                            dt_sub = exif_sub.get(36867) or exif_sub.get(36868)
+                            if dt_sub:
+                                timestamp = str(dt_sub)
+                    except Exception:
+                        pass
+                    try:
+                        gps_ifd = exif.get_ifd(0x8825)
+                        if gps_ifd:
+                            dir_val = gps_ifd.get(17)
+                            if dir_val is not None:
+                                compass_deg = float(dir_val)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        return timestamp, compass_deg
 
-    def select_optimal_keyframes(paths, max_target=60):
+    def resolve_capture_sequence(paths):
         """
-        Chắt lọc chuỗi khung hình đại diện quanh quỹ đạo xoay 360°:
-        - Với chùm ảnh lên đến 60 ảnh (kể cả chụp đa tầng nóc/giữa/sàn):
-          GIỮ NGUYÊN 100% TẤT CẢ CÁC GÓC CHỤP để bảo toàn trọn vẹn chuỗi quang học và liên kết giữa các tầng.
-        - Chỉ khi chùm ảnh cực dày (> 60 ảnh) mới tiến hành lọc bớt frame đứng yên trùng lặp.
+        Tự động chuẩn hóa và khôi phục trình tự chuỗi ảnh vòng tròn 360° thực địa:
+        1. Ưu tiên 1: La bàn GPS (GPSImgDirection 0° -> 360°) nếu điện thoại ghi nhận góc quay cảm biến.
+        2. Ưu tiên 2: Thời điểm bấm máy EXIF (DateTimeOriginal) -> Chuỗi tuần tự khi người chụp xoay quanh phòng.
+        3. Ưu tiên 3: Tên file số tự nhiên (natural alphanumeric sort: 0001, 0002, ...).
+        4. Ưu tiên 4: Thời gian sửa đổi file trên máy chủ (mtime).
         """
-        n = len(paths)
-        if n <= 60:
+        if len(paths) <= 1:
             return paths
 
-        # Đọc thumbnail grayscale siêu nhẹ cho từng ảnh
-        thumbs = []
-        valid_paths = []
+        file_metas = []
+        has_any_exif_time = False
+        has_any_compass = False
+
         for p in paths:
+            ts, compass = extract_image_exif_metadata(p)
+            if ts is not None:
+                has_any_exif_time = True
+            if compass is not None:
+                has_any_compass = True
+            
+            mtime = 0
             try:
-                t = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
-                if t is not None:
-                    thumbs.append(cv2.resize(t, (160, 120)))
-                    valid_paths.append(p)
+                mtime = os.path.getmtime(p)
             except Exception:
                 pass
 
-        if len(valid_paths) <= 60:
-            return valid_paths
+            file_metas.append({
+                "path": p,
+                "timestamp": ts,
+                "compass": compass,
+                "mtime": mtime,
+                "nat_key": natural_sort_key(os.path.basename(p))
+            })
 
-        # 1. Tính biến thiên chuyển động liên tiếp giữa các khung hình kề nhau
-        motion_diffs = [0.0]
-        for i in range(1, len(thumbs)):
-            d = float(np.mean(cv2.absdiff(thumbs[i - 1], thumbs[i])))
-            motion_diffs.append(d)
+        # Nếu có la bàn cho >= 70% số ảnh -> Sắp xếp theo góc quét la bàn
+        if has_any_compass and sum(1 for m in file_metas if m["compass"] is not None) >= len(file_metas) * 0.7:
+            print("[*] Phát hiện la bàn điện thoại (GPS Compass). Đang sắp xếp chuỗi ảnh theo góc quay 0° -> 360°...", file=sys.stderr)
+            file_metas.sort(key=lambda m: (m["compass"] if m["compass"] is not None else 999.0, m["nat_key"]))
+            return [m["path"] for m in file_metas]
 
-        # 2. Lọc các khung hình đứng yên trùng lặp (trừ frame đầu và cuối)
-        threshold = 1.0
-        filtered_paths = [valid_paths[0]]
-        filtered_diffs = [motion_diffs[0]]
+        # Nếu có timestamp chụp ảnh EXIF cho >= 50% số ảnh -> Sắp xếp theo dòng thời gian chụp thực tế
+        if has_any_exif_time and sum(1 for m in file_metas if m["timestamp"] is not None) >= len(file_metas) * 0.5:
+            print("[*] Phát hiện thông số EXIF DateTimeOriginal. Đang sắp xếp chuỗi ảnh theo dòng thời gian chụp thực tế...", file=sys.stderr)
+            file_metas.sort(key=lambda m: (m["timestamp"] or "", m["nat_key"]))
+            return [m["path"] for m in file_metas]
 
-        for i in range(1, len(valid_paths) - 1):
-            if motion_diffs[i] >= threshold:
-                filtered_paths.append(valid_paths[i])
-                filtered_diffs.append(motion_diffs[i])
+        # Mặc định sắp xếp theo tên file tự nhiên
+        file_metas.sort(key=lambda m: m["nat_key"])
+        return [m["path"] for m in file_metas]
 
-        filtered_paths.append(valid_paths[-1])
-        filtered_diffs.append(max(0.1, motion_diffs[-1]))
-
-        target_limit = min(max_target, 60)
-        if len(filtered_paths) <= target_limit:
-            return filtered_paths
-
-        # 3. Lấy mẫu tích lũy đều theo chuyển động quang học (Cumulative Motion Sampling)
-        cum_motion = np.cumsum(filtered_diffs)
-        total_motion = cum_motion[-1]
-
-        if total_motion <= 1e-3:
-            indices = np.linspace(0, len(filtered_paths) - 1, target_limit, dtype=int)
-            return [filtered_paths[idx] for idx in indices]
-
-        sampled_indices = [0]
-        step_motion = total_motion / float(target_limit - 1)
-
-        for step in range(1, target_limit - 1):
-            target_val = step * step_motion
-            idx = int(np.searchsorted(cum_motion, target_val))
-            idx = min(idx, len(filtered_paths) - 2)
-            if idx > sampled_indices[-1]:
-                sampled_indices.append(idx)
-
-        sampled_indices.append(len(filtered_paths) - 1)
-
-        final_indices = sorted(list(set(sampled_indices)))
-        if len(final_indices) < target_limit and len(filtered_paths) > len(final_indices):
-            indices_set = set(final_indices)
-            for idx in np.linspace(0, len(filtered_paths) - 1, target_limit, dtype=int):
-                indices_set.add(idx)
-            final_indices = sorted(list(indices_set))
-
-        return [filtered_paths[i] for i in final_indices]
+    # Sắp xếp và bảo toàn 100% thứ tự chuỗi ảnh vòng tròn thực địa
+    sorted_paths = resolve_capture_sequence(image_paths)
+    num_total = len(sorted_paths)
+    print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã xác lập chuỗi liên tục 100% bảo toàn độ gối đầu quang học.", file=sys.stderr)
 
     cv2.ocl.setUseOpenCL(False)
 
-    def build_stitcher(confidence=0.35, wave_correction=False, reg_resol=0.85):
+    def build_stitcher(confidence=0.25, wave_correction=True, reg_resol=0.85):
         s = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
         try:
-            # Wave correction: BẮT BUỘC False. Tuyệt đối không bật WaveCorrection vì sẽ bẻ cong ảnh đa tầng thành vòm cung cầu vồng
-            s.setWaveCorrection(False)
+            # Wave correction: BẮT BUỘC BẬT TRUE ĐỂ GIỮ ĐƯỜNG CHÂN TRỜI THẲNG & VÁCH TƯỜNG KHÔNG BỊ NGHIÊNG 45°
+            s.setWaveCorrection(bool(wave_correction))
         except Exception:
             pass
         try:
@@ -523,97 +526,38 @@ def run_stitch(image_paths, output_path, target_width=0):
         except Exception:
             pass
         try:
-            # Registration resolution: Tinh chỉnh độ phân giải so khớp điểm ảnh cao cấp cho cả góc siêu rộng x0.5
             s.setRegistrationResol(reg_resol)
         except Exception:
             pass
         try:
-            # Seam estimation resolution 0.25 Mpx: Đồ thị GraphCut phân định biên ghép chính xác và mượt mà
             s.setSeamEstimationResol(0.25)
         except Exception:
             pass
         try:
-            # cv2.INTER_LINEAR: Nội suy tuyến tính chuẩn công nghiệp trong ghép ảnh Panorama
             s.setInterpolationFlags(cv2.INTER_LINEAR)
         except Exception:
             pass
         return s
 
-    def extract_horizon_keyframes(paths):
-        """
-        Tự động nhận diện và trích xuất hàng ảnh Đường Chân Trời (Middle / Horizon Row):
-        - Khi người dùng chụp đa tầng (nóc / giữa / sàn) ngoài trời:
-          + Ảnh chụp ngửa lên nóc: nửa trên chứa nhiều mảng sáng (mái tôn, trời), thiếu đường biên thẳng đứng ở trung tâm.
-          + Ảnh chụp chúc xuống sàn: nửa dưới tối hoặc chứa ron gạch mặt đất.
-          + Ảnh chụp tầng giữa: chứa đầy đủ góc tường, khung cửa sổ, đồ đạc ngang tầm mắt (độ phong phú biên cạnh dọc Sobel cao nhất).
-        - Trích xuất chùm ảnh tầng giữa để làm mỏ neo không gian (Horizon Anchor),
-          bảo đảm luôn ghép được một vòng tròn 360° phẳng lỳ chuẩn kiến trúc (như phòng khách).
-        """
-        if len(paths) <= 12:
-            return paths
-
-        scored_paths = []
-        for p in paths:
-            try:
-                thumb = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
-                if thumb is None:
-                    continue
-                thumb = cv2.resize(thumb, (120, 90))
-                h, w = thumb.shape
-
-                # Tính gradient thẳng đứng (Sobel X) ở 50% trung tâm độ cao ảnh
-                center_strip = thumb[int(h * 0.25):int(h * 0.75), :]
-                sobel_x = cv2.Sobel(center_strip, cv2.CV_32F, 1, 0, ksize=3)
-                vertical_edge_power = float(np.mean(np.abs(sobel_x)))
-
-                # Cân bằng độ sáng giữa nửa trên và nửa dưới
-                top_half = float(np.mean(thumb[:h//2, :]))
-                bot_half = float(np.mean(thumb[h//2:, :]))
-                balance_diff = abs(top_half - bot_half)
-
-                score = vertical_edge_power - (balance_diff * 0.15)
-                scored_paths.append((score, p))
-            except Exception:
-                pass
-
-        if len(scored_paths) < 10:
-            return paths
-
-        # Lấy các ảnh có điểm horizon cao nhất (khoảng 65% tổng số ảnh)
-        scored_paths.sort(key=lambda x: x[0], reverse=True)
-        target_count = max(10, int(len(scored_paths) * 0.65))
-        selected_set = set(p for _, p in scored_paths[:target_count])
-
-        horizon_paths = [p for p in paths if p in selected_set]
-        return horizon_paths if len(horizon_paths) >= 8 else paths
-
-    # Chuẩn bị danh sách khung hình đại diện tối ưu
-    optimal_paths = select_optimal_keyframes(sorted_paths, max_target=80)
-    horizon_paths = extract_horizon_keyframes(sorted_paths)
-    print(f"[*] Tiếp nhận {num_total} ảnh đầu vào -> Đã xác lập chuỗi quang học {len(optimal_paths)} khung hình đại diện liên tục (Phát hiện {len(horizon_paths)} ảnh trục chân trời).", file=sys.stderr)
-
     # Hệ thống Đa Tầng Thích Ứng Toàn Diện (Universal Adaptive Multi-Tier Cascade)
-    # BẢO VỆ 100% ĐỘ PHẲNG KIẾN TRÚC: WaveCorr=False trên toàn bộ các tầng để chống triệt để hiện tượng vòm cung cầu vồng
+    # BẢO VỆ 100% ĐỘ THẲNG ĐỨNG KIẾN TRÚC: WaveCorr=True trên TOÀN BỘ các tầng để triệt tiêu góc nghiêng vách tường 45°
+    # BẢO TOÀN TRỌN BỘ ẢNH: Không tự ý lọc bỏ khung hình làm gãy chuỗi gối đầu quang học
     candidate_schemes = [
-        # Tầng 1 (Multi-Row High-Fidelity 4K): WaveCorr=False, RegResol 0.85 Mpx, Conf 0.45, MaxDim 2048px
-        (optimal_paths, 2048, 0.45, False, 0.85, f"Tầng 1 - Chuẩn phẳng tự nhiên đa góc 4K ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.45, RegResol 0.85)"),
-        # Tầng 2 (Ultra-Wide 0.5x Multi-Row): WaveCorr=False, RegResol 0.92 Mpx, Conf 0.35, MaxDim 1800px
-        (optimal_paths, 1800, 0.35, False, 0.92, f"Tầng 2 - Cân bằng đa góc x0.5 góc siêu rộng ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.35, RegResol 0.92)"),
-        # Tầng 3 (Flexible Multi-Angle Rescue): WaveCorr=False, RegResol 0.78 Mpx, Conf 0.28, MaxDim 1600px
-        (optimal_paths, 1600, 0.28, False, 0.78, f"Tầng 3 - Cứu cánh đa tầng chống rách mép ({len(optimal_paths)} ảnh, WaveCorr=False, Conf 0.28, RegResol 0.78)"),
+        # Tầng 1: Chuẩn 4K độ nét cao (Conf 0.30, RegResol 0.85, WaveCorr=True, MaxDim 2048)
+        (sorted_paths, 2048, 0.30, True, 0.85, f"Tầng 1 - Chuẩn 4K độ nét cao (WaveCorr=True, Conf 0.30, RegResol 0.85, {num_total} ảnh)"),
+        # Tầng 2: Tăng cường độ nhạy vách tường bảo tàng (Conf 0.20, RegResol 0.90, WaveCorr=True, MaxDim 1800)
+        (sorted_paths, 1800, 0.20, True, 0.90, f"Tầng 2 - Tăng cường độ nhạy vách tường bảo tàng (WaveCorr=True, Conf 0.20, RegResol 0.90, {num_total} ảnh)"),
+        # Tầng 3: Cứu cánh ánh sáng phức tạp & phản quang kính (Conf 0.12, RegResol 0.75, WaveCorr=True, MaxDim 1600)
+        (sorted_paths, 1600, 0.12, True, 0.75, f"Tầng 3 - Cứu cánh ánh sáng phức tạp & phản quang kính (WaveCorr=True, Conf 0.12, RegResol 0.75, {num_total} ảnh)"),
+        # Tầng 4: Siêu liên kết bao phủ góc chụp lệch (Conf 0.07, RegResol 0.60, WaveCorr=True, MaxDim 1400)
+        (sorted_paths, 1400, 0.07, True, 0.60, f"Tầng 4 - Siêu liên kết bao phủ góc chụp lệch (WaveCorr=True, Conf 0.07, RegResol 0.60, {num_total} ảnh)"),
     ]
 
-    # Tầng 4 (Full-Set Fallback): Toàn bộ ảnh gốc nếu số ảnh lớn
-    if num_total > len(optimal_paths):
-        candidate_schemes.append(
-            (sorted_paths, 1600, 0.32, False, 0.85, f"Tầng 4 - Toàn bộ ảnh gốc đa góc ({num_total} ảnh, WaveCorr=False, Conf 0.32, MaxDim 1600px)")
-        )
-
-    # Tầng 5 (Horizon Anchor Ring): Cứu cánh tầng giữa chuẩn phẳng 100% cho cảnh chụp nóc/sàn quá xa nhau
-    if len(horizon_paths) < len(optimal_paths) and len(horizon_paths) >= 8:
-        candidate_schemes.append(
-            (horizon_paths, 1800, 0.35, False, 0.88, f"Tầng 5 - Mỏ neo đường chân trời 360° chuẩn phẳng ({len(horizon_paths)} ảnh tầng giữa, WaveCorr=False, Conf 0.35)")
-        )
+    # Nếu người dùng có thể chụp ngược chiều kim đồng hồ, thêm phương án đảo chiều chuỗi ảnh ở độ nhạy cao
+    reversed_paths = list(reversed(sorted_paths))
+    candidate_schemes.append(
+        (reversed_paths, 1800, 0.18, True, 0.88, f"Tầng 5 - Đảo chiều chuỗi ảnh ngược chiều kim đồng hồ (WaveCorr=True, Conf 0.18, {num_total} ảnh)")
+    )
 
     best_pano = None
     best_status = -1
@@ -653,13 +597,15 @@ def run_stitch(image_paths, output_path, target_width=0):
         cur_used = s.component() if hasattr(s, 'component') else ()
 
         if cur_stat == cv2.Stitcher_OK and cur_pano is not None:
-            # Đo độ phẳng và chống vòm cung cầu vồng (Anti-Arch Filter)
-            flatness = evaluate_panorama_flatness(cur_pano)
+            used_count = len(cur_used)
+            total_count = len(images)
+            coverage_ratio = used_count / float(total_count)
 
-            # NẾU BỊ UỐN CONG THÀNH VÒM CUNG CẦU VỒNG (HORSESHOE ARCH):
-            # Tuyệt đối không chấp nhận, loại bỏ ngay lập tức để bảo vệ chuẩn phẳng kiến trúc!
-            if flatness < 0.40:
-                print(f"[!] Bị uốn cong hình vòm cung/vortex (Độ phẳng chỉ đạt {flatness*100:.1f}%). Loại bỏ phương án này để bảo vệ chuẩn phẳng kiến trúc!", file=sys.stderr)
+            # NGUYÊN TẮC BẢO VỆ CHUẨN 360°:
+            # Nếu người dùng nạp >= 6 ảnh mà lượt ghép chỉ dùng được < 4 ảnh:
+            # Tuyệt đối không chấp nhận mảnh chắp vá 2-3 ảnh làm ảnh 360! Chuyển ngay sang tầng nhạy hơn!
+            if total_count >= 6 and used_count < 4:
+                print(f"[!] Lượt ghép chỉ kết nối được {used_count}/{total_count} ảnh (mảnh chắp vá quá nhỏ). Bỏ qua để thử tầng nhạy hơn...", file=sys.stderr)
                 try:
                     del images
                     del cur_pano
@@ -679,15 +625,17 @@ def run_stitch(image_paths, output_path, target_width=0):
             except Exception:
                 pass
 
-            if estimated_hfov is None:
-                ar = float(cur_pano.shape[1]) / float(cur_pano.shape[0])
+            if estimated_hfov is None or estimated_hfov <= 0 or estimated_hfov > 360.0:
+                ar = float(cur_pano.shape[1]) / float(max(1, cur_pano.shape[0]))
                 estimated_hfov = min(360.0, max(50.0, ar * 52.0))
 
-            used_ratio = len(cur_used) / float(len(images))
-            # Tính điểm chất lượng toàn diện: Độ phẳng chân trời là tiêu chí ưu tiên cao nhất (Flatness First)
-            score = (used_ratio * 100.0) + min(150.0, estimated_hfov * 0.45) + (flatness * 180.0)
+            flatness = evaluate_panorama_flatness(cur_pano)
 
-            print(f"[✓] Ghép thành công {len(cur_used)}/{len(images)} ảnh (HFOV ~{estimated_hfov:.1f}°, Độ phẳng: {flatness*100:.1f}%, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
+            # Điểm chất lượng: ƯU TIÊN SỐ LƯỢNG ẢNH ĐƯỢC KẾT NỐI (Coverage First)
+            # Lượt ghép kết nối 28/30 ảnh sẽ luôn luôn chiến thắng áp đảo lượt ghép chỉ có 5 ảnh!
+            score = (coverage_ratio * 400.0) + min(150.0, estimated_hfov * 0.5) + (flatness * 50.0)
+
+            print(f"[✓] Ghép thành công {used_count}/{total_count} ảnh (HFOV ~{estimated_hfov:.1f}°, Độ phẳng: {flatness*100:.1f}%, Điểm chất lượng: {score:.1f}).", file=sys.stderr)
 
             if score > best_score:
                 best_score = score
@@ -704,12 +652,9 @@ def run_stitch(image_paths, output_path, target_width=0):
             except Exception:
                 pass
 
-            # Chỉ dừng sớm nếu ĐỒNG THỜI:
-            # 1. Kết nối >= 75% ảnh
-            # 2. HFOV >= 260°
-            # 3. Độ phẳng >= 0.70 (Tuyệt đối không dừng nếu bị vòm cung uốn cong)
-            if used_ratio >= 0.75 and estimated_hfov >= 260.0 and flatness >= 0.70:
-                print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc và chuẩn phẳng! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
+            # Dừng sớm nếu đã kết nối >= 85% số ảnh và đạt góc quét lớn
+            if coverage_ratio >= 0.85 and estimated_hfov >= 260.0:
+                print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc ({used_count}/{total_count} ảnh)! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
                 break
         else:
             if best_failure_stat is None or cur_stat != -1:
