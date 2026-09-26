@@ -890,9 +890,9 @@ def run_stitch(image_paths, output_path, target_width=0):
             except Exception:
                 pass
 
-            # Dừng sớm nếu đã kết nối >= 80% số ảnh và đạt góc quét lớn
-            if coverage_ratio >= 0.80 and estimated_hfov >= 240.0:
-                print(f"[✓] Đã đạt vòng tròn 360° hoàn chỉnh xuất sắc ({used_count}/{total_count} ảnh)! Tiếp tục hoàn thiện ảnh...", file=sys.stderr)
+            # Dừng sớm ngay lập tức nếu đã kết nối >= 75% số ảnh (hoặc >= 12 ảnh):
+            if coverage_ratio >= 0.75 or (total_count >= 10 and used_count >= 12):
+                print(f"[✓] Đã kết nối thành công xuất sắc ({used_count}/{total_count} ảnh)! Dừng ngay để hoàn thiện ảnh...", file=sys.stderr)
                 break
         else:
             if best_failure_stat is None or cur_stat != -1:
