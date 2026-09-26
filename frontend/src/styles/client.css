@@ -285,13 +285,14 @@
 }
 
 .client-nav-inner {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   height: 64px;
-  gap: clamp(12px, 1.6vw, 24px);
-  padding: 0 clamp(14px, 2vw, 24px);
+  gap: clamp(10px, 1.4vw, 24px);
+  padding: 0 clamp(12px, 1.8vw, 24px);
   transition: height 0.35s ease, padding 0.35s ease;
+  position: relative;
 }
 
 .client-navbar.is-scrolled .client-nav-inner {
@@ -615,6 +616,50 @@
   }
   .client-nav-qr-text {
     display: none;
+  }
+  /* 1. Thu gọn cụm logo bên trái: ẩn bớt dòng subtitle dài để nhường không gian cho menu */
+  .client-nav-subtitle-row {
+    display: none !important;
+  }
+  .client-nav-title {
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  .client-nav-brand {
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  /* 2. Thu gọn menu giữa để không bị chồng lên */
+  .client-nav-menu-wrapper {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .client-nav-menu {
+    padding: 2px 4px;
+    gap: 1px;
+  }
+  .client-nav-link {
+    font-size: 0.8rem;
+    padding: 5px 8px;
+    white-space: nowrap;
+  }
+  /* 3. Thu gọn cụm tài khoản người dùng góc phải: ẩn tên dài huynhtanlo... chỉ để lại avatar tròn */
+  .client-user-btn {
+    padding: 4px;
+    max-width: 38px;
+    border-radius: 50%;
+  }
+  .client-user-name,
+  .client-user-btn span:last-child {
+    display: none !important;
+  }
+  .client-nav-lang-btn {
+    padding: 0 6px;
+    font-size: 0.78rem;
+  }
+  .client-theme-toggle {
+    width: 34px;
+    height: 34px;
   }
 }
 
@@ -4349,7 +4394,7 @@
 
 .client-subpage {
   min-height: 100vh;
-  padding-top: 110px;
+  padding-top: clamp(120px, 12vw, 155px);
   padding-bottom: 90px;
   position: relative;
 }
