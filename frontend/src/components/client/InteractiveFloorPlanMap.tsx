@@ -723,8 +723,8 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       {roomNumber}
                     </text>
 
-                    {/* Mã phòng vắn tắt góc phải (chỉ hiện khi phòng đủ rộng >= 10) */}
-                    {box.width >= 10 && (
+                    {/* Mã phòng vắn tắt góc phải (chỉ hiện khi phòng đủ rộng >= 10 và chưa có badge) */}
+                    {box.width >= 10 && !node.roomId && (
                       <text
                         x={box.x + box.width - 1.2}
                         y={box.y + 2.7}
@@ -735,6 +735,28 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       >
                         {node.code}
                       </text>
+                    )}
+
+                    {/* Chỉ báo phòng đã gắn không gian 360° & Voice */}
+                    {node.roomId && (
+                      <g transform={`translate(${box.x + box.width - 3.4}, ${box.y + 1.2})`}>
+                        <rect
+                          width="2.6"
+                          height="1.4"
+                          rx="0.4"
+                          fill="#059669"
+                        />
+                        <text
+                          x="1.3"
+                          y="1.05"
+                          fill="#FFFFFF"
+                          fontSize="0.68"
+                          fontWeight="bold"
+                          textAnchor="middle"
+                        >
+                          360°
+                        </text>
+                      </g>
                     )}
 
                     {/* Tên gian phòng căn giữa */}

@@ -36,14 +36,15 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination } from '../../components/Pagination';
 import { InteractiveFloorPlanMap } from '../../components/client/InteractiveFloorPlanMap';
 import { FloorPlanMap } from '../../types';
+import { AdminFloorPlanMappingPage } from './AdminFloorPlanMappingPage';
 
 export const AdminGuideCMSPage: React.FC = () => {
   const { showToast } = useToast();
   const { branding, updateBranding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  // 5 phân mục con chuẩn mực quản lý độc lập cho Trang Cẩm nang & Sơ đồ
-  const [guideSubTab, setGuideSubTab] = useState<'info' | 'floorplan' | 'hours' | 'transit' | 'rules'>('info');
+  // 6 phân mục quản lý cho Trang Cẩm nang & Sơ đồ
+  const [guideSubTab, setGuideSubTab] = useState<'info' | 'floorplan' | 'mapping' | 'hours' | 'transit' | 'rules'>('info');
   const [isSaving, setIsSaving] = useState(false);
 
   // Modal Xác nhận
@@ -442,13 +443,14 @@ export const AdminGuideCMSPage: React.FC = () => {
     });
   };
 
-  // Danh sách 5 phân mục chuẩn mực của Trang Cẩm nang
+  // Danh sách các phân mục của Trang Cẩm nang & Sơ đồ
   const GUIDE_SUBTABS = [
     { id: 'info', num: 1, label: '1. Giới thiệu chung', desc: 'Tiêu đề trang, thẻ định danh và đoạn mô tả giới thiệu', icon: Info },
     { id: 'floorplan', num: 2, label: '2. Sơ đồ mặt bằng', desc: 'Tiêu đề, mô tả và file ảnh sơ đồ kiến trúc tham quan', icon: Compass },
-    { id: 'hours', num: 3, label: '3. Giờ mở cửa & Giá vé', desc: 'Khung giờ đón khách, lưu ý đóng cửa và biểu phí vé niêm yết', icon: Clock },
-    { id: 'transit', num: 4, label: '4. Vị trí & Google Maps', desc: 'Địa chỉ, hotline, xe buýt, bãi xe và bản đồ tương tác', icon: MapPin },
-    { id: 'rules', num: 5, label: '5. Tiện ích & Quy định', desc: '4 quy định tham quan văn minh và tiện ích phục vụ khách', icon: ShieldCheck }
+    { id: 'mapping', num: 3, label: '3. Gán Không Gian 360°', desc: 'Gắn các gian phòng 360° thực tế và giọng đọc thuyết minh vào sơ đồ', icon: MapPin },
+    { id: 'hours', num: 4, label: '4. Giờ mở cửa & Giá vé', desc: 'Khung giờ đón khách, lưu ý đóng cửa và biểu phí vé niêm yết', icon: Clock },
+    { id: 'transit', num: 5, label: '5. Vị trí & Google Maps', desc: 'Địa chỉ, hotline, xe buýt, bãi xe và bản đồ tương tác', icon: Globe },
+    { id: 'rules', num: 6, label: '6. Tiện ích & Quy định', desc: '4 quy định tham quan văn minh và tiện ích phục vụ khách', icon: ShieldCheck }
   ] as const;
 
   return (
@@ -592,34 +594,38 @@ export const AdminGuideCMSPage: React.FC = () => {
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
               {guideSubTab === 'info' && '1. Giới Thiệu Chung & Tiêu Đề Trang Cẩm Nang'}
               {guideSubTab === 'floorplan' && '2. Sơ Đồ Mặt Bằng & Bản Đồ Kiến Trúc'}
-              {guideSubTab === 'hours' && '3. Thời Gian Hoạt Động & Biểu Phí Vé Niêm Yết'}
-              {guideSubTab === 'transit' && '4. Vị Trí, Chỉ Dẫn Di Chuyển & Google Maps'}
-              {guideSubTab === 'rules' && '5. Tiện Ích Phục Vụ & Nội Quy Tham Quan Văn Minh'}
+              {guideSubTab === 'mapping' && '3. Gán Gian Phòng 360° & Thuyết Minh Vào Sơ Đồ'}
+              {guideSubTab === 'hours' && '4. Thời Gian Hoạt Động & Biểu Phí Vé Niêm Yết'}
+              {guideSubTab === 'transit' && '5. Vị Trí, Chỉ Dẫn Di Chuyển & Google Maps'}
+              {guideSubTab === 'rules' && '6. Tiện Ích Phục Vụ & Nội Quy Tham Quan Văn Minh'}
             </h2>
             <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
               {guideSubTab === 'info' && 'Cấu hình tiêu đề chính, thẻ định danh, đoạn văn giới thiệu và nút điều hướng của trang cẩm nang.'}
               {guideSubTab === 'floorplan' && 'Tải lên hình ảnh sơ đồ mặt bằng kiến trúc bảo tàng, định vị các cánh trưng bày phục vụ khách thực địa.'}
+              {guideSubTab === 'mapping' && 'Liên kết từng vị trí phòng trên sơ đồ với gian phòng 360° thực tế và file thuyết minh giọng nói.'}
               {guideSubTab === 'hours' && 'Cập nhật khung giờ đón khách ca sáng/chiều, các ngày mở cửa trong tuần và bảng giá vé các đối tượng.'}
               {guideSubTab === 'transit' && 'Địa chỉ thực tế, số điện thoại đường dây nóng, tuyến xe buýt, bãi xe và mã nhúng bản đồ trực tiếp.'}
               {guideSubTab === 'rules' && 'Thiết lập 4 quy tắc văn minh và tiện ích trải nghiệm (mã QR hiện vật, thuyết minh audio guide, bảo quản).'}
             </span>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => handleSave(
-              guideSubTab === 'info' ? 'Giới thiệu chung' :
-              guideSubTab === 'floorplan' ? 'Sơ đồ mặt bằng' :
-              guideSubTab === 'hours' ? 'Giờ mở cửa & Giá vé' :
-              guideSubTab === 'transit' ? 'Vị trí & Google Maps' : 'Tiện ích & Quy định'
-            )}
-            disabled={isSaving}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <Save size={14} />
-            <span>Lưu phân mục này</span>
-          </button>
+          {guideSubTab !== 'mapping' && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => handleSave(
+                guideSubTab === 'info' ? 'Giới thiệu chung' :
+                guideSubTab === 'floorplan' ? 'Sơ đồ mặt bằng' :
+                guideSubTab === 'hours' ? 'Giờ mở cửa & Giá vé' :
+                guideSubTab === 'transit' ? 'Vị trí & Google Maps' : 'Tiện ích & Quy định'
+              )}
+              disabled={isSaving}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Save size={14} />
+              <span>Lưu phân mục này</span>
+            </button>
+          )}
         </div>
 
         {/* PHÂN MỤC 1: GIỚI THIỆU CHUNG & TIÊU ĐỀ TRANG CẨM NANG */}
@@ -799,7 +805,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -808,6 +814,16 @@ export const AdminGuideCMSPage: React.FC = () => {
                   >
                     <Eye size={13} />
                     <span>Xem cấu trúc không gian</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setGuideSubTab('mapping')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
+                  >
+                    <MapPin size={13} />
+                    <span>Gán Không Gian 360° & Voice</span>
                   </button>
                 </div>
               </div>
@@ -1037,7 +1053,12 @@ export const AdminGuideCMSPage: React.FC = () => {
           </div>
         )}
 
-        {/* PHÂN MỤC 3: GIỜ MỞ CỬA & BIỂU PHÍ VÉ */}
+        {/* PHÂN MỤC 3: GÁN KHÔNG GIAN 360° & VOICE VÀO SƠ ĐỒ MẶT BẰNG */}
+        {guideSubTab === 'mapping' && (
+          <AdminFloorPlanMappingPage onBackToGuide={() => setGuideSubTab('floorplan')} />
+        )}
+
+        {/* PHÂN MỤC 4: GIỜ MỞ CỬA & BIỂU PHÍ VÉ */}
         {guideSubTab === 'hours' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>

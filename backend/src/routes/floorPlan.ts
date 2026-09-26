@@ -309,3 +309,134 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
     });
   }
 });
+
+/**
+ * PUT /api/floor-plan/:id/node-mapping
+ * Gán hoặc gỡ gán Gian phòng 360° cho 1 phòng cụ thể trên sơ đồ mặt bằng
+ */
+floorPlanRouter.put('/:id/node-mapping', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { nodeId, roomId } = req.body;
+
+    if (!nodeId) {
+      return res.status(400).json({ success: false, message: 'Thiếu nodeId cần gán' });
+    }
+
+    const query = {
+      $or: [
+        { id },
+        ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])
+      ]
+    };
+    const targetMap = await FloorPlanMapModel.findOne(query);
+    if (!targetMap) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sơ đồ mặt bằng' });
+    }
+
+    const targetNode = targetMap.nodes.find((n) => n.id === nodeId);
+    if (!targetNode) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy vị trí phòng trên sơ đồ' });
+    }
+
+    if (roomId) {
+      const room = await RoomModel.findOne({
+        $or: [
+          { id: roomId },
+          ...(mongoose.isValidObjectId(roomId) ? [{ _id: roomId }] : [])
+        ]
+      }).lean();
+
+      if (!room) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng 360° tương ứng' });
+      }
+
+      targetNode.roomId = room.id;
+      targetNode.panoramaUrl = room.panoramaUrl || '';
+      targetNode.thumbnailUrl = room.thumbnailUrl || '';
+    } else {
+      targetNode.roomId = undefined;
+      targetNode.panoramaUrl = '';
+      targetNode.thumbnailUrl = '';
+    }
+
+    await targetMap.save();
+
+    if (targetMap.active) {
+      broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
+    }
+
+    res.json({
+      success: true,
+      message: roomId ? 'Gán gian phòng 360° thành công' : 'Đã gỡ liên kết gian phòng',
+      data: targetMap
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute Node Mapping Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi gán gian phòng: ' + (err.message || '') });
+  }
+});
+
+/**
+ * PUT /api/floor-plan/:id/batch-mapping
+ * Lưu toàn bộ cấu hình gán nhiều phòng 360° cùng lúc
+ */
+floorPlanRouter.put('/:id/batch-mapping', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { mappings } = req.body; // Array of { nodeId: string, roomId: string | null }
+
+    if (!Array.isArray(mappings)) {
+      return res.status(400).json({ success: false, message: 'Dữ liệu mappings phải là một mảng' });
+    }
+
+    const query = {
+      $or: [
+        { id },
+        ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])
+      ]
+    };
+    const targetMap = await FloorPlanMapModel.findOne(query);
+    if (!targetMap) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sơ đồ mặt bằng' });
+    }
+
+    const allRooms = await RoomModel.find().lean();
+    const roomMap = new Map<string, any>();
+    allRooms.forEach((r) => {
+      roomMap.set(r.id, r);
+      if (r._id) roomMap.set(r._id.toString(), r);
+    });
+
+    for (const m of mappings) {
+      const targetNode = targetMap.nodes.find((n) => n.id === m.nodeId);
+      if (!targetNode) continue;
+
+      if (m.roomId && roomMap.has(m.roomId)) {
+        const room = roomMap.get(m.roomId);
+        targetNode.roomId = room.id;
+        targetNode.panoramaUrl = room.panoramaUrl || '';
+        targetNode.thumbnailUrl = room.thumbnailUrl || '';
+      } else if (!m.roomId) {
+        targetNode.roomId = undefined;
+        targetNode.panoramaUrl = '';
+        targetNode.thumbnailUrl = '';
+      }
+    }
+
+    await targetMap.save();
+
+    if (targetMap.active) {
+      broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã lưu toàn bộ liên kết không gian sơ đồ thành công',
+      data: targetMap
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute Batch Mapping Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi lưu liên kết không gian: ' + (err.message || '') });
+  }
+});
