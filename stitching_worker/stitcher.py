@@ -205,44 +205,76 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
     y_offset = (target_height - new_h) // 2
     canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
 
-    # 1. Nội suy mượt mà trần nhà lên đỉnh cực (+90° Zenith)
-    top_edge = canvas[y_offset, :].astype(np.float32)
-    zenith_color = np.clip(np.median(top_edge, axis=0) * 1.03, 0, 255).astype(np.float32)
-    for y in range(y_offset):
-        t = y / float(y_offset) # 0 ở đỉnh cực, 1 ở mép ảnh thật
-        canvas[y, :] = ((1.0 - t) * zenith_color + t * top_edge).astype(np.uint8)
+    # Khởi tạo mặt nạ vùng ảnh thật (True = có dữ liệu ảnh thật)
+    content_mask = np.zeros((target_height, target_width), dtype=bool)
+    content_mask[y_offset:y_offset+new_h, 0:target_width] = (
+        (resized_pano[:, :, 0] > 2) | (resized_pano[:, :, 1] > 2) | (resized_pano[:, :, 2] > 2)
+    )
 
-    # 2. XỬ LÝ TỐI ƯU HÓA ĐẶC BIỆT CHO SÀN NHÀ (-90° Nadir Floor Optimization):
-    # Lấy mẫu màu sàn bằng cách làm mờ nhẹ mép dưới để vật dụng (khăn trải bàn, đĩa hoa quả) không tạo sọc dọc
-    bottom_slice = canvas[max(y_offset, y_offset + new_h - 4):y_offset + new_h, :].astype(np.float32)
-    bottom_edge = np.mean(bottom_slice, axis=0) if len(bottom_slice) > 0 else canvas[y_offset + new_h - 1, :].astype(np.float32)
-    nadir_color = np.median(bottom_edge, axis=0).astype(np.float32)
-
-    floor_start = y_offset + new_h
-    floor_height = target_height - floor_start
-
-    for y in range(floor_height):
-        t = y / float(max(1, floor_height))
-        # Chuyển tiếp nhanh dần về màu sàn trung tính
-        smooth_t = float(np.sin(t * (np.pi / 2.0)))
-        row = (1.0 - smooth_t) * bottom_edge + smooth_t * nadir_color
-        canvas[floor_start + y, :] = row.astype(np.uint8)
-
-        # Tán xạ làm mờ theo chiều ngang tăng dần đều để hòa tan tự nhiên vào nền gạch
-        ksize = int(t * 50) * 2 + 1
-        if ksize >= 5:
-            canvas[floor_start + y:floor_start + y + 1, :] = cv2.GaussianBlur(
-                canvas[floor_start + y:floor_start + y + 1, :], (ksize, 1), 0
-            )
-
-    # Làm mờ nhẹ vùng chuyển tiếp (feathering) trần nhà
-    feather = min(15, y_offset // 2) if y_offset > 0 else 0
-    for fi in range(feather):
-        alpha = fi / float(feather)
-        curr_top = y_offset + fi
-        canvas[curr_top, :] = ((1.0 - alpha) * canvas[y_offset - 1, :] + alpha * canvas[curr_top, :]).astype(np.uint8)
+    # 1. Thuật toán Push-Pull (Gortler et al.) Đa Tầng Kim Tự Tháp với Đệm Vòng Tuần Hoàn Wc/4:
+    # Lấp đầy trần nhà (+90° Zenith) và sàn nhà (-90° Nadir) tự nhiên, xóa sạch 100% mọi hố đen
+    canvas = push_pull_inpaint(canvas, content_mask)
 
     return canvas
+
+def push_pull_inpaint(img, mask):
+    """
+    Thuật toán Push-Pull (Hierarchical Inpainting) Đa Tầng Kim Tự Tháp:
+    - Đệm vòng tuần hoàn (Circular horizontal padding) Wc/4 cột mỗi bên để bảo đảm tính liên tục 360° theo chiều ngang.
+    - Kim tự tháp Push (hạ độ phân giải có trọng số) lấp đầy các tần số màu thấp tự nhiên.
+    - Kim tự tháp Pull (phóng to và thế chỗ các pixel trống ở trần và sàn).
+    - Hòa trộn mượt mà với ảnh thật bằng Gaussian alpha mask.
+    """
+    try:
+        h, w = img.shape[:2]
+        pad = max(16, w // 4)
+        padded_img = np.hstack([img[:, -pad:], img, img[:, :pad]])
+        padded_mask = np.hstack([mask[:, -pad:], mask, mask[:, :pad]])
+
+        pyramid_imgs = [padded_img.astype(np.float32)]
+        pyramid_weights = [padded_mask.astype(np.float32)]
+
+        cur_img = pyramid_imgs[0]
+        cur_w = pyramid_weights[0]
+
+        while min(cur_img.shape[:2]) > 6:
+            next_w = cv2.resize(cur_w, (max(2, cur_w.shape[1] // 2), max(2, cur_w.shape[0] // 2)), interpolation=cv2.INTER_AREA)
+            cur_num = cur_img * cur_w[:, :, None]
+            down_num = cv2.resize(cur_num, (max(2, cur_img.shape[1] // 2), max(2, cur_img.shape[0] // 2)), interpolation=cv2.INTER_AREA)
+            nonzero = next_w > 1e-4
+            next_img = np.zeros_like(down_num)
+            next_img[nonzero] = down_num[nonzero] / next_w[nonzero, None]
+            pyramid_imgs.append(next_img)
+            pyramid_weights.append(next_w)
+            cur_img = next_img
+            cur_w = next_w
+
+        top_valid = pyramid_weights[-1] > 1e-4
+        if np.any(top_valid):
+            mean_val = np.mean(pyramid_imgs[-1][top_valid], axis=0)
+        else:
+            mean_val = np.array([128.0, 128.0, 128.0])
+        pyramid_imgs[-1][~top_valid] = mean_val
+        pyramid_weights[-1][~top_valid] = 1.0
+
+        for lev in range(len(pyramid_imgs) - 2, -1, -1):
+            target_h, target_w = pyramid_imgs[lev].shape[:2]
+            upsampled = cv2.resize(pyramid_imgs[lev + 1], (target_w, target_h), interpolation=cv2.INTER_LINEAR)
+            cur_valid = pyramid_weights[lev] > 1e-3
+            pyramid_imgs[lev][~cur_valid] = upsampled[~cur_valid]
+
+        res_padded = np.clip(pyramid_imgs[0], 0, 255).astype(np.uint8)
+        fill = res_padded[:, pad:-pad]
+
+        blur_fill = cv2.GaussianBlur(fill, (0, 0), 12)
+        alpha = cv2.GaussianBlur(mask.astype(np.float32), (0, 0), 5)
+        out = (alpha[:, :, None] * fill.astype(np.float32) + (1.0 - alpha[:, :, None]) * blur_fill.astype(np.float32))
+        out = np.clip(out, 0, 255).astype(np.uint8)
+        out[mask] = img[mask]
+        return out
+    except Exception as e:
+        print(f"[Warning] Push-pull inpaint fallback: {e}", file=sys.stderr)
+        return img
 
 def enhance_museum_texture(image):
     """
@@ -533,6 +565,52 @@ def build_sequential_sift_panorama(images):
     blended[valid_mask] = np.clip(color_accum[valid_mask] / weight_accum[valid_mask, None], 0, 255).astype(np.uint8)
     
     return blended
+
+def save_equirectangular_jpeg(output_path, equi_pano, quality=99):
+    """
+    Lưu ảnh 360° Equirectangular sang định dạng JPEG chất lượng cao và nhúng Metadata
+    chuẩn quốc tế Google Photo Sphere (APP1 XMP GPano):
+    Tương thích 100% với WebGL Pannellum, Kính thực tế ảo VR, Facebook 360 và Google Street View.
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    h, w = equi_pano.shape[:2]
+    success, enc = cv2.imencode('.jpg', equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), quality, int(cv2.IMWRITE_JPEG_OPTIMIZE), 1])
+    if not success:
+        cv2.imwrite(output_path, equi_pano)
+        return
+
+    jpeg_bytes = enc.tobytes()
+    xmp_template = (
+        '<x:xmpmeta xmlns:x="adobe:ns:meta/">\n'
+        ' <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n'
+        '  <rdf:Description rdf:about="" xmlns:GPano="http://ns.google.com/photos/1.0/panorama/">\n'
+        '   <GPano:UsePanoramaViewer>True</GPano:UsePanoramaViewer>\n'
+        '   <GPano:CaptureSoftware>Heritage 360 Engine</GPano:CaptureSoftware>\n'
+        '   <GPano:ProjectionType>equirectangular</GPano:ProjectionType>\n'
+        '   <GPano:PoseHeadingDegrees>0.0</GPano:PoseHeadingDegrees>\n'
+        '   <GPano:PosePitchDegrees>0.0</GPano:PosePitchDegrees>\n'
+        '   <GPano:PoseRollDegrees>0.0</GPano:PoseRollDegrees>\n'
+        f'   <GPano:CroppedAreaImageWidthPixels>{w}</GPano:CroppedAreaImageWidthPixels>\n'
+        f'   <GPano:CroppedAreaImageHeightPixels>{h}</GPano:CroppedAreaImageHeightPixels>\n'
+        f'   <GPano:FullPanoWidthPixels>{w}</GPano:FullPanoWidthPixels>\n'
+        f'   <GPano:FullPanoHeightPixels>{h}</GPano:FullPanoHeightPixels>\n'
+        '   <GPano:CroppedAreaLeftPixels>0</GPano:CroppedAreaLeftPixels>\n'
+        '   <GPano:CroppedAreaTopPixels>0</GPano:CroppedAreaTopPixels>\n'
+        '  </rdf:Description>\n'
+        ' </rdf:RDF>\n'
+        '</x:xmpmeta>'
+    )
+    xmp_header = b'http://ns.adobe.com/xap/1.0/\x00'
+    payload = xmp_header + xmp_template.encode('utf-8')
+    app1_marker = b'\xff\xe1' + (len(payload) + 2).to_bytes(2, 'big') + payload
+
+    if jpeg_bytes[:2] == b'\xff\xd8':
+        final_bytes = jpeg_bytes[:2] + app1_marker + jpeg_bytes[2:]
+    else:
+        final_bytes = jpeg_bytes
+
+    with open(output_path, 'wb') as f:
+        f.write(final_bytes)
 
 def run_stitch(image_paths, output_path, target_width=0):
     """
@@ -896,9 +974,8 @@ def run_stitch(image_paths, output_path, target_width=0):
     print("[*] Đang áp dụng thuật toán CLAHE & Unsharp Masking tăng cường độ tương phản và chi tiết cổ vật...", file=sys.stderr)
     equi_pano = enhance_museum_texture(equi_pano)
 
-    # Lưu kết quả với chất lượng JPEG tối đa 99% và bật tối ưu nén
-    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    cv2.imwrite(output_path, equi_pano, [int(cv2.IMWRITE_JPEG_QUALITY), 99, int(cv2.IMWRITE_JPEG_OPTIMIZE), 1])
+    # Lưu kết quả với chất lượng JPEG tối đa 99%, nén tối ưu và chèn Metadata XMP GPano chuẩn quốc tế
+    save_equirectangular_jpeg(output_path, equi_pano, quality=99)
 
     h, w = equi_pano.shape[:2]
     return {
