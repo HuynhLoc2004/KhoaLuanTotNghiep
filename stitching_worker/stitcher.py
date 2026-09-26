@@ -879,6 +879,22 @@ def extract_keyframes_from_video(video_path, target_count=18, max_dim=1400):
 
     log(f"[*] Phân tích video: {total_frames} frames, FPS: {fps:.1f}, Thời lượng: {duration:.1f}s, Meta xoay: {rot_meta}°")
 
+    # TỰ ĐỘNG THÍCH ỨNG THEO ĐỘ DÀI VIDEO:
+    # Nếu video quay chậm, kỹ (như 30 - 60s), tăng số góc lên 30 - 36 góc để độ gối đầu dày đặc (50-60%),
+    # giúp OpenCV tìm thấy hàng nghìn điểm đặc trưng và ghép hoàn hảo!
+    if target_count <= 0:
+        if duration <= 15.0:
+            target_count = 18
+        elif duration <= 28.0:
+            target_count = 24
+        elif duration <= 42.0:
+            target_count = 30
+        else:
+            target_count = 36
+        log(f"[*] Chế độ thích ứng tự động: Thời lượng {duration:.1f}s -> Tự động chọn {target_count} góc sắc nét (thay vì cố định 18)!")
+    else:
+        log(f"[*] Sử dụng cấu hình người dùng chỉ định: Cắt {target_count} góc sắc nét từ video.")
+
     def orient_frame_if_needed(frame):
         if frame is None:
             return None
@@ -933,7 +949,7 @@ def extract_keyframes_from_video(video_path, target_count=18, max_dim=1400):
         end_f = int((i + 1) * window_size) - 1
         end_f = max(start_f, min(total_frames - 1, end_f))
 
-        num_candidates = min(5, end_f - start_f + 1)
+        num_candidates = min(3, end_f - start_f + 1)
         if num_candidates <= 1:
             candidate_indices = [start_f]
         else:
@@ -1218,7 +1234,7 @@ def main():
     parser.add_argument("--video", help="Đường dẫn file video 360 quay vòng quanh (Phương án A)")
     parser.add_argument("--output", help="Đường dẫn file ảnh đầu ra")
     parser.add_argument("--width", type=int, default=0, help="Độ rộng mong muốn của ảnh Equirectangular 2:1")
-    parser.add_argument("--keyframes", type=int, default=18, help="Số khung hình then chốt cần cắt từ video (mặc định 18)")
+    parser.add_argument("--keyframes", type=int, default=0, help="Số khung hình then chốt cần cắt từ video (0 = tự động theo thời lượng: 18 đến 36)")
     parser.add_argument("--verify-image", help="Thẩm định chất lượng 1 khung hình chụp")
     parser.add_argument("--prev-image", default=None, help="Khung hình trước đó để so khớp độ chồng lấp")
 

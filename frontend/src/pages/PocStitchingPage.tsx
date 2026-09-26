@@ -88,7 +88,7 @@ export const PocStitchingPage: React.FC = () => {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [videoProcessing, setVideoProcessing] = useState(false);
   const [videoStep, setVideoStep] = useState<number>(0);
-  const [videoKeyframesTarget, setVideoKeyframesTarget] = useState<number>(18);
+  const [videoKeyframesTarget, setVideoKeyframesTarget] = useState<number>(0);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoRecordInputRef = useRef<HTMLInputElement>(null);
 
@@ -885,6 +885,48 @@ function normalizePanoUrl(rawUrl: string): string {
                         disabled={videoProcessing}
                       />
                     </label>
+                  </div>
+
+                  {/* Tùy chọn số lượng góc cắt (Mặc định: Tự động thích ứng theo video) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        Số góc cắt từ video:
+                      </label>
+                      <span style={{ fontSize: '11px', color: 'var(--primary-color, #38bdf8)' }}>
+                        {videoKeyframesTarget === 0 ? 'Tự tính theo độ dài video (18 - 36 góc)' : `${videoKeyframesTarget} góc`}
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                      {[
+                        { val: 0, label: 'Tự động' },
+                        { val: 24, label: '24 góc' },
+                        { val: 30, label: '30 góc' },
+                        { val: 36, label: '36 góc' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.val}
+                          type="button"
+                          onClick={() => setVideoKeyframesTarget(opt.val)}
+                          disabled={videoProcessing}
+                          style={{
+                            padding: '6px 4px',
+                            borderRadius: '6px',
+                            border: '1px solid',
+                            borderColor: videoKeyframesTarget === opt.val ? 'var(--primary-color, #2563eb)' : 'var(--border-color, rgba(255,255,255,0.1))',
+                            background: videoKeyframesTarget === opt.val ? 'rgba(37, 99, 235, 0.2)' : 'transparent',
+                            color: videoKeyframesTarget === opt.val ? '#fff' : 'var(--text-secondary)',
+                            fontSize: '11.5px',
+                            cursor: 'pointer',
+                            fontWeight: videoKeyframesTarget === opt.val ? 600 : 400,
+                            textAlign: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {videoFile && videoPreviewUrl && (

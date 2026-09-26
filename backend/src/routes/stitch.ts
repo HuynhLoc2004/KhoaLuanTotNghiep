@@ -475,10 +475,10 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
   const videoPath = req.file.path;
   const outFilename = `stitched_video_360_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
-  const keyframesCount = req.body.keyframes ? String(req.body.keyframes) : '18';
+  const keyframesCount = req.body.keyframes ? String(req.body.keyframes) : '0';
   const targetWidth = req.body.width ? String(req.body.width) : '0';
 
-  console.log(`[Stitch Video API] Bắt đầu Phương án A: Cắt ${keyframesCount} khung hình sắc nét từ video (${req.file.originalname})...`);
+  console.log(`[Stitch Video API] Bắt đầu Phương án A: ${keyframesCount === '0' ? 'Tự động tính góc thích ứng' : `Cắt ${keyframesCount} góc`} từ video (${req.file.originalname})...`);
 
   const args = [
     STITCHER_SCRIPT,
