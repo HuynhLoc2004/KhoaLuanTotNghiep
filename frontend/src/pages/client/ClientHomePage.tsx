@@ -167,10 +167,13 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
           onExploreTourClick={() => onNavigatePage('rooms')}
           onExploreArtifactsClick={() => onNavigatePage('artifacts')}
           featuredImageUrl={
-            branding.heroBannerUrl ||
-            (rooms[0]?.panoramaUrl
-              ? `${API_ROOT}${rooms[0].panoramaUrl.startsWith('/') ? '' : '/'}${rooms[0].panoramaUrl}`
-              : undefined)
+            branding.heroBannerUrl
+              ? (branding.heroBannerUrl.startsWith('http')
+                  ? branding.heroBannerUrl
+                  : `${API_ROOT}${branding.heroBannerUrl.startsWith('/') ? '' : '/'}${branding.heroBannerUrl}`)
+              : (rooms[0]?.panoramaUrl
+                  ? `${API_ROOT}${rooms[0].panoramaUrl.startsWith('/') ? '' : '/'}${rooms[0].panoramaUrl}`
+                  : undefined)
           }
           videoUrl={branding.heroVideoUrl}
         />

@@ -322,13 +322,21 @@ export interface FloorPlanEdge {
   id: string;
   fromNodeId: string;
   toNodeId: string;
-  direction: 'front' | 'back' | 'left' | 'right' | 'center';
-  compassDirection: 'north' | 'south' | 'east' | 'west';
+  direction: 'front' | 'back' | 'left' | 'right' | 'center' | 'up' | 'down' | 'northeast' | 'northwest' | 'southeast' | 'southwest';
+  compassDirection: 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest';
   doorX: number;
   doorY: number;
   label: string;
   targetRoomName?: string;
   distance?: number;
+  isReturn?: boolean;
+}
+
+export interface CompassOrientation {
+  detected: boolean;
+  northAngleDeg: number;
+  confidence: number;
+  description: string;
 }
 
 export interface FloorPlanMap {
@@ -338,8 +346,11 @@ export interface FloorPlanMap {
   imageUrl?: string;
   imageWidth: number;
   imageHeight: number;
+  width?: number;
+  height?: number;
   analyzedAt: string;
   analysisAlgorithm: string;
+  compassOrientation?: CompassOrientation;
   nodes: FloorPlanNode[];
   edges: FloorPlanEdge[];
   active: boolean;

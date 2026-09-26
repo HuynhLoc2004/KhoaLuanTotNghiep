@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -41,45 +42,20 @@ const upload = multer({
 
 /**
  * GET /api/floor-plan
- * Lấy sơ đồ mặt bằng và đồ thị liên kết không gian hiện tại (Đồng bộ 100% với CSDL MongoDB thực tế)
+ * Lấy sơ đồ mặt bằng đang active trên Client (Đồng bộ 100% với CSDL MongoDB thực tế)
  */
 floorPlanRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const dbRooms = await RoomModel.find({ active: true }).sort({ orderIndex: 1 }).lean();
-    let floorPlan = await FloorPlanMapModel.findOne({ id: 'floor_plan_main', active: true }).lean();
-
-    // Kiểm tra tính đồng bộ giữa floorPlan và dbRooms thật:
-    // 1. Chưa có floorPlan trong CSDL
-    // 2. Số lượng node khác số lượng phòng thực tế trong CSDL
-    // 3. Có node mock cũ (như node_central_rotunda) hoặc node trỏ tới roomId không còn tồn tại
-    // 4. Tên phòng hoặc mã phòng trong node bị lệch so với dữ liệu thật trong CSDL
-    const roomSet = new Set(dbRooms.map((r: any) => r.id));
-    const hasMockNode = floorPlan?.nodes?.some((n: any) => n.id === 'node_central_rotunda' || !n.roomId || !roomSet.has(n.roomId));
-    const nodeCountMismatch = (floorPlan?.nodes?.length || 0) !== dbRooms.length;
-    const roomDataMismatch = dbRooms.some((r: any) => {
-      const node = floorPlan?.nodes?.find((n: any) => n.roomId === r.id);
-      return !node || node.name !== r.name || node.code !== r.code;
-    });
-
-    const needsResync = !floorPlan || hasMockNode || nodeCountMismatch || roomDataMismatch;
-
-    if (needsResync) {
-      console.log('[FloorPlanRoute] Phát hiện dữ liệu gian phòng thay đổi trong MongoDB, đang tự động đồng bộ lại sơ đồ mặt bằng...');
-      const branding = await getSystemBrandingConfig();
-      const updatedMap = await analyzeFloorPlanImage(
-        '',
-        branding?.guideMapUrl || floorPlan?.imageUrl || '',
-        {
-          title: branding?.guideMapTitle || floorPlan?.title || 'Sơ Đồ Mặt Bằng & Vị Trí Các Gian Trưng Bày',
-          description: branding?.guideMapDesc || floorPlan?.description || 'Bản đồ kiến trúc không gian và vị trí các gian phòng'
-        }
-      );
-      floorPlan = updatedMap.toObject ? updatedMap.toObject() : updatedMap;
+    // 1. Tìm bản đồ đang active
+    let floorPlan = await FloorPlanMapModel.findOne({ active: true }).sort({ updatedAt: -1 }).lean();
+    if (!floorPlan) {
+      floorPlan = await FloorPlanMapModel.findOne().sort({ updatedAt: -1, createdAt: -1 }).lean();
     }
 
+    // Nếu CSDL không có bản đồ nào (hoặc đã bị xóa), trả về null, tuyệt đối KHÔNG tự sinh mock rác
     res.json({
       success: true,
-      data: floorPlan
+      data: floorPlan || null
     });
   } catch (error: any) {
     console.error('[FloorPlanRoute GET Error]:', error);
@@ -87,6 +63,162 @@ floorPlanRouter.get('/', async (req: Request, res: Response) => {
       success: false,
       message: 'Không thể tải sơ đồ mặt bằng: ' + (error.message || '')
     });
+  }
+});
+
+/**
+ * GET /api/floor-plan/list
+ * Lấy danh sách toàn bộ các bản đồ trong kho lưu trữ kèm Phân Trang chuẩn mực
+ */
+floorPlanRouter.get('/list', async (req: Request, res: Response) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit as string) || 6));
+    const skip = (page - 1) * limit;
+
+    const total = await FloorPlanMapModel.countDocuments();
+    const items = await FloorPlanMapModel.find()
+      .sort({ active: -1, updatedAt: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const activeMap = await FloorPlanMapModel.findOne({ active: true }).lean();
+
+    res.json({
+      success: true,
+      data: items,
+      activeId: activeMap?.id || null,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute LIST Error]:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi tải danh sách bản đồ trong kho: ' + (err.message || '')
+    });
+  }
+});
+
+/**
+ * POST /api/floor-plan/activate/:id
+ * Kích hoạt bản đồ được chọn từ kho lên Client
+ */
+floorPlanRouter.post('/activate/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const targetMap = await FloorPlanMapModel.findOne({ id });
+    if (!targetMap) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy bản đồ chỉ định trong kho' });
+    }
+
+    // Đặt tất cả các bản đồ khác thành inactive
+    await FloorPlanMapModel.updateMany({ id: { $ne: id } }, { active: false });
+    targetMap.active = true;
+    await targetMap.save();
+
+    // Đồng bộ vào SystemBranding để Header, Cẩm nang & Client đồng bộ 100%
+    if (targetMap.imageUrl) {
+      try {
+        const { SystemBranding } = await import('../models/SystemBranding.js');
+        await SystemBranding.findOneAndUpdate(
+          { id: 'default_branding' },
+          {
+            guideMapUrl: targetMap.imageUrl,
+            guideMapTitle: targetMap.title,
+            guideMapDesc: targetMap.description
+          },
+          { upsert: true, returnDocument: 'after' }
+        );
+      } catch (bErr) {
+        console.warn('[FloorPlanRoute] Lỗi cập nhật branding:', bErr);
+      }
+    }
+
+    // Phát sóng sự kiện Realtime cho toàn bộ Client
+    broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
+
+    res.json({
+      success: true,
+      message: `Đã kích hoạt thành công bản đồ "${targetMap.title}" lên Client!`,
+      data: targetMap
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute ACTIVATE Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi kích hoạt bản đồ: ' + (err.message || '') });
+  }
+});
+
+/**
+ * DELETE /api/floor-plan/:id
+ * Xóa bản đồ khỏi danh sách
+ */
+floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const query = {
+      $or: [
+        { id },
+        ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])
+      ]
+    };
+    const target = await FloorPlanMapModel.findOne(query);
+    if (!target) {
+      return res.json({ success: true, message: 'Bản đồ không còn tồn tại hoặc đã được xóa' });
+    }
+
+    const wasActive = target.active;
+    await FloorPlanMapModel.deleteOne(query);
+
+    // Nếu vừa xóa bản đồ đang áp dụng, tự động kích hoạt bản đồ mới nhất còn lại nếu có
+    if (wasActive) {
+      const remaining = await FloorPlanMapModel.findOne().sort({ updatedAt: -1 });
+      if (remaining) {
+        remaining.active = true;
+        await remaining.save();
+        broadcastRealtimeEvent('floor_plan_updated', remaining.toObject ? remaining.toObject() : remaining);
+        if (remaining.imageUrl) {
+          try {
+            const { SystemBranding } = await import('../models/SystemBranding.js');
+            await SystemBranding.findOneAndUpdate(
+              { id: 'default_branding' },
+              {
+                guideMapUrl: remaining.imageUrl,
+                guideMapTitle: remaining.title,
+                guideMapDesc: remaining.description
+              }
+            );
+          } catch {}
+        }
+      } else {
+        // Không còn bản đồ nào trong CSDL: Xóa sạch liên kết mặt bằng trong Branding
+        try {
+          const { SystemBranding } = await import('../models/SystemBranding.js');
+          await SystemBranding.findOneAndUpdate(
+            { id: 'default_branding' },
+            {
+              guideMapUrl: '',
+              guideMapTitle: '',
+              guideMapDesc: ''
+            }
+          );
+        } catch {}
+        broadcastRealtimeEvent('floor_plan_updated', null);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã xóa sơ đồ mặt bằng thành công'
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute DELETE Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi xóa sơ đồ: ' + (err.message || '') });
   }
 });
 
@@ -126,16 +258,38 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
 
     const title = req.body.title || 'Sơ Đồ Mặt Bằng & Cẩm Nang Tham Quan';
     const description = req.body.description || 'Mạng lưới liên kết không gian và cửa thông phòng được phân tích từ sơ đồ kiến trúc';
+    const setActive = req.body.setActive !== 'false';
+    const mapId = req.body.mapId || (setActive ? 'floor_plan_main' : `floor_plan_${Date.now()}`);
 
-    // Thực hiện phân tích hình học & topo qua Sharp
+    // Thực hiện phân tích hình học & topo qua Sharp & Pure CV
     const analyzedMap = await analyzeFloorPlanImage(localFilePath, finalImageUrl, {
+      mapId,
       title,
       description,
+      setActive,
       forceRebuild: true
     });
 
-    // Phát sóng đồng bộ thời gian thực cho khách tham quan và admin
-    broadcastRealtimeEvent('floor_plan_updated', analyzedMap);
+    // Chỉ đồng bộ System Branding và broadcast nếu được đánh dấu active
+    if (setActive) {
+      try {
+        const { SystemBranding } = await import('../models/SystemBranding.js');
+        await SystemBranding.findOneAndUpdate(
+          { id: 'default_branding' },
+          {
+            guideMapUrl: finalImageUrl,
+            guideMapTitle: title,
+            guideMapDesc: description
+          },
+          { upsert: true, returnDocument: 'after' }
+        );
+      } catch (bErr) {
+        console.warn('[FloorPlanRoute] Không thể cập nhật branding guideMapUrl:', bErr);
+      }
+
+      // Phát sóng đồng bộ thời gian thực cho khách tham quan và admin
+      broadcastRealtimeEvent('floor_plan_updated', analyzedMap);
+    }
 
     res.json({
       success: true,
@@ -153,5 +307,136 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
       success: false,
       message: 'Lỗi trong quá trình phân tích ảnh sơ đồ: ' + (error.message || '')
     });
+  }
+});
+
+/**
+ * PUT /api/floor-plan/:id/node-mapping
+ * Gán hoặc gỡ gán Gian phòng 360° cho 1 phòng cụ thể trên sơ đồ mặt bằng
+ */
+floorPlanRouter.put('/:id/node-mapping', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { nodeId, roomId } = req.body;
+
+    if (!nodeId) {
+      return res.status(400).json({ success: false, message: 'Thiếu nodeId cần gán' });
+    }
+
+    const query = {
+      $or: [
+        { id },
+        ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])
+      ]
+    };
+    const targetMap = await FloorPlanMapModel.findOne(query);
+    if (!targetMap) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sơ đồ mặt bằng' });
+    }
+
+    const targetNode = targetMap.nodes.find((n) => n.id === nodeId);
+    if (!targetNode) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy vị trí phòng trên sơ đồ' });
+    }
+
+    if (roomId) {
+      const room = await RoomModel.findOne({
+        $or: [
+          { id: roomId },
+          ...(mongoose.isValidObjectId(roomId) ? [{ _id: roomId }] : [])
+        ]
+      }).lean();
+
+      if (!room) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng 360° tương ứng' });
+      }
+
+      targetNode.roomId = room.id;
+      targetNode.panoramaUrl = room.panoramaUrl || '';
+      targetNode.thumbnailUrl = room.thumbnailUrl || '';
+    } else {
+      targetNode.roomId = undefined;
+      targetNode.panoramaUrl = '';
+      targetNode.thumbnailUrl = '';
+    }
+
+    await targetMap.save();
+
+    if (targetMap.active) {
+      broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
+    }
+
+    res.json({
+      success: true,
+      message: roomId ? 'Gán gian phòng 360° thành công' : 'Đã gỡ liên kết gian phòng',
+      data: targetMap
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute Node Mapping Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi gán gian phòng: ' + (err.message || '') });
+  }
+});
+
+/**
+ * PUT /api/floor-plan/:id/batch-mapping
+ * Lưu toàn bộ cấu hình gán nhiều phòng 360° cùng lúc
+ */
+floorPlanRouter.put('/:id/batch-mapping', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { mappings } = req.body; // Array of { nodeId: string, roomId: string | null }
+
+    if (!Array.isArray(mappings)) {
+      return res.status(400).json({ success: false, message: 'Dữ liệu mappings phải là một mảng' });
+    }
+
+    const query = {
+      $or: [
+        { id },
+        ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])
+      ]
+    };
+    const targetMap = await FloorPlanMapModel.findOne(query);
+    if (!targetMap) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sơ đồ mặt bằng' });
+    }
+
+    const allRooms = await RoomModel.find().lean();
+    const roomMap = new Map<string, any>();
+    allRooms.forEach((r) => {
+      roomMap.set(r.id, r);
+      if (r._id) roomMap.set(r._id.toString(), r);
+    });
+
+    for (const m of mappings) {
+      const targetNode = targetMap.nodes.find((n) => n.id === m.nodeId);
+      if (!targetNode) continue;
+
+      if (m.roomId && roomMap.has(m.roomId)) {
+        const room = roomMap.get(m.roomId);
+        targetNode.roomId = room.id;
+        targetNode.panoramaUrl = room.panoramaUrl || '';
+        targetNode.thumbnailUrl = room.thumbnailUrl || '';
+      } else if (!m.roomId) {
+        targetNode.roomId = undefined;
+        targetNode.panoramaUrl = '';
+        targetNode.thumbnailUrl = '';
+      }
+    }
+
+    await targetMap.save();
+
+    if (targetMap.active) {
+      broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã lưu toàn bộ liên kết không gian sơ đồ thành công',
+      data: targetMap
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute Batch Mapping Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi lưu liên kết không gian: ' + (err.message || '') });
   }
 });

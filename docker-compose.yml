@@ -11,6 +11,12 @@ services:
       - "27017:27017"
     environment:
       - MONGO_INITDB_DATABASE=museum
+    command: mongod --wiredTigerCacheSizeGB 1.5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
   redis:
     image: redis:7-alpine
@@ -18,9 +24,14 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
   backend:
     build:
@@ -59,6 +70,11 @@ services:
     volumes:
       - uploads_data:/app/backend/public/uploads
       - ./maintenance_flag:/app/maintenance_flag
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
   frontend:
     build:
@@ -75,6 +91,11 @@ services:
       - certbot_data:/var/www/certbot
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./maintenance_flag:/var/www/maintenance
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
 volumes:
   mongo_data:

@@ -548,6 +548,61 @@ export const api = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi phân tích sơ đồ mặt bằng');
     return { data: json.data, summary: json.summary };
+  },
+
+  async getFloorPlansList(params?: { page?: number; limit?: number }): Promise<{
+    data: FloorPlanMap[];
+    activeId: string | null;
+    pagination: { total: number; page: number; limit: number; totalPages: number };
+  }> {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+    const res = await fetch(`${API_BASE}/floor-plan/list?${query.toString()}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách bản đồ trong kho');
+    return { data: json.data, activeId: json.activeId, pagination: json.pagination };
+  },
+
+  async activateFloorPlan(id: string): Promise<FloorPlanMap> {
+    const res = await fetch(`${API_BASE}/floor-plan/activate/${id}`, {
+      method: 'POST',
+      headers: getAuthHeaders(true)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi kích hoạt bản đồ');
+    return json.data;
+  },
+
+  async deleteFloorPlan(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/floor-plan/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi xóa bản đồ');
+  },
+
+  async updateFloorPlanNodeMapping(mapId: string, nodeId: string, roomId: string | null): Promise<FloorPlanMap> {
+    const res = await fetch(`${API_BASE}/floor-plan/${mapId}/node-mapping`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(true), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeId, roomId })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật gán gian phòng');
+    return json.data;
+  },
+
+  async updateFloorPlanBatchMapping(mapId: string, mappings: Array<{ nodeId: string; roomId: string | null }>): Promise<FloorPlanMap> {
+    const res = await fetch(`${API_BASE}/floor-plan/${mapId}/batch-mapping`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(true), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mappings })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi lưu liên kết sơ đồ');
+    return json.data;
   }
 
 };

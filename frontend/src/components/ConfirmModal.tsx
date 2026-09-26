@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { AlertTriangle, HelpCircle, Info, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, HelpCircle, Info, X, RefreshCw } from 'lucide-react';
 import { useClientTranslation } from '../context/ClientTranslationContext';
 
 export interface ConfirmModalProps {
@@ -9,7 +9,7 @@ export interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   type?: 'danger' | 'warning' | 'info';
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -26,19 +26,38 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const { t } = useClientTranslation();
   const effectiveConfirmText = confirmText || t('common.confirm', 'Xác nhận');
   const effectiveCancelText = cancelText || t('common.cancel', 'Hủy bỏ');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !isSubmitting) {
         onCancel();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onCancel]);
+  }, [isOpen, isSubmitting, onCancel]);
 
   if (!isOpen) return null;
+
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      await onConfirm();
+    } catch (err) {
+      console.error('[ConfirmModal Error]:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const getTypeConfig = () => {
     switch (type) {
@@ -127,17 +146,19 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={onCancel}
+            disabled={isSubmitting}
           >
             <span>{effectiveCancelText}</span>
           </button>
           <button
             type="button"
             className={`${config.confirmBtnClass} btn-sm`}
-            onClick={() => {
-              onConfirm();
-            }}
+            onClick={handleConfirm}
+            disabled={isSubmitting}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>{effectiveConfirmText}</span>
+            {isSubmitting && <RefreshCw size={13} className="spin" />}
+            <span>{isSubmitting ? 'Đang xử lý...' : effectiveConfirmText}</span>
           </button>
         </div>
       </div>

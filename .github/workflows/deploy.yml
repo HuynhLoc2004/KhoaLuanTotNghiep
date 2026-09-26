@@ -13,6 +13,11 @@ on:
         required: false
         default: 'main'
 
+# Tự động huỷ job deploy cũ nếu có commit mới được push lên (tránh 2-3 job chạy đè nhau làm nghẽn VPS)
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -100,30 +105,27 @@ jobs:
             export DOCKER_BUILDKIT=0
             export COMPOSE_DOCKER_CLI_BUILD=0
 
-            # Dọn dẹp các container mồ côi hoặc bị kẹt trạng thái trước khi khởi động
+            # Dọn dẹp các container mồ côi hoặc bị kẹt trạng thái / kẹt đổi tên trước khi khởi động
             echo ">>> Dọn dẹp container mồ côi / bị kẹt..."
             docker rm -f $(docker ps -a -q --filter "status=created") 2>/dev/null || true
             docker rm -f $(docker ps -a -q --filter "status=dead") 2>/dev/null || true
+            # Dọn dẹp các container bị Docker Compose đổi tên tiền tố ngẫu nhiên làm kẹt port (ví dụ: fa0a4f_museum_mongodb)
+            docker ps -a --format '{{.ID}} {{.Names}}' | grep -E '_museum_(mongodb|redis|backend|frontend)' | awk '{print $1}' | xargs -r docker rm -f 2>/dev/null || true
 
+            echo ">>> [3.1] Build trước Docker Images (Website cũ vẫn hoạt động trong lúc build)..."
+            $COMPOSE_CMD build
+
+            echo ">>> [3.2] Khởi chạy / Cập nhật các container (Chuyển đổi tức thì)..."
             DEPLOY_SUCCESS=false
             for attempt in 1 2 3; do
               echo ">>> Thực thi deploy (Lần $attempt/3)..."
-              if [ $attempt -eq 2 ]; then
-                echo ">>> Thử lại lần 2 với chế độ BuildKit chuẩn..."
-                unset DOCKER_BUILDKIT
-                unset COMPOSE_DOCKER_CLI_BUILD
-              elif [ $attempt -eq 3 ]; then
-                echo ">>> Thử lại lần 3 với cờ legacy..."
-                export DOCKER_BUILDKIT=0
-                export COMPOSE_DOCKER_CLI_BUILD=0
-              fi
-
-              if $COMPOSE_CMD up -d --build --remove-orphans; then
+              if $COMPOSE_CMD up -d --remove-orphans; then
                 DEPLOY_SUCCESS=true
                 echo ">>> Deploy thành công ở lần thử $attempt!"
                 break
               fi
-              echo "⚠️ Lần thử $attempt thất bại do mạng Docker Hub quốc tế chập chờn, thử lại sau 3s..."
+              echo "⚠️ Lần thử $attempt gặp lỗi, thử giải phóng port và thử lại sau 3s..."
+              docker rm -f museum_backend museum_frontend 2>/dev/null || true
               sleep 3
             done
 

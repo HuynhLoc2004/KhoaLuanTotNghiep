@@ -320,13 +320,12 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           <div style={{ position: 'relative' }} ref={langDropdownRef}>
             <button
               type="button"
-              className="client-theme-toggle"
-              style={{ width: 'auto', padding: '0 12px', gap: 6, fontSize: '0.84rem' }}
+              className="client-theme-toggle client-nav-lang-btn"
               onClick={() => setIsLangDropdownOpen((prev) => !prev)}
               aria-label="Chọn ngôn ngữ"
+              title={`Ngôn ngữ: ${currentLangObj.name || 'Tiếng Việt'}`}
             >
-              <span style={{ fontSize: '15px' }}>{currentLangObj.flagIcon}</span>
-              <span style={{ fontWeight: 600, textTransform: 'uppercase' }}>{currentLangObj.code}</span>
+              <span className="client-nav-lang-code">{currentLangObj.code ? currentLangObj.code.toUpperCase() : 'VI'}</span>
             </button>
 
             {isLangDropdownOpen && (
@@ -384,13 +383,12 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             <button
               type="button"
               className="client-theme-toggle client-nav-qr-btn"
-              style={{ width: 'auto', padding: '0 12px', gap: 6, fontSize: '0.82rem' }}
               onClick={onOpenQRScanner}
               title={t('nav.scanQrTooltip', 'Quét mã QR hiện vật hoặc gian phòng bằng Camera')}
               aria-label={t('nav.scanQr', 'Quét QR')}
             >
               <QrCode size={16} style={{ color: '#D4AF37' }} />
-              <span style={{ fontWeight: 600 }}>{t('nav.scanQr', 'Quét QR')}</span>
+              <span className="client-nav-qr-text">{t('nav.scanQr', 'Quét QR')}</span>
             </button>
           )}
 

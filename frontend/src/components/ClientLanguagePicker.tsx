@@ -36,20 +36,22 @@ export const ClientLanguagePicker: React.FC<ClientLanguagePickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="header-tour-link"
+        className="header-tour-link header-lang-btn"
         style={{ cursor: 'pointer', outline: 'none', gap: 6 }}
         title="Chuyển đổi ngôn ngữ hiển thị"
       >
-        <span style={{ fontSize: '13px' }}>{activeLanguageInfo?.flagIcon || '🌐'}</span>
-        <span style={{ fontSize: '12px', fontWeight: 500 }}>
+        <span style={{ fontSize: '13px', flexShrink: 0 }}>{activeLanguageInfo?.flagIcon || '🌐'}</span>
+        <span className="header-lang-label" style={{ fontSize: '12px', fontWeight: 500 }}>
           {activeLanguageInfo?.nativeName || 'Tiếng Việt'}
         </span>
         <ChevronDown
           size={12}
+          className="header-lang-chevron"
           style={{
             color: 'var(--text-muted)',
             transition: 'transform 0.15s ease',
-            transform: isOpen ? 'rotate(180deg)' : 'none'
+            transform: isOpen ? 'rotate(180deg)' : 'none',
+            flexShrink: 0
           }}
         />
       </button>

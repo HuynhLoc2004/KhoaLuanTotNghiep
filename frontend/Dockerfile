@@ -7,7 +7,8 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-RUN npm run build
+# Build siêu tốc với Vite (tiết kiệm RAM, chống nghẽn VPS khi deploy)
+RUN npx vite build
 
 # Stage 2: Serve with Nginx + SSL
 FROM nginx:alpine

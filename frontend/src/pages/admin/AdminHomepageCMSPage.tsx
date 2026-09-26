@@ -435,7 +435,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
         <button
           type="button"
-          className="btn btn-primary btn-sm"
+          className="btn btn-primary btn-sm admin-cms-save-btn"
           onClick={() => handleSave(sectionName)}
           disabled={isSaving}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
@@ -462,18 +462,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   return (
     <div className="admin-content" style={{ paddingBottom: 100 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG QUẢN TRỊ */}
-      <div
-        className="settings-header"
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-          marginBottom: 16
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="admin-cms-page-header">
+        <div className="admin-cms-header-info">
           <div
             style={{
               width: 44,
@@ -496,12 +486,12 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               Quản Lý Giao Diện & Nội Dung Trang Chủ
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, maxWidth: 720, lineHeight: 1.5 }}>
-              Quản lý độc lập từng phần hiển thị trên Trang chủ di sản. Dữ liệu được lưu trữ trực tiếp vào MongoDB và đồng bộ tức thì cho Khách tham quan.
+              Quản lý độc lập từng phần hiển thị trên trang chủ bảo tàng. Mọi thay đổi được lưu trữ an toàn và đồng bộ tức thì đến khách tham quan.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div className="admin-cms-header-actions">
           <a
             href="/"
             target="_blank"
@@ -539,19 +529,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       </div>
 
       {/* 2. THANH ĐIỀU HƯỚNG NHANH THEO TỪNG PHẦN (CHỌN TỪNG PHẦN ĐỘC LẬP) */}
-      <div
-        style={{
-          background: 'var(--bg-surface)',
-          padding: '8px 14px',
-          borderRadius: 10,
-          border: '1px solid var(--border-color)',
-          marginBottom: 20,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          overflowX: 'auto'
-        }}
-      >
+      <div className="admin-cms-nav-tabs">
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4 }}>
           Chọn phần:
         </span>
@@ -608,20 +586,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         {(activeSectionId === 'panel-brand' || activeSectionId === 'panel-menu') && (
         <section
           id="panel-brand"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 14,
-            padding: 24,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}
+          className="admin-cms-card"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="admin-cms-section-header">
+            <div className="admin-cms-title-group">
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Building2 size={18} />
               </div>
-              <div>
+              <div className="admin-cms-title-text">
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
                   1. Nhận Diện Thương Hiệu & Logo
                 </h2>
@@ -633,7 +605,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm admin-cms-save-btn"
               onClick={() => handleSave('Nhận diện & Logo')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -781,20 +753,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         {activeSectionId === 'panel-header-menu' && (
         <section
           id="panel-header-menu"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 14,
-            padding: 24,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}
+          className="admin-cms-card"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14, flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="admin-cms-section-header">
+            <div className="admin-cms-title-group">
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <MenuIcon size={18} />
               </div>
-              <div>
+              <div className="admin-cms-title-text">
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
                   2. Menu Header (Thanh Điều Hướng Đa Cấp)
                 </h2>
@@ -828,7 +794,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm admin-cms-save-btn"
                 onClick={() => handleSave('Menu Header')}
                 disabled={isSaving}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1327,7 +1293,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 </button>
                 <button
                   type="button"
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-primary btn-sm admin-cms-save-btn"
                   onClick={() => handleSave('Menu Header')}
                   disabled={isSaving}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
@@ -1347,20 +1313,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         {activeSectionId === 'panel-hero' && (
         <section
           id="panel-hero"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 14,
-            padding: 24,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}
+          className="admin-cms-card"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="admin-cms-section-header">
+            <div className="admin-cms-title-group">
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Image size={18} />
               </div>
-              <div>
+              <div className="admin-cms-title-text">
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
                   3. Khung Banner Hero Toàn Cảnh (Đầu trang)
                 </h2>
@@ -1372,7 +1332,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm admin-cms-save-btn"
               onClick={() => handleSave('Banner Hero')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1503,20 +1463,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         {activeSectionId === 'panel-intro' && (
         <section
           id="panel-intro"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 14,
-            padding: 24,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}
+          className="admin-cms-card"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="admin-cms-section-header">
+            <div className="admin-cms-title-group">
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Sparkles size={18} />
               </div>
-              <div>
+              <div className="admin-cms-title-text">
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
                   4. Khung Giới Thiệu Lịch Sử & Kiến Trúc
                 </h2>
@@ -1528,7 +1482,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm admin-cms-save-btn"
               onClick={() => handleSave('Giới thiệu Không gian')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1653,20 +1607,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         {activeSectionId === 'panel-rooms' && (
         <section
           id="panel-rooms"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 14,
-            padding: 24,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}
+          className="admin-cms-card"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="admin-cms-section-header">
+            <div className="admin-cms-title-group">
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Compass size={18} />
               </div>
-              <div>
+              <div className="admin-cms-title-text">
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
                   5. Khung Gian Phòng Trưng Bày 360°
                 </h2>
@@ -1678,7 +1626,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm admin-cms-save-btn"
               onClick={() => handleSave('Gian phòng 360°')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1880,20 +1828,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         {activeSectionId === 'panel-artifacts' && (
         <section
           id="panel-artifacts"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 14,
-            padding: 24,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}
+          className="admin-cms-card"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="admin-cms-section-header">
+            <div className="admin-cms-title-group">
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Box size={18} />
               </div>
-              <div>
+              <div className="admin-cms-title-text">
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
                   6. Khung Kho Tàng Cổ Vật Di Sản 3D
                 </h2>
@@ -1905,7 +1847,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm admin-cms-save-btn"
               onClick={() => handleSave('Cổ vật 3D')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -1976,20 +1918,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         {activeSectionId === 'panel-guide-preview' && (
         <section
           id="panel-guide-preview"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 14,
-            padding: 24,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}
+          className="admin-cms-card"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="admin-cms-section-header">
+            <div className="admin-cms-title-group">
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Layers size={18} />
               </div>
-              <div>
+              <div className="admin-cms-title-text">
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
                   7. Khối Cẩm Nang & Sơ Đồ Tham Quan (Hiển thị Trang Chủ)
                 </h2>
@@ -2001,7 +1937,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm admin-cms-save-btn"
               onClick={() => handleSave('Khối Cẩm nang tham quan')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -2106,20 +2042,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         {activeSectionId === 'panel-footer' && (
         <section
           id="panel-footer"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 14,
-            padding: 24,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}
+          className="admin-cms-card"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="admin-cms-section-header">
+            <div className="admin-cms-title-group">
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Phone size={18} />
               </div>
-              <div>
+              <div className="admin-cms-title-text">
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
                   8. Khung Chân Trang & Thông Tin Liên Hệ (Footer)
                 </h2>
@@ -2131,7 +2061,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm admin-cms-save-btn"
               onClick={() => handleSave('Chân trang & Liên hệ')}
               disabled={isSaving}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
@@ -2230,24 +2160,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       </div>
 
       {/* 4. THANH HÀNH ĐỘNG CỐ ĐỊNH PHÍA DƯỚI (STICKY BOTTOM ACTION BAR) */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          right: 24,
-          zIndex: 40,
-          background: 'rgba(26, 22, 19, 0.95)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid var(--accent-gold)',
-          borderRadius: 14,
-          padding: '10px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
-        }}
-      >
+      <div className="admin-cms-sticky-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CheckCircle2 size={16} style={{ color: 'var(--accent-gold)' }} />
           <span style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 500 }}>

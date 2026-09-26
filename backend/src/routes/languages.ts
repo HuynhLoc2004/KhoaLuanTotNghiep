@@ -304,7 +304,7 @@ CRITICAL RULES:
           contents: [{ parts: [{ text: `${systemInstruction}\n\nTexts to translate (JSON array):\n${JSON.stringify(texts)}` }] }],
           generationConfig: { responseMimeType: 'application/json' }
         }),
-        signal: AbortSignal.timeout(4000)
+        signal: AbortSignal.timeout(2000)
       });
 
       if (geminiRes.ok) {
@@ -324,21 +324,21 @@ CRITICAL RULES:
     }
   }
 
-  // 2. Với các cụm từ chưa được dịch, dùng Google Translate dict-chrome-ex song song siêu tốc theo từng nhóm nhỏ (12 cụm/lô)
+  // 2. Với các cụm từ chưa được dịch, dùng Google Translate song song toàn bộ siêu tốc (0ms nghẽn)
   const remaining = texts.filter((t) => !result[t]);
   if (remaining.length > 0) {
-    const BATCH_SIZE = 12;
-    for (let i = 0; i < remaining.length; i += BATCH_SIZE) {
-      const chunk = remaining.slice(i, i + BATCH_SIZE);
-      await Promise.all(
-        chunk.map(async (text) => {
+    await Promise.all(
+      remaining.map(async (text) => {
+        try {
           const tr = await fetchSingleChunkNMT(text, cleanLang);
           if (tr && tr !== text) {
             result[text] = cleanUpNMTOutput(tr, text, cleanLang);
           }
-        })
-      );
-    }
+        } catch {
+          // Ignore
+        }
+      })
+    );
   }
 
   // 3. Áp dụng Heritage Glossary cho toàn bộ kết quả

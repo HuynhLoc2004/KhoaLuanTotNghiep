@@ -15,21 +15,36 @@ import {
   ArrowLeft,
   ArrowRight,
   Compass,
-  Trash2
+  Trash2,
+  Cpu,
+  Zap,
+  Check,
+  Eye,
+  RefreshCw,
+  Radio,
+  Image as ImageIcon,
+  Building,
+  X,
+  AlertCircle,
+  Plus
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { api } from '../../services/api';
+import { api, API_ROOT } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Pagination } from '../../components/Pagination';
+import { InteractiveFloorPlanMap } from '../../components/client/InteractiveFloorPlanMap';
+import { FloorPlanMap } from '../../types';
+import { AdminFloorPlanMappingPage } from './AdminFloorPlanMappingPage';
 
 export const AdminGuideCMSPage: React.FC = () => {
   const { showToast } = useToast();
   const { branding, updateBranding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  // 5 phân mục con chuẩn mực quản lý độc lập cho Trang Cẩm nang & Sơ đồ
-  const [guideSubTab, setGuideSubTab] = useState<'info' | 'floorplan' | 'hours' | 'transit' | 'rules'>('info');
+  // 6 phân mục quản lý cho Trang Cẩm nang & Sơ đồ
+  const [guideSubTab, setGuideSubTab] = useState<'info' | 'floorplan' | 'mapping' | 'hours' | 'transit' | 'rules'>('info');
   const [isSaving, setIsSaving] = useState(false);
 
   // Modal Xác nhận
@@ -51,6 +66,23 @@ export const AdminGuideCMSPage: React.FC = () => {
   // Tải file ảnh sơ đồ mặt bằng
   const guideMapInputRef = useRef<HTMLInputElement>(null);
   const [uploadingGuideMap, setUploadingGuideMap] = useState(false);
+  const [analyzingMap, setAnalyzingMap] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+
+  // Quản lý Kho sơ đồ mặt bằng (Floor Plan Repository)
+  const [floorPlansRepo, setFloorPlansRepo] = useState<FloorPlanMap[]>([]);
+  const [activeFloorPlanId, setActiveFloorPlanId] = useState<string>('');
+  const [activeFloorPlan, setActiveFloorPlan] = useState<FloorPlanMap | null>(null);
+  const [repoLoading, setRepoLoading] = useState<boolean>(false);
+  const [repoPage, setRepoPage] = useState<number>(1);
+  const [repoLimit, setRepoLimit] = useState<number>(6);
+  const [repoTotal, setRepoTotal] = useState<number>(0);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [previewModalMap, setPreviewModalMap] = useState<FloorPlanMap | null>(null);
+  const [uploadAsActive, setUploadAsActive] = useState<boolean>(true);
+  const [newMapTitle, setNewMapTitle] = useState<string>('');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [uploadModalImageUrl, setUploadModalImageUrl] = useState<string>('');
 
   const [form, setForm] = useState({
     // Phân mục 1: Giới thiệu chung & Tiêu đề
@@ -109,58 +141,162 @@ export const AdminGuideCMSPage: React.FC = () => {
   });
 
   useEffect(() => {
-    setForm({
-      guideTag: branding.guideTag || 'Kế Hoạch & Sơ Đồ',
-      guideTitle: branding.guideTitle || 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa',
-      guideCtaText: branding.guideCtaText || 'Xem cẩm nang & sơ đồ tham quan',
-      guideDesc:
-        branding.guideDesc ||
-        'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.',
-
-      guideMapTitle: branding.guideMapTitle || 'Sơ đồ mặt bằng các gian trưng bày',
-      guideMapDesc:
-        branding.guideMapDesc ||
-        'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày giúp quý khách định hướng lộ trình thuận tiện nhất.',
-      guideMapUrl: branding.guideMapUrl || '',
-
-      guideOpeningDays: branding.guideOpeningDays || 'Thứ Ba – Chủ Nhật',
-      guideMorningHours: branding.guideMorningHours || '08:00 – 11:30',
-      guideAfternoonHours: branding.guideAfternoonHours || '13:30 – 17:00',
-      guideClosedNote:
-        branding.guideClosedNote || 'Thứ Hai: Đóng cửa định kỳ để bảo quản hiện vật và vệ sinh chuyên sâu',
-      guideTicketAdult: branding.guideTicketAdult || '30.000 ₫',
-      guideTicketStudent: branding.guideTicketStudent || '15.000 ₫',
-      guideTicketChild: branding.guideTicketChild || 'Miễn phí cho trẻ em dưới 6 tuổi, người cao tuổi & người khuyết tật',
-
-      address: branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-      hotline: branding.hotline || '(028) 3829 8146',
-      guideBusRoutes:
-        branding.guideBusRoutes ||
-        'Tuyến xe buýt số 05, 06, 14, 19, 52 dừng tại trạm Thảo Cầm Viên (ngay cổng đường Nguyễn Bỉnh Khiêm).',
-      guideParkingInfo:
-        branding.guideParkingInfo ||
-        'Bãi đỗ xe máy và ô tô thuận tiện ngay trong khuôn viên sân bảo tàng, có nhân viên an ninh hướng dẫn.',
-      guideGoogleMapsUrl: branding.guideGoogleMapsUrl || '',
-      guideGoogleMapsEmbed: branding.guideGoogleMapsEmbed || '',
-
-      guideRule1Title: branding.guideRule1Title || 'Quét mã QR tại tủ hiện vật',
-      guideRule1Desc:
-        branding.guideRule1Desc ||
-        'Mỗi tủ trưng bày đều trang bị mã QR để mở mô hình 3D xoay 360° và hồ sơ khảo cứu chi tiết ngay trên điện thoại.',
-      guideRule2Title: branding.guideRule2Title || 'Thuyết minh Audio Guide song ngữ',
-      guideRule2Desc:
-        branding.guideRule2Desc ||
-        'Khách tham quan có thể nghe giọng đọc thuyết minh tự động bằng tiếng Việt hoặc tiếng Anh trực tiếp trên trình duyệt.',
-      guideRule3Title: branding.guideRule3Title || 'Bảo quản di sản & Hiện vật',
-      guideRule3Desc:
-        branding.guideRule3Desc ||
-        'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
-      guideRule4Title: branding.guideRule4Title || 'Trang phục & Văn minh tham quan',
-      guideRule4Desc:
-        branding.guideRule4Desc ||
-        'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.'
-    });
+    setForm(prev => ({
+      ...prev,
+      guideTag: branding.guideTag || prev.guideTag,
+      guideTitle: branding.guideTitle || prev.guideTitle,
+      guideCtaText: branding.guideCtaText || prev.guideCtaText,
+      guideDesc: branding.guideDesc || prev.guideDesc,
+      guideMapTitle: branding.guideMapTitle || prev.guideMapTitle,
+      guideMapDesc: branding.guideMapDesc || prev.guideMapDesc,
+      guideMapUrl: branding.guideMapUrl || prev.guideMapUrl || '',
+      guideOpeningDays: branding.guideOpeningDays || prev.guideOpeningDays,
+      guideMorningHours: branding.guideMorningHours || prev.guideMorningHours,
+      guideAfternoonHours: branding.guideAfternoonHours || prev.guideAfternoonHours,
+      guideClosedNote: branding.guideClosedNote || prev.guideClosedNote,
+      guideTicketAdult: branding.guideTicketAdult || prev.guideTicketAdult,
+      guideTicketStudent: branding.guideTicketStudent || prev.guideTicketStudent,
+      guideTicketChild: branding.guideTicketChild || prev.guideTicketChild,
+      address: branding.address || prev.address,
+      hotline: branding.hotline || prev.hotline,
+      guideBusRoutes: branding.guideBusRoutes || prev.guideBusRoutes,
+      guideParkingInfo: branding.guideParkingInfo || prev.guideParkingInfo,
+      guideGoogleMapsUrl: branding.guideGoogleMapsUrl || prev.guideGoogleMapsUrl,
+      guideGoogleMapsEmbed: branding.guideGoogleMapsEmbed || prev.guideGoogleMapsEmbed,
+      guideRule1Title: branding.guideRule1Title || prev.guideRule1Title,
+      guideRule1Desc: branding.guideRule1Desc || prev.guideRule1Desc,
+      guideRule2Title: branding.guideRule2Title || prev.guideRule2Title,
+      guideRule2Desc: branding.guideRule2Desc || prev.guideRule2Desc,
+      guideRule3Title: branding.guideRule3Title || prev.guideRule3Title,
+      guideRule3Desc: branding.guideRule3Desc || prev.guideRule3Desc,
+      guideRule4Title: branding.guideRule4Title || prev.guideRule4Title,
+      guideRule4Desc: branding.guideRule4Desc || prev.guideRule4Desc
+    }));
   }, [branding]);
+
+  // Nạp sơ đồ mặt bằng và danh sách kho khi mở trang
+  const loadFloorPlansRepo = async (page = 1, limit = repoLimit) => {
+    try {
+      setRepoLoading(true);
+      const res = await api.getFloorPlansList({ page, limit });
+      if (res && res.data) {
+        setFloorPlansRepo(res.data);
+        setActiveFloorPlanId(res.activeId || '');
+        if (res.pagination) {
+          setRepoTotal(res.pagination.total || 0);
+          setRepoPage(res.pagination.page || 1);
+        }
+        const activeOne = res.data.find((m) => m.id === res.activeId || m.active);
+        if (activeOne) {
+          setActiveFloorPlan(activeOne);
+        }
+      }
+    } catch (err: any) {
+      console.error('Lỗi khi tải kho sơ đồ mặt bằng:', err);
+    } finally {
+      setRepoLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Lấy bản đồ active hiện tại
+    api.getFloorPlan()
+      .then((fp) => {
+        if (fp && fp.nodes && fp.nodes.length > 0) {
+          setActiveFloorPlan(fp);
+          setActiveFloorPlanId(fp.id);
+          setAnalysisResult({
+            data: fp,
+            summary: {
+              nodeCount: fp.nodes.length,
+              edgeCount: fp.edges.length
+            }
+          });
+          if (fp.imageUrl) {
+            setForm((prev) => ({
+              ...prev,
+              guideMapUrl: prev.guideMapUrl || fp.imageUrl || ''
+            }));
+          }
+        }
+      })
+      .catch(() => {});
+
+    // Nạp kho
+    loadFloorPlansRepo(1, repoLimit);
+  }, []);
+
+  // Tải lại kho khi người dùng chuyển sang tab floorplan
+  useEffect(() => {
+    if (guideSubTab === 'floorplan') {
+      loadFloorPlansRepo(repoPage, repoLimit);
+    }
+  }, [guideSubTab]);
+
+  const handleActivateMap = async (mapItem: FloorPlanMap) => {
+    try {
+      setActivatingId(mapItem.id);
+      const res = await api.activateFloorPlan(mapItem.id);
+      setActiveFloorPlanId(mapItem.id);
+      setActiveFloorPlan(res || mapItem);
+      if (mapItem.imageUrl) {
+        handleChange('guideMapUrl', mapItem.imageUrl);
+      }
+      if (mapItem.title) {
+        handleChange('guideMapTitle', mapItem.title);
+      }
+      showToast(`Đã đặt sơ đồ "${mapItem.title || 'Mặt bằng'}" làm sơ đồ hiển thị chính thức!`, 'success');
+      loadFloorPlansRepo(repoPage, repoLimit);
+    } catch (err: any) {
+      showToast(err?.message || 'Lỗi khi kích hoạt bản đồ', 'error');
+    } finally {
+      setActivatingId(null);
+    }
+  };
+
+  // Helper xử lý đường dẫn hình ảnh sơ đồ từ backend an toàn 100%
+  const resolveImageUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${API_ROOT}${cleanPath}`;
+  };
+
+  const handleDeleteMap = (mapItem: FloorPlanMap) => {
+    setConfirmModalConfig({
+      isOpen: true,
+      title: 'Xóa sơ đồ mặt bằng',
+      message: `Bạn có chắc chắn muốn xóa sơ đồ "${mapItem.title || 'Mặt bằng'}"? Thao tác này sẽ xóa sơ đồ khỏi hệ thống và không thể hoàn tác.`,
+      confirmText: 'Xác nhận xóa',
+      cancelText: 'Hủy',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.deleteFloorPlan(mapItem.id);
+          showToast(`Đã xóa sơ đồ "${mapItem.title || 'Mặt bằng'}" thành công!`, 'success');
+          setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
+          await loadFloorPlansRepo(repoPage, repoLimit);
+          const currentFp = await api.getFloorPlan();
+          if (currentFp) {
+            setActiveFloorPlan(currentFp);
+            setActiveFloorPlanId(currentFp.id);
+            handleChange('guideMapUrl', currentFp.imageUrl || '');
+          } else {
+            // Không còn sơ đồ nào trong hệ thống!
+            setActiveFloorPlan(null);
+            setActiveFloorPlanId('');
+            handleChange('guideMapUrl', '');
+          }
+        } catch (err: any) {
+          showToast(err?.message || 'Lỗi khi xóa sơ đồ mặt bằng', 'error');
+        } finally {
+          setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
+  };
 
   const handleChange = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -197,16 +333,64 @@ export const AdminGuideCMSPage: React.FC = () => {
       setUploadingGuideMap(true);
       const res = await api.uploadBrandingImage(file);
       if (res && res.url) {
-        handleChange('guideMapUrl', res.url);
-        showToast('Đã tải ảnh sơ đồ mặt bằng thành công! Nhớ nhấn "Lưu phân mục này" để áp dụng.', 'success');
+        setUploadModalImageUrl(res.url);
+        // Tự động gợi ý tên sơ đồ thông minh nếu người dùng chưa nhập
+        if (!newMapTitle) {
+          const rawName = file.name.replace(/\.[^/.]+$/, '').trim();
+          const cleanName = rawName.length > 3 ? rawName : 'Sơ đồ tham quan Bảo tàng Lịch sử TP.HCM';
+          setNewMapTitle(cleanName);
+        }
+        if (uploadAsActive) {
+          handleChange('guideMapUrl', res.url);
+          try {
+            await updateBranding({ guideMapUrl: res.url });
+          } catch {}
+        }
+        showToast('Đã tải ảnh lên xem trước. Quý khách vui lòng kiểm tra tiêu đề và nhấn "Xác nhận tải lên & Phân tích sơ đồ".', 'info');
       }
     } catch (err: any) {
-      showToast(err?.message || 'Lỗi khi tải ảnh sơ đồ mặt bằng lên server', 'error');
+      showToast(err?.message || 'Lỗi khi tải ảnh sơ đồ mặt bằng lên hệ thống', 'error');
     } finally {
       setUploadingGuideMap(false);
       if (guideMapInputRef.current) {
         guideMapInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleAnalyzeFloorPlan = async (targetUrl?: string) => {
+    const urlToAnalyze = targetUrl || uploadModalImageUrl || form.guideMapUrl;
+    if (!urlToAnalyze) {
+      showToast('Vui lòng tải ảnh sơ đồ lên trước khi phân tích', 'info');
+      return;
+    }
+
+    try {
+      setAnalyzingMap(true);
+      const formData = new FormData();
+      formData.append('imageUrl', urlToAnalyze);
+      formData.append('title', newMapTitle.trim() || form.guideMapTitle || 'Sơ đồ mặt bằng các gian trưng bày');
+      formData.append('description', form.guideMapDesc || '');
+      formData.append('setActive', uploadAsActive ? 'true' : 'false');
+
+      const res = await api.analyzeFloorPlan(formData);
+      setAnalysisResult(res);
+      if (uploadAsActive) {
+        setActiveFloorPlanId(res.data.id);
+        setActiveFloorPlan(res.data);
+        if (res.data.imageUrl) {
+          handleChange('guideMapUrl', res.data.imageUrl);
+        }
+      }
+      showToast(
+        `Đã nhận diện sơ đồ thành công: ${res.summary?.nodeCount || 0} gian phòng và ${res.summary?.edgeCount || 0} cửa thông phòng.`,
+        'success'
+      );
+      loadFloorPlansRepo(1, repoLimit);
+    } catch (err: any) {
+      showToast(err?.message || 'Lỗi khi phân tích sơ đồ', 'error');
+    } finally {
+      setAnalyzingMap(false);
     }
   };
 
@@ -259,79 +443,18 @@ export const AdminGuideCMSPage: React.FC = () => {
     });
   };
 
-  // Danh sách 5 phân mục chuẩn mực của Trang Cẩm nang
+  // Danh sách các phân mục của Trang Cẩm nang & Sơ đồ
   const GUIDE_SUBTABS = [
     { id: 'info', num: 1, label: '1. Giới thiệu chung', desc: 'Tiêu đề trang, thẻ định danh và đoạn mô tả giới thiệu', icon: Info },
     { id: 'floorplan', num: 2, label: '2. Sơ đồ mặt bằng', desc: 'Tiêu đề, mô tả và file ảnh sơ đồ kiến trúc tham quan', icon: Compass },
-    { id: 'hours', num: 3, label: '3. Giờ mở cửa & Giá vé', desc: 'Khung giờ đón khách, lưu ý đóng cửa và biểu phí vé niêm yết', icon: Clock },
-    { id: 'transit', num: 4, label: '4. Vị trí & Google Maps', desc: 'Địa chỉ, hotline, xe buýt, bãi xe và bản đồ tương tác', icon: MapPin },
-    { id: 'rules', num: 5, label: '5. Tiện ích & Quy định', desc: '4 quy định tham quan văn minh và tiện ích phục vụ khách', icon: ShieldCheck }
+    { id: 'mapping', num: 3, label: '3. Gán Không Gian 360°', desc: 'Gắn các gian phòng 360° thực tế và giọng đọc thuyết minh vào sơ đồ', icon: MapPin },
+    { id: 'hours', num: 4, label: '4. Giờ mở cửa & Giá vé', desc: 'Khung giờ đón khách, lưu ý đóng cửa và biểu phí vé niêm yết', icon: Clock },
+    { id: 'transit', num: 5, label: '5. Vị trí & Google Maps', desc: 'Địa chỉ, hotline, xe buýt, bãi xe và bản đồ tương tác', icon: Globe },
+    { id: 'rules', num: 6, label: '6. Tiện ích & Quy định', desc: '4 quy định tham quan văn minh và tiện ích phục vụ khách', icon: ShieldCheck }
   ] as const;
 
-  // Thanh điều hướng chân phân mục (Phần trước / Lưu / Phần tiếp theo)
-  const renderSubTabFooter = (currentIndex: number, sectionName: string) => {
-    const prevTab = currentIndex > 0 ? GUIDE_SUBTABS[currentIndex - 1] : null;
-    const nextTab = currentIndex < GUIDE_SUBTABS.length - 1 ? GUIDE_SUBTABS[currentIndex + 1] : null;
-
-    return (
-      <div
-        style={{
-          marginTop: 28,
-          paddingTop: 18,
-          borderTop: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12
-        }}
-      >
-        {prevTab ? (
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            onClick={() => {
-              setGuideSubTab(prevTab.id as any);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <ArrowLeft size={14} />
-            <span>Phần trước: {prevTab.label}</span>
-          </button>
-        ) : <div />}
-
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={() => handleSave(sectionName)}
-          disabled={isSaving}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
-        >
-          <Save size={15} />
-          <span>{isSaving ? 'Đang lưu...' : `Lưu thay đổi ${sectionName}`}</span>
-        </button>
-
-        {nextTab ? (
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            onClick={() => {
-              setGuideSubTab(nextTab.id as any);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <span>Phần tiếp theo: {nextTab.label}</span>
-            <ArrowRight size={14} />
-          </button>
-        ) : <div />}
-      </div>
-    );
-  };
-
   return (
-    <div className="admin-content" style={{ paddingBottom: 100 }}>
+    <div className="admin-content" style={{ paddingBottom: 60 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG QUẢN TRỊ TRANG CẨM NANG & SƠ ĐỒ */}
       <div
         className="settings-header"
@@ -344,45 +467,44 @@ export const AdminGuideCMSPage: React.FC = () => {
           marginBottom: 16
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
-              border: '1px solid var(--accent-gold)',
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#FFF8F0',
-              boxShadow: '0 4px 12px rgba(140, 45, 25, 0.3)',
+              color: 'var(--text-main)',
               flexShrink: 0
             }}
           >
-            <Layers size={22} />
+            <Layers size={18} />
           </div>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
-              Quản Lý Giao Diện & Nội Dung Trang Cẩm Nang & Sơ Đồ
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 3px 0' }}>
+              Quản Lý Trang Cẩm Nang & Sơ Đồ
             </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, maxWidth: 740, lineHeight: 1.5 }}>
-              Quản lý độc lập toàn bộ nội dung trang Cẩm nang tham quan thực địa: Sơ đồ mặt bằng kiến trúc, thời gian mở cửa, bảng giá vé niêm yết, vị trí chỉ đường Google Maps và các quy định tiện ích.
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: 0, maxWidth: 740, lineHeight: 1.4 }}>
+              Cấu hình nội dung trang cẩm nang: Sơ đồ mặt bằng, giờ mở cửa, bảng giá vé, vị trí chỉ đường và quy định tham quan.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <a
             href="/?page=guide"
             target="_blank"
             rel="noreferrer"
             className="btn btn-secondary btn-sm"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <Globe size={15} />
-            <span>Xem Trang Cẩm Nang Khách</span>
-            <ExternalLink size={13} style={{ opacity: 0.6 }} />
+            <Globe size={14} />
+            <span>Xem trang khách</span>
+            <ExternalLink size={12} style={{ opacity: 0.6 }} />
           </a>
 
           <button
@@ -390,7 +512,7 @@ export const AdminGuideCMSPage: React.FC = () => {
             className="btn btn-secondary btn-sm"
             onClick={handleResetDefaults}
             title="Đặt lại các nội dung về mẫu chuẩn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <RotateCcw size={14} />
             <span>Khôi phục mẫu</span>
@@ -401,32 +523,28 @@ export const AdminGuideCMSPage: React.FC = () => {
             className="btn btn-primary btn-sm"
             onClick={() => handleSave()}
             disabled={isSaving}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <Save size={15} />
+            <Save size={14} />
             <span>{isSaving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}</span>
           </button>
         </div>
       </div>
 
-      {/* 2. THANH PHÂN NHÓM CHUYÊN ĐỀ (SUB-TABS) - GỌN GÀNG, CHUẨN MỰC */}
+      {/* 2. THANH SUB-TABS PHẲNG, TỐI GIẢN CHUẨN DASHBOARD ADMIN */}
       <div
         style={{
           background: 'var(--bg-surface)',
-          padding: '8px 14px',
-          borderRadius: 10,
+          padding: '6px 8px',
+          borderRadius: 8,
           border: '1px solid var(--border-color)',
-          marginBottom: 20,
+          marginBottom: 18,
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 6,
           overflowX: 'auto'
         }}
       >
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4 }}>
-          Chọn phân mục:
-        </span>
-
         {GUIDE_SUBTABS.map((tab) => {
           const isActive = guideSubTab === tab.id;
           const TabIcon = tab.icon;
@@ -440,20 +558,20 @@ export const AdminGuideCMSPage: React.FC = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '7px 16px',
-                borderRadius: 8,
+                padding: '6px 14px',
+                borderRadius: 6,
                 fontSize: 12.5,
                 fontWeight: isActive ? 600 : 500,
                 border: '1px solid',
-                borderColor: isActive ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
-                background: isActive ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-                color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
+                borderColor: isActive ? 'var(--border-color)' : 'transparent',
+                background: isActive ? 'var(--bg-subtle)' : 'transparent',
+                color: isActive ? 'var(--heading-color)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.15s ease'
               }}
             >
-              <TabIcon size={14} />
+              <TabIcon size={13} style={{ opacity: isActive ? 1 : 0.7 }} />
               <span>{tab.label}</span>
             </button>
           );
@@ -476,34 +594,38 @@ export const AdminGuideCMSPage: React.FC = () => {
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
               {guideSubTab === 'info' && '1. Giới Thiệu Chung & Tiêu Đề Trang Cẩm Nang'}
               {guideSubTab === 'floorplan' && '2. Sơ Đồ Mặt Bằng & Bản Đồ Kiến Trúc'}
-              {guideSubTab === 'hours' && '3. Thời Gian Hoạt Động & Biểu Phí Vé Niêm Yết'}
-              {guideSubTab === 'transit' && '4. Vị Trí, Chỉ Dẫn Di Chuyển & Google Maps'}
-              {guideSubTab === 'rules' && '5. Tiện Ích Phục Vụ & Nội Quy Tham Quan Văn Minh'}
+              {guideSubTab === 'mapping' && '3. Gán Gian Phòng 360° & Thuyết Minh Vào Sơ Đồ'}
+              {guideSubTab === 'hours' && '4. Thời Gian Hoạt Động & Biểu Phí Vé Niêm Yết'}
+              {guideSubTab === 'transit' && '5. Vị Trí, Chỉ Dẫn Di Chuyển & Google Maps'}
+              {guideSubTab === 'rules' && '6. Tiện Ích Phục Vụ & Nội Quy Tham Quan Văn Minh'}
             </h2>
             <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
               {guideSubTab === 'info' && 'Cấu hình tiêu đề chính, thẻ định danh, đoạn văn giới thiệu và nút điều hướng của trang cẩm nang.'}
               {guideSubTab === 'floorplan' && 'Tải lên hình ảnh sơ đồ mặt bằng kiến trúc bảo tàng, định vị các cánh trưng bày phục vụ khách thực địa.'}
+              {guideSubTab === 'mapping' && 'Liên kết từng vị trí phòng trên sơ đồ với gian phòng 360° thực tế và file thuyết minh giọng nói.'}
               {guideSubTab === 'hours' && 'Cập nhật khung giờ đón khách ca sáng/chiều, các ngày mở cửa trong tuần và bảng giá vé các đối tượng.'}
               {guideSubTab === 'transit' && 'Địa chỉ thực tế, số điện thoại đường dây nóng, tuyến xe buýt, bãi xe và mã nhúng bản đồ trực tiếp.'}
               {guideSubTab === 'rules' && 'Thiết lập 4 quy tắc văn minh và tiện ích trải nghiệm (mã QR hiện vật, thuyết minh audio guide, bảo quản).'}
             </span>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => handleSave(
-              guideSubTab === 'info' ? 'Giới thiệu chung' :
-              guideSubTab === 'floorplan' ? 'Sơ đồ mặt bằng' :
-              guideSubTab === 'hours' ? 'Giờ mở cửa & Giá vé' :
-              guideSubTab === 'transit' ? 'Vị trí & Google Maps' : 'Tiện ích & Quy định'
-            )}
-            disabled={isSaving}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <Save size={14} />
-            <span>Lưu phân mục này</span>
-          </button>
+          {guideSubTab !== 'mapping' && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => handleSave(
+                guideSubTab === 'info' ? 'Giới thiệu chung' :
+                guideSubTab === 'floorplan' ? 'Sơ đồ mặt bằng' :
+                guideSubTab === 'hours' ? 'Giờ mở cửa & Giá vé' :
+                guideSubTab === 'transit' ? 'Vị trí & Google Maps' : 'Tiện ích & Quy định'
+              )}
+              disabled={isSaving}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Save size={14} />
+              <span>Lưu phân mục này</span>
+            </button>
+          )}
         </div>
 
         {/* PHÂN MỤC 1: GIỚI THIỆU CHUNG & TIÊU ĐỀ TRANG CẨM NANG */}
@@ -562,102 +684,381 @@ export const AdminGuideCMSPage: React.FC = () => {
                 />
               </div>
             </div>
-            {renderSubTabFooter(0, 'Phần 1: Giới thiệu chung')}
           </div>
         )}
 
-        {/* PHÂN MỤC 2: SƠ ĐỒ MẶT BẰNG KIẾN TRÚC */}
+        {/* PHÂN MỤC 2: SƠ ĐỒ MẶT BẰNG & BẢN ĐỒ KIẾN TRÚC */}
         {guideSubTab === 'floorplan' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            
+            {/* Header phân mục 2 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Tiêu đề sơ đồ mặt bằng
-                </label>
-                <input
-                  type="text"
-                  value={form.guideMapTitle || ''}
-                  onChange={(e) => handleChange('guideMapTitle', e.target.value)}
-                  placeholder="Sơ đồ mặt bằng các gian trưng bày"
-                  style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-                />
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Hệ thống sơ đồ mặt bằng kiến trúc
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Quản lý danh sách sơ đồ mặt bằng và các gian phòng trưng bày
+                </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Mô tả sơ đồ mặt bằng
-                </label>
-                <input
-                  type="text"
-                  value={form.guideMapDesc || ''}
-                  onChange={(e) => handleChange('guideMapDesc', e.target.value)}
-                  placeholder="Bản đồ kiến trúc không gian và vị trí các gian phòng..."
-                  style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-                />
-              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => loadFloorPlansRepo(repoPage, repoLimit)}
+                  disabled={repoLoading}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                >
+                  <RefreshCw size={13} className={repoLoading ? 'animate-spin' : ''} />
+                  <span>Làm mới</span>
+                </button>
 
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                  Đường dẫn hoặc tải file ảnh sơ đồ mặt bằng
-                </label>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
-                    value={form.guideMapUrl || ''}
-                    onChange={(e) => handleChange('guideMapUrl', e.target.value)}
-                    placeholder="https://... hoặc bấm nút tải ảnh bên cạnh"
-                    style={{ flex: 1, minWidth: 260, padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
-                  />
-                  <input
-                    type="file"
-                    ref={guideMapInputRef}
-                    accept="image/*"
-                    onChange={handleUploadGuideMap}
-                    style={{ display: 'none' }}
-                  />
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setUploadModalImageUrl('');
+                    setNewMapTitle('');
+                    setIsUploadModalOpen(true);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                >
+                  <Plus size={14} />
+                  <span>Tải lên sơ đồ mới</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 1. Bản đồ đang áp dụng trên Client (Live) */}
+            {activeFloorPlan ? (
+              <div
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 8,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 16
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div
+                    style={{
+                      width: 110,
+                      height: 72,
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-subtle)',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {activeFloorPlan.imageUrl ? (
+                      <img
+                        src={resolveImageUrl(activeFloorPlan.imageUrl)}
+                        alt={activeFloorPlan.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <ImageIcon size={20} style={{ opacity: 0.35, color: 'var(--text-muted)' }} />
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          color: '#16A34A',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A', display: 'inline-block' }} />
+                        Đang áp dụng trên Client
+                      </span>
+                    </div>
+
+                    <h4 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
+                      {activeFloorPlan.title || 'Sơ đồ mặt bằng các gian trưng bày'}
+                    </h4>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+                      <span>{activeFloorPlan.nodes?.length || 0} gian phòng</span>
+                      <span>•</span>
+                      <span>{activeFloorPlan.edges?.length || 0} liên kết cửa</span>
+                      <span>•</span>
+                      <span>Tự động nhận diện</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={() => guideMapInputRef.current?.click()}
-                    disabled={uploadingGuideMap}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => setPreviewModalMap(activeFloorPlan)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
-                    <Upload size={14} />
-                    <span>{uploadingGuideMap ? 'Đang tải...' : 'Tải ảnh sơ đồ lên'}</span>
+                    <Eye size={13} />
+                    <span>Xem cấu trúc không gian</span>
                   </button>
-                  {form.guideMapUrl && (
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={() => handleChange('guideMapUrl', '')}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
-                    >
-                      <Trash2 size={14} />
-                      <span>Xóa ảnh</span>
-                    </button>
-                  )}
+
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setGuideSubTab('mapping')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
+                  >
+                    <MapPin size={13} />
+                    <span>Gán Không Gian 360° & Voice</span>
+                  </button>
                 </div>
-                <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                  Hỗ trợ các định dạng hình ảnh PNG, JPG, WEBP chất lượng cao. Ảnh sẽ hiển thị tại phần Sơ đồ mặt bằng trang Cẩm nang và hỗ trợ người xem phóng to xem chi tiết.
-                </span>
+              </div>
+            ) : (
+              <div style={{ padding: '14px 16px', background: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12.5 }}>
+                Chưa có sơ đồ nào được áp dụng cho khách tham quan.
+              </div>
+            )}
+
+            {/* 2. Thư viện sơ đồ mặt bằng */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                    Thư viện sơ đồ mặt bằng
+                  </span>
+                  <span style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 7px', borderRadius: 10, fontSize: 11.5, fontWeight: 600 }}>
+                    {repoTotal}
+                  </span>
+                </div>
               </div>
 
-              {form.guideMapUrl && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
-                    Xem trước ảnh sơ đồ mặt bằng:
-                  </label>
-                  <div style={{ width: '100%', maxHeight: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                    <img src={form.guideMapUrl} alt="Preview sơ đồ" style={{ width: '100%', height: 280, objectFit: 'contain', background: '#0D111A' }} />
-                  </div>
+              {/* Lưới các thẻ bản đồ */}
+              {repoLoading && floorPlansRepo.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  <div className="spinner-border" style={{ width: 22, height: 22, margin: '0 auto 8px', display: 'block' }} />
+                  Đang tải danh sách sơ đồ...
+                </div>
+              ) : floorPlansRepo.length === 0 ? (
+                <div style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface)', borderRadius: 8, border: '1px dashed var(--border-color)' }}>
+                  <Layers size={28} style={{ opacity: 0.3, margin: '0 auto 6px', display: 'block' }} />
+                  <p style={{ margin: 0, fontSize: 13 }}>Chưa có sơ đồ nào trong thư viện.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+                  {floorPlansRepo.map((item) => {
+                    const isLive = item.id === activeFloorPlanId || item.active;
+                    const isActivating = activatingId === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: 8,
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}
+                      >
+                        {/* Thumbnail */}
+                        <div style={{ position: 'relative', width: '100%', height: 130, background: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {item.imageUrl ? (
+                            <img
+                              src={resolveImageUrl(item.imageUrl)}
+                              alt={item.title}
+                              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                              <ImageIcon size={28} style={{ opacity: 0.35 }} />
+                            </div>
+                          )}
+                          <div style={{ position: 'absolute', top: 6, left: 6 }}>
+                            {isLive ? (
+                              <span
+                                style={{
+                                  background: 'rgba(15, 23, 42, 0.85)',
+                                  color: '#4ADE80',
+                                  fontSize: 10.5,
+                                  fontWeight: 600,
+                                  padding: '2px 7px',
+                                  borderRadius: 4,
+                                  border: '1px solid rgba(74, 222, 128, 0.3)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
+                              >
+                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
+                                Đang dùng
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  background: 'rgba(15, 23, 42, 0.85)',
+                                  color: 'var(--text-muted)',
+                                  fontSize: 10.5,
+                                  fontWeight: 500,
+                                  padding: '2px 7px',
+                                  borderRadius: 4,
+                                  border: '1px solid rgba(255,255,255,0.08)'
+                                }}
+                              >
+                                Chưa áp dụng
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Chi tiết */}
+                        <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', flex: 1, gap: 6 }}>
+                          <div>
+                            <h4
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: 'var(--heading-color)',
+                                margin: '0 0 2px 0',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                              title={item.title}
+                            >
+                              {item.title || item.id}
+                            </h4>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              ID: {item.id}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                            <span>{item.nodes?.length || 0} phòng</span>
+                            <span>•</span>
+                            <span>{item.edges?.length || 0} cửa</span>
+                            {(item.imageWidth || item.width) && (item.imageHeight || item.height) && (
+                              <>
+                                <span>•</span>
+                                <span>{item.imageWidth || item.width}×{item.imageHeight || item.height}px</span>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Nút hành động */}
+                          <div style={{ marginTop: 'auto', paddingTop: 8, display: 'flex', alignItems: 'center', gap: 6, borderTop: '1px solid var(--border-color)' }}>
+                            {isLive ? (
+                              <button
+                                type="button"
+                                disabled
+                                className="btn btn-secondary btn-sm"
+                                style={{
+                                  flex: 1,
+                                  padding: '5px 8px',
+                                  fontSize: 11.5,
+                                  opacity: 0.65,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 4
+                                }}
+                              >
+                                <Check size={12} />
+                                <span>Đang dùng</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleActivateMap(item)}
+                                disabled={isActivating}
+                                className="btn btn-primary btn-sm"
+                                style={{
+                                  flex: 1,
+                                  padding: '5px 8px',
+                                  fontSize: 11.5,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 4
+                                }}
+                              >
+                                <Zap size={12} />
+                                <span>{isActivating ? 'Đang bật...' : 'Áp dụng'}</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => setPreviewModalMap(item)}
+                              title="Xem trước cấu trúc tô-pô"
+                              style={{ padding: '5px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              <Eye size={12} />
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={() => handleDeleteMap(item)}
+                              title="Xóa bản đồ"
+                              style={{ padding: '5px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
+
+              {/* Phân trang */}
+              <div style={{ marginTop: 4 }}>
+                <Pagination
+                  currentPage={repoPage}
+                  totalItems={repoTotal}
+                  pageSize={repoLimit}
+                  pageSizeOptions={[3, 6, 9, 12, 24]}
+                  itemLabel="sơ đồ mặt bằng"
+                  onPageChange={(page) => {
+                    setRepoPage(page);
+                    loadFloorPlansRepo(page, repoLimit);
+                  }}
+                  onPageSizeChange={(newSize) => {
+                    setRepoLimit(newSize);
+                    setRepoPage(1);
+                    loadFloorPlansRepo(1, newSize);
+                  }}
+                />
+              </div>
             </div>
-            {renderSubTabFooter(1, 'Phần 2: Sơ đồ mặt bằng')}
           </div>
         )}
 
-        {/* PHÂN MỤC 3: GIỜ MỞ CỬA & BIỂU PHÍ VÉ */}
+        {/* PHÂN MỤC 3: GÁN KHÔNG GIAN 360° & VOICE VÀO SƠ ĐỒ MẶT BẰNG */}
+        {guideSubTab === 'mapping' && (
+          <AdminFloorPlanMappingPage onBackToGuide={() => setGuideSubTab('floorplan')} />
+        )}
+
+        {/* PHÂN MỤC 4: GIỜ MỞ CỬA & BIỂU PHÍ VÉ */}
         {guideSubTab === 'hours' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
@@ -766,7 +1167,6 @@ export const AdminGuideCMSPage: React.FC = () => {
                 />
               </div>
             </div>
-            {renderSubTabFooter(2, 'Phần 3: Giờ mở cửa & Giá vé')}
           </div>
         )}
 
@@ -892,7 +1292,6 @@ export const AdminGuideCMSPage: React.FC = () => {
                 </div>
               )}
             </div>
-            {renderSubTabFooter(3, 'Phần 4: Vị trí & Google Maps')}
           </div>
         )}
 
@@ -907,9 +1306,9 @@ export const AdminGuideCMSPage: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
               {/* Mục 1 */}
-              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
                     Quy tắc 01
                   </span>
                 </div>
@@ -930,9 +1329,9 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
 
               {/* Mục 2 */}
-              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
                     Quy tắc 02
                   </span>
                 </div>
@@ -953,9 +1352,9 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
 
               {/* Mục 3 */}
-              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
                     Quy tắc 03
                   </span>
                 </div>
@@ -976,9 +1375,9 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
 
               {/* Mục 4 */}
-              <div style={{ background: 'var(--bg-card)', padding: 18, borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
                     Quy tắc 04
                   </span>
                 </div>
@@ -998,48 +1397,400 @@ export const AdminGuideCMSPage: React.FC = () => {
                 />
               </div>
             </div>
-            {renderSubTabFooter(4, 'Phần 5: Tiện ích & Quy định')}
           </div>
         )}
       </section>
 
-      {/* 4. THANH HÀNH ĐỘNG CỐ ĐỊNH PHÍA DƯỚI (STICKY BOTTOM ACTION BAR) */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          right: 24,
-          zIndex: 40,
-          background: 'rgba(26, 22, 19, 0.95)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid var(--accent-gold)',
-          borderRadius: 14,
-          padding: '10px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CheckCircle2 size={16} style={{ color: 'var(--accent-gold)' }} />
-          <span style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 500 }}>
-            Dữ liệu CSDL MongoDB & Đồng bộ tức thì
-          </span>
-        </div>
-
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={() => handleSave()}
-          disabled={isSaving}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
+      {/* MODAL XEM TRƯỚC ĐỒ THỊ TÔ-PÔ BẢN ĐỒ CHI TIẾT */}
+      {previewModalMap && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            background: 'rgba(0, 0, 0, 0.82)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
         >
-          <Save size={15} />
-          <span>{isSaving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}</span>
-        </button>
-      </div>
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 16,
+              width: '95vw',
+              maxWidth: 1100,
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--bg-card)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Compass size={18} style={{ color: 'var(--text-main)' }} />
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
+                    {previewModalMap.title || 'Xem trước cấu trúc tô-pô'}
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                      Mã: {previewModalMap.id} | {previewModalMap.nodes?.length || 0} phòng | {previewModalMap.edges?.length || 0} cửa
+                    </span>
+                    {(previewModalMap.id === activeFloorPlanId || previewModalMap.active) ? (
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#16A34A', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
+                        ● Đang áp dụng trên Client
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4 }}>
+                        Lưu kho
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {!(previewModalMap.id === activeFloorPlanId || previewModalMap.active) && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      handleActivateMap(previewModalMap);
+                      setPreviewModalMap(null);
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                  >
+                    <Zap size={13} />
+                    <span>Áp dụng bản đồ này cho Client</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setPreviewModalMap(null)}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body: InteractiveFloorPlanMap */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+              <InteractiveFloorPlanMap floorPlan={previewModalMap} clientTheme="dark" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL TẢI LÊN & PHÂN TÍCH SƠ ĐỒ MỚI (PURE CV ENGINE) */}
+      {isUploadModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 10,
+              width: '100%',
+              maxWidth: 540,
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: 'var(--shadow-lg)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Header Modal */}
+            <div
+              style={{
+                padding: '14px 18px',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--bg-surface)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 6,
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-main)'
+                  }}
+                >
+                  <Compass size={16} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
+                    Tải lên & phân tích sơ đồ mới
+                  </h3>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    Hệ thống tự động nhận diện các gian phòng & cửa thông phòng
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  if (!uploadingGuideMap && !analyzingMap) {
+                    setIsUploadModalOpen(false);
+                  }
+                }}
+                disabled={uploadingGuideMap || analyzingMap}
+                style={{ padding: 5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Body Modal */}
+            <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Input file ẩn */}
+              <input
+                ref={guideMapInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleUploadGuideMap}
+              />
+
+              {/* Tên / Tiêu đề sơ đồ */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
+                  Tiêu đề bản đồ
+                </label>
+                <input
+                  type="text"
+                  value={newMapTitle}
+                  onChange={(e) => setNewMapTitle(e.target.value)}
+                  placeholder="VD: Sơ đồ tầng trệt - Các gian khảo cổ học & cổ vật"
+                  disabled={uploadingGuideMap || analyzingMap}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 6,
+                    color: 'var(--text-main)',
+                    fontSize: 12.5
+                  }}
+                />
+              </div>
+
+              {/* Tùy chọn đặt làm Active ngay */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: (uploadingGuideMap || analyzingMap) ? 'not-allowed' : 'pointer',
+                  fontSize: 12,
+                  color: 'var(--text-main)',
+                  userSelect: 'none'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={uploadAsActive}
+                  onChange={(e) => setUploadAsActive(e.target.checked)}
+                  disabled={uploadingGuideMap || analyzingMap}
+                  style={{ width: 15, height: 15, cursor: 'pointer' }}
+                />
+                <span>Áp dụng ngay cho Khách tham quan sau khi phân tích xong</span>
+              </label>
+
+              {/* Vùng chọn file ảnh & Preview */}
+              {uploadingGuideMap || analyzingMap ? (
+                <div
+                  style={{
+                    padding: '30px 16px',
+                    borderRadius: 8,
+                    background: 'var(--bg-subtle)',
+                    border: '1px dashed var(--border-color)',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 10
+                  }}
+                >
+                  <div
+                    className="spinner-border text-primary"
+                    style={{ width: 28, height: 28, borderWidth: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)' }}>
+                      {uploadingGuideMap
+                        ? 'Đang tải file ảnh lên hệ thống...'
+                        : 'Đang tự động nhận diện không gian...'}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
+                      {uploadingGuideMap
+                        ? 'Vui lòng chờ trong giây lát'
+                        : 'Đang xử lý vị trí các gian phòng và cửa thông phòng'}
+                    </div>
+                  </div>
+                </div>
+              ) : uploadModalImageUrl ? (
+                <div
+                  style={{
+                    borderRadius: 8,
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-subtle)',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: 10,
+                    gap: 8
+                  }}
+                >
+                  <div style={{ width: '100%', height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img
+                      src={uploadModalImageUrl}
+                      alt="Bản đồ đã chọn"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => guideMapInputRef.current?.click()}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}
+                  >
+                    <Upload size={12} />
+                    <span>Chọn file khác</span>
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => guideMapInputRef.current?.click()}
+                  style={{
+                    border: '1px dashed var(--border-color)',
+                    background: 'var(--bg-subtle)',
+                    borderRadius: 8,
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: '50%',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text-muted)'
+                    }}
+                  >
+                    <Upload size={16} />
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)' }}>
+                    Bấm để chọn file ảnh bản đồ
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    Hỗ trợ PNG, JPG, WEBP (Tối đa 20MB)
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Modal */}
+            <div
+              style={{
+                padding: '12px 18px',
+                borderTop: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: 8,
+                background: 'var(--bg-surface)'
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsUploadModalOpen(false)}
+                disabled={uploadingGuideMap || analyzingMap}
+              >
+                Hủy bỏ
+              </button>
+
+              {uploadModalImageUrl ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={async () => {
+                    await handleAnalyzeFloorPlan(uploadModalImageUrl);
+                    setIsUploadModalOpen(false);
+                  }}
+                  disabled={uploadingGuideMap || analyzingMap}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600, padding: '7px 16px' }}
+                >
+                  <Cpu size={14} />
+                  <span>{analyzingMap ? 'Đang phân tích không gian...' : 'Xác nhận tải lên & Phân tích sơ đồ'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => guideMapInputRef.current?.click()}
+                  disabled={uploadingGuideMap || analyzingMap}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                >
+                  <Upload size={13} />
+                  <span>Chọn file sơ đồ</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={confirmModalConfig.isOpen}

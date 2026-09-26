@@ -147,8 +147,7 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
   return null;
 }
 
-// Bảng tra cứu ngược siêu tốc O(1) từ mọi ngoại ngữ (Anh, Pháp, Trung, Nhật) về tiếng Việt gốc
-// Giúp TreeWalker không bao giờ bị kẹt lại ở ngôn ngữ cũ khi người dùng chuyển đổi qua lại giữa các thứ tiếng
+// Bảng tra cứu ngược siêu tốc O(1) từ mọi ngoại ngữ (Anh, Pháp, Trung, Nhật, v.v.) về tiếng Việt gốc
 export const REVERSE_LOOKUP_CACHE: Record<string, string> = (() => {
   const cache: Record<string, string> = {};
   for (const [viKey, item] of Object.entries(UNIVERSAL_PHRASE_MAP)) {
@@ -169,6 +168,32 @@ export const REVERSE_LOOKUP_CACHE: Record<string, string> = (() => {
     }
   }
   return cache;
+})();
+
+// Bản đồ tra cứu ngược động (học liên tục từ mọi kết quả dịch NMT/Gemini/Google của mọi ngôn ngữ)
+export const DYNAMIC_REVERSE_MAP: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  try {
+    if (typeof localStorage !== 'undefined') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(DYNAMIC_I18N_STORAGE_PREFIX)) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            for (const [vi, tr] of Object.entries(parsed)) {
+              if (typeof tr === 'string' && tr.trim()) {
+                map[tr.toLowerCase().trim()] = vi;
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Ignored
+  }
+  return map;
 })();
 
 // Bộ từ điển ánh xạ cụm từ linh hoạt đa ngôn ngữ (chống bị ép tiếng Nhật cho các ngôn ngữ khác)
@@ -490,6 +515,11 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       }
 
       if (Object.keys(newDict).length > 0) {
+        for (const [vi, tr] of Object.entries(newDict)) {
+          if (tr && typeof tr === 'string') {
+            DYNAMIC_REVERSE_MAP[tr.toLowerCase().trim()] = vi;
+          }
+        }
         setAutoTranslations((prev) => {
           const merged = { ...prev, ...newDict };
           try {
@@ -545,19 +575,14 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       try {
         if (currentLang === 'vi') {
           // Phục hồi lại văn bản gốc nếu chuyển về tiếng Việt
-          document.querySelectorAll('[data-i18n-orig]').forEach((el) => {
-            const orig = el.getAttribute('data-i18n-orig');
-            if (orig) {
-              el.textContent = orig;
-              el.removeAttribute('data-i18n-orig');
-            }
-          });
           document.querySelectorAll('input[data-i18n-orig-ph], textarea[data-i18n-orig-ph]').forEach((el) => {
             const input = el as HTMLInputElement | HTMLTextAreaElement;
             const orig = input.getAttribute('data-i18n-orig-ph');
             if (orig) {
               input.placeholder = orig;
               input.removeAttribute('data-i18n-orig-ph');
+              delete (input as any).__i18nOrigPh;
+              delete (input as any).__i18nCurLang;
             }
           });
           document.querySelectorAll('[data-i18n-orig-title]').forEach((el) => {
@@ -565,6 +590,8 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
             if (orig) {
               el.setAttribute('title', orig);
               el.removeAttribute('data-i18n-orig-title');
+              delete (el as any).__i18nOrigTitle;
+              delete (el as any).__i18nCurLang;
             }
           });
           document.querySelectorAll('[data-i18n-orig-aria]').forEach((el) => {
@@ -572,79 +599,83 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
             if (orig) {
               el.setAttribute('aria-label', orig);
               el.removeAttribute('data-i18n-orig-aria');
+              delete (el as any).__i18nOrigAria;
+              delete (el as any).__i18nCurLang;
             }
           });
-          return;
+          // Không return sớm ở đây để tiếp tục quét phục hồi toàn bộ Text Nodes bên dưới
         }
 
         const targetLang = currentLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
 
-        // 1. Quét dịch placeholder của các ô nhập liệu input / textarea
-        document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((el) => {
-          const input = el as HTMLInputElement | HTMLTextAreaElement;
-          const currentPh = input.placeholder;
-          if (!currentPh) return;
-          const origPh = input.getAttribute('data-i18n-orig-ph') || (input as any).__i18nOrigPh || currentPh;
-          if (!input.hasAttribute('data-i18n-orig-ph')) {
-            input.setAttribute('data-i18n-orig-ph', origPh);
-            (input as any).__i18nOrigPh = origPh;
-          }
-          if ((input as any).__i18nCurLang === currentLang && input.placeholder !== origPh) {
-            return;
-          }
-          const trans = autoTranslations[origPh] || lookupUniversalPhrase(origPh, targetLang);
-          if (trans && input.placeholder !== trans) {
-            input.placeholder = trans;
-            (input as any).__i18nCurLang = currentLang;
-          }
-          if (!trans && VIETNAMESE_REGEX.test(origPh)) {
-            enqueueForTranslation(origPh);
-          }
-        });
+        if (currentLang !== 'vi') {
+          // 1. Quét dịch placeholder của các ô nhập liệu input / textarea
+          document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((el) => {
+            const input = el as HTMLInputElement | HTMLTextAreaElement;
+            const currentPh = input.placeholder;
+            if (!currentPh) return;
+            const origPh = input.getAttribute('data-i18n-orig-ph') || (input as any).__i18nOrigPh || currentPh;
+            if (!input.hasAttribute('data-i18n-orig-ph')) {
+              input.setAttribute('data-i18n-orig-ph', origPh);
+              (input as any).__i18nOrigPh = origPh;
+            }
+            if ((input as any).__i18nCurLang === currentLang && input.placeholder !== origPh) {
+              return;
+            }
+            const trans = autoTranslations[origPh] || lookupUniversalPhrase(origPh, targetLang);
+            if (trans && input.placeholder !== trans) {
+              input.placeholder = trans;
+              (input as any).__i18nCurLang = currentLang;
+            }
+            if (!trans && VIETNAMESE_REGEX.test(origPh)) {
+              enqueueForTranslation(origPh);
+            }
+          });
 
-        // 2. Quét dịch thuộc tính title (tooltip)
-        document.querySelectorAll('[title]').forEach((el) => {
-          const title = el.getAttribute('title');
-          if (!title || !title.trim()) return;
-          const origTitle = el.getAttribute('data-i18n-orig-title') || (el as any).__i18nOrigTitle || title;
-          if (!el.hasAttribute('data-i18n-orig-title')) {
-            el.setAttribute('data-i18n-orig-title', origTitle);
-            (el as any).__i18nOrigTitle = origTitle;
-          }
-          if ((el as any).__i18nCurLang === currentLang && el.getAttribute('title') !== origTitle) {
-            return;
-          }
-          const trans = autoTranslations[origTitle] || lookupUniversalPhrase(origTitle, targetLang);
-          if (trans && el.getAttribute('title') !== trans) {
-            el.setAttribute('title', trans);
-            (el as any).__i18nCurLang = currentLang;
-          }
-          if (!trans && VIETNAMESE_REGEX.test(origTitle)) {
-            enqueueForTranslation(origTitle);
-          }
-        });
+          // 2. Quét dịch thuộc tính title (tooltip)
+          document.querySelectorAll('[title]').forEach((el) => {
+            const title = el.getAttribute('title');
+            if (!title || !title.trim()) return;
+            const origTitle = el.getAttribute('data-i18n-orig-title') || (el as any).__i18nOrigTitle || title;
+            if (!el.hasAttribute('data-i18n-orig-title')) {
+              el.setAttribute('data-i18n-orig-title', origTitle);
+              (el as any).__i18nOrigTitle = origTitle;
+            }
+            if ((el as any).__i18nCurLang === currentLang && el.getAttribute('title') !== origTitle) {
+              return;
+            }
+            const trans = autoTranslations[origTitle] || lookupUniversalPhrase(origTitle, targetLang);
+            if (trans && el.getAttribute('title') !== trans) {
+              el.setAttribute('title', trans);
+              (el as any).__i18nCurLang = currentLang;
+            }
+            if (!trans && VIETNAMESE_REGEX.test(origTitle)) {
+              enqueueForTranslation(origTitle);
+            }
+          });
 
-        // 3. Quét dịch thuộc tính aria-label
-        document.querySelectorAll('[aria-label]').forEach((el) => {
-          const aria = el.getAttribute('aria-label');
-          if (!aria || !aria.trim()) return;
-          const origAria = el.getAttribute('data-i18n-orig-aria') || (el as any).__i18nOrigAria || aria;
-          if (!el.hasAttribute('data-i18n-orig-aria')) {
-            el.setAttribute('data-i18n-orig-aria', origAria);
-            (el as any).__i18nOrigAria = origAria;
-          }
-          if ((el as any).__i18nCurLang === currentLang && el.getAttribute('aria-label') !== origAria) {
-            return;
-          }
-          const trans = autoTranslations[origAria] || lookupUniversalPhrase(origAria, targetLang);
-          if (trans && el.getAttribute('aria-label') !== trans) {
-            el.setAttribute('aria-label', trans);
-            (el as any).__i18nCurLang = currentLang;
-          }
-          if (!trans && VIETNAMESE_REGEX.test(origAria)) {
-            enqueueForTranslation(origAria);
-          }
-        });
+          // 3. Quét dịch thuộc tính aria-label
+          document.querySelectorAll('[aria-label]').forEach((el) => {
+            const aria = el.getAttribute('aria-label');
+            if (!aria || !aria.trim()) return;
+            const origAria = el.getAttribute('data-i18n-orig-aria') || (el as any).__i18nOrigAria || aria;
+            if (!el.hasAttribute('data-i18n-orig-aria')) {
+              el.setAttribute('data-i18n-orig-aria', origAria);
+              (el as any).__i18nOrigAria = origAria;
+            }
+            if ((el as any).__i18nCurLang === currentLang && el.getAttribute('aria-label') !== origAria) {
+              return;
+            }
+            const trans = autoTranslations[origAria] || lookupUniversalPhrase(origAria, targetLang);
+            if (trans && el.getAttribute('aria-label') !== trans) {
+              el.setAttribute('aria-label', trans);
+              (el as any).__i18nCurLang = currentLang;
+            }
+            if (!trans && VIETNAMESE_REGEX.test(origAria)) {
+              enqueueForTranslation(origAria);
+            }
+          });
+        }
 
         // 4. Quét toàn bộ Text Node trong cây DOM
         const walker = document.createTreeWalker(
@@ -683,8 +714,10 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
               (node as any).__i18nOrigVI = trimmed;
               node.parentElement?.setAttribute('data-i18n-orig-vi', trimmed);
             } else {
-              // Node đang hiển thị ngoại ngữ (do trước đó đã dịch) -> tra ngược về tiếng Việt gốc
+              // Node đang hiển thị ngoại ngữ -> tra ngược về tiếng Việt gốc qua cache
               const viFromReverse =
+                DYNAMIC_REVERSE_MAP[trimmed.toLowerCase()] ||
+                DYNAMIC_REVERSE_MAP[trimmed.replace(/vi$/i, '').trim().toLowerCase()] ||
                 REVERSE_LOOKUP_CACHE[trimmed.toLowerCase()] ||
                 REVERSE_LOOKUP_CACHE[trimmed.replace(/vi$/i, '').trim().toLowerCase()];
               if (viFromReverse) {
@@ -697,11 +730,21 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
             }
           }
 
-          // Nếu chuyển về tiếng Việt:
+          // NẾU ĐANG CHỌN TIẾNG VIỆT: Phục hồi lại văn bản tiếng Việt gốc 100%
           if (currentLang === 'vi') {
-            if (origText && text !== origText) {
-              node.textContent = text.replace(trimmed, origText);
+            const viCandidate =
+              origText ||
+              (node as any).__i18nOrigVI ||
+              node.parentElement?.getAttribute('data-i18n-orig-vi') ||
+              DYNAMIC_REVERSE_MAP[trimmed.toLowerCase()] ||
+              REVERSE_LOOKUP_CACHE[trimmed.toLowerCase()];
+            if (viCandidate && trimmed !== viCandidate) {
+              node.textContent = text.replace(trimmed, viCandidate);
             }
+            delete (node as any).__i18nOrigVI;
+            delete (node as any).__i18nCurLang;
+            delete (node as any).__i18nApplied;
+            node.parentElement?.removeAttribute('data-i18n-orig-vi');
             return;
           }
 
@@ -720,10 +763,14 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
             trans = cleanTranslationResult(trans, origText, currentLang);
             (node as any).__i18nCurLang = currentLang;
             (node as any).__i18nApplied = trans;
+            (node as any).__i18nOrigVI = origText;
+            node.parentElement?.setAttribute('data-i18n-orig-vi', origText);
+            DYNAMIC_REVERSE_MAP[trans.toLowerCase().trim()] = origText;
             node.textContent = text.replace(trimmed, trans);
             return;
           } else if (!trans && VIETNAMESE_REGEX.test(origText) && origText.length >= 2) {
             (node as any).__i18nOrigVI = origText;
+            node.parentElement?.setAttribute('data-i18n-orig-vi', origText);
             enqueueForTranslation(origText);
           }
 
@@ -760,8 +807,6 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
 
     // Chạy quét ngay lập tức
     translateTextNodes();
-
-    if (currentLang === 'vi') return;
 
     // Debounced scan để xử lý mọi mutation của React mà không gián đoạn hiệu năng
     let scanTimeout: any = null;
@@ -867,6 +912,20 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       document.documentElement.lang = clean;
     } catch {
       // Ignored
+    }
+
+    if (clean === 'vi') {
+      setAutoTranslations({});
+      // Quét phục hồi tiếng Việt 100% ngay lập tức
+      translateTextNodesRef.current?.(document.body);
+      requestAnimationFrame(() => {
+        translateTextNodesRef.current?.(document.body);
+      });
+      setTimeout(() => {
+        translateTextNodesRef.current?.(document.body);
+      }, 50);
+      window.dispatchEvent(new CustomEvent('museum:language_changed', { detail: 'vi' }));
+      return;
     }
 
     // Nạp đồng bộ ngay bộ nhớ đệm NMT của ngôn ngữ đích từ localStorage
