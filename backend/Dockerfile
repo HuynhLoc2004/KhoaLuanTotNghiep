@@ -17,12 +17,14 @@ RUN npm run build
 # ==============================================================================
 FROM node:20-bookworm-slim
 
-# Cài đặt Python 3, pip và các thư viện hệ thống cần thiết cho OpenCV
+# Cài đặt Python 3, pip, thư viện hệ thống cho OpenCV và công cụ mã nguồn mở Hugin CLI (pto_gen, cpfind, enblend)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     libgl1 \
     libglib2.0-0 \
+    hugin-tools \
+    enblend \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
