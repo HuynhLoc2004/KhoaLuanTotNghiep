@@ -28,6 +28,9 @@ interface InteractiveFloorPlanMapProps {
   floorPlan: FloorPlanMap;
   onSelectRoom360?: (roomId: string) => void;
   clientTheme?: 'light' | 'dark';
+  hideSidePanel?: boolean;
+  selectedNodeId?: string;
+  onNodeSelect?: (nodeId: string) => void;
 }
 
 const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
@@ -43,11 +46,15 @@ const resolveImageUrl = (url?: string) => {
 export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = ({
   floorPlan,
   onSelectRoom360,
-  clientTheme = 'dark'
+  clientTheme = 'dark',
+  hideSidePanel = false,
+  selectedNodeId: externalSelectedNodeId,
+  onNodeSelect
 }) => {
-  const [selectedNodeId, setSelectedNodeId] = useState<string>(
-    floorPlan.nodes?.[0]?.id || ''
+  const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string>(
+    externalSelectedNodeId || floorPlan.nodes?.[0]?.id || ''
   );
+  const selectedNodeId = externalSelectedNodeId || internalSelectedNodeId;
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [showOriginalModal, setShowOriginalModal] = useState<boolean>(false);
 
@@ -95,14 +102,16 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     setIsPanning(false);
   };
 
-  // Đồng bộ node đang chọn khi dữ liệu thay đổi
+  // Đồng bộ node đang chọn khi dữ liệu hoặc prop từ ngoài thay đổi
   useEffect(() => {
-    if (floorPlan.nodes?.length) {
-      if (!floorPlan.nodes.some((n) => n.id === selectedNodeId)) {
-        setSelectedNodeId(floorPlan.nodes[0].id);
+    if (externalSelectedNodeId) {
+      setInternalSelectedNodeId(externalSelectedNodeId);
+    } else if (floorPlan.nodes?.length) {
+      if (!floorPlan.nodes.some((n) => n.id === internalSelectedNodeId)) {
+        setInternalSelectedNodeId(floorPlan.nodes[0].id);
       }
     }
-  }, [floorPlan.nodes, selectedNodeId]);
+  }, [floorPlan.nodes, externalSelectedNodeId]);
 
   // Node đang chọn
   const activeNode = useMemo(() => {
@@ -368,7 +377,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
       </div>
 
       {/* Khu vực Hiển thị Mặt Bằng */}
-      <div className="ifp-grid">
+      <div className="ifp-grid" style={hideSidePanel ? { display: 'block', gridTemplateColumns: '1fr' } : undefined}>
         {/* Canvas Sơ Đồ 2D Kiến Trúc Thoáng Đãng */}
         <div
           className="ifp-canvas-card"
@@ -603,7 +612,10 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                   <g
                     key={edge.id}
                     style={{ cursor: 'pointer' }}
-                    onClick={() => setSelectedNodeId(edge.toNodeId)}
+                    onClick={() => {
+                      setInternalSelectedNodeId(edge.toNodeId);
+                      onNodeSelect?.(edge.toNodeId);
+                    }}
                   >
                     <line
                       x1={geom.x1}
@@ -661,7 +673,10 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 return (
                   <g
                     key={node.id}
-                    onClick={() => setSelectedNodeId(node.id)}
+                    onClick={() => {
+                      setInternalSelectedNodeId(node.id);
+                      onNodeSelect?.(node.id);
+                    }}
                     onMouseEnter={() => setHoveredNodeId(node.id)}
                     onMouseLeave={() => setHoveredNodeId(null)}
                     style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
@@ -832,13 +847,14 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
         </div>
 
         {/* Panel Chi Tiết Gian Phòng Đang Chọn */}
-        <div
-          className="ifp-details-card"
-          style={{
-            background: isLight ? '#F8FAFC' : '#0B0F19',
-            border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`
-          }}
-        >
+        {!hideSidePanel && (
+          <div
+            className="ifp-details-card"
+            style={{
+              background: isLight ? '#F8FAFC' : '#0B0F19',
+              border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`
+            }}
+          >
           {activeNode ? (
             <div>
               {/* Mã phòng & Phân loại */}
@@ -906,7 +922,10 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       return (
                         <div
                           key={edge.id}
-                          onClick={() => setSelectedNodeId(edge.toNodeId)}
+                          onClick={() => {
+                            setInternalSelectedNodeId(edge.toNodeId);
+                            onNodeSelect?.(edge.toNodeId);
+                          }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -1009,6 +1028,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Modal Xem Ảnh Sơ Đồ Gốc Phóng To */}
