@@ -386,9 +386,32 @@ def build_robust_panorama(images):
     x_min, y_min = np.floor(all_corners_arr.min(axis=0)).astype(int)
     x_max, y_max = np.ceil(all_corners_arr.max(axis=0)).astype(int)
 
-    # Giới hạn kích thước canvas tối đa để tránh OOM
-    canvas_w = min(x_max - x_min, 16000)
-    canvas_h = min(y_max - y_min, 8000)
+    # Giới hạn kích thước canvas tối đa để tránh OOM (8000x4000 ~96MB safe cho Docker 2GB)
+    raw_w = x_max - x_min
+    raw_h = y_max - y_min
+    max_canvas_w = 8000
+    max_canvas_h = 4000
+
+    if raw_w > max_canvas_w or raw_h > max_canvas_h:
+        scale_down = min(max_canvas_w / float(raw_w), max_canvas_h / float(raw_h))
+        log(f"[*] Canvas quá lớn ({raw_w}x{raw_h}). Thu nhỏ xuống scale={scale_down:.2f}")
+        # Scale lại tất cả Homography
+        S = np.array([[scale_down, 0, 0], [0, scale_down, 0], [0, 0, 1]], dtype=np.float64)
+        for idx in range(n):
+            cumulative_H[idx] = S @ cumulative_H[idx]
+        # Tính lại corners
+        all_corners = []
+        for idx in range(n):
+            h_i, w_i = images[idx].shape[:2]
+            corners_i = np.float32([[0, 0], [w_i, 0], [w_i, h_i], [0, h_i]]).reshape(-1, 1, 2)
+            warped_i = cv2.perspectiveTransform(corners_i, cumulative_H[idx])
+            all_corners.append(warped_i.reshape(-1, 2))
+        all_corners_arr = np.vstack(all_corners)
+        x_min, y_min = np.floor(all_corners_arr.min(axis=0)).astype(int)
+        x_max, y_max = np.ceil(all_corners_arr.max(axis=0)).astype(int)
+
+    canvas_w = min(x_max - x_min, max_canvas_w)
+    canvas_h = min(y_max - y_min, max_canvas_h)
 
     log(f"[*] Kích thước canvas: {canvas_w}x{canvas_h}px")
 
@@ -1088,28 +1111,42 @@ def run_stitch(image_paths, output_path, target_width=0):
         log(f"[!] OpenCV Stitcher chỉ ghép được {opencv_used_count}/{num_total} ảnh. Chuyển sang Robust Engine...")
 
     # ======================================================================
-    # TẦNG 2: ROBUST HOMOGRAPHY ENGINE (Luôn chạy để so sánh)
+    # TẦNG 2: ROBUST HOMOGRAPHY ENGINE (CHỈ chạy khi OpenCV thất bại hoặc coverage thấp)
     # ======================================================================
     robust_result = None
     robust_hfov = None
 
-    log(f"[*] Khởi chạy Robust Homography Engine (engine tự xây)...")
-    all_imgs = []
-    for p in sorted_paths:
-        if os.path.exists(p):
-            try:
-                im = load_and_orient_image(p, max_dim=2000)
-                im = balance_universal_lighting(im)
-                all_imgs.append(im)
-            except Exception as e:
-                log(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}")
+    if opencv_good:
+        log(f"[*] OpenCV đã thành công xuất sắc -> Bỏ qua Robust Engine để tiết kiệm RAM và thời gian.")
+    else:
+        log(f"[*] OpenCV chưa đạt yêu cầu -> Khởi chạy Robust Homography Engine (engine tự xây)...")
+        all_imgs = []
+        for p in sorted_paths:
+            if os.path.exists(p):
+                try:
+                    im = load_and_orient_image(p, max_dim=1600)
+                    im = balance_universal_lighting(im)
+                    all_imgs.append(im)
+                except Exception as e:
+                    log(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}")
 
-    if len(all_imgs) >= 2:
-        robust_result = build_robust_panorama(all_imgs)
-        if robust_result is not None:
-            ar = float(robust_result.shape[1]) / float(max(1, robust_result.shape[0]))
-            robust_hfov = min(360.0, max(50.0, ar * 52.0))
-            log(f"[✓] Robust Engine ghép thành công {len(all_imgs)} ảnh, HFOV~{robust_hfov:.1f}°")
+        if len(all_imgs) >= 2:
+            try:
+                robust_result = build_robust_panorama(all_imgs)
+                if robust_result is not None:
+                    ar = float(robust_result.shape[1]) / float(max(1, robust_result.shape[0]))
+                    robust_hfov = min(360.0, max(50.0, ar * 52.0))
+                    log(f"[✓] Robust Engine ghép thành công {len(all_imgs)} ảnh, HFOV~{robust_hfov:.1f}°")
+            except Exception as robust_err:
+                log(f"[!] Robust Engine lỗi: {robust_err}")
+                robust_result = None
+
+            # Giải phóng bộ nhớ
+            try:
+                del all_imgs
+                gc.collect()
+            except Exception:
+                pass
 
     # ======================================================================
     # TẦNG 3: CHỌN KẾT QUẢ TỐT NHẤT
