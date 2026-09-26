@@ -263,6 +263,7 @@ def _try_opencv_stitcher(sorted_paths, num_total, target_width):
         (cv2.Stitcher_PANORAMA, 1400, 0.15, 0.35, "PANORAMA Chuẩn 360 (Conf 0.15)"),
         (cv2.Stitcher_PANORAMA, 1200, 0.08, 0.30, "PANORAMA Nhạy Cầm Tay (Conf 0.08)"),
         (cv2.Stitcher_PANORAMA, 1000, 0.04, 0.25, "PANORAMA Siêu Nhạy (Conf 0.04)"),
+        (cv2.Stitcher_SCANS, 1200, 0.06, 0.30, "SCANS Nhạy Cầm Tay (Conf 0.06)"),
     ]
 
     for mode, max_dim, conf, reg_resol, desc in configs:
@@ -896,16 +897,9 @@ def extract_keyframes_from_video(video_path, target_count=18, max_dim=1400):
         log(f"[*] Sử dụng cấu hình người dùng chỉ định: Cắt {target_count} góc sắc nét từ video.")
 
     def orient_frame_if_needed(frame):
-        if frame is None:
-            return None
-        h, w = frame.shape[:2]
-        # Nếu có rot_meta và OpenCV chưa tự động xoay (khi w > h mà rot_meta = 90 hoặc 270)
-        if rot_meta == 90 and w > h:
-            return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        elif rot_meta == 180:
-            return cv2.rotate(frame, cv2.ROTATE_180)
-        elif rot_meta == 270 and w > h:
-            return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        # Giữ nguyên định dạng khung hình gốc tự nhiên do OpenCV / FFmpeg giải mã.
+        # Tuyệt đối không can thiệp xoay 90° nhân tạo vì video quay ngang (landscape) sẽ bị ngã nghiêng,
+        # làm phá hỏng hoàn toàn trục quay thẳng đứng của thuật toán ghép toàn cảnh 360°.
         return frame
 
     # Nếu không đọc được tổng frame (ví dụ webm stream), đọc nhanh lấy danh sách
