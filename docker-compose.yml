@@ -11,6 +11,7 @@ services:
       - "27017:27017"
     environment:
       - MONGO_INITDB_DATABASE=museum
+    command: mongod --wiredTigerCacheSizeGB 0.25
 
   redis:
     image: redis:7-alpine
