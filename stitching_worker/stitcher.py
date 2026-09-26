@@ -183,44 +183,32 @@ def fit_to_equirectangular_2_to_1(stitched_img, target_width=None, hfov=None):
     target_height = target_width // 2
     canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
 
-    # Phân biệt rõ giữa:
-    # 1. Ảnh toàn cảnh 360° vòng tròn thực sự (is_full_360=True): Phủ trọn 100% canvas 360°
-    # 2. Ảnh chùm góc quét một phần (Partial Panorama, ví dụ vách tường 90°-150°):
-    #    BẢO TỒN NGUYÊN BẢN TỶ LỆ KHUNG HÌNH (Natural Aspect Ratio), tuyệt đối KHÔNG kéo bè ngang 400% làm méo dị dạng!
-    if is_full_360:
-        new_w = target_width
-        natural_h = int(round(target_width / aspect_ratio))
-        new_h = min(int(target_height * 0.85), max(int(target_height * 0.52), natural_h))
-        resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
-        x_offset = 0
+    # 1. Trải trọn 100% bề ngang canvas (0° đến 360°), bảo đảm không bao giờ có hố đen hay vệt loang 2 bên:
+    new_w = target_width
+    natural_h = int(round(target_width / aspect_ratio))
+    new_h = min(int(target_height * 0.85), max(int(target_height * 0.45), natural_h))
+    resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
 
-        # Khâu mịn đường nối giữa cạnh trái (0°) và cạnh phải (360°) với smoothstep liền mạch
-        seam_blend_width = min(60, new_w // 30)
-        for i in range(seam_blend_width):
-            alpha = float(i) / float(seam_blend_width)
-            s_alpha = alpha * alpha * (3.0 - 2.0 * alpha)
-            left_col = resized_pano[:, i].astype(np.float32)
-            right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
-            blended = (1.0 - s_alpha) * right_col + s_alpha * left_col
-            resized_pano[:, i] = np.clip(blended, 0, 255).astype(np.uint8)
-    else:
-        # Trường hợp góc quét cục bộ: giữ nguyên tỷ lệ quang học thật
-        new_h = int(round(target_height * 0.70))
-        new_w = min(target_width, int(round(new_h * aspect_ratio)))
-        resized_pano = cv2.resize(stitched_img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
-        x_offset = (target_width - new_w) // 2
+    # 2. Khâu mịn 0° - 360° tại mép trái và mép phải để xoay tròn không có vết nứt
+    seam_blend_width = min(40, new_w // 50)
+    for i in range(seam_blend_width):
+        alpha = float(i) / float(seam_blend_width)
+        s_alpha = alpha * alpha * (3.0 - 2.0 * alpha)
+        left_col = resized_pano[:, i].astype(np.float32)
+        right_col = resized_pano[:, -(seam_blend_width - i)].astype(np.float32)
+        blended = (1.0 - s_alpha) * right_col + s_alpha * left_col
+        resized_pano[:, i] = np.clip(blended, 0, 255).astype(np.uint8)
 
     y_offset = (target_height - new_h) // 2
-    canvas[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized_pano
+    canvas[y_offset:y_offset+new_h, 0:target_width] = resized_pano
 
-    # Khởi tạo mặt nạ vùng ảnh thật (True = có dữ liệu ảnh thật)
+    # 3. Khởi tạo mặt nạ vùng ảnh thật (phủ kín 100% chiều ngang)
     content_mask = np.zeros((target_height, target_width), dtype=bool)
-    content_mask[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = (
+    content_mask[y_offset:y_offset+new_h, 0:target_width] = (
         (resized_pano[:, :, 0] > 2) | (resized_pano[:, :, 1] > 2) | (resized_pano[:, :, 2] > 2)
     )
 
-    # 1. Thuật toán Push-Pull (Gortler et al.) Đa Tầng Kim Tự Tháp với Đệm Vòng Tuần Hoàn Wc/4:
-    # Lấp đầy trần nhà (+90° Zenith) và sàn nhà (-90° Nadir) tự nhiên, xóa sạch 100% mọi hố đen
+    # 4. Thuật toán Push-Pull lấp đầy trần nhà (+90° Zenith) và sàn nhà (-90° Nadir) tự nhiên
     canvas = push_pull_inpaint(canvas, content_mask)
 
     return canvas
