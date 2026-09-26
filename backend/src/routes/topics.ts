@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Topic, INITIAL_TOPICS } from '../models/Topic.js';
 import { RoomModel } from '../models/Room.js';
 
@@ -9,15 +10,14 @@ const getId = (param: unknown): string => {
   return String(param || '');
 };
 
+const findTopicByIdOrSlug = async (id: string) => {
+  const query = mongoose.isValidObjectId(id) ? { $or: [{ id }, { _id: id }] } : { id };
+  return await Topic.findOne(query);
+};
+
 // GET /api/topics - Lấy danh sách tất cả chuyên đề trưng bày
 topicsRouter.get('/', async (req: Request, res: Response) => {
   try {
-    // Tự động khởi tạo 4 chuyên đề ban đầu nếu cơ sở dữ liệu chưa có
-    const count = await Topic.countDocuments();
-    if (count === 0) {
-      await Topic.insertMany(INITIAL_TOPICS);
-    }
-
     const topics = await Topic.find({}).sort({ orderIndex: 1, createdAt: 1 }).lean();
 
     // Tính toán số lượng gian phòng đang trực thuộc từng chuyên đề
@@ -83,7 +83,7 @@ topicsRouter.put('/:id', async (req: Request, res: Response) => {
     const id = getId(req.params.id);
     const { name, description, orderIndex, active } = req.body;
 
-    const topic = await Topic.findOne({ $or: [{ id }, { _id: id }] });
+    const topic = await findTopicByIdOrSlug(id);
     if (!topic) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy chuyên đề này' });
     }
@@ -133,7 +133,7 @@ topicsRouter.put('/:id', async (req: Request, res: Response) => {
 topicsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
-    const topic = await Topic.findOne({ $or: [{ id }, { _id: id }] });
+    const topic = await findTopicByIdOrSlug(id);
     if (!topic) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy chuyên đề để xóa' });
     }
