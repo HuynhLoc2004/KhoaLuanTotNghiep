@@ -1200,120 +1200,13 @@ export const HERITAGE_ARTIFACTS_SEED = [
       faces: 24960,
       sizeBytes: 2048152
     }
-  },
-  {
-    id: 'art-tuong-nu-than-saraswati',
-    code: 'BTLS-002',
-    name: 'Tượng Nữ thần Saraswati',
-    roomId: 'room-p-06',
-    roomCode: 'P-06',
-    topicId: 'van-hoa-nam-bo-co-vat',
-    category: 'Bảo vật Quốc gia',
-    period: 'Thế kỷ X - XI: Nghệ thuật Chămpa',
-    origin: 'Tháp Mẫm, Bình Định',
-    description: 'Tác phẩm điêu khắc sa thạch độc bản thể hiện nữ thần tri thức và nghệ thuật Saraswati trong tư thế uyển chuyển, mang đậm dấu ấn phong cách Tháp Mẫm tinh xảo.',
-    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
-    images: ['https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg'],
-    voiceLanguage: 'vi',
-    status: 'active',
-    processingStatus: 'idle',
-    orderIndex: 2
-  },
-  {
-    id: 'art-tuong-phat-sa-dec',
-    code: 'BTLS-003',
-    name: 'Tượng Phật Sa Đéc',
-    roomId: 'room-p-07',
-    roomCode: 'P-07',
-    topicId: 'van-hoa-nam-bo-co-vat',
-    category: 'Bảo vật Quốc gia',
-    period: 'Thế kỷ IV - VI: Văn hóa Óc Eo',
-    origin: 'Sa Đéc, Đồng Tháp',
-    description: 'Tượng Phật tạc bằng gỗ sao nguyên khối còn lưu giữ trọn vẹn nét thanh thoát, biểu tượng cho sự du nhập và phát triển rực rỡ của Phật giáo tại vùng đất Phù Nam cổ.',
-    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
-    images: ['https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg'],
-    voiceLanguage: 'vi',
-    status: 'active',
-    processingStatus: 'idle',
-    orderIndex: 3
-  },
-  {
-    id: 'art-sung-than-cong-nguyen',
-    code: 'BTLS-004',
-    name: 'Súng Thần công Triều Nguyễn',
-    roomId: 'room-p-11',
-    roomCode: 'P-11',
-    topicId: 'tien-trinh-lich-su-vn',
-    category: 'Vũ khí cổ di sản',
-    period: 'Thế kỷ XIX: Triều Nguyễn',
-    origin: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
-    description: 'Đại bác đúc bằng đồng thời vua Gia Long và Minh Mạng, trên thân khắc chữ Hán ghi rõ phiên hiệu quân đội và năm đúc.',
-    thumbnailUrl: '/uploads/stitched_360_1789658000391.jpg',
-    images: ['/uploads/stitched_360_1789658000391.jpg'],
-    voiceLanguage: 'vi',
-    status: 'active',
-    processingStatus: 'idle',
-    orderIndex: 4
-  },
-  {
-    id: 'art-dia-gom-chu-dau',
-    code: 'BTLS-005',
-    name: 'Đĩa gốm hoa lam Chu Đậu',
-    roomId: 'room-p-14',
-    roomCode: 'P-14',
-    topicId: 'suu-tap-dac-biet',
-    category: 'Cổ vật tàu đắm',
-    period: 'Thế kỷ XV: Gốm Chu Đậu - Hải Dương',
-    origin: 'Tàu đắm Cù Lao Chàm, Biển Đông',
-    description: 'Đĩa gốm hoa lam vẽ thiên nga trong lòng đĩa, men lam sắc nét, minh chứng cho con đường tơ lụa - gốm sứ hàng hải sầm uất qua vùng biển Việt Nam.',
-    thumbnailUrl: '/uploads/stitched_360_1789651467746.jpg',
-    images: ['/uploads/stitched_360_1789651467746.jpg'],
-    voiceLanguage: 'vi',
-    status: 'active',
-    processingStatus: 'idle',
-    orderIndex: 5
-  },
-  {
-    id: 'art-binh-voi-gom-vuong-hong-sen',
-    code: 'BTLS-006',
-    name: 'Bình vôi gốm men độc bản',
-    roomId: 'room-p-16',
-    roomCode: 'P-16',
-    topicId: 'suu-tap-dac-biet',
-    category: 'Sưu tập Cụ Vương Hồng Sển',
-    period: 'Thế kỷ XVIII - XIX',
-    origin: 'Sưu tập Vương Hồng Sển hiến tặng',
-    description: 'Bình vôi cổ phủ men rạn độc đáo, quai đắp nổi cành cau, gắn liền với phong tục ăn trầu truyền thống của người Việt.',
-    thumbnailUrl: '/uploads/stitched_360_1789651346352.jpg',
-    images: ['/uploads/stitched_360_1789651346352.jpg'],
-    voiceLanguage: 'vi',
-    status: 'active',
-    processingStatus: 'idle',
-    orderIndex: 6
   }
 ];
 
 export async function syncFloorPlanNodesToRooms(analyzedMap: any) {
   if (!analyzedMap || !Array.isArray(analyzedMap.nodes) || analyzedMap.nodes.length === 0) return analyzedMap;
 
-  // 1. Đảm bảo 18 phòng chuẩn di sản tồn tại trong CSDL PostgreSQL & MongoDB
-  for (const seedRoom of HERITAGE_18_ROOMS_SEED) {
-    const existing = await Room.findOne({ $or: [{ id: seedRoom.id }, { code: seedRoom.code }] });
-    if (!existing) {
-      const created = await Room.create(seedRoom as any);
-      await pgUpsertRoom((created as any).toObject ? (created as any).toObject() : created);
-    } else {
-      let changed = false;
-      if (!existing.code) { existing.code = seedRoom.code; changed = true; }
-      if (!existing.period) { existing.period = seedRoom.period; changed = true; }
-      if (!existing.category) { existing.category = seedRoom.category; changed = true; }
-      if (!existing.panoramaUrl) { existing.panoramaUrl = seedRoom.panoramaUrl; changed = true; }
-      if (changed) {
-        await existing.save();
-        await pgUpsertRoom(existing.toObject());
-      }
-    }
-  }
+  // 1. Chỉ liên kết với các phòng đang thực sự tồn tại trong CSDL, không tự động sinh phòng giả
 
   // 2. Gán liên kết node -> roomId và thông tin panorama cho từng node trên sơ đồ
   for (const node of analyzedMap.nodes) {
