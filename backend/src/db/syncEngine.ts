@@ -580,8 +580,7 @@ export async function runStartupDataSync() {
     const mongoRooms = await Room.find().lean();
 
     if (pgRoomCount === 0 && mongoRooms.length === 0) {
-      console.log('[SyncEngine] CSDL trống: Tự động khởi tạo 18 gian phòng di sản chuẩn cho PostgreSQL & MongoDB...');
-      await seedHeritageMuseumData();
+      console.log('[SyncEngine] CSDL phòng trưng bày đang trống (không tự ý chèn dữ liệu mẫu, chờ dữ liệu thật từ quản trị viên)...');
     } else if (pgRoomCount === 0 && mongoRooms.length > 0) {
       console.log(`[SyncEngine] Đang di chuyển ${mongoRooms.length} Rooms & Hotspots từ MongoDB sang PostgreSQL...`);
       for (const r of mongoRooms) {
@@ -634,11 +633,7 @@ export async function runStartupDataSync() {
     const mongoArtifacts = await ArtifactModel.find().lean();
 
     if (pgArtifactCount === 0 && mongoArtifacts.length === 0) {
-      console.log('[SyncEngine] Khởi tạo bộ hiện vật di sản và Bảo vật Quốc gia thật cho PostgreSQL & MongoDB...');
-      for (const art of HERITAGE_ARTIFACTS_SEED) {
-        await ArtifactModel.updateOne({ id: art.id }, { $set: art }, { upsert: true });
-        await pgUpsertArtifact(art);
-      }
+      console.log('[SyncEngine] CSDL hiện vật đang trống (không tự ý chèn dữ liệu mẫu, chờ dữ liệu thật từ quản trị viên)...');
     } else if (pgArtifactCount === 0 && mongoArtifacts.length > 0) {
       console.log(`[SyncEngine] Đang di chuyển ${mongoArtifacts.length} Artifacts từ MongoDB sang PostgreSQL...`);
       for (const a of mongoArtifacts) {
