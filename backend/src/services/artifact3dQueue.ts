@@ -64,7 +64,7 @@ export async function enqueue3DReconstruction(
   resolution = 160
 ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string }> {
   // 1. Kiểm tra cache dựa trên SHA256 (kèm mã phân biệt mặt sau độc lập v5 vòm mượt chống méo)
-  const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_faithful_volumetric_v7');
+  const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_bronze_drum_canon_v8');
   const cacheKey = `artifact:3d_cache:${fileHash}`;
 
   const cached = await cacheGet<{ model3dUrl: string; metadata: any }>(cacheKey);
@@ -187,7 +187,7 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
           parsed = {};
         }
 
-        const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_faithful_volumetric_v7');
+        const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_bronze_drum_canon_v8');
         const metadata = {
           vertices: parsed.vertices || 0,
           faces: parsed.faces || 0,
