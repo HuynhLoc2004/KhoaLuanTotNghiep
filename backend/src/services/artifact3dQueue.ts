@@ -86,8 +86,8 @@ export async function enqueue3DReconstruction(
   depthScale = 1.0,
   resolution = 110
 ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string }> {
-  // 1. Kiểm tra cache dựa trên SHA256 (kèm mã phân biệt mặt sau độc lập v12 vòm tròn 3D)
-  const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_full_round_3d_v12');
+  // 1. Kiểm tra cache dựa trên SHA256 (kèm mã phân biệt mặt sau độc lập v14 giải phẫu đa thành phần)
+  const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_anatomical_rotational_v14');
   const cacheKey = `artifact:3d_cache:${fileHash}`;
 
   const cached = await cacheGet<{ model3dUrl: string; metadata: any }>(cacheKey);
@@ -162,10 +162,10 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
   const backImagePath = job.backImagePath ? String(job.backImagePath) : '';
   const depthScale = (typeof job.depthScale === 'number' && !isNaN(job.depthScale))
     ? job.depthScale
-    : (parseFloat(String(job.depthScale)) || 0.35);
+    : (parseFloat(String(job.depthScale)) || 1.0);
   const resolution = (typeof job.resolution === 'number' && !isNaN(job.resolution))
     ? job.resolution
-    : (parseInt(String(job.resolution), 10) || 160);
+    : (parseInt(String(job.resolution), 10) || 110);
   const jobId = job.jobId || `job_${Date.now()}`;
 
   const outFilename = `model_3d_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.glb`;
@@ -217,7 +217,7 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
           parsed = {};
         }
 
-        const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_full_round_3d_v12');
+        const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_anatomical_rotational_v14');
         const metadata = {
           vertices: parsed.vertices || 0,
           faces: parsed.faces || 0,
