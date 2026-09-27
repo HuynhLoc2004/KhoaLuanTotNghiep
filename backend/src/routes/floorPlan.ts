@@ -371,11 +371,12 @@ floorPlanRouter.put('/:id/node-mapping', async (req: Request, res: Response) => 
       targetNode.panoramaUrl = room.panoramaUrl || '';
       targetNode.thumbnailUrl = room.thumbnailUrl || '';
     } else {
-      targetNode.roomId = undefined;
+      (targetNode as any).roomId = null;
       targetNode.panoramaUrl = '';
       targetNode.thumbnailUrl = '';
     }
 
+    targetMap.markModified('nodes');
     await targetMap.save();
 
     // Đồng bộ sang PostgreSQL Primary
@@ -437,13 +438,14 @@ floorPlanRouter.put('/:id/batch-mapping', async (req: Request, res: Response) =>
         targetNode.roomId = room.id;
         targetNode.panoramaUrl = room.panoramaUrl || '';
         targetNode.thumbnailUrl = room.thumbnailUrl || '';
-      } else if (!m.roomId) {
-        targetNode.roomId = undefined;
+      } else {
+        (targetNode as any).roomId = null;
         targetNode.panoramaUrl = '';
         targetNode.thumbnailUrl = '';
       }
     }
 
+    targetMap.markModified('nodes');
     await targetMap.save();
 
     // Đồng bộ sang PostgreSQL Primary

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { pgPool } from './postgres.js';
 import { Topic, INITIAL_TOPICS } from '../models/Topic.js';
 import { Room } from '../models/Room.js';
@@ -574,6 +575,28 @@ export async function runStartupDataSync() {
       }
     }
 
+    // Dọn sạch dứt điểm các phòng mock hạt nhân cũ (room-p-01 -> room-p-18) nếu còn tồn dư
+    const mockSeedRooms = await Room.find({ id: /^room-p-\d+$/ }).lean();
+    if (mockSeedRooms.length > 0) {
+      console.log(`[SyncEngine] Phát hiện ${mockSeedRooms.length} phòng mock hạt nhân cũ. Đang dọn sạch toàn bộ...`);
+      await Room.deleteMany({ id: /^room-p-\d+$/ });
+      await pgPool.query("DELETE FROM hotspots; DELETE FROM rooms WHERE id ~ '^room-p-\\d+$';");
+      // Dọn toàn bộ liên kết phòng giả trên sơ đồ mặt bằng
+      await FloorPlanMap.updateMany({}, {
+        $set: {
+          "nodes.$[].roomId": null,
+          "nodes.$[].roomCode": "",
+          "nodes.$[].panoramaUrl": "",
+          "nodes.$[].thumbnailUrl": ""
+        }
+      });
+      await pgPool.query("UPDATE floor_plan_nodes SET room_id = NULL, panorama_url = '', thumbnail_url = '';");
+      await pgPool.query("UPDATE artifacts SET room_id = NULL WHERE room_id ~ '^room-p-\\d+$';");
+      await ArtifactModel.updateMany({ roomId: /^room-p-\d+$/ }, { $set: { roomId: null, roomCode: '' } });
+      await cacheDelPattern('*');
+      console.log('[SyncEngine] Đã dọn sạch toàn bộ phòng mock và gỡ liên kết sơ đồ thành công!');
+    }
+
     // 2. Đồng bộ Rooms
     const pgRooms = await pgPool.query('SELECT COUNT(*) FROM rooms;');
     const pgRoomCount = parseInt(pgRooms.rows[0].count, 10);
@@ -685,12 +708,7 @@ export async function runStartupDataSync() {
       }
     }
 
-    // Tự động gán 18 phòng vào bản đồ đang active nếu các node chưa có roomId
-    const activeMap = await FloorPlanMap.findOne({ active: true });
-    if (activeMap && activeMap.nodes && activeMap.nodes.some((n: any) => !n.roomId)) {
-      console.log('[SyncEngine] Đang tự động map 18 gian phòng vào sơ đồ mặt bằng active...');
-      await syncFloorPlanNodesToRooms(activeMap);
-    }
+    // Tuyệt đối không tự động gán phòng giả vào sơ đồ. Chỉ lưu trữ các liên kết do quản trị viên thiết lập.
 
     // 5. Đồng bộ Languages
     const pgLang = await pgPool.query('SELECT COUNT(*) FROM languages;');
@@ -1208,13 +1226,19 @@ export async function syncFloorPlanNodesToRooms(analyzedMap: any) {
 
   // 1. Chỉ liên kết với các phòng đang thực sự tồn tại trong CSDL, không tự động sinh phòng giả
 
-  // 2. Gán liên kết node -> roomId và thông tin panorama cho từng node trên sơ đồ
+  // 2. Chỉ đồng bộ thông tin phòng nếu vị trí node đã được quản trị viên chủ động gán roomId
   for (const node of analyzedMap.nodes) {
+    if (!node.roomId) {
+      node.roomId = null;
+      node.panoramaUrl = '';
+      node.thumbnailUrl = '';
+      continue;
+    }
+
     const room = await Room.findOne({
       $or: [
-        { code: node.code },
-        { id: `room-${node.code?.toLowerCase()}` },
-        { id: node.roomId }
+        { id: node.roomId },
+        ...(mongoose.isValidObjectId(node.roomId) ? [{ _id: node.roomId }] : [])
       ]
     });
 
@@ -1222,8 +1246,12 @@ export async function syncFloorPlanNodesToRooms(analyzedMap: any) {
       node.roomId = room.id;
       node.roomCode = room.code;
       node.roomName = room.name;
-      node.panoramaUrl = room.panoramaUrl;
-      node.thumbnailUrl = room.thumbnailUrl || room.panoramaUrl;
+      node.panoramaUrl = room.panoramaUrl || '';
+      node.thumbnailUrl = room.thumbnailUrl || room.panoramaUrl || '';
+    } else {
+      node.roomId = null;
+      node.panoramaUrl = '';
+      node.thumbnailUrl = '';
     }
   }
 
