@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Topic, INITIAL_TOPICS } from '../models/Topic.js';
 import { RoomModel } from '../models/Room.js';
+import { ArtifactModel } from '../models/Artifact.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertTopic, pgDeleteTopic } from '../db/syncEngine.js';
 import { cacheGet, cacheSet, cacheDel } from '../services/redis.js';
@@ -61,7 +62,9 @@ topicsRouter.get('/', async (req: Request, res: Response) => {
       );
     }
 
-    await cacheSet('topics:all', topicsWithRoomCount, 300);
+    if (topicsWithRoomCount.length > 0) {
+      await cacheSet('topics:all', topicsWithRoomCount, 300);
+    }
     res.json({ success: true, data: topicsWithRoomCount });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi tải danh mục chuyên đề: ' + err.message });
@@ -138,11 +141,16 @@ topicsRouter.put('/:id', async (req: Request, res: Response) => {
       }
       topic.name = trimmedName;
 
-      // Đồng bộ cập nhật tên chuyên đề ở các gian phòng đang liên kết
+      // Đồng bộ cập nhật tên chuyên đề ở các gian phòng đang liên kết (MongoDB & PostgreSQL)
       await RoomModel.updateMany(
         { $or: [{ period: oldName }, { category: oldName }] },
         { period: trimmedName, category: trimmedName }
       );
+      try {
+        await pgPool.query('UPDATE rooms SET period = $1, category = $1 WHERE period = $2 OR category = $2 OR topic_id = $3;', [trimmedName, oldName, topic.id]);
+      } catch (err: any) {
+        console.warn('[Topics Update PG Warning]:', err.message);
+      }
     }
 
     if (description !== undefined) topic.description = String(description).trim();
@@ -196,6 +204,15 @@ topicsRouter.delete('/:id', async (req: Request, res: Response) => {
 
     // Xóa trong PostgreSQL Primary
     await pgDeleteTopic(topic.id);
+
+    // Gỡ bỏ liên kết topic_id ở artifacts nếu có
+    try {
+      await pgPool.query('UPDATE artifacts SET topic_id = NULL WHERE topic_id = $1;', [topic.id]);
+      await ArtifactModel.updateMany({ topicId: topic.id }, { $unset: { topicId: 1 } });
+    } catch (cleanErr: any) {
+      console.warn('[Topics Delete Artifact Cleanup Warning]:', cleanErr.message);
+    }
+
     await cacheDel('topics:all');
 
     await logAudit('DELETE_TOPIC', 'topics', { details: { name: topic.name, id: topic.id } });

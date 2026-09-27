@@ -10,7 +10,7 @@ import { uploadToCloudinary } from '../services/cloudinary.js';
 import { getSystemBrandingConfig } from '../models/SystemBranding.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 import { pgPool, logAudit } from '../db/postgres.js';
-import { pgUpsertFloorPlan, pgDeleteFloorPlan } from '../db/syncEngine.js';
+import { pgUpsertFloorPlan, pgDeleteFloorPlan, syncFloorPlanNodesToRooms } from '../db/syncEngine.js';
 
 export const floorPlanRouter = Router();
 
@@ -152,6 +152,9 @@ floorPlanRouter.post('/activate/:id', async (req: Request, res: Response) => {
     targetMap.active = true;
     await targetMap.save();
 
+    // Tự động map và đồng bộ các phòng di sản vào sơ đồ
+    await syncFloorPlanNodesToRooms(targetMap);
+
     // Đồng bộ vào SystemBranding để Header, Cẩm nang & Client đồng bộ 100%
     if (targetMap.imageUrl) {
       await syncFloorPlanToBranding(targetMap);
@@ -266,6 +269,9 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
       setActive,
       forceRebuild: true
     });
+
+    // Tự động map và đồng bộ các node của sơ đồ với 18 phòng di sản thực tế và tạo liên kết hotspots
+    await syncFloorPlanNodesToRooms(analyzedMap);
 
     // Đồng bộ lập tức sang PostgreSQL Primary
     await pgUpsertFloorPlan(analyzedMap);

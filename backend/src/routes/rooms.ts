@@ -18,7 +18,7 @@ const getId = (param: unknown): string => {
 roomsRouter.get('/', async (req: Request, res: Response) => {
   try {
     const cachedRooms = await cacheGet<any[]>('rooms:all');
-    if (cachedRooms) {
+    if (cachedRooms && cachedRooms.length > 0) {
       return res.json({ success: true, data: cachedRooms, fromCache: true });
     }
 
@@ -66,7 +66,9 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
       rooms = await RoomModel.find({}).sort({ orderIndex: 1 }).lean();
     }
 
-    await cacheSet('rooms:all', rooms, 300); // 5 minutes TTL
+    if (rooms.length > 0) {
+      await cacheSet('rooms:all', rooms, 300); // 5 minutes TTL
+    }
     res.json({ success: true, data: rooms });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -201,7 +203,10 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
 roomsRouter.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
-    const room = await RoomModel.findOne({ id });
+    const query = mongoose.isValidObjectId(id)
+      ? { $or: [{ id }, { _id: id }, { code: id }] }
+      : { $or: [{ id }, { code: id }] };
+    const room = await RoomModel.findOne(query);
     if (!room) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
@@ -237,32 +242,46 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
 roomsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
-    const result = await RoomModel.deleteOne({ id });
-    if (result.deletedCount === 0) {
+    const query = mongoose.isValidObjectId(id)
+      ? { $or: [{ id }, { _id: id }, { code: id }] }
+      : { $or: [{ id }, { code: id }] };
+    const room = await RoomModel.findOne(query);
+    if (!room) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
 
-    // Xóa trong PostgreSQL Primary
-    await pgDeleteRoom(id);
-    await logAudit('DELETE_ROOM', 'rooms', { details: { id } });
+    const realId = room.id;
+    await RoomModel.deleteOne({ _id: room._id });
 
-    // Chặt chẽ quan hệ dữ liệu: Gỡ bỏ liên kết phòng khỏi các hiện vật thuộc gian phòng này
+    // Xóa trong PostgreSQL Primary
+    await pgDeleteRoom(realId);
+    await logAudit('DELETE_ROOM', 'rooms', { details: { id: realId, code: room.code } });
+
+    // Chặt chẽ quan hệ dữ liệu: Gỡ bỏ liên kết phòng khỏi các hiện vật thuộc gian phòng này trong cả PostgreSQL & MongoDB
     try {
+      await pgPool.query('UPDATE artifacts SET room_id = NULL, room_code = NULL WHERE room_id = $1 OR room_code = $2;', [realId, room.code]);
       await ArtifactModel.updateMany(
-        { roomId: id },
+        { $or: [{ roomId: realId }, { roomCode: room.code }] },
         { $unset: { roomId: 1, roomCode: 1 } }
       );
+      // Dọn dẹp điểm chuyển tiếp (hotspots) ở các phòng khác trỏ tới phòng này
+      await pgPool.query('DELETE FROM hotspots WHERE target_room_id = $1;', [realId]);
+      await RoomModel.updateMany(
+        { 'hotspots.targetRoomId': realId },
+        { $pull: { hotspots: { targetRoomId: realId } } }
+      );
     } catch (relErr) {
-      console.warn('[Rooms] Lỗi dọn dẹp liên kết hiện vật:', relErr);
+      console.warn('[Rooms] Lỗi dọn dẹp liên kết hiện vật/hotspots:', relErr);
     }
 
     await Promise.all([
       cacheDel('rooms:all'),
       cacheDel(`rooms:detail:${id}`),
+      cacheDel(`rooms:detail:${realId}`),
       cacheDelPattern('artifacts:*')
     ]);
 
-    broadcastRealtimeEvent('rooms_updated', { action: 'delete', roomId: id });
+    broadcastRealtimeEvent('rooms_updated', { action: 'delete', roomId: realId });
     res.json({ success: true, message: 'Đã xóa gian phòng và dọn dẹp liên kết cơ sở dữ liệu' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

@@ -51,6 +51,7 @@ export interface IArtifact extends Document {
 
 const ArtifactSchema = new Schema<IArtifact>(
   {
+    id: { type: String, index: true },
     code: { type: String, required: true, unique: true, index: true },
     name: { type: String, required: true, trim: true },
     roomId: { type: String, ref: 'Room', index: true },

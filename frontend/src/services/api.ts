@@ -93,8 +93,12 @@ export const api = {
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải ảnh lên');
+    const rawUrl = json.data.url || '';
+    const finalUrl = (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'))
+      ? rawUrl
+      : `${API_ROOT}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
     return {
-      url: `http://localhost:3000${json.data.url}`,
+      url: finalUrl,
       filename: json.data.filename
     };
   },

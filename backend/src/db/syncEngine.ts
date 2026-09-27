@@ -7,6 +7,8 @@ import { Language } from '../models/Language.js';
 import { SystemBranding } from '../models/SystemBranding.js';
 import { User } from '../models/User.js';
 import { Role } from '../models/Role.js';
+import { cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
+import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
 /**
  * ĐỒNG BỘ DỮ LIỆU TOÀN DIỆN GIỮA POSTGRESQL (PRIMARY) VÀ MONGODB (MIRROR / DOCUMENT STORE)
@@ -103,6 +105,13 @@ export async function pgUpsertRoom(room: any) {
     if (Array.isArray(room.hotspots) && room.hotspots.length > 0) {
       for (const hs of room.hotspots) {
         if (!hs.id) continue;
+        let validTargetRoomId: string | null = hs.targetRoomId || null;
+        if (validTargetRoomId) {
+          const targetExists = await pgPool.query('SELECT 1 FROM rooms WHERE id = $1', [validTargetRoomId]);
+          if (targetExists.rows.length === 0) {
+            validTargetRoomId = null;
+          }
+        }
         await pgPool.query(`
           INSERT INTO hotspots (id, room_id, type, title, description, target_room_id, artifact_id, pitch, yaw)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -119,7 +128,7 @@ export async function pgUpsertRoom(room: any) {
           hs.type || 'navigation',
           hs.title || '',
           hs.description || '',
-          hs.targetRoomId || null,
+          validTargetRoomId,
           hs.artifactId || null,
           hs.pitch ?? 0,
           hs.yaw ?? 0
@@ -143,6 +152,18 @@ export async function pgUpsertArtifact(artifact: any) {
   try {
     const id = artifact.id || artifact._id?.toString();
     if (!id || !artifact.code) return;
+
+    let validRoomId: string | null = artifact.roomId || null;
+    if (validRoomId) {
+      const roomCheck = await pgPool.query('SELECT 1 FROM rooms WHERE id = $1', [validRoomId]);
+      if (roomCheck.rows.length === 0) validRoomId = null;
+    }
+
+    let validTopicId: string | null = artifact.topicId || null;
+    if (validTopicId) {
+      const topicCheck = await pgPool.query('SELECT 1 FROM topics WHERE id = $1', [validTopicId]);
+      if (topicCheck.rows.length === 0) validTopicId = null;
+    }
 
     await pgPool.query(`
       INSERT INTO artifacts (
@@ -181,9 +202,9 @@ export async function pgUpsertArtifact(artifact: any) {
       id,
       artifact.code,
       artifact.name || '',
-      artifact.roomId || null,
+      validRoomId,
       artifact.roomCode || '',
-      artifact.topicId || null,
+      validTopicId,
       artifact.category || 'Cổ vật di sản',
       artifact.period || 'Thời cổ',
       artifact.origin || 'Bảo tàng Lịch sử TP.HCM',
@@ -255,6 +276,11 @@ export async function pgUpsertFloorPlan(fp: any) {
     if (Array.isArray(fp.nodes) && fp.nodes.length > 0) {
       for (const n of fp.nodes) {
         if (!n.id) continue;
+        let validRoomId: string | null = n.roomId || null;
+        if (validRoomId) {
+          const rCheck = await pgPool.query('SELECT 1 FROM rooms WHERE id = $1', [validRoomId]);
+          if (rCheck.rows.length === 0) validRoomId = null;
+        }
         await pgPool.query(`
           INSERT INTO floor_plan_nodes (
             id, floor_plan_id, room_id, code, name, period, category,
@@ -276,7 +302,7 @@ export async function pgUpsertFloorPlan(fp: any) {
         `, [
           n.id,
           id,
-          n.roomId || null,
+          validRoomId,
           n.code || n.id,
           n.name || '',
           n.period || '',
@@ -508,10 +534,52 @@ export async function runStartupDataSync() {
     const pgRoomCount = parseInt(pgRooms.rows[0].count, 10);
     const mongoRooms = await Room.find().lean();
 
-    if (pgRoomCount === 0 && mongoRooms.length > 0) {
+    if (pgRoomCount === 0 && mongoRooms.length === 0) {
+      console.log('[SyncEngine] CSDL trống: Tự động khởi tạo 18 gian phòng di sản chuẩn cho PostgreSQL & MongoDB...');
+      await seedHeritageMuseumData();
+    } else if (pgRoomCount === 0 && mongoRooms.length > 0) {
       console.log(`[SyncEngine] Đang di chuyển ${mongoRooms.length} Rooms & Hotspots từ MongoDB sang PostgreSQL...`);
       for (const r of mongoRooms) {
         await pgUpsertRoom(r);
+      }
+    } else if (mongoRooms.length === 0 && pgRoomCount > 0) {
+      console.log(`[SyncEngine] Đang nạp ngược ${pgRoomCount} Rooms từ PostgreSQL sang MongoDB...`);
+      const pgAll = await pgPool.query('SELECT * FROM rooms ORDER BY order_index ASC;');
+      for (const row of pgAll.rows) {
+        const hsRes = await pgPool.query('SELECT * FROM hotspots WHERE room_id = $1', [row.id]);
+        const hotspots = hsRes.rows.map((h: any) => ({
+          id: h.id,
+          type: h.type,
+          title: h.title,
+          description: h.description,
+          targetRoomId: h.target_room_id,
+          artifactId: h.artifact_id,
+          pitch: h.pitch,
+          yaw: h.yaw
+        }));
+        await Room.updateOne({ id: row.id }, {
+          $set: {
+            id: row.id,
+            code: row.code,
+            name: row.name,
+            period: row.period,
+            category: row.category,
+            description: row.description,
+            panoramaUrl: row.panorama_url,
+            thumbnailUrl: row.thumbnail_url,
+            initialView: row.initial_view,
+            orderIndex: row.order_index,
+            active: row.active,
+            aiVoiceEnabled: row.ai_voice_enabled,
+            aiKnowledgePrompt: row.ai_knowledge_prompt,
+            aiScript: row.ai_script,
+            aiVoiceLang: row.ai_voice_lang,
+            qrScanCount: row.qr_scan_count,
+            scenesCount: row.scenes_count,
+            translations: row.translations,
+            hotspots
+          }
+        }, { upsert: true });
       }
     }
 
@@ -520,10 +588,48 @@ export async function runStartupDataSync() {
     const pgArtifactCount = parseInt(pgArtifacts.rows[0].count, 10);
     const mongoArtifacts = await ArtifactModel.find().lean();
 
-    if (pgArtifactCount === 0 && mongoArtifacts.length > 0) {
+    if (pgArtifactCount === 0 && mongoArtifacts.length === 0) {
+      console.log('[SyncEngine] Khởi tạo bộ hiện vật di sản và Bảo vật Quốc gia thật cho PostgreSQL & MongoDB...');
+      for (const art of HERITAGE_ARTIFACTS_SEED) {
+        await ArtifactModel.updateOne({ id: art.id }, { $set: art }, { upsert: true });
+        await pgUpsertArtifact(art);
+      }
+    } else if (pgArtifactCount === 0 && mongoArtifacts.length > 0) {
       console.log(`[SyncEngine] Đang di chuyển ${mongoArtifacts.length} Artifacts từ MongoDB sang PostgreSQL...`);
       for (const a of mongoArtifacts) {
         await pgUpsertArtifact(a);
+      }
+    } else if (mongoArtifacts.length === 0 && pgArtifactCount > 0) {
+      console.log(`[SyncEngine] Đang nạp ngược ${pgArtifactCount} Artifacts từ PostgreSQL sang MongoDB...`);
+      const pgAllArt = await pgPool.query('SELECT * FROM artifacts ORDER BY order_index ASC;');
+      for (const row of pgAllArt.rows) {
+        await ArtifactModel.updateOne({ id: row.id }, {
+          $set: {
+            id: row.id,
+            code: row.code,
+            name: row.name,
+            roomId: row.room_id,
+            roomCode: row.room_code,
+            topicId: row.topic_id,
+            category: row.category,
+            period: row.period,
+            origin: row.origin,
+            description: row.description,
+            dimensions: row.dimensions,
+            images: row.images,
+            thumbnailUrl: row.thumbnail_url,
+            model3dUrl: row.model_3d_url,
+            audioNarrationUrl: row.audio_narration_url,
+            voiceLanguage: row.voice_language,
+            qrCodeUrl: row.qr_code_url,
+            status: row.status,
+            processingStatus: row.processing_status,
+            processingError: row.processing_error,
+            modelMetadata: row.model_metadata,
+            translations: row.translations,
+            orderIndex: row.order_index
+          }
+        }, { upsert: true });
       }
     }
 
@@ -537,6 +643,13 @@ export async function runStartupDataSync() {
       for (const fp of mongoFp) {
         await pgUpsertFloorPlan(fp);
       }
+    }
+
+    // Tự động gán 18 phòng vào bản đồ đang active nếu các node chưa có roomId
+    const activeMap = await FloorPlanMap.findOne({ active: true });
+    if (activeMap && activeMap.nodes && activeMap.nodes.some((n: any) => !n.roomId)) {
+      console.log('[SyncEngine] Đang tự động map 18 gian phòng vào sơ đồ mặt bằng active...');
+      await syncFloorPlanNodesToRooms(activeMap);
     }
 
     // 5. Đồng bộ Languages
@@ -566,3 +679,665 @@ export async function runStartupDataSync() {
     console.warn('[SyncEngine Warning] Quá trình kiểm tra đồng bộ gặp cảnh báo (hệ thống vẫn hoạt động):', err.message);
   }
 }
+
+// ==========================================
+// 4. DỮ LIỆU SEED 18 PHÒNG VÀ HIỆN VẬT DI SẢN THẬT 100%
+// ==========================================
+
+export const HERITAGE_18_ROOMS_SEED = [
+  {
+    id: 'room-p-01',
+    code: 'P-01',
+    name: 'Thời Nguyên thủy',
+    period: 'Thời kỳ tiền sử & sơ sử',
+    category: 'Tiền sử Việt Nam',
+    description: 'Gian trưng bày các dấu tích sơ kỳ đá cũ, văn hóa Hòa Bình, Bắc Sơn, công cụ đá ghè đẽo và dấu tích người vượn cổ tại Việt Nam.',
+    panoramaUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 1,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    aiScript: 'Chào mừng quý khách đến với Phòng 1: Thời kỳ Nguyên thủy. Nơi lưu giữ những hiện vật đá ghè đẽo hàng vạn năm tuổi của tổ tiên người Việt cổ.',
+    hotspots: [
+      { id: 'hs-p01-to-p02', type: 'navigation', title: 'Sang Phòng P-02: Thời dựng nước và giữ nước', description: 'Lối sang gian trưng bày Văn hóa Đông Sơn', targetRoomId: 'room-p-02', pitch: -5, yaw: 90 },
+      { id: 'hs-p01-to-p17', type: 'navigation', title: 'Sang Phòng P-17: Dân tộc phía Nam Việt Nam', description: 'Lối sang cánh phải', targetRoomId: 'room-p-17', pitch: -5, yaw: -90 }
+    ]
+  },
+  {
+    id: 'room-p-02',
+    code: 'P-02',
+    name: 'Thời dựng nước và giữ nước',
+    period: 'Thời đại Hùng Vương - An Dương Vương',
+    category: 'Khởi nguyên dân tộc',
+    description: 'Trưng bày nền văn minh nông nghiệp lúa nước rực rỡ, văn hóa Đông Sơn, thạp đồng, giáo mác và Trống đồng Bảo vật Quốc gia.',
+    panoramaUrl: '/uploads/stitched_360_1789646150876.jpg',
+    thumbnailUrl: '/uploads/drum_isolated.png',
+    initialView: { pitch: 0, yaw: 45, fov: 90 },
+    orderIndex: 2,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    aiScript: 'Quý khách đang chiêm ngưỡng không gian Thời dựng nước và giữ nước với tâm điểm là Trống đồng Đông Sơn - đỉnh cao nghệ thuật đúc đồng cổ xưa.',
+    hotspots: [
+      { id: 'hs-p02-to-p01', type: 'navigation', title: 'Về Phòng P-01: Thời Nguyên thủy', description: 'Lối về phòng trước', targetRoomId: 'room-p-01', pitch: -5, yaw: -90 },
+      { id: 'hs-p02-to-p03', type: 'navigation', title: 'Sang Phòng P-03: Thời Ngô - Đinh - Tiền Lê', description: 'Lối sang giai đoạn độc lập tự chủ', targetRoomId: 'room-p-03', pitch: -5, yaw: 0 },
+      { id: 'hs-p02-art-drum', type: 'artifact', title: 'Trống đồng Đông Sơn', description: 'Bảo vật Quốc gia mô phỏng 3D tương tác 360°', artifactId: 'art-trong-dong-dong-son', pitch: -10, yaw: 45 }
+    ]
+  },
+  {
+    id: 'room-p-03',
+    code: 'P-03',
+    name: 'Thời Ngô - Đinh - Tiền Lê',
+    period: 'Thế kỷ X - Độc lập tự chủ',
+    category: 'Độc lập tự chủ',
+    description: 'Kỷ nguyên phục hưng nền độc lập dân tộc sau hơn một nghìn năm Bắc thuộc, chiến thắng Bạch Đằng năm 938 của Ngô Quyền và kinh đô Hoa Lư.',
+    panoramaUrl: '/uploads/stitched_360_1789651346352.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789651346352.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 3,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p03-to-p02', type: 'navigation', title: 'Về Phòng P-02: Thời dựng nước', description: 'Lối về phòng trước', targetRoomId: 'room-p-02', pitch: -5, yaw: 180 },
+      { id: 'hs-p03-to-p04', type: 'navigation', title: 'Sang Phòng P-04: Thời Lý', description: 'Lối sang vương triều Lý', targetRoomId: 'room-p-04', pitch: -5, yaw: 0 }
+    ]
+  },
+  {
+    id: 'room-p-04',
+    code: 'P-04',
+    name: 'Thời Lý',
+    period: 'Thế kỷ XI - XIII: Văn minh Đại Việt',
+    category: 'Vương triều Lý',
+    description: 'Thời kỳ định đô Thăng Long (1010), đỉnh cao mỹ thuật Phật giáo thời Lý với tượng rồng uốn khúc hình sin, lá đề và gốm men ngọc hoàng cung.',
+    panoramaUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 4,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p04-to-p03', type: 'navigation', title: 'Về Phòng P-03: Ngô - Đinh - Tiền Lê', description: 'Lối về phòng trước', targetRoomId: 'room-p-03', pitch: -5, yaw: 180 },
+      { id: 'hs-p04-to-p05', type: 'navigation', title: 'Sang Phòng P-05: Thời Trần - Hồ', description: 'Lối sang vương triều Trần', targetRoomId: 'room-p-05', pitch: -5, yaw: 90 }
+    ]
+  },
+  {
+    id: 'room-p-05',
+    code: 'P-05',
+    name: 'Thời Trần - Hồ',
+    period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông',
+    category: 'Vương triều Trần - Hồ',
+    description: 'Hào khí Đông A, vũ khí quân sự và cọc gỗ Bạch Đằng năm 1288, cùng dấu ấn thành lũy đá vương triều Hồ.',
+    panoramaUrl: '/uploads/stitched_360_1789651467746.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789651467746.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 5,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p05-to-p04', type: 'navigation', title: 'Về Phòng P-04: Thời Lý', description: 'Lối về phòng trước', targetRoomId: 'room-p-04', pitch: -5, yaw: -90 },
+      { id: 'hs-p05-to-p06', type: 'navigation', title: 'Sang Phòng P-06: Văn hóa Champa', description: 'Lối sang cánh nghệ thuật Chămpa', targetRoomId: 'room-p-06', pitch: -5, yaw: 0 },
+      { id: 'hs-p05-to-p18', type: 'navigation', title: 'Sang Phòng P-18: Tượng Phật giáo Châu Á', description: 'Lối sang sảnh Phật giáo', targetRoomId: 'room-p-18', pitch: -5, yaw: 90 }
+    ]
+  },
+  {
+    id: 'room-p-06',
+    code: 'P-06',
+    name: 'Văn hóa Champa',
+    period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa',
+    category: 'Di sản miền Trung',
+    description: 'Bộ sưu tập điêu khắc đá sa thạch Champa phong phú bậc nhất phương Nam, với tượng Nữ thần Saraswati, thần Shiva, Garuda và phù điêu vũ nữ Trà Kiệu.',
+    panoramaUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    initialView: { pitch: 0, yaw: 30, fov: 90 },
+    orderIndex: 6,
+    topicId: 'van-hoa-nam-bo-co-vat',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p06-to-p05', type: 'navigation', title: 'Về Phòng P-05: Thời Trần - Hồ', description: 'Lối về phòng trước', targetRoomId: 'room-p-05', pitch: -5, yaw: 180 },
+      { id: 'hs-p06-to-p07', type: 'navigation', title: 'Sang Phòng P-07: Văn hóa Óc Eo', description: 'Lối sang nền văn minh cổ Phù Nam', targetRoomId: 'room-p-07', pitch: -5, yaw: 0 },
+      { id: 'hs-p06-art-saraswati', type: 'artifact', title: 'Tượng Nữ thần Saraswati', description: 'Bảo vật Quốc gia điêu khắc sa thạch Tháp Mẫm', artifactId: 'art-tuong-nu-than-saraswati', pitch: -8, yaw: 30 }
+    ]
+  },
+  {
+    id: 'room-p-07',
+    code: 'P-07',
+    name: 'Văn hóa Óc Eo',
+    period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ',
+    category: 'Văn minh Phù Nam',
+    description: 'Gian trưng bày đồ sộ nền văn minh cảng thị Óc Eo cổ đại, tượng Phật bằng gỗ sao cổ hàng nghìn năm tuổi, đồ trang sức vàng và khuôn đúc thủy tinh.',
+    panoramaUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
+    initialView: { pitch: 0, yaw: -30, fov: 90 },
+    orderIndex: 7,
+    topicId: 'van-hoa-nam-bo-co-vat',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p07-to-p06', type: 'navigation', title: 'Về Phòng P-06: Văn hóa Champa', description: 'Lối về phòng trước', targetRoomId: 'room-p-06', pitch: -5, yaw: 180 },
+      { id: 'hs-p07-to-p08', type: 'navigation', title: 'Sang Phòng P-08: Điêu khắc đá Campuchia', description: 'Lối sang phòng kế tiếp', targetRoomId: 'room-p-08', pitch: -5, yaw: 90 },
+      { id: 'hs-p07-art-buddha', type: 'artifact', title: 'Tượng Phật Sa Đéc', description: 'Bảo vật Quốc gia bằng gỗ sao thế kỷ IV', artifactId: 'art-tuong-phat-sa-dec', pitch: -6, yaw: -30 }
+    ]
+  },
+  {
+    id: 'room-p-08',
+    code: 'P-08',
+    name: 'Điêu khắc đá Campuchia',
+    period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ',
+    category: 'Nghệ thuật Châu Á',
+    description: 'Bộ sưu tập tượng thần Hindu và Phật giáo phong cách Angkor Wat, Banteay Srei và Bayon bằng đá sa thạch độc đáo.',
+    panoramaUrl: '/uploads/stitched_360_1789658000391.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789658000391.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 8,
+    topicId: 'van-hoa-nam-bo-co-vat',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p08-to-p07', type: 'navigation', title: 'Về Phòng P-07: Văn hóa Óc Eo', description: 'Lối về phòng trước', targetRoomId: 'room-p-07', pitch: -5, yaw: -90 },
+      { id: 'hs-p08-to-p09', type: 'navigation', title: 'Sang Phòng P-09: Thời Lê - Mạc, Trịnh - Nguyễn', description: 'Lối sang giai đoạn phân tranh', targetRoomId: 'room-p-09', pitch: -5, yaw: 180 }
+    ]
+  },
+  {
+    id: 'room-p-09',
+    code: 'P-09',
+    name: 'Thời Lê - Mạc, Trịnh - Nguyễn',
+    period: 'Thế kỷ XV - XVIII: Thời kỳ Hậu Lê và phân tranh',
+    category: 'Thời kỳ Hậu Lê',
+    description: 'Di sản thời Hậu Lê rực rỡ, thời kỳ Nam - Bắc triều, chiến tranh Trịnh - Nguyễn và sự nghiệp mở cõi phương Nam của các chúa Nguyễn.',
+    panoramaUrl: '/uploads/stitched_360_1789651467746.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789651467746.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 9,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p09-to-p08', type: 'navigation', title: 'Về Phòng P-08: Điêu khắc Campuchia', description: 'Lối về phòng trước', targetRoomId: 'room-p-08', pitch: -5, yaw: 0 },
+      { id: 'hs-p09-to-p10', type: 'navigation', title: 'Sang Phòng P-10: Thời Tây Sơn', description: 'Lối sang vương triều Tây Sơn', targetRoomId: 'room-p-10', pitch: -5, yaw: 180 }
+    ]
+  },
+  {
+    id: 'room-p-10',
+    code: 'P-10',
+    name: 'Thời Tây Sơn',
+    period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn',
+    category: 'Triều đại Tây Sơn',
+    description: 'Kỷ vật thời hoàng đế Quang Trung - Nguyễn Huệ, đại thắng quân Thanh năm 1789 tại Ngọc Hồi - Đống Đa, tiền đồng và sắc phong.',
+    panoramaUrl: '/uploads/stitched_360_1789658000391.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789658000391.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 10,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p10-to-p09', type: 'navigation', title: 'Về Phòng P-09: Thời Lê - Mạc', description: 'Lối về phòng trước', targetRoomId: 'room-p-09', pitch: -5, yaw: 0 },
+      { id: 'hs-p10-to-p11', type: 'navigation', title: 'Sang Phòng P-11: Súng Thần công - Đại bác', description: 'Lối sang kho vũ khí thần công', targetRoomId: 'room-p-11', pitch: -5, yaw: 90 }
+    ]
+  },
+  {
+    id: 'room-p-11',
+    code: 'P-11',
+    name: 'Súng Thần công - Đại bác',
+    period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ',
+    category: 'Vũ khí di sản',
+    description: 'Hệ thống súng Thần công đúc bằng đồng và gang thời chúa Nguyễn và triều Nguyễn, bảo vật phòng thủ bờ cõi và kinh thành Huế.',
+    panoramaUrl: '/uploads/stitched_360_1789658000391.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789658000391.jpg',
+    initialView: { pitch: 0, yaw: -45, fov: 90 },
+    orderIndex: 11,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p11-to-p10', type: 'navigation', title: 'Về Phòng P-10: Thời Tây Sơn', description: 'Lối về phòng trước', targetRoomId: 'room-p-10', pitch: -5, yaw: -90 },
+      { id: 'hs-p11-art-cannon', type: 'artifact', title: 'Súng Thần công Triều Nguyễn', description: 'Đại bác đúc bằng đồng cổ thế kỷ XIX', artifactId: 'art-sung-than-cong-nguyen', pitch: -10, yaw: -45 }
+    ]
+  },
+  {
+    id: 'room-p-12',
+    code: 'P-12',
+    name: 'Thời Nguyễn',
+    period: '1802 - 1945: Triều đại phong kiến cuối cùng',
+    category: 'Triều Nguyễn',
+    description: 'Văn hóa cung đình Huế, long bào, mũ cánh chuồn, đồ pháp lam hoàng gia, ấn triện ngọc và sắc chỉ triều Nguyễn.',
+    panoramaUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 12,
+    topicId: 'tien-trinh-lich-su-vn',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p12-to-p18', type: 'navigation', title: 'Sang Phòng P-18: Tượng Phật giáo', description: 'Lối sang sảnh Phật giáo', targetRoomId: 'room-p-18', pitch: -5, yaw: -90 },
+      { id: 'hs-p12-to-p13', type: 'navigation', title: 'Sang Phòng P-13: Sưu tập Dương Hà', description: 'Lối sang cánh sưu tập đặc biệt', targetRoomId: 'room-p-13', pitch: -5, yaw: 90 }
+    ]
+  },
+  {
+    id: 'room-p-13',
+    code: 'P-13',
+    name: 'Sưu tập Dương Hà',
+    period: 'Cổ vật quý hiếm do gia đình Dương Hà hiến tặng',
+    category: 'Sưu tập tư nhân',
+    description: 'Hàng trăm hiện vật ngà voi, ngọc quý, đồ sứ ký kiểu và mỹ nghệ tinh xảo do cụ Dương Bá Trạc và gia đình sưu tập, hiến tặng cho quốc gia.',
+    panoramaUrl: '/uploads/stitched_360_1789651467746.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789651467746.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 13,
+    topicId: 'suu-tap-dac-biet',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p13-to-p12', type: 'navigation', title: 'Về Phòng P-12: Thời Nguyễn', description: 'Lối về phòng trước', targetRoomId: 'room-p-12', pitch: -5, yaw: -90 },
+      { id: 'hs-p13-to-p14', type: 'navigation', title: 'Sang Phòng P-14: Thương mại hàng hải', description: 'Lối sang gốm sứ tàu đắm', targetRoomId: 'room-p-14', pitch: -5, yaw: 180 }
+    ]
+  },
+  {
+    id: 'room-p-14',
+    code: 'P-14',
+    name: 'Thương mại hàng hải - Gốm sứ',
+    period: 'Thế kỷ XIV - XVIII: Gốm sứ tàu đắm biển Đông',
+    category: 'Hàng hải cổ vật',
+    description: 'Gốm hoa lam Chu Đậu, đồ gốm men xanh trắng, gốm thời Minh - Thanh được trục vớt từ các con tàu đắm giao thương quốc tế trên biển Đông.',
+    panoramaUrl: '/uploads/stitched_360_1789651467746.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789651467746.jpg',
+    initialView: { pitch: 0, yaw: 60, fov: 90 },
+    orderIndex: 14,
+    topicId: 'suu-tap-dac-biet',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p14-to-p13', type: 'navigation', title: 'Về Phòng P-13: Sưu tập Dương Hà', description: 'Lối về phòng trước', targetRoomId: 'room-p-13', pitch: -5, yaw: 0 },
+      { id: 'hs-p14-to-p15', type: 'navigation', title: 'Sang Phòng P-15: Cổ vật tàu đắm biển Đông', description: 'Lối sang phòng chuyên đề tàu đắm', targetRoomId: 'room-p-15', pitch: -5, yaw: 90 },
+      { id: 'hs-p14-to-p16', type: 'navigation', title: 'Sang Phòng P-16: Sưu tập Vương Hồng Sển', description: 'Lối sang gian đồ cổ học giả Vương Hồng Sển', targetRoomId: 'room-p-16', pitch: -5, yaw: 180 },
+      { id: 'hs-p14-art-chudau', type: 'artifact', title: 'Đĩa gốm hoa lam Chu Đậu', description: 'Cổ vật khảo cổ tàu đắm Cù Lao Chàm thế kỷ XV', artifactId: 'art-dia-gom-chu-dau', pitch: -10, yaw: 60 }
+    ]
+  },
+  {
+    id: 'room-p-15',
+    code: 'P-15',
+    name: 'Cổ vật tàu đắm biển Đông',
+    period: 'Di vật từ những con tàu đắm ngoài khơi',
+    category: 'Hàng hải cổ vật',
+    description: 'Những vết tích hà bám, tiền cổ, hồ tiêu hóa thạch và cổ vật trục vớt từ tàu đắm Bình Châu, Hòn Cau, Cù Lao Chàm.',
+    panoramaUrl: '/uploads/stitched_360_1789651346352.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789651346352.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 15,
+    topicId: 'suu-tap-dac-biet',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p15-to-p14', type: 'navigation', title: 'Về Phòng P-14: Thương mại hàng hải', description: 'Lối về phòng trước', targetRoomId: 'room-p-14', pitch: -5, yaw: -90 }
+    ]
+  },
+  {
+    id: 'room-p-16',
+    code: 'P-16',
+    name: 'Sưu tập Vương Hồng Sển',
+    period: 'Đồ cổ, gốm sứ độc bản học giả Vương Hồng Sển',
+    category: 'Sưu tập tư nhân',
+    description: 'Kho báu cổ ngoạn vô giá gồm đồ gốm sứ Việt Nam, Trung Hoa, Nhật Bản và các bình vôi độc bản của nhà nghiên cứu văn hóa Nam Bộ Vương Hồng Sển.',
+    panoramaUrl: '/uploads/stitched_360_1789651346352.jpg',
+    thumbnailUrl: '/uploads/stitched_360_1789651346352.jpg',
+    initialView: { pitch: 0, yaw: 45, fov: 90 },
+    orderIndex: 16,
+    topicId: 'suu-tap-dac-biet',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p16-to-p14', type: 'navigation', title: 'Về Phòng P-14: Thương mại hàng hải', description: 'Lối về phòng trước', targetRoomId: 'room-p-14', pitch: -5, yaw: 0 },
+      { id: 'hs-p16-to-p17', type: 'navigation', title: 'Sang Phòng P-17: Dân tộc phía Nam', description: 'Lối sang gian dân tộc học', targetRoomId: 'room-p-17', pitch: -5, yaw: -90 },
+      { id: 'hs-p16-art-binhvoi', type: 'artifact', title: 'Bình vôi gốm men độc bản', description: 'Cổ vật đặc trưng văn hóa ăn trầu Việt Nam', artifactId: 'art-binh-voi-gom-vuong-hong-sen', pitch: -8, yaw: 45 }
+    ]
+  },
+  {
+    id: 'room-p-17',
+    code: 'P-17',
+    name: 'Dân tộc phía Nam Việt Nam',
+    period: 'Bản sắc văn hóa các dân tộc phương Nam',
+    category: 'Dân tộc học',
+    description: 'Trang phục truyền thống, cồng chiêng Tây Nguyên, đồ dùng sinh hoạt và nhạc cụ cổ của các dân tộc Kinh, Hoa, Chăm, Khmer sinh sống tại phương Nam.',
+    panoramaUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 17,
+    topicId: 'van-hoa-nam-bo-co-vat',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p17-to-p16', type: 'navigation', title: 'Về Phòng P-16: Sưu tập Vương Hồng Sển', description: 'Lối về gian đồ cổ', targetRoomId: 'room-p-16', pitch: -5, yaw: 90 },
+      { id: 'hs-p17-to-p01', type: 'navigation', title: 'Về Phòng P-01: Thời Nguyên thủy', description: 'Lối thông về sảnh chính ban đầu', targetRoomId: 'room-p-01', pitch: -5, yaw: -90 }
+    ]
+  },
+  {
+    id: 'room-p-18',
+    code: 'P-18',
+    name: 'Tượng Phật giáo Châu Á',
+    period: 'Nghệ thuật Phật giáo các quốc gia Châu Á',
+    category: 'Mỹ thuật tôn giáo',
+    description: 'Tượng Phật Thích Ca, Bồ Tát Quán Thế Âm bằng gỗ, đồng, đá với các phong cách nghệ thuật Việt Nam, Thái Lan, Lào, Campuchia, Nhật Bản và Tây Tạng.',
+    panoramaUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    initialView: { pitch: 0, yaw: 0, fov: 90 },
+    orderIndex: 18,
+    topicId: 'van-hoa-nam-bo-co-vat',
+    active: true,
+    aiVoiceEnabled: true,
+    aiVoiceLang: 'vi-south',
+    hotspots: [
+      { id: 'hs-p18-to-p05', type: 'navigation', title: 'Sang Phòng P-05: Thời Trần - Hồ', description: 'Lối sang cánh vương triều Trần', targetRoomId: 'room-p-05', pitch: -5, yaw: -90 },
+      { id: 'hs-p18-to-p12', type: 'navigation', title: 'Sang Phòng P-12: Thời Nguyễn', description: 'Lối sang cánh vương triều Nguyễn', targetRoomId: 'room-p-12', pitch: -5, yaw: 90 }
+    ]
+  }
+];
+
+export const HERITAGE_ARTIFACTS_SEED = [
+  {
+    id: 'art-trong-dong-dong-son',
+    code: 'BTLS-001',
+    name: 'Trống đồng Đông Sơn',
+    roomId: 'room-p-02',
+    roomCode: 'P-02',
+    topicId: 'tien-trinh-lich-su-vn',
+    category: 'Bảo vật Quốc gia',
+    period: 'Thế kỷ VI - III TCN: Văn hóa Đông Sơn',
+    origin: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
+    description: 'Trống đồng Đông Sơn tiêu biểu cho nền văn minh nông nghiệp lúa nước và nghệ thuật đúc đồng đỉnh cao của người Việt cổ. Mặt trống khắc họa ngôi sao nhiều cánh cùng hình ảnh người giã gạo, chim lạc bay.',
+    thumbnailUrl: '/uploads/drum_isolated.png',
+    images: ['/uploads/drum_isolated.png', '/uploads/real3d_angled.png', '/uploads/real3d_front.png'],
+    model3dUrl: '/uploads/drum_camera_projected.glb',
+    voiceLanguage: 'vi',
+    status: 'active',
+    processingStatus: 'completed',
+    orderIndex: 1,
+    modelMetadata: {
+      vertices: 12480,
+      faces: 24960,
+      sizeBytes: 2048152
+    }
+  },
+  {
+    id: 'art-tuong-nu-than-saraswati',
+    code: 'BTLS-002',
+    name: 'Tượng Nữ thần Saraswati',
+    roomId: 'room-p-06',
+    roomCode: 'P-06',
+    topicId: 'van-hoa-nam-bo-co-vat',
+    category: 'Bảo vật Quốc gia',
+    period: 'Thế kỷ X - XI: Nghệ thuật Chămpa',
+    origin: 'Tháp Mẫm, Bình Định',
+    description: 'Tác phẩm điêu khắc sa thạch độc bản thể hiện nữ thần tri thức và nghệ thuật Saraswati trong tư thế uyển chuyển, mang đậm dấu ấn phong cách Tháp Mẫm tinh xảo.',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg',
+    images: ['https://res.cloudinary.com/djkif9ubs/image/upload/v1790468364/museum/branding_assets/pano_1790468360285_Acnos-bao-tang-lich-su-03_hbc4hq.jpg'],
+    voiceLanguage: 'vi',
+    status: 'active',
+    processingStatus: 'idle',
+    orderIndex: 2
+  },
+  {
+    id: 'art-tuong-phat-sa-dec',
+    code: 'BTLS-003',
+    name: 'Tượng Phật Sa Đéc',
+    roomId: 'room-p-07',
+    roomCode: 'P-07',
+    topicId: 'van-hoa-nam-bo-co-vat',
+    category: 'Bảo vật Quốc gia',
+    period: 'Thế kỷ IV - VI: Văn hóa Óc Eo',
+    origin: 'Sa Đéc, Đồng Tháp',
+    description: 'Tượng Phật tạc bằng gỗ sao nguyên khối còn lưu giữ trọn vẹn nét thanh thoát, biểu tượng cho sự du nhập và phát triển rực rỡ của Phật giáo tại vùng đất Phù Nam cổ.',
+    thumbnailUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
+    images: ['https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg'],
+    voiceLanguage: 'vi',
+    status: 'active',
+    processingStatus: 'idle',
+    orderIndex: 3
+  },
+  {
+    id: 'art-sung-than-cong-nguyen',
+    code: 'BTLS-004',
+    name: 'Súng Thần công Triều Nguyễn',
+    roomId: 'room-p-11',
+    roomCode: 'P-11',
+    topicId: 'tien-trinh-lich-su-vn',
+    category: 'Vũ khí cổ di sản',
+    period: 'Thế kỷ XIX: Triều Nguyễn',
+    origin: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
+    description: 'Đại bác đúc bằng đồng thời vua Gia Long và Minh Mạng, trên thân khắc chữ Hán ghi rõ phiên hiệu quân đội và năm đúc.',
+    thumbnailUrl: '/uploads/stitched_360_1789658000391.jpg',
+    images: ['/uploads/stitched_360_1789658000391.jpg'],
+    voiceLanguage: 'vi',
+    status: 'active',
+    processingStatus: 'idle',
+    orderIndex: 4
+  },
+  {
+    id: 'art-dia-gom-chu-dau',
+    code: 'BTLS-005',
+    name: 'Đĩa gốm hoa lam Chu Đậu',
+    roomId: 'room-p-14',
+    roomCode: 'P-14',
+    topicId: 'suu-tap-dac-biet',
+    category: 'Cổ vật tàu đắm',
+    period: 'Thế kỷ XV: Gốm Chu Đậu - Hải Dương',
+    origin: 'Tàu đắm Cù Lao Chàm, Biển Đông',
+    description: 'Đĩa gốm hoa lam vẽ thiên nga trong lòng đĩa, men lam sắc nét, minh chứng cho con đường tơ lụa - gốm sứ hàng hải sầm uất qua vùng biển Việt Nam.',
+    thumbnailUrl: '/uploads/stitched_360_1789651467746.jpg',
+    images: ['/uploads/stitched_360_1789651467746.jpg'],
+    voiceLanguage: 'vi',
+    status: 'active',
+    processingStatus: 'idle',
+    orderIndex: 5
+  },
+  {
+    id: 'art-binh-voi-gom-vuong-hong-sen',
+    code: 'BTLS-006',
+    name: 'Bình vôi gốm men độc bản',
+    roomId: 'room-p-16',
+    roomCode: 'P-16',
+    topicId: 'suu-tap-dac-biet',
+    category: 'Sưu tập Cụ Vương Hồng Sển',
+    period: 'Thế kỷ XVIII - XIX',
+    origin: 'Sưu tập Vương Hồng Sển hiến tặng',
+    description: 'Bình vôi cổ phủ men rạn độc đáo, quai đắp nổi cành cau, gắn liền với phong tục ăn trầu truyền thống của người Việt.',
+    thumbnailUrl: '/uploads/stitched_360_1789651346352.jpg',
+    images: ['/uploads/stitched_360_1789651346352.jpg'],
+    voiceLanguage: 'vi',
+    status: 'active',
+    processingStatus: 'idle',
+    orderIndex: 6
+  }
+];
+
+export async function syncFloorPlanNodesToRooms(analyzedMap: any) {
+  if (!analyzedMap || !Array.isArray(analyzedMap.nodes) || analyzedMap.nodes.length === 0) return analyzedMap;
+
+  // 1. Đảm bảo 18 phòng chuẩn di sản tồn tại trong CSDL PostgreSQL & MongoDB
+  for (const seedRoom of HERITAGE_18_ROOMS_SEED) {
+    const existing = await Room.findOne({ $or: [{ id: seedRoom.id }, { code: seedRoom.code }] });
+    if (!existing) {
+      const created = await Room.create(seedRoom as any);
+      await pgUpsertRoom((created as any).toObject ? (created as any).toObject() : created);
+    } else {
+      let changed = false;
+      if (!existing.code) { existing.code = seedRoom.code; changed = true; }
+      if (!existing.period) { existing.period = seedRoom.period; changed = true; }
+      if (!existing.category) { existing.category = seedRoom.category; changed = true; }
+      if (!existing.panoramaUrl) { existing.panoramaUrl = seedRoom.panoramaUrl; changed = true; }
+      if (changed) {
+        await existing.save();
+        await pgUpsertRoom(existing.toObject());
+      }
+    }
+  }
+
+  // 2. Gán liên kết node -> roomId và thông tin panorama cho từng node trên sơ đồ
+  for (const node of analyzedMap.nodes) {
+    const room = await Room.findOne({
+      $or: [
+        { code: node.code },
+        { id: `room-${node.code?.toLowerCase()}` },
+        { id: node.roomId }
+      ]
+    });
+
+    if (room) {
+      node.roomId = room.id;
+      node.roomCode = room.code;
+      node.roomName = room.name;
+      node.panoramaUrl = room.panoramaUrl;
+      node.thumbnailUrl = room.thumbnailUrl || room.panoramaUrl;
+    }
+  }
+
+  // 3. Nếu sơ đồ có edges, tự động kết nối navigation hotspots giữa các phòng tương ứng
+  if (Array.isArray(analyzedMap.edges) && analyzedMap.edges.length > 0) {
+    for (const node of analyzedMap.nodes) {
+      if (!node.roomId) continue;
+      const targetEdges = analyzedMap.edges.filter((e: any) => e.source === node.id || e.target === node.id);
+      const neighborRoomIds = targetEdges.map((e: any) => {
+        const neighborNodeId = e.source === node.id ? e.target : e.source;
+        const neighborNode = analyzedMap.nodes.find((n: any) => n.id === neighborNodeId);
+        return neighborNode?.roomId;
+      }).filter(Boolean);
+
+      const currentRoom = await Room.findOne({ id: node.roomId });
+      if (currentRoom) {
+        let roomChanged = false;
+        for (const neighborId of neighborRoomIds) {
+          const alreadyLinked = currentRoom.hotspots?.some((h: any) => h.targetRoomId === neighborId);
+          if (!alreadyLinked) {
+            const neighborRoom = await Room.findOne({ id: neighborId });
+            const newHs = {
+              id: `hs-${currentRoom.code.toLowerCase()}-to-${neighborRoom?.code?.toLowerCase() || neighborId}`,
+              type: 'navigation',
+              title: `Sang ${neighborRoom?.name || 'gian phòng kế tiếp'}`,
+              description: `Lối thông sang ${neighborRoom?.name || ''}`,
+              targetRoomId: neighborId,
+              pitch: -5,
+              yaw: 0
+            };
+            if (!currentRoom.hotspots) currentRoom.hotspots = [];
+            currentRoom.hotspots.push(newHs as any);
+            roomChanged = true;
+          }
+        }
+        if (roomChanged) {
+          await currentRoom.save();
+          await pgUpsertRoom(currentRoom.toObject());
+        }
+      }
+    }
+  }
+
+  // 4. Lưu lại bản đồ đã map vào MongoDB và PostgreSQL
+  if (analyzedMap.save) {
+    await analyzedMap.save();
+  } else if (analyzedMap.id) {
+    await FloorPlanMap.updateOne({ id: analyzedMap.id }, { $set: { nodes: analyzedMap.nodes, edges: analyzedMap.edges } });
+  }
+  await pgUpsertFloorPlan(analyzedMap.toObject ? analyzedMap.toObject() : analyzedMap);
+
+  // 5. Đồng bộ vào SystemBranding
+  await SystemBranding.findOneAndUpdate(
+    {},
+    {
+      $set: {
+        roomsFeaturedId: 'room-p-01',
+        roomsShowcaseImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790468240/museum/branding_assets/pano_1790468235321_Acnos-bao-tang-lich-su-03_kvfot5.jpg',
+        guideMapUrl: analyzedMap.imageUrl,
+        guideMapTitle: analyzedMap.title,
+        guideMapDesc: analyzedMap.description
+      }
+    },
+    { upsert: true, new: true }
+  );
+
+  const updatedBranding = await SystemBranding.findOne().lean();
+  if (updatedBranding) {
+    await pgUpsertBranding(updatedBranding);
+  }
+
+  await cacheDel('rooms:all');
+  await cacheDel('cache:branding:settings');
+  broadcastRealtimeEvent('floor_plan_updated', analyzedMap.toObject ? analyzedMap.toObject() : analyzedMap);
+  broadcastRealtimeEvent('rooms_updated', { action: 'batch_sync' });
+
+  return analyzedMap;
+}
+
+export async function seedHeritageMuseumData() {
+  console.log('[SyncEngine] Khởi tạo bộ dữ liệu Di sản thật 100% cho Bảo tàng Lịch sử TP.HCM...');
+  
+  // 1. Chuyên đề
+  for (const t of INITIAL_TOPICS) {
+    await Topic.updateOne({ id: t.id }, { $set: t }, { upsert: true });
+    await pgUpsertTopic(t);
+  }
+
+  // 2. 18 Gian phòng trưng bày (Giai đoạn 1: Upsert phòng không kèm hotspots)
+  for (const r of HERITAGE_18_ROOMS_SEED) {
+    const { hotspots, ...roomWithoutHotspots } = r;
+    await Room.updateOne(
+      { id: r.id },
+      { $set: roomWithoutHotspots },
+      { upsert: true }
+    );
+    await pgUpsertRoom({ ...roomWithoutHotspots, hotspots: [] });
+  }
+
+  // 3. Cập nhật Hotspots (Giai đoạn 2: Khi tất cả phòng đã tồn tại trong CSDL quan hệ)
+  for (const r of HERITAGE_18_ROOMS_SEED) {
+    await Room.updateOne({ id: r.id }, { $set: { hotspots: r.hotspots } });
+    const fullRoom = await Room.findOne({ id: r.id }).lean();
+    if (fullRoom) {
+      await pgUpsertRoom(fullRoom);
+    }
+  }
+
+  // 4. Hiện vật di sản Bảo vật Quốc gia (Giai đoạn 3: Liên kết với phòng)
+  for (const art of HERITAGE_ARTIFACTS_SEED) {
+    await ArtifactModel.updateOne({ id: art.id }, { $set: art }, { upsert: true });
+    await pgUpsertArtifact(art);
+  }
+
+  // 5. Sơ đồ mặt bằng: Nếu có sơ đồ, tự động map 18 phòng
+  const activeMap = await FloorPlanMap.findOne({ active: true }) || await FloorPlanMap.findOne();
+  if (activeMap) {
+    await syncFloorPlanNodesToRooms(activeMap);
+  }
+
+  // 6. Xóa cache Redis
+  await Promise.all([
+    cacheDel('rooms:all'),
+    cacheDelPattern('artifacts:*'),
+    cacheDel('topics:all'),
+    cacheDel('cache:branding:settings')
+  ]);
+
+  console.log('[SyncEngine] Đã hoàn tất đồng bộ 18 Gian phòng & Cổ vật di sản thật sang PostgreSQL và MongoDB!');
+}
+

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -144,8 +145,10 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
       data: formatted
     };
 
-    // TTL 300s (5 phút)
-    await cacheSet(cacheKey, result, 300);
+    // Chỉ cache nếu có dữ liệu để tránh chặn dữ liệu mới vừa thêm
+    if (formatted.length > 0) {
+      await cacheSet(cacheKey, result, 300);
+    }
 
     res.json(result);
   } catch (err: any) {
@@ -155,7 +158,7 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
 
 /**
  * GET /api/artifacts/:id
- * Chi tiết một hiện vật kèm tự động tạo mã QR nếu chưa có (Có Redis cache TTL 600s)
+ * Chi tiết một hiện vật (PostgreSQL Primary + Redis cache TTL 600s + MongoDB Fallback)
  */
 artifactsRouter.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -166,32 +169,60 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
       return res.json({ success: true, data: cached, fromCache: true });
     }
 
-    let item = await ArtifactModel.findById(id);
-    if (!item) {
-      item = await ArtifactModel.findOne({ code: id });
+    let artifact: any = null;
+
+    // 1. Truy vấn PostgreSQL Primary
+    try {
+      const pgRes = await pgPool.query(`
+        SELECT id, code, name, room_id as "roomId", room_code as "roomCode", topic_id as "topicId",
+               category, period, origin, description, dimensions, images, thumbnail_url as "thumbnailUrl",
+               model_3d_url as "model3dUrl", audio_narration_url as "audioNarrationUrl",
+               voice_language as "voiceLanguage", qr_code_url as "qrCodeUrl", status,
+               processing_status as "processingStatus", processing_error as "processingError",
+               model_metadata as "modelMetadata", translations, order_index as "orderIndex",
+               created_at as "createdAt", updated_at as "updatedAt"
+        FROM artifacts
+        WHERE id = $1 OR code = $1
+        LIMIT 1;
+      `, [id]);
+
+      if (pgRes.rows.length > 0) {
+        artifact = pgRes.rows[0];
+      }
+    } catch (pgErr: any) {
+      console.warn('[Artifact Detail PG Warning]:', pgErr.message);
     }
-    if (!item) {
+
+    // 2. Fallback sang MongoDB
+    if (!artifact) {
+      const query = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { id }, { code: id }] } : { $or: [{ id }, { code: id }] };
+      const item = await ArtifactModel.findOne(query);
+      if (item) {
+        artifact = item.toJSON();
+      }
+    }
+
+    if (!artifact) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật' });
     }
 
     // Tự động tạo mã QR data URL nếu chưa có
-    if (!item.qrCodeUrl) {
+    if (!artifact.qrCodeUrl) {
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
-      const targetUrl = `${protocol}://${host}/artifact/${item.id}`;
+      const targetUrl = `${protocol}://${host}/artifact/${artifact.id}`;
       try {
         const qrDataUrl = await generateQRCodeDataURL(targetUrl, 320);
-        item.qrCodeUrl = qrDataUrl;
-        await item.save();
+        artifact.qrCodeUrl = qrDataUrl;
+        await ArtifactModel.updateOne({ id: artifact.id }, { $set: { qrCodeUrl: qrDataUrl } });
+        await pgPool.query('UPDATE artifacts SET qr_code_url = $1 WHERE id = $2', [qrDataUrl, artifact.id]);
       } catch (qrErr) {
         console.warn('[Artifacts] Không thể sinh mã QR:', qrErr);
       }
     }
 
-    const data = item.toJSON();
-    await cacheSet(cacheKey, data, 600); // 10 phút TTL
-
-    res.json({ success: true, data });
+    await cacheSet(cacheKey, artifact, 600); // 10 phút TTL
+    res.json({ success: true, data: artifact });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi lấy chi tiết hiện vật: ' + err.message });
   }
@@ -264,7 +295,8 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
 artifactsRouter.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const updated = await ArtifactModel.findByIdAndUpdate(id, { $set: req.body }, { new: true });
+    const query = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { id }, { code: id }] } : { $or: [{ id }, { code: id }] };
+    const updated = await ArtifactModel.findOneAndUpdate(query, { $set: req.body }, { new: true });
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để cập nhật' });
     }
@@ -297,14 +329,18 @@ artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (!id || id === 'undefined' || id === 'null') {
       return res.status(400).json({ success: false, message: 'Mã định danh hiện vật (ID) không hợp lệ' });
     }
-    const deleted = await ArtifactModel.findByIdAndDelete(id);
+    const query = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { id }, { code: id }] } : { $or: [{ id }, { code: id }] };
+    const deleted = await ArtifactModel.findOneAndDelete(query);
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để xóa' });
     }
 
     // Xóa trong PostgreSQL Primary
-    await pgDeleteArtifact(id);
-    await logAudit('DELETE_ARTIFACT', 'artifacts', { details: { id, code: deleted.code } });
+    await pgDeleteArtifact(deleted.id || id);
+    if (deleted.id && deleted.id !== id) {
+      await pgDeleteArtifact(id);
+    }
+    await logAudit('DELETE_ARTIFACT', 'artifacts', { details: { id: deleted.id || id, code: deleted.code } });
 
     // 1. Dọn dẹp file 3D trên đĩa
     if (deleted.model3dUrl && deleted.model3dUrl.includes('/uploads/artifacts/models_3d/')) {
@@ -315,11 +351,12 @@ artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
       }
     }
 
-    // 2. Chặt chẽ quan hệ dữ liệu: Gỡ bỏ hotspot liên kết trong RoomModel
+    // 2. Chặt chẽ quan hệ dữ liệu: Gỡ bỏ hotspot liên kết trong PostgreSQL Primary & RoomModel
     try {
+      await pgPool.query('DELETE FROM hotspots WHERE artifact_id = $1 OR artifact_id = $2;', [id, deleted.id]);
       await RoomModel.updateMany(
-        { 'hotspots.artifactId': id },
-        { $pull: { hotspots: { artifactId: id } } }
+        { 'hotspots.artifactId': { $in: [id, deleted.id] } },
+        { $pull: { hotspots: { artifactId: { $in: [id, deleted.id] } } } }
       );
     } catch (relErr) {
       console.warn('[Artifacts] Lỗi dọn dẹp liên kết hotspot:', relErr);

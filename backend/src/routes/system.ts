@@ -296,7 +296,7 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
         postgres: {
           connected: getPgStatus().connected,
           uri: getPgStatus().uri,
-          type: 'Relational Database (Audit & Security)'
+          type: 'Primary Relational Database (CSDL Quan Hệ Gốc)'
         },
         redis: {
           connected: redisConnected,
