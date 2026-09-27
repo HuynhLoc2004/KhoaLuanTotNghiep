@@ -117,13 +117,25 @@ const AppContent: React.FC = () => {
       setError(null);
       setIsLagging(false);
       const [roomsData, artifactsData, topicsData] = await Promise.all([
-        api.getRooms().catch(() => []),
-        api.getArtifacts().catch(() => []),
-        api.getTopics().catch(() => [])
+        api.getRooms().catch(() => null),
+        api.getArtifacts().catch(() => null),
+        api.getTopics().catch(() => null)
       ]);
-      setRooms(roomsData);
-      setArtifacts(artifactsData);
-      setTopics(topicsData);
+      if (roomsData && Array.isArray(roomsData) && roomsData.length > 0) {
+        setRooms(roomsData);
+      } else if (roomsData) {
+        setRooms([]);
+      }
+      if (artifactsData && Array.isArray(artifactsData) && artifactsData.length > 0) {
+        setArtifacts(artifactsData);
+      } else if (artifactsData) {
+        setArtifacts([]);
+      }
+      if (topicsData && Array.isArray(topicsData) && topicsData.length > 0) {
+        setTopics(topicsData);
+      } else if (topicsData) {
+        setTopics([]);
+      }
     } catch (err: any) {
       console.error('Lỗi khi tải dữ liệu hệ thống:', err);
       if (isAdminRoute) {
@@ -144,10 +156,17 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, [loading, user]);
 
-  // Nạp danh sách dữ liệu khi khởi tạo (phục vụ cả tour khách và admin)
+  // Nạp danh sách dữ liệu khi khởi tạo hoặc khi user đăng nhập thành công
   useEffect(() => {
     fetchRooms();
-  }, []);
+  }, [user, isAdminRoute]);
+
+  // Tự động tải lại dữ liệu thật nếu đang ở trang admin mà danh sách còn rỗng
+  useEffect(() => {
+    if (isAdminRoute && user && rooms.length === 0) {
+      fetchRooms();
+    }
+  }, [currentTab, isAdminRoute, user]);
 
   // Lắng nghe sự kiện đồng bộ thời gian thực cho Rooms và Artifacts (không cần reload trang)
   useEffect(() => {

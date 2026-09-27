@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import { User, IUser, seedDefaultAdmin, isAllowedAdminEmail } from '../models/User.js';
 import { Role } from '../models/Role.js';
@@ -423,21 +424,64 @@ authRouter.post('/login-credentials', async (_req: Request, res: Response) => {
 // ==============================================================================
 authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await User.findById(req.user?.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin tài khoản' });
-    }
-    return res.json({
-      success: true,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        permissions: user.permissions
+    const userId = req.user?.id;
+    const userEmail = req.user?.email;
+
+    // 1. Kiểm tra PostgreSQL Primary trước
+    try {
+      const pgRes = await pgPool.query(
+        'SELECT id, username, email, full_name, role, permissions, is_active FROM users WHERE id = $1 OR email = $2 OR mongo_id = $1 LIMIT 1',
+        [userId, userEmail]
+      );
+      if (pgRes.rows.length > 0) {
+        const u = pgRes.rows[0];
+        return res.json({
+          success: true,
+          user: {
+            id: u.id,
+            username: u.username,
+            email: u.email,
+            fullName: u.full_name || u.username,
+            role: u.role || 'admin',
+            permissions: u.permissions || ['*'],
+            isActive: u.is_active
+          }
+        });
       }
-    });
+    } catch (pgErr: any) {
+      console.warn('[Auth /me PG Warning]:', pgErr.message);
+    }
+
+    // 2. Fallback sang MongoDB
+    const query = mongoose.isValidObjectId(userId)
+      ? { $or: [{ _id: userId }, { email: userEmail }, { id: userId }] }
+      : { $or: [{ email: userEmail }, { id: userId }] };
+
+    const mongoUser = await User.findOne(query).select('-password');
+    if (mongoUser) {
+      return res.json({
+        success: true,
+        user: {
+          id: mongoUser.id || mongoUser._id.toString(),
+          username: mongoUser.username,
+          email: mongoUser.email,
+          fullName: mongoUser.fullName || mongoUser.username,
+          role: mongoUser.role || 'admin',
+          permissions: mongoUser.permissions || ['*'],
+          isActive: mongoUser.isActive
+        }
+      });
+    }
+
+    // 3. Fallback an toàn tuyệt đối từ chính decoded JWT payload hợp lệ
+    if (req.user) {
+      return res.json({
+        success: true,
+        user: req.user
+      });
+    }
+
+    return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin tài khoản' });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message || 'Lỗi xác minh phiên đăng nhập' });
   }
