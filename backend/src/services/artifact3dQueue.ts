@@ -83,11 +83,11 @@ export async function enqueue3DReconstruction(
   artifactId: string,
   imagePath: string,
   backImagePath?: string,
-  depthScale = 0.35,
-  resolution = 160
+  depthScale = 1.0,
+  resolution = 110
 ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string }> {
-  // 1. Kiểm tra cache dựa trên SHA256 (kèm mã phân biệt mặt sau độc lập v5 vòm mượt chống méo)
-  const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_faithful_volumetric_v11');
+  // 1. Kiểm tra cache dựa trên SHA256 (kèm mã phân biệt mặt sau độc lập v12 vòm tròn 3D)
+  const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_full_round_3d_v12');
   const cacheKey = `artifact:3d_cache:${fileHash}`;
 
   const cached = await cacheGet<{ model3dUrl: string; metadata: any }>(cacheKey);
@@ -217,7 +217,7 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
           parsed = {};
         }
 
-        const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_faithful_volumetric_v11');
+        const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_full_round_3d_v12');
         const metadata = {
           vertices: parsed.vertices || 0,
           faces: parsed.faces || 0,

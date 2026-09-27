@@ -503,8 +503,8 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
     }
 
     // Đưa vào hàng đợi xử lý bất đồng bộ kèm kiểm tra Cache
-    const dScale = depthScale ? Number(depthScale) : 0.35;
-    const resValue = resolution ? Number(resolution) : 160;
+    const dScale = depthScale ? Number(depthScale) : 1.0;
+    const resValue = resolution ? Number(resolution) : 110;
 
     const targetArtifactId = String(artifact._id || artifact.id);
     const result = await enqueue3DReconstruction(

@@ -173,7 +173,7 @@ def load_and_clean_artifact_image(image_path, max_dim=1400):
 # 2. TÁI TẠO KHỐI THỂ TÍCH 3D ĐẶC (FAITHFUL VOLUMETRIC MARCHING CUBES)
 # ============================================================================
 
-def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=0.52, resolution=110):
+def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, resolution=110):
     """
     Dựng khối 3D thực tế theo đúng hình dáng của hiện vật:
     1. Trích xuất khoảng cách tới biên (Distance Transform) của hình bóng hiện vật.
@@ -218,12 +218,20 @@ def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=0.52, r
     if max_dist < 2.0:
         max_dist = 2.0
 
-    actual_depth_scale = float(np.clip(depth_scale, 0.35, 0.70))
-    Z_half = int(max_dist * actual_depth_scale) + 2
+    actual_depth_scale = float(np.clip(depth_scale, 0.75, 1.40))
+    depth_radius = max_dist * actual_depth_scale
+
+    # Công thức vòm cầu / elip chuẩn thể tích tròn trịa 3D (Spherical Dome Inflation):
+    # Z(d) = sqrt(2 * R * d - d^2) giúp bụng bình/lư hương nở tròn 100%, dày dặn, không bị xẹp như tờ giấy!
+    d_norm = np.clip(dist_map / max_dist, 0.0, 1.0)
+    z_profile = np.sqrt(np.maximum(0.0, 2.0 * d_norm - d_norm**2))
+    z_map = z_profile * depth_radius
+
+    Z_half = int(depth_radius) + 2
     z_indices = np.arange(-Z_half, Z_half + 1, dtype=np.float32)
 
-    # Sinh trường thể tích 3D: Khoảng cách từ tâm đến biên theo elip hữu cơ
-    vol = dist_map[:, :, np.newaxis] - (np.abs(z_indices) / actual_depth_scale)[np.newaxis, np.newaxis, :]
+    # Sinh trường thể tích 3D: z_map[y, x] - |z|
+    vol = z_map[:, :, np.newaxis] - np.abs(z_indices)[np.newaxis, np.newaxis, :]
     # Đệm biên âm để khối 3D luôn khép kín 100% ở mọi mặt đáy/đỉnh
     vol = np.pad(vol, ((1, 1), (1, 1), (1, 1)), mode='constant', constant_values=-15.0)
 
@@ -319,7 +327,7 @@ def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=0.52, r
 # 4. PIPELINE ĐIỀU PHỐI CHÍNH (MAIN ENTRYPOINT)
 # ============================================================================
 
-def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, depth_scale=0.52, resolution=110):
+def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, depth_scale=1.0, resolution=110):
     """
     Tạo mô hình 3D nguyên bản từ ảnh chụp hiện vật:
     - Bóc tách nền giữ trọn vẹn tượng, hoa văn, chân đế.
@@ -379,7 +387,7 @@ def main():
     parser.add_argument("--image", required=True, help="Đường dẫn file ảnh mặt trước (.jpg, .png)")
     parser.add_argument("--back-image", default=None, help="Đường dẫn file ảnh mặt sau (Tùy chọn)")
     parser.add_argument("--output", required=True, help="Đường dẫn lưu file 3D đầu ra (.glb)")
-    parser.add_argument("--depth-scale", type=float, default=0.52, help="Độ dày thể tích (0.35 - 0.70)")
+    parser.add_argument("--depth-scale", type=float, default=1.0, help="Độ dày thể tích (0.75 - 1.40)")
     parser.add_argument("--resolution", type=int, default=110, help="Độ phân giải lưới 3D (80 - 140)")
 
     args = parser.parse_args()
