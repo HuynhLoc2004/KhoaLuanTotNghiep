@@ -10,6 +10,7 @@ import {
   pushJobToQueue,
   popJobFromQueue
 } from './redis';
+import { sendToRabbitMQ, consumeRabbitMQ, QUEUES } from './rabbitmq';
 
 const PYTHON_PATH = process.env.PYTHON_PATH || (process.platform === 'win32'
   ? 'C:\\Users\\HUYNH TAN LOC\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
@@ -108,13 +109,20 @@ export async function enqueue3DReconstruction(
     createdAt: Date.now()
   };
 
-  // Đẩy vào Redis Queue; nếu Redis chưa kết nối, đẩy vào bộ nhớ RAM
-  const pushedToRedis = await pushJobToQueue('artifact_3d', job);
-  if (!pushedToRedis) {
-    memoryJobs.push(job);
+  // 1. Thử đẩy vào RabbitMQ Message Broker
+  const pushedToRabbitMQ = await sendToRabbitMQ(QUEUES.ARTIFACT_3D, job);
+  let pushedToRedis = false;
+  if (!pushedToRabbitMQ) {
+    // 2. Fallback sang Redis Queue
+    pushedToRedis = await pushJobToQueue('artifact_3d', job);
+    if (!pushedToRedis) {
+      // 3. Fallback sang bộ nhớ RAM
+      memoryJobs.push(job);
+    }
   }
 
-  console.log(`[3D Queue] Đã đưa tác vụ ${jobId} vào hàng đợi (Redis: ${pushedToRedis ? 'Yes' : 'Memory Fallback'})`);
+  const queueDest = pushedToRabbitMQ ? 'RabbitMQ' : (pushedToRedis ? 'Redis Queue' : 'Memory Queue');
+  console.log(`[3D Queue] Đã đưa tác vụ ${jobId} vào hàng đợi (${queueDest})`);
 
   // Kích hoạt Consumer Worker nếu chưa chạy
   triggerWorker();
@@ -283,7 +291,15 @@ async function triggerWorker() {
 export function startArtifact3DConsumer() {
   if (isConsumerLoopStarted) return;
   isConsumerLoopStarted = true;
-  console.log('[3D Queue Consumer] Đã kích hoạt tiến trình lắng nghe hàng đợi 3D (queue:artifact_3d)');
+  console.log('[3D Queue Consumer] Đã kích hoạt tiến trình lắng nghe hàng đợi 3D (RabbitMQ & Redis fallback)');
+
+  // 1. Lắng nghe trực tiếp từ RabbitMQ Message Broker
+  consumeRabbitMQ(QUEUES.ARTIFACT_3D, async (rawJob) => {
+    const job: I3DJobData = ((rawJob as any)?.data ? (rawJob as any).data : rawJob) as I3DJobData;
+    await processSingleJob(job);
+  });
+
+  // 2. Định kỳ kiểm tra Redis / Memory Queue fallback
   setInterval(() => {
     if (!isWorkerRunning) {
       triggerWorker();

@@ -146,11 +146,21 @@ export interface SystemInfo {
     panoramasCount: number;
     pingMs: number;
   };
+  postgres?: {
+    connected: boolean;
+    uri?: string;
+    type?: string;
+  };
   redis?: {
     connected: boolean;
     keysCount: number;
     pingMs: number;
     memoryUsedHuman?: string;
+  };
+  rabbitmq?: {
+    connected: boolean;
+    uri?: string;
+    type?: string;
   };
   queue?: {
     name: string;

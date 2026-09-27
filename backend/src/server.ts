@@ -20,6 +20,8 @@ import { seedDefaultAdmin } from './models/User.js';
 import { getRedisStatus } from './services/redis.js';
 import { startArtifact3DConsumer } from './services/artifact3dQueue.js';
 import { initRealtimeRedisSubscriber } from './services/realtimeSync.js';
+import { initPostgresTables, getPgStatus } from './db/postgres.js';
+import { connectRabbitMQ, getRabbitMQStatus } from './services/rabbitmq.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
 dotenv.config();
@@ -146,6 +148,8 @@ app.use('/api/floor-plan', floorPlanRouter);
 // Health check with real statuses
 app.get('/api/health', async (req, res) => {
   const redis = getRedisStatus();
+  const pg = getPgStatus();
+  const rabbitmq = getRabbitMQStatus();
   let museumName = 'Hệ Thống Tour 360 Không Gian Di Sản';
   try {
     const { getSystemBrandingConfig } = await import('./models/SystemBranding.js');
@@ -160,7 +164,12 @@ app.get('/api/health', async (req, res) => {
     service: museumName,
     database: {
       mongo: 'connected (mongodb://mongodb:27017/museum)',
+      postgres: pg.connected ? `connected (${pg.uri})` : 'connecting_or_standalone',
       redis: redis.connected ? 'connected' : 'connecting_or_standalone'
+    },
+    messageQueue: {
+      provider: 'RabbitMQ (amqp://rabbitmq:5672)',
+      status: rabbitmq.connected ? `connected (${rabbitmq.uri})` : 'connecting_or_fallback'
     },
     storage: {
       cloudinary: 'connected (djkif9ubs)',
@@ -186,11 +195,17 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   }
 });
 
-// Connect Real Database and Start Server
+// Connect Real Databases (MongoDB & PostgreSQL), RabbitMQ Broker and Start Server
 connectMongoDB().then(async () => {
   await seedDefaultLanguages();
   await seedDefaultRoles();
   await seedDefaultAdmin();
+
+  // Khởi tạo PostgreSQL Database & Bảng Quan Hệ / Kiểm Toán
+  await initPostgresTables();
+
+  // Khởi tạo RabbitMQ Message Broker & Hàng Đợi Bền Vững
+  await connectRabbitMQ();
 
   // Khởi động Worker Consumer lắng nghe hàng đợi xử lý 3D
   startArtifact3DConsumer();

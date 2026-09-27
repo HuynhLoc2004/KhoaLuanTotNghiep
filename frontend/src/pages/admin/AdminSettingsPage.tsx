@@ -1736,7 +1736,25 @@ export const AdminSettingsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 3. Redis Cache */}
+                  {/* 3. PostgreSQL Database */}
+                  <div className="settings-telemetry-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Cơ sở dữ liệu quan hệ (PostgreSQL)</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color: sysInfo?.postgres?.connected ? 'var(--text-main)' : 'var(--text-muted)'
+                        }}
+                      >
+                        {sysInfo?.postgres?.connected ? 'PostgreSQL 16 (Online)' : 'Đang kết nối / Chờ khởi động'}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                        {sysInfo?.postgres?.connected ? 'Kiểm toán, Phân quyền & Users' : 'Standalone fallback'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4. Redis Cache */}
                   <div className="settings-telemetry-row">
                     <span style={{ color: 'var(--text-muted)' }}>{t('settings.cacheMemory', 'Bộ nhớ tăng tốc (Cache)')}</span>
                     <div style={{ textAlign: 'right' }}>
@@ -1756,7 +1774,27 @@ export const AdminSettingsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 4. Queue Worker */}
+                  {/* 5. RabbitMQ Message Broker */}
+                  <div className="settings-telemetry-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Message Broker (RabbitMQ)</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color: sysInfo?.rabbitmq?.connected ? 'var(--text-main)' : 'var(--text-muted)'
+                        }}
+                      >
+                        {sysInfo?.rabbitmq?.connected ? 'RabbitMQ AMQP (Trực tuyến)' : 'Đang kết nối / Fallback Redis'}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                        {sysInfo?.rabbitmq?.connected
+                          ? 'Cổng AMQP: 5672 • UI: 15672'
+                          : 'Hàng đợi tác vụ đồ họa nặng'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 6. Queue Worker */}
                   <div className="settings-telemetry-row">
                     <span style={{ color: 'var(--text-muted)' }}>{t('settings.queueProcessing', 'Hàng đợi xử lý (Queue)')}</span>
                     <div style={{ textAlign: 'right' }}>
@@ -1764,7 +1802,7 @@ export const AdminSettingsPage: React.FC = () => {
                         {sysInfo?.queue?.status === 'processing' ? t('settings.queueActive', 'Đang xử lý tác vụ') : t('settings.queueReady', 'Sẵn sàng tiếp nhận')}
                       </span>
                       <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} ${t('settings.queueTasksWord', 'tác vụ trong hàng đợi ghép 360°')}` : 'Stitching Queue'}
+                        {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} ${t('settings.queueTasksWord', 'tác vụ trong hàng đợi ghép 360°')}` : 'Stitching & 3D Queue'}
                       </span>
                     </div>
                   </div>

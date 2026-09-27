@@ -14,6 +14,8 @@ import {
   DEFAULT_BRANDING
 } from '../models/SystemBranding.js';
 import { broadcastRealtimeEvent, handleRealtimeStream } from '../services/realtimeSync.js';
+import { getPgStatus } from '../db/postgres.js';
+import { getRabbitMQStatus } from '../services/rabbitmq.js';
 
 export const systemRouter = Router();
 
@@ -290,11 +292,21 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
           artifactsCount,
           pingMs: dbPingMs
         },
+        postgres: {
+          connected: getPgStatus().connected,
+          uri: getPgStatus().uri,
+          type: 'Relational Database (Audit & Security)'
+        },
         redis: {
           connected: redisConnected,
           keysCount: redisKeysCount,
           pingMs: redisPingMs,
           memoryUsedHuman: redisMemoryHuman || 'OK'
+        },
+        rabbitmq: {
+          connected: getRabbitMQStatus().connected,
+          uri: getRabbitMQStatus().uri,
+          type: 'Enterprise Message Broker (AMQP)'
         },
         queue: {
           name: 'stitching',
