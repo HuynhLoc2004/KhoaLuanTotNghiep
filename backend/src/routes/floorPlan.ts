@@ -139,6 +139,12 @@ async function syncFloorPlanToBranding(map: { imageUrl?: string; title?: string;
       try {
         await cacheSet(REDIS_BRANDING_KEY, updatedBranding, 86400);
       } catch {}
+      try {
+        const { pgUpsertBranding } = await import('../db/syncEngine.js');
+        await pgUpsertBranding(updatedBranding);
+      } catch (pgErr) {
+        console.warn('[FloorPlanRoute] Lỗi đồng bộ Branding sang PostgreSQL:', pgErr);
+      }
       broadcastRealtimeEvent('branding_updated', updatedBranding);
     }
   } catch (err) {
