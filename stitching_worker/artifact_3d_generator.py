@@ -287,12 +287,34 @@ def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, re
     # Xây dựng Atlas ảnh kích thước lớn 2048 x 1024
     tex_w, tex_h = 2048, 1024
     front_tex = cv2.resize(dil_rgb, (tex_w // 2, tex_h), interpolation=cv2.INTER_LANCZOS4)
+    front_mask = cv2.resize(dil_m, (tex_w // 2, tex_h), interpolation=cv2.INTER_NEAREST)
 
     if back_img_rgb is not None and isinstance(back_img_rgb, np.ndarray):
         back_tex = cv2.resize(back_img_rgb, (tex_w // 2, tex_h), interpolation=cv2.INTER_LANCZOS4)
     else:
-        # Nếu chưa có ảnh mặt sau: lật ngang đối xứng tự nhiên
-        back_tex = cv2.flip(front_tex, 1)
+        # Tự động tổng hợp chất liệu mặt sau đồng điệu theo dải màu tự nhiên của hiện vật:
+        # Triệt tiêu hoàn toàn hiệu ứng lật gương tạo nếp gấp / khúc ghép đối xứng kì lạ ở sườn!
+        back_tex = np.zeros_like(front_tex)
+        for y in range(tex_h):
+            fg = front_tex[y, front_mask[y] > 50]
+            if len(fg) > 0:
+                row_col = np.median(fg, axis=0)
+            else:
+                row_col = np.array([80, 70, 65], dtype=np.float32)
+            back_tex[y, :] = row_col
+
+        back_tex = cv2.GaussianBlur(back_tex, (1, 15), 0)
+        np.random.seed(42)
+        noise = np.random.normal(0, 3.5, back_tex.shape)
+        back_tex = np.clip(back_tex.astype(np.float32) + noise, 0, 255).astype(np.uint8)
+
+        # Hòa trộn mềm mại (Feather Blend) ở hai mép sườn để triệt tiêu hoàn toàn đường ranh giới ghép nối
+        blend_width = int((tex_w // 2) * 0.12)
+        for i in range(blend_width):
+            t = float(i) / float(blend_width)
+            alpha = 0.5 - 0.5 * np.cos(t * np.pi)
+            back_tex[:, i] = ((1 - alpha) * front_tex[:, -1 - i] + alpha * back_tex[:, i]).astype(np.uint8)
+            back_tex[:, -1 - i] = ((1 - alpha) * front_tex[:, i] + alpha * back_tex[:, -1 - i]).astype(np.uint8)
 
     atlas = np.zeros((tex_h, tex_w, 3), dtype=np.uint8)
     atlas[:, :tex_w // 2] = front_tex
