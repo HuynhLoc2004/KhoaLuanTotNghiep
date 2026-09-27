@@ -19,6 +19,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import '../../styles/client.css';
 
 interface ClientTourViewProps {
   currentRoom: MuseumRoom;
@@ -220,6 +221,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
 
       {/* 1. THANH ĐIỀU HƯỚNG NỔI CAO CẤP PHÍA TRÊN (KHÔNG CHỒNG ĐÈ, GỌN GÀNG, CHUẨN UI) */}
       <header
+        className="client-tour-header"
         style={{
           position: 'absolute',
           top: 16,
@@ -237,6 +239,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center' }}>
           <button
             type="button"
+            className="client-tour-back-btn"
             onClick={onBackToHome}
             style={{
               display: 'inline-flex',
@@ -272,6 +275,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
 
         {/* THÔNG TIN GIAN PHÒNG HIỆN TẠI (CHỈ DUY NHẤT 1 VỊ TRÍ TRUNG TÂM, KHÔNG LẶP LẠI) */}
         <div
+          className="client-tour-title-pill"
           style={{
             pointerEvents: 'auto',
             background: 'rgba(15, 18, 24, 0.88)',
@@ -321,7 +325,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         </div>
 
         {/* CỤM NÚT ĐIỀU HƯỚNG BÊN PHẢI: THUYẾT MINH AI + BỘ CHỌN PHÒNG TÙY BIẾN + INFO */}
-        <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="client-tour-actions" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
 
           {/* 1. NÚT THUYẾT MINH VOICE AI & CHUYỂN ĐỔI NGÔN NGỮ ĐỒNG BỘ */}
           <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(15, 18, 24, 0.88)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(212, 168, 106, 0.3)', borderRadius: 30, padding: '3px 4px', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
@@ -466,6 +470,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
           <div ref={roomDropdownRef} style={{ position: 'relative' }}>
             <button
               type="button"
+              className="client-tour-room-btn"
               onClick={() => setIsRoomDropdownOpen((prev) => !prev)}
               style={{
                 display: 'inline-flex',

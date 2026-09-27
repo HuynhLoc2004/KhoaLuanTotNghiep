@@ -26,6 +26,12 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     artifacts[0]?.id || ''
   );
 
+  React.useEffect(() => {
+    if (!artifacts.some((a) => a.id === selectedArtifactId)) {
+      setSelectedArtifactId(artifacts[0]?.id || '');
+    }
+  }, [artifacts, selectedArtifactId]);
+
   const activeArtifact =
     artifacts.find((a) => a.id === selectedArtifactId) || artifacts[0];
 

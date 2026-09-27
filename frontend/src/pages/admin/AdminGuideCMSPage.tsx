@@ -252,6 +252,8 @@ export const AdminGuideCMSPage: React.FC = () => {
           guideMapDesc: mapItem.description || ''
         });
       } catch {}
+      window.dispatchEvent(new CustomEvent('museum:floor_plan_updated', { detail: res || mapItem }));
+      window.dispatchEvent(new CustomEvent('museum:branding_updated'));
       showToast(`Đã đặt sơ đồ "${mapItem.title || 'Mặt bằng'}" làm sơ đồ hiển thị chính thức!`, 'success');
       loadFloorPlansRepo(repoPage, repoLimit);
     } catch (err: any) {
@@ -290,11 +292,29 @@ export const AdminGuideCMSPage: React.FC = () => {
             setActiveFloorPlan(currentFp);
             setActiveFloorPlanId(currentFp.id);
             handleChange('guideMapUrl', currentFp.imageUrl || '');
+            try {
+              await updateBranding({
+                guideMapUrl: currentFp.imageUrl || '',
+                guideMapTitle: currentFp.title || '',
+                guideMapDesc: currentFp.description || ''
+              });
+            } catch {}
+            window.dispatchEvent(new CustomEvent('museum:floor_plan_updated', { detail: currentFp }));
+            window.dispatchEvent(new CustomEvent('museum:branding_updated'));
           } else {
             // Không còn sơ đồ nào trong hệ thống!
             setActiveFloorPlan(null);
             setActiveFloorPlanId('');
             handleChange('guideMapUrl', '');
+            try {
+              await updateBranding({
+                guideMapUrl: '',
+                guideMapTitle: 'Sơ đồ mặt bằng các gian trưng bày',
+                guideMapDesc: ''
+              });
+            } catch {}
+            window.dispatchEvent(new CustomEvent('museum:floor_plan_updated', { detail: null }));
+            window.dispatchEvent(new CustomEvent('museum:branding_updated'));
           }
         } catch (err: any) {
           showToast(err?.message || 'Lỗi khi xóa sơ đồ mặt bằng', 'error');

@@ -278,6 +278,7 @@ export const AdminArtifactsPage: React.FC = () => {
           await api.deleteArtifact(validId);
           showToast(`Đã xóa hiện vật "${name}" thành công`, 'success');
           fetchArtifacts();
+          window.dispatchEvent(new CustomEvent('museum:artifacts_updated'));
         } catch (err: any) {
           showToast(err.message || 'Lỗi khi xóa hiện vật', 'error');
         }
@@ -327,6 +328,7 @@ export const AdminArtifactsPage: React.FC = () => {
 
       setIsEditModalOpen(false);
       fetchArtifacts();
+      window.dispatchEvent(new CustomEvent('museum:artifacts_updated'));
     } catch (err: any) {
       showToast(err.message || 'Lỗi lưu thông tin hiện vật', 'error');
     } finally {

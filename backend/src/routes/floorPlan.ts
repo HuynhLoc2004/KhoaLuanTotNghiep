@@ -211,8 +211,14 @@ floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
     await pgDeleteFloorPlan(target.id);
     await logAudit('DELETE_FLOOR_PLAN', 'floor_plan', { details: { id: target.id } });
 
-    // Nếu vừa xóa bản đồ đang áp dụng, tự động kích hoạt bản đồ mới nhất còn lại nếu có
-    if (wasActive) {
+    // Kiểm tra số lượng sơ đồ mặt bằng còn lại trong CSDL
+    const totalRemaining = await FloorPlanMapModel.countDocuments();
+    if (totalRemaining === 0) {
+      // ĐÃ XÓA SẠCH: CSDL không còn bản đồ nào, xóa triệt để liên kết trong Branding và phát thông báo null
+      await syncFloorPlanToBranding(null);
+      broadcastRealtimeEvent('floor_plan_updated', null);
+    } else if (wasActive) {
+      // Nếu vừa xóa bản đồ đang áp dụng, tự động kích hoạt bản đồ mới nhất còn lại
       const remaining = await FloorPlanMapModel.findOne().sort({ updatedAt: -1 });
       if (remaining) {
         remaining.active = true;
@@ -224,7 +230,6 @@ floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
         broadcastRealtimeEvent('floor_plan_updated', remaining.toObject ? remaining.toObject() : remaining);
         await syncFloorPlanToBranding(remaining);
       } else {
-        // Không còn bản đồ nào trong CSDL: Xóa sạch liên kết mặt bằng trong Branding
         await syncFloorPlanToBranding(null);
         broadcastRealtimeEvent('floor_plan_updated', null);
       }

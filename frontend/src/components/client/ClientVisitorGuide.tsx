@@ -24,11 +24,13 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
     const fetchActiveFloorPlan = async () => {
       try {
         const fp = await api.getFloorPlan();
-        if (isMounted && fp) {
-          setFloorPlan(fp);
+        if (isMounted) {
+          setFloorPlan(fp || null);
         }
       } catch {
-        // Fallback dùng branding nếu API gặp gián đoạn tạm thời
+        if (isMounted) {
+          setFloorPlan(null);
+        }
       }
     };
 
@@ -51,14 +53,13 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   const hasSimulationNodes = Boolean(floorPlan && floorPlan.nodes && floorPlan.nodes.length > 0);
   const mapImageUrl = floorPlan?.imageUrl || branding.guideMapUrl || '';
   const hasMapDrawing = Boolean(mapImageUrl);
-  const museumPhoto = mapImageUrl || branding.introImageUrl || '';
 
   return (
     <section id="guide" className="client-zigzag-section">
       <div className="client-container">
         {/* ZIG-ZAG 4: NẰM BÊN TRÁI, ĐẢO CỘT NỘI DUNG TRÁI - ẢNH KIẾN TRÚC PHẢI */}
         <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
-          {/* CỘT MEDIA: SƠ ĐỒ MÔ PHỎNG / BẢN VẼ SỐ HÓA / ẢNH KIẾN TRÚC BẢO TÀNG */}
+          {/* CỘT MEDIA: SƠ ĐỒ MÔ PHỎNG / BẢN VẼ SỐ HÓA / PLACEHOLDER CHƯA CÓ SƠ ĐỒ */}
           <div
             className="client-zigzag-card-media clickable"
             onClick={onViewAllGuide}
@@ -84,13 +85,6 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                 style={{ objectFit: 'contain', background: '#090D17', padding: '12px' }}
                 loading="lazy"
               />
-            ) : museumPhoto ? (
-              <img
-                src={museumPhoto}
-                alt={branding.museumName || 'Bảo tàng Lịch sử TP.HCM'}
-                className="client-zigzag-card-img"
-                loading="lazy"
-              />
             ) : (
               <div className="client-media-placeholder">
                 <div className="client-media-placeholder-icon">
@@ -100,7 +94,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                   {t('guide.noMapTitle', 'Chưa bổ sung sơ đồ tham quan')}
                 </span>
                 <span className="client-media-placeholder-desc">
-                  {t('guide.noMapDesc', 'Sơ đồ mặt bằng và cẩm nang sẽ hiển thị sau khi quản trị viên cập nhật tại mục 7 Quản lý Trang chủ.')}
+                  {t('guide.noMapDesc', 'Sơ đồ mặt bằng và cẩm nang sẽ hiển thị sau khi quản trị viên cập nhật tại mục Quản lý Trang Cẩm nang & Sơ đồ.')}
                 </span>
               </div>
             )}
@@ -126,8 +120,10 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                     )}
                   </span>
                 </>
+              ) : hasMapDrawing ? (
+                <span>{t('guide.drawingBadge', 'Bản vẽ sơ đồ kiến trúc')}</span>
               ) : (
-                <span>{t('guide.openToday', 'Đón khách tham quan')}</span>
+                <span>{t('guide.noMapBadge', 'Chưa có sơ đồ')}</span>
               )}
             </div>
 
@@ -199,7 +195,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             )}
 
             {/* CHÂN CAPTION CỘT MEDIA */}
-            {(hasSimulationNodes || museumPhoto) && (
+            {(hasSimulationNodes || hasMapDrawing) && (
               <div
                 className="client-zigzag-media-caption"
                 style={{
@@ -220,10 +216,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                 >
                   {hasSimulationNodes
                     ? `📍 ${floorPlan?.title || 'Sơ đồ mặt bằng các gian trưng bày'}`
-                    : t(
-                        branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM',
-                        branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM'
-                      )}
+                    : `📍 ${floorPlan?.title || branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng'}`}
                 </span>
                 {hasSimulationNodes && (
                   <span

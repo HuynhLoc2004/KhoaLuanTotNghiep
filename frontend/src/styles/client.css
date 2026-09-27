@@ -1075,66 +1075,78 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .client-navbar {
-    width: calc(100% - 16px);
+    width: calc(100% - 20px);
     top: 8px;
   }
   .client-nav-inner {
-    height: 54px;
-    padding: 0 12px;
+    height: 52px;
+    padding: 0 10px 0 12px;
     gap: 8px;
   }
   .client-nav-brand {
-    gap: 9px;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
   }
   .client-nav-emblem {
     width: 32px;
     height: 32px;
     font-size: 12px;
+    flex-shrink: 0;
   }
   .client-nav-logo {
-    height: 32px;
+    height: 30px;
     max-width: 90px;
+    flex-shrink: 0;
+  }
+  .client-nav-title-group {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
   }
   .client-nav-title {
-    font-size: 0.88rem;
-    max-width: 140px;
+    font-size: clamp(0.85rem, 3.6vw, 0.94rem);
+    font-weight: 700;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    max-width: 100%;
+    line-height: 1.2;
   }
-  /* Ẩn dòng phụ đề TP.HCM • TOUR 360 để không chèn ép các nút điều hướng */
+  /* Ẩn dòng phụ đề TP.HCM • TOUR 360 để nhường trọn vẹn không gian cho tên bảo tàng */
   .client-nav-subtitle-row {
-    display: none;
+    display: none !important;
+  }
+  /* Ẩn nút Quét QR trùng lặp trên top bar vì đã có nút nổi Quét QR và mục trong drawer */
+  .client-nav-qr-btn {
+    display: none !important;
   }
   .client-nav-actions {
     gap: 6px;
+    flex-shrink: 0;
   }
-  /* Nút Quét QR trên top thu gọn thành chỉ icon tròn */
-  .client-nav-qr-btn {
-    padding: 0 !important;
+  .client-nav-lang-btn,
+  .client-theme-toggle {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+  }
+  .client-nav-mobile-toggle {
     width: 34px !important;
     height: 34px !important;
     min-width: 34px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-  .client-nav-qr-btn span {
-    display: none !important;
-  }
-  .client-theme-toggle {
-    width: 34px;
-    height: 34px;
   }
   .client-mobile-drawer {
-    top: 70px;
+    top: 68px;
     left: 8px;
     right: 8px;
     padding: 14px 14px 18px 14px;
     border-radius: 18px;
-    max-height: calc(100vh - 82px);
+    max-height: calc(100vh - 80px);
   }
 }
 
@@ -1144,25 +1156,20 @@
     top: 6px;
   }
   .client-nav-inner {
-    height: 50px;
-    padding: 0 8px;
+    height: 48px;
+    padding: 0 8px 0 10px;
     gap: 6px;
   }
   .client-nav-title {
     font-size: 0.84rem;
-    max-width: 110px;
-  }
-  /* Trên màn hình nhỏ hơn 420px, ẩn nút QR trên top bar (ưu tiên trong drawer) để không bao giờ bị tràn */
-  .client-nav-qr-btn {
-    display: none !important;
   }
   .client-mobile-drawer {
-    top: 64px;
+    top: 62px;
     left: 6px;
     right: 6px;
     padding: 12px 12px 16px 12px;
     border-radius: 16px;
-    max-height: calc(100vh - 74px);
+    max-height: calc(100vh - 72px);
   }
 }
 
@@ -1417,17 +1424,132 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 680px) {
+/* RESPONSIVE HERO CHO ĐIỆN THOẠI: THOÁNG ĐÃNG, NỔI BẬT NỀN BẢO TÀNG, KHÔNG BỊ BẾ TẮC */
+@media (max-width: 768px) {
+  .client-hero {
+    min-height: 100svh;
+    padding-top: 76px;
+    padding-bottom: 28px;
+    justify-content: center;
+  }
+  .client-hero-media {
+    filter: brightness(0.8) contrast(1.06);
+  }
+  .client-hero-overlay {
+    background: linear-gradient(
+      180deg,
+      rgba(10, 13, 20, 0.48) 0%,
+      rgba(10, 13, 20, 0.12) 32%,
+      rgba(10, 13, 20, 0.38) 68%,
+      var(--c-bg) 100%
+    );
+  }
+  .client-hero-content {
+    padding: 0 16px;
+    max-width: 100%;
+  }
+  .client-hero-tag {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+  .client-hero-headline {
+    font-size: clamp(1.65rem, 5.8vw, 2.25rem);
+    line-height: 1.25;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+  }
+  .client-hero-lead {
+    font-size: 0.88rem;
+    line-height: 1.58;
+    max-width: 92%;
+    margin-bottom: 18px;
+  }
+  .client-hero-actions {
+    gap: 10px;
+    margin-bottom: 18px;
+    width: 100%;
+    justify-content: center;
+  }
+  .client-btn-primary {
+    padding: 10px 22px;
+    font-size: 0.88rem;
+  }
+  .client-btn-secondary {
+    padding: 9px 20px;
+    font-size: 0.88rem;
+  }
+  /* Bố cục stats DẠNG VIÊN THUỐC NGANG (HORIZONTAL CAPSULE) - GIỮ NGUYÊN NẰM NGANG, KHÔNG BAO GIỜ XẾP DỌC BẾ TẮC */
   .client-hero-stats {
+    flex-direction: row !important;
+    justify-content: space-around;
+    align-items: center;
+    border-radius: var(--c-radius-pill);
+    padding: 8px 14px;
+    gap: 6px;
+    width: calc(100% - 20px);
+    max-width: 440px;
+    margin: 0 auto;
+    background: rgba(10, 14, 22, 0.8) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(212, 175, 55, 0.35) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  }
+  .client-hero-stat-item {
+    padding: 2px 4px;
+    flex: 1;
+    display: flex;
     flex-direction: column;
-    border-radius: var(--c-radius-lg);
-    padding: 18px 24px;
-    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .client-hero-stat-value {
+    font-size: 1.25rem !important;
+    line-height: 1.1;
+  }
+  .client-hero-stat-label {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
   }
   .client-hero-stat-divider {
-    width: 60%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.4) 50%, transparent 100%);
+    width: 1px !important;
+    height: 24px !important;
+    background: linear-gradient(180deg, transparent 0%, rgba(212, 175, 55, 0.45) 50%, transparent 100%) !important;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .client-hero-headline {
+    font-size: 1.55rem;
+  }
+  .client-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .client-btn-primary,
+  .client-btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+  .client-hero-stats {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .client-hero-stat-value {
+    font-size: 1.15rem !important;
+  }
+  .client-hero-stat-label {
+    font-size: 0.58rem !important;
   }
 }
 
@@ -1688,6 +1810,88 @@
   height: 28px;
   background: var(--c-border);
   flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .client-intro-grid {
+    gap: 32px;
+  }
+  .client-intro-img-frame {
+    aspect-ratio: 16 / 10;
+    min-height: 230px;
+    border-radius: var(--c-radius-md);
+  }
+  .client-intro-monument-badge {
+    top: 12px;
+    left: 12px;
+    padding: 5px 12px;
+    font-size: 0.72rem;
+  }
+  .client-intro-history-card {
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    padding: 10px 14px;
+    gap: 10px;
+    border-radius: var(--c-radius-sm);
+  }
+  .client-intro-history-emblem {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+  .client-intro-history-year {
+    font-size: 0.95rem;
+  }
+  .client-intro-history-sub {
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+  .client-intro-text-col {
+    gap: 20px;
+  }
+  .client-intro-title {
+    font-size: clamp(1.45rem, 5vw, 1.85rem);
+    line-height: 1.28;
+  }
+  .client-intro-paragraph {
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+  .client-intro-paragraph.secondary {
+    font-size: 0.86rem;
+  }
+  .client-intro-features {
+    gap: 10px;
+  }
+  .client-feature-item {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  .client-feature-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .client-feature-title {
+    font-size: 0.98rem;
+  }
+  .client-feature-desc {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+  .client-intro-meta-strip {
+    flex-wrap: wrap;
+    justify-content: space-around;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  .client-intro-meta-num {
+    font-size: 1.15rem;
+  }
+  .client-intro-meta-label {
+    font-size: 0.7rem;
+  }
 }
 
 /* --- 7. TOUR 360° SHOWCASE (MASTER-DETAIL SHOWCASE) --- */
@@ -2067,6 +2271,51 @@
   color: var(--c-gold);
 }
 
+@media (max-width: 768px) {
+  .client-room-featured-view {
+    min-height: 380px;
+    border-radius: var(--c-radius-md);
+  }
+  .client-room-featured-img-wrap {
+    min-height: 240px;
+  }
+  .client-room-featured-overlay {
+    padding: 20px 16px;
+  }
+  .client-room-status-badge {
+    top: 12px;
+    right: 12px;
+    padding: 4px 12px;
+    font-size: 0.72rem;
+  }
+  .client-room-featured-title {
+    font-size: clamp(1.35rem, 5vw, 1.7rem);
+    margin-bottom: 6px;
+  }
+  .client-room-featured-desc {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    margin-bottom: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .client-room-enter-btn {
+    padding: 10px 20px;
+    font-size: 0.88rem;
+  }
+  .client-room-picker-item {
+    padding: 10px 12px;
+    gap: 12px;
+  }
+  .client-room-picker-thumb-wrap {
+    width: 72px;
+    height: 52px;
+  }
+}
+
 /* --- 8. BỆ TRƯNG BÀY CỔ VẬT 3D DI SẢN (SPOTLIGHT EXHIBITION PEDESTAL) --- */
 .client-artifacts-section {
   position: relative;
@@ -2439,6 +2688,92 @@
   max-width: 150px;
 }
 
+@media (max-width: 768px) {
+  .client-pedestal-wrap {
+    padding: 20px 14px;
+    border-radius: var(--c-radius-md);
+  }
+  .client-pedestal-viewer-stage {
+    min-height: 280px;
+    height: 280px;
+  }
+  .client-pedestal-static-vitrine {
+    height: 280px;
+  }
+  .client-pedestal-halo {
+    width: 240px;
+    height: 240px;
+  }
+  .client-pedestal-static-img {
+    max-height: 200px;
+  }
+  .client-pedestal-status-badge {
+    top: 12px;
+    left: 12px;
+    padding: 4px 11px;
+    font-size: 0.72rem;
+  }
+  .client-pedestal-interaction-hint {
+    bottom: 12px;
+    padding: 5px 12px;
+    font-size: 0.72rem;
+  }
+  .client-pedestal-placard {
+    gap: 12px;
+  }
+  .client-pedestal-title {
+    font-size: clamp(1.35rem, 5vw, 1.75rem);
+  }
+  .client-pedestal-desc {
+    font-size: 0.86rem;
+    line-height: 1.58;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .client-pedestal-meta-table {
+    gap: 10px;
+    padding: 10px 0;
+  }
+  .client-pedestal-meta-label {
+    font-size: 0.7rem;
+  }
+  .client-pedestal-meta-val {
+    font-size: 0.88rem;
+  }
+  .client-pedestal-actions {
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .client-pedestal-primary-btn {
+    padding: 10px 20px;
+    font-size: 0.86rem;
+  }
+  .client-pedestal-secondary-btn {
+    padding: 9px 18px;
+    font-size: 0.86rem;
+  }
+  .client-pedestal-shelf-wrap {
+    margin-top: 18px;
+    padding-top: 14px;
+  }
+  .client-pedestal-shelf-item {
+    min-width: 170px;
+    padding: 8px 12px;
+    gap: 10px;
+  }
+  .client-pedestal-shelf-thumb-wrap {
+    width: 44px;
+    height: 44px;
+  }
+  .client-pedestal-shelf-name {
+    font-size: 0.86rem;
+    max-width: 110px;
+  }
+}
+
 /* --- 9. BỘ SƯU TẬP CHUYÊN ĐỀ LỊCH SỬ (EPOCH GALLERY GRID) --- */
 .client-topics-section {
   position: relative;
@@ -2570,6 +2905,7 @@
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -4231,6 +4567,7 @@
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -4553,6 +4890,52 @@
   gap: 28px;
 }
 
+@media (max-width: 768px) {
+  .client-subpage {
+    padding-top: 76px;
+    padding-bottom: 48px;
+  }
+  .client-subpage-hero {
+    padding: 16px 0 20px 0;
+  }
+  .client-subpage-title {
+    font-size: clamp(1.55rem, 5.5vw, 2.1rem);
+    margin: 8px 0 10px 0;
+  }
+  .client-subpage-lead {
+    font-size: 0.88rem;
+    line-height: 1.58;
+  }
+  .client-subpage-toolbar {
+    margin: 18px 0 24px 0;
+    padding-bottom: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .client-subpage-search-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .client-subpage-filters {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .client-subpage-filter-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+  }
+  .client-subpage-grid {
+    grid-template-columns: 1fr !important;
+    gap: 18px;
+  }
+}
+
 .client-gallery-card {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
@@ -4663,6 +5046,7 @@
   min-height: 2.8em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-wrap: balance;
@@ -4676,6 +5060,7 @@
   min-height: 4.8em;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -5639,10 +6024,25 @@
 
 @media (max-width: 768px) {
   .client-floating-qr-btn {
-    bottom: 18px;
-    right: 18px;
-    padding: 10px 16px;
-    font-size: 0.85rem;
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    gap: 6px;
+    box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 175, 55, 0.35);
+  }
+  .client-floating-qr-btn svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
+@media (max-width: 480px) {
+  .client-floating-qr-btn {
+    bottom: 12px;
+    right: 12px;
+    padding: 7px 12px;
+    font-size: 0.76rem;
   }
 }
 
@@ -5967,5 +6367,52 @@
   .client-portal .pagination-ellipsis {
     padding: 0 2px;
     font-size: 12px;
+  }
+}
+
+/* =========================================================================
+   RESPONSIVE CHO CLIENT TOUR VIEW 360 TRÊN ĐIỆN THOẠI
+   ========================================================================= */
+.client-tour-header {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .client-tour-header {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    gap: 8px;
+  }
+  .client-tour-title-pill {
+    display: none !important;
+  }
+  .client-tour-back-btn span {
+    display: none !important;
+  }
+  .client-tour-back-btn {
+    padding: 8px !important;
+    border-radius: 50% !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    justify-content: center !important;
+  }
+  .client-tour-room-btn {
+    max-width: 140px !important;
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+  .client-tour-actions {
+    gap: 6px !important;
   }
 }

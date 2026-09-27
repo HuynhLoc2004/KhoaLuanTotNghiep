@@ -301,13 +301,21 @@ const AppContent: React.FC = () => {
 
   // Room created
   const handleRoomCreated = (newRoom: MuseumRoom) => {
-    setRooms((prev) => [...prev, newRoom]);
+    setRooms((prev) => {
+      const next = [...prev, newRoom];
+      window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: next }));
+      return next;
+    });
     showToast(`Đã thêm gian phòng "${newRoom.name}" thành công`, 'success');
   };
 
   // Room updated
   const handleRoomUpdated = (updated: MuseumRoom) => {
-    setRooms((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    setRooms((prev) => {
+      const next = prev.map((r) => (r.id === updated.id ? updated : r));
+      window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: next }));
+      return next;
+    });
     if (activeRoom && activeRoom.id === updated.id) {
       setActiveRoom(updated);
     }
@@ -318,7 +326,11 @@ const AppContent: React.FC = () => {
   const handleDeleteRoom = async (roomId: string) => {
     try {
       await api.deleteRoom(roomId);
-      setRooms((prev) => prev.filter((r) => r.id !== roomId));
+      setRooms((prev) => {
+        const next = prev.filter((r) => r.id !== roomId);
+        window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: next }));
+        return next;
+      });
       showToast('Đã xóa gian phòng thành công', 'success');
       if (activeRoom && activeRoom.id === roomId) {
         handleBackToRooms();

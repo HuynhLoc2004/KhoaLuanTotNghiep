@@ -187,11 +187,12 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
         eventSource.addEventListener('branding_updated', (e) => {
           try {
             const updated = JSON.parse(e.data);
-            if (updated && updated.museumName) {
+            if (updated && (updated.museumName || updated.guideMapUrl !== undefined)) {
               setBranding((prev) => ({ ...prev, ...updated }));
               try {
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
               } catch {}
+              window.dispatchEvent(new CustomEvent('museum:branding_updated', { detail: updated }));
             }
           } catch (err) {
             console.warn('[RealtimeSync] Lỗi đọc gói tin branding_updated:', err);

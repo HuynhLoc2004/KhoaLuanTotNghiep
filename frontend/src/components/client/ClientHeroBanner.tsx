@@ -154,14 +154,14 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
           {/* Thanh thống kê dữ liệu thật dạng Capsule tinh gọn */}
           <div className="client-hero-stats">
             <div className="client-hero-stat-item">
-              <span className="client-hero-stat-value">{roomCount > 0 ? roomCount : 3}</span>
+              <span className="client-hero-stat-value">{roomCount ?? 0}</span>
               <div className="client-hero-stat-label">{t('hero.statRooms', 'Gian Phòng 360°')}</div>
             </div>
 
             <div className="client-hero-stat-divider" aria-hidden="true" />
 
             <div className="client-hero-stat-item">
-              <span className="client-hero-stat-value">{artifact3DCount > 0 ? artifact3DCount : 1}</span>
+              <span className="client-hero-stat-value">{artifact3DCount ?? 0}</span>
               <div className="client-hero-stat-label">{t('hero.statArtifacts', 'Cổ Vật 3D')}</div>
             </div>
 

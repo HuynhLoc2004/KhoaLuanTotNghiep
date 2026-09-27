@@ -63,12 +63,15 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
     const fetchFloorPlan = () => {
       api.getFloorPlan()
         .then((data) => {
-          if (isMounted && data) {
-            setFloorPlan(data);
+          if (isMounted) {
+            setFloorPlan(data || null);
           }
         })
         .catch((err) => {
           console.warn('[ClientGuidePage] Không tải được sơ đồ mặt bằng:', err);
+          if (isMounted) {
+            setFloorPlan(null);
+          }
         })
         .finally(() => {
           if (isMounted) setLoadingFloorPlan(false);
@@ -82,18 +85,21 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
     };
 
     window.addEventListener('museum:floor_plan_updated', handleFloorPlanUpdated);
+    window.addEventListener('museum:branding_updated', handleFloorPlanUpdated);
 
     return () => {
       isMounted = false;
       window.removeEventListener('museum:floor_plan_updated', handleFloorPlanUpdated);
+      window.removeEventListener('museum:branding_updated', handleFloorPlanUpdated);
     };
   }, []);
 
-  // Đường dẫn sơ đồ mặt bằng: Ưu tiên ảnh do Admin upload từ server
-  const serverMapUrl = branding.guideMapUrl
-    ? branding.guideMapUrl.startsWith('http')
-      ? branding.guideMapUrl
-      : `${API_ROOT}${branding.guideMapUrl.startsWith('/') ? '' : '/'}${branding.guideMapUrl}`
+  // Đường dẫn sơ đồ mặt bằng: Ưu tiên ảnh từ floorPlan đang active hoặc branding.guideMapUrl
+  const rawMapUrl = floorPlan?.imageUrl || branding.guideMapUrl || '';
+  const serverMapUrl = rawMapUrl
+    ? (rawMapUrl.startsWith('http') || rawMapUrl.startsWith('data:')
+      ? rawMapUrl
+      : `${API_ROOT}${rawMapUrl.startsWith('/') ? '' : '/'}${rawMapUrl}`)
     : '';
 
 
