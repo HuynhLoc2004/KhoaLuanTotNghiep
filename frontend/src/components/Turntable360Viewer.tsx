@@ -15,7 +15,8 @@ import {
   Sun,
   Camera,
   Loader2,
-  Box
+  Box,
+  Sparkles
 } from 'lucide-react';
 import { API_ROOT } from '../services/api';
 
@@ -66,6 +67,35 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const [wireframeMode, setWireframeMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [modelStats, setModelStats] = useState<{ vertices: number; faces: number } | null>(null);
+
+  // Chế độ xem: 'parallax' (2.5D Parallax bảo toàn nét thật ±35°) | '360' (Xoay tròn tự do)
+  const [viewMode, setViewMode] = useState<'parallax' | '360'>('parallax');
+  const viewModeRef = useRef(viewMode);
+
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+    if (controlsRef.current) {
+      if (viewMode === 'parallax') {
+        controlsRef.current.minAzimuthAngle = -Math.PI * 0.20; // Giới hạn góc quay ngang ~ ±36 độ
+        controlsRef.current.maxAzimuthAngle = Math.PI * 0.20;
+        controlsRef.current.minPolarAngle = Math.PI / 2 - 0.25; // Giới hạn góc gật gù trên dưới
+        controlsRef.current.maxPolarAngle = Math.PI / 2 + 0.18;
+        if (turntableGroupRef.current) {
+          turntableGroupRef.current.rotation.y = 0;
+        }
+        if (cameraRef.current) {
+          cameraRef.current.position.set(0, 1.45, 4.0);
+          controlsRef.current.target.set(0, 1.05, 0);
+        }
+      } else {
+        controlsRef.current.minAzimuthAngle = -Infinity;
+        controlsRef.current.maxAzimuthAngle = Infinity;
+        controlsRef.current.minPolarAngle = 0;
+        controlsRef.current.maxPolarAngle = Math.PI / 2 + 0.04;
+      }
+      controlsRef.current.update();
+    }
+  }, [viewMode]);
 
   // Tổng hợp danh sách các ngôn ngữ có thuyết minh giọng đọc
   const availableAudioLangs = React.useMemo(() => {
@@ -193,7 +223,14 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     controls.dampingFactor = 0.05;
     controls.maxDistance = 8.5;
     controls.minDistance = 1.5;
-    controls.maxPolarAngle = Math.PI / 2 + 0.04;
+    if (viewModeRef.current === 'parallax') {
+      controls.minAzimuthAngle = -Math.PI * 0.20;
+      controls.maxAzimuthAngle = Math.PI * 0.20;
+      controls.minPolarAngle = Math.PI / 2 - 0.25;
+      controls.maxPolarAngle = Math.PI / 2 + 0.18;
+    } else {
+      controls.maxPolarAngle = Math.PI / 2 + 0.04;
+    }
     controls.target.set(0, 1.05, 0);
     controlsRef.current = controls;
 
@@ -297,7 +334,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
       lastTime = now;
 
       if (isAutoRotatingRef.current && turntableGroupRef.current) {
-        turntableGroupRef.current.rotation.y += (autoRotateSpeed * 0.25) * delta;
+        if (viewModeRef.current === 'parallax') {
+          // Dao động con lắc mềm mại quanh trục chính diện (+- 14 độ) để tôn khối nổi và bắt sáng PBR
+          const t = now * 0.001;
+          turntableGroupRef.current.rotation.y = Math.sin(t * 0.9) * 0.24;
+        } else {
+          turntableGroupRef.current.rotation.y += (autoRotateSpeed * 0.25) * delta;
+        }
       }
 
       if (controlsRef.current) {
@@ -490,8 +533,11 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   // 5. Căn lại góc nhìn ban đầu
   const handleResetCamera = () => {
     if (!cameraRef.current || !controlsRef.current) return;
-    cameraRef.current.position.set(0, 1.8, 4.2);
-    controlsRef.current.target.set(0, 1.1, 0);
+    cameraRef.current.position.set(0, 1.45, 4.0);
+    controlsRef.current.target.set(0, 1.05, 0);
+    if (turntableGroupRef.current) {
+      turntableGroupRef.current.rotation.y = 0;
+    }
     controlsRef.current.update();
   };
 
@@ -629,8 +675,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
               whiteSpace: 'nowrap'
             }}
           >
-            <Box size={12} />
-            Không gian 3D
+            {viewMode === 'parallax' ? <Sparkles size={12} /> : <Box size={12} />}
+            {viewMode === 'parallax' ? '2.5D Parallax • Chuẩn ảnh thật' : 'Không gian 3D 360°'}
           </span>
           {modelStats && (
             <span
@@ -855,6 +901,38 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           zIndex: 10
         }}
       >
+        {/* Nút Chuyển Chế Độ: 2.5D Parallax vs 360° */}
+        <button
+          type="button"
+          onClick={() => {
+            setViewMode((prev) => (prev === 'parallax' ? '360' : 'parallax'));
+          }}
+          title={
+            viewMode === 'parallax'
+              ? 'Đang bật 2.5D Parallax (Khóa góc bảo toàn 100% nét thật). Nhấn để mở khóa xoay 360°'
+              : 'Đang mở xoay tự do 360°. Nhấn để quay lại 2.5D Parallax chuẩn nét'
+          }
+          style={{
+            height: 36,
+            padding: '0 10px',
+            borderRadius: 8,
+            background: viewMode === 'parallax' ? 'rgba(212, 168, 106, 0.28)' : 'rgba(20, 24, 33, 0.75)',
+            border: viewMode === 'parallax' ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
+            color: viewMode === 'parallax' ? '#d4a86a' : '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: '0.72rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <Sparkles size={14} />
+          <span>{viewMode === 'parallax' ? '2.5D Parallax' : 'Xoay 360°'}</span>
+        </button>
+
         {/* Nút 1: Tự động xoay */}
         <button
           type="button"
@@ -1107,16 +1185,18 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           <span
             style={{
               fontSize: '0.7rem',
-              color: 'rgba(255, 255, 255, 0.65)',
-              background: 'rgba(15, 18, 26, 0.8)',
-              padding: '4px 12px',
+              color: 'rgba(255, 255, 255, 0.75)',
+              background: 'rgba(15, 18, 26, 0.85)',
+              padding: '4px 14px',
               borderRadius: 16,
               backdropFilter: 'blur(6px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               textAlign: 'center'
             }}
           >
-            Chạm & xoay 360° • Cuộn / chụm để phóng to
+            {viewMode === 'parallax'
+              ? 'Rê chuột hoặc chạm để nghiêng ngắm nổi khối 3D Parallax • Bấm nút trên thanh công cụ để mở khóa xoay 360°'
+              : 'Chạm & xoay tự do 360° • Cuộn / chụm để phóng to'}
           </span>
         </div>
       )}
