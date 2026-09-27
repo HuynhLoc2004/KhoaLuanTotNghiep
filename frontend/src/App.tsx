@@ -51,24 +51,14 @@ const AppContent: React.FC = () => {
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
 
-  // Quản lý theme client đồng bộ toàn hệ thống
-  const [clientTheme, setClientTheme] = useState<'light' | 'dark'>(() => {
+  // Client Portal luôn hoạt động ở chế độ Dark Mode di sản sang trọng (loại bỏ hoàn toàn Light Mode)
+  const clientTheme = 'dark';
+  const toggleClientTheme = () => {};
+  useEffect(() => {
     try {
-      const saved = localStorage.getItem('client_theme_v2');
-      if (saved === 'dark' || saved === 'light') return saved;
+      localStorage.setItem('client_theme_v2', 'dark');
     } catch {}
-    return 'dark';
-  });
-
-  const toggleClientTheme = () => {
-    setClientTheme((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      try {
-        localStorage.setItem('client_theme_v2', next);
-      } catch {}
-      return next;
-    });
-  };
+  }, []);
 
   // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'guide'
   const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'guide'>(() => {

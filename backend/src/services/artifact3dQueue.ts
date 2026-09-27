@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { spawn } from 'child_process';
+import mongoose from 'mongoose';
 import { ArtifactModel } from '../models/Artifact';
+import { pgUpsertArtifact } from '../db/syncEngine';
 import {
   cacheGet,
   cacheSet,
@@ -22,6 +24,26 @@ const ARTIFACT_SCRIPT = process.env.ARTIFACT_3D_SCRIPT || (fs.existsSync(path.jo
 
 const ARTIFACT_UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads', 'artifacts');
 const MODELS_3D_DIR = path.join(ARTIFACT_UPLOADS_DIR, 'models_3d');
+
+/**
+ * Cập nhật trạng thái tiến trình 3D của hiện vật đồng bộ cả MongoDB & PostgreSQL Primary
+ */
+async function updateArtifact3DState(artifactId: string, updateFields: any): Promise<any> {
+  try {
+    const query = mongoose.isValidObjectId(artifactId)
+      ? { $or: [{ _id: artifactId }, { id: artifactId }, { code: artifactId }] }
+      : { $or: [{ id: artifactId }, { code: artifactId }] };
+
+    const updated = await ArtifactModel.findOneAndUpdate(query, { $set: updateFields }, { new: true });
+    if (updated) {
+      await pgUpsertArtifact(updated.toObject ? updated.toObject() : updated);
+      return updated;
+    }
+  } catch (err: any) {
+    console.warn('[3D Queue] Cảnh báo cập nhật trạng thái Artifact:', err.message);
+  }
+  return null;
+}
 
 // Đảm bảo thư mục lưu trữ tồn tại
 if (!fs.existsSync(MODELS_3D_DIR)) {
@@ -76,7 +98,7 @@ export async function enqueue3DReconstruction(
 
     if (fs.existsSync(localGlbPath)) {
       console.log(`[3D Queue] Tìm thấy trong Cache cho mã băm ${fileHash.substring(0, 10)}... Trả về ngay lập tức.`);
-      await ArtifactModel.findByIdAndUpdate(artifactId, {
+      await updateArtifact3DState(artifactId, {
         model3dUrl: cached.model3dUrl,
         processingStatus: 'completed',
         processingError: '',
@@ -92,7 +114,7 @@ export async function enqueue3DReconstruction(
 
   // 2. Tạo Job ID mới và đánh dấu trạng thái processing trong MongoDB thật
   const jobId = `job_3d_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  await ArtifactModel.findByIdAndUpdate(artifactId, {
+  await updateArtifact3DState(artifactId, {
     processingStatus: 'processing',
     processingError: ''
   });
@@ -155,7 +177,7 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
   if (!artifactId || !imagePath || !fs.existsSync(imagePath)) {
     console.error(`[3D Consumer] Dữ liệu job không hợp lệ hoặc không tìm thấy file ảnh:`, { artifactId, imagePath });
     if (artifactId) {
-      await ArtifactModel.findByIdAndUpdate(artifactId, {
+      await updateArtifact3DState(artifactId, {
         processingStatus: 'failed',
         processingError: 'Không tìm thấy file ảnh gốc trên máy chủ để dựng 3D'
       });
@@ -211,8 +233,8 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
         const cacheKey = `artifact:3d_cache:${fileHash}`;
         await cacheSet(cacheKey, { model3dUrl, metadata }, 86400 * 30);
 
-        // Cập nhật MongoDB thật
-        await ArtifactModel.findByIdAndUpdate(artifactId, {
+        // Cập nhật MongoDB & PostgreSQL thật
+        await updateArtifact3DState(artifactId, {
           model3dUrl,
           processingStatus: 'completed',
           processingError: '',
@@ -229,7 +251,7 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
         job.status = 'failed';
         job.error = errMsg;
 
-        await ArtifactModel.findByIdAndUpdate(artifactId, {
+        await updateArtifact3DState(artifactId, {
           processingStatus: 'failed',
           processingError: errMsg
         });
@@ -242,7 +264,7 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
     py.on('error', async (err) => {
       job.status = 'failed';
       job.error = err.message;
-      await ArtifactModel.findByIdAndUpdate(artifactId, {
+      await updateArtifact3DState(artifactId, {
         processingStatus: 'failed',
         processingError: err.message
       });

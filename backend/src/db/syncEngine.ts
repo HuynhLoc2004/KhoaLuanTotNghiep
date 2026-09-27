@@ -22,17 +22,19 @@ import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 export async function pgUpsertTopic(topic: any) {
   try {
     const id = topic.id || topic._id?.toString();
+    const mongoId = topic._id ? topic._id.toString() : (topic.mongoId || topic.mongo_id || null);
     if (!id) return;
     await pgPool.query(`
-      INSERT INTO topics (id, name, description, order_index, active, updated_at)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+      INSERT INTO topics (id, name, description, order_index, active, mongo_id, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         description = EXCLUDED.description,
         order_index = EXCLUDED.order_index,
         active = EXCLUDED.active,
+        mongo_id = COALESCE(EXCLUDED.mongo_id, topics.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
-    `, [id, topic.name || '', topic.description || '', topic.orderIndex ?? 1, topic.active ?? true]);
+    `, [id, topic.name || '', topic.description || '', topic.orderIndex ?? 1, topic.active ?? true, mongoId]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi đồng bộ Topic sang PostgreSQL (${topic.id}):`, err.message);
   }
@@ -40,7 +42,7 @@ export async function pgUpsertTopic(topic: any) {
 
 export async function pgDeleteTopic(id: string) {
   try {
-    await pgPool.query('DELETE FROM topics WHERE id = $1', [id]);
+    await pgPool.query('DELETE FROM topics WHERE id = $1 OR mongo_id = $1', [id]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi xóa Topic trong PostgreSQL (${id}):`, err.message);
   }
@@ -49,15 +51,16 @@ export async function pgDeleteTopic(id: string) {
 export async function pgUpsertRoom(room: any) {
   try {
     const id = room.id || room._id?.toString();
+    const mongoId = room._id ? room._id.toString() : (room.mongoId || room.mongo_id || null);
     if (!id) return;
 
     await pgPool.query(`
       INSERT INTO rooms (
         id, code, name, period, category, description, panorama_url, thumbnail_url,
         initial_view, order_index, active, ai_voice_enabled, ai_knowledge_prompt,
-        ai_script, ai_voice_lang, qr_scan_count, scenes_count, translations, topic_id, updated_at
+        ai_script, ai_voice_lang, qr_scan_count, scenes_count, translations, topic_id, mongo_id, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         code = EXCLUDED.code,
         name = EXCLUDED.name,
@@ -77,6 +80,7 @@ export async function pgUpsertRoom(room: any) {
         scenes_count = EXCLUDED.scenes_count,
         translations = EXCLUDED.translations,
         topic_id = EXCLUDED.topic_id,
+        mongo_id = COALESCE(EXCLUDED.mongo_id, rooms.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
     `, [
       id,
@@ -97,7 +101,8 @@ export async function pgUpsertRoom(room: any) {
       room.qrScanCount ?? 0,
       room.scenesCount ?? 1,
       JSON.stringify(room.translations || {}),
-      room.topicId || null
+      room.topicId || null,
+      mongoId
     ]);
 
     // Đồng bộ danh sách Hotspots con (Quan hệ 1-N)
@@ -107,7 +112,7 @@ export async function pgUpsertRoom(room: any) {
         if (!hs.id) continue;
         let validTargetRoomId: string | null = hs.targetRoomId || null;
         if (validTargetRoomId) {
-          const targetExists = await pgPool.query('SELECT 1 FROM rooms WHERE id = $1', [validTargetRoomId]);
+          const targetExists = await pgPool.query('SELECT 1 FROM rooms WHERE id = $1 OR mongo_id = $1 OR code = $1', [validTargetRoomId]);
           if (targetExists.rows.length === 0) {
             validTargetRoomId = null;
           }
@@ -142,7 +147,20 @@ export async function pgUpsertRoom(room: any) {
 
 export async function pgDeleteRoom(id: string) {
   try {
-    await pgPool.query('DELETE FROM rooms WHERE id = $1', [id]);
+    // 1. Gỡ bỏ liên kết phòng khỏi các hiện vật an toàn (không xóa hiện vật)
+    await pgPool.query(`
+      UPDATE artifacts SET room_id = NULL, room_code = NULL
+      WHERE room_id = $1 OR room_id IN (SELECT id FROM rooms WHERE id = $1 OR mongo_id = $1);
+    `, [id]);
+
+    // 2. Dọn dẹp điểm hotspots trỏ tới phòng này
+    await pgPool.query(`
+      DELETE FROM hotspots
+      WHERE target_room_id = $1 OR target_room_id IN (SELECT id FROM rooms WHERE id = $1 OR mongo_id = $1);
+    `, [id]);
+
+    // 3. Xóa phòng theo ID hoặc mongo_id
+    await pgPool.query('DELETE FROM rooms WHERE id = $1 OR mongo_id = $1', [id]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi xóa Room trong PostgreSQL (${id}):`, err.message);
   }
@@ -151,18 +169,27 @@ export async function pgDeleteRoom(id: string) {
 export async function pgUpsertArtifact(artifact: any) {
   try {
     const id = artifact.id || artifact._id?.toString();
+    const mongoId = artifact._id ? artifact._id.toString() : (artifact.mongoId || artifact.mongo_id || null);
     if (!id || !artifact.code) return;
 
     let validRoomId: string | null = artifact.roomId || null;
     if (validRoomId) {
-      const roomCheck = await pgPool.query('SELECT 1 FROM rooms WHERE id = $1', [validRoomId]);
-      if (roomCheck.rows.length === 0) validRoomId = null;
+      const roomCheck = await pgPool.query('SELECT id FROM rooms WHERE id = $1 OR mongo_id = $1 OR code = $1 LIMIT 1', [validRoomId]);
+      if (roomCheck.rows.length > 0) {
+        validRoomId = roomCheck.rows[0].id;
+      } else {
+        validRoomId = null;
+      }
     }
 
     let validTopicId: string | null = artifact.topicId || null;
     if (validTopicId) {
-      const topicCheck = await pgPool.query('SELECT 1 FROM topics WHERE id = $1', [validTopicId]);
-      if (topicCheck.rows.length === 0) validTopicId = null;
+      const topicCheck = await pgPool.query('SELECT id FROM topics WHERE id = $1 OR mongo_id = $1 LIMIT 1', [validTopicId]);
+      if (topicCheck.rows.length > 0) {
+        validTopicId = topicCheck.rows[0].id;
+      } else {
+        validTopicId = null;
+      }
     }
 
     await pgPool.query(`
@@ -171,9 +198,9 @@ export async function pgUpsertArtifact(artifact: any) {
         description, dimensions, images, thumbnail_url, model_3d_url,
         audio_narration_url, voice_language, qr_code_url, status,
         processing_status, processing_error, model_metadata, translations,
-        order_index, updated_at
+        order_index, mongo_id, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         code = EXCLUDED.code,
         name = EXCLUDED.name,
@@ -197,6 +224,7 @@ export async function pgUpsertArtifact(artifact: any) {
         model_metadata = EXCLUDED.model_metadata,
         translations = EXCLUDED.translations,
         order_index = EXCLUDED.order_index,
+        mongo_id = COALESCE(EXCLUDED.mongo_id, artifacts.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
     `, [
       id,
@@ -221,7 +249,8 @@ export async function pgUpsertArtifact(artifact: any) {
       artifact.processingError || '',
       JSON.stringify(artifact.modelMetadata || {}),
       JSON.stringify(artifact.translations || {}),
-      artifact.orderIndex ?? 0
+      artifact.orderIndex ?? 0,
+      mongoId
     ]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi đồng bộ Artifact sang PostgreSQL (${artifact.code}):`, err.message);
@@ -230,7 +259,7 @@ export async function pgUpsertArtifact(artifact: any) {
 
 export async function pgDeleteArtifact(id: string) {
   try {
-    await pgPool.query('DELETE FROM artifacts WHERE id = $1', [id]);
+    await pgPool.query('DELETE FROM artifacts WHERE id = $1 OR mongo_id = $1', [id]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi xóa Artifact trong PostgreSQL (${id}):`, err.message);
   }
@@ -239,14 +268,15 @@ export async function pgDeleteArtifact(id: string) {
 export async function pgUpsertFloorPlan(fp: any) {
   try {
     const id = fp.id || fp._id?.toString();
+    const mongoId = fp._id ? fp._id.toString() : (fp.mongoId || fp.mongo_id || null);
     if (!id) return;
 
     await pgPool.query(`
       INSERT INTO floor_plans (
         id, title, description, image_url, image_width, image_height,
-        analyzed_at, analysis_algorithm, compass_orientation, active, updated_at
+        analyzed_at, analysis_algorithm, compass_orientation, active, mongo_id, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         description = EXCLUDED.description,
@@ -257,6 +287,7 @@ export async function pgUpsertFloorPlan(fp: any) {
         analysis_algorithm = EXCLUDED.analysis_algorithm,
         compass_orientation = EXCLUDED.compass_orientation,
         active = EXCLUDED.active,
+        mongo_id = COALESCE(EXCLUDED.mongo_id, floor_plans.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
     `, [
       id,
@@ -268,7 +299,8 @@ export async function pgUpsertFloorPlan(fp: any) {
       fp.analyzedAt ? new Date(fp.analyzedAt) : new Date(),
       fp.analysisAlgorithm || 'hybrid_cv_gemini',
       JSON.stringify(fp.compassOrientation || { detected: false, northAngleDeg: 0, confidence: 1, description: 'Mặc định hướng Bắc' }),
-      fp.active ?? true
+      fp.active ?? true,
+      mongoId
     ]);
 
     // Đồng bộ Nodes
@@ -278,15 +310,20 @@ export async function pgUpsertFloorPlan(fp: any) {
         if (!n.id) continue;
         let validRoomId: string | null = n.roomId || null;
         if (validRoomId) {
-          const rCheck = await pgPool.query('SELECT 1 FROM rooms WHERE id = $1', [validRoomId]);
-          if (rCheck.rows.length === 0) validRoomId = null;
+          const rCheck = await pgPool.query('SELECT id FROM rooms WHERE id = $1 OR mongo_id = $1 OR code = $1 LIMIT 1', [validRoomId]);
+          if (rCheck.rows.length > 0) {
+            validRoomId = rCheck.rows[0].id;
+          } else {
+            validRoomId = null;
+          }
         }
+        const nodeMongoId = n._id ? n._id.toString() : (n.mongoId || null);
         await pgPool.query(`
           INSERT INTO floor_plan_nodes (
             id, floor_plan_id, room_id, code, name, period, category,
-            x, y, width, height, is_entrance, color_tag, panorama_url, thumbnail_url
+            x, y, width, height, is_entrance, color_tag, panorama_url, thumbnail_url, mongo_id
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
             code = EXCLUDED.code,
@@ -298,7 +335,8 @@ export async function pgUpsertFloorPlan(fp: any) {
             is_entrance = EXCLUDED.is_entrance,
             color_tag = EXCLUDED.color_tag,
             panorama_url = EXCLUDED.panorama_url,
-            thumbnail_url = EXCLUDED.thumbnail_url;
+            thumbnail_url = EXCLUDED.thumbnail_url,
+            mongo_id = COALESCE(EXCLUDED.mongo_id, floor_plan_nodes.mongo_id);
         `, [
           n.id,
           id,
@@ -314,7 +352,8 @@ export async function pgUpsertFloorPlan(fp: any) {
           n.isEntrance ?? false,
           n.colorTag || '#C5A880',
           n.panoramaUrl || '',
-          n.thumbnailUrl || ''
+          n.thumbnailUrl || '',
+          nodeMongoId
         ]);
       }
     }
@@ -362,7 +401,7 @@ export async function pgUpsertFloorPlan(fp: any) {
 
 export async function pgDeleteFloorPlan(id: string) {
   try {
-    await pgPool.query('DELETE FROM floor_plans WHERE id = $1', [id]);
+    await pgPool.query('DELETE FROM floor_plans WHERE id = $1 OR mongo_id = $1', [id]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi xóa FloorPlan trong PostgreSQL (${id}):`, err.message);
   }
@@ -389,6 +428,7 @@ export async function pgUpsertLanguage(lang: any) {
 export async function pgUpsertBranding(branding: any) {
   try {
     const id = branding.id || 'system-branding-main';
+    const mongoId = branding._id ? branding._id.toString() : (branding.mongoId || branding.mongo_id || null);
     await pgPool.query(`
       INSERT INTO system_branding (
         id, museum_name, short_name, emblem_text, logo_url, tagline,
@@ -399,9 +439,9 @@ export async function pgUpsertBranding(branding: any) {
         guide_morning_hours, guide_afternoon_hours, guide_closed_note,
         guide_ticket_adult, guide_ticket_student, guide_ticket_child,
         guide_bus_routes, guide_parking_info, guide_google_maps_url,
-        data, updated_at
+        data, mongo_id, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         museum_name = EXCLUDED.museum_name,
         short_name = EXCLUDED.short_name,
@@ -434,6 +474,7 @@ export async function pgUpsertBranding(branding: any) {
         guide_parking_info = EXCLUDED.guide_parking_info,
         guide_google_maps_url = EXCLUDED.guide_google_maps_url,
         data = EXCLUDED.data,
+        mongo_id = COALESCE(EXCLUDED.mongo_id, system_branding.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
     `, [
       id,
@@ -467,7 +508,8 @@ export async function pgUpsertBranding(branding: any) {
       branding.guideBusRoutes || '',
       branding.guideParkingInfo || '',
       branding.guideGoogleMapsUrl || '',
-      JSON.stringify(branding.data || {})
+      JSON.stringify(branding.data || {}),
+      mongoId
     ]);
   } catch (err: any) {
     console.warn('[SyncEngine] Lỗi đồng bộ Branding sang PostgreSQL:', err.message);
@@ -477,11 +519,12 @@ export async function pgUpsertBranding(branding: any) {
 export async function pgUpsertUser(user: any) {
   try {
     const id = user.id || user._id?.toString();
+    const mongoId = user._id ? user._id.toString() : (user.mongoId || user.mongo_id || null);
     if (!id || !user.username) return;
 
     await pgPool.query(`
-      INSERT INTO users (id, username, email, password_hash, full_name, role_id, is_active, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+      INSERT INTO users (id, username, email, password_hash, full_name, role_id, is_active, mongo_id, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         username = EXCLUDED.username,
         email = EXCLUDED.email,
@@ -489,6 +532,7 @@ export async function pgUpsertUser(user: any) {
         full_name = EXCLUDED.full_name,
         role_id = EXCLUDED.role_id,
         is_active = EXCLUDED.is_active,
+        mongo_id = COALESCE(EXCLUDED.mongo_id, users.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
     `, [
       id,
@@ -497,7 +541,8 @@ export async function pgUpsertUser(user: any) {
       user.password || 'NO_PASSWORD_OTP_ONLY',
       user.fullName || '',
       user.role === 'admin' ? 'role-superadmin' : (user.role === 'editor' ? 'role-editor' : 'role-viewer'),
-      user.isActive ?? true
+      user.isActive ?? true,
+      mongoId
     ]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi đồng bộ User sang PostgreSQL (${user.username}):`, err.message);
@@ -672,6 +717,87 @@ export async function runStartupDataSync() {
       for (const u of mongoUsers) {
         await pgUpsertUser(u);
       }
+    }
+
+    // 7. Đồng bộ 2 chiều các khoá chéo (Cross-database Key Linking: mongo_id <-> id)
+    // Đảm bảo mọi bản ghi ở PostgreSQL có mongo_id và mọi document ở MongoDB có id
+    try {
+      // Rooms
+      const allMongoRooms = await Room.find().lean();
+      for (const mr of allMongoRooms) {
+        const mId = mr._id ? mr._id.toString() : null;
+        if (mId && (mr.id || mr.code)) {
+          await pgPool.query(
+            `UPDATE rooms SET mongo_id = $1 WHERE (id = $2 OR code = $3) AND (mongo_id IS NULL OR mongo_id != $1)`,
+            [mId, mr.id || '', mr.code || '']
+          );
+        }
+      }
+      const pgRoomsWithMongoId = await pgPool.query(`SELECT id, code, mongo_id FROM rooms WHERE mongo_id IS NOT NULL;`);
+      for (const row of pgRoomsWithMongoId.rows) {
+        if (row.mongo_id && row.id) {
+          await Room.updateOne(
+            { _id: row.mongo_id, id: { $exists: false } },
+            { $set: { id: row.id } }
+          );
+        }
+      }
+
+      // Artifacts
+      const allMongoArt = await ArtifactModel.find().lean();
+      for (const ma of allMongoArt) {
+        const mId = ma._id ? ma._id.toString() : null;
+        if (mId && (ma.id || ma.code)) {
+          await pgPool.query(
+            `UPDATE artifacts SET mongo_id = $1 WHERE (id = $2 OR code = $3) AND (mongo_id IS NULL OR mongo_id != $1)`,
+            [mId, ma.id || '', ma.code || '']
+          );
+        }
+      }
+      const pgArtWithMongoId = await pgPool.query(`SELECT id, code, mongo_id FROM artifacts WHERE mongo_id IS NOT NULL;`);
+      for (const row of pgArtWithMongoId.rows) {
+        if (row.mongo_id && row.id) {
+          await ArtifactModel.updateOne(
+            { _id: row.mongo_id, id: { $exists: false } },
+            { $set: { id: row.id } }
+          );
+        }
+      }
+
+      // Topics
+      const allMongoTopics = await Topic.find().lean();
+      for (const mt of allMongoTopics) {
+        const mId = mt._id ? mt._id.toString() : null;
+        if (mId && (mt.id || (mt as any).code)) {
+          await pgPool.query(
+            `UPDATE topics SET mongo_id = $1 WHERE (id = $2 OR code = $3) AND (mongo_id IS NULL OR mongo_id != $1)`,
+            [mId, mt.id || '', (mt as any).code || '']
+          );
+        }
+      }
+
+      // Floor plans
+      const allMongoFp = await FloorPlanMap.find().lean();
+      for (const mfp of allMongoFp) {
+        const mId = mfp._id ? mfp._id.toString() : null;
+        if (mId && mfp.id) {
+          await pgPool.query(
+            `UPDATE floor_plans SET mongo_id = $1 WHERE id = $2 AND (mongo_id IS NULL OR mongo_id != $1)`,
+            [mId, mfp.id]
+          );
+        }
+      }
+
+      // Branding
+      const mongoBrandingDoc = await SystemBranding.findOne().lean();
+      if (mongoBrandingDoc && mongoBrandingDoc._id) {
+        await pgPool.query(
+          `UPDATE system_branding SET mongo_id = $1 WHERE id = 'default_branding' AND (mongo_id IS NULL OR mongo_id != $1)`,
+          [mongoBrandingDoc._id.toString()]
+        );
+      }
+    } catch (crossKeyErr: any) {
+      console.warn('[SyncEngine Warning] Cảnh báo liên kết khoá chéo mongo_id:', crossKeyErr.message);
     }
 
     console.log('[SyncEngine] Hoàn tất đồng bộ dữ liệu PostgreSQL (Primary CSDL quan hệ) & MongoDB (Mirror NoSQL)!');

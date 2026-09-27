@@ -61,40 +61,7 @@
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* LIGHT MODE - IMPERIAL HERITAGE ALABASTER & LIMESTONE (SANG TRỌNG, ẤM ÁP, KHÔNG CHÓI LÒA) */
-.client-portal[data-client-theme="light"] {
-  --c-bg: #FBF8F3;
-  --c-bg-alt: #F3ECE0;
-  --c-bg-card: #FFFFFF;
-  --c-bg-card-hover: #FFFDF9;
-  --c-bg-stage: radial-gradient(circle at 50% 35%, rgba(180, 138, 60, 0.15) 0%, rgba(243, 236, 224, 0.98) 75%);
 
-  --c-nav-bg: rgba(251, 248, 243, 0.92);
-  --c-nav-border: rgba(180, 138, 60, 0.25);
-
-  --c-text-primary: #181C26;
-  --c-text-secondary: #475263;
-  --c-text-muted: #6E798B;
-  --c-text-inverse: #FFFFFF;
-
-  --c-primary: #A32A13;
-  --c-primary-hover: #8B220E;
-  --c-primary-light: rgba(163, 42, 19, 0.09);
-
-  --c-gold: #B48A3C;
-  --c-gold-hover: #9E772F;
-  --c-gold-light: rgba(180, 138, 60, 0.14);
-  --c-gold-gradient: linear-gradient(135deg, #DFC07D 0%, #B48A3C 50%, #8C6721 100%);
-
-  --c-border: rgba(60, 42, 20, 0.12);
-  --c-border-subtle: rgba(60, 42, 20, 0.06);
-  --c-border-gold: rgba(180, 138, 60, 0.4);
-
-  --c-shadow-sm: 0 3px 10px rgba(50, 36, 18, 0.05);
-  --c-shadow-md: 0 12px 32px -6px rgba(50, 36, 18, 0.09);
-  --c-shadow-lg: 0 22px 52px -10px rgba(50, 36, 18, 0.14);
-  --c-shadow-gold: 0 0 35px -5px rgba(180, 138, 60, 0.25);
-}
 
 /* --- 2. TYPOGRAPHY DI SẢN CHUẨN MỰC --- */
 .client-portal h1,

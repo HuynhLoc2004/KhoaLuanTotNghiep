@@ -182,7 +182,7 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
                model_metadata as "modelMetadata", translations, order_index as "orderIndex",
                created_at as "createdAt", updated_at as "updatedAt"
         FROM artifacts
-        WHERE id = $1 OR code = $1
+        WHERE id = $1 OR code = $1 OR mongo_id = $1
         LIMIT 1;
       `, [id]);
 
@@ -432,7 +432,10 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
     const id = req.params.id as string;
     const { imageUrl, depthScale, resolution } = req.body;
 
-    const artifact = await ArtifactModel.findById(id);
+    const query = mongoose.isValidObjectId(id)
+      ? { $or: [{ _id: id }, { id }, { code: id }] }
+      : { $or: [{ id }, { code: id }] };
+    let artifact = await ArtifactModel.findOne(query);
     if (!artifact) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật' });
     }
@@ -536,7 +539,22 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
 artifactsRouter.get('/:id/3d-status', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const artifact = await ArtifactModel.findById(id);
+    const query = mongoose.isValidObjectId(id)
+      ? { $or: [{ _id: id }, { id }, { code: id }] }
+      : { $or: [{ id }, { code: id }] };
+    let artifact: any = await ArtifactModel.findOne(query);
+    if (!artifact) {
+      const pgRes = await pgPool.query(`
+        SELECT id, processing_status as "processingStatus", processing_error as "processingError",
+               model_3d_url as "model3dUrl", model_metadata as "modelMetadata"
+        FROM artifacts
+        WHERE id = $1 OR code = $1 OR mongo_id = $1
+        LIMIT 1;
+      `, [id]);
+      if (pgRes.rows.length > 0) {
+        artifact = pgRes.rows[0];
+      }
+    }
     if (!artifact) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật' });
     }

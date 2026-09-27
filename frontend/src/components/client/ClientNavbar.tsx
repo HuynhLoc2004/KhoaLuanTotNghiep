@@ -4,8 +4,6 @@ import {
   LogOut,
   Shield,
   User,
-  Sun,
-  Moon,
   Globe,
   Menu,
   X,
@@ -25,8 +23,8 @@ import { useAuth } from '../../context/AuthContext';
 import { HeaderMenuItem, HeaderSubMenuItem } from '../../types';
 
 interface ClientNavbarProps {
-  clientTheme: 'light' | 'dark';
-  onToggleClientTheme: () => void;
+  clientTheme?: 'light' | 'dark';
+  onToggleClientTheme?: () => void;
   onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
   activeSection?: string;
@@ -35,7 +33,7 @@ interface ClientNavbarProps {
 }
 
 export const ClientNavbar: React.FC<ClientNavbarProps> = ({
-  clientTheme,
+  clientTheme = 'dark',
   onToggleClientTheme,
   onOpenLoginModal,
   onNavigateAdmin,
@@ -391,17 +389,6 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               <span className="client-nav-qr-text">{t('nav.scanQr', 'Quét QR')}</span>
             </button>
           )}
-
-          {/* Nút chuyển đổi Light / Dark Theme */}
-          <button
-            type="button"
-            className="client-theme-toggle"
-            onClick={onToggleClientTheme}
-            title={clientTheme === 'light' ? t('nav.themeNight', 'Chuyển sang chế độ ban đêm') : t('nav.themeDay', 'Chuyển sang chế độ ban ngày')}
-            aria-label={t('nav.themeToggle', 'Chuyển chế độ sáng tối')}
-          >
-            {clientTheme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
 
           {/* Đăng nhập hoặc Menu người dùng (Thiết kế capsule thu gọn, lấy tên từ email) */}
           {user ? (

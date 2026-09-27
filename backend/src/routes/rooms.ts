@@ -113,7 +113,7 @@ roomsRouter.get('/:id', async (req: Request, res: Response) => {
                ) as hotspots
         FROM rooms r
         LEFT JOIN hotspots h ON r.id = h.room_id
-        WHERE r.id = $1 OR r.code = $1
+        WHERE r.id = $1 OR r.code = $1 OR r.mongo_id = $1
         GROUP BY r.id
         LIMIT 1;
       `, [id]);
@@ -127,7 +127,10 @@ roomsRouter.get('/:id', async (req: Request, res: Response) => {
 
     // 2. Fallback sang MongoDB
     if (!room) {
-      room = await RoomModel.findOne({ $or: [{ id }, { code: id }] }).lean();
+      const query = mongoose.isValidObjectId(id)
+        ? { $or: [{ id }, { _id: id }, { code: id }] }
+        : { $or: [{ id }, { code: id }] };
+      room = await RoomModel.findOne(query).lean();
     }
 
     if (!room) {

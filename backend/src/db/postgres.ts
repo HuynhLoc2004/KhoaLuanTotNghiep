@@ -287,8 +287,27 @@ export async function initPostgresTables(): Promise<boolean> {
           guide_parking_info TEXT,
           guide_google_maps_url TEXT,
           data JSONB DEFAULT '{}',
+          mongo_id VARCHAR(64),
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
+      `);
+
+      // 14. Nâng cấp Schema: Đảm bảo toàn bộ các bảng quan hệ đều có trường 'mongo_id' kèm Index
+      // Giúp ánh xạ và truy vấn hai chiều (Bidirectional Mapping) giữa SQL và NoSQL MongoDB mà không bao giờ thất lạc dữ liệu
+      await client.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE topics ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE floor_plan_nodes ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+
+        CREATE INDEX IF NOT EXISTS idx_users_mongo_id ON users(mongo_id);
+        CREATE INDEX IF NOT EXISTS idx_topics_mongo_id ON topics(mongo_id);
+        CREATE INDEX IF NOT EXISTS idx_rooms_mongo_id ON rooms(mongo_id);
+        CREATE INDEX IF NOT EXISTS idx_artifacts_mongo_id ON artifacts(mongo_id);
+        CREATE INDEX IF NOT EXISTS idx_floor_plans_mongo_id ON floor_plans(mongo_id);
       `);
 
       // Khởi tạo các vai trò mẫu chuẩn nếu bảng trống

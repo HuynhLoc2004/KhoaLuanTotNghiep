@@ -142,15 +142,29 @@ async function syncFloorPlanToBranding(map: { imageUrl?: string; title?: string;
 floorPlanRouter.post('/activate/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const targetMap = await FloorPlanMapModel.findOne({ id });
+    const query = {
+      $or: [
+        { id },
+        ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])
+      ]
+    };
+    const targetMap = await FloorPlanMapModel.findOne(query);
     if (!targetMap) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy bản đồ chỉ định trong kho' });
     }
 
     // Đặt tất cả các bản đồ khác thành inactive
-    await FloorPlanMapModel.updateMany({ id: { $ne: id } }, { active: false });
+    await FloorPlanMapModel.updateMany({ _id: { $ne: targetMap._id } }, { active: false });
     targetMap.active = true;
     await targetMap.save();
+
+    // Đồng bộ trạng thái active vào PostgreSQL Primary
+    try {
+      await pgPool.query('UPDATE floor_plans SET active = false WHERE id != $1 AND mongo_id != $1', [targetMap.id]);
+      await pgPool.query('UPDATE floor_plans SET active = true WHERE id = $1 OR mongo_id = $1', [targetMap.id]);
+    } catch (pgErr: any) {
+      console.warn('[FloorPlan PG Activate Warning]:', pgErr.message);
+    }
 
     // Tự động map và đồng bộ các phòng di sản vào sơ đồ
     await syncFloorPlanNodesToRooms(targetMap);
@@ -203,6 +217,10 @@ floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
       if (remaining) {
         remaining.active = true;
         await remaining.save();
+        try {
+          await pgPool.query('UPDATE floor_plans SET active = false WHERE id != $1 AND mongo_id != $1', [remaining.id]);
+          await pgPool.query('UPDATE floor_plans SET active = true WHERE id = $1 OR mongo_id = $1', [remaining.id]);
+        } catch {}
         broadcastRealtimeEvent('floor_plan_updated', remaining.toObject ? remaining.toObject() : remaining);
         await syncFloorPlanToBranding(remaining);
       } else {

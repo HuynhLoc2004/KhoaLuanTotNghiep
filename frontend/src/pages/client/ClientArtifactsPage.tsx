@@ -93,10 +93,9 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
   };
 
   return (
-    <div className="client-portal" data-client-theme={clientTheme}>
+    <div className="client-portal" data-client-theme="dark">
       <ClientNavbar
-        clientTheme={clientTheme}
-        onToggleClientTheme={onToggleClientTheme}
+        clientTheme="dark"
         onOpenLoginModal={onOpenLoginModal}
         onNavigateAdmin={onNavigateAdmin}
         activeSection="artifacts"

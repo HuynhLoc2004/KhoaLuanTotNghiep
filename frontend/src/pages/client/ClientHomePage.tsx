@@ -33,24 +33,13 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
   const { branding } = useSystemBranding();
   const { currentLang, activeLanguages, t } = useClientTranslation();
 
-  // Quản lý Light / Dark Mode chuyên biệt của Client Portal (Mặc định: Deep Obsidian Gallery)
-  const [clientTheme, setClientTheme] = useState<'light' | 'dark'>(() => {
+  // Client Portal luôn dùng giao diện Obsidian Dark Mode sang trọng chuẩn bảo tàng 360 & cổ vật 3D
+  const clientTheme = 'dark';
+  useEffect(() => {
     try {
-      const saved = localStorage.getItem('client_theme_v2');
-      if (saved === 'dark' || saved === 'light') return saved;
+      localStorage.setItem('client_theme_v2', 'dark');
     } catch {}
-    return 'dark'; // Mặc định: Deep Gallery Obsidian sang trọng chuẩn bảo tàng ảo
-  });
-
-  const toggleClientTheme = () => {
-    setClientTheme((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      try {
-        localStorage.setItem('client_theme_v2', next);
-      } catch {}
-      return next;
-    });
-  };
+  }, []);
 
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
@@ -150,8 +139,7 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
     <div className="client-portal" data-client-theme={clientTheme}>
       {/* 1. Thanh điều hướng cố định */}
       <ClientNavbar
-        clientTheme={clientTheme}
-        onToggleClientTheme={toggleClientTheme}
+        clientTheme="dark"
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onNavigateAdmin={onNavigateAdmin}
         onNavigatePage={onNavigatePage}
