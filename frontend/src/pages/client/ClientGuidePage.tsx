@@ -94,8 +94,8 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
     };
   }, []);
 
-  // Đường dẫn sơ đồ mặt bằng: Ưu tiên ảnh từ floorPlan đang active hoặc branding.guideMapUrl
-  const rawMapUrl = floorPlan?.imageUrl || branding.guideMapUrl || '';
+  // Đường dẫn sơ đồ mặt bằng: Chỉ lấy ảnh khi floorPlan đang active và tồn tại
+  const rawMapUrl = floorPlan ? (floorPlan.imageUrl || '') : '';
   const serverMapUrl = rawMapUrl
     ? (rawMapUrl.startsWith('http') || rawMapUrl.startsWith('data:')
       ? rawMapUrl

@@ -51,7 +51,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   }, []);
 
   const hasSimulationNodes = Boolean(floorPlan && floorPlan.nodes && floorPlan.nodes.length > 0);
-  const mapImageUrl = floorPlan?.imageUrl || branding.guideMapUrl || '';
+  const mapImageUrl = floorPlan ? (floorPlan.imageUrl || '') : '';
   const hasMapDrawing = Boolean(mapImageUrl);
 
   return (

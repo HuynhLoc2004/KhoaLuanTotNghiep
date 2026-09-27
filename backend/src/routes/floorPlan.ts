@@ -48,7 +48,18 @@ const upload = multer({
  */
 floorPlanRouter.get('/', async (req: Request, res: Response) => {
   try {
-    // 1. Tìm bản đồ đang active
+    // 1. Kiểm tra số lượng sơ đồ trong CSDL
+    const totalCount = await FloorPlanMapModel.countDocuments();
+    if (totalCount === 0) {
+      // CSDL không còn sơ đồ nào: Tự động dọn sạch liên kết sơ đồ cũ trong SystemBranding
+      await syncFloorPlanToBranding(null);
+      return res.json({
+        success: true,
+        data: null
+      });
+    }
+
+    // 2. Tìm bản đồ đang active
     let floorPlan = await FloorPlanMapModel.findOne({ active: true }).sort({ updatedAt: -1 }).lean();
     if (!floorPlan) {
       floorPlan = await FloorPlanMapModel.findOne().sort({ updatedAt: -1, createdAt: -1 }).lean();

@@ -215,9 +215,16 @@ export const AdminGuideCMSPage: React.FC = () => {
           if (fp.imageUrl) {
             setForm((prev) => ({
               ...prev,
-              guideMapUrl: prev.guideMapUrl || fp.imageUrl || ''
+              guideMapUrl: fp.imageUrl || ''
             }));
           }
+        } else if (!fp) {
+          setActiveFloorPlan(null);
+          setActiveFloorPlanId('');
+          setForm((prev) => ({
+            ...prev,
+            guideMapUrl: ''
+          }));
         }
       })
       .catch(() => {});
