@@ -9,6 +9,8 @@ import { analyzeFloorPlanImage } from '../services/floorPlanAnalyzer.js';
 import { uploadToCloudinary } from '../services/cloudinary.js';
 import { getSystemBrandingConfig } from '../models/SystemBranding.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
+import { pgPool, logAudit } from '../db/postgres.js';
+import { pgUpsertFloorPlan, pgDeleteFloorPlan } from '../db/syncEngine.js';
 
 export const floorPlanRouter = Router();
 
@@ -189,6 +191,8 @@ floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
 
     const wasActive = target.active;
     await FloorPlanMapModel.deleteOne(query);
+    await pgDeleteFloorPlan(target.id);
+    await logAudit('DELETE_FLOOR_PLAN', 'floor_plan', { details: { id: target.id } });
 
     // Nếu vừa xóa bản đồ đang áp dụng, tự động kích hoạt bản đồ mới nhất còn lại nếu có
     if (wasActive) {
@@ -262,6 +266,10 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
       setActive,
       forceRebuild: true
     });
+
+    // Đồng bộ lập tức sang PostgreSQL Primary
+    await pgUpsertFloorPlan(analyzedMap);
+    await logAudit('ANALYZE_FLOOR_PLAN', 'floor_plan', { details: { id: analyzedMap.id, title: analyzedMap.title } });
 
     // Chỉ đồng bộ System Branding và broadcast nếu được đánh dấu active
     if (setActive) {
@@ -346,6 +354,10 @@ floorPlanRouter.put('/:id/node-mapping', async (req: Request, res: Response) => 
 
     await targetMap.save();
 
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertFloorPlan(targetMap.toObject ? targetMap.toObject() : targetMap);
+    await logAudit('UPDATE_FLOOR_PLAN_MAPPING', 'floor_plan', { details: { id: targetMap.id, nodeId, roomId } });
+
     if (targetMap.active) {
       broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
     }
@@ -409,6 +421,10 @@ floorPlanRouter.put('/:id/batch-mapping', async (req: Request, res: Response) =>
     }
 
     await targetMap.save();
+
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertFloorPlan(targetMap.toObject ? targetMap.toObject() : targetMap);
+    await logAudit('UPDATE_FLOOR_PLAN_BATCH_MAPPING', 'floor_plan', { details: { id: targetMap.id, count: mappings.length } });
 
     if (targetMap.active) {
       broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);

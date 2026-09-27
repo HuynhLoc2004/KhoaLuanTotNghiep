@@ -89,6 +89,208 @@ export async function initPostgresTables(): Promise<boolean> {
         );
       `);
 
+      // 5. Bảng Chuyên đề bảo tàng (Topics)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS topics (
+          id VARCHAR(64) PRIMARY KEY,
+          name VARCHAR(256) NOT NULL,
+          description TEXT,
+          order_index INT DEFAULT 1,
+          active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // 6. Bảng Gian phòng không gian ảo 360° (Rooms)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS rooms (
+          id VARCHAR(64) PRIMARY KEY,
+          code VARCHAR(64) NOT NULL,
+          name VARCHAR(256) NOT NULL,
+          period VARCHAR(256) DEFAULT 'Tiến trình Lịch sử VN',
+          category VARCHAR(256) DEFAULT 'Tiến trình Lịch sử VN',
+          description TEXT,
+          panorama_url TEXT NOT NULL,
+          thumbnail_url TEXT NOT NULL,
+          initial_view JSONB DEFAULT '{"pitch":0,"yaw":0,"fov":90}',
+          order_index INT DEFAULT 1,
+          active BOOLEAN DEFAULT true,
+          ai_voice_enabled BOOLEAN DEFAULT false,
+          ai_knowledge_prompt TEXT,
+          ai_script TEXT,
+          ai_voice_lang VARCHAR(32) DEFAULT 'vi-south',
+          qr_scan_count INT DEFAULT 0,
+          scenes_count INT DEFAULT 1,
+          translations JSONB DEFAULT '{}',
+          topic_id VARCHAR(64) REFERENCES topics(id) ON DELETE SET NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // 7. Bảng Điểm tương tác trong phòng (Hotspots - Relational 1-N với Rooms)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS hotspots (
+          id VARCHAR(64) PRIMARY KEY,
+          room_id VARCHAR(64) NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+          type VARCHAR(32) DEFAULT 'navigation',
+          title VARCHAR(256) NOT NULL,
+          description TEXT,
+          target_room_id VARCHAR(64) REFERENCES rooms(id) ON DELETE SET NULL,
+          artifact_id VARCHAR(64),
+          pitch FLOAT NOT NULL,
+          yaw FLOAT NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_hotspots_room_id ON hotspots(room_id);
+      `);
+
+      // 8. Bảng Hiện vật di sản văn hóa (Artifacts - Relational với Rooms & Topics)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS artifacts (
+          id VARCHAR(64) PRIMARY KEY,
+          code VARCHAR(64) UNIQUE NOT NULL,
+          name VARCHAR(256) NOT NULL,
+          room_id VARCHAR(64) REFERENCES rooms(id) ON DELETE SET NULL,
+          room_code VARCHAR(64),
+          topic_id VARCHAR(64) REFERENCES topics(id) ON DELETE SET NULL,
+          category VARCHAR(256) DEFAULT 'Cổ vật di sản',
+          period VARCHAR(256) DEFAULT 'Thời cổ',
+          origin VARCHAR(256) DEFAULT 'Bảo tàng Lịch sử TP.HCM',
+          description TEXT,
+          dimensions VARCHAR(128),
+          images JSONB DEFAULT '[]',
+          thumbnail_url TEXT,
+          model_3d_url TEXT,
+          audio_narration_url TEXT,
+          voice_language VARCHAR(32) DEFAULT 'vi',
+          qr_code_url TEXT,
+          status VARCHAR(32) DEFAULT 'active',
+          processing_status VARCHAR(32) DEFAULT 'idle',
+          processing_error TEXT,
+          model_metadata JSONB DEFAULT '{}',
+          translations JSONB DEFAULT '{}',
+          order_index INT DEFAULT 0,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_artifacts_room_id ON artifacts(room_id);
+        CREATE INDEX IF NOT EXISTS idx_artifacts_topic_id ON artifacts(topic_id);
+      `);
+
+      // 9. Bảng Sơ đồ mặt bằng bảo tàng (Floor Plans)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS floor_plans (
+          id VARCHAR(64) PRIMARY KEY,
+          title VARCHAR(256) NOT NULL,
+          description TEXT,
+          image_url TEXT,
+          image_width INT DEFAULT 1920,
+          image_height INT DEFAULT 1080,
+          analyzed_at TIMESTAMP WITH TIME ZONE,
+          analysis_algorithm VARCHAR(128) DEFAULT 'hybrid_cv_gemini',
+          compass_orientation JSONB DEFAULT '{"detected":false,"northAngleDeg":0,"confidence":1,"description":"Mặc định hướng Bắc"}',
+          active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // 10. Bảng Vùng không gian sơ đồ (Floor Plan Nodes - Relational 1-N với Floor Plans & Rooms)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS floor_plan_nodes (
+          id VARCHAR(64) PRIMARY KEY,
+          floor_plan_id VARCHAR(64) NOT NULL REFERENCES floor_plans(id) ON DELETE CASCADE,
+          room_id VARCHAR(64) REFERENCES rooms(id) ON DELETE SET NULL,
+          code VARCHAR(64) NOT NULL,
+          name VARCHAR(256) NOT NULL,
+          period VARCHAR(256),
+          category VARCHAR(256),
+          x FLOAT NOT NULL,
+          y FLOAT NOT NULL,
+          width FLOAT NOT NULL,
+          height FLOAT NOT NULL,
+          is_entrance BOOLEAN DEFAULT false,
+          color_tag VARCHAR(32) DEFAULT '#C5A880',
+          panorama_url TEXT,
+          thumbnail_url TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_fp_nodes_plan_id ON floor_plan_nodes(floor_plan_id);
+      `);
+
+      // 11. Bảng Cửa thông phòng & Lối di chuyển (Floor Plan Edges - Relational 1-N với Floor Plans)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS floor_plan_edges (
+          id VARCHAR(64) PRIMARY KEY,
+          floor_plan_id VARCHAR(64) NOT NULL REFERENCES floor_plans(id) ON DELETE CASCADE,
+          from_node_id VARCHAR(64) NOT NULL,
+          to_node_id VARCHAR(64) NOT NULL,
+          direction VARCHAR(32) NOT NULL,
+          compass_direction VARCHAR(32) NOT NULL,
+          door_x FLOAT NOT NULL,
+          door_y FLOAT NOT NULL,
+          label VARCHAR(256),
+          target_room_name VARCHAR(256),
+          distance FLOAT,
+          is_return BOOLEAN DEFAULT false
+        );
+        CREATE INDEX IF NOT EXISTS idx_fp_edges_plan_id ON floor_plan_edges(floor_plan_id);
+      `);
+
+      // 12. Bảng Ngôn ngữ hỗ trợ (Languages)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS languages (
+          code VARCHAR(16) PRIMARY KEY,
+          name VARCHAR(64) NOT NULL,
+          native_name VARCHAR(64) NOT NULL,
+          flag_icon VARCHAR(64) DEFAULT '🌐',
+          is_default BOOLEAN DEFAULT false,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // 13. Bảng Nhận diện thương hiệu & Thông tin bảo tàng (System Branding)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS system_branding (
+          id VARCHAR(64) PRIMARY KEY,
+          museum_name VARCHAR(256) NOT NULL,
+          short_name VARCHAR(64) DEFAULT 'BTLS',
+          emblem_text VARCHAR(128),
+          logo_url TEXT,
+          tagline TEXT,
+          city VARCHAR(128) DEFAULT 'TP. Hồ Chí Minh',
+          address TEXT,
+          contact_email VARCHAR(128),
+          hotline VARCHAR(64),
+          header_menu_items JSONB DEFAULT '[]',
+          hero_title TEXT,
+          hero_tagline TEXT,
+          hero_banner_url TEXT,
+          hero_video_url TEXT,
+          intro_title TEXT,
+          intro_desc TEXT,
+          intro_image_url TEXT,
+          guide_map_url TEXT,
+          guide_map_title TEXT,
+          guide_map_desc TEXT,
+          guide_opening_days TEXT,
+          guide_morning_hours TEXT,
+          guide_afternoon_hours TEXT,
+          guide_closed_note TEXT,
+          guide_ticket_adult VARCHAR(64),
+          guide_ticket_student VARCHAR(64),
+          guide_ticket_child VARCHAR(64),
+          guide_bus_routes TEXT,
+          guide_parking_info TEXT,
+          guide_google_maps_url TEXT,
+          data JSONB DEFAULT '{}',
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
       // Khởi tạo các vai trò mẫu chuẩn nếu bảng trống
       const roleCheck = await client.query('SELECT COUNT(*) FROM roles;');
       if (parseInt(roleCheck.rows[0].count, 10) === 0) {

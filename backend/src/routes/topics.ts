@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Topic, INITIAL_TOPICS } from '../models/Topic.js';
 import { RoomModel } from '../models/Room.js';
+import { pgPool, logAudit } from '../db/postgres.js';
+import { pgUpsertTopic, pgDeleteTopic } from '../db/syncEngine.js';
+import { cacheGet, cacheSet, cacheDel } from '../services/redis.js';
 
 export const topicsRouter = Router();
 
@@ -15,31 +18,57 @@ const findTopicByIdOrSlug = async (id: string) => {
   return await Topic.findOne(query);
 };
 
-// GET /api/topics - Lấy danh sách tất cả chuyên đề trưng bày
+// GET /api/topics - Lấy danh sách tất cả chuyên đề trưng bày (PostgreSQL Primary + Redis Caching)
 topicsRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const topics = await Topic.find({}).sort({ orderIndex: 1, createdAt: 1 }).lean();
+    const cached = await cacheGet<any[]>('topics:all');
+    if (cached) {
+      return res.json({ success: true, data: cached, fromCache: true });
+    }
 
-    // Tính toán số lượng gian phòng đang trực thuộc từng chuyên đề
-    const topicsWithRoomCount = await Promise.all(
-      topics.map(async (topic) => {
-        const roomCount = await RoomModel.countDocuments({
-          $or: [{ period: topic.name }, { category: topic.name }]
-        });
-        return {
-          ...topic,
-          roomCount
-        };
-      })
-    );
+    // 1. Truy vấn từ PostgreSQL làm nguồn sự thật chính (Primary)
+    let topicsWithRoomCount: any[] = [];
+    try {
+      const pgRes = await pgPool.query(`
+        SELECT t.id, t.name, t.description, t.order_index as "orderIndex", t.active, t.created_at as "createdAt",
+               COUNT(r.id)::int as "roomCount"
+        FROM topics t
+        LEFT JOIN rooms r ON (r.period = t.name OR r.category = t.name OR r.topic_id = t.id)
+        GROUP BY t.id
+        ORDER BY t.order_index ASC, t.created_at ASC;
+      `);
 
+      if (pgRes.rows.length > 0) {
+        topicsWithRoomCount = pgRes.rows;
+      }
+    } catch (pgErr: any) {
+      console.warn('[Topics PostgreSQL Query Warning]:', pgErr.message);
+    }
+
+    // 2. Fallback sang MongoDB nếu PostgreSQL chưa có dữ liệu
+    if (topicsWithRoomCount.length === 0) {
+      const topics = await Topic.find({}).sort({ orderIndex: 1, createdAt: 1 }).lean();
+      topicsWithRoomCount = await Promise.all(
+        topics.map(async (topic) => {
+          const roomCount = await RoomModel.countDocuments({
+            $or: [{ period: topic.name }, { category: topic.name }]
+          });
+          return {
+            ...topic,
+            roomCount
+          };
+        })
+      );
+    }
+
+    await cacheSet('topics:all', topicsWithRoomCount, 300);
     res.json({ success: true, data: topicsWithRoomCount });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi tải danh mục chuyên đề: ' + err.message });
   }
 });
 
-// POST /api/topics - Thêm chuyên đề mới
+// POST /api/topics - Thêm chuyên đề mới (PostgreSQL Primary + MongoDB Mirror)
 topicsRouter.post('/', async (req: Request, res: Response) => {
   try {
     const { name, description, orderIndex, active } = req.body;
@@ -67,6 +96,13 @@ topicsRouter.post('/', async (req: Request, res: Response) => {
     });
 
     await newTopic.save();
+
+    // Đồng bộ lập tức sang PostgreSQL Primary
+    await pgUpsertTopic(newTopic.toObject());
+    await cacheDel('topics:all');
+
+    await logAudit('CREATE_TOPIC', 'topics', { details: { name: trimmedName, id: newTopic.id } });
+
     res.status(201).json({
       success: true,
       data: { ...newTopic.toObject(), roomCount: 0 },
@@ -115,6 +151,12 @@ topicsRouter.put('/:id', async (req: Request, res: Response) => {
 
     await topic.save();
 
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertTopic(topic.toObject());
+    await cacheDel('topics:all');
+
+    await logAudit('UPDATE_TOPIC', 'topics', { details: { name: topic.name, id: topic.id } });
+
     const roomCount = await RoomModel.countDocuments({
       $or: [{ period: topic.name }, { category: topic.name }]
     });
@@ -151,6 +193,13 @@ topicsRouter.delete('/:id', async (req: Request, res: Response) => {
     }
 
     await Topic.deleteOne({ _id: topic._id });
+
+    // Xóa trong PostgreSQL Primary
+    await pgDeleteTopic(topic.id);
+    await cacheDel('topics:all');
+
+    await logAudit('DELETE_TOPIC', 'topics', { details: { name: topic.name, id: topic.id } });
+
     res.json({ success: true, message: `Đã xóa chuyên đề "${topic.name}" thành công` });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi xóa chuyên đề: ' + err.message });

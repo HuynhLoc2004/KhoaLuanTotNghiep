@@ -2,12 +2,14 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { ArtifactModel } from '../models/Artifact';
-import { RoomModel } from '../models/Room';
-import { generateQRCodeBuffer, generateQRCodeDataURL } from '../services/qr';
-import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis';
-import { broadcastRealtimeEvent } from '../services/realtimeSync';
-import { enqueue3DReconstruction } from '../services/artifact3dQueue';
+import { ArtifactModel } from '../models/Artifact.js';
+import { RoomModel } from '../models/Room.js';
+import { generateQRCodeBuffer, generateQRCodeDataURL } from '../services/qr.js';
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
+import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
+import { enqueue3DReconstruction } from '../services/artifact3dQueue.js';
+import { pgPool, logAudit } from '../db/postgres.js';
+import { pgUpsertArtifact, pgDeleteArtifact } from '../db/syncEngine.js';
 
 export const artifactsRouter = Router();
 
@@ -58,30 +60,11 @@ const uploadModel = multer({
 
 /**
  * GET /api/artifacts
- * Danh sách toàn bộ hiện vật có bộ lọc theo danh mục, trạng thái và tìm kiếm (Có Redis cache TTL 300s)
+ * Danh sách toàn bộ hiện vật (PostgreSQL Primary + Redis cache TTL 300s + MongoDB Fallback)
  */
 artifactsRouter.get('/', async (req: Request, res: Response) => {
   try {
     const { category, search, status, roomId } = req.query;
-    const filter: any = {};
-
-    if (category && category !== 'all') {
-      filter.category = category;
-    }
-    if (status && status !== 'all') {
-      filter.status = status;
-    }
-    if (roomId) {
-      filter.roomId = roomId;
-    }
-    if (search && typeof search === 'string') {
-      const q = search.trim();
-      filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { code: { $regex: q, $options: 'i' } },
-        { period: { $regex: q, $options: 'i' } }
-      ];
-    }
 
     const cacheKey = `artifacts:list:${JSON.stringify({ category, search, status, roomId })}`;
     const cached = await cacheGet<any>(cacheKey);
@@ -89,11 +72,72 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
       return res.json({ ...cached, fromCache: true });
     }
 
-    const items = await ArtifactModel.find(filter).sort({ orderIndex: 1, createdAt: -1 }).lean();
-    const formatted = items.map((item: any) => ({
-      ...item,
-      id: item._id ? item._id.toString() : item.id
-    }));
+    let formatted: any[] = [];
+
+    // 1. Truy vấn PostgreSQL Primary với SQL quan hệ tối ưu
+    try {
+      const conditions: string[] = [];
+      const params: any[] = [];
+
+      if (category && category !== 'all') {
+        params.push(category);
+        conditions.push(`category = $${params.length}`);
+      }
+      if (status && status !== 'all') {
+        params.push(status);
+        conditions.push(`status = $${params.length}`);
+      }
+      if (roomId) {
+        params.push(roomId);
+        conditions.push(`(room_id = $${params.length} OR room_code = $${params.length})`);
+      }
+      if (search && typeof search === 'string') {
+        params.push(`%${search.trim()}%`);
+        conditions.push(`(name ILIKE $${params.length} OR code ILIKE $${params.length} OR period ILIKE $${params.length})`);
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const pgRes = await pgPool.query(`
+        SELECT id, code, name, room_id as "roomId", room_code as "roomCode", topic_id as "topicId",
+               category, period, origin, description, dimensions, images, thumbnail_url as "thumbnailUrl",
+               model_3d_url as "model3dUrl", audio_narration_url as "audioNarrationUrl",
+               voice_language as "voiceLanguage", qr_code_url as "qrCodeUrl", status,
+               processing_status as "processingStatus", processing_error as "processingError",
+               model_metadata as "modelMetadata", translations, order_index as "orderIndex",
+               created_at as "createdAt", updated_at as "updatedAt"
+        FROM artifacts
+        ${whereClause}
+        ORDER BY order_index ASC, created_at DESC;
+      `, params);
+
+      if (pgRes.rows.length > 0) {
+        formatted = pgRes.rows;
+      }
+    } catch (pgErr: any) {
+      console.warn('[Artifacts PG List Warning]:', pgErr.message);
+    }
+
+    // 2. Fallback sang MongoDB nếu PostgreSQL chưa có dữ liệu
+    if (formatted.length === 0) {
+      const filter: any = {};
+      if (category && category !== 'all') filter.category = category;
+      if (status && status !== 'all') filter.status = status;
+      if (roomId) filter.roomId = roomId;
+      if (search && typeof search === 'string') {
+        const q = search.trim();
+        filter.$or = [
+          { name: { $regex: q, $options: 'i' } },
+          { code: { $regex: q, $options: 'i' } },
+          { period: { $regex: q, $options: 'i' } }
+        ];
+      }
+      const items = await ArtifactModel.find(filter).sort({ orderIndex: 1, createdAt: -1 }).lean();
+      formatted = items.map((item: any) => ({
+        ...item,
+        id: item._id ? item._id.toString() : item.id
+      }));
+    }
+
     const result = {
       success: true,
       count: formatted.length,
@@ -199,6 +243,10 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
       await created.save();
     } catch {}
 
+    // Đồng bộ lập tức sang PostgreSQL Primary
+    await pgUpsertArtifact(created.toObject());
+    await logAudit('CREATE_ARTIFACT', 'artifacts', { details: { id: created.id, code: created.code, name: created.name } });
+
     // Xóa cache danh sách để phản ánh dữ liệu mới lập tức
     await cacheDelPattern('artifacts:*');
 
@@ -211,7 +259,7 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
 
 /**
  * PUT /api/artifacts/:id
- * Cập nhật thông tin hiện vật (Đồng bộ MongoDB thật & xóa cache ngay)
+ * Cập nhật thông tin hiện vật (Đồng bộ PostgreSQL Primary & MongoDB Mirror & xóa cache ngay)
  */
 artifactsRouter.put('/:id', async (req: Request, res: Response) => {
   try {
@@ -220,6 +268,10 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để cập nhật' });
     }
+
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertArtifact(updated.toObject());
+    await logAudit('UPDATE_ARTIFACT', 'artifacts', { details: { id: updated.id, code: updated.code, name: updated.name } });
 
     // Xóa cache chi tiết và cache danh sách
     await Promise.all([
@@ -237,7 +289,7 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/artifacts/:id
- * Xóa hiện vật thật 100% trong MongoDB + dọn dẹp file 3D + liên kết Hotspot + xóa cache
+ * Xóa hiện vật thật 100% trong PostgreSQL Primary + MongoDB + dọn dẹp file 3D + liên kết Hotspot + xóa cache
  */
 artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
@@ -249,6 +301,10 @@ artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để xóa' });
     }
+
+    // Xóa trong PostgreSQL Primary
+    await pgDeleteArtifact(id);
+    await logAudit('DELETE_ARTIFACT', 'artifacts', { details: { id, code: deleted.code } });
 
     // 1. Dọn dẹp file 3D trên đĩa
     if (deleted.model3dUrl && deleted.model3dUrl.includes('/uploads/artifacts/models_3d/')) {

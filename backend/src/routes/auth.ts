@@ -1,9 +1,20 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User, IUser, seedDefaultAdmin, isAllowedAdminEmail, getAllowedAdminEmails } from '../models/User.js';
+import { User, IUser, seedDefaultAdmin, isAllowedAdminEmail } from '../models/User.js';
 import { Role } from '../models/Role.js';
 import { OtpToken } from '../models/OtpToken.js';
 import { sendMail } from '../services/mail.js';
+import {
+  setOtpInRedis,
+  getOtpFromRedis,
+  deleteOtpFromRedis,
+  checkOtpCooldown,
+  setOtpCooldown,
+  revokeTokenInRedis,
+  isTokenRevokedInRedis
+} from '../services/redis.js';
+import { pgPool, logAudit } from '../db/postgres.js';
+import { pgUpsertUser } from '../db/syncEngine.js';
 
 export const authRouter = Router();
 
@@ -22,7 +33,7 @@ export interface AuthRequest extends Request {
 }
 
 /**
- * Middleware xác thực JSON Web Token
+ * Middleware xác thực JSON Web Token & kiểm tra danh sách đen token thu hồi ở Redis
  */
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -31,6 +42,13 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       return res.status(401).json({ success: false, message: 'Chưa đăng nhập hoặc phiên làm việc đã kết thúc' });
     }
     const token = authHeader.split(' ')[1];
+
+    // Kiểm tra xem token này đã bị thu hồi (đăng xuất) trong Redis chưa
+    const isRevoked = await isTokenRevokedInRedis(token);
+    if (isRevoked) {
+      return res.status(401).json({ success: false, message: 'Phiên làm việc đã bị thu hồi (đã đăng xuất). Vui lòng đăng nhập lại.' });
+    }
+
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     req.user = decoded;
     next();
@@ -86,7 +104,17 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
       });
     }
 
-    // Đảm bảo tài khoản Quản trị viên tồn tại trong CSDL với role 'admin'
+    // KIỂM TRA CHỐNG SPAM (60s COOLDOWN TRÊN REDIS)
+    const redisCooldown = await checkOtpCooldown(cleanEmail);
+    if (redisCooldown && redisCooldown > 0) {
+      return res.status(429).json({
+        success: false,
+        message: `Vui lòng chờ thêm ${redisCooldown} giây nữa trước khi yêu cầu mã OTP mới.`,
+        retryAfter: redisCooldown
+      });
+    }
+
+    // Đảm bảo tài khoản Quản trị viên tồn tại trong CSDL PostgreSQL (Primary) & MongoDB (Mirror)
     let user: any = await User.findOne({ email: cleanEmail });
     if (!user) {
       await seedDefaultAdmin();
@@ -110,33 +138,23 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
       await user.save();
     }
 
+    // Đồng bộ user sang PostgreSQL
+    await pgUpsertUser(user);
+
     const targetEmail = user.email;
-
-    // KIỂM TRA CHỐNG SPAM (60s COOLDOWN TRÊN SERVER)
-    const latestOtp = await OtpToken.findOne({ email: targetEmail, isUsed: false }).sort({ createdAt: -1 });
-
-    if (latestOtp) {
-      const timeElapsedMs = Date.now() - new Date(latestOtp.lastSentAt).getTime();
-      const secondsElapsed = Math.floor(timeElapsedMs / 1000);
-
-      if (secondsElapsed < OTP_COOLDOWN_SECONDS) {
-        const waitTime = OTP_COOLDOWN_SECONDS - secondsElapsed;
-        return res.status(429).json({
-          success: false,
-          message: `Vui lòng chờ thêm ${waitTime} giây nữa trước khi yêu cầu mã OTP mới.`,
-          retryAfter: waitTime
-        });
-      }
-    }
 
     // Sinh mã OTP 6 chữ số ngẫu nhiên
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    // Hủy các OTP cũ chưa sử dụng của email này
-    await OtpToken.updateMany({ email: targetEmail, isUsed: false }, { isUsed: true });
+    // 1. Lưu mã OTP vào Redis với TTL đúng 5 phút (300 giây)
+    await setOtpInRedis(targetEmail, otp, OTP_EXPIRY_MINUTES * 60);
 
-    // Lưu mã OTP mới vào cơ sở dữ liệu
+    // 2. Kích hoạt Cooldown 60s trên Redis
+    await setOtpCooldown(targetEmail, OTP_COOLDOWN_SECONDS);
+
+    // 3. Đồng bộ lưu bản ghi vào MongoDB OtpToken để lưu vết kiểm toán (Audit Trail)
+    await OtpToken.updateMany({ email: targetEmail, isUsed: false }, { isUsed: true });
     await OtpToken.create({
       email: targetEmail,
       otp,
@@ -184,7 +202,7 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
 
           <div style="background-color: rgba(0,0,0,0.25); border-left: 3px solid #D4A86A; padding: 10px 14px; border-radius: 4px; margin-bottom: 20px;">
             <p style="margin: 0; font-size: 12px; color: #A3978E; line-height: 1.5;">
-              🛡️ <strong>Chính sách Chống Spam:</strong> Hệ thống áp dụng cơ chế tự động giới hạn gửi mã mỗi 60 giây để đảm bảo an toàn tuyệt đối cho máy chủ.
+              🛡️ <strong>Chính sách Chống Spam:</strong> Hệ thống áp dụng cơ chế tự động giới hạn gửi mã mỗi 60 giây qua Redis để đảm bảo an toàn tuyệt đối.
             </p>
           </div>
 
@@ -231,7 +249,7 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
 });
 
 // ==============================================================================
-// 2. XÁC THỰC MÃ OTP VÀ ĐĂNG NHẬP ADMIN
+// 2. XÁC THỰC MÃ OTP VÀ ĐĂNG NHẬP ADMIN (POSTGRESQL PRIMARY + REDIS OTP)
 // ==============================================================================
 authRouter.post('/verify-otp', async (req: Request, res: Response) => {
   try {
@@ -244,45 +262,6 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanOtp = otp.toString().trim();
 
-    // Tìm mã OTP đang hiệu lực
-    const tokenRecord = await OtpToken.findOne({
-      email: cleanEmail,
-      isUsed: false,
-      expiresAt: { $gt: new Date() }
-    }).sort({ createdAt: -1 });
-
-    if (!tokenRecord) {
-      return res.status(400).json({
-        success: false,
-        message: 'Mã OTP không tồn tại hoặc đã hết hạn (quá 5 phút). Vui lòng yêu cầu mã mới.'
-      });
-    }
-
-    // Kiểm tra số lần nhập sai (tối đa 5 lần)
-    if (tokenRecord.attempts >= 5) {
-      tokenRecord.isUsed = true;
-      await tokenRecord.save();
-      return res.status(400).json({
-        success: false,
-        message: 'Mã OTP này đã bị khóa do nhập sai quá 5 lần. Vui lòng bấm gửi lại mã mới.'
-      });
-    }
-
-    // So khớp mã OTP
-    if (tokenRecord.otp !== cleanOtp) {
-      tokenRecord.attempts += 1;
-      await tokenRecord.save();
-      const remaining = 5 - tokenRecord.attempts;
-      return res.status(400).json({
-        success: false,
-        message: `Mã OTP không chính xác. Bạn còn ${remaining} lần thử.`
-      });
-    }
-
-    // Mã chính xác -> Đánh dấu đã sử dụng
-    tokenRecord.isUsed = true;
-    await tokenRecord.save();
-
     // KIỂM TRA BẢO MẬT: Chỉ cho phép Email Admin lấy từ biến môi trường
     if (!isAllowedAdminEmail(cleanEmail)) {
       return res.status(403).json({
@@ -291,44 +270,141 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
       });
     }
 
-    // Tìm tài khoản Admin hoặc khởi tạo theo cấu hình môi trường
+    let isOtpValid = false;
+
+    // 1. Kiểm tra OTP trên Redis trước (Hiệu năng cao, TTL tự hủy)
+    const redisOtpData = await getOtpFromRedis(cleanEmail);
+    if (redisOtpData && redisOtpData.otp === cleanOtp) {
+      isOtpValid = true;
+      // Xóa ngay mã OTP trên Redis để không thể tái sử dụng
+      await deleteOtpFromRedis(cleanEmail);
+    } else {
+      // 2. Fallback: Kiểm tra qua MongoDB OtpToken nếu Redis vừa khởi động lại
+      const tokenRecord = await OtpToken.findOne({
+        email: cleanEmail,
+        isUsed: false,
+        expiresAt: { $gt: new Date() }
+      }).sort({ createdAt: -1 });
+
+      if (tokenRecord) {
+        if (tokenRecord.attempts >= 5) {
+          tokenRecord.isUsed = true;
+          await tokenRecord.save();
+          return res.status(400).json({
+            success: false,
+            message: 'Mã OTP này đã bị khóa do nhập sai quá 5 lần. Vui lòng bấm gửi lại mã mới.'
+          });
+        }
+
+        if (tokenRecord.otp === cleanOtp) {
+          isOtpValid = true;
+          tokenRecord.isUsed = true;
+          await tokenRecord.save();
+        } else {
+          tokenRecord.attempts += 1;
+          await tokenRecord.save();
+          const remaining = 5 - tokenRecord.attempts;
+          return res.status(400).json({
+            success: false,
+            message: `Mã OTP không chính xác. Bạn còn ${remaining} lần thử.`
+          });
+        }
+      }
+    }
+
+    if (!isOtpValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không tồn tại hoặc đã hết hạn (quá 5 phút). Vui lòng yêu cầu mã mới.'
+      });
+    }
+
+    // 3. Truy vấn Người dùng từ POSTGRESQL (PRIMARY DATABASE)
+    let pgUser: any = null;
+    try {
+      const pgRes = await pgPool.query(`
+        SELECT u.id, u.username, u.email, u.full_name, u.role_id, r.name as role_name, r.permissions
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        WHERE u.email = $1
+        LIMIT 1;
+      `, [cleanEmail]);
+
+      if (pgRes.rows.length > 0) {
+        pgUser = pgRes.rows[0];
+        // Cập nhật thời điểm đăng nhập trong PostgreSQL
+        await pgPool.query('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE email = $1', [cleanEmail]);
+      }
+    } catch (pgErr: any) {
+      console.warn('[Auth PostgreSQL Query Warning]:', pgErr.message);
+    }
+
+    // Đồng bộ trạng thái với MongoDB User
     let user = await User.findOne({ email: cleanEmail });
     if (!user) {
       await seedDefaultAdmin();
       user = await User.findOne({ email: cleanEmail });
     }
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng trong hệ thống.' });
-    }
-
-    if (user.role !== 'admin') {
-      user.role = 'admin';
-      user.permissions = ['*'];
+    if (user) {
+      user.lastLogin = new Date();
       await user.save();
     }
 
-    user.lastLogin = new Date();
-    await user.save();
+    const payloadUser = {
+      id: pgUser?.id || user?._id || 'admin',
+      username: pgUser?.username || user?.username || 'admin',
+      email: cleanEmail,
+      fullName: pgUser?.full_name || user?.fullName || 'Quản trị viên Bảo tàng',
+      role: 'admin',
+      permissions: ['*']
+    };
 
-    const token = generateToken(user);
+    const token = jwt.sign(payloadUser, JWT_SECRET, { expiresIn: '7d' });
+
+    // Ghi nhật ký kiểm toán vào PostgreSQL
+    await logAudit('LOGIN_SUCCESS', 'auth', {
+      userId: payloadUser.id,
+      username: payloadUser.username,
+      details: { email: cleanEmail, ip: req.ip }
+    });
 
     return res.json({
       success: true,
-      message: 'Đăng nhập thành công với quyền Quản trị viên Toàn quyền',
+      message: 'Đăng nhập thành công với quyền Quản trị viên Toàn quyền (Xác thực PostgreSQL & Redis)',
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        permissions: user.permissions
-      }
+      user: payloadUser
     });
   } catch (err: any) {
     console.error('[Verify OTP Error]:', err);
     return res.status(500).json({ success: false, message: err.message || 'Lỗi xác thực OTP' });
+  }
+});
+
+// ==============================================================================
+// 3. ĐĂNG XUẤT & THU HỒI TOKEN TRÊN REDIS BLACKLIST
+// ==============================================================================
+authRouter.post('/logout', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      // Đưa token vào danh sách thu hồi trên Redis
+      await revokeTokenInRedis(token);
+    }
+
+    await logAudit('LOGOUT', 'auth', {
+      userId: req.user?.id,
+      username: req.user?.username,
+      details: { email: req.user?.email }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Đăng xuất thành công, phiên làm việc đã được thu hồi an toàn.'
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message || 'Lỗi đăng xuất' });
   }
 });
 

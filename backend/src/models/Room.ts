@@ -112,3 +112,5 @@ RoomSchema.index({ orderIndex: 1 });
 RoomSchema.index({ active: 1 });
 
 export const RoomModel = mongoose.model<IRoom>('MuseumRoom', RoomSchema);
+export const Room = RoomModel;
+

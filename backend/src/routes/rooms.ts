@@ -4,6 +4,8 @@ import { RoomModel, IRoom, IHotspot } from '../models/Room.js';
 import { ArtifactModel } from '../models/Artifact.js';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
+import { pgPool, logAudit } from '../db/postgres.js';
+import { pgUpsertRoom, pgDeleteRoom } from '../db/syncEngine.js';
 
 export const roomsRouter = Router();
 
@@ -12,15 +14,58 @@ const getId = (param: unknown): string => {
   return String(param || '');
 };
 
-// GET all rooms (with Redis cache acceleration - TTL 300s)
+// GET all rooms (PostgreSQL Primary + Redis cache TTL 300s + MongoDB Fallback)
 roomsRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const cachedRooms = await cacheGet<IRoom[]>('rooms:all');
+    const cachedRooms = await cacheGet<any[]>('rooms:all');
     if (cachedRooms) {
       return res.json({ success: true, data: cachedRooms, fromCache: true });
     }
 
-    const rooms = await RoomModel.find({}).sort({ orderIndex: 1 }).lean();
+    let rooms: any[] = [];
+
+    // 1. Truy vấn từ PostgreSQL (Primary Database)
+    try {
+      const pgRes = await pgPool.query(`
+        SELECT r.id, r.code, r.name, r.period, r.category, r.description,
+               r.panorama_url as "panoramaUrl", r.thumbnail_url as "thumbnailUrl",
+               r.initial_view as "initialView", r.order_index as "orderIndex",
+               r.active, r.ai_voice_enabled as "aiVoiceEnabled",
+               r.ai_knowledge_prompt as "aiKnowledgePrompt", r.ai_script as "aiScript",
+               r.ai_voice_lang as "aiVoiceLang", r.qr_scan_count as "qrScanCount",
+               r.scenes_count as "scenesCount", r.translations, r.topic_id as "topicId",
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'id', h.id,
+                     'type', h.type,
+                     'title', h.title,
+                     'description', h.description,
+                     'targetRoomId', h.target_room_id,
+                     'artifactId', h.artifact_id,
+                     'pitch', h.pitch,
+                     'yaw', h.yaw
+                   )
+                 ) FILTER (WHERE h.id IS NOT NULL), '[]'
+               ) as hotspots
+        FROM rooms r
+        LEFT JOIN hotspots h ON r.id = h.room_id
+        GROUP BY r.id
+        ORDER BY r.order_index ASC, r.created_at ASC;
+      `);
+
+      if (pgRes.rows.length > 0) {
+        rooms = pgRes.rows;
+      }
+    } catch (pgErr: any) {
+      console.warn('[Rooms PostgreSQL Query Warning]:', pgErr.message);
+    }
+
+    // 2. Fallback sang MongoDB nếu PostgreSQL chưa có bản ghi nào
+    if (rooms.length === 0) {
+      rooms = await RoomModel.find({}).sort({ orderIndex: 1 }).lean();
+    }
+
     await cacheSet('rooms:all', rooms, 300); // 5 minutes TTL
     res.json({ success: true, data: rooms });
   } catch (err: any) {
@@ -28,20 +73,65 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET single room (with Redis cache acceleration - TTL 600s)
+// GET single room (PostgreSQL Primary + Redis cache TTL 600s)
 roomsRouter.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
     const cacheKey = `rooms:detail:${id}`;
-    const cached = await cacheGet<IRoom>(cacheKey);
+    const cached = await cacheGet<any>(cacheKey);
     if (cached) {
       return res.json({ success: true, data: cached, fromCache: true });
     }
 
-    const room = await RoomModel.findOne({ id }).lean();
+    let room: any = null;
+
+    // 1. Truy vấn PostgreSQL Primary
+    try {
+      const pgRes = await pgPool.query(`
+        SELECT r.id, r.code, r.name, r.period, r.category, r.description,
+               r.panorama_url as "panoramaUrl", r.thumbnail_url as "thumbnailUrl",
+               r.initial_view as "initialView", r.order_index as "orderIndex",
+               r.active, r.ai_voice_enabled as "aiVoiceEnabled",
+               r.ai_knowledge_prompt as "aiKnowledgePrompt", r.ai_script as "aiScript",
+               r.ai_voice_lang as "aiVoiceLang", r.qr_scan_count as "qrScanCount",
+               r.scenes_count as "scenesCount", r.translations, r.topic_id as "topicId",
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'id', h.id,
+                     'type', h.type,
+                     'title', h.title,
+                     'description', h.description,
+                     'targetRoomId', h.target_room_id,
+                     'artifactId', h.artifact_id,
+                     'pitch', h.pitch,
+                     'yaw', h.yaw
+                   )
+                 ) FILTER (WHERE h.id IS NOT NULL), '[]'
+               ) as hotspots
+        FROM rooms r
+        LEFT JOIN hotspots h ON r.id = h.room_id
+        WHERE r.id = $1 OR r.code = $1
+        GROUP BY r.id
+        LIMIT 1;
+      `, [id]);
+
+      if (pgRes.rows.length > 0) {
+        room = pgRes.rows[0];
+      }
+    } catch (pgErr: any) {
+      console.warn('[Rooms Detail PG Warning]:', pgErr.message);
+    }
+
+    // 2. Fallback sang MongoDB
+    if (!room) {
+      room = await RoomModel.findOne({ $or: [{ id }, { code: id }] }).lean();
+    }
+
     if (!room) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng này' });
     }
+
     await cacheSet(cacheKey, room, 600); // 10 minutes TTL
     res.json({ success: true, data: room });
   } catch (err: any) {
@@ -95,6 +185,10 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
       scenesCount: scenesCount || 1
     });
 
+    // Đồng bộ lập tức sang PostgreSQL Primary
+    await pgUpsertRoom(newRoom.toObject());
+    await logAudit('CREATE_ROOM', 'rooms', { details: { id: newRoom.id, name: newRoom.name } });
+
     await cacheDel('rooms:all');
     broadcastRealtimeEvent('rooms_updated', { action: 'create', room: newRoom });
     res.status(201).json({ success: true, data: newRoom });
@@ -103,7 +197,7 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// UPDATE room
+// UPDATE room (Dual-write PostgreSQL Primary & MongoDB Mirror)
 roomsRouter.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
@@ -122,6 +216,11 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
     Object.assign(room, restFields);
 
     const updated = await room.save();
+
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertRoom(updated.toObject());
+    await logAudit('UPDATE_ROOM', 'rooms', { details: { id: updated.id, name: updated.name } });
+
     await Promise.all([
       cacheDel('rooms:all'),
       cacheDel(`rooms:detail:${id}`),
@@ -134,7 +233,7 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE room (Xóa phòng thật + gỡ liên kết hiện vật + dọn dẹp cache)
+// DELETE room (Xóa phòng thật trong PostgreSQL Primary + MongoDB Mirror + dọn dẹp liên kết)
 roomsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
@@ -142,6 +241,10 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (result.deletedCount === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy gian phòng' });
     }
+
+    // Xóa trong PostgreSQL Primary
+    await pgDeleteRoom(id);
+    await logAudit('DELETE_ROOM', 'rooms', { details: { id } });
 
     // Chặt chẽ quan hệ dữ liệu: Gỡ bỏ liên kết phòng khỏi các hiện vật thuộc gian phòng này
     try {
@@ -166,7 +269,7 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// ADD hotspot
+// ADD hotspot (PostgreSQL & MongoDB)
 roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
@@ -195,6 +298,10 @@ roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
 
     room.hotspots.push(newHs);
     await room.save();
+
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertRoom(room.toObject());
+
     await Promise.all([
       cacheDel('rooms:all'),
       cacheDel(`rooms:detail:${id}`),
@@ -208,7 +315,7 @@ roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
   }
 });
 
-// UPDATE hotspot
+// UPDATE hotspot (PostgreSQL & MongoDB)
 roomsRouter.put('/:id/hotspots/:hotspotId', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
@@ -228,6 +335,10 @@ roomsRouter.put('/:id/hotspots/:hotspotId', async (req: Request, res: Response) 
 
     Object.assign(hs, req.body);
     await room.save();
+
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertRoom(room.toObject());
+
     await Promise.all([
       cacheDel('rooms:all'),
       cacheDel(`rooms:detail:${id}`),
@@ -241,7 +352,7 @@ roomsRouter.put('/:id/hotspots/:hotspotId', async (req: Request, res: Response) 
   }
 });
 
-// DELETE hotspot
+// DELETE hotspot (PostgreSQL & MongoDB)
 roomsRouter.delete('/:id/hotspots/:hotspotId', async (req: Request, res: Response) => {
   try {
     const id = getId(req.params.id);
@@ -258,6 +369,10 @@ roomsRouter.delete('/:id/hotspots/:hotspotId', async (req: Request, res: Respons
       (h) => h.id !== hotspotId && (h as any)._id?.toString() !== hotspotId
     );
     await room.save();
+
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertRoom(room.toObject());
+
     await Promise.all([
       cacheDel('rooms:all'),
       cacheDel(`rooms:detail:${id}`),

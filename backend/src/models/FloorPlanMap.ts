@@ -151,3 +151,5 @@ FloorPlanMapSchema.index({ id: 1 });
 FloorPlanMapSchema.index({ active: 1 });
 
 export const FloorPlanMapModel = mongoose.model<IFloorPlanMap>('FloorPlanMap', FloorPlanMapSchema);
+export const FloorPlanMap = FloorPlanMapModel;
+

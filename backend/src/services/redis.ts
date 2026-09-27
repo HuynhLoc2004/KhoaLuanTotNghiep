@@ -159,6 +159,73 @@ export const getQueueLength = async (queueName: string): Promise<number> => {
   }
 };
 
+/**
+ * ====================================================================
+ * QUẢN LÝ OTP & TOKEN THU HỒI (REVOKE / BLACKLIST) TRONG REDIS
+ * OTP được lưu tạm thời với TTL (5 phút), sau khi dùng hoặc hết hạn tự động hủy
+ * Token bị thu hồi (đăng xuất) được lưu trong blacklist với TTL
+ * ====================================================================
+ */
+
+export interface IRedisOtpData {
+  otp: string;
+  attempts: number;
+  expiresAt: string;
+  lastSentAt: string;
+}
+
+export const setOtpInRedis = async (email: string, otp: string, ttlSeconds: number = 300): Promise<boolean> => {
+  const data: IRedisOtpData = {
+    otp,
+    attempts: 0,
+    expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+    lastSentAt: new Date().toISOString()
+  };
+  return await cacheSet(`otp:${email.toLowerCase()}`, data, ttlSeconds);
+};
+
+export const getOtpFromRedis = async (email: string): Promise<IRedisOtpData | null> => {
+  return await cacheGet<IRedisOtpData>(`otp:${email.toLowerCase()}`);
+};
+
+export const deleteOtpFromRedis = async (email: string): Promise<boolean> => {
+  return await cacheDel(`otp:${email.toLowerCase()}`);
+};
+
+export const checkOtpCooldown = async (email: string): Promise<number | null> => {
+  if (!redisClient || !isRedisConnected) return null;
+  try {
+    const ttl = await redisClient.ttl(`otp_cooldown:${email.toLowerCase()}`);
+    return ttl > 0 ? ttl : null;
+  } catch {
+    return null;
+  }
+};
+
+export const setOtpCooldown = async (email: string, cooldownSeconds: number = 60): Promise<boolean> => {
+  if (!redisClient || !isRedisConnected) return false;
+  try {
+    await redisClient.set(`otp_cooldown:${email.toLowerCase()}`, '1', 'EX', cooldownSeconds);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const revokeTokenInRedis = async (token: string, ttlSeconds: number = 7 * 86400): Promise<boolean> => {
+  return await cacheSet(`revoked_jwt:${token}`, { revokedAt: new Date().toISOString() }, ttlSeconds);
+};
+
+export const isTokenRevokedInRedis = async (token: string): Promise<boolean> => {
+  if (!redisClient || !isRedisConnected) return false;
+  try {
+    const exists = await redisClient.exists(`revoked_jwt:${token}`);
+    return exists === 1;
+  } catch {
+    return false;
+  }
+};
+
 export const getRedisStatus = () => ({
   connected: isRedisConnected,
   uri: REDIS_URI.replace(/:[^:@]+@/, ':***@')

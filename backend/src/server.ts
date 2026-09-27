@@ -21,6 +21,7 @@ import { getRedisStatus } from './services/redis.js';
 import { startArtifact3DConsumer } from './services/artifact3dQueue.js';
 import { initRealtimeRedisSubscriber } from './services/realtimeSync.js';
 import { initPostgresTables, getPgStatus } from './db/postgres.js';
+import { runStartupDataSync } from './db/syncEngine.js';
 import { connectRabbitMQ, getRabbitMQStatus } from './services/rabbitmq.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
@@ -203,6 +204,9 @@ connectMongoDB().then(async () => {
 
   // Khởi tạo PostgreSQL Database & Bảng Quan Hệ / Kiểm Toán
   await initPostgresTables();
+
+  // Tự động kiểm tra và đồng bộ dữ liệu hai chiều (PostgreSQL Primary & MongoDB Mirror)
+  await runStartupDataSync();
 
   // Khởi tạo RabbitMQ Message Broker & Hàng Đợi Bền Vững
   await connectRabbitMQ();

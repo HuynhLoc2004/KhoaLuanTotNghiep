@@ -14,8 +14,9 @@ import {
   DEFAULT_BRANDING
 } from '../models/SystemBranding.js';
 import { broadcastRealtimeEvent, handleRealtimeStream } from '../services/realtimeSync.js';
-import { getPgStatus } from '../db/postgres.js';
+import { getPgStatus, logAudit } from '../db/postgres.js';
 import { getRabbitMQStatus } from '../services/rabbitmq.js';
+import { pgUpsertBranding } from '../db/syncEngine.js';
 
 export const systemRouter = Router();
 
@@ -470,6 +471,10 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       { $set: updatePayload },
       { new: true, upsert: true }
     ).lean();
+
+    // Đồng bộ lập tức sang PostgreSQL Primary
+    await pgUpsertBranding(updatedDoc);
+    await logAudit('UPDATE_BRANDING', 'system_branding', { details: { museumName: updatePayload.museumName } });
 
     // Cập nhật ngay lập tức Redis cache để mọi dịch vụ dùng dữ liệu mới (<1ms)
     try {

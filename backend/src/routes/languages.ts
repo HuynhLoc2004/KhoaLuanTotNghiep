@@ -3,6 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import { Language, DEFAULT_LANGUAGES, seedDefaultLanguages } from '../models/Language.js';
 import { cacheGet, cacheSet, cacheDel } from '../services/redis.js';
+import { pgPool, logAudit } from '../db/postgres.js';
+import { pgUpsertLanguage } from '../db/syncEngine.js';
 
 export const languagesRouter = Router();
 
@@ -444,6 +446,10 @@ languagesRouter.post('/', async (req: Request, res: Response) => {
       }
     });
 
+    // Đồng bộ lập tức sang PostgreSQL Primary
+    await pgUpsertLanguage(newLang.toObject());
+    await logAudit('CREATE_LANGUAGE', 'languages', { details: { code: cleanCode, name } });
+
     // Invalidate Redis cache
     await cacheDel(CACHE_KEY_ACTIVE_LANGUAGES);
 
@@ -487,6 +493,10 @@ languagesRouter.put('/:code', async (req: Request, res: Response) => {
 
     await lang.save();
 
+    // Đồng bộ sang PostgreSQL Primary
+    await pgUpsertLanguage(lang.toObject());
+    await logAudit('UPDATE_LANGUAGE', 'languages', { details: { code: cleanCode } });
+
     // Invalidate cache
     await cacheDel(CACHE_KEY_ACTIVE_LANGUAGES);
 
@@ -514,6 +524,12 @@ languagesRouter.delete('/:code', async (req: Request, res: Response) => {
     }
 
     await Language.deleteOne({ code: cleanCode });
+
+    // Xóa trong PostgreSQL Primary
+    try {
+      await pgPool.query('DELETE FROM languages WHERE code = $1', [cleanCode]);
+      await logAudit('DELETE_LANGUAGE', 'languages', { details: { code: cleanCode } });
+    } catch {}
 
     // Invalidate cache
     await cacheDel(CACHE_KEY_ACTIVE_LANGUAGES);
