@@ -106,6 +106,34 @@ floorPlanRouter.get('/list', async (req: Request, res: Response) => {
 });
 
 /**
+ * Hàm đồng bộ thông tin sơ đồ mặt bằng sang SystemBranding, cập nhật Redis Cache và phát sóng SSE
+ */
+async function syncFloorPlanToBranding(map: { imageUrl?: string; title?: string; description?: string } | null) {
+  try {
+    const { SystemBranding, REDIS_BRANDING_KEY } = await import('../models/SystemBranding.js');
+    const { cacheSet } = await import('../services/redis.js');
+    const updatePayload: Record<string, any> = {
+      guideMapUrl: map?.imageUrl || '',
+      guideMapTitle: map?.title || 'Sơ đồ mặt bằng các gian trưng bày',
+      guideMapDesc: map?.description || 'Bản đồ kiến trúc không gian và vị trí các gian phòng trưng bày'
+    };
+    const updatedBranding = await SystemBranding.findOneAndUpdate(
+      {},
+      { $set: updatePayload },
+      { new: true, upsert: true }
+    ).lean();
+    if (updatedBranding) {
+      try {
+        await cacheSet(REDIS_BRANDING_KEY, updatedBranding, 86400);
+      } catch {}
+      broadcastRealtimeEvent('branding_updated', updatedBranding);
+    }
+  } catch (err) {
+    console.warn('[FloorPlanRoute] Lỗi đồng bộ sang SystemBranding:', err);
+  }
+}
+
+/**
  * POST /api/floor-plan/activate/:id
  * Kích hoạt bản đồ được chọn từ kho lên Client
  */
@@ -124,20 +152,7 @@ floorPlanRouter.post('/activate/:id', async (req: Request, res: Response) => {
 
     // Đồng bộ vào SystemBranding để Header, Cẩm nang & Client đồng bộ 100%
     if (targetMap.imageUrl) {
-      try {
-        const { SystemBranding } = await import('../models/SystemBranding.js');
-        await SystemBranding.findOneAndUpdate(
-          { id: 'default_branding' },
-          {
-            guideMapUrl: targetMap.imageUrl,
-            guideMapTitle: targetMap.title,
-            guideMapDesc: targetMap.description
-          },
-          { upsert: true, returnDocument: 'after' }
-        );
-      } catch (bErr) {
-        console.warn('[FloorPlanRoute] Lỗi cập nhật branding:', bErr);
-      }
+      await syncFloorPlanToBranding(targetMap);
     }
 
     // Phát sóng sự kiện Realtime cho toàn bộ Client
@@ -182,32 +197,10 @@ floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
         remaining.active = true;
         await remaining.save();
         broadcastRealtimeEvent('floor_plan_updated', remaining.toObject ? remaining.toObject() : remaining);
-        if (remaining.imageUrl) {
-          try {
-            const { SystemBranding } = await import('../models/SystemBranding.js');
-            await SystemBranding.findOneAndUpdate(
-              { id: 'default_branding' },
-              {
-                guideMapUrl: remaining.imageUrl,
-                guideMapTitle: remaining.title,
-                guideMapDesc: remaining.description
-              }
-            );
-          } catch {}
-        }
+        await syncFloorPlanToBranding(remaining);
       } else {
         // Không còn bản đồ nào trong CSDL: Xóa sạch liên kết mặt bằng trong Branding
-        try {
-          const { SystemBranding } = await import('../models/SystemBranding.js');
-          await SystemBranding.findOneAndUpdate(
-            { id: 'default_branding' },
-            {
-              guideMapUrl: '',
-              guideMapTitle: '',
-              guideMapDesc: ''
-            }
-          );
-        } catch {}
+        await syncFloorPlanToBranding(null);
         broadcastRealtimeEvent('floor_plan_updated', null);
       }
     }
@@ -272,20 +265,11 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
 
     // Chỉ đồng bộ System Branding và broadcast nếu được đánh dấu active
     if (setActive) {
-      try {
-        const { SystemBranding } = await import('../models/SystemBranding.js');
-        await SystemBranding.findOneAndUpdate(
-          { id: 'default_branding' },
-          {
-            guideMapUrl: finalImageUrl,
-            guideMapTitle: title,
-            guideMapDesc: description
-          },
-          { upsert: true, returnDocument: 'after' }
-        );
-      } catch (bErr) {
-        console.warn('[FloorPlanRoute] Không thể cập nhật branding guideMapUrl:', bErr);
-      }
+      await syncFloorPlanToBranding({
+        imageUrl: finalImageUrl,
+        title,
+        description
+      });
 
       // Phát sóng đồng bộ thời gian thực cho khách tham quan và admin
       broadcastRealtimeEvent('floor_plan_updated', analyzedMap);

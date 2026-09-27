@@ -206,6 +206,18 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
         {/* 7. Khối Hướng dẫn tham quan & Giờ mở cửa (Đại diện cho trang Cẩm nang) */}
         <ClientVisitorGuide
           onViewAllGuide={() => onNavigatePage('guide')}
+          onSelectRoom360={(roomId) => {
+            api.getRooms()
+              .then((rooms) => {
+                const matched = rooms.find((r) => r.id === roomId || (r as any)._id === roomId);
+                if (matched) {
+                  onSelectRoomForTour(matched);
+                } else {
+                  onNavigatePage('guide');
+                }
+              })
+              .catch(() => onNavigatePage('guide'));
+          }}
         />
       </main>
 

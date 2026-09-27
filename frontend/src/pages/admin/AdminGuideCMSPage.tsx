@@ -245,6 +245,13 @@ export const AdminGuideCMSPage: React.FC = () => {
       if (mapItem.title) {
         handleChange('guideMapTitle', mapItem.title);
       }
+      try {
+        await updateBranding({
+          guideMapUrl: mapItem.imageUrl || '',
+          guideMapTitle: mapItem.title || '',
+          guideMapDesc: mapItem.description || ''
+        });
+      } catch {}
       showToast(`Đã đặt sơ đồ "${mapItem.title || 'Mặt bằng'}" làm sơ đồ hiển thị chính thức!`, 'success');
       loadFloorPlansRepo(repoPage, repoLimit);
     } catch (err: any) {
@@ -381,6 +388,16 @@ export const AdminGuideCMSPage: React.FC = () => {
         if (res.data.imageUrl) {
           handleChange('guideMapUrl', res.data.imageUrl);
         }
+        if (res.data.title) {
+          handleChange('guideMapTitle', res.data.title);
+        }
+        try {
+          await updateBranding({
+            guideMapUrl: res.data.imageUrl || '',
+            guideMapTitle: res.data.title || '',
+            guideMapDesc: res.data.description || ''
+          });
+        } catch {}
       }
       showToast(
         `Đã nhận diện sơ đồ thành công: ${res.summary?.nodeCount || 0} gian phòng và ${res.summary?.edgeCount || 0} cửa thông phòng.`,

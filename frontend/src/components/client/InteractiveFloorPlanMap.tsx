@@ -31,6 +31,7 @@ interface InteractiveFloorPlanMapProps {
   hideSidePanel?: boolean;
   selectedNodeId?: string;
   onNodeSelect?: (nodeId: string) => void;
+  previewMode?: boolean;
 }
 
 const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
@@ -49,7 +50,8 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   clientTheme = 'dark',
   hideSidePanel = false,
   selectedNodeId: externalSelectedNodeId,
-  onNodeSelect
+  onNodeSelect,
+  previewMode = false
 }) => {
   const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string>(
     externalSelectedNodeId || floorPlan.nodes?.[0]?.id || ''
@@ -281,6 +283,210 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
         <div style={{ fontSize: 13, maxWidth: 460, margin: '0 auto' }}>
           Sơ đồ mặt bằng sẽ tự động kết nối và hiển thị khi ban quản trị thêm các gian phòng trưng bày vào hệ thống.
         </div>
+      </div>
+    );
+  }
+
+  if (previewMode) {
+    return (
+      <div
+        className="ifp-canvas-card"
+        style={{
+          width: '100%',
+          height: '100%',
+          minHeight: '100%',
+          maxHeight: '100%',
+          border: 'none',
+          borderRadius: 0,
+          background: isLight ? '#0F141F' : '#070A10',
+          position: 'relative',
+          aspectRatio: 'unset'
+        }}
+      >
+        <svg
+          viewBox="0 0 100 100"
+          style={{ width: '100%', height: '100%', display: 'block' }}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            <pattern id="arch-grid-prev" width="5" height="5" patternUnits="userSpaceOnUse">
+              <path
+                d="M 5 0 L 0 0 0 5"
+                fill="none"
+                stroke="rgba(255, 255, 255, 0.03)"
+                strokeWidth="0.2"
+              />
+            </pattern>
+            <marker
+              id="edge-arrow-prev"
+              viewBox="0 0 10 10"
+              refX="6"
+              refY="5"
+              markerWidth="2.5"
+              markerHeight="2.5"
+              orient="auto"
+            >
+              <path d="M 0 1.5 L 7 5 L 0 8.5 Z" fill="rgba(212, 168, 106, 0.6)" />
+            </marker>
+          </defs>
+          <rect width="100" height="100" fill="url(#arch-grid-prev)" />
+
+          <g>
+            {/* 1. SÂN VƯỜN NỘI VIỆN */}
+            <g>
+              <rect
+                x="42"
+                y="21"
+                width="29"
+                height="18"
+                rx="2"
+                fill="rgba(34, 197, 94, 0.08)"
+                stroke="rgba(34, 197, 94, 0.22)"
+                strokeWidth="0.3"
+                strokeDasharray="1, 1"
+              />
+              <circle cx="56.5" cy="30" r="3.4" fill="rgba(34, 197, 94, 0.12)" />
+              <text x="56.5" y="29.6" textAnchor="middle" fill="#4ADE80" fontSize="1.15" fontWeight="600">
+                🌿 SÂN VƯỜN
+              </text>
+              <text x="56.5" y="31.8" textAnchor="middle" fill="#86EFAC" fontSize="0.8" opacity="0.85">
+                Nội viện
+              </text>
+            </g>
+
+            {/* 2. CỔNG 1 */}
+            <g>
+              <rect
+                x="46"
+                y="87"
+                width="8"
+                height="6"
+                rx="1.2"
+                fill="rgba(255, 255, 255, 0.05)"
+                stroke="rgba(255, 255, 255, 0.2)"
+                strokeWidth="0.3"
+              />
+              <text x="50" y="90.5" textAnchor="middle" fill="#CBD5E1" fontSize="1.15" fontWeight="bold">
+                CỔNG 1
+              </text>
+              <line x1="50" y1="86.8" x2="50" y2="84.2" stroke="#D4A86A" strokeWidth="0.4" strokeDasharray="1, 0.8" />
+            </g>
+
+            {/* 3. CỔNG 2 */}
+            <g>
+              <rect
+                x="9"
+                y="28"
+                width="12"
+                height="8"
+                rx="1.2"
+                fill="rgba(234, 88, 12, 0.08)"
+                stroke="rgba(234, 88, 12, 0.3)"
+                strokeWidth="0.3"
+              />
+              <text x="15" y="32.5" textAnchor="middle" fill="#FB923C" fontSize="1.1" fontWeight="bold">
+                CỔNG 2
+              </text>
+            </g>
+
+            {/* 4. SẢNH BÁT GIÁC */}
+            <g>
+              <circle cx="50" cy="66.5" r="5.5" fill="rgba(212, 168, 106, 0.12)" stroke="#D4A86A" strokeWidth="0.4" strokeDasharray="1.2, 0.8" />
+              <text x="50" y="66.2" textAnchor="middle" fill="#D4A86A" fontSize="0.95" fontWeight="bold">
+                SẢNH
+              </text>
+              <text x="50" y="68.0" textAnchor="middle" fill="#FDE68A" fontSize="0.75">
+                Bát Giác
+              </text>
+            </g>
+
+            {/* 5. LIÊN KẾT CỬA & ĐƯỜNG ĐI */}
+            {floorPlan.edges.map((edge) => {
+              const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
+              const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
+              if (!nodeFrom || !nodeTo || edge.isReturn) return null;
+              const boxFrom = getNodeBox(nodeFrom);
+              const boxTo = getNodeBox(nodeTo);
+              const geom = getEdgeGeometry(boxFrom, boxTo);
+              return (
+                <line
+                  key={edge.id}
+                  x1={geom.x1}
+                  y1={geom.y1}
+                  x2={geom.x2}
+                  y2={geom.y2}
+                  stroke="rgba(212, 168, 106, 0.45)"
+                  strokeWidth={0.36}
+                  strokeDasharray="1.4, 1.4"
+                  markerEnd="url(#edge-arrow-prev)"
+                />
+              );
+            })}
+
+            {/* 6. GIAN PHÒNG (NODES) */}
+            {floorPlan.nodes.map((node, nodeIdx) => {
+              const box = getNodeBox(node);
+              const roomNumber = getNodeDisplayNumber(node, nodeIdx);
+              const shortName = getShortNodeName(node.name);
+              const isHovered = hoveredNodeId === node.id;
+              return (
+                <g
+                  key={node.id}
+                  onMouseEnter={() => setHoveredNodeId(node.id)}
+                  onMouseLeave={() => setHoveredNodeId(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onSelectRoom360 && node.roomId) {
+                      onSelectRoom360(node.roomId);
+                    } else if (onNodeSelect) {
+                      onNodeSelect(node.id);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <rect
+                    x={box.x}
+                    y={box.y}
+                    width={box.width}
+                    height={box.height}
+                    rx="1.5"
+                    fill={isHovered ? 'rgba(38, 50, 75, 0.95)' : 'rgba(16, 22, 34, 0.88)'}
+                    stroke={isHovered ? '#F59E0B' : (node.colorTag || '#D4A86A')}
+                    strokeWidth={isHovered ? '0.6' : '0.35'}
+                  />
+                  {/* Số phòng */}
+                  <circle
+                    cx={box.x + 2.2}
+                    cy={box.y + 2.2}
+                    r="1.4"
+                    fill={node.colorTag || '#D4A86A'}
+                  />
+                  <text
+                    x={box.x + 2.2}
+                    y={box.y + 2.65}
+                    textAnchor="middle"
+                    fontSize="0.85"
+                    fontWeight="bold"
+                    fill="#0F141F"
+                  >
+                    {roomNumber}
+                  </text>
+                  {/* Tên phòng */}
+                  <text
+                    x={box.x + box.width / 2}
+                    y={box.y + box.height / 2 + 0.35}
+                    textAnchor="middle"
+                    fontSize="0.9"
+                    fontWeight="600"
+                    fill="#F1F5F9"
+                  >
+                    {shortName}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        </svg>
       </div>
     );
   }
