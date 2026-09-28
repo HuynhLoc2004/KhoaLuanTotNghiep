@@ -166,6 +166,29 @@ def optimize_mesh_to_glb_bytes(
     # 1. Chuyển đổi hệ toạ độ theo chuẩn hiển thị Three.js Web (Y-up, chính diện nhìn ra +Z)
     mesh = to_threejs_3d_orientation(mesh)
 
+    # 1.1 Khử các mảnh vụn bay lơ lửng (Delete loose floaters)
+    try:
+        comps = mesh.split(only_watertight=False)
+        if len(comps) > 1:
+            mesh = max(comps, key=lambda c: len(c.vertices))
+    except Exception:
+        pass
+
+    # 1.2 Chuẩn hóa pháp tuyến hướng ra ngoài (Khắc phục triệt để lỗi lõm/rỗng ngực) & Vá lỗ hổng
+    try:
+        trimesh.repair.fix_normals(mesh)
+        trimesh.repair.fix_inversion(mesh)
+        trimesh.repair.fill_holes(mesh)
+    except Exception:
+        pass
+
+    # 1.3 Làm mịn bề mặt Taubin (Volume-Preserving Smoothing)
+    # Triệt tiêu các cục u sần sùi của Marching Cubes, giúp khối cơ bắp, mai rùa và giáp mượt mà
+    try:
+        mesh = trimesh.smoothing.filter_taubin(mesh, iterations=8)
+    except Exception:
+        pass
+
     # 2. Căn giữa gốc toạ độ
     bbox_min, bbox_max = mesh.bounds
     mesh.vertices -= (bbox_min + bbox_max) / 2.0
