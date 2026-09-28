@@ -220,7 +220,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35; // Cường độ phơi sáng chuẩn giúp hiện vật nổi bật, rực rỡ, không bị tối
+    renderer.toneMappingExposure = 1.02; // Phơi sáng chuẩn 1.02 giúp màu sắc đậm đà trung thực, không bị cháy trắng
     rendererRef.current = renderer;
 
     // CONTROLS (OrbitControls)
@@ -240,18 +240,18 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     controls.target.set(0, 1.05, 0);
     controlsRef.current = controls;
 
-    // LIGHTING (Hệ thống đèn bảo tàng chuyên dụng hài hòa cho Dark Mode)
-    // 1. Ánh sáng môi trường dịu ấm (khử bóng chết ở mọi góc nhìn)
-    const ambientLight = new THREE.AmbientLight(0xfff6ec, 1.6);
+    // LIGHTING (Hệ thống đèn bảo tàng dịu ấm, cân bằng tương phản, bảo toàn màu gốc)
+    // 1. Ánh sáng môi trường dịu nhẹ (khử bóng chết nhưng giữ chiều sâu màu sắc)
+    const ambientLight = new THREE.AmbientLight(0xfff6ec, 0.75);
     scene.add(ambientLight);
 
-    // 2. Đèn rọi trực diện (Front Key Light): Rọi thẳng mặt trước hiện vật, sáng rõ chi tiết và màu sắc
-    const frontLight = new THREE.DirectionalLight(0xfff8f0, 2.0);
+    // 2. Đèn rọi trực diện (Front Key Light: làm rõ chi tiết mặt trước vừa đủ)
+    const frontLight = new THREE.DirectionalLight(0xfff8f0, 0.85);
     frontLight.position.set(0, 1.8, 4.0);
     scene.add(frontLight);
 
     // 3. Đèn Spotlight nghệ thuật góc trên bên phải (Tạo khối nổi 3D sang trọng)
-    const keyLight = new THREE.DirectionalLight(0xffeed6, 1.7);
+    const keyLight = new THREE.DirectionalLight(0xffeed6, 1.1);
     keyLight.position.set(2.4, 3.5, 2.2);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -259,13 +259,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     keyLight.shadow.bias = -0.0001;
     scene.add(keyLight);
 
-    // 4. Đèn phụ bù sáng góc trái (Fill Light: khử bóng tối gắt bên sườn)
-    const fillLight = new THREE.DirectionalLight(0xdce8ff, 1.3);
+    // 4. Đèn phụ bù sáng góc trái (Fill Light: khử góc tối gắt)
+    const fillLight = new THREE.DirectionalLight(0xdce8ff, 0.45);
     fillLight.position.set(-2.4, 2.0, 2.0);
     scene.add(fillLight);
 
     // 5. Đèn viền sau (Rim Light: tôn đường bao vật thể)
-    const rimLight = new THREE.DirectionalLight(0xffffff, 1.3);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.5);
     rimLight.position.set(0, 3.0, -3.0);
     scene.add(rimLight);
 
@@ -449,6 +449,32 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
               } else if (posAttr) {
                 totalFaces += posAttr.count / 3;
               }
+
+              // PHỤC HỒI & NÂNG CAO ĐỘ RỰC RỠ MÀU SẮC (Color Vibrancy & Contrast Recovery):
+              // Khử hiện tượng Three.js áp dụng double-gamma làm bạc màu trắng toát.
+              const colorAttr = mesh.geometry.getAttribute('color');
+              if (colorAttr) {
+                for (let i = 0; i < colorAttr.count; i++) {
+                  let r = colorAttr.getX(i);
+                  let g = colorAttr.getY(i);
+                  let b = colorAttr.getZ(i);
+
+                  // 1. Tăng độ bão hòa (Saturation Boost) giúp màu xanh, vàng đồng nổi bật như ảnh gốc
+                  const gray = (r + g + b) / 3.0;
+                  const sat = 1.35;
+                  r = Math.max(0, Math.min(1, gray + (r - gray) * sat));
+                  g = Math.max(0, Math.min(1, gray + (g - gray) * sat));
+                  b = Math.max(0, Math.min(1, gray + (b - gray) * sat));
+
+                  // 2. Chuyển đổi sRGB sang Linear để Three.js shader hiển thị đúng gamma chân thực
+                  const linR = Math.pow(r, 1.8);
+                  const linG = Math.pow(g, 1.8);
+                  const linB = Math.pow(b, 1.8);
+
+                  colorAttr.setXYZ(i, linR, linG, linB);
+                }
+                colorAttr.needsUpdate = true;
+              }
             }
 
             if (mesh.material) {
@@ -461,8 +487,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 std.depthWrite = true;
                 std.depthTest = true;
                 std.side = THREE.DoubleSide; // Render 2 mặt, không bị rỗng thủng khi xoay
-                std.roughness = 0.65;
-                std.metalness = 0.15;
+                std.roughness = 0.55;
+                std.metalness = 0.12;
                 std.needsUpdate = true;
               };
 
@@ -496,26 +522,26 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         const { keyLight, fillLight, ambientLight, frontLight } = lightsRef.current;
         if (next === 'museum') {
           frontLight.color.setHex(0xfff8f0);
-          frontLight.intensity = 2.0;
+          frontLight.intensity = 0.85;
           keyLight.color.setHex(0xffeed6);
-          keyLight.intensity = 1.7;
+          keyLight.intensity = 1.1;
           fillLight.color.setHex(0xdce8ff);
-          fillLight.intensity = 1.3;
+          fillLight.intensity = 0.45;
           ambientLight.color.setHex(0xfff6ec);
-          ambientLight.intensity = 1.6;
+          ambientLight.intensity = 0.75;
           sceneRef.current.background = new THREE.Color(0x0b0d13);
-          rendererRef.current.toneMappingExposure = 1.35;
+          rendererRef.current.toneMappingExposure = 1.02;
         } else {
           frontLight.color.setHex(0xffffff);
-          frontLight.intensity = 1.8;
+          frontLight.intensity = 0.95;
           keyLight.color.setHex(0xffffff);
-          keyLight.intensity = 1.8;
+          keyLight.intensity = 1.15;
           fillLight.color.setHex(0xf0f4f8);
-          fillLight.intensity = 1.3;
+          fillLight.intensity = 0.5;
           ambientLight.color.setHex(0xffffff);
-          ambientLight.intensity = 1.8;
+          ambientLight.intensity = 0.8;
           sceneRef.current.background = new THREE.Color(0x181c24);
-          rendererRef.current.toneMappingExposure = 1.30;
+          rendererRef.current.toneMappingExposure = 1.0;
         }
       }
       return next;

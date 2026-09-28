@@ -174,12 +174,23 @@ def optimize_mesh_to_glb_bytes(mesh: trimesh.Trimesh, max_faces: int = 80000) ->
     if max_extent > 0:
         mesh.vertices *= (1.2 / max_extent)
 
-    # 4. Giảm số lượng mặt tam giác nếu quá nặng
-    if len(mesh.faces) > max_faces:
+    # 4.5 Nâng cao độ rực rỡ và chiều sâu màu sắc (Color Vibrancy & Contrast Recovery)
+    if hasattr(mesh.visual, "vertex_colors") and mesh.visual.vertex_colors is not None:
         try:
-            mesh = mesh.simplify_quadric_decimation(face_count=max_faces)
-        except Exception:
-            pass
+            vc = mesh.visual.vertex_colors[:, :3].astype(np.float32) / 255.0
+            mean_c = np.mean(vc, axis=-1, keepdims=True)
+            # Tăng 45% độ bão hòa màu và tinh chỉnh tương phản khử bạc màu
+            vc_boosted = mean_c + (vc - mean_c) * 1.45
+            vc_boosted = np.power(np.clip(vc_boosted, 0.0, 1.0), 1.25)
+            vc_final = (np.clip(vc_boosted, 0.0, 1.0) * 255.0).astype(np.uint8)
+
+            if mesh.visual.vertex_colors.shape[-1] == 4:
+                alpha = mesh.visual.vertex_colors[:, 3:4]
+                mesh.visual.vertex_colors = np.concatenate([vc_final, alpha], axis=-1)
+            else:
+                mesh.visual.vertex_colors = vc_final
+        except Exception as _c_err:
+            print(f"[!] Bỏ qua xử lý màu sắc: {_c_err}")
 
     # 5. Xuất trực tiếp ra bytes GLB trong RAM (Không ghi đĩa)
     glb_bytes = mesh.export(file_type="glb")
