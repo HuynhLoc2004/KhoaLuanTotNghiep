@@ -93,8 +93,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [modelStats, setModelStats] = useState<{ vertices: number; faces: number } | null>(null);
 
-  // Chế độ xem: 'parallax' (2.5D Parallax bảo toàn nét thật ±35°) | '360' (Xoay tròn tự do)
-  const [viewMode, setViewMode] = useState<'parallax' | '360'>('parallax');
+  // Chế độ xem: '360' (Xoay tròn tự do toàn diện 3D) | 'parallax' (2.5D Parallax)
+  const [viewMode, setViewMode] = useState<'parallax' | '360'>('360');
   const viewModeRef = useRef(viewMode);
 
   // Chế độ vân bề mặt: 'vertex' (Màu đa giác 3D 360° chiếu nét ảnh thật) | 'photo' (Phủ ảnh phẳng 2D)
@@ -810,86 +810,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
       {/* Three.js Canvas */}
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
 
-      {/* Header Info Overlay */}
-      <div
-        className="turntable-header-info"
-        style={{
-          position: 'absolute',
-          top: 12,
-          left: 14,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
-          pointerEvents: 'none',
-          zIndex: 10,
-          maxWidth: 'calc(100% - 175px)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span
-            style={{
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              padding: '3px 8px',
-              borderRadius: 16,
-              background: 'rgba(212, 168, 106, 0.15)',
-              color: 'var(--accent-gold, #d4a86a)',
-              border: '1px solid rgba(212, 168, 106, 0.3)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {viewMode === 'parallax' ? <Sparkles size={12} /> : <Box size={12} />}
-            {viewMode === 'parallax' ? '2.5D Parallax • Chuẩn ảnh thật' : 'Không gian 3D 360°'}
-          </span>
-          {modelStats && (
-            <span
-              className="turntable-stats-badge"
-              style={{
-                fontSize: '0.68rem',
-                color: 'rgba(255, 255, 255, 0.65)',
-                background: 'rgba(0, 0, 0, 0.5)',
-                padding: '2px 7px',
-                borderRadius: 12,
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {modelStats.faces.toLocaleString()} mặt lưới
-            </span>
-          )}
-        </div>
-        <h3
-          style={{
-            margin: '3px 0 0 0',
-            fontSize: '1.05rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            textShadow: '0 2px 6px rgba(0, 0, 0, 0.8)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {artifactName}
-        </h3>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.76rem',
-            color: 'rgba(255, 255, 255, 0.65)',
-            textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {artifactPeriod}
-        </p>
-      </div>
+
 
       {/* Fallback khi chưa có file 3D */}
       {!fullModelUrl && (
@@ -1056,67 +977,135 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         </div>
       )}
 
-      {/* Thanh Công Cụ Điều Khiển (Góc phải trên) */}
+      {/* Thanh Topbar: Thông tin hiện vật & Toolbar điều khiển (Responsive Flex chống đè) */}
       <div
-        className="turntable-toolbar"
+        className="turntable-top-bar"
         style={{
           position: 'absolute',
-          top: 12,
+          top: 10,
+          left: 12,
           right: 12,
           display: 'flex',
-          gap: 5,
-          zIndex: 10
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 8,
+          zIndex: 10,
+          pointerEvents: 'none'
         }}
       >
-        {/* Nút Chuyển Chế Độ: 2.5D Parallax vs 360° */}
-        <button
-          type="button"
-          onClick={() => {
-            setViewMode((prev) => (prev === 'parallax' ? '360' : 'parallax'));
-          }}
-          title={
-            viewMode === 'parallax'
-              ? 'Đang bật 2.5D Parallax (Khóa góc bảo toàn 100% nét thật). Nhấn để mở khóa xoay 360°'
-              : 'Đang mở xoay tự do 360°. Nhấn để quay lại 2.5D Parallax chuẩn nét'
-          }
+        {/* Góc trái: Thông tin & Badges */}
+        <div
+          className="turntable-header-info"
           style={{
-            height: 36,
-            padding: '0 10px',
-            borderRadius: 8,
-            background: viewMode === 'parallax' ? 'rgba(212, 168, 106, 0.28)' : 'rgba(20, 24, 33, 0.75)',
-            border: viewMode === 'parallax' ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
-            color: viewMode === 'parallax' ? '#d4a86a' : '#ffffff',
             display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            transition: 'all 0.15s ease'
+            flexDirection: 'column',
+            gap: 2,
+            minWidth: 0,
+            flexShrink: 1,
+            pointerEvents: 'auto'
           }}
         >
-          <Sparkles size={14} />
-          <span>{viewMode === 'parallax' ? '2.5D Parallax' : 'Xoay 360°'}</span>
-        </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                letterSpacing: '0.03em',
+                padding: '3px 8px',
+                borderRadius: 16,
+                background: 'rgba(212, 168, 106, 0.15)',
+                color: 'var(--accent-gold, #d4a86a)',
+                border: '1px solid rgba(212, 168, 106, 0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {viewMode === 'parallax' ? <Sparkles size={12} /> : <Box size={12} />}
+              {viewMode === 'parallax' ? '2.5D Parallax' : 'Không gian 3D 360°'}
+            </span>
+            {modelStats && (
+              <span
+                className="turntable-stats-badge"
+                style={{
+                  fontSize: '0.68rem',
+                  color: 'rgba(255, 255, 255, 0.65)',
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  padding: '2px 7px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {modelStats.faces.toLocaleString()} mặt lưới
+              </span>
+            )}
+          </div>
+          <h3
+            style={{
+              margin: '3px 0 0 0',
+              fontSize: '1rem',
+              fontWeight: 600,
+              color: '#ffffff',
+              textShadow: '0 2px 6px rgba(0, 0, 0, 0.8)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {artifactName}
+          </h3>
+          {artifactPeriod && (
+            <p
+              style={{
+                margin: 0,
+                fontSize: '0.74rem',
+                color: 'rgba(255, 255, 255, 0.65)',
+                textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {artifactPeriod}
+            </p>
+          )}
+        </div>
 
-        {/* Nút Phủ Vân Ảnh Thật HD (100% màu sắc & chi tiết gốc) */}
-        {fullImageUrl && (
+        {/* Góc phải: Thanh công cụ điều khiển */}
+        <div
+          className="turntable-toolbar"
+          style={{
+            display: 'flex',
+            gap: 5,
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            pointerEvents: 'auto',
+            flexShrink: 0,
+            maxWidth: '75%'
+          }}
+        >
+          {/* Nút Chuyển Chế Độ: Xoay 360° vs 2.5D Parallax */}
           <button
             type="button"
-            onClick={toggleTextureMode}
+            className="turntable-btn-text"
+            onClick={() => {
+              setViewMode((prev) => (prev === 'parallax' ? '360' : 'parallax'));
+            }}
             title={
-              textureMode === 'vertex'
-                ? 'Đang bật: Màu 3D 360° (Mặt trước sắc nét chuẩn ảnh gốc, mặt sau giữ trọn vẹn khối mai/lưng 360°). Bấm để phủ ảnh phẳng'
-                : 'Đang bật: Phủ ảnh phẳng 2D. Bấm để chuyển về Màu 3D 360° sắc nét tự nhiên'
+              viewMode === '360'
+                ? 'Đang mở xoay tự do 360°. Nhấn để chuyển sang 2.5D Parallax'
+                : 'Đang bật 2.5D Parallax. Nhấn để mở khóa xoay 360°'
             }
             style={{
-              height: 36,
+              height: 34,
               padding: '0 10px',
               borderRadius: 8,
-              background: textureMode === 'vertex' ? 'rgba(56, 189, 248, 0.28)' : 'rgba(20, 24, 33, 0.75)',
-              border: textureMode === 'vertex' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.15)',
-              color: textureMode === 'vertex' ? '#38bdf8' : '#ffffff',
+              background: viewMode === '360' ? 'rgba(20, 24, 33, 0.75)' : 'rgba(212, 168, 106, 0.28)',
+              border: viewMode === '360' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid #d4a86a',
+              color: viewMode === '360' ? '#ffffff' : '#d4a86a',
               display: 'flex',
               alignItems: 'center',
               gap: 6,
@@ -1124,153 +1113,200 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
               fontWeight: 600,
               cursor: 'pointer',
               backdropFilter: 'blur(8px)',
-              transition: 'all 0.15s ease'
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap'
             }}
           >
-            <Camera size={14} />
-            <span>{textureMode === 'vertex' ? 'Màu 3D 360° (Chuẩn gốc)' : 'Phủ ảnh phẳng 2D'}</span>
+            <Sparkles size={14} />
+            <span>{viewMode === '360' ? 'Xoay 360°' : '2.5D Parallax'}</span>
           </button>
-        )}
 
-        {/* Nút 1: Tự động xoay */}
-        <button
-          type="button"
-          onClick={() => setIsAutoRotating((prev) => !prev)}
-          title={isAutoRotating ? 'Tạm dừng xoay' : 'Tiếp tục tự xoay 360°'}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: isAutoRotating ? 'rgba(212, 168, 106, 0.25)' : 'rgba(20, 24, 33, 0.75)',
-            border: isAutoRotating ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
-            color: isAutoRotating ? '#d4a86a' : '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <RotateCw size={16} />
-        </button>
+          {/* Nút Phủ ảnh phẳng 2D */}
+          {fullImageUrl && (
+            <button
+              type="button"
+              className="turntable-btn-text"
+              onClick={toggleTextureMode}
+              title={
+                textureMode === 'vertex'
+                  ? 'Bấm để phủ ảnh phẳng 2D lên mặt trước hiện vật'
+                  : 'Bấm để quay về màu sắc đa giác 3D gốc'
+              }
+              style={{
+                height: 34,
+                padding: '0 10px',
+                borderRadius: 8,
+                background: textureMode === 'photo' ? 'rgba(212, 168, 106, 0.28)' : 'rgba(20, 24, 33, 0.75)',
+                border: textureMode === 'photo' ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
+                color: textureMode === 'photo' ? '#d4a86a' : '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Camera size={14} />
+              <span>{textureMode === 'vertex' ? 'Phủ ảnh phẳng 2D' : 'Màu gốc 3D'}</span>
+            </button>
+          )}
 
-        {/* Nút 2: Đổi ánh sáng */}
-        <button
-          type="button"
-          onClick={toggleLighting}
-          title={`Đổi ánh sáng: ${lightingPreset === 'museum' ? 'Ánh sáng bảo tàng ấm (Bật)' : 'Ánh sáng ban ngày (Bật)'}`}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: lightingPreset === 'museum' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(20, 24, 33, 0.75)',
-            border: lightingPreset === 'museum' ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.15)',
-            color: lightingPreset === 'museum' ? '#f59e0b' : '#38bdf8',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <Sun size={16} />
-        </button>
-
-        {/* Nút 3: Lưới đa giác Wireframe */}
-        <button
-          type="button"
-          onClick={toggleWireframe}
-          title={wireframeMode ? 'Tắt lưới đa giác' : 'Xem cấu trúc lưới đa giác 3D'}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: wireframeMode ? 'rgba(59, 130, 246, 0.25)' : 'rgba(20, 24, 33, 0.75)',
-            border: wireframeMode ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.15)',
-            color: wireframeMode ? '#60a5fa' : '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <Layers size={16} />
-        </button>
-
-        {/* Nút 4: Căn lại góc nhìn chuẩn */}
-        <button
-          type="button"
-          onClick={handleResetCamera}
-          title="Căn lại góc nhìn ban đầu"
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: 'rgba(20, 24, 33, 0.75)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <RotateCcw size={16} />
-        </button>
-
-        {/* Nút: Đổi hướng đứng hiện vật (Xoay 90° trục đứng) */}
-        {modelUrl && (
+          {/* Nút 1: Tự động xoay */}
           <button
             type="button"
-            onClick={handleRotateModelAxis}
-            title="Đổi hướng đứng hiện vật (Xoay lật 90°)"
+            className="turntable-btn-icon"
+            onClick={() => setIsAutoRotating((prev) => !prev)}
+            title={isAutoRotating ? 'Tạm dừng xoay' : 'Tiếp tục tự xoay 360°'}
             style={{
-              width: 36,
-              height: 36,
+              width: 34,
+              height: 34,
               borderRadius: 8,
-              background: 'rgba(20, 24, 33, 0.75)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: '#34d399',
+              background: isAutoRotating ? 'rgba(212, 168, 106, 0.25)' : 'rgba(20, 24, 33, 0.75)',
+              border: isAutoRotating ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: isAutoRotating ? '#d4a86a' : '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               backdropFilter: 'blur(8px)',
-              transition: 'all 0.15s ease'
+              transition: 'all 0.15s ease',
+              flexShrink: 0
             }}
           >
-            <RefreshCw size={16} />
+            <RotateCw size={15} />
           </button>
-        )}
 
-        {/* Nút 5: Toàn màn hình */}
-        <button
-          type="button"
-          onClick={toggleFullscreen}
-          title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Xem toàn màn hình'}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: isFullscreen ? 'rgba(212, 168, 106, 0.25)' : 'rgba(20, 24, 33, 0.75)',
-            border: isFullscreen ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
-            color: isFullscreen ? '#d4a86a' : '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-        </button>
+          {/* Nút 2: Đổi ánh sáng */}
+          <button
+            type="button"
+            className="turntable-btn-icon"
+            onClick={toggleLighting}
+            title={`Đổi ánh sáng: ${lightingPreset === 'museum' ? 'Ánh sáng bảo tàng ấm (Bật)' : 'Ánh sáng ban ngày (Bật)'}`}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              background: lightingPreset === 'museum' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(20, 24, 33, 0.75)',
+              border: lightingPreset === 'museum' ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: lightingPreset === 'museum' ? '#f59e0b' : '#38bdf8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.15s ease',
+              flexShrink: 0
+            }}
+          >
+            <Sun size={15} />
+          </button>
+
+          {/* Nút 3: Lưới đa giác Wireframe */}
+          <button
+            type="button"
+            className="turntable-btn-icon"
+            onClick={toggleWireframe}
+            title={wireframeMode ? 'Tắt lưới đa giác' : 'Xem cấu trúc lưới đa giác 3D'}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              background: wireframeMode ? 'rgba(59, 130, 246, 0.25)' : 'rgba(20, 24, 33, 0.75)',
+              border: wireframeMode ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: wireframeMode ? '#60a5fa' : '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.15s ease',
+              flexShrink: 0
+            }}
+          >
+            <Layers size={15} />
+          </button>
+
+          {/* Nút 4: Căn lại góc nhìn chuẩn */}
+          <button
+            type="button"
+            className="turntable-btn-icon"
+            onClick={handleResetCamera}
+            title="Căn lại góc nhìn ban đầu"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              background: 'rgba(20, 24, 33, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.15s ease',
+              flexShrink: 0
+            }}
+          >
+            <RotateCcw size={15} />
+          </button>
+
+          {/* Nút: Đổi hướng đứng hiện vật (Xoay 90° trục đứng) */}
+          {modelUrl && (
+            <button
+              type="button"
+              className="turntable-btn-icon"
+              onClick={handleRotateModelAxis}
+              title="Đổi hướng đứng hiện vật (Xoay lật 90°)"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 8,
+                background: 'rgba(20, 24, 33, 0.75)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#34d399',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.15s ease',
+                flexShrink: 0
+              }}
+            >
+              <RefreshCw size={15} />
+            </button>
+          )}
+
+          {/* Nút 5: Toàn màn hình */}
+          <button
+            type="button"
+            className="turntable-btn-icon"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Xem toàn màn hình'}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              background: isFullscreen ? 'rgba(212, 168, 106, 0.25)' : 'rgba(20, 24, 33, 0.75)',
+              border: isFullscreen ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: isFullscreen ? '#d4a86a' : '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.15s ease',
+              flexShrink: 0
+            }}
+          >
+            {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          </button>
+        </div>
       </div>
 
       {/* Thanh Phát Audio Thuyết Minh */}

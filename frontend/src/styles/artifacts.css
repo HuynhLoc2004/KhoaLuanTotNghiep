@@ -499,20 +499,36 @@
   .photo-gallery-section {
     padding: 14px 16px;
   }
+  .turntable-top-bar {
+    top: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    gap: 6px !important;
+  }
   .turntable-header-info {
-    max-width: calc(100% - 170px) !important;
+    max-width: 45% !important;
   }
   .turntable-stats-badge {
     display: none !important;
   }
   .turntable-toolbar {
     gap: 4px !important;
-    top: 10px !important;
-    right: 10px !important;
+    max-width: 55% !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
   }
   .turntable-toolbar button {
-    width: 30px !important;
     height: 30px !important;
+  }
+  .turntable-toolbar button.turntable-btn-icon {
+    width: 30px !important;
+    min-width: 30px !important;
+    padding: 0 !important;
+  }
+  .turntable-toolbar button.turntable-btn-text {
+    width: auto !important;
+    padding: 0 8px !important;
+    font-size: 0.68rem !important;
   }
   .turntable-audio-bar {
     left: 8px !important;
@@ -523,6 +539,14 @@
 }
 
 @media (max-width: 480px) {
+  .turntable-toolbar button.turntable-btn-text span {
+    display: none !important;
+  }
+  .turntable-toolbar button.turntable-btn-text {
+    width: 30px !important;
+    min-width: 30px !important;
+    padding: 0 !important;
+  }
   .museum-name {
     display: none;
   }

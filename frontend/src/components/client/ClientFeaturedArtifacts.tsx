@@ -22,18 +22,37 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   const { branding } = useSystemBranding();
   const { t, localize } = useClientTranslation();
 
+  // Ưu tiên hiện vật có mô hình 3D và mới tạo nhất lên đầu trang chủ
+  const sortedArtifacts = React.useMemo(() => {
+    return [...artifacts].sort((a, b) => {
+      // 1. Ưu tiên hiện vật có 3D model
+      const has3DA = a.model3dUrl ? 1 : 0;
+      const has3DB = b.model3dUrl ? 1 : 0;
+      if (has3DA !== has3DB) return has3DB - has3DA;
+
+      // 2. Ưu tiên thời gian tạo mới nhất
+      const timeA = new Date((a as any).createdAt || (a as any).updatedAt || (a as any).created_at || 0).getTime();
+      const timeB = new Date((b as any).createdAt || (b as any).updatedAt || (b as any).created_at || 0).getTime();
+      if (timeA !== timeB) return timeB - timeA;
+
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    });
+  }, [artifacts]);
+
   const [selectedArtifactId, setSelectedArtifactId] = useState<string>(
-    artifacts[0]?.id || ''
+    sortedArtifacts[0]?.id || ''
   );
 
   React.useEffect(() => {
-    if (!artifacts.some((a) => a.id === selectedArtifactId)) {
-      setSelectedArtifactId(artifacts[0]?.id || '');
+    if (sortedArtifacts.length > 0) {
+      if (!selectedArtifactId || !sortedArtifacts.some((a) => a.id === selectedArtifactId)) {
+        setSelectedArtifactId(sortedArtifacts[0].id);
+      }
     }
-  }, [artifacts, selectedArtifactId]);
+  }, [sortedArtifacts, selectedArtifactId]);
 
   const activeArtifact =
-    artifacts.find((a) => a.id === selectedArtifactId) || artifacts[0];
+    sortedArtifacts.find((a) => a.id === selectedArtifactId) || sortedArtifacts[0];
 
   const getFullThumb = (art?: Artifact) => {
     if (!art) return '';
@@ -108,9 +127,9 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
             )}
 
             {/* Dải thumbnail chọn nhanh hiện vật */}
-            {artifacts.length > 1 && (
+            {sortedArtifacts.length > 1 && (
               <div className="client-zigzag-shelf" onClick={(e) => e.stopPropagation()}>
-                {artifacts.slice(0, 4).map((art) => {
+                {sortedArtifacts.slice(0, 4).map((art) => {
                   const isSelected = art.id === (activeArtifact?.id || '');
                   const thumb = getFullThumb(art);
                   return (
