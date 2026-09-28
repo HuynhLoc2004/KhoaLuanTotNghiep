@@ -25,6 +25,43 @@ import argparse
 import time
 from pathlib import Path
 
+import tempfile
+
+# ---------------------------------------------------------------------------
+# PATCH HTTPX TIMEOUT
+# Gradio_client mac dinh dung httpx timeout=5.0s, rat de bi ReadTimeout khi
+# upload anh hoac cho Hugging Face Space phan hoi. Tang len 300s.
+# ---------------------------------------------------------------------------
+try:
+    import httpx
+    HTTPX_TIMEOUT = httpx.Timeout(300.0, connect=60.0, read=300.0, write=300.0)
+
+    _orig_client_init = httpx.Client.__init__
+    def _patched_client_init(self, *args, **kwargs):
+        kwargs.setdefault("timeout", HTTPX_TIMEOUT)
+        return _orig_client_init(self, *args, **kwargs)
+    httpx.Client.__init__ = _patched_client_init
+
+    _orig_post = httpx.post
+    def _patched_post(*args, **kwargs):
+        kwargs.setdefault("timeout", HTTPX_TIMEOUT)
+        return _orig_post(*args, **kwargs)
+    httpx.post = _patched_post
+
+    _orig_get = httpx.get
+    def _patched_get(*args, **kwargs):
+        kwargs.setdefault("timeout", HTTPX_TIMEOUT)
+        return _orig_get(*args, **kwargs)
+    httpx.get = _patched_get
+
+    _orig_request = httpx.request
+    def _patched_request(*args, **kwargs):
+        kwargs.setdefault("timeout", HTTPX_TIMEOUT)
+        return _orig_request(*args, **kwargs)
+    httpx.request = _patched_request
+except Exception:
+    pass
+
 # ---------------------------------------------------------------------------
 # CONFIGURATION
 # ---------------------------------------------------------------------------
@@ -55,6 +92,32 @@ else:
     log("[WARN] Khong tim thay HuggingFace token, se goi anonymous (co the bi rate-limit)")
 
 TRELLIS_TIMEOUT = int(os.environ.get("TRELLIS_TIMEOUT", "300"))
+
+
+def prepare_optimized_image(image_path: str) -> str:
+    """
+    Kiem tra kich thuoc anh. Neu anh qua lon (> 1024px hoac > 1MB),
+    resize ve toi da 1024x1024 (giu ti le) de giam dung luong upload tu 3-10MB ve ~150KB.
+    TRELLIS noi bo chi can 512x512 de suy luan 3D.
+    """
+    try:
+        from PIL import Image
+        with Image.open(image_path) as img:
+            w, h = img.size
+            file_size = os.path.getsize(image_path)
+            if max(w, h) > 1024 or file_size > 1024 * 1024:
+                scale = 1024.0 / max(w, h)
+                new_w, new_h = max(1, int(w * scale)), max(1, int(h * scale))
+                log(f"Toi uu hoa anh: {w}x{h} ({file_size/1024:.0f}KB) -> {new_w}x{new_h} de upload nhanh...")
+                resized_img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                temp_opt_path = os.path.join(tempfile.gettempdir(), f"trellis_opt_{int(time.time())}_{os.path.basename(image_path)}")
+                resized_img.save(temp_opt_path, format="PNG", optimize=True)
+                new_size = os.path.getsize(temp_opt_path)
+                log(f"[OK] Dung luong anh giam tu {file_size/1024:.0f}KB -> {new_size/1024:.0f}KB")
+                return temp_opt_path
+    except Exception as e:
+        log(f"[WARN] Khong the toi uu hoa anh ({e}), su dung anh goc.")
+    return image_path
 
 
 def load_gradio_client():
@@ -135,6 +198,9 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
             log(f"  File size: {os.path.getsize(image_path)} bytes")
         t0 = time.time()
 
+        # Toi uu hoa anh de upload nhe hon (tranh timeout khi mang cham)
+        working_image = prepare_optimized_image(image_path)
+
         # Buoc 1: Khoi tao session de server tao thu muc TMP_DIR/<session_hash>
         try:
             log("Buoc 1/3: Khoi tao phien lam viec tren Space (/start_session)...")
@@ -144,11 +210,11 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
             log(f"[WARN] /start_session: {se} (tiep tuc sang buoc sau)")
 
         # Buoc 2: Tien xu ly anh (tach nen, can chinh 512x512 RGBA)
-        image_input_param = handle_file(image_path)
+        image_input_param = handle_file(working_image)
         try:
             log("Buoc 2/3: Tien xu ly tach nen va chuan hoa anh (/preprocess_image)...")
             preprocessed = client.predict(
-                image=handle_file(image_path),
+                image=handle_file(working_image),
                 api_name="/preprocess_image"
             )
             log(f"[OK] Tien xu ly thanh cong: {type(preprocessed).__name__}")
@@ -159,8 +225,8 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
             elif preprocessed:
                 image_input_param = preprocessed
         except Exception as pe:
-            log(f"[WARN] /preprocess_image gap loi ({pe}), su dung anh goc truc tiep...")
-            image_input_param = handle_file(image_path)
+            log(f"[WARN] /preprocess_image gap loi ({pe}), su dung anh truc tiep...")
+            image_input_param = handle_file(working_image)
 
         # Buoc 3: Tao mo hinh 3D va trich xuat GLB
         log("Buoc 3/3: Dang chay TRELLIS Inference & GLB Extraction (/generate_and_extract_glb)...")
