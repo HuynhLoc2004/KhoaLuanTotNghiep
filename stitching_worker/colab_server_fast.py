@@ -153,14 +153,18 @@ def to_threejs_3d_orientation(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     mesh.apply_transform(trimesh.transformations.rotation_matrix(np.pi, [0, 1, 0]))
     return mesh
 
-def optimize_mesh_to_glb_bytes(mesh: trimesh.Trimesh, max_faces: int = 80000) -> bytes:
+def optimize_mesh_to_glb_bytes(
+    mesh: trimesh.Trimesh,
+    texture_image: Optional[Image.Image] = None,
+    max_faces: int = 80000
+) -> bytes:
     """
     Tối ưu hóa hình học cho WebGL / Three.js:
     - Xoay hướng chuẩn (Y-up, chính diện +Z)
     - Căn tâm vật thể về gốc toạ độ (0, 0, 0)
     - Chuẩn hóa kích thước lớn nhất về 1.2 mét
-    - Tối ưu đa giác (Decimation) nếu > max_faces
-    - Trả về mảng bytes nhị phân định dạng GLB
+    - Chiếu màu và nướng vân bề mặt UV từ ảnh chụp thực tế (Texture Projection Mapping)
+    - Xuất file nhị phân .GLB hoàn chỉnh nhúng sẵn Texture
     """
     # 1. Chuyển đổi hệ toạ độ theo chuẩn hiển thị Three.js Web (Y-up, chính diện)
     mesh = to_threejs_3d_orientation(mesh)
@@ -174,12 +178,69 @@ def optimize_mesh_to_glb_bytes(mesh: trimesh.Trimesh, max_faces: int = 80000) ->
     if max_extent > 0:
         mesh.vertices *= (1.2 / max_extent)
 
-    # 4.5 Nâng cao độ rực rỡ và chiều sâu màu sắc (Color Vibrancy & Contrast Recovery)
-    if hasattr(mesh.visual, "vertex_colors") and mesh.visual.vertex_colors is not None:
+    # 4. CHIẾU MÀU TỪ ẢNH GỐC LÊN MÔ HÌNH 3D (Projection Mapping & UV Texture Baking)
+    # Phân tích ảnh gốc và ánh xạ màu sắc thực tế vào các đỉnh và mặt lưới đa giác
+    if texture_image is not None and len(mesh.vertices) > 0:
+        try:
+            tex_w, tex_h = texture_image.size
+            tex_np = np.array(texture_image)
+            has_alpha = tex_np.shape[-1] == 4
+
+            # Tọa độ X (trái -> phải), Y (dưới -> trên), Z (sau -> trước)
+            x_vals = mesh.vertices[:, 0]
+            y_vals = mesh.vertices[:, 1]
+            x_min, x_max = x_vals.min(), x_vals.max()
+            y_min, y_max = y_vals.min(), y_vals.max()
+            dx = max(x_max - x_min, 1e-5)
+            dy = max(y_max - y_min, 1e-5)
+
+            # Tọa độ chiếu phẳng (Planar UV coordinates)
+            u = np.clip((x_vals - x_min) / dx, 0.0, 1.0)
+            v = np.clip((y_vals - y_min) / dy, 0.0, 1.0)
+
+            # Tra cứu vị trí pixel tương ứng trên ảnh gốc
+            px_cols = np.clip((u * (tex_w - 1)).astype(np.int32), 0, tex_w - 1)
+            px_rows = np.clip(((1.0 - v) * (tex_h - 1)).astype(np.int32), 0, tex_h - 1)
+            sampled_pixels = tex_np[px_rows, px_cols]
+
+            # Pháp tuyến đỉnh (Vertex Normals) để xác định góc chiếu thẳng vào camera (+Z)
+            normals = mesh.vertex_normals
+            nz = normals[:, 2]
+
+            # Mặt trước (nz > 0) nhận màu sắc nét từ ảnh gốc; mặt sau chuyển tiếp mượt mà
+            facing_weight = np.clip((nz + 0.2) / 1.2, 0.0, 1.0)[:, np.newaxis]
+            if has_alpha:
+                alpha_weight = (sampled_pixels[:, 3:4].astype(np.float32) / 255.0)
+                facing_weight = facing_weight * alpha_weight
+
+            orig_rgb = sampled_pixels[:, :3].astype(np.float32)
+
+            if hasattr(mesh.visual, "vertex_colors") and mesh.visual.vertex_colors is not None:
+                tripo_rgb = mesh.visual.vertex_colors[:, :3].astype(np.float32)
+            else:
+                tripo_rgb = np.full_like(orig_rgb, 128.0)
+
+            # Pha trộn: Mặt trước giữ 100% màu gốc, mặt sau hài hòa
+            blended_rgb = facing_weight * orig_rgb + (1.0 - facing_weight) * tripo_rgb
+            mean_c = np.mean(blended_rgb, axis=-1, keepdims=True)
+            vibrant_rgb = mean_c + (blended_rgb - mean_c) * 1.25
+            vibrant_rgb = np.clip(vibrant_rgb, 0.0, 255.0).astype(np.uint8)
+
+            # Gán Vertex Colors đã được tinh chỉnh
+            alpha_col = np.full((len(mesh.vertices), 1), 255, dtype=np.uint8)
+            mesh.visual.vertex_colors = np.concatenate([vibrant_rgb, alpha_col], axis=-1)
+
+            # ĐỒNG THỜI tạo UV mapping và nhúng Texture ảnh gốc vào file GLB
+            uvs = np.column_stack([u, v])
+            rgb_tex_image = texture_image.convert("RGB")
+            mesh.visual = trimesh.visual.TextureVisuals(uv=uvs, image=rgb_tex_image)
+            print("[✓] Đã chiếu và nhúng Texture ảnh gốc thành công vào mô hình 3D!")
+        except Exception as _proj_err:
+            print(f"[!] Cảnh báo chiếu màu ảnh gốc: {_proj_err}")
+    elif hasattr(mesh.visual, "vertex_colors") and mesh.visual.vertex_colors is not None:
         try:
             vc = mesh.visual.vertex_colors[:, :3].astype(np.float32) / 255.0
             mean_c = np.mean(vc, axis=-1, keepdims=True)
-            # Tăng 45% độ bão hòa màu và tinh chỉnh tương phản khử bạc màu
             vc_boosted = mean_c + (vc - mean_c) * 1.45
             vc_boosted = np.power(np.clip(vc_boosted, 0.0, 1.0), 1.25)
             vc_final = (np.clip(vc_boosted, 0.0, 1.0) * 255.0).astype(np.uint8)
@@ -268,32 +329,35 @@ async def render_from_url(
 
     # 2. Xử lý ảnh và suy luận AI trên GPU T4
     try:
+        texture_source = None
         if req.do_remove_background:
-            pil_image = remove_background(pil_image, rembg_session=None)
-            pil_image = resize_foreground(pil_image, req.foreground_ratio or 0.85)
-            img_np = np.array(pil_image).astype(np.float32) / 255.0
+            nobg_pil = remove_background(pil_image, rembg_session=None)
+            nobg_pil = resize_foreground(nobg_pil, req.foreground_ratio or 0.85)
+            texture_source = nobg_pil.copy()
+            img_np = np.array(nobg_pil).astype(np.float32) / 255.0
             if img_np.shape[-1] == 4:
                 img_np = img_np[:, :, :3] * img_np[:, :, 3:4] + (1.0 - img_np[:, :, 3:4]) * 0.5
-            pil_image = Image.fromarray((img_np * 255.0).astype(np.uint8))
+            input_image = Image.fromarray((img_np * 255.0).astype(np.uint8))
         else:
-            pil_image = pil_image.convert("RGB")
+            input_image = pil_image.convert("RGB")
+            texture_source = pil_image.copy()
 
         t0 = time.time()
         with torch.no_grad():
-            scene_codes = model(pil_image, device=device)
+            scene_codes = model(input_image, device=device)
             meshes = model.extract_mesh(
                 scene_codes,
                 True,
                 resolution=req.mc_resolution or 256,
-                threshold=25.0
+                threshold=20.0
             )
 
         mesh = meshes[0]
         gen_time = round(time.time() - t0, 2)
-        print(f"[✓] Job {job_id}: TripoSR infer thành công sau {gen_time}s! Đang nén .GLB...")
+        print(f"[✓] Job {job_id}: TripoSR infer thành công sau {gen_time}s! Đang chiếu vân Texture ảnh thật và nén .GLB...")
 
-        # 3. Tối ưu hóa và xuất GLB bytes
-        glb_bytes = optimize_mesh_to_glb_bytes(mesh)
+        # 3. Tối ưu hóa, chiếu màu từ ảnh gốc và xuất GLB bytes
+        glb_bytes = optimize_mesh_to_glb_bytes(mesh, texture_image=texture_source)
         size_mb = round(len(glb_bytes) / 1024 / 1024, 2)
 
         # 4. Thu dọn VRAM và bộ nhớ đệm

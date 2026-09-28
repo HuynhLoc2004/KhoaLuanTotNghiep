@@ -42,9 +42,22 @@ print("[✓] Đã tải thành công server_fast.py về Colab!")
 # --------------------------------------------------------------------
 """
 import subprocess
+import shutil
 import time
 import re
 import os
+
+# 0. Tự động kiểm tra và cài đặt cloudflared nếu phiên làm việc vừa bị khởi tạo lại
+if not shutil.which("cloudflared"):
+    print("[*] Phát hiện thiếu cloudflared (do Colab mới khởi tạo lại), đang tự động cài đặt nhanh...")
+    !wget -q -nc https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+    !dpkg -i cloudflared-linux-amd64.deb > /dev/null 2>&1
+    print("[✓] Đã cài đặt cloudflared thành công!")
+
+# Tự động tải file server_fast.py mới nhất nếu chưa có
+if not os.path.exists("server_fast.py"):
+    print("[*] Đang tự động tải mã nguồn server_fast.py mới nhất...")
+    !wget -q -O server_fast.py https://raw.githubusercontent.com/HuynhLoc2004/KhoaLuanTotNghiep/main/stitching_worker/colab_server_fast.py
 
 # 1. Dọn dẹp tiến trình cũ nếu có
 !pkill -f "uvicorn server_fast:app" > /dev/null 2>&1
@@ -69,6 +82,10 @@ for _ in range(60):
             content = f.read()
             if "warm-up thành công" in content or "Application startup complete" in content or "Uvicorn running" in content:
                 started = True
+                break
+            if "ModuleNotFoundError" in content or "No module named" in content:
+                print("\n[⚠️ CẢNH BÁO]: Máy ảo Google Colab đã bị Reset về trạng thái ban đầu!")
+                print(">>> Vui lòng bấm CHẠY LẠI [Ô MÃ 1] trước để cài đặt thư viện AI, sau đó quay lại chạy ô này nhé!\n")
                 break
 
 if started:
