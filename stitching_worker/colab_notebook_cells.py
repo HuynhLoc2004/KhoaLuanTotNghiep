@@ -13,9 +13,13 @@
 """
 !nvidia-smi
 
-print("[*] Đang cài đặt FastAPI, TripoSR và PyMCubes...")
-!pip install -q fastapi uvicorn requests trimesh rembg einops omegaconf PyMCubes
-!pip install -q git+https://github.com/VAST-AI-Research/TripoSR.git
+print("[*] Đang cài đặt thư viện cần thiết...")
+!pip install -q fastapi uvicorn requests trimesh rembg einops omegaconf PyMCubes huggingface_hub
+
+print("[*] Đang tải mã nguồn TripoSR (tsr)...")
+!rm -rf TripoSR tsr
+!git clone -q https://github.com/VAST-AI-Research/TripoSR.git
+!cp -r TripoSR/tsr ./
 
 print("[*] Đang cài đặt Cloudflared Quick Tunnel...")
 !wget -q -nc https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
