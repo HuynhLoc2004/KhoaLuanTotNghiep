@@ -24,6 +24,7 @@ import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminHomepageCMSPage } from './pages/admin/AdminHomepageCMSPage';
 import { AdminGuideCMSPage } from './pages/admin/AdminGuideCMSPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { ClientTranslationProvider, useClientTranslation } from './context/ClientTranslationContext';
 import { ClientHomePage } from './pages/client/ClientHomePage';
 import { ClientTourView } from './pages/client/ClientTourView';
@@ -873,6 +874,8 @@ const AppContent: React.FC = () => {
           <AdminGuideCMSPage />
         ) : currentTab === 'languages' ? (
           <AdminLanguagePage />
+        ) : currentTab === 'users' ? (
+          <AdminUsersPage />
         ) : currentTab === 'settings' ? (
           <AdminSettingsPage />
         ) : (

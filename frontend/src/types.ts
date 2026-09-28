@@ -78,9 +78,59 @@ export interface TopicItem {
   updatedAt?: string;
 }
 
-export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'homepage_cms' | 'guide' | 'languages' | 'analytics' | 'settings';
+export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'homepage_cms' | 'guide' | 'languages' | 'users' | 'analytics' | 'settings';
 
+export interface UserBookingItem {
+  id: string;
+  visitDate: string;
+  timeSlot: string;
+  ticketType: string;
+  quantity: number;
+  totalAmount: number;
+  paymentStatus: 'paid' | 'pending' | 'cancelled';
+  paymentMethod: string;
+  bookingDate: string;
+}
 
+export interface UserItem {
+  id: string;
+  _id?: string;
+  username: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  avatar?: string;
+  role: 'admin' | 'staff' | 'client' | string;
+  permissions?: string[];
+  isActive: boolean;
+  notes?: string;
+  bookingStats?: {
+    totalBookings: number;
+    totalSpent: number;
+    lastBookingDate?: string;
+  };
+  bookings?: UserBookingItem[];
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface UserListResponse {
+  data: UserItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  stats: {
+    totalUsers: number;
+    adminCount: number;
+    staffCount: number;
+    clientCount: number;
+    activeCount: number;
+  };
+}
 
 export interface AuthUser {
   id: string;

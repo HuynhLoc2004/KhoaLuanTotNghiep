@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -718,6 +718,73 @@ export const api = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi lưu liên kết sơ đồ');
     return json.data;
+  },
+
+  // === QUẢN LÝ NGƯỜI DÙNG & KHÁCH THAM QUAN (USERS MANAGEMENT) ===
+  async getUsers(params?: { search?: string; role?: string; status?: string; page?: number; limit?: number }): Promise<UserListResponse> {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.role) query.append('role', params.role);
+    if (params?.status) query.append('status', params.status);
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+
+    const res = await fetch(`${API_BASE}/users?${query.toString()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải danh sách người dùng');
+    if (!json.success) throw new Error(json.message || 'Lỗi tải người dùng');
+    return { data: json.data, pagination: json.pagination, stats: json.stats };
+  },
+
+  async getUserDetail(id: string): Promise<UserItem> {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể đọc thông tin người dùng');
+    if (!json.success) throw new Error(json.message || 'Lỗi tải chi tiết người dùng');
+    return json.data;
+  },
+
+  async createUser(data: Partial<UserItem> & { password?: string }): Promise<UserItem> {
+    const res = await fetch(`${API_BASE}/users`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể tạo tài khoản');
+    if (!json.success) throw new Error(json.message || 'Lỗi tạo người dùng');
+    return json.data;
+  },
+
+  async updateUser(id: string, data: Partial<UserItem> & { password?: string }): Promise<UserItem> {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể cập nhật tài khoản');
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật người dùng');
+    return json.data;
+  },
+
+  async toggleUserStatus(id: string): Promise<{ isActive: boolean }> {
+    const res = await fetch(`${API_BASE}/users/${id}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể đổi trạng thái');
+    if (!json.success) throw new Error(json.message || 'Lỗi đổi trạng thái tài khoản');
+    return { isActive: json.isActive };
+  },
+
+  async deleteUser(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể xóa tài khoản');
+    if (!json.success) throw new Error(json.message || 'Lỗi xóa người dùng');
   }
 
 };

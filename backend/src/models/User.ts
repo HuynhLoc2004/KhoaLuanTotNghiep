@@ -6,9 +6,17 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   fullName: string;
+  phone?: string;
+  avatar?: string;
   role: string;
   permissions: string[];
   isActive: boolean;
+  notes?: string;
+  bookingStats?: {
+    totalBookings: number;
+    totalSpent: number;
+    lastBookingDate?: Date;
+  };
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -39,6 +47,15 @@ const UserSchema: Schema = new Schema(
       type: String,
       default: 'Ban Quản trị Bảo tàng'
     },
+    phone: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    avatar: {
+      type: String,
+      default: ''
+    },
     role: {
       type: String,
       required: true,
@@ -51,6 +68,15 @@ const UserSchema: Schema = new Schema(
     isActive: {
       type: Boolean,
       default: true
+    },
+    notes: {
+      type: String,
+      default: ''
+    },
+    bookingStats: {
+      totalBookings: { type: Number, default: 0 },
+      totalSpent: { type: Number, default: 0 },
+      lastBookingDate: { type: Date }
     },
     lastLogin: {
       type: Date

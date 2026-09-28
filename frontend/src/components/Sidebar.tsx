@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate, ChevronDown, Layers } from 'lucide-react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate, ChevronDown, Layers, Users } from 'lucide-react';
 import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 import { useClientTranslation } from '../context/ClientTranslationContext';
@@ -234,6 +234,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Languages size={16} />
           <span className="nav-item-text">{t('nav.languages', 'Quản trị Ngôn ngữ & Voice AI')}</span>
+        </button>
+
+        <button
+          className={`nav-item ${currentTab === 'users' ? 'active' : ''}`}
+          onClick={() => handleItemClick('users')}
+          title="Quản lý thông tin tài khoản, phân quyền và lịch sử đặt lịch tham quan"
+        >
+          <Users size={16} />
+          <span className="nav-item-text">{t('nav.users', 'Quản lý Người dùng & Khách')}</span>
         </button>
 
         <button
