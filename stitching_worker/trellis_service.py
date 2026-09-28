@@ -76,15 +76,35 @@ def connect_to_trellis():
     Client, handle_file = load_gradio_client()
     last_error = None
     for space_id in TRELLIS_SPACES:
-        try:
-            log(f"Dang ket noi toi Space: {space_id} ...")
-            client = Client(space_id, hf_token=HF_TOKEN)
-            log(f"[OK] Ket noi thanh cong toi {space_id}")
-            return client, handle_file
-        except Exception as e:
-            log(f"[FAIL] Khong ket noi duoc toi {space_id}: {e}")
-            last_error = e
-            continue
+        # Thu nhieu cach truyen token vi gradio_client thay doi API giua cac version
+        token_kwargs_list = [
+            {"hf_token": HF_TOKEN},   # gradio_client >= 1.0
+            {"hf_token": HF_TOKEN},   # alias
+        ]
+        if not HF_TOKEN:
+            token_kwargs_list = [{}]   # Khong co token thi goi anonymous
+
+        for token_kwargs in token_kwargs_list:
+            try:
+                log(f"Dang ket noi toi Space: {space_id} ...")
+                client = Client(space_id, **token_kwargs)
+                log(f"[OK] Ket noi thanh cong toi {space_id}")
+                return client, handle_file
+            except TypeError as te:
+                # Neu tham so hf_token khong duoc chap nhan, thu khong truyen token
+                log(f"[WARN] Tham so token khong duoc chap nhan ({te}), thu ket noi anonymous...")
+                try:
+                    client = Client(space_id)
+                    log(f"[OK] Ket noi thanh cong toi {space_id} (anonymous)")
+                    return client, handle_file
+                except Exception as e2:
+                    log(f"[FAIL] Ket noi anonymous cung that bai: {e2}")
+                    last_error = e2
+                    break
+            except Exception as e:
+                log(f"[FAIL] Khong ket noi duoc toi {space_id}: {e}")
+                last_error = e
+                break
 
     raise RuntimeError(
         f"Khong the ket noi toi bat ky TRELLIS Space nao. "
