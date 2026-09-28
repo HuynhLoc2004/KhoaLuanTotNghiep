@@ -14,7 +14,7 @@
 !nvidia-smi
 
 print("[*] Đang cài đặt thư viện cần thiết...")
-!pip install -q fastapi uvicorn requests trimesh rembg einops omegaconf PyMCubes huggingface_hub
+!pip install -q fastapi uvicorn requests trimesh onnxruntime-gpu "rembg[gpu]" einops omegaconf PyMCubes huggingface_hub
 
 print("[*] Đang tải mã nguồn TripoSR (tsr)...")
 !rm -rf TripoSR tsr
