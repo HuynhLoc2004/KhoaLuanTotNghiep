@@ -690,6 +690,9 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
               if (tag === 'script' || tag === 'style' || tag === 'code' || tag === 'pre' || tag === 'textarea' || tag === 'input') {
                 return NodeFilter.FILTER_REJECT;
               }
+              if (parent.closest('[data-no-auto-translate="true"]')) {
+                return NodeFilter.FILTER_REJECT;
+              }
               return NodeFilter.FILTER_ACCEPT;
             }
           }
@@ -707,12 +710,16 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           if (!trimmed) return;
 
           // Xác định văn bản tiếng Việt gốc ban đầu
-          let origText = (node as any).__i18nOrigVI || node.parentElement?.getAttribute('data-i18n-orig-vi');
-          if (!origText) {
-            if (VIETNAMESE_REGEX.test(trimmed)) {
-              origText = trimmed;
-              (node as any).__i18nOrigVI = trimmed;
-              node.parentElement?.setAttribute('data-i18n-orig-vi', trimmed);
+          let origText = '';
+          if (VIETNAMESE_REGEX.test(trimmed)) {
+            // Đã là tiếng Việt -> ghi nhận là bản gốc tiếng Việt mới nhất
+            origText = trimmed;
+            (node as any).__i18nOrigVI = trimmed;
+            node.parentElement?.setAttribute('data-i18n-orig-vi', trimmed);
+          } else {
+            const origCandidate = (node as any).__i18nOrigVI || node.parentElement?.getAttribute('data-i18n-orig-vi');
+            if (origCandidate) {
+              origText = origCandidate;
             } else {
               // Node đang hiển thị ngoại ngữ -> tra ngược về tiếng Việt gốc qua cache
               const viFromReverse =
@@ -732,14 +739,16 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
 
           // NẾU ĐANG CHỌN TIẾNG VIỆT: Phục hồi lại văn bản tiếng Việt gốc 100%
           if (currentLang === 'vi') {
-            const viCandidate =
-              origText ||
-              (node as any).__i18nOrigVI ||
-              node.parentElement?.getAttribute('data-i18n-orig-vi') ||
-              DYNAMIC_REVERSE_MAP[trimmed.toLowerCase()] ||
-              REVERSE_LOOKUP_CACHE[trimmed.toLowerCase()];
-            if (viCandidate && trimmed !== viCandidate) {
-              node.textContent = text.replace(trimmed, viCandidate);
+            if (!VIETNAMESE_REGEX.test(trimmed)) {
+              const viCandidate =
+                origText ||
+                (node as any).__i18nOrigVI ||
+                node.parentElement?.getAttribute('data-i18n-orig-vi') ||
+                DYNAMIC_REVERSE_MAP[trimmed.toLowerCase()] ||
+                REVERSE_LOOKUP_CACHE[trimmed.toLowerCase()];
+              if (viCandidate && trimmed !== viCandidate) {
+                node.textContent = text.replace(trimmed, viCandidate);
+              }
             }
             delete (node as any).__i18nOrigVI;
             delete (node as any).__i18nCurLang;

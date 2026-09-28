@@ -258,7 +258,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       setUploadingLogo(true);
       const res = await api.uploadBrandingLogo(file);
       handleChange('logoUrl', res.url);
-      await updateBranding({ logoUrl: res.url });
+      await updateBranding({ ...form, logoUrl: res.url });
       setIsDirty(false);
       showToast('Đã tải ảnh logo lên và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {
@@ -281,7 +281,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       setUploadingHeroBanner(true);
       const res = await api.uploadBrandingImage(file);
       handleChange('heroBannerUrl', res.url);
-      await updateBranding({ heroBannerUrl: res.url });
+      await updateBranding({ ...form, heroBannerUrl: res.url });
       setIsDirty(false);
       showToast('Đã tải ảnh banner Hero và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {
@@ -304,7 +304,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       setUploadingIntroImage(true);
       const res = await api.uploadBrandingImage(file);
       handleChange('introImageUrl', res.url);
-      await updateBranding({ introImageUrl: res.url });
+      await updateBranding({ ...form, introImageUrl: res.url });
       setIsDirty(false);
       showToast('Đã tải ảnh kiến trúc và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { API_ROOT } from '../../services/api';
 
 interface ClientHeroBannerProps {
   roomCount: number;
@@ -31,15 +32,22 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  const [mediaSrc, setMediaSrc] = React.useState<string>(featuredImageUrl || '');
+  // Tính URL ảnh banner thực tế: ưu tiên featuredImageUrl -> branding.heroBannerUrl
+  const effectiveImageUrl = React.useMemo(() => {
+    const raw = featuredImageUrl || branding.heroBannerUrl || '';
+    if (!raw.trim()) return '';
+    return raw.startsWith('http') ? raw.trim() : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw.trim()}`;
+  }, [featuredImageUrl, branding.heroBannerUrl]);
 
+  const [hasImgError, setHasImgError] = React.useState(false);
+
+  // Khi URL ảnh banner thay đổi, tự động reset cờ lỗi để tải ảnh mới ngay lập tức
   React.useEffect(() => {
-    setMediaSrc(featuredImageUrl || '');
-  }, [featuredImageUrl]);
+    setHasImgError(false);
+  }, [effectiveImageUrl]);
 
-  const handleImageError = () => {
-    setMediaSrc('');
-  };
+  const effectiveVideoUrl = (videoUrl || branding.heroVideoUrl || '').trim();
+  const hasValidVideo = Boolean(effectiveVideoUrl && effectiveVideoUrl.length > 5);
 
   // Trợ thủ typography: Không bao giờ để rớt chữ đơn lẻ "Minh" hay xé lẻ "TP. Hồ Chí Minh"
   const formatHeroTitle = (titleText: string) => {
@@ -72,24 +80,25 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
     <section id="hero" className="client-hero">
       {/* 1. KHỐI MEDIA TOÀN CẢNH TRÀN KHUNG 100VH */}
       <div className="client-hero-media-wrap">
-        {videoUrl ? (
+        {hasValidVideo ? (
           <video
             autoPlay
             loop
             muted
             playsInline
             className="client-hero-media"
-            poster={mediaSrc || undefined}
+            poster={effectiveImageUrl || undefined}
           >
-            <source src={videoUrl} type="video/mp4" />
+            <source src={effectiveVideoUrl} type="video/mp4" />
           </video>
-        ) : mediaSrc ? (
+        ) : effectiveImageUrl && !hasImgError ? (
           <img
-            src={mediaSrc}
+            key={effectiveImageUrl}
+            src={effectiveImageUrl}
             alt={branding.museumName || 'Bảo tàng Lịch sử'}
             className="client-hero-media"
             loading="eager"
-            onError={handleImageError}
+            onError={() => setHasImgError(true)}
           />
         ) : (
           <div
@@ -113,22 +122,19 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
             {t('hero.tag', 'Bảo Tàng Số • Di Sản Văn Hóa & Không Gian Tương Tác')}
           </span>
 
-          <h1 className="client-hero-headline">
+          <h1 className="client-hero-headline" data-no-auto-translate="true">
             {formatHeroTitle(
-              t(
-                branding.heroTitle || branding.museumName || 'hero.title',
-                branding.heroTitle || branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'
-              )
+              branding.heroTitle?.trim() || branding.museumName?.trim() || t('hero.title', 'Bảo tàng Lịch sử TP. Hồ Chí Minh')
             )}
           </h1>
 
-          <p className="client-hero-lead">
-            {t(
-              branding.heroTagline || branding.tagline || 'hero.subtitle',
-              branding.heroTagline ||
-                branding.tagline ||
+          <p className="client-hero-lead" data-no-auto-translate="true">
+            {branding.heroTagline?.trim() ||
+              branding.tagline?.trim() ||
+              t(
+                'hero.subtitle',
                 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.'
-            )}
+              )}
           </p>
 
           {/* Các nút hành động CTA */}
@@ -137,8 +143,9 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               type="button"
               className="client-btn-primary"
               onClick={onExploreTourClick}
+              data-no-auto-translate="true"
             >
-              <span>{t(branding.heroCta1Text || 'hero.btnTour', branding.heroCta1Text || 'Bắt Đầu Tour 360°')}</span>
+              <span>{branding.heroCta1Text?.trim() || t('hero.btnTour', 'Bắt Đầu Tour 360°')}</span>
               <ArrowRight size={16} />
             </button>
 
@@ -146,8 +153,9 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               type="button"
               className="client-btn-secondary"
               onClick={onExploreArtifactsClick}
+              data-no-auto-translate="true"
             >
-              <span>{t(branding.heroCta2Text || 'hero.btnArtifacts', branding.heroCta2Text || 'Chiêm Ngưỡng Cổ Vật 3D')}</span>
+              <span>{branding.heroCta2Text?.trim() || t('hero.btnArtifacts', 'Chiêm Ngưỡng Cổ Vật 3D')}</span>
             </button>
           </div>
 

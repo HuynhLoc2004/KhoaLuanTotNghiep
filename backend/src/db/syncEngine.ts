@@ -526,7 +526,7 @@ export async function pgUpsertBranding(branding: any) {
       branding.guideBusRoutes || '',
       branding.guideParkingInfo || '',
       branding.guideGoogleMapsUrl || '',
-      JSON.stringify(branding.data || {}),
+      JSON.stringify(branding.data ? { ...branding, ...branding.data } : branding),
       mongoId
     ]);
   } catch (err: any) {

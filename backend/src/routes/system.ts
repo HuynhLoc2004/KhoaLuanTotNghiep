@@ -345,6 +345,7 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
  */
 systemRouter.get('/branding', async (req: Request, res: Response) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const branding = await getSystemBrandingConfig();
     res.json({
       success: true,
@@ -365,9 +366,32 @@ systemRouter.get('/branding', async (req: Request, res: Response) => {
  */
 systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const current = await getSystemBrandingConfig();
+
+    const targetMuseumName = req.body.museumName !== undefined && String(req.body.museumName).trim()
+      ? String(req.body.museumName).trim()
+      : current.museumName;
+
+    const targetShortName = req.body.shortName !== undefined && String(req.body.shortName).trim()
+      ? String(req.body.shortName).trim()
+      : current.shortName;
+
+    if (!targetMuseumName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên đầy đủ của bảo tàng không được để trống.'
+      });
+    }
+
+    if (!targetShortName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên rút gọn của bảo tàng không được để trống.'
+      });
+    }
+
     const {
-      museumName,
-      shortName,
       emblemText,
       logoUrl,
       tagline,
@@ -378,25 +402,9 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       emailSenderName
     } = req.body;
 
-    if (!museumName || !String(museumName).trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Tên đầy đủ của bảo tàng không được để trống.'
-      });
-    }
-
-    if (!shortName || !String(shortName).trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Tên rút gọn của bảo tàng không được để trống.'
-      });
-    }
-
-    const current = await getSystemBrandingConfig();
-
     const updatePayload = {
-      museumName: String(museumName).trim(),
-      shortName: String(shortName).trim(),
+      museumName: targetMuseumName,
+      shortName: targetShortName,
       emblemText: (emblemText && String(emblemText).trim().toUpperCase().slice(0, 6)) || current.emblemText || 'BT',
       logoUrl: logoUrl !== undefined ? String(logoUrl).trim() : current.logoUrl,
       tagline: tagline !== undefined ? String(tagline).trim() : current.tagline,
