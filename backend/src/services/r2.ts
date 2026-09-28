@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Readable } from 'stream';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -22,16 +23,19 @@ export const r2Client = new S3Client({
 
 export const uploadToR2 = async (
   key: string,
-  body: Buffer | Uint8Array,
-  contentType: string = 'image/jpeg'
+  body: Buffer | Uint8Array | Readable,
+  contentType: string = 'image/jpeg',
+  contentLength?: number
 ): Promise<string> => {
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: key,
-    Body: body,
-    ContentType: contentType
+    Body: body as any,
+    ContentType: contentType,
+    ContentLength: contentLength
   });
 
   await r2Client.send(command);
   return `${publicDomain.replace(/\/$/, '')}/${key}`;
 };
+

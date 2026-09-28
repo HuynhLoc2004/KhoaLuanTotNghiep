@@ -2,9 +2,41 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { uploadToCloudinary } from '../services/cloudinary.js';
+import { uploadToCloudinary, cloudinary } from '../services/cloudinary.js';
 
 export const uploadRouter = Router();
+
+/**
+ * POST /api/upload/cloudinary-sign
+ * Cấp chữ ký số (Signed Upload) cho Client tải ảnh trực tiếp lên Cloudinary
+ * Tránh qua VPS -> Không tiêu tốn RAM VPS (2GB RAM)
+ */
+uploadRouter.post('/cloudinary-sign', async (req: Request, res: Response) => {
+  try {
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const folder = req.body?.folder || 'museum/artifacts';
+    const paramsToSign = {
+      folder,
+      timestamp
+    };
+    const signature = cloudinary.utils.api_sign_request(
+      paramsToSign,
+      process.env.CLOUDINARY_API_SECRET || ''
+    );
+    res.json({
+      success: true,
+      data: {
+        signature,
+        timestamp,
+        apiKey: process.env.CLOUDINARY_API_KEY || '',
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+        folder
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi sinh chữ ký Cloudinary: ' + err.message });
+  }
+});
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {

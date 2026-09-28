@@ -548,6 +548,48 @@ export const api = {
     return `${API_BASE}/artifacts/${id}/qr-download`;
   },
 
+  /**
+   * Xin chữ ký số Signed Upload từ VPS để client tải ảnh trực tiếp lên Cloudinary
+   * VPS không giữ file nhị phân -> Tiết kiệm 100% RAM VPS
+   */
+  async getCloudinarySignature(folder = 'museum/artifacts'): Promise<{
+    signature: string;
+    timestamp: number;
+    apiKey: string;
+    cloudName: string;
+    folder: string;
+  }> {
+    const res = await fetch(`${API_BASE}/upload/cloudinary-sign`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({ folder })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cấp chữ ký Cloudinary');
+    return json.data;
+  },
+
+  /**
+   * Tải ảnh trực tiếp từ trình duyệt lên Cloudinary bằng chữ ký số
+   */
+  async uploadImageSignedToCloudinary(file: File, folder = 'museum/artifacts'): Promise<string> {
+    const signData = await this.getCloudinarySignature(folder);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', signData.apiKey);
+    formData.append('timestamp', String(signData.timestamp));
+    formData.append('signature', signData.signature);
+    formData.append('folder', signData.folder);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    const result = await res.json();
+    if (result.error) throw new Error(result.error.message || 'Lỗi tải ảnh lên Cloudinary');
+    return result.secure_url || result.url;
+  },
+
   async getColabTunnelConfig(): Promise<{
     url: string;
     configured: boolean;

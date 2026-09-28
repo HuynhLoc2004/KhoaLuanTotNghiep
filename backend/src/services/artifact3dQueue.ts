@@ -13,7 +13,7 @@ import {
   popJobFromQueue
 } from './redis';
 import { sendToRabbitMQ, consumeRabbitMQ, QUEUES } from './rabbitmq';
-import { getTripoSRUrl, generate3DViaTripoSR } from './triposrClient.js';
+import { getTripoSRUrl, stream3DFromColabToFile, releaseUser3DLock } from './triposrClient.js';
 import { uploadToR2 } from './r2.js';
 
 const PYTHON_PATH = process.env.PYTHON_PATH || (process.platform === 'win32'
@@ -59,6 +59,7 @@ export interface I3DJobData {
   backImagePath?: string;
   depthScale: number;
   resolution: number;
+  userId?: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   error?: string;
   createdAt: number;
@@ -86,7 +87,8 @@ export async function enqueue3DReconstruction(
   imagePath: string,
   backImagePath?: string,
   depthScale = 1.0,
-  resolution = 110
+  resolution = 110,
+  userId?: string
 ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string }> {
   // 1. Kiểm tra cache dựa trên SHA256 (kèm mã phân biệt mặt sau độc lập v16 chất liệu liền mạch không rãnh ghép)
   const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_seamless_patina_v16');
@@ -100,6 +102,7 @@ export async function enqueue3DReconstruction(
 
     if (fs.existsSync(localGlbPath)) {
       console.log(`[3D Queue] Tìm thấy trong Cache cho mã băm ${fileHash.substring(0, 10)}... Trả về ngay lập tức.`);
+      if (userId) await releaseUser3DLock(userId);
       await updateArtifact3DState(artifactId, {
         model3dUrl: cached.model3dUrl,
         processingStatus: 'completed',
@@ -129,6 +132,7 @@ export async function enqueue3DReconstruction(
     backImagePath: backImagePath || undefined,
     depthScale,
     resolution,
+    userId,
     status: 'pending',
     createdAt: Date.now()
   };
@@ -159,6 +163,16 @@ export async function enqueue3DReconstruction(
  */
 async function processSingleJob(jobInput: I3DJobData): Promise<void> {
   const job: I3DJobData = ((jobInput as any)?.data ? (jobInput as any).data : jobInput) as I3DJobData;
+  try {
+    await runJobInternal(job);
+  } finally {
+    if (job.userId) {
+      await releaseUser3DLock(job.userId);
+    }
+  }
+}
+
+async function runJobInternal(job: I3DJobData): Promise<void> {
   const artifactId = String(job.artifactId || (job as any).id || '');
   const imagePath = String(job.imagePath || '');
   const backImagePath = job.backImagePath ? String(job.backImagePath) : '';
@@ -194,24 +208,25 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
   if (tripoSRUrl) {
     console.log(`[3D Consumer] Sử dụng Google Colab GPU T4 TripoSR (${tripoSRUrl}) cho hiện vật: ${artifactId}...`);
     try {
-      const tripoRes = await generate3DViaTripoSR({
-        imagePath,
+      const isHttpImage = imagePath.startsWith('http');
+      const tripoRes = await stream3DFromColabToFile({
+        imageUrl: isHttpImage ? imagePath : undefined,
+        imagePath: isHttpImage ? undefined : imagePath,
+        destFilePath: outGlbPath,
         jobId,
         foregroundRatio: 0.85,
         mcResolution: resolution >= 150 ? 256 : 192
       });
 
-      // 1.1 Lưu bản sao đĩa cục bộ trên VPS để làm fallback
-      fs.writeFileSync(outGlbPath, tripoRes.glbBuffer);
-
-      // 1.2 Đẩy thẳng lên Cloudflare R2 CDN Storage
+      // 1.2 Đẩy thẳng luồng file từ đĩa lên Cloudflare R2 CDN Storage (Không tốn RAM VPS)
       let finalModelUrl = model3dUrl;
       try {
-        console.log(`[3D Consumer] Đang tải mô hình 3D lên Cloudflare R2 (models_3d/${outFilename})...`);
-        const r2Url = await uploadToR2(`models_3d/${outFilename}`, tripoRes.glbBuffer, 'model/gltf-binary');
+        console.log(`[3D Consumer] Đang tải luồng file mô hình 3D lên Cloudflare R2 (models_3d/${outFilename})...`);
+        const r2FileStream = fs.createReadStream(outGlbPath);
+        const r2Url = await uploadToR2(`models_3d/${outFilename}`, r2FileStream, 'model/gltf-binary', tripoRes.sizeBytes);
         if (r2Url) {
           finalModelUrl = r2Url;
-          console.log(`[3D Consumer] Đã đồng bộ thành công lên Cloudflare R2 CDN:`, finalModelUrl);
+          console.log(`[3D Consumer] Đã đồng bộ luồng thành công lên Cloudflare R2 CDN:`, finalModelUrl);
         }
       } catch (r2Err: any) {
         console.warn(`[3D Consumer] Lỗi upload R2 (chuyển sang lưu máy chủ cục bộ VPS):`, r2Err.message);

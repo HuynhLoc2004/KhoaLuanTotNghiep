@@ -9,7 +9,7 @@ import { generateQRCodeBuffer, generateQRCodeDataURL } from '../services/qr.js';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 import { enqueue3DReconstruction } from '../services/artifact3dQueue.js';
-import { getTripoSRUrl, setTripoSRUrl, pingTripoSR } from '../services/triposrClient.js';
+import { getTripoSRUrl, setTripoSRUrl, pingTripoSR, acquireUser3DLock, releaseUser3DLock } from '../services/triposrClient.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertArtifact, pgDeleteArtifact } from '../db/syncEngine.js';
 
@@ -429,6 +429,17 @@ artifactsRouter.post('/upload-model', uploadModel.single('file'), async (req: Re
  * Kích hoạt luồng hàng đợi sinh mô hình 3D .GLB từ ảnh đơn
  */
 artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id || (req as any).user?.email || req.ip || 'anonymous_user';
+
+  // 1. Kiểm tra khóa đồng thời chống spam click (1 tác vụ 3D / 1 tài khoản tại 1 thời điểm)
+  const lockAcquired = await acquireUser3DLock(userId);
+  if (!lockAcquired) {
+    return res.status(429).json({
+      success: false,
+      message: 'Yêu cầu tạo mô hình 3D trước đó của bạn đang được xử lý trên GPU. Vui lòng đợi trong giây lát!'
+    });
+  }
+
   try {
     const id = req.params.id as string;
     const { imageUrl, depthScale, resolution } = req.body;
@@ -438,24 +449,20 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       : { $or: [{ id }, { code: id }] };
     let artifact = await ArtifactModel.findOne(query);
     if (!artifact) {
+      await releaseUser3DLock(userId);
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật' });
     }
 
     // Xác định ảnh nguồn mặt trước
     const targetImageUrl = imageUrl || artifact.thumbnailUrl || (artifact.images.length > 0 ? artifact.images[0] : null);
     if (!targetImageUrl) {
+      await releaseUser3DLock(userId);
       return res.status(400).json({ success: false, message: 'Hiện vật chưa có hình ảnh chụp để dựng mô hình 3D' });
     }
 
-    // Chuyển URL tương đối sang đường dẫn thực tế trên server
-    let localImagePath = '';
-    if (targetImageUrl.startsWith('http')) {
-      const tempPath = path.join(ARTIFACTS_UPLOAD_DIR, `temp_gen_${Date.now()}.jpg`);
-      const resp = await fetch(targetImageUrl);
-      const buf = Buffer.from(await resp.arrayBuffer());
-      fs.writeFileSync(tempPath, buf);
-      localImagePath = tempPath;
-    } else {
+    // Nếu ảnh là URL Cloudinary/R2 (http...), truyền trực tiếp URL -> 0% RAM VPS!
+    let localImagePath = targetImageUrl;
+    if (!targetImageUrl.startsWith('http')) {
       const cleanRel = targetImageUrl.replace(/^\/uploads\//, '');
       const candidates = [
         path.join(process.cwd(), 'public', 'uploads', cleanRel),
@@ -468,37 +475,28 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
           break;
         }
       }
+
+      if (!localImagePath || !fs.existsSync(localImagePath)) {
+        await releaseUser3DLock(userId);
+        return res.status(400).json({ success: false, message: 'Không thể tìm thấy file ảnh gốc trên máy chủ' });
+      }
     }
 
-    if (!localImagePath || !fs.existsSync(localImagePath)) {
-      return res.status(400).json({ success: false, message: 'Không thể tìm thấy file ảnh gốc trên máy chủ' });
-    }
-
-    // Xác định ảnh nguồn mặt sau (nếu có trong mảng ảnh hoặc được gửi kèm)
+    // Xác định ảnh nguồn mặt sau (nếu có)
     const { backImageUrl } = req.body;
     const targetBackImageUrl = backImageUrl || (artifact.images && artifact.images.length > 1 ? artifact.images[1] : null);
-    let localBackImagePath = '';
-    if (targetBackImageUrl) {
-      if (targetBackImageUrl.startsWith('http')) {
-        const tempBackPath = path.join(ARTIFACTS_UPLOAD_DIR, `temp_gen_back_${Date.now()}.jpg`);
-        try {
-          const respB = await fetch(targetBackImageUrl);
-          const bufB = Buffer.from(await respB.arrayBuffer());
-          fs.writeFileSync(tempBackPath, bufB);
-          localBackImagePath = tempBackPath;
-        } catch {}
-      } else {
-        const cleanRelB = targetBackImageUrl.replace(/^\/uploads\//, '');
-        const candidatesB = [
-          path.join(process.cwd(), 'public', 'uploads', cleanRelB),
-          path.join(ARTIFACTS_UPLOAD_DIR, path.basename(cleanRelB)),
-          path.join(process.cwd(), 'backend', 'public', 'uploads', cleanRelB)
-        ];
-        for (const candB of candidatesB) {
-          if (fs.existsSync(candB)) {
-            localBackImagePath = candB;
-            break;
-          }
+    let localBackImagePath = targetBackImageUrl || '';
+    if (targetBackImageUrl && !targetBackImageUrl.startsWith('http')) {
+      const cleanRelB = targetBackImageUrl.replace(/^\/uploads\//, '');
+      const candidatesB = [
+        path.join(process.cwd(), 'public', 'uploads', cleanRelB),
+        path.join(ARTIFACTS_UPLOAD_DIR, path.basename(cleanRelB)),
+        path.join(process.cwd(), 'backend', 'public', 'uploads', cleanRelB)
+      ];
+      for (const candB of candidatesB) {
+        if (fs.existsSync(candB)) {
+          localBackImagePath = candB;
+          break;
         }
       }
     }
@@ -513,7 +511,8 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       localImagePath,
       localBackImagePath || undefined,
       dScale,
-      resValue
+      resValue,
+      userId
     );
 
     res.json({
@@ -529,6 +528,7 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       }
     });
   } catch (err: any) {
+    await releaseUser3DLock(userId);
     res.status(500).json({ success: false, message: 'Lỗi kích hoạt tiến trình 3D: ' + err.message });
   }
 });

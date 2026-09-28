@@ -1,0 +1,266 @@
+"""
+Google Colab AI Worker Server (FastAPI + TripoSR Fast)
+File: server_fast.py
+Chạy trên Google Colab GPU Tesla T4 (15GB VRAM)
+Bảo mật bằng X-API-Key + Cơ chế Warm-up nạp sẵn model vào VRAM
+
+Tính năng:
+- Xác thực bảo mật: Bắt buộc Header 'X-API-Key' trên mọi endpoint
+- Nạp sẵn (Warm-up) model TripoSR vào VRAM GPU T4 từ khi khởi động
+- Nhận URL ảnh Cloudinary qua JSON nhẹ, tải trực tiếp vào RAM (BytesIO), không tạo file rác đĩa
+- Render siêu tốc (~3-5 giây trên T4)
+- Tối ưu hóa Mesh cho Three.js Web (Y-up, căn gốc toạ độ, chuẩn hoá kích thước)
+- Xuất trực tiếp file nhị phân .GLB (glTF binary)
+- Tự động giải phóng VRAM PyTorch & Garbage Collector sau mỗi request
+"""
+
+import os
+import io
+import gc
+import time
+from typing import Optional
+from pydantic import BaseModel
+import numpy as np
+from PIL import Image
+import requests
+import torch
+import trimesh
+from fastapi import FastAPI, Header, HTTPException, UploadFile, File, Form, Depends
+from fastapi.responses import Response, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+
+# -------------------------------------------------------------
+# 1. CẤU HÌNH BẢO MẬT & API KEY
+# -------------------------------------------------------------
+API_KEY = os.environ.get("TRIPOSR_API_KEY", "triposr_museum_secret_key_2026")
+
+def verify_api_key(x_api_key: Optional[str] = Header(None)):
+    """Kiểm tra mã bí mật X-API-Key để chống quét cổng và gọi trộm từ bên ngoài"""
+    if not x_api_key or x_api_key != API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Mã X-API-Key không hợp lệ hoặc bị thiếu"
+        )
+    return x_api_key
+
+app = FastAPI(title="TripoSR Fast AI Worker", version="2.5")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# -------------------------------------------------------------
+# 2. WARM-UP MODEL TRIPOSR VÀO GPU T4
+# -------------------------------------------------------------
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+print(f"[*] Đang nạp và warm-up mô hình TripoSR vào {device}...")
+
+from tsr.system import TSR
+from tsr.utils import remove_background, resize_foreground, to_gradio_3d_orientation
+
+model = TSR.from_pretrained(
+    "stabilityai/TripoSR",
+    config_name="config.yaml",
+    weight_name="model.ckpt",
+)
+model.renderer.set_chunk_size(8192)
+model.to(device)
+
+# Chạy thử 1 lần (Warm-up) để nạp sẵn kernel CUDA
+try:
+    dummy_img = Image.new("RGB", (256, 256), color=(128, 128, 128))
+    with torch.no_grad():
+        _dummy_codes = model(dummy_img, device=device)
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    print("[✓] Model TripoSR đã warm-up thành công trên GPU Tesla T4!")
+except Exception as e:
+    print(f"[!] Cảnh báo warm-up: {e}")
+
+# -------------------------------------------------------------
+# 3. HÀM TỐI ƯU HÓA HÌNH HỌC CHO THREE.JS & XUẤT .GLB
+# -------------------------------------------------------------
+def optimize_mesh_to_glb_bytes(mesh: trimesh.Trimesh, max_faces: int = 80000) -> bytes:
+    """
+    Tối ưu hóa hình học cho WebGL / Three.js:
+    - Xoay hướng chuẩn (Y-up, chính diện)
+    - Căn tâm vật thể về gốc toạ độ (0, 0, 0)
+    - Chuẩn hóa kích thước lớn nhất về 1.2 mét
+    - Tối ưu đa giác (Decimation) nếu > max_faces
+    - Trả về mảng bytes nhị phân định dạng GLB
+    """
+    # 1. Chuyển đổi hệ toạ độ theo chuẩn hiển thị TripoSR -> Three.js
+    mesh = to_gradio_3d_orientation(mesh)
+
+    # 2. Căn giữa gốc toạ độ
+    bbox_min, bbox_max = mesh.bounds
+    mesh.vertices -= (bbox_min + bbox_max) / 2.0
+
+    # 3. Chuẩn hóa kích thước lớn nhất về 1.2m
+    max_extent = np.ptp(mesh.vertices, axis=0).max()
+    if max_extent > 0:
+        mesh.vertices *= (1.2 / max_extent)
+
+    # 4. Giảm số lượng mặt tam giác nếu quá nặng
+    if len(mesh.faces) > max_faces:
+        try:
+            mesh = mesh.simplify_quadric_decimation(face_count=max_faces)
+        except Exception:
+            pass
+
+    # 5. Xuất trực tiếp ra bytes GLB trong RAM (Không ghi đĩa)
+    glb_bytes = mesh.export(file_type="glb")
+    return glb_bytes
+
+# -------------------------------------------------------------
+# 4. SCHEMA PAYLOAD
+# -------------------------------------------------------------
+class RenderRequest(BaseModel):
+    image_url: str
+    job_id: Optional[str] = None
+    foreground_ratio: Optional[float] = 0.85
+    mc_resolution: Optional[int] = 256
+    do_remove_background: Optional[bool] = True
+
+# -------------------------------------------------------------
+# 5. API ENDPOINTS
+# -------------------------------------------------------------
+@app.get("/health")
+def health_check(api_key: str = Depends(verify_api_key)):
+    """Kiểm tra tình trạng tài nguyên GPU T4 và xác thực X-API-Key"""
+    gpu_allocated_mb = 0
+    gpu_name = "CPU"
+    if torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+        gpu_allocated_mb = round(torch.cuda.memory_allocated(0) / 1024 / 1024, 1)
+
+    return {
+        "ok": True,
+        "status": "ready",
+        "device": f"{gpu_name} (Free VRAM: {round((15360 - gpu_allocated_mb)/1024, 1)} GB)",
+        "model": "VAST-AI-Research/TripoSR",
+        "gpu_allocated_mb": gpu_allocated_mb,
+        "message": "AI Worker sẵn sàng nhận lệnh"
+    }
+
+@app.post("/render")
+async def render_from_url(
+    req: RenderRequest,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Endpoint chính: Nhận Cloudinary URL qua JSON, tải vào RAM (BytesIO),
+    render trên GPU T4 và trả về trực tiếp luồng nhị phân .GLB
+    """
+    job_id = req.job_id or f"job_{int(time.time())}"
+    print(f"[*] Bắt đầu xử lý Job {job_id} từ URL: {req.image_url}...")
+
+    # 1. Tải ảnh trực tiếp vào RAM qua BytesIO (Không tốn đĩa Colab)
+    try:
+        resp = requests.get(req.image_url, timeout=25)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=400, detail="Không thể tải ảnh từ URL cung cấp")
+        image_bytes = io.BytesIO(resp.content)
+        pil_image = Image.open(image_bytes).convert("RGB")
+    except Exception as fetch_err:
+        raise HTTPException(status_code=400, detail=f"Lỗi tải ảnh nguồn: {str(fetch_err)}")
+
+    # 2. Xử lý ảnh và suy luận AI trên GPU T4
+    try:
+        if req.do_remove_background:
+            pil_image = remove_background(pil_image, rembg_session=None)
+            pil_image = resize_foreground(pil_image, req.foreground_ratio or 0.85)
+
+        t0 = time.time()
+        with torch.no_grad():
+            scene_codes = model(pil_image, device=device)
+            meshes = model.extract_mesh(
+                scene_codes,
+                resolution=req.mc_resolution or 256,
+                threshold=25.0
+            )
+
+        mesh = meshes[0]
+        gen_time = round(time.time() - t0, 2)
+        print(f"[✓] Job {job_id}: TripoSR infer thành công sau {gen_time}s! Đang nén .GLB...")
+
+        # 3. Tối ưu hóa và xuất GLB bytes
+        glb_bytes = optimize_mesh_to_glb_bytes(mesh)
+        size_mb = round(len(glb_bytes) / 1024 / 1024, 2)
+
+        # 4. Thu dọn VRAM và bộ nhớ đệm
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
+
+        # 5. Trả trực tiếp file nhị phân .GLB về cho VPS
+        return Response(
+            content=glb_bytes,
+            media_type="model/gltf-binary",
+            headers={
+                "Content-Disposition": f'attachment; filename="{job_id}.glb"',
+                "X-Job-ID": job_id,
+                "X-Generation-Time-Seconds": str(gen_time),
+                "X-Model-Size-MB": str(size_mb)
+            }
+        )
+    except Exception as e:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
+        print(f"[!] Lỗi tiến trình 3D: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi render mô hình 3D: {str(e)}")
+
+@app.post("/generate-3d")
+async def generate_3d_file(
+    file: UploadFile = File(...),
+    job_id: Optional[str] = Form(None),
+    foreground_ratio: float = Form(0.85),
+    mc_resolution: int = Form(256),
+    do_remove_background: bool = Form(True),
+    api_key: str = Depends(verify_api_key)
+):
+    """Endpoint dự phòng nhận file multipart upload"""
+    current_job_id = job_id or f"job_{int(time.time())}"
+    try:
+        content = await file.read()
+        pil_image = Image.open(io.BytesIO(content)).convert("RGB")
+
+        if do_remove_background:
+            pil_image = remove_background(pil_image, rembg_session=None)
+            pil_image = resize_foreground(pil_image, foreground_ratio)
+
+        t0 = time.time()
+        with torch.no_grad():
+            scene_codes = model(pil_image, device=device)
+            meshes = model.extract_mesh(scene_codes, resolution=mc_resolution, threshold=25.0)
+
+        mesh = meshes[0]
+        gen_time = round(time.time() - t0, 2)
+        glb_bytes = optimize_mesh_to_glb_bytes(mesh)
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
+
+        return Response(
+            content=glb_bytes,
+            media_type="model/gltf-binary",
+            headers={
+                "Content-Disposition": f'attachment; filename="{current_job_id}.glb"',
+                "X-Gen-Time": str(gen_time)
+            }
+        )
+    except Exception as e:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    uvicorn.run("server_fast:app", host="0.0.0.0", port=8000, reload=False)
