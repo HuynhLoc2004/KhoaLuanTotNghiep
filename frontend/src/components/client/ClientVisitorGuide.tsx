@@ -66,174 +66,105 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             role="button"
             tabIndex={0}
             title={t('guide.clickToEnter', 'Bấm để xem cẩm nang & sơ đồ tham quan')}
-            style={hasSimulationNodes && viewMode === 'simulation' ? { background: '#090D17' } : undefined}
           >
-            {hasSimulationNodes && viewMode === 'simulation' ? (
-              <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                <InteractiveFloorPlanMap
-                  floorPlan={floorPlan!}
-                  clientTheme="dark"
-                  previewMode={true}
-                  onSelectRoom360={onSelectRoom360 || onViewAllGuide}
-                />
+            {/* 1. THANH TIÊU ĐỀ NỔI PHÍA TRÊN CỘT BẢN ĐỒ */}
+            <div className="client-guide-map-topbar">
+              <div className="client-guide-map-badge">
+                {hasSimulationNodes ? (
+                  <>
+                    <span className="client-guide-pulse-dot" />
+                    <span>
+                      {t(
+                        'guide.simulatedMapBadge',
+                        `Sơ đồ số hóa • ${floorPlan?.nodes?.length || 0} gian phòng`
+                      )}
+                    </span>
+                  </>
+                ) : hasMapDrawing ? (
+                  <>
+                    <ImageIcon size={13} style={{ color: '#D4A86A' }} />
+                    <span>{t('guide.drawingBadge', 'Bản vẽ sơ đồ kiến trúc')}</span>
+                  </>
+                ) : (
+                  <span>{t('guide.noMapBadge', 'Chưa có sơ đồ')}</span>
+                )}
               </div>
-            ) : hasMapDrawing && (viewMode === 'drawing' || !hasSimulationNodes) ? (
-              <img
-                src={mapImageUrl}
-                alt={floorPlan?.title || branding.guideMapTitle || branding.museumName || 'Sơ đồ mặt bằng'}
-                className="client-zigzag-card-img"
-                style={{ objectFit: 'contain', background: '#090D17', padding: '12px' }}
-                loading="lazy"
-              />
-            ) : (
-              <div className="client-media-placeholder">
-                <div className="client-media-placeholder-icon">
-                  <MapPin size={32} strokeWidth={1.5} />
-                </div>
-                <span className="client-media-placeholder-title">
-                  {t('guide.noMapTitle', 'Chưa bổ sung sơ đồ tham quan')}
-                </span>
-                <span className="client-media-placeholder-desc">
-                  {t('guide.noMapDesc', 'Sơ đồ mặt bằng và cẩm nang sẽ hiển thị sau khi quản trị viên cập nhật tại mục Quản lý Trang Cẩm nang & Sơ đồ.')}
-                </span>
-              </div>
-            )}
 
-            {/* BADGE NỔI GÓC TRÊN BÊN TRÁI */}
-            <div className="client-zigzag-badge-float" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              {hasSimulationNodes ? (
-                <>
-                  <span
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      background: '#4ADE80',
-                      boxShadow: '0 0 8px #4ADE80',
-                      display: 'inline-block'
-                    }}
-                  />
-                  <span>
-                    {t(
-                      'guide.simulatedMapBadge',
-                      `Sơ đồ số hóa • ${floorPlan?.nodes?.length || 0} gian phòng`
-                    )}
-                  </span>
-                </>
-              ) : hasMapDrawing ? (
-                <span>{t('guide.drawingBadge', 'Bản vẽ sơ đồ kiến trúc')}</span>
-              ) : (
-                <span>{t('guide.noMapBadge', 'Chưa có sơ đồ')}</span>
+              {/* NÚT CHUYỂN CHẾ ĐỘ XEM: MÔ PHỎNG SVG VS BẢN VẼ GỐC */}
+              {hasSimulationNodes && hasMapDrawing && (
+                <div
+                  className="client-guide-view-toggle"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className={`client-guide-toggle-btn ${viewMode === 'simulation' ? 'active' : ''}`}
+                    onClick={() => setViewMode('simulation')}
+                    title="Xem sơ đồ số hóa mô phỏng phân tích từ thị giác máy tính"
+                  >
+                    <Sparkles size={11} />
+                    <span>Mô phỏng</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`client-guide-toggle-btn ${viewMode === 'drawing' ? 'active' : ''}`}
+                    onClick={() => setViewMode('drawing')}
+                    title="Xem bản vẽ sơ đồ kiến trúc gốc"
+                  >
+                    <ImageIcon size={11} />
+                    <span>Bản vẽ</span>
+                  </button>
+                </div>
               )}
             </div>
 
-            {/* NÚT CHUYỂN CHẾ ĐỘ XEM: MÔ PHỎNG SVG VS BẢN VẼ GỐC (KHI CÓ CẢ 2) */}
-            {hasSimulationNodes && hasMapDrawing && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 14,
-                  right: 14,
-                  zIndex: 6,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  background: 'rgba(10, 14, 22, 0.88)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(212, 175, 55, 0.35)',
-                  borderRadius: 20,
-                  padding: '3px 4px'
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  onClick={() => setViewMode('simulation')}
-                  style={{
-                    background: viewMode === 'simulation' ? '#C5A059' : 'transparent',
-                    color: viewMode === 'simulation' ? '#0F131D' : '#CBD5E1',
-                    border: 'none',
-                    borderRadius: 14,
-                    padding: '3px 9px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    transition: 'all 0.15s ease'
-                  }}
-                  title="Xem sơ đồ số hóa mô phỏng phân tích từ thị giác máy tính"
-                >
-                  <Sparkles size={11} />
-                  <span>Mô phỏng</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('drawing')}
-                  style={{
-                    background: viewMode === 'drawing' ? '#C5A059' : 'transparent',
-                    color: viewMode === 'drawing' ? '#0F131D' : '#CBD5E1',
-                    border: 'none',
-                    borderRadius: 14,
-                    padding: '3px 9px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    transition: 'all 0.15s ease'
-                  }}
-                  title="Xem bản vẽ sơ đồ kiến trúc gốc"
-                >
-                  <ImageIcon size={11} />
-                  <span>Bản vẽ</span>
-                </button>
-              </div>
-            )}
-
-            {/* CHÂN CAPTION CỘT MEDIA */}
-            {(hasSimulationNodes || hasMapDrawing) && (
-              <div
-                className="client-zigzag-media-caption"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 10
-                }}
-              >
-                <span
-                  style={{
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    fontSize: '0.82rem'
-                  }}
-                >
-                  {hasSimulationNodes
-                    ? `📍 ${floorPlan?.title || 'Sơ đồ mặt bằng các gian trưng bày'}`
-                    : `📍 ${floorPlan?.title || branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng'}`}
-                </span>
-                {hasSimulationNodes && (
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      color: '#D4A86A',
-                      fontWeight: 600,
-                      flexShrink: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3
-                    }}
-                  >
-                    <span>{t('guide.clickToExplore', 'Chạm để mở bản đồ')}</span>
-                    <ExternalLink size={11} />
+            {/* 2. VÙNG KHUNG CANVAS HIỂN THỊ CHÍNH */}
+            <div className="client-guide-map-canvas">
+              {hasSimulationNodes && viewMode === 'simulation' ? (
+                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                  <InteractiveFloorPlanMap
+                    floorPlan={floorPlan!}
+                    clientTheme="dark"
+                    previewMode={true}
+                    onSelectRoom360={onSelectRoom360 || onViewAllGuide}
+                  />
+                </div>
+              ) : hasMapDrawing && (viewMode === 'drawing' || !hasSimulationNodes) ? (
+                <div className="client-guide-drawing-frame">
+                  <img
+                    src={mapImageUrl}
+                    alt={floorPlan?.title || branding.guideMapTitle || branding.museumName || 'Sơ đồ mặt bằng'}
+                    className="client-guide-drawing-img"
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div className="client-media-placeholder">
+                  <div className="client-media-placeholder-icon">
+                    <MapPin size={32} strokeWidth={1.5} />
+                  </div>
+                  <span className="client-media-placeholder-title">
+                    {t('guide.noMapTitle', 'Chưa bổ sung sơ đồ tham quan')}
                   </span>
-                )}
+                  <span className="client-media-placeholder-desc">
+                    {t('guide.noMapDesc', 'Sơ đồ mặt bằng và cẩm nang sẽ hiển thị sau khi quản trị viên cập nhật tại mục Quản lý Trang Cẩm nang & Sơ đồ.')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* 3. THANH THÔNG TIN DƯỚI (BOTTOMBAR) */}
+            {(hasSimulationNodes || hasMapDrawing) && (
+              <div className="client-guide-map-bottombar">
+                <span className="client-guide-map-title">
+                  📍 {hasSimulationNodes
+                    ? (floorPlan?.title || 'Sơ đồ mặt bằng các gian trưng bày')
+                    : (floorPlan?.title || branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng')}
+                </span>
+                <span className="client-guide-map-action">
+                  <span>{t('guide.clickToExplore', 'Chạm để mở bản đồ chi tiết')}</span>
+                  <ExternalLink size={11} />
+                </span>
               </div>
             )}
           </div>

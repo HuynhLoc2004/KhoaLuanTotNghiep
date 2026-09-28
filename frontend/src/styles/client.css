@@ -3957,6 +3957,226 @@
   gap: 8px;
 }
 
+/* ========================================================
+   KHỐI CẨM NANG & SƠ ĐỒ THAM QUAN (#guide):
+   TẮT BÓNG ĐEN PHỦ MỜ VÀ THIẾT KẾ KHUNG BẢN VẼ CHUẨN BẢO TÀNG
+   ======================================================== */
+#guide .client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-media::after,
+#guide .client-zigzag-card.horizontal-split .client-zigzag-card-media::after {
+  display: none !important;
+}
+
+#guide .client-zigzag-card-media {
+  display: flex !important;
+  flex-direction: column !important;
+  background: #080C14 !important;
+  border-left: 1px solid rgba(212, 175, 55, 0.22);
+  min-height: 480px;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-client-theme="light"] #guide .client-zigzag-card-media {
+  background: #F4F6F9 !important;
+  border-left: 1px solid rgba(180, 138, 60, 0.22);
+}
+
+/* THANH TIÊU ĐỀ NỔI PHÍA TRÊN CỘT BẢN ĐỒ */
+.client-guide-map-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(10, 14, 22, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  z-index: 5;
+  flex-shrink: 0;
+}
+
+[data-client-theme="light"] .client-guide-map-topbar {
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid rgba(180, 138, 60, 0.2);
+}
+
+.client-guide-map-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #FAF7F2;
+  letter-spacing: 0.02em;
+}
+
+[data-client-theme="light"] .client-guide-map-badge {
+  color: #1F2937;
+}
+
+.client-guide-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ADE80;
+  box-shadow: 0 0 8px #4ADE80;
+  display: inline-block;
+  animation: guidePulse 2s infinite ease-in-out;
+}
+
+@keyframes guidePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.75; }
+}
+
+/* NÚT CHUYỂN TAB MÔ PHỎNG VS BẢN VẼ */
+.client-guide-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(18, 24, 38, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 20px;
+  padding: 3px 4px;
+}
+
+[data-client-theme="light"] .client-guide-view-toggle {
+  background: rgba(235, 240, 248, 0.95);
+  border: 1px solid rgba(180, 138, 60, 0.35);
+}
+
+.client-guide-toggle-btn {
+  background: transparent;
+  color: #94A3B8;
+  border: none;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.client-guide-toggle-btn:hover {
+  color: #FAF7F2;
+}
+
+.client-guide-toggle-btn.active {
+  background: #C5A059;
+  color: #0B0E17;
+  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.35);
+}
+
+[data-client-theme="light"] .client-guide-toggle-btn.active {
+  background: #B48A3C;
+  color: #FFFFFF;
+}
+
+/* VÙNG KHUNG CANVAS TRUNG TÂM */
+.client-guide-map-canvas {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  min-height: 360px;
+}
+
+/* KHUNG VIỀN DI SẢN CHUẨN CHO BẢN VẼ SCAN */
+.client-guide-drawing-frame {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.45) 0%, rgba(10, 14, 22, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: inset 0 0 35px rgba(0, 0, 0, 0.7), 0 10px 30px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  position: relative;
+}
+
+[data-client-theme="light"] .client-guide-drawing-frame {
+  background: radial-gradient(circle at center, #FFFFFF 0%, #E8EEF5 100%);
+  border: 1px solid rgba(180, 138, 60, 0.3);
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.client-guide-drawing-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: block;
+}
+
+.client-zigzag-card-media:hover .client-guide-drawing-img {
+  transform: scale(1.02);
+}
+
+/* THANH CHÂN CAPTION NỔI PHÍA DƯỚI */
+.client-guide-map-bottombar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 16px;
+  background: rgba(10, 14, 22, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(212, 175, 55, 0.18);
+  z-index: 5;
+  flex-shrink: 0;
+}
+
+[data-client-theme="light"] .client-guide-map-bottombar {
+  background: rgba(255, 255, 255, 0.94);
+  border-top: 1px solid rgba(180, 138, 60, 0.18);
+}
+
+.client-guide-map-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #E2E8F0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-client-theme="light"] .client-guide-map-title {
+  color: #1F2937;
+}
+
+.client-guide-map-action {
+  font-size: 0.74rem;
+  color: #D4A86A;
+  font-weight: 600;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
+}
+
+.client-zigzag-card-media:hover .client-guide-map-action {
+  color: #F6D68D;
+}
+
 /* NỘI DUNG TRONG THẺ */
 .client-zigzag-card-body {
   padding: clamp(24px, 3.2vw, 36px);
