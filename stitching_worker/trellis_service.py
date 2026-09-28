@@ -133,6 +133,10 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
 
     try:
         log(f"Dang tao 3D tu anh: {os.path.basename(image_path)} ...")
+        log(f"  Full path: {image_path}")
+        log(f"  File ton tai: {os.path.exists(image_path)}")
+        if os.path.exists(image_path):
+            log(f"  File size: {os.path.getsize(image_path)} bytes")
         t0 = time.time()
 
         result = client.predict(
@@ -210,7 +214,9 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
 
     except Exception as e:
         error_msg = str(e)
+        import traceback
         log(f"[ERROR] Loi trong qua trinh tao 3D: {error_msg}")
+        log(f"[ERROR] Traceback:\n{traceback.format_exc()}")
 
         if "queue" in error_msg.lower() or "too many" in error_msg.lower():
             friendly = "Hang doi TRELLIS dang day. Vui long thu lai sau vai phut."
