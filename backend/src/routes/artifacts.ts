@@ -9,6 +9,7 @@ import { generateQRCodeBuffer, generateQRCodeDataURL } from '../services/qr.js';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 import { enqueue3DReconstruction } from '../services/artifact3dQueue.js';
+import { getTripoSRUrl, setTripoSRUrl, pingTripoSR } from '../services/triposrClient.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertArtifact, pgDeleteArtifact } from '../db/syncEngine.js';
 
@@ -599,3 +600,51 @@ artifactsRouter.get('/:id/qr-download', async (req: Request, res: Response) => {
     res.status(500).send('Lỗi sinh mã QR: ' + err.message);
   }
 });
+
+/**
+ * GET /api/artifacts/colab-tunnel
+ * Lấy cấu hình URL Cloudflare Tunnel Colab và kiểm tra trạng thái GPU T4 trực tiếp
+ */
+artifactsRouter.get('/colab-tunnel', async (_req: Request, res: Response) => {
+  try {
+    const url = await getTripoSRUrl();
+    const pingResult = await pingTripoSR(url);
+    res.json({
+      success: true,
+      data: {
+        configured: !!url,
+        ...pingResult,
+        url
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi kiểm tra Colab Tunnel: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/artifacts/colab-tunnel
+ * Lưu URL Cloudflare Tunnel mới (trycloudflare.com) và kiểm tra kết nối ngay
+ */
+artifactsRouter.post('/colab-tunnel', async (req: Request, res: Response) => {
+  try {
+    const { url } = req.body;
+    const updatedUrl = await setTripoSRUrl(url || '');
+    const pingResult = await pingTripoSR(updatedUrl);
+
+    res.json({
+      success: true,
+      message: pingResult.ok
+        ? 'Đã kết nối thành công tới Colab GPU T4 Worker!'
+        : (updatedUrl ? 'Đã lưu URL nhưng chưa kết nối được tới Colab' : 'Đã xóa cấu hình Colab Tunnel'),
+      data: {
+        configured: !!updatedUrl,
+        ...pingResult,
+        url: updatedUrl
+      }
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message || 'Lỗi cập nhật Colab Tunnel' });
+  }
+});
+

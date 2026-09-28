@@ -35,7 +35,8 @@ import {
   BookOpen,
   Mic,
   Info,
-  Globe
+  Globe,
+  Cpu
 } from 'lucide-react';
 import { api, API_ROOT } from '../../services/api';
 import { Artifact, LanguageItem } from '../../types';
@@ -112,6 +113,48 @@ export const AdminArtifactsPage: React.FC = () => {
   // Polling ref cho các job 3D đang chạy
   const pollingTimerRef = useRef<any>(null);
 
+  // Google Colab GPU T4 TripoSR Tunnel State
+  const [colabTunnelUrl, setColabTunnelUrl] = useState('');
+  const [colabStatus, setColabStatus] = useState<{
+    url?: string;
+    configured?: boolean;
+    ok?: boolean;
+    status?: string;
+    device?: string;
+    model?: string;
+    message?: string;
+    latencyMs?: number;
+  } | null>(null);
+  const [isCheckingColab, setIsCheckingColab] = useState(false);
+  const [showColabModal, setShowColabModal] = useState(false);
+
+  const fetchColabStatus = async () => {
+    try {
+      const data = await api.getColabTunnelConfig();
+      setColabStatus(data);
+      if (data.url) setColabTunnelUrl(data.url);
+    } catch (err: any) {
+      console.warn('[Colab Status Warning]:', err.message);
+    }
+  };
+
+  const handleSaveColabTunnel = async () => {
+    try {
+      setIsCheckingColab(true);
+      const data = await api.updateColabTunnelUrl(colabTunnelUrl.trim());
+      setColabStatus(data);
+      if (data.ok) {
+        showToast(`Kết nối Colab GPU T4 thành công! (${data.latencyMs}ms)`, 'success');
+      } else {
+        showToast(data.message || 'Không thể kết nối đến URL này. Hãy kiểm tra Google Colab!', 'warning');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi lưu cấu hình Colab', 'error');
+    } finally {
+      setIsCheckingColab(false);
+    }
+  };
+
   const fetchArtifacts = async () => {
     try {
       setLoading(true);
@@ -143,6 +186,7 @@ export const AdminArtifactsPage: React.FC = () => {
   useEffect(() => {
     fetchArtifacts();
     fetchLanguages();
+    fetchColabStatus();
   }, []);
 
   // Polling tự động khi có hiện vật đang trong trạng thái 'processing'
@@ -844,6 +888,32 @@ export const AdminArtifactsPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => { setShowColabModal(true); fetchColabStatus(); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                borderColor: colabStatus?.ok ? 'rgba(34, 197, 94, 0.5)' : undefined,
+                background: colabStatus?.ok ? 'rgba(34, 197, 94, 0.08)' : undefined
+              }}
+              title="Cấu hình Google Colab GPU Tesla T4 (TripoSR Cloudflare Quick Tunnel)"
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: colabStatus?.ok ? 'var(--success, #22c55e)' : (colabStatus?.configured ? '#f59e0b' : '#94a3b8'),
+                  boxShadow: colabStatus?.ok ? '0 0 6px rgba(34, 197, 94, 0.6)' : 'none'
+                }}
+              />
+              <Cpu size={14} style={{ color: colabStatus?.ok ? 'var(--success, #22c55e)' : 'inherit' }} />
+              <span>AI Colab T4 {colabStatus?.ok ? '(Sẵn sàng)' : ''}</span>
+            </button>
+
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -1857,6 +1927,51 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Colab AI Worker Engine Status Indicator */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: colabStatus?.ok ? 'rgba(34, 197, 94, 0.08)' : 'rgba(234, 179, 8, 0.08)',
+                  border: `1px solid ${colabStatus?.ok ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
+                  fontSize: '12px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: colabStatus?.ok ? 'var(--success, #22c55e)' : '#f59e0b',
+                      boxShadow: colabStatus?.ok ? '0 0 6px rgba(34, 197, 94, 0.6)' : 'none'
+                    }}
+                  />
+                  <span style={{ color: 'var(--text-muted)' }}>Động cơ AI:</span>
+                  <strong style={{ color: colabStatus?.ok ? 'var(--success, #22c55e)' : 'var(--accent-gold)' }}>
+                    {colabStatus?.ok ? 'TripoSR (Google Colab GPU T4)' : 'Python cục bộ (Local VPS)'}
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowColabModal(true); fetchColabStatus(); }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent-gold)',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    textDecoration: 'underline',
+                    fontWeight: 600
+                  }}
+                >
+                  {colabStatus?.ok ? 'Đổi Tunnel' : 'Kết nối Colab T4'}
+                </button>
+              </div>
+
               <div
                 style={{
                   background: 'var(--bg-subtle)',
@@ -1897,6 +2012,153 @@ export const AdminArtifactsPage: React.FC = () => {
                   <>
                     <Box size={14} />
                     <span>Bắt đầu số hóa 3D</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CẤU HÌNH GOOGLE COLAB TRIPOSR AI TUNNEL */}
+      {showColabModal && (
+        <div className="modal-backdrop" style={{ zIndex: 1300 }}>
+          <div className="modal-card" style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Cpu size={18} style={{ color: 'var(--accent-gold)' }} />
+                <h2 className="modal-title" style={{ fontSize: '16px', margin: 0 }}>
+                  Cấu hình AI Worker TripoSR (Google Colab T4)
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowColabModal(false)}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div
+                style={{
+                  background: 'var(--bg-subtle)',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.6,
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                💡 <strong>Tối ưu tài nguyên:</strong> Máy chủ VPS có tài nguyên thấp (2GB RAM). Việc tái tạo mô hình 3D (TripoSR) được ủy quyền xử lý trên <strong>GPU Tesla T4 (15GB VRAM)</strong> của Google Colab và phơi cổng qua Cloudflare Quick Tunnel.
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ marginBottom: 6, fontWeight: 600 }}>
+                  Endpoint Cloudflare Quick Tunnel:
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="https://xxxx.trycloudflare.com"
+                    value={colabTunnelUrl}
+                    onChange={(e) => setColabTunnelUrl(e.target.value)}
+                    style={{ flex: 1, fontFamily: 'monospace', fontSize: '13px' }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setColabTunnelUrl('')}
+                    title="Xóa URL"
+                  >
+                    Xóa
+                  </button>
+                </div>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                  Copy URL HTTPS được tạo từ lệnh <code>cloudflared tunnel --url http://localhost:8000</code> trên Google Colab.
+                </span>
+              </div>
+
+              {/* Trạng thái kết nối thời gian thực */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: colabStatus?.ok
+                    ? 'rgba(34, 197, 94, 0.08)'
+                    : (colabStatus?.configured ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-subtle)'),
+                  border: `1px solid ${
+                    colabStatus?.ok
+                      ? 'rgba(34, 197, 94, 0.3)'
+                      : (colabStatus?.configured ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)')
+                  }`
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span
+                      style={{
+                        width: 9,
+                        height: 9,
+                        borderRadius: '50%',
+                        background: colabStatus?.ok ? '#22c55e' : (colabStatus?.configured ? '#ef4444' : '#94a3b8'),
+                        boxShadow: colabStatus?.ok ? '0 0 8px rgba(34, 197, 94, 0.7)' : 'none'
+                      }}
+                    />
+                    <strong style={{ fontSize: '13px', color: colabStatus?.ok ? 'var(--success, #22c55e)' : 'inherit' }}>
+                      {colabStatus?.ok
+                        ? '🟢 GPU T4 Sẵn sàng hoạt động'
+                        : (colabStatus?.configured ? '🔴 Mất kết nối Colab' : '⚪ Chưa thiết lập kết nối')}
+                    </strong>
+                  </div>
+                  {colabStatus?.latencyMs ? (
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Độ trễ: {colabStatus.latencyMs}ms
+                    </span>
+                  ) : null}
+                </div>
+
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  {colabStatus?.message || 'Nhập URL Tunnel và bấm Kiểm tra kết nối bên dưới.'}
+                </div>
+
+                {colabStatus?.ok && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed rgba(34, 197, 94, 0.2)', fontSize: '11px', display: 'flex', gap: 16 }}>
+                    <span>Thiết bị: <strong>{colabStatus.device || 'NVIDIA T4'}</strong></span>
+                    <span>Mô hình: <strong>{colabStatus.model || 'TripoSR'}</strong></span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '12px 20px', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowColabModal(false)}
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleSaveColabTunnel}
+                disabled={isCheckingColab}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                {isCheckingColab ? (
+                  <>
+                    <Loader2 size={14} className="spin" />
+                    <span>Đang kiểm tra...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} />
+                    <span>Lưu & Kiểm tra kết nối</span>
                   </>
                 )}
               </button>

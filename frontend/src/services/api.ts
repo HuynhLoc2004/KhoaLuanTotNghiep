@@ -548,6 +548,44 @@ export const api = {
     return `${API_BASE}/artifacts/${id}/qr-download`;
   },
 
+  async getColabTunnelConfig(): Promise<{
+    url: string;
+    configured: boolean;
+    ok: boolean;
+    status: string;
+    device?: string;
+    model?: string;
+    message?: string;
+    latencyMs?: number;
+  }> {
+    const res = await fetch(`${API_BASE}/artifacts/colab-tunnel`, {
+      headers: getAuthHeaders()
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi kiểm tra cấu hình Colab Tunnel');
+    return json.data;
+  },
+
+  async updateColabTunnelUrl(url: string): Promise<{
+    url: string;
+    configured: boolean;
+    ok: boolean;
+    status: string;
+    device?: string;
+    model?: string;
+    message?: string;
+    latencyMs?: number;
+  }> {
+    const res = await fetch(`${API_BASE}/artifacts/colab-tunnel`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({ url })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật Colab Tunnel URL');
+    return json.data;
+  },
+
   async getFloorPlan(): Promise<FloorPlanMap> {
     const res = await fetch(`${API_BASE}/floor-plan`);
     const json = await res.json();
