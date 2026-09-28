@@ -23,3 +23,5 @@ Test/
 *.flag
 maintenance_flag/*.flag
 test_img/
+*.glb
+*.tsbuildinfo
