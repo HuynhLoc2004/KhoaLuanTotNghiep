@@ -116,9 +116,9 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
     """
     Goi TRELLIS Space qua gradio_client de tao mo hinh 3D tu anh.
 
-    Pipeline TRELLIS gom 2 buoc:
-      Step 1: /image_to_3d  - Xu ly anh -> tao Gaussian + mesh (30-90s)
-      Step 2: /extract_glb  - Xuat file .glb tu mesh (5-10s)
+    Su dung endpoint /generate_and_extract_glb (1 buoc duy nhat):
+      - Nhan anh dau vao
+      - Tra ve file .glb hoan chinh
     """
     image_path = str(image_path)
     output_glb_path = str(output_glb_path)
@@ -132,58 +132,49 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
         return {"success": False, "error": str(e)}
 
     try:
-        # ---------------------------------------------------------------
-        # BUOC 1: image_to_3d
-        # Gui anh, TRELLIS xu ly va tra ve Gaussian + mesh data
-        # ---------------------------------------------------------------
-        log(f"Step 1: image_to_3d (anh: {os.path.basename(image_path)}) ...")
+        log(f"Dang tao 3D tu anh: {os.path.basename(image_path)} ...")
         t0 = time.time()
 
-        step1_result = client.predict(
+        result = client.predict(
             image=handle_file(image_path),
             multiimages=[],
             seed=0,
-            randomize_seed=True,
             ss_guidance_strength=7.5,
             ss_sampling_steps=12,
             slat_guidance_strength=3.0,
             slat_sampling_steps=12,
             multiimage_algo="stochastic",
-            api_name="/image_to_3d"
+            mesh_simplify=0.95,
+            texture_size=1024,
+            api_name="/generate_and_extract_glb"
         )
 
         t1 = time.time()
-        log(f"[OK] Step 1 hoan tat sau {t1-t0:.1f}s. Result: {str(step1_result)[:200]}")
-
-        # ---------------------------------------------------------------
-        # BUOC 2: extract_glb
-        # Xuat file .glb tu mesh da tao o Step 1
-        # ---------------------------------------------------------------
-        log("Step 2: extract_glb ...")
-        t2 = time.time()
-
-        step2_result = client.predict(
-            mesh_simplify=0.95,
-            texture_size=1024,
-            api_name="/extract_glb"
-        )
-
-        t3 = time.time()
-        log(f"[OK] Step 2 hoan tat sau {t3-t2:.1f}s. Result: {str(step2_result)[:200]}")
+        log(f"[OK] TRELLIS hoan tat sau {t1-t0:.1f}s. Result type: {type(result).__name__}")
 
         # Lay duong dan file .glb tu ket qua
         glb_source = None
-        if isinstance(step2_result, (list, tuple)) and len(step2_result) > 0:
-            glb_source = step2_result[0]
-        elif isinstance(step2_result, str):
-            glb_source = step2_result
-        elif isinstance(step2_result, dict):
-            glb_source = step2_result.get("value") or step2_result.get("path")
+        if isinstance(result, (list, tuple)):
+            # Tim file .glb trong list ket qua
+            for item in result:
+                if isinstance(item, str) and item.endswith(".glb"):
+                    glb_source = item
+                    break
+                elif isinstance(item, dict) and (item.get("path", "").endswith(".glb") or item.get("value", "").endswith(".glb")):
+                    glb_source = item.get("path") or item.get("value")
+                    break
+            # Neu khong tim thay .glb, lay phan tu cuoi
+            if not glb_source and len(result) > 0:
+                glb_source = result[-1]
+        elif isinstance(result, str):
+            glb_source = result
+        elif isinstance(result, dict):
+            glb_source = result.get("value") or result.get("path")
 
         if not glb_source:
             return {
                 "success": False,
-                "error": f"TRELLIS khong tra ve duong dan file GLB hop le. Output: {step2_result}"
+                "error": f"TRELLIS khong tra ve duong dan file GLB hop le. Output: {str(result)[:300]}"
             }
 
         # glb_source co the la dict (Gradio FileData) hoac string
@@ -198,9 +189,7 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
                 "error": f"File GLB tam khong ton tai tren dia: {glb_file_path}"
             }
 
-        # ---------------------------------------------------------------
-        # BUOC 3: Copy file GLB -> output path
-        # ---------------------------------------------------------------
+        # Copy file GLB -> output path
         output_dir = os.path.dirname(output_glb_path)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
@@ -235,6 +224,7 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
             friendly = f"Loi TRELLIS: {error_msg}"
 
         return {"success": False, "error": friendly, "raw_error": error_msg}
+
 
 
 def main():
