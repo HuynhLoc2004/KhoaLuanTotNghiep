@@ -48,6 +48,8 @@ HF_TOKEN = (
 )
 
 if HF_TOKEN:
+    os.environ["HF_TOKEN"] = HF_TOKEN
+    os.environ["HUGGING_FACE_HUB_TOKEN"] = HF_TOKEN
     log(f"[OK] Da tim thay HuggingFace token (ACCCESS_TOKEN_HUGE_SPACE), do dai: {len(HF_TOKEN)} ky tu")
 else:
     log("[WARN] Khong tim thay HuggingFace token, se goi anonymous (co the bi rate-limit)")
@@ -76,31 +78,26 @@ def connect_to_trellis():
     Client, handle_file = load_gradio_client()
     last_error = None
     for space_id in TRELLIS_SPACES:
-        # Thu nhieu cach truyen token vi gradio_client thay doi API giua cac version
-        token_kwargs_list = [
-            {"hf_token": HF_TOKEN},   # gradio_client >= 1.0
-            {"hf_token": HF_TOKEN},   # alias
-        ]
-        if not HF_TOKEN:
-            token_kwargs_list = [{}]   # Khong co token thi goi anonymous
+        # gradio_client >= 1.0 dung `token`, ban cu hon dung `hf_token`
+        token_kwargs_list = []
+        if HF_TOKEN:
+            token_kwargs_list = [
+                {"token": HF_TOKEN},      # gradio_client hien dai
+                {"hf_token": HF_TOKEN},   # gradio_client cu hon
+                {}                        # anonymous
+            ]
+        else:
+            token_kwargs_list = [{}]
 
         for token_kwargs in token_kwargs_list:
             try:
-                log(f"Dang ket noi toi Space: {space_id} ...")
+                log(f"Dang ket noi toi Space: {space_id} (kwargs: {list(token_kwargs.keys())})...")
                 client = Client(space_id, **token_kwargs)
                 log(f"[OK] Ket noi thanh cong toi {space_id}")
                 return client, handle_file
             except TypeError as te:
-                # Neu tham so hf_token khong duoc chap nhan, thu khong truyen token
-                log(f"[WARN] Tham so token khong duoc chap nhan ({te}), thu ket noi anonymous...")
-                try:
-                    client = Client(space_id)
-                    log(f"[OK] Ket noi thanh cong toi {space_id} (anonymous)")
-                    return client, handle_file
-                except Exception as e2:
-                    log(f"[FAIL] Ket noi anonymous cung that bai: {e2}")
-                    last_error = e2
-                    break
+                log(f"[WARN] Tham so {list(token_kwargs.keys())} khong phu hop ({te}), thu tuy chon tiep theo...")
+                continue
             except Exception as e:
                 log(f"[FAIL] Khong ket noi duoc toi {space_id}: {e}")
                 last_error = e
@@ -114,11 +111,10 @@ def connect_to_trellis():
 
 def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
     """
-    Goi TRELLIS Space qua gradio_client de tao mo hinh 3D tu anh.
-
-    Su dung endpoint /generate_and_extract_glb (1 buoc duy nhat):
-      - Nhan anh dau vao
-      - Tra ve file .glb hoan chinh
+    Goi TRELLIS Space qua gradio_client de tao mo hinh 3D tu anh:
+      1. /start_session: Khoi tao thu muc phien tren server (tranh loi FileNotFoundError)
+      2. /preprocess_image: Tach nen va chuan hoa anh sang RGBA vuong
+      3. /generate_and_extract_glb: Tao mesh 3D va xuat file .glb hoan chinh
     """
     image_path = str(image_path)
     output_glb_path = str(output_glb_path)
@@ -139,8 +135,37 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
             log(f"  File size: {os.path.getsize(image_path)} bytes")
         t0 = time.time()
 
+        # Buoc 1: Khoi tao session de server tao thu muc TMP_DIR/<session_hash>
+        try:
+            log("Buoc 1/3: Khoi tao phien lam viec tren Space (/start_session)...")
+            client.predict(api_name="/start_session")
+            log("[OK] Khoi tao session thanh cong.")
+        except Exception as se:
+            log(f"[WARN] /start_session: {se} (tiep tuc sang buoc sau)")
+
+        # Buoc 2: Tien xu ly anh (tach nen, can chinh 512x512 RGBA)
+        image_input_param = handle_file(image_path)
+        try:
+            log("Buoc 2/3: Tien xu ly tach nen va chuan hoa anh (/preprocess_image)...")
+            preprocessed = client.predict(
+                image=handle_file(image_path),
+                api_name="/preprocess_image"
+            )
+            log(f"[OK] Tien xu ly thanh cong: {type(preprocessed).__name__}")
+            if isinstance(preprocessed, dict) and preprocessed.get("path"):
+                image_input_param = handle_file(preprocessed["path"])
+            elif isinstance(preprocessed, str) and os.path.exists(preprocessed):
+                image_input_param = handle_file(preprocessed)
+            elif preprocessed:
+                image_input_param = preprocessed
+        except Exception as pe:
+            log(f"[WARN] /preprocess_image gap loi ({pe}), su dung anh goc truc tiep...")
+            image_input_param = handle_file(image_path)
+
+        # Buoc 3: Tao mo hinh 3D va trich xuat GLB
+        log("Buoc 3/3: Dang chay TRELLIS Inference & GLB Extraction (/generate_and_extract_glb)...")
         result = client.predict(
-            image=handle_file(image_path),
+            image=image_input_param,
             multiimages=[],
             seed=0,
             ss_guidance_strength=7.5,
@@ -159,15 +184,15 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
         # Lay duong dan file .glb tu ket qua
         glb_source = None
         if isinstance(result, (list, tuple)):
-            # Tim file .glb trong list ket qua
-            for item in result:
+            # Tim file .glb trong list ket qua (duyet nguoc vi download_glb o cuoi)
+            for item in reversed(result):
                 if isinstance(item, str) and item.endswith(".glb"):
                     glb_source = item
                     break
-                elif isinstance(item, dict) and (item.get("path", "").endswith(".glb") or item.get("value", "").endswith(".glb")):
+                elif isinstance(item, dict) and (str(item.get("path", "")).endswith(".glb") or str(item.get("value", "")).endswith(".glb")):
                     glb_source = item.get("path") or item.get("value")
                     break
-            # Neu khong tim thay .glb, lay phan tu cuoi
+            # Neu khong tim thay file co duoi .glb, lay phan tu cuoi cung
             if not glb_source and len(result) > 0:
                 glb_source = result[-1]
         elif isinstance(result, str):
