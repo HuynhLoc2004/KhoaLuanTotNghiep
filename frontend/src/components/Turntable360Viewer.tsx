@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
   RotateCw,
   RotateCcw,
@@ -97,10 +98,15 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const [viewMode, setViewMode] = useState<'parallax' | '360'>('360');
   const viewModeRef = useRef(viewMode);
 
-  // Chế độ vân bề mặt: 'vertex' (Màu đa giác 3D 360° chiếu nét ảnh thật) | 'photo' (Phủ ảnh phẳng 2D)
+  // Chế độ vân bề mặt: 'vertex' (Màu PBR 3D sắc nét từ file GLB) | 'photo' (Phủ ảnh phẳng 2D)
   const [textureMode, setTextureMode] = useState<'photo' | 'vertex'>('vertex');
   const textureModeRef = useRef<'photo' | 'vertex'>('vertex');
   const originalTextureRef = useRef<THREE.Texture | null>(null);
+
+  // Lưu trữ texture gốc và toạ độ UV gốc từ file GLB (do AI TRELLIS tạo ra)
+  const glbOriginalMapsRef = useRef<Map<THREE.Mesh, THREE.Texture | null>>(new Map());
+  const glbOriginalUVsRef = useRef<Map<THREE.Mesh, THREE.BufferAttribute>>(new Map());
+  const planarUVsRef = useRef<Map<THREE.Mesh, THREE.BufferAttribute>>(new Map());
 
   const applyTextureMode = (mode: 'photo' | 'vertex') => {
     textureModeRef.current = mode;
@@ -112,17 +118,32 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         if (mesh.material) {
           const updateMat = (m: THREE.Material) => {
             const std = m as THREE.MeshStandardMaterial;
+            const hasGLBTexture = !!glbOriginalMapsRef.current.get(mesh);
+
             if (mode === 'photo' && originalTextureRef.current) {
+              // Chế độ: Phủ ảnh phẳng 2D
+              const pUV = planarUVsRef.current.get(mesh);
+              if (pUV) mesh.geometry.setAttribute('uv', pUV);
               std.map = originalTextureRef.current;
               std.vertexColors = false;
               std.color.setHex(0xffffff);
-              std.roughness = 0.45;
-              std.metalness = 0.05;
-            } else {
-              std.map = null;
-              std.vertexColors = true;
+              std.roughness = 0.55;
+              std.metalness = 0.08;
+            } else if (hasGLBTexture) {
+              // Chế độ mặc định: Dùng texture PBR 3D chính thống từ TRELLIS (đầy đủ màu đồng, chi tiết 360°)
+              const oUV = glbOriginalUVsRef.current.get(mesh);
+              if (oUV) mesh.geometry.setAttribute('uv', oUV);
+              std.map = glbOriginalMapsRef.current.get(mesh) || null;
+              std.vertexColors = false;
               std.color.setHex(0xffffff);
-              std.roughness = 0.52;
+              std.roughness = 0.55;
+              std.metalness = 0.15;
+            } else {
+              // Fallback nếu không có texture map
+              std.map = null;
+              std.vertexColors = !!mesh.geometry.getAttribute('color');
+              std.color.setHex(0xffffff);
+              std.roughness = 0.55;
               std.metalness = 0.1;
             }
             std.transparent = false;
@@ -291,9 +312,16 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.02; // Phơi sáng chuẩn 1.02 giúp màu sắc đậm đà trung thực, không bị cháy trắng
+    renderer.toneMappingExposure = 1.25; // Phơi sáng 1.25 giúp tôn màu đồng cổ rực rỡ, trung thực như ảnh gốc
     rendererRef.current = renderer;
+
+    // ENVIRONMENT MAP (Tạo ánh sáng môi trường 360° mềm mại - khử hoàn toàn bóng đen sẫm, tôn màu đồng cổ)
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    const roomEnvTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = roomEnvTexture;
 
     // CONTROLS (OrbitControls)
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -312,18 +340,22 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     controls.target.set(0, 1.05, 0);
     controlsRef.current = controls;
 
-    // LIGHTING (Hệ thống đèn bảo tàng dịu ấm, cân bằng tương phản, bảo toàn màu gốc)
+    // LIGHTING (Hệ thống đèn bảo tàng dịu ấm, khử hoàn toàn bóng đen sẫm, tái hiện màu gốc 100%)
     // 1. Ánh sáng môi trường dịu nhẹ (khử bóng chết nhưng giữ chiều sâu màu sắc)
-    const ambientLight = new THREE.AmbientLight(0xfff6ec, 0.75);
+    const ambientLight = new THREE.AmbientLight(0xfff6ea, 1.15);
     scene.add(ambientLight);
 
-    // 2. Đèn rọi trực diện (Front Key Light: làm rõ chi tiết mặt trước vừa đủ)
-    const frontLight = new THREE.DirectionalLight(0xfff8f0, 0.85);
+    // 2. Ánh sáng bán cầu nhẹ dịu (HemisphereLight) phản chiếu từ vòm trần và sàn để khối đồng sáng tự nhiên
+    const hemiLight = new THREE.HemisphereLight(0xffeedd, 0x333344, 0.75);
+    scene.add(hemiLight);
+
+    // 3. Đèn rọi trực diện (Front Key Light)
+    const frontLight = new THREE.DirectionalLight(0xfff8f0, 0.95);
     frontLight.position.set(0, 1.8, 4.0);
     scene.add(frontLight);
 
-    // 3. Đèn Spotlight nghệ thuật góc trên bên phải (Tạo khối nổi 3D sang trọng)
-    const keyLight = new THREE.DirectionalLight(0xffeed6, 1.1);
+    // 4. Đèn Spotlight nghệ thuật góc trên bên phải
+    const keyLight = new THREE.DirectionalLight(0xffeed6, 1.25);
     keyLight.position.set(2.4, 3.5, 2.2);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -331,13 +363,13 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     keyLight.shadow.bias = -0.0001;
     scene.add(keyLight);
 
-    // 4. Đèn phụ bù sáng góc trái (Fill Light: khử góc tối gắt)
-    const fillLight = new THREE.DirectionalLight(0xdce8ff, 0.45);
+    // 5. Đèn phụ bù sáng góc trái (Fill Light)
+    const fillLight = new THREE.DirectionalLight(0xdce8ff, 0.65);
     fillLight.position.set(-2.4, 2.0, 2.0);
     scene.add(fillLight);
 
-    // 5. Đèn viền sau (Rim Light: tôn đường bao vật thể)
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    // 6. Đèn viền sau (Rim Light: tôn đường bao vật thể)
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.65);
     rimLight.position.set(0, 3.0, -3.0);
     scene.add(rimLight);
 
@@ -461,6 +493,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
       if (animFrameIdRef.current) {
         cancelAnimationFrame(animFrameIdRef.current);
       }
+      pmremGenerator.dispose();
+      roomEnvTexture.dispose();
       renderer.dispose();
     };
   }, [height, autoRotateSpeed]);
@@ -506,6 +540,11 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         root.position.z = -center.z * targetScale;
         root.position.y = PLINTH_HEIGHT - (box.min.y * targetScale) + 0.001;
 
+        root.updateMatrixWorld(true);
+        const rootBox = new THREE.Box3().setFromObject(root);
+        const rootSize = new THREE.Vector3();
+        rootBox.getSize(rootSize);
+
         // Cấu hình vật liệu PBR cho toàn bộ mesh
         root.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
@@ -522,46 +561,23 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 totalFaces += posAttr.count / 3;
               }
 
-              // 1. TẠO TOẠ ĐỘ UV CHIẾU PHẲNG CHÍNH DIỆN TỪ ẢNH GỐC (Planar UV Projection):
-              // Giúp ánh xạ chuẩn xác từng pixel của ảnh gốc 2K/4K lên bề mặt khối 3D!
-              if (posAttr) {
-                if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
-                const b = mesh.geometry.boundingBox || new THREE.Box3();
-                const s = new THREE.Vector3();
-                b.getSize(s);
-                const uvs = new Float32Array(posAttr.count * 2);
-                for (let i = 0; i < posAttr.count; i++) {
-                  const px = posAttr.getX(i);
-                  const py = posAttr.getY(i);
-                  uvs[i * 2] = (px - b.min.x) / (s.x || 1.0);
-                  uvs[i * 2 + 1] = (py - b.min.y) / (s.y || 1.0);
-                }
-                mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+              // 1. Lưu lại toạ độ UV gốc từ file GLB (do AI TRELLIS tạo ra với đầy đủ các mặt 360°)
+              const origUv = mesh.geometry.getAttribute('uv');
+              if (origUv) {
+                glbOriginalUVsRef.current.set(mesh, origUv.clone() as THREE.BufferAttribute);
               }
 
-              // 2. PHỤC HỒI & NÂNG CAO ĐỘ RỰC RỠ MÀU SẮC (Cho chế độ Đa giác 3D AI):
-              const colorAttr = mesh.geometry.getAttribute('color');
-              if (colorAttr) {
-                for (let i = 0; i < colorAttr.count; i++) {
-                  let r = colorAttr.getX(i);
-                  let g = colorAttr.getY(i);
-                  let b = colorAttr.getZ(i);
-
-                  // 1. Tăng độ bão hòa (Saturation Boost) giúp màu xanh, vàng đồng nổi bật như ảnh gốc
-                  const gray = (r + g + b) / 3.0;
-                  const sat = 1.35;
-                  r = Math.max(0, Math.min(1, gray + (r - gray) * sat));
-                  g = Math.max(0, Math.min(1, gray + (g - gray) * sat));
-                  b = Math.max(0, Math.min(1, gray + (b - gray) * sat));
-
-                  // 2. Chuyển đổi sRGB sang Linear để Three.js shader hiển thị đúng gamma chân thực
-                  const linR = Math.pow(r, 1.8);
-                  const linG = Math.pow(g, 1.8);
-                  const linB = Math.pow(b, 1.8);
-
-                  colorAttr.setXYZ(i, linR, linG, linB);
+              // 2. Tạo toạ độ UV phẳng dự phòng chuẩn xác theo toàn bộ khối vật thể (cho chế độ "Phủ ảnh phẳng 2D")
+              if (posAttr) {
+                const planarUvs = new Float32Array(posAttr.count * 2);
+                const v = new THREE.Vector3();
+                for (let i = 0; i < posAttr.count; i++) {
+                  v.fromBufferAttribute(posAttr, i);
+                  v.applyMatrix4(mesh.matrixWorld);
+                  planarUvs[i * 2] = (v.x - rootBox.min.x) / (rootSize.x || 1.0);
+                  planarUvs[i * 2 + 1] = (v.y - rootBox.min.y) / (rootSize.y || 1.0);
                 }
-                colorAttr.needsUpdate = true;
+                planarUVsRef.current.set(mesh, new THREE.BufferAttribute(planarUvs, 2));
               }
             }
 
@@ -576,18 +592,40 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 std.depthTest = true;
                 std.side = THREE.DoubleSide; // Render 2 mặt, không bị rỗng thủng khi xoay
 
+                // Lưu texture map gốc từ file GLB (chứa màu sắc đồng cổ thực tế do TRELLIS bake)
+                if (std.map && !glbOriginalMapsRef.current.has(mesh)) {
+                  std.map.colorSpace = THREE.SRGBColorSpace;
+                  std.map.needsUpdate = true;
+                  glbOriginalMapsRef.current.set(mesh, std.map);
+                }
+
+                const hasGLBTexture = !!glbOriginalMapsRef.current.get(mesh);
+
                 if (textureModeRef.current === 'photo' && originalTextureRef.current) {
+                  // Phủ ảnh phẳng 2D từ ảnh gốc
+                  const pUV = planarUVsRef.current.get(mesh);
+                  if (pUV) mesh.geometry.setAttribute('uv', pUV);
                   std.map = originalTextureRef.current;
                   std.vertexColors = false;
                   std.color.setHex(0xffffff);
-                  std.roughness = 0.45;
-                  std.metalness = 0.05;
-                } else {
-                  std.map = null;
-                  std.vertexColors = true;
+                  std.roughness = 0.55;
+                  std.metalness = 0.08;
+                } else if (hasGLBTexture) {
+                  // Mặc định: Giữ nguyên Texture PBR 3D chính thống từ TRELLIS, không đè UV!
+                  const oUV = glbOriginalUVsRef.current.get(mesh);
+                  if (oUV) mesh.geometry.setAttribute('uv', oUV);
+                  std.map = glbOriginalMapsRef.current.get(mesh) || null;
+                  std.vertexColors = false;
                   std.color.setHex(0xffffff);
                   std.roughness = 0.55;
-                  std.metalness = 0.12;
+                  std.metalness = 0.15;
+                } else {
+                  // Fallback cho mô hình chỉ có vertex colors
+                  std.map = null;
+                  std.vertexColors = !!mesh.geometry.getAttribute('color');
+                  std.color.setHex(0xffffff);
+                  std.roughness = 0.55;
+                  std.metalness = 0.1;
                 }
                 std.needsUpdate = true;
               };
