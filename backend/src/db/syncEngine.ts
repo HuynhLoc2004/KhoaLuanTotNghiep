@@ -146,22 +146,39 @@ export async function pgUpsertRoom(room: any) {
   }
 }
 
-export async function pgDeleteRoom(id: string) {
+export async function pgDeleteRoom(id: string, code?: string, mongoId?: string) {
   try {
+    const identifiers = [id, code, mongoId].filter(Boolean) as string[];
+    if (identifiers.length === 0) return;
+
     // 1. Gỡ bỏ liên kết phòng khỏi các hiện vật an toàn (không xóa hiện vật)
     await pgPool.query(`
       UPDATE artifacts SET room_id = NULL, room_code = NULL
-      WHERE room_id = $1 OR room_id IN (SELECT id FROM rooms WHERE id = $1 OR mongo_id = $1);
-    `, [id]);
+      WHERE room_id = ANY($1::text[]) 
+         OR room_code = ANY($1::text[])
+         OR room_id IN (SELECT id FROM rooms WHERE id = ANY($1::text[]) OR code = ANY($1::text[]) OR mongo_id = ANY($1::text[]));
+    `, [identifiers]);
 
     // 2. Dọn dẹp điểm hotspots trỏ tới phòng này
     await pgPool.query(`
       DELETE FROM hotspots
-      WHERE target_room_id = $1 OR target_room_id IN (SELECT id FROM rooms WHERE id = $1 OR mongo_id = $1);
-    `, [id]);
+      WHERE target_room_id = ANY($1::text[])
+         OR target_room_id IN (SELECT id FROM rooms WHERE id = ANY($1::text[]) OR code = ANY($1::text[]) OR mongo_id = ANY($1::text[]));
+    `, [identifiers]);
 
-    // 3. Xóa phòng theo ID hoặc mongo_id
-    await pgPool.query('DELETE FROM rooms WHERE id = $1 OR mongo_id = $1', [id]);
+    // 3. Xóa các hotspots thuộc chính phòng này
+    await pgPool.query(`
+      DELETE FROM hotspots
+      WHERE room_id = ANY($1::text[])
+         OR room_id IN (SELECT id FROM rooms WHERE id = ANY($1::text[]) OR code = ANY($1::text[]) OR mongo_id = ANY($1::text[]));
+    `, [identifiers]);
+
+    // 4. Xóa phòng theo ID, code hoặc mongo_id
+    const deleteRes = await pgPool.query(
+      'DELETE FROM rooms WHERE id = ANY($1::text[]) OR code = ANY($1::text[]) OR mongo_id = ANY($1::text[]);',
+      [identifiers]
+    );
+    console.log(`[SyncEngine] Đã xóa ${deleteRes.rowCount} phòng trong PostgreSQL (${identifiers.join(', ')})`);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi xóa Room trong PostgreSQL (${id}):`, err.message);
   }
@@ -588,43 +605,18 @@ export async function runStartupDataSync() {
         await pgUpsertRoom(r);
       }
     } else if (mongoRooms.length === 0 && pgRoomCount > 0) {
-      console.log(`[SyncEngine] Đang nạp ngược ${pgRoomCount} Rooms từ PostgreSQL sang MongoDB...`);
-      const pgAll = await pgPool.query('SELECT * FROM rooms ORDER BY order_index ASC;');
+      console.log(`[SyncEngine] Đồng bộ dọn sạch các phòng còn sót lại trong PostgreSQL do MongoDB đang trống...`);
+      await pgPool.query('DELETE FROM hotspots; DELETE FROM rooms;');
+      await cacheDelPattern('rooms:*');
+    } else if (mongoRooms.length > 0 && pgRoomCount > 0) {
+      // Cả 2 đều có dữ liệu: dọn dẹp các phòng thừa trong PostgreSQL nếu đã bị xóa khỏi MongoDB từ trước
+      const mongoRoomIds = new Set(mongoRooms.map(r => r.id));
+      const pgAll = await pgPool.query('SELECT id, code, mongo_id FROM rooms;');
       for (const row of pgAll.rows) {
-        const hsRes = await pgPool.query('SELECT * FROM hotspots WHERE room_id = $1', [row.id]);
-        const hotspots = hsRes.rows.map((h: any) => ({
-          id: h.id,
-          type: h.type,
-          title: h.title,
-          description: h.description,
-          targetRoomId: h.target_room_id,
-          artifactId: h.artifact_id,
-          pitch: h.pitch,
-          yaw: h.yaw
-        }));
-        await Room.updateOne({ id: row.id }, {
-          $set: {
-            id: row.id,
-            code: row.code,
-            name: row.name,
-            period: row.period,
-            category: row.category,
-            description: row.description,
-            panoramaUrl: row.panorama_url,
-            thumbnailUrl: row.thumbnail_url,
-            initialView: row.initial_view,
-            orderIndex: row.order_index,
-            active: row.active,
-            aiVoiceEnabled: row.ai_voice_enabled,
-            aiKnowledgePrompt: row.ai_knowledge_prompt,
-            aiScript: row.ai_script,
-            aiVoiceLang: row.ai_voice_lang,
-            qrScanCount: row.qr_scan_count,
-            scenesCount: row.scenes_count,
-            translations: row.translations,
-            hotspots
-          }
-        }, { upsert: true });
+        if (!mongoRoomIds.has(row.id) && !mongoRoomIds.has(row.code) && (!row.mongo_id || !mongoRoomIds.has(row.mongo_id))) {
+          console.log(`[SyncEngine] Dọn dẹp phòng thừa trong PostgreSQL do đã bị xóa từ trước: ${row.id} (${row.code})`);
+          await pgDeleteRoom(row.id, row.code, row.mongo_id);
+        }
       }
     }
 

@@ -91,20 +91,35 @@ export const cacheDel = async (key: string): Promise<boolean> => {
 export const cacheDelPattern = async (pattern: string): Promise<boolean> => {
   if (!redisClient || !isRedisConnected) return false;
   try {
-    const stream = redisClient.scanStream({
-      match: pattern,
-      count: 100
-    });
+    return await new Promise<boolean>((resolve) => {
+      const stream = redisClient!.scanStream({
+        match: pattern,
+        count: 100
+      });
+      const keysToDelete: string[] = [];
 
-    stream.on('data', async (keys: string[]) => {
-      if (keys.length && redisClient) {
-        const pipeline = redisClient.pipeline();
-        keys.forEach((key) => pipeline.del(key));
-        await pipeline.exec();
-      }
-    });
+      stream.on('data', (keys: string[]) => {
+        if (keys.length) {
+          keysToDelete.push(...keys);
+        }
+      });
 
-    return true;
+      stream.on('end', async () => {
+        if (keysToDelete.length > 0 && redisClient) {
+          try {
+            await redisClient.del(...keysToDelete);
+          } catch (delErr: any) {
+            console.warn(`[Redis del batch error for ${pattern}]:`, delErr.message);
+          }
+        }
+        resolve(true);
+      });
+
+      stream.on('error', (err) => {
+        console.warn(`[Redis cacheDelPattern Error for ${pattern}]:`, err.message);
+        resolve(false);
+      });
+    });
   } catch (err: any) {
     console.warn(`[Redis cacheDelPattern Error for ${pattern}]:`, err.message);
     return false;
