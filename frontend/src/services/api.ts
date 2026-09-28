@@ -104,6 +104,14 @@ export const api = {
     return await safeJson(res, 'Lỗi khởi tạo dữ liệu di sản');
   },
 
+  async clearAllRooms(): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${API_BASE}/rooms/all/clear`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    return await safeJson(res, 'Lỗi xóa toàn bộ phòng');
+  },
+
   async uploadPanorama(file: File): Promise<{ url: string; filename: string }> {
     const formData = new FormData();
     formData.append('file', file);

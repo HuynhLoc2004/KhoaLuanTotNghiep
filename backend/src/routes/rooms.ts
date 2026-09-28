@@ -258,6 +258,25 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// DELETE all rooms (Xóa sạch toàn bộ phòng trưng bày và liên kết)
+roomsRouter.delete('/all/clear', async (req: Request, res: Response) => {
+  try {
+    await RoomModel.deleteMany({});
+    await pgPool.query('DELETE FROM hotspots; DELETE FROM rooms;');
+    await pgPool.query('UPDATE artifacts SET room_id = NULL, room_code = NULL;');
+    await ArtifactModel.updateMany({}, { $unset: { roomId: 1, roomCode: 1 } });
+    await Promise.all([
+      cacheDel('rooms:all'),
+      cacheDelPattern('rooms:detail:*'),
+      cacheDelPattern('artifacts:*')
+    ]);
+    broadcastRealtimeEvent('rooms_updated', { action: 'delete_all' });
+    res.json({ success: true, message: 'Đã xóa toàn bộ gian phòng trưng bày thành công' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // DELETE room (Xóa phòng thật trong PostgreSQL Primary + MongoDB Mirror + dọn dẹp liên kết)
 roomsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {

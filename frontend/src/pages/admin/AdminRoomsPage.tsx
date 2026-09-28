@@ -216,6 +216,28 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     }
   };
 
+  const [isClearingAll, setIsClearingAll] = useState(false);
+  const handleClearAllRooms = () => {
+    triggerConfirm(
+      'Xác nhận xóa toàn bộ gian phòng',
+      'Bạn có chắc chắn muốn xóa toàn bộ các gian phòng trưng bày hiện có không? Dữ liệu phòng và các điểm liên kết sẽ được dọn dẹp sạch sẽ để bạn tạo phòng mới.',
+      async () => {
+        try {
+          setIsClearingAll(true);
+          const res = await api.clearAllRooms();
+          showToast(res.message || 'Đã xóa toàn bộ gian phòng thành công!', 'success');
+          window.location.reload();
+        } catch (err: any) {
+          showToast(err.message || 'Lỗi khi xóa toàn bộ gian phòng', 'error');
+        } finally {
+          setIsClearingAll(false);
+        }
+      },
+      'danger',
+      'Xóa sạch tất cả phòng'
+    );
+  };
+
   useEffect(() => {
     setRoomPage(1);
     setPanoPage(1);
@@ -705,6 +727,20 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               >
                 <Sparkles size={15} />
                 <span>{isSeedingHeritage ? 'Đang nạp 18 phòng...' : 'Nạp 18 phòng di sản mẫu'}</span>
+              </button>
+            )}
+
+            {rooms.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleClearAllRooms}
+                disabled={isClearingAll}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+                title="Xóa toàn bộ các gian phòng hiện tại để làm mới hoàn toàn"
+              >
+                <Trash2 size={14} />
+                <span>{isClearingAll ? 'Đang xóa...' : 'Xóa tất cả'}</span>
               </button>
             )}
 

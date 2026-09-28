@@ -581,8 +581,7 @@ export async function runStartupDataSync() {
     const mongoRooms = await Room.find().lean();
 
     if (pgRoomCount === 0 && mongoRooms.length === 0) {
-      console.log('[SyncEngine] CSDL phòng trưng bày đang trống. Tự động khởi tạo 18 Gian phòng di sản thật và bảo vật cho Bảo tàng Lịch sử TP.HCM...');
-      await seedHeritageMuseumData();
+      console.log('[SyncEngine] CSDL phòng trưng bày đang trống (không tự động nạp mẫu để tôn trọng thao tác của quản trị viên; có thể nạp từ Admin hoặc API seed-heritage)...');
     } else if (pgRoomCount === 0 && mongoRooms.length > 0) {
       console.log(`[SyncEngine] Đang di chuyển ${mongoRooms.length} Rooms & Hotspots từ MongoDB sang PostgreSQL...`);
       for (const r of mongoRooms) {
