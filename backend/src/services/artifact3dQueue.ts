@@ -15,6 +15,7 @@ import {
 import { sendToRabbitMQ, consumeRabbitMQ, QUEUES } from './rabbitmq';
 import { acquireUser3DLock, releaseUser3DLock, generate3DWithTrellis, pingTrellis } from './trellisClient.js';
 import { uploadToR2 } from './r2.js';
+import { broadcastRealtimeEvent } from './realtimeSync.js';
 
 const PYTHON_PATH = process.env.PYTHON_PATH || (process.platform === 'win32'
   ? 'C:\\Users\\HUYNH TAN LOC\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
@@ -241,6 +242,14 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
     job.status = 'completed';
     console.log(`[3D Consumer] ✓ TRELLIS Job ${jobId} hoàn tất! Model: ${finalModelUrl} (${(trellisRes.sizeBytes/1024/1024).toFixed(2)}MB, ${trellisRes.generationTimeSeconds}s)`);
 
+    // Broadcast real-time để client tự động hiển thị model 3D mới (không cần reload trang)
+    broadcastRealtimeEvent('artifacts_updated', {
+      action: 'update',
+      artifactId,
+      model3dUrl: finalModelUrl,
+      processingStatus: 'completed'
+    });
+
   } catch (trellisErr: any) {
     const errMsg = trellisErr.message || 'Lỗi không xác định từ TRELLIS';
     console.error(`[3D Consumer] ✗ TRELLIS Job ${jobId} thất bại:`, errMsg);
@@ -251,6 +260,14 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
       processingError: `TRELLIS 3D thất bại: ${errMsg}`
     });
     await cacheDelPattern('artifacts:*');
+
+    // Broadcast thất bại để admin biết ngay, không cần reload
+    broadcastRealtimeEvent('artifacts_updated', {
+      action: 'update',
+      artifactId,
+      processingStatus: 'failed',
+      processingError: `TRELLIS 3D thất bại: ${errMsg}`
+    });
   }
 }
 
