@@ -10,22 +10,24 @@ import {
   Trash2,
   Lock,
   Unlock,
-  Shield,
-  ShieldCheck,
-  Calendar,
-  CreditCard,
-  Phone,
-  Mail,
-  CheckCircle2,
-  XCircle,
   X,
-  Clock,
-  Ticket
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { UserItem, UserBookingItem, UserListResponse } from '../../types';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
+
+interface FormErrors {
+  fullName?: string;
+  email?: string;
+  username?: string;
+  password?: string;
+  phone?: string;
+}
 
 export const AdminUsersPage: React.FC = () => {
   const { showToast } = useToast();
@@ -38,9 +40,10 @@ export const AdminUsersPage: React.FC = () => {
     clientCount: 0,
     activeCount: 0
   });
+
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 15,
+    limit: 10,
     total: 0,
     totalPages: 1
   });
@@ -55,7 +58,6 @@ export const AdminUsersPage: React.FC = () => {
 
   // Modal Chi tiết
   const [detailUser, setDetailUser] = useState<UserItem | null>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
 
   // Modal Thêm / Chỉnh sửa
   const [isFormModalOpen, setIsFormModalOpen] = useState<boolean>(false);
@@ -73,11 +75,17 @@ export const AdminUsersPage: React.FC = () => {
     notes: ''
   });
 
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+
   // Modal Xác nhận xóa
   const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
-  const fetchUsers = async (page = 1) => {
+  // Modal Xác nhận khóa / mở khóa
+  const [toggleStatusTarget, setToggleStatusTarget] = useState<UserItem | null>(null);
+  const [isTogglingStatus, setIsTogglingStatus] = useState<boolean>(false);
+
+  const fetchUsers = async (page = pagination.page, limit = pagination.limit) => {
     try {
       setIsLoading(true);
       const res: UserListResponse = await api.getUsers({
@@ -85,15 +93,15 @@ export const AdminUsersPage: React.FC = () => {
         role: roleFilter,
         status: statusFilter,
         page,
-        limit: pagination.limit
+        limit
       });
       setUsers(res.data || []);
-      setPagination(res.pagination || { page: 1, limit: 15, total: 0, totalPages: 1 });
+      setPagination(res.pagination || { page, limit, total: 0, totalPages: 1 });
       if (res.stats) {
         setStats(res.stats);
       }
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi tải danh sách người dùng', 'error');
+      showToast(err.message || 'Không thể tải danh sách tài khoản', 'error');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -101,30 +109,37 @@ export const AdminUsersPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchUsers(1);
+    fetchUsers(1, pagination.limit);
   }, [roleFilter, statusFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchUsers(1);
+    fetchUsers(1, pagination.limit);
   };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    fetchUsers(pagination.page);
+    fetchUsers(pagination.page, pagination.limit);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > pagination.totalPages || newPage === pagination.page) return;
+    fetchUsers(newPage, pagination.limit);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setPagination((prev) => ({ ...prev, limit: newLimit }));
+    fetchUsers(1, newLimit);
   };
 
   // Mở modal xem chi tiết
   const handleOpenDetail = async (user: UserItem) => {
     try {
-      setIsLoadingDetail(true);
       setDetailUser(user);
       const fullDetail = await api.getUserDetail(user.id);
       setDetailUser(fullDetail);
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi đọc chi tiết người dùng', 'error');
-    } finally {
-      setIsLoadingDetail(false);
+      showToast(err.message || 'Không thể tải chi tiết người dùng', 'error');
     }
   };
 
@@ -141,6 +156,7 @@ export const AdminUsersPage: React.FC = () => {
       isActive: true,
       notes: ''
     });
+    setFormErrors({});
     setIsFormModalOpen(true);
   };
 
@@ -157,19 +173,62 @@ export const AdminUsersPage: React.FC = () => {
       isActive: user.isActive !== false,
       notes: user.notes || ''
     });
+    setFormErrors({});
     setIsFormModalOpen(true);
+  };
+
+  // Validate form client-side
+  const validateForm = (): boolean => {
+    const errors: FormErrors = {};
+
+    if (!formData.fullName.trim()) {
+      errors.fullName = 'Họ và tên không được để trống';
+    } else if (formData.fullName.trim().length < 2) {
+      errors.fullName = 'Họ và tên phải có ít nhất 2 ký tự';
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'Địa chỉ email không được để trống';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        errors.email = 'Định dạng email không hợp lệ (VD: user@example.com)';
+      }
+    }
+
+    if (!editingUser) {
+      if (!formData.password) {
+        errors.password = 'Mật khẩu khởi tạo không được để trống';
+      } else if (formData.password.length < 6) {
+        errors.password = 'Mật khẩu phải có tối thiểu 6 ký tự';
+      }
+    } else if (formData.password && formData.password.length < 6) {
+      errors.password = 'Mật khẩu mới phải có tối thiểu 6 ký tự';
+    }
+
+    if (formData.phone && formData.phone.trim()) {
+      const phoneRegex = /^[0-9+() -]{9,15}$/;
+      if (!phoneRegex.test(formData.phone.trim())) {
+        errors.phone = 'Số điện thoại không hợp lệ (từ 9 đến 15 chữ số)';
+      }
+    }
+
+    if (formData.username && formData.username.trim()) {
+      const usernameRegex = /^[a-zA-Z0-9_.-]{3,30}$/;
+      if (!usernameRegex.test(formData.username.trim())) {
+        errors.username = 'Tên đăng nhập từ 3 - 30 ký tự, không chứa dấu cách hoặc ký tự đặc biệt';
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   // Lưu Thêm / Sửa
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email?.trim()) {
-      showToast('Vui lòng nhập địa chỉ Email', 'warning');
-      return;
-    }
-
-    if (!editingUser && !formData.password?.trim()) {
-      showToast('Vui lòng đặt mật khẩu khởi tạo cho tài khoản mới', 'warning');
+    if (!validateForm()) {
+      showToast('Vui lòng kiểm tra lại các trường thông tin chưa hợp lệ', 'warning');
       return;
     }
 
@@ -177,46 +236,56 @@ export const AdminUsersPage: React.FC = () => {
       setIsSaving(true);
       if (editingUser) {
         await api.updateUser(editingUser.id, {
-          fullName: formData.fullName,
-          phone: formData.phone,
+          fullName: formData.fullName.trim(),
+          phone: formData.phone.trim(),
           role: formData.role,
           isActive: formData.isActive,
-          notes: formData.notes,
-          ...(formData.password?.trim() ? { password: formData.password.trim() } : {})
+          notes: formData.notes.trim(),
+          ...(formData.password.trim() ? { password: formData.password.trim() } : {})
         });
-        showToast(`Đã cập nhật thông tin người dùng "${formData.fullName || formData.email}" thành công`, 'success');
+        showToast('Cập nhật tài khoản người dùng thành công', 'success');
       } else {
         await api.createUser({
-          fullName: formData.fullName,
-          email: formData.email,
-          username: formData.username,
-          password: formData.password,
-          phone: formData.phone,
+          fullName: formData.fullName.trim(),
+          email: formData.email.trim(),
+          username: formData.username.trim() || undefined,
+          password: formData.password.trim(),
+          phone: formData.phone.trim(),
           role: formData.role,
           isActive: formData.isActive,
-          notes: formData.notes
+          notes: formData.notes.trim()
         });
-        showToast(`Đã tạo tài khoản "${formData.fullName || formData.email}" thành công`, 'success');
+        showToast('Tạo tài khoản người dùng thành công', 'success');
       }
       setIsFormModalOpen(false);
-      fetchUsers(pagination.page);
+      fetchUsers(pagination.page, pagination.limit);
     } catch (err: any) {
-      showToast(err.message || 'Lỗi lưu thông tin người dùng', 'error');
+      showToast(err.message || 'Lỗi khi lưu tài khoản', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Đổi nhanh trạng thái Hoạt động / Khóa
-  const handleToggleStatus = async (user: UserItem) => {
+  // Thực hiện đổi trạng thái Hoạt động / Khóa
+  const handleConfirmToggleStatus = async () => {
+    if (!toggleStatusTarget) return;
     try {
-      const res = await api.toggleUserStatus(user.id);
-      showToast(res.isActive ? `Đã kích hoạt tài khoản ${user.fullName || user.email}` : `Đã tạm khóa tài khoản ${user.fullName || user.email}`, 'info');
+      setIsTogglingStatus(true);
+      const res = await api.toggleUserStatus(toggleStatusTarget.id);
+      showToast(
+        res.isActive
+          ? `Đã kích hoạt tài khoản "${toggleStatusTarget.fullName || toggleStatusTarget.email}"`
+          : `Đã tạm khóa tài khoản "${toggleStatusTarget.fullName || toggleStatusTarget.email}"`,
+        'success'
+      );
+      setToggleStatusTarget(null);
       setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, isActive: res.isActive } : u))
+        prev.map((u) => (u.id === toggleStatusTarget.id ? { ...u, isActive: res.isActive } : u))
       );
     } catch (err: any) {
-      showToast(err.message || 'Không thể đổi trạng thái tài khoản', 'error');
+      showToast(err.message || 'Không thể thay đổi trạng thái tài khoản', 'error');
+    } finally {
+      setIsTogglingStatus(false);
     }
   };
 
@@ -226,9 +295,9 @@ export const AdminUsersPage: React.FC = () => {
     try {
       setIsDeleting(true);
       await api.deleteUser(deleteTarget.id);
-      showToast(`Đã xóa tài khoản "${deleteTarget.fullName || deleteTarget.email}" thành công`, 'success');
+      showToast('Đã xóa tài khoản thành công', 'success');
       setDeleteTarget(null);
-      fetchUsers(pagination.page);
+      fetchUsers(pagination.page, pagination.limit);
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi xóa tài khoản', 'error');
     } finally {
@@ -236,49 +305,57 @@ export const AdminUsersPage: React.FC = () => {
     }
   };
 
-  // Helper format tiền tệ VNĐ
+  // Format tiền tệ VNĐ
   const formatVND = (num: number = 0) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
   };
 
-  // Helper render role badge
-  const renderRoleBadge = (role: string) => {
+  // Render Role dạng nhãn chữ trung tính
+  const getRoleLabel = (role: string) => {
     switch (role) {
       case 'admin':
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, background: 'rgba(140, 45, 25, 0.25)', color: '#FCA5A5', border: '1px solid rgba(140, 45, 25, 0.4)' }}>
-            <ShieldCheck size={12} />
-            <span>Quản trị viên</span>
-          </span>
-        );
+        return 'Quản trị viên';
       case 'staff':
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, background: 'rgba(30, 58, 138, 0.25)', color: '#93C5FD', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-            <Shield size={12} />
-            <span>Nhân viên</span>
-          </span>
-        );
+        return 'Nhân viên';
       default:
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, background: 'rgba(212, 168, 106, 0.16)', color: '#FDE68A', border: '1px solid rgba(212, 168, 106, 0.3)' }}>
-            <Users size={12} />
-            <span>Khách tham quan</span>
-          </span>
-        );
+        return 'Khách tham quan';
     }
   };
 
+  // Tính toán số hiển thị phân trang
+  const fromIndex = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
+  const toIndex = Math.min(pagination.page * pagination.limit, pagination.total);
+
   return (
     <div className="admin-content" style={{ padding: '24px 28px' }}>
-      {/* 1. TIÊU ĐỀ TRANG & NÚT THAO TÁC CHÍNH */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+      {/* 1. THANH TIÊU ĐỀ TRANG */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16,
+          marginBottom: 20
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--heading-color)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Users size={22} style={{ color: 'var(--primary)' }} />
+          <h1
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: 'var(--heading-color)',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <Users size={20} style={{ color: 'var(--primary)' }} />
             <span>Quản lý Người dùng & Khách tham quan</span>
           </h1>
           <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, margin: 0 }}>
-            Quản lý tài khoản, phân quyền quản trị và theo dõi lịch sử đặt lịch tham quan & thanh toán
+            Danh sách tài khoản, phân quyền quản trị và dữ liệu khách tham quan
           </p>
         </div>
 
@@ -289,9 +366,8 @@ export const AdminUsersPage: React.FC = () => {
             onClick={handleRefresh}
             disabled={isLoading || isRefreshing}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            title="Tải lại danh sách"
           >
-            <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
+            <RefreshCw size={13} className={isRefreshing ? 'spin' : ''} />
             <span>Làm mới</span>
           </button>
 
@@ -301,65 +377,92 @@ export const AdminUsersPage: React.FC = () => {
             onClick={handleOpenAdd}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <UserPlus size={15} />
+            <UserPlus size={14} />
             <span>Thêm người dùng</span>
           </button>
         </div>
       </div>
 
-      {/* 2. 4 THẺ THỐNG KÊ NHANH (KPI CARDS - TÔNG TRẦM OBSIDIAN DARK) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Users size={20} />
+      {/* 2. THANH CHỈ SỐ KPI TỐI GIẢN (KHÔNG DÙNG ICON/CARDLET MÀU MÈ) */}
+      <div
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 8,
+          marginBottom: 18,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
+        }}
+      >
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Tổng người dùng
           </div>
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tổng người dùng</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-main)', marginTop: 2 }}>{stats.totalUsers || users.length}</div>
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: '#FDE68A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Ticket size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Khách tham quan</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-main)', marginTop: 2 }}>{stats.clientCount}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+            {stats.totalUsers || pagination.total}
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(140, 45, 25, 0.2)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ShieldCheck size={20} />
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Khách tham quan
           </div>
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quản trị & Nhân viên</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-main)', marginTop: 2 }}>{stats.adminCount + stats.staffCount}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+            {stats.clientCount}
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(22, 101, 52, 0.2)', color: '#86EFAC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CheckCircle2 size={20} />
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Quản trị & Nhân viên
           </div>
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Đang hoạt động</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-main)', marginTop: 2 }}>{stats.activeCount}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+            {stats.adminCount + stats.staffCount}
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 20px' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Đang hoạt động
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+            {stats.activeCount}
           </div>
         </div>
       </div>
 
-      {/* 3. BỘ LỌC & TÌM KIẾM */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 14, marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      {/* 3. BỘ LỌC & TÌM KIẾM GỌN GÀNG */}
+      <div
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 8,
+          padding: '12px 16px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12
+        }}
+      >
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 260 }}>
           <div style={{ position: 'relative', width: '100%' }}>
-            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <Search
+              size={14}
+              style={{
+                position: 'absolute',
+                left: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-muted)'
+              }}
+            />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm theo họ tên, email, tên đăng nhập, số điện thoại..."
+              placeholder="Tìm theo tên, email, số điện thoại..."
               style={{
                 width: '100%',
                 padding: '8px 12px 8px 34px',
@@ -376,15 +479,14 @@ export const AdminUsersPage: React.FC = () => {
           </button>
         </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Filter size={14} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Vai trò:</span>
+            <Filter size={13} style={{ color: 'var(--text-muted)' }} />
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
               style={{
-                padding: '7px 10px',
+                padding: '6px 10px',
                 background: 'var(--bg-main)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 6,
@@ -394,18 +496,17 @@ export const AdminUsersPage: React.FC = () => {
             >
               <option value="all">Tất cả vai trò</option>
               <option value="admin">Quản trị viên</option>
-              <option value="staff">Nhân viên bảo tàng</option>
+              <option value="staff">Nhân viên</option>
               <option value="client">Khách tham quan</option>
             </select>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Trạng thái:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{
-                padding: '7px 10px',
+                padding: '6px 10px',
                 background: 'var(--bg-main)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 6,
@@ -422,33 +523,41 @@ export const AdminUsersPage: React.FC = () => {
       </div>
 
       {/* 4. BẢNG DANH SÁCH NGƯỜI DÙNG */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: 'rgba(0, 0, 0, 0.25)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <th style={{ padding: '12px 16px' }}>Người dùng</th>
-                <th style={{ padding: '12px 16px' }}>Liên hệ & SĐT</th>
-                <th style={{ padding: '12px 16px' }}>Vai trò</th>
-                <th style={{ padding: '12px 16px' }}>Đặt lịch & Chi tiêu</th>
-                <th style={{ padding: '12px 16px' }}>Trạng thái</th>
-                <th style={{ padding: '12px 16px' }}>Ngày tạo</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Thao tác</th>
+              <tr
+                style={{
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  borderBottom: '1px solid var(--border-color)',
+                  color: 'var(--text-muted)',
+                  fontSize: 11.5,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em'
+                }}
+              >
+                <th style={{ padding: '10px 16px' }}>Họ và tên</th>
+                <th style={{ padding: '10px 16px' }}>Email / Tên đăng nhập</th>
+                <th style={{ padding: '10px 16px' }}>Số điện thoại</th>
+                <th style={{ padding: '10px 16px' }}>Vai trò</th>
+                <th style={{ padding: '10px 16px' }}>Đặt lịch & Chi tiêu</th>
+                <th style={{ padding: '10px 16px' }}>Trạng thái</th>
+                <th style={{ padding: '10px 16px', textAlign: 'right' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <RefreshCw size={20} className="spin" style={{ margin: '0 auto 8px', display: 'block', color: 'var(--primary)' }} />
-                    <span>Đang nạp danh sách tài khoản người dùng...</span>
+                  <td colSpan={7} style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <RefreshCw size={18} className="spin" style={{ margin: '0 auto 8px', display: 'block', color: 'var(--primary)' }} />
+                    <span>Đang nạp danh sách tài khoản...</span>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <Users size={24} style={{ margin: '0 auto 8px', display: 'block', opacity: 0.5 }} />
-                    <span>Không tìm thấy người dùng nào phù hợp với bộ lọc.</span>
+                  <td colSpan={7} style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <span>Không có người dùng nào phù hợp với bộ lọc.</span>
                   </td>
                 </tr>
               ) : (
@@ -466,52 +575,69 @@ export const AdminUsersPage: React.FC = () => {
                       }}
                       className="admin-table-row"
                     >
-                      {/* Cột 1: Người dùng */}
-                      <td style={{ padding: '14px 16px' }}>
+                      {/* Cột 1: Họ tên */}
+                      <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div
                             style={{
-                              width: 34,
-                              height: 34,
+                              width: 30,
+                              height: 30,
                               borderRadius: '50%',
-                              background: u.role === 'admin' ? 'rgba(140, 45, 25, 0.4)' : 'rgba(212, 168, 106, 0.2)',
-                              color: u.role === 'admin' ? '#FCA5A5' : '#D4A86A',
+                              background: 'var(--bg-main)',
+                              border: '1px solid var(--border-color)',
+                              color: 'var(--text-main)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontWeight: 700,
-                              fontSize: 13,
-                              flexShrink: 0,
-                              border: '1px solid var(--border-color)'
+                              fontWeight: 600,
+                              fontSize: 12,
+                              flexShrink: 0
                             }}
                           >
                             {initial}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{u.fullName || u.username}</div>
-                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>@{u.username}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                              {u.fullName || u.username}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              @{u.username}
+                            </div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Cột 2: Email & SĐT */}
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ color: 'var(--text-main)', fontSize: 12.5 }}>{u.email}</div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginTop: 2 }}>
-                          {u.phone ? u.phone : 'Chưa cập nhật SĐT'}
-                        </div>
+                      {/* Cột 2: Email */}
+                      <td style={{ padding: '12px 16px', color: 'var(--text-main)' }}>
+                        <div>{u.email}</div>
                       </td>
 
-                      {/* Cột 3: Vai trò */}
-                      <td style={{ padding: '14px 16px' }}>
-                        {renderRoleBadge(u.role)}
+                      {/* Cột 3: Số điện thoại */}
+                      <td style={{ padding: '12px 16px', color: u.phone ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                        {u.phone || '—'}
                       </td>
 
-                      {/* Cột 4: Đặt lịch & Chi tiêu */}
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Ticket size={13} style={{ color: 'var(--accent-gold)' }} />
-                          <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{bookingsCount} lượt vé</span>
+                      {/* Cột 4: Vai trò */}
+                      <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontSize: 11.5,
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-main)',
+                            color: 'var(--text-main)'
+                          }}
+                        >
+                          {getRoleLabel(u.role)}
+                        </span>
+                      </td>
+
+                      {/* Cột 5: Đặt lịch & Chi tiêu */}
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ color: 'var(--text-main)', fontSize: 12.5 }}>
+                          {bookingsCount > 0 ? `${bookingsCount} lượt đặt` : 'Chưa đặt'}
                         </div>
                         {spent > 0 && (
                           <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -520,35 +646,33 @@ export const AdminUsersPage: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Cột 5: Trạng thái */}
-                      <td style={{ padding: '14px 16px' }}>
-                        {u.isActive ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 4, fontSize: 11.5, background: 'rgba(22, 101, 52, 0.25)', color: '#86EFAC' }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ADE80' }} />
-                            <span>Hoạt động</span>
+                      {/* Cột 6: Trạng thái */}
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '50%',
+                              background: u.isActive ? '#22C55E' : '#64748B',
+                              display: 'inline-block'
+                            }}
+                          />
+                          <span style={{ color: u.isActive ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                            {u.isActive ? 'Hoạt động' : 'Tạm khóa'}
                           </span>
-                        ) : (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 4, fontSize: 11.5, background: 'rgba(100, 116, 139, 0.25)', color: '#CBD5E1' }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94A3B8' }} />
-                            <span>Tạm khóa</span>
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Cột 6: Ngày tạo */}
-                      <td style={{ padding: '14px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
-                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : '—'}
+                        </div>
                       </td>
 
                       {/* Cột 7: Thao tác */}
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenDetail(u)}
                             title="Xem chi tiết hồ sơ & lịch sử đặt vé"
-                            style={{ padding: '5px 8px' }}
+                            style={{ padding: '4px 8px' }}
                           >
                             <Eye size={13} />
                           </button>
@@ -558,7 +682,7 @@ export const AdminUsersPage: React.FC = () => {
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenEdit(u)}
                             title="Chỉnh sửa thông tin"
-                            style={{ padding: '5px 8px' }}
+                            style={{ padding: '4px 8px' }}
                           >
                             <Edit3 size={13} />
                           </button>
@@ -566,9 +690,9 @@ export const AdminUsersPage: React.FC = () => {
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
-                            onClick={() => handleToggleStatus(u)}
+                            onClick={() => setToggleStatusTarget(u)}
                             title={u.isActive ? 'Tạm khóa tài khoản' : 'Kích hoạt tài khoản'}
-                            style={{ padding: '5px 8px', color: u.isActive ? 'var(--text-muted)' : '#4ADE80' }}
+                            style={{ padding: '4px 8px' }}
                           >
                             {u.isActive ? <Lock size={13} /> : <Unlock size={13} />}
                           </button>
@@ -579,7 +703,7 @@ export const AdminUsersPage: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               onClick={() => setDeleteTarget(u)}
                               title="Xóa tài khoản"
-                              style={{ padding: '5px 8px', color: '#EF4444' }}
+                              style={{ padding: '4px 8px', color: '#EF4444' }}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -594,168 +718,255 @@ export const AdminUsersPage: React.FC = () => {
           </table>
         </div>
 
-        {/* PHÂN TRANG */}
-        {pagination.totalPages > 1 && (
-          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--text-muted)' }}>
-            <div>
-              Hiển thị trang {pagination.page} / {pagination.totalPages} ({pagination.total} người dùng)
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => fetchUsers(pagination.page - 1)}
-                disabled={pagination.page <= 1}
+        {/* 5. PHÂN TRANG CHUẨN ĐẦY ĐỦ */}
+        <div
+          style={{
+            padding: '12px 16px',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+            fontSize: 12.5,
+            color: 'var(--text-muted)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span>
+              Hiển thị {fromIndex} - {toIndex} trên tổng {pagination.total} người dùng
+            </span>
+
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span>Dòng mỗi trang:</span>
+              <select
+                value={pagination.limit}
+                onChange={(e) => handleLimitChange(Number(e.target.value))}
+                style={{
+                  padding: '3px 8px',
+                  background: 'var(--bg-main)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 4,
+                  color: 'var(--text-main)',
+                  fontSize: 12
+                }}
               >
-                Trang trước
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => fetchUsers(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-              >
-                Trang tiếp
-              </button>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
             </div>
           </div>
-        )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => handlePageChange(1)}
+              disabled={pagination.page <= 1}
+              style={{ padding: '4px 6px' }}
+              title="Trang đầu"
+            >
+              <ChevronsLeft size={13} />
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+              style={{ padding: '4px 8px' }}
+              title="Trang trước"
+            >
+              <ChevronLeft size={13} />
+            </button>
+
+            {/* Các nút số trang */}
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.page) <= 1)
+              .map((p, idx, arr) => {
+                const prev = arr[idx - 1];
+                const showEllipsis = prev && p - prev > 1;
+                return (
+                  <React.Fragment key={p}>
+                    {showEllipsis && <span style={{ padding: '0 4px', color: 'var(--text-muted)' }}>...</span>}
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${p === pagination.page ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => handlePageChange(p)}
+                      style={{ minWidth: 28, padding: '4px 6px', fontSize: 12 }}
+                    >
+                      {p}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.totalPages}
+              style={{ padding: '4px 8px' }}
+              title="Trang tiếp"
+            >
+              <ChevronRight size={13} />
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={pagination.page >= pagination.totalPages}
+              style={{ padding: '4px 6px' }}
+              title="Trang cuối"
+            >
+              <ChevronsRight size={13} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 5. MODAL XEM CHI TIẾT NGƯỜI DÙNG & LỊCH SỬ ĐẶT LỊCH / VÉ */}
+      {/* 6. MODAL XEM CHI TIẾT HỒ SƠ & LỊCH SỬ ĐẶT VÉ (GỌN GÀNG, TỐI GIẢN) */}
       {detailUser && (
         <div className="modal-backdrop" onClick={() => setDetailUser(null)}>
           <div
             className="modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 680, width: '92%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}
+            style={{
+              maxWidth: 640,
+              width: '92%',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 8,
+              padding: '20px 24px',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 14, marginBottom: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(212, 168, 106, 0.2)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15 }}>
-                  {(detailUser.fullName || detailUser.username || 'U').charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--heading-color)' }}>
-                    {detailUser.fullName || detailUser.username}
-                  </h3>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    @{detailUser.username} • {renderRoleBadge(detailUser.role)}
-                  </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid var(--border-color)',
+                paddingBottom: 12,
+                marginBottom: 16
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--heading-color)' }}>
+                  Hồ sơ: {detailUser.fullName || detailUser.username}
+                </h3>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                  @{detailUser.username} • {getRoleLabel(detailUser.role)}
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setDetailUser(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 4
+                }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* Thông tin cá nhân */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
-              <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 8, padding: 12 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Mail size={12} />
-                  <span>Email</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginTop: 4 }}>
-                  {detailUser.email}
-                </div>
+            {/* Bảng thông tin cá nhân dạng 2 cột đơn giản */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: 12,
+                marginBottom: 20,
+                fontSize: 12.5
+              }}
+            >
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Email: </span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{detailUser.email}</span>
               </div>
-
-              <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 8, padding: 12 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Phone size={12} />
-                  <span>Số điện thoại</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginTop: 4 }}>
-                  {detailUser.phone || 'Chưa cung cấp'}
-                </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Số điện thoại: </span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{detailUser.phone || 'Chưa cung cấp'}</span>
               </div>
-
-              <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 8, padding: 12 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Clock size={12} />
-                  <span>Đăng nhập gần nhất</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginTop: 4 }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Trạng thái: </span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                  {detailUser.isActive ? 'Đang hoạt động' : 'Tạm khóa'}
+                </span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Lần đăng nhập cuối: </span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
                   {detailUser.lastLogin ? new Date(detailUser.lastLogin).toLocaleString('vi-VN') : 'Chưa có thông tin'}
-                </div>
-              </div>
-
-              <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 8, padding: 12 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <CreditCard size={12} />
-                  <span>Tổng chi tiêu vé</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-gold)', marginTop: 4 }}>
-                  {formatVND(detailUser.bookingStats?.totalSpent || 0)}
-                </div>
+                </span>
               </div>
             </div>
 
             {/* Lịch sử Đặt lịch & Thanh toán */}
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Calendar size={15} style={{ color: 'var(--accent-gold)' }} />
-                  <span>Lịch sử Đặt lịch & Thanh toán vé tham quan</span>
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
+                  Lịch sử Đặt lịch & Thanh toán vé
                 </div>
-                <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                  Sẵn sàng tích hợp cổng thanh toán trực tuyến
-                </span>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Tổng chi tiêu:{' '}
+                  <strong style={{ color: 'var(--text-main)' }}>
+                    {formatVND(detailUser.bookingStats?.totalSpent || 0)}
+                  </strong>
+                </div>
               </div>
 
               {detailUser.bookings && detailUser.bookings.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {detailUser.bookings.map((b) => (
-                    <div
-                      key={b.id}
-                      style={{
-                        background: 'var(--bg-main)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 8,
-                        padding: '12px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: 10
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)' }}>#{b.id}</span>
-                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)' }}>{b.ticketType}</span>
-                        </div>
-                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-                          Ngày tham quan: <strong>{b.visitDate}</strong> ({b.timeSlot}) • {b.quantity} vé
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-main)' }}>
-                          {formatVND(b.totalAmount)}
-                        </div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 6px', borderRadius: 4, fontSize: 11, background: 'rgba(22, 101, 52, 0.25)', color: '#86EFAC', marginTop: 4 }}>
-                          <CheckCircle2 size={11} />
-                          <span>Đã thanh toán</span>
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: 6, overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                        <th style={{ padding: '8px 10px' }}>Mã đặt chỗ</th>
+                        <th style={{ padding: '8px 10px' }}>Ngày tham quan</th>
+                        <th style={{ padding: '8px 10px' }}>Loại vé</th>
+                        <th style={{ padding: '8px 10px' }}>Số tiền</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'right' }}>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detailUser.bookings.map((b) => (
+                        <tr key={b.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-main)' }}>
+                            #{b.id}
+                          </td>
+                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>
+                            {b.visitDate} ({b.timeSlot})
+                          </td>
+                          <td style={{ padding: '8px 10px', color: 'var(--text-main)' }}>
+                            {b.ticketType} (x{b.quantity})
+                          </td>
+                          <td style={{ padding: '8px 10px', color: 'var(--text-main)', fontWeight: 600 }}>
+                            {formatVND(b.totalAmount)}
+                          </td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', color: '#22C55E' }}>
+                            Đã thanh toán
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
-                <div style={{ padding: 20, textAlign: 'center', background: 'var(--bg-main)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12.5 }}>
-                  Chưa có lịch sử đặt vé nào ghi nhận cho tài khoản này.
+                <div style={{ padding: 14, textAlign: 'center', background: 'var(--bg-main)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 12 }}>
+                  Chưa ghi nhận lượt đặt lịch tham quan nào.
                 </div>
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
@@ -768,127 +979,251 @@ export const AdminUsersPage: React.FC = () => {
         </div>
       )}
 
-      {/* 6. MODAL THÊM MỚI / CHỈNH SỬA NGƯỜI DÙNG */}
+      {/* 7. MODAL THÊM MỚI / CHỈNH SỬA (CÓ VALIDATION ĐẦY ĐỦ & RESPONSIVE) */}
       {isFormModalOpen && (
         <div className="modal-backdrop" onClick={() => !isSaving && setIsFormModalOpen(false)}>
           <div
             className="modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 560, width: '92%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}
+            style={{
+              maxWidth: 540,
+              width: '92%',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 8,
+              padding: '20px 24px',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 12, marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--heading-color)' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid var(--border-color)',
+                paddingBottom: 12,
+                marginBottom: 16
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--heading-color)' }}>
                 {editingUser ? 'Chỉnh sửa tài khoản người dùng' : 'Thêm mới tài khoản người dùng'}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsFormModalOpen(false)}
                 disabled={isSaving}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 4
+                }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitForm}>
+            <form onSubmit={handleSubmitForm} noValidate>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Họ và tên */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
                     Họ và tên *
                   </label>
                   <input
                     type="text"
                     value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    placeholder="VD: Nguyễn Văn A"
-                    required
-                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13 }}
+                    onChange={(e) => {
+                      setFormData({ ...formData, fullName: e.target.value });
+                      if (formErrors.fullName) setFormErrors({ ...formErrors, fullName: undefined });
+                    }}
+                    placeholder="Nguyễn Văn A"
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'var(--bg-main)',
+                      border: `1px solid ${formErrors.fullName ? '#EF4444' : 'var(--border-color)'}`,
+                      borderRadius: 6,
+                      color: 'var(--text-main)',
+                      fontSize: 13
+                    }}
                   />
+                  {formErrors.fullName && (
+                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      {formErrors.fullName}
+                    </span>
+                  )}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {/* Email & Tên đăng nhập (Responsive Grid) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
                       Địa chỉ Email *
                     </label>
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        if (formErrors.email) setFormErrors({ ...formErrors, email: undefined });
+                      }}
                       placeholder="user@example.com"
-                      required
                       disabled={Boolean(editingUser)}
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, opacity: editingUser ? 0.6 : 1 }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-main)',
+                        border: `1px solid ${formErrors.email ? '#EF4444' : 'var(--border-color)'}`,
+                        borderRadius: 6,
+                        color: 'var(--text-main)',
+                        fontSize: 13,
+                        opacity: editingUser ? 0.6 : 1
+                      }}
                     />
+                    {formErrors.email && (
+                      <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                        {formErrors.email}
+                      </span>
+                    )}
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
                       Tên đăng nhập
                     </label>
                     <input
                       type="text"
                       value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      placeholder="Để trống tự lấy từ email"
+                      onChange={(e) => {
+                        setFormData({ ...formData, username: e.target.value });
+                        if (formErrors.username) setFormErrors({ ...formErrors, username: undefined });
+                      }}
+                      placeholder="Để trống tự tạo từ email"
                       disabled={Boolean(editingUser)}
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, opacity: editingUser ? 0.6 : 1 }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-main)',
+                        border: `1px solid ${formErrors.username ? '#EF4444' : 'var(--border-color)'}`,
+                        borderRadius: 6,
+                        color: 'var(--text-main)',
+                        fontSize: 13,
+                        opacity: editingUser ? 0.6 : 1
+                      }}
                     />
+                    {formErrors.username && (
+                      <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                        {formErrors.username}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {/* Mật khẩu & Số điện thoại */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
-                      {editingUser ? 'Mật khẩu mới (Bỏ qua nếu không đổi)' : 'Mật khẩu khởi tạo *'}
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      {editingUser ? 'Mật khẩu mới (Bỏ qua nếu giữ nguyên)' : 'Mật khẩu khởi tạo *'}
                     </label>
                     <input
                       type="password"
                       value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder={editingUser ? '••••••••' : 'Nhập mật khẩu'}
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13 }}
+                      onChange={(e) => {
+                        setFormData({ ...formData, password: e.target.value });
+                        if (formErrors.password) setFormErrors({ ...formErrors, password: undefined });
+                      }}
+                      placeholder={editingUser ? '••••••••' : 'Tối thiểu 6 ký tự'}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-main)',
+                        border: `1px solid ${formErrors.password ? '#EF4444' : 'var(--border-color)'}`,
+                        borderRadius: 6,
+                        color: 'var(--text-main)',
+                        fontSize: 13
+                      }}
                     />
+                    {formErrors.password && (
+                      <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                        {formErrors.password}
+                      </span>
+                    )}
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
                       Số điện thoại
                     </label>
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, phone: e.target.value });
+                        if (formErrors.phone) setFormErrors({ ...formErrors, phone: undefined });
+                      }}
                       placeholder="0912 345 678"
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13 }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-main)',
+                        border: `1px solid ${formErrors.phone ? '#EF4444' : 'var(--border-color)'}`,
+                        borderRadius: 6,
+                        color: 'var(--text-main)',
+                        fontSize: 13
+                      }}
                     />
+                    {formErrors.phone && (
+                      <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                        {formErrors.phone}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {/* Vai trò & Trạng thái */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
-                      Vai trò tài khoản
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Vai trò
                     </label>
                     <select
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13 }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-main)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 6,
+                        color: 'var(--text-main)',
+                        fontSize: 13
+                      }}
                     >
-                      <option value="client">Khách tham quan (Client)</option>
-                      <option value="staff">Nhân viên bảo tàng (Staff)</option>
-                      <option value="admin">Quản trị viên tối cao (Admin)</option>
+                      <option value="client">Khách tham quan</option>
+                      <option value="staff">Nhân viên bảo tàng</option>
+                      <option value="admin">Quản trị viên</option>
                     </select>
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
-                      Trạng thái tài khoản
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Trạng thái
                     </label>
                     <select
                       value={formData.isActive ? 'active' : 'locked'}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13 }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-main)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 6,
+                        color: 'var(--text-main)',
+                        fontSize: 13
+                      }}
                     >
                       <option value="active">Đang hoạt động</option>
                       <option value="locked">Tạm khóa tài khoản</option>
@@ -896,21 +1231,40 @@ export const AdminUsersPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Ghi chú */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
                     Ghi chú nội bộ
                   </label>
                   <textarea
                     rows={2}
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Ghi chú về người dùng, chức vụ, hoặc lưu ý đặc biệt..."
-                    style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
+                    placeholder="Ghi chú thêm về người dùng..."
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'var(--bg-main)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 6,
+                      color: 'var(--text-main)',
+                      fontSize: 13,
+                      resize: 'vertical'
+                    }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22, paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 10,
+                  marginTop: 20,
+                  paddingTop: 12,
+                  borderTop: '1px solid var(--border-color)'
+                }}
+              >
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -932,11 +1286,27 @@ export const AdminUsersPage: React.FC = () => {
         </div>
       )}
 
-      {/* 7. MODAL XÁC NHẬN XÓA */}
+      {/* 8. MODAL XÁC NHẬN KHÓA / KÍCH HOẠT TÀI KHOẢN */}
+      <ConfirmModal
+        isOpen={Boolean(toggleStatusTarget)}
+        title={toggleStatusTarget?.isActive ? 'Xác nhận tạm khóa tài khoản' : 'Xác nhận kích hoạt tài khoản'}
+        message={
+          toggleStatusTarget?.isActive
+            ? `Bạn có chắc chắn muốn tạm khóa tài khoản "${toggleStatusTarget.fullName || toggleStatusTarget.email}"? Tài khoản này sẽ không thể đăng nhập cho đến khi được mở khóa.`
+            : `Kích hoạt lại tài khoản "${toggleStatusTarget?.fullName || toggleStatusTarget?.email}" để cho phép người dùng đăng nhập hệ thống?`
+        }
+        confirmText={isTogglingStatus ? 'Đang xử lý...' : toggleStatusTarget?.isActive ? 'Khóa tài khoản' : 'Kích hoạt'}
+        cancelText="Hủy bỏ"
+        type={toggleStatusTarget?.isActive ? 'warning' : 'info'}
+        onConfirm={handleConfirmToggleStatus}
+        onCancel={() => setToggleStatusTarget(null)}
+      />
+
+      {/* 9. MODAL XÁC NHẬN XÓA TÀI KHOẢN */}
       <ConfirmModal
         isOpen={Boolean(deleteTarget)}
         title="Xóa tài khoản người dùng"
-        message={`Bạn có chắc chắn muốn xóa tài khoản "${deleteTarget?.fullName || deleteTarget?.email}"? Toàn bộ dữ liệu hồ sơ sẽ bị xóa vĩnh viễn và không thể khôi phục.`}
+        message={`Bạn có chắc chắn muốn xóa tài khoản "${deleteTarget?.fullName || deleteTarget?.email}"? Toàn bộ dữ liệu hồ sơ sẽ bị xóa khỏi hệ thống.`}
         confirmText={isDeleting ? 'Đang xóa...' : 'Xóa tài khoản'}
         cancelText="Hủy bỏ"
         type="danger"

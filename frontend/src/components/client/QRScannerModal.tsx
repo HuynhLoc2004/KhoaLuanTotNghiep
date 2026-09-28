@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
 import { X, Camera, Zap, ZapOff, RefreshCw, Upload, AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { Artifact, MuseumRoom } from '../../types';
+import { useToast } from '../Toast';
 
 interface QRScannerModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   onSelectArtifactDetail,
   onSelectRoomForTour
 }) => {
+  const { showToast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -386,7 +388,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         if (rawData.startsWith('http://') || rawData.startsWith('https://')) {
           window.location.href = rawData;
         } else {
-          alert(`Nội dung mã QR: ${rawData}`);
+          showToast(`Nội dung mã QR: ${rawData}`, 'info');
           onClose();
         }
       }

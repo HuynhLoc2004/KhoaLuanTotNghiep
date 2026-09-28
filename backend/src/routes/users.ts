@@ -188,6 +188,15 @@ usersRouter.post('/', async (req: AuthRequest, res: Response) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ success: false, message: 'Định dạng địa chỉ Email không hợp lệ.' });
+    }
+
+    if (!password || password.trim().length < 6) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu phải chứa ít nhất 6 ký tự.' });
+    }
+
     const cleanUsername = (username && username.trim().toLowerCase()) || cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
 
     // Kiểm tra trùng lặp email hoặc username
