@@ -6,3 +6,5 @@ rembg>=2.0.50
 onnxruntime>=1.16.0
 scikit-image>=0.22.0
 scipy>=1.11.0
+# TRELLIS via HuggingFace Spaces
+gradio_client>=1.3.0

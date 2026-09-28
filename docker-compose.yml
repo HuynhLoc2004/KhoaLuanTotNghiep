@@ -107,6 +107,8 @@ services:
       - R2_SECRET_ACCESS_KEY=1a87ee4bd56e583f00e73408f1174bc26002053a233339867b166579fac3cb84
       - R2_BUCKET_NAME=museum
       - R2_PUBLIC_DOMAIN=https://pub-bb1eeff16fd349f2abb33e4e71fe1ae7.r2.dev
+      # HuggingFace Access Token (read-only) - dung de goi TRELLIS Space
+      - ACCCESS_TOKEN_HUGE_SPACE=${ACCCESS_TOKEN_HUGE_SPACE}
     volumes:
       - uploads_data:/app/backend/public/uploads
       - ./maintenance_flag:/app/maintenance_flag

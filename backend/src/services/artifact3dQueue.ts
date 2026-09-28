@@ -13,7 +13,7 @@ import {
   popJobFromQueue
 } from './redis';
 import { sendToRabbitMQ, consumeRabbitMQ, QUEUES } from './rabbitmq';
-import { getTripoSRUrl, stream3DFromColabToFile, releaseUser3DLock } from './triposrClient.js';
+import { acquireUser3DLock, releaseUser3DLock, generate3DWithTrellis, pingTrellis } from './trellisClient.js';
 import { uploadToR2 } from './r2.js';
 
 const PYTHON_PATH = process.env.PYTHON_PATH || (process.platform === 'win32'
@@ -175,20 +175,13 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
 async function runJobInternal(job: I3DJobData): Promise<void> {
   const artifactId = String(job.artifactId || (job as any).id || '');
   const imagePath = String(job.imagePath || '');
-  const backImagePath = job.backImagePath ? String(job.backImagePath) : '';
-  const depthScale = (typeof job.depthScale === 'number' && !isNaN(job.depthScale))
-    ? job.depthScale
-    : (parseFloat(String(job.depthScale)) || 1.0);
-  const resolution = (typeof job.resolution === 'number' && !isNaN(job.resolution))
-    ? job.resolution
-    : (parseInt(String(job.resolution), 10) || 110);
   const jobId = job.jobId || `job_${Date.now()}`;
 
   const outFilename = `model_3d_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.glb`;
   const outGlbPath = path.join(MODELS_3D_DIR, outFilename);
   const model3dUrl = `/uploads/artifacts/models_3d/${outFilename}`;
 
-  console.log(`[3D Consumer] Đang chạy tác vụ dựng 3D cho hiện vật: ${artifactId} (Job: ${jobId}, depthScale: ${depthScale}, resolution: ${resolution}, hasBack: ${!!backImagePath})...`);
+  console.log(`[3D Consumer] Bắt đầu TRELLIS Job ${jobId} cho hiện vật: ${artifactId}`);
 
   if (!artifactId || !imagePath || !fs.existsSync(imagePath)) {
     console.error(`[3D Consumer] Dữ liệu job không hợp lệ hoặc không tìm thấy file ảnh:`, { artifactId, imagePath });
@@ -202,191 +195,63 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
     return;
   }
 
-  // 1. Kiểm tra cấu hình Google Colab TripoSR AI Worker
-  const tripoSRUrl = await getTripoSRUrl();
+  // Gọi TRELLIS qua HuggingFace Spaces (gradio_client)
+  try {
+    const trellisRes = await generate3DWithTrellis({
+      imagePath,
+      destFilePath: outGlbPath,
+      jobId,
+    });
 
-  if (tripoSRUrl) {
-    console.log(`[3D Consumer] Sử dụng Google Colab GPU T4 TripoSR (${tripoSRUrl}) cho hiện vật: ${artifactId}...`);
+    // Upload backup lên Cloudflare R2 CDN (không bắt buộc)
+    let finalModelUrl = model3dUrl;
     try {
-      const isHttpImage = imagePath.startsWith('http');
-      const tripoRes = await stream3DFromColabToFile({
-        imageUrl: isHttpImage ? imagePath : undefined,
-        imagePath: isHttpImage ? undefined : imagePath,
-        destFilePath: outGlbPath,
-        jobId,
-        foregroundRatio: 0.85,
-        mcResolution: resolution >= 150 ? 256 : 192
-      });
-
-      // 1.2 Đẩy thẳng luồng file từ đĩa lên Cloudflare R2 CDN Storage (Không tốn RAM VPS, dùng làm backup)
-      let finalModelUrl = model3dUrl;
-      try {
-        console.log(`[3D Consumer] Đang tải luồng file mô hình 3D lên Cloudflare R2 backup (models_3d/${outFilename})...`);
-        const r2FileStream = fs.createReadStream(outGlbPath);
-        const r2Url = await uploadToR2(`models_3d/${outFilename}`, r2FileStream, 'model/gltf-binary', tripoRes.sizeBytes);
-        if (r2Url) {
-          console.log(`[3D Consumer] Đã đồng bộ luồng thành công lên Cloudflare R2 CDN backup:`, r2Url);
-        }
-      } catch (r2Err: any) {
-        console.warn(`[3D Consumer] Lỗi upload R2 (vẫn phục vụ tốt bằng máy chủ cục bộ VPS):`, r2Err.message);
+      const r2FileStream = fs.createReadStream(outGlbPath);
+      const r2Url = await uploadToR2(`models_3d/${outFilename}`, r2FileStream, 'model/gltf-binary', trellisRes.sizeBytes);
+      if (r2Url) {
+        console.log(`[3D Consumer] Đã sync lên Cloudflare R2 backup:`, r2Url);
       }
-
-      const fileHash = computeFileHash(imagePath) + '_triposr_colab_t4';
-      const metadata = {
-        aiEngine: 'VAST-AI-Research/TripoSR (GPU T4 Colab)',
-        format: 'glb',
-        sizeBytes: tripoRes.sizeBytes,
-        generatedAt: new Date(),
-        inputImageSha256: fileHash
-      };
-
-      // Lưu Redis Cache với TTL 30 ngày
-      const cacheKey = `artifact:3d_cache:${fileHash}`;
-      await cacheSet(cacheKey, { model3dUrl: finalModelUrl, metadata }, 86400 * 30);
-
-      // Cập nhật MongoDB & PostgreSQL thật
-      await updateArtifact3DState(artifactId, {
-        model3dUrl: finalModelUrl,
-        processingStatus: 'completed',
-        processingError: '',
-        modelMetadata: metadata
-      });
-
-      await cacheDelPattern('artifacts:*');
-      job.status = 'completed';
-      console.log(`[3D Consumer] Hoàn tất xuất sắc tác vụ TripoSR AI cho hiện vật ${artifactId}! Model URL: ${finalModelUrl}`);
-      return;
-    } catch (tripoErr: any) {
-      console.error(`[3D Consumer] Lỗi TripoSR Colab Worker: ${tripoErr.message}`);
-      // Nếu không có Python script cục bộ trên VPS, báo lỗi thất bại ngay
-      if (!fs.existsSync(ARTIFACT_SCRIPT)) {
-        job.status = 'failed';
-        job.error = tripoErr.message;
-        await updateArtifact3DState(artifactId, {
-          processingStatus: 'failed',
-          processingError: `TripoSR Colab thất bại: ${tripoErr.message}`
-        });
-        await cacheDelPattern('artifacts:*');
-        return;
-      }
-      console.log('[3D Consumer] Đang chuyển sang tiến trình Python cục bộ dự phòng...');
+    } catch (r2Err: any) {
+      console.warn(`[3D Consumer] R2 upload warning (vẫn phục vụ từ VPS local):`, r2Err.message);
     }
+
+    const fileHash = computeFileHash(imagePath) + '_trellis_hf_spaces';
+    const metadata = {
+      aiEngine: trellisRes.engine,
+      format: 'glb',
+      sizeBytes: trellisRes.sizeBytes,
+      generationTimeSeconds: trellisRes.generationTimeSeconds,
+      generatedAt: new Date(),
+      inputImageSha256: fileHash
+    };
+
+    // Cache Redis 30 ngày
+    const cacheKey = `artifact:3d_cache:${fileHash}`;
+    await cacheSet(cacheKey, { model3dUrl: finalModelUrl, metadata }, 86400 * 30);
+
+    // Cập nhật MongoDB & PostgreSQL
+    await updateArtifact3DState(artifactId, {
+      model3dUrl: finalModelUrl,
+      processingStatus: 'completed',
+      processingError: '',
+      modelMetadata: metadata
+    });
+
+    await cacheDelPattern('artifacts:*');
+    job.status = 'completed';
+    console.log(`[3D Consumer] ✓ TRELLIS Job ${jobId} hoàn tất! Model: ${finalModelUrl} (${(trellisRes.sizeBytes/1024/1024).toFixed(2)}MB, ${trellisRes.generationTimeSeconds}s)`);
+
+  } catch (trellisErr: any) {
+    const errMsg = trellisErr.message || 'Lỗi không xác định từ TRELLIS';
+    console.error(`[3D Consumer] ✗ TRELLIS Job ${jobId} thất bại:`, errMsg);
+    job.status = 'failed';
+    job.error = errMsg;
+    await updateArtifact3DState(artifactId, {
+      processingStatus: 'failed',
+      processingError: `TRELLIS 3D thất bại: ${errMsg}`
+    });
+    await cacheDelPattern('artifacts:*');
   }
-
-  // 2. Fallback: Sử dụng tiến trình Python cục bộ trên máy chủ nếu có
-  return new Promise<void>((resolve) => {
-    if (!fs.existsSync(ARTIFACT_SCRIPT)) {
-      const errMsg = 'Chưa cấu hình Colab TripoSR URL và không tìm thấy script Python 3D cục bộ';
-      job.status = 'failed';
-      job.error = errMsg;
-      updateArtifact3DState(artifactId, {
-        processingStatus: 'failed',
-        processingError: errMsg
-      }).finally(() => {
-        cacheDelPattern('artifacts:*').finally(resolve);
-      });
-      return;
-    }
-
-    const args = [
-      ARTIFACT_SCRIPT,
-      '--image', imagePath,
-      '--output', outGlbPath,
-      '--depth-scale', String(depthScale),
-      '--resolution', String(resolution)
-    ];
-    if (backImagePath && fs.existsSync(backImagePath)) {
-      args.push('--back-image', backImagePath);
-    }
-
-    const py = spawn(PYTHON_PATH, args);
-    let stdoutData = '';
-    let stderrData = '';
-
-    py.stdout.on('data', (d) => { stdoutData += d.toString(); });
-    py.stderr.on('data', (d) => {
-      stderrData += d.toString();
-      console.log(`[Python 3D Worker Log]: ${d.toString().trim()}`);
-    });
-
-    py.on('close', async (code) => {
-      if (code === 0 && fs.existsSync(outGlbPath)) {
-        let parsed: any = {};
-        try {
-          parsed = JSON.parse(stdoutData.trim());
-        } catch {
-          parsed = {};
-        }
-
-        // Tự động đẩy file sinh ra từ Python cục bộ lên Cloudflare R2
-        let finalModelUrl = model3dUrl;
-        try {
-          const glbBuf = fs.readFileSync(outGlbPath);
-          const r2Url = await uploadToR2(`models_3d/${outFilename}`, glbBuf, 'model/gltf-binary');
-          if (r2Url) {
-            finalModelUrl = r2Url;
-            console.log(`[3D Consumer] Đã đồng bộ mô hình Python cục bộ lên Cloudflare R2:`, finalModelUrl);
-          }
-        } catch (r2Err: any) {
-          console.warn(`[3D Consumer] Cảnh báo upload R2:`, r2Err.message);
-        }
-
-        const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_seamless_patina_v16');
-        const metadata = {
-          vertices: parsed.vertices || 0,
-          faces: parsed.faces || 0,
-          sizeBytes: parsed.sizeBytes || fs.statSync(outGlbPath).size,
-          width: parsed.dimensions?.width || 0,
-          height: parsed.dimensions?.height || 0,
-          depth: parsed.dimensions?.depth || 0,
-          generatedAt: new Date(),
-          inputImageSha256: fileHash
-        };
-
-        // Lưu vào Redis Cache với TTL 30 ngày (2,592,000 giây)
-        const cacheKey = `artifact:3d_cache:${fileHash}`;
-        await cacheSet(cacheKey, { model3dUrl: finalModelUrl, metadata }, 86400 * 30);
-
-        // Cập nhật MongoDB & PostgreSQL thật
-        await updateArtifact3DState(artifactId, {
-          model3dUrl: finalModelUrl,
-          processingStatus: 'completed',
-          processingError: '',
-          modelMetadata: metadata
-        });
-
-        // Xóa cache danh sách để dashboard admin hiển thị ngay
-        await cacheDelPattern('artifacts:*');
-
-        job.status = 'completed';
-        console.log(`[3D Consumer] Hoàn tất xuất sắc Job ${jobId}! Model URL: ${finalModelUrl}`);
-      } else {
-        const errMsg = stderrData || stdoutData || 'Không thể tạo file mô hình 3D';
-        job.status = 'failed';
-        job.error = errMsg;
-
-        await updateArtifact3DState(artifactId, {
-          processingStatus: 'failed',
-          processingError: errMsg
-        });
-        await cacheDelPattern('artifacts:*');
-        console.error(`[3D Consumer] Thất bại Job ${jobId}:`, errMsg);
-      }
-      resolve();
-    });
-
-    py.on('error', async (err) => {
-      job.status = 'failed';
-      job.error = err.message;
-      await updateArtifact3DState(artifactId, {
-        processingStatus: 'failed',
-        processingError: err.message
-      });
-      await cacheDelPattern('artifacts:*');
-      console.error(`[3D Consumer] Lỗi tiến trình Python:`, err.message);
-      resolve();
-    });
-  });
 }
 
 /**
