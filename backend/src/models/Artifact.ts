@@ -93,6 +93,13 @@ const ArtifactSchema = new Schema<IArtifact>(
         delete ret.__v;
         return ret;
       }
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_, ret: any) => {
+        ret.id = ret._id ? ret._id.toString() : ret.id;
+        return ret;
+      }
     }
   }
 );

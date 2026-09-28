@@ -293,7 +293,10 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: `Mã hiện vật "${code}" đã tồn tại trên hệ thống` });
     }
 
+    const _id = new mongoose.Types.ObjectId();
     const created = await ArtifactModel.create({
+      _id,
+      id: _id.toString(),
       name: name.trim(),
       code: code.trim(),
       roomId: roomId || undefined,
@@ -323,7 +326,7 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
     } catch {}
 
     // Đồng bộ lập tức sang PostgreSQL Primary
-    await pgUpsertArtifact(created.toObject());
+    await pgUpsertArtifact(created.toObject ? created.toObject() : created);
     await logAudit('CREATE_ARTIFACT', 'artifacts', { details: { id: created.id, code: created.code, name: created.name } });
 
     // Xóa cache danh sách để phản ánh dữ liệu mới lập tức
@@ -338,26 +341,63 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
 
 /**
  * PUT /api/artifacts/:id
- * Cập nhật thông tin hiện vật (Đồng bộ PostgreSQL Primary & MongoDB Mirror & xóa cache ngay)
+ * Cập nhật thông tin hiện vật (Đồng bộ hai chiều PostgreSQL Primary & MongoDB Mirror & xóa cache ngay)
  */
 artifactsRouter.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(400).json({ success: false, message: 'Mã định danh hiện vật (ID) không hợp lệ' });
+    }
+
     const query = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { id }, { code: id }] } : { $or: [{ id }, { code: id }] };
-    const updated = await ArtifactModel.findOneAndUpdate(query, { $set: req.body }, { new: true });
+    let updated = await ArtifactModel.findOneAndUpdate(query, { $set: req.body }, { returnDocument: 'after' });
+
+    // Nếu chưa có trong MongoDB (do trước đây chỉ lưu ở PostgreSQL), nạp và đồng bộ vào MongoDB
+    if (!updated) {
+      try {
+        const pgCheck = await pgPool.query('SELECT * FROM artifacts WHERE id = $1 OR code = $1 OR mongo_id = $1 LIMIT 1', [id]);
+        if (pgCheck.rows.length > 0) {
+          const row = pgCheck.rows[0];
+          const mergedData = { ...row, ...req.body, id: row.id, code: req.body.code || row.code };
+          const artId = row.id || row.mongo_id || id;
+          updated = await ArtifactModel.create({
+            id: artId,
+            code: mergedData.code,
+            name: mergedData.name,
+            category: mergedData.category,
+            period: mergedData.period,
+            origin: mergedData.origin,
+            description: mergedData.description,
+            dimensions: mergedData.dimensions,
+            images: Array.isArray(mergedData.images) ? mergedData.images : (typeof mergedData.images === 'string' ? JSON.parse(mergedData.images || '[]') : []),
+            thumbnailUrl: mergedData.thumbnailUrl || mergedData.thumbnail_url || '',
+            model3dUrl: mergedData.model3dUrl || mergedData.model_3d_url || '',
+            audioNarrationUrl: mergedData.audioNarrationUrl || mergedData.audio_narration_url || '',
+            voiceLanguage: mergedData.voiceLanguage || mergedData.voice_language || 'vi',
+            status: mergedData.status || 'active',
+            processingStatus: mergedData.processingStatus || mergedData.processing_status || 'idle'
+          });
+        }
+      } catch (findPgErr) {
+        console.warn('[Artifacts] Lỗi kiểm tra PG khi cập nhật:', findPgErr);
+      }
+    }
+
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để cập nhật' });
     }
 
     // Đồng bộ sang PostgreSQL Primary
-    await pgUpsertArtifact(updated.toObject());
+    await pgUpsertArtifact(updated.toObject ? updated.toObject() : updated);
     await logAudit('UPDATE_ARTIFACT', 'artifacts', { details: { id: updated.id, code: updated.code, name: updated.name } });
 
     // Xóa cache chi tiết và cache danh sách
     await Promise.all([
       cacheDelPattern('artifacts:*'),
       cacheDel(`artifacts:item:${id}`),
-      cacheDel(`artifacts:item:${updated.code}`)
+      cacheDel(`artifacts:item:${updated.code}`),
+      cacheDel(`artifacts:item:${updated.id}`)
     ]);
 
     broadcastRealtimeEvent('artifacts_updated', { action: 'update', artifact: updated });
@@ -377,22 +417,46 @@ artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (!id || id === 'undefined' || id === 'null') {
       return res.status(400).json({ success: false, message: 'Mã định danh hiện vật (ID) không hợp lệ' });
     }
+
+    // 1. Thử tìm và xóa trong MongoDB
     const query = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { id }, { code: id }] } : { $or: [{ id }, { code: id }] };
-    const deleted = await ArtifactModel.findOneAndDelete(query);
-    if (!deleted) {
+    let deleted = await ArtifactModel.findOneAndDelete(query);
+
+    // 2. Thử tìm và xóa trong PostgreSQL Primary
+    let pgDeleted: any = null;
+    try {
+      const pgRes = await pgPool.query(
+        'DELETE FROM artifacts WHERE id = $1 OR mongo_id = $1 OR code = $1 RETURNING *;',
+        [id]
+      );
+      if (pgRes.rows.length > 0) {
+        pgDeleted = pgRes.rows[0];
+      }
+    } catch (pgErr: any) {
+      console.warn('[Artifacts] Lỗi xóa PostgreSQL:', pgErr.message);
+    }
+
+    // Nếu không tìm thấy ở cả MongoDB lẫn PostgreSQL -> 404
+    if (!deleted && !pgDeleted) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật để xóa' });
     }
 
-    // Xóa trong PostgreSQL Primary
-    await pgDeleteArtifact(deleted.id || id);
-    if (deleted.id && deleted.id !== id) {
-      await pgDeleteArtifact(id);
+    const artifactInfo = deleted || pgDeleted;
+    const targetId = artifactInfo.id || id;
+    const targetCode = artifactInfo.code || id;
+    const model3dUrl = artifactInfo.model3dUrl || artifactInfo.model_3d_url;
+
+    // Xóa thêm trong PostgreSQL nếu mới chỉ xóa ở MongoDB
+    if (deleted && !pgDeleted) {
+      await pgDeleteArtifact(targetId);
+      if (targetCode && targetCode !== targetId) {
+        await pgDeleteArtifact(targetCode);
+      }
     }
-    await logAudit('DELETE_ARTIFACT', 'artifacts', { details: { id: deleted.id || id, code: deleted.code } });
 
     // 1. Dọn dẹp file 3D trên đĩa
-    if (deleted.model3dUrl && deleted.model3dUrl.includes('/uploads/artifacts/models_3d/')) {
-      const filename = path.basename(deleted.model3dUrl);
+    if (model3dUrl && model3dUrl.includes('/uploads/artifacts/models_3d/')) {
+      const filename = path.basename(model3dUrl);
       const filePath = path.join(ARTIFACTS_UPLOAD_DIR, 'models_3d', filename);
       if (fs.existsSync(filePath)) {
         try { fs.unlinkSync(filePath); } catch {}
@@ -401,20 +465,21 @@ artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
 
     // 2. Chặt chẽ quan hệ dữ liệu: Gỡ bỏ hotspot liên kết trong PostgreSQL Primary & RoomModel
     try {
-      await pgPool.query('DELETE FROM hotspots WHERE artifact_id = $1 OR artifact_id = $2;', [id, deleted.id]);
+      await pgPool.query('DELETE FROM hotspots WHERE artifact_id = $1 OR artifact_id = $2 OR artifact_id = $3;', [id, targetId, targetCode]);
       await RoomModel.updateMany(
-        { 'hotspots.artifactId': { $in: [id, deleted.id] } },
-        { $pull: { hotspots: { artifactId: { $in: [id, deleted.id] } } } }
+        { 'hotspots.artifactId': { $in: [id, targetId, targetCode] } },
+        { $pull: { hotspots: { artifactId: { $in: [id, targetId, targetCode] } } } }
       );
     } catch (relErr) {
       console.warn('[Artifacts] Lỗi dọn dẹp liên kết hotspot:', relErr);
     }
 
-    // 3. Xóa cache
+    // 3. Xóa cache Redis
     await Promise.all([
       cacheDelPattern('artifacts:*'),
       cacheDel(`artifacts:item:${id}`),
-      cacheDel(`artifacts:item:${deleted.code}`),
+      cacheDel(`artifacts:item:${targetId}`),
+      cacheDel(`artifacts:item:${targetCode}`),
       cacheDel('rooms:all')
     ]);
 

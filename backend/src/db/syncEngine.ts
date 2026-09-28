@@ -277,7 +277,7 @@ export async function pgUpsertArtifact(artifact: any) {
 
 export async function pgDeleteArtifact(id: string) {
   try {
-    await pgPool.query('DELETE FROM artifacts WHERE id = $1 OR mongo_id = $1', [id]);
+    await pgPool.query('DELETE FROM artifacts WHERE id = $1 OR mongo_id = $1 OR code = $1', [id]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi xóa Artifact trong PostgreSQL (${id}):`, err.message);
   }
@@ -636,9 +636,10 @@ export async function runStartupDataSync() {
       console.log(`[SyncEngine] Đang nạp ngược ${pgArtifactCount} Artifacts từ PostgreSQL sang MongoDB...`);
       const pgAllArt = await pgPool.query('SELECT * FROM artifacts ORDER BY order_index ASC;');
       for (const row of pgAllArt.rows) {
-        await ArtifactModel.updateOne({ id: row.id }, {
+        const artId = row.id || row.mongo_id;
+        await ArtifactModel.updateOne({ $or: [{ id: artId }, { code: row.code }] }, {
           $set: {
-            id: row.id,
+            id: artId,
             code: row.code,
             name: row.name,
             roomId: row.room_id,
@@ -649,7 +650,7 @@ export async function runStartupDataSync() {
             origin: row.origin,
             description: row.description,
             dimensions: row.dimensions,
-            images: row.images,
+            images: typeof row.images === 'string' ? JSON.parse(row.images || '[]') : (row.images || []),
             thumbnailUrl: row.thumbnail_url,
             model3dUrl: row.model_3d_url,
             audioNarrationUrl: row.audio_narration_url,
@@ -658,9 +659,46 @@ export async function runStartupDataSync() {
             status: row.status,
             processingStatus: row.processing_status,
             processingError: row.processing_error,
-            modelMetadata: row.model_metadata,
-            translations: row.translations,
-            orderIndex: row.order_index
+            modelMetadata: typeof row.model_metadata === 'string' ? JSON.parse(row.model_metadata || '{}') : (row.model_metadata || {}),
+            translations: typeof row.translations === 'string' ? JSON.parse(row.translations || '{}') : (row.translations || {}),
+            orderIndex: row.order_index ?? 0
+          }
+        }, { upsert: true });
+      }
+    } else {
+      // Cả 2 đều có dữ liệu: Thực hiện đồng bộ 2 chiều để bảo đảm không hiện vật nào bị mất đồng bộ
+      console.log(`[SyncEngine] Đồng bộ hai chiều giữa PostgreSQL (${pgArtifactCount}) và MongoDB (${mongoArtifacts.length}) cho toàn bộ hiện vật...`);
+      for (const a of mongoArtifacts) {
+        await pgUpsertArtifact(a);
+      }
+      const pgAllArt = await pgPool.query('SELECT * FROM artifacts ORDER BY order_index ASC;');
+      for (const row of pgAllArt.rows) {
+        const artId = row.id || row.mongo_id;
+        await ArtifactModel.updateOne({ $or: [{ id: artId }, { code: row.code }] }, {
+          $set: {
+            id: artId,
+            code: row.code,
+            name: row.name,
+            roomId: row.room_id,
+            roomCode: row.room_code,
+            topicId: row.topic_id,
+            category: row.category,
+            period: row.period,
+            origin: row.origin,
+            description: row.description,
+            dimensions: row.dimensions,
+            images: typeof row.images === 'string' ? JSON.parse(row.images || '[]') : (row.images || []),
+            thumbnailUrl: row.thumbnail_url,
+            model3dUrl: row.model_3d_url,
+            audioNarrationUrl: row.audio_narration_url,
+            voiceLanguage: row.voice_language,
+            qrCodeUrl: row.qr_code_url,
+            status: row.status,
+            processingStatus: row.processing_status,
+            processingError: row.processing_error,
+            modelMetadata: typeof row.model_metadata === 'string' ? JSON.parse(row.model_metadata || '{}') : (row.model_metadata || {}),
+            translations: typeof row.translations === 'string' ? JSON.parse(row.translations || '{}') : (row.translations || {}),
+            orderIndex: row.order_index ?? 0
           }
         }, { upsert: true });
       }
