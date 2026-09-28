@@ -139,17 +139,31 @@ except Exception as e:
 # -------------------------------------------------------------
 # 3. HÀM TỐI ƯU HÓA HÌNH HỌC CHO THREE.JS & XUẤT .GLB
 # -------------------------------------------------------------
+def to_threejs_3d_orientation(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    """
+    Chuyển đổi toạ độ từ TripoSR sang Three.js chuẩn Web:
+    - Đứng thẳng trên mặt đất (Y-up)
+    - Chính diện quay ra phía người xem (+Z)
+    """
+    # 1. Chuyển toạ độ gốc từ TripoSR
+    mesh.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2, [1, 0, 0]))
+    mesh.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [0, 1, 0]))
+    # 2. Xoay đứng thẳng (Y-up) và hướng chính diện (+Z)
+    mesh.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [1, 0, 0]))
+    mesh.apply_transform(trimesh.transformations.rotation_matrix(np.pi, [0, 1, 0]))
+    return mesh
+
 def optimize_mesh_to_glb_bytes(mesh: trimesh.Trimesh, max_faces: int = 80000) -> bytes:
     """
     Tối ưu hóa hình học cho WebGL / Three.js:
-    - Xoay hướng chuẩn (Y-up, chính diện)
+    - Xoay hướng chuẩn (Y-up, chính diện +Z)
     - Căn tâm vật thể về gốc toạ độ (0, 0, 0)
     - Chuẩn hóa kích thước lớn nhất về 1.2 mét
     - Tối ưu đa giác (Decimation) nếu > max_faces
     - Trả về mảng bytes nhị phân định dạng GLB
     """
-    # 1. Chuyển đổi hệ toạ độ theo chuẩn hiển thị TripoSR -> Three.js
-    mesh = to_gradio_3d_orientation(mesh)
+    # 1. Chuyển đổi hệ toạ độ theo chuẩn hiển thị Three.js Web (Y-up, chính diện)
+    mesh = to_threejs_3d_orientation(mesh)
 
     # 2. Căn giữa gốc toạ độ
     bbox_min, bbox_max = mesh.bounds

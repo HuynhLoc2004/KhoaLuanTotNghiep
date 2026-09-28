@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   RotateCw,
   RotateCcw,
+  RefreshCw,
   Play,
   Pause,
   Maximize2,
@@ -451,12 +452,24 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             }
 
             if (mesh.material) {
+              const applySolidMaterial = (m: THREE.Material) => {
+                const std = m as THREE.MeshStandardMaterial;
+                std.wireframe = wireframeMode;
+                // BẢO ĐẢM HIỆN VẬT ĐẶC ĐẶNG (OPAQUE), KHÔNG BỊ TRONG SUỐT / X-RAY DO VEC4 COLOR:
+                std.transparent = false;
+                std.opacity = 1.0;
+                std.depthWrite = true;
+                std.depthTest = true;
+                std.side = THREE.DoubleSide; // Render 2 mặt, không bị rỗng thủng khi xoay
+                std.roughness = 0.65;
+                std.metalness = 0.15;
+                std.needsUpdate = true;
+              };
+
               if (Array.isArray(mesh.material)) {
-                mesh.material.forEach((m) => {
-                  (m as THREE.MeshStandardMaterial).wireframe = wireframeMode;
-                });
+                mesh.material.forEach(applySolidMaterial);
               } else {
-                (mesh.material as THREE.MeshStandardMaterial).wireframe = wireframeMode;
+                applySolidMaterial(mesh.material);
               }
             }
           }
@@ -518,14 +531,20 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             if (mesh.material) {
+              const updateMat = (m: THREE.Material) => {
+                const std = m as THREE.MeshStandardMaterial;
+                std.wireframe = next;
+                std.transparent = false;
+                std.opacity = 1.0;
+                std.depthWrite = true;
+                std.depthTest = true;
+                std.side = THREE.DoubleSide;
+                std.needsUpdate = true;
+              };
               if (Array.isArray(mesh.material)) {
-                mesh.material.forEach((m) => {
-                  (m as THREE.MeshStandardMaterial).wireframe = next;
-                  m.needsUpdate = true;
-                });
+                mesh.material.forEach(updateMat);
               } else {
-                (mesh.material as THREE.MeshStandardMaterial).wireframe = next;
-                mesh.material.needsUpdate = true;
+                updateMat(mesh.material);
               }
             }
           }
@@ -533,6 +552,23 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
       }
       return next;
     });
+  };
+
+  // 4b. Đổi hướng đứng của hiện vật (Xoay 90° quanh trục X nếu cần căn lại góc đứng)
+  const handleRotateModelAxis = () => {
+    if (!modelObjectRef.current) return;
+    const root = modelObjectRef.current;
+    root.rotation.x += Math.PI / 2;
+    root.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(root);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    // Căn lại trọng tâm hiện vật vào bục trưng bày
+    root.position.x -= center.x;
+    root.position.z -= center.z;
+    root.position.y = PLINTH_HEIGHT - box.min.y + 0.001;
   };
 
   // 5. Căn lại góc nhìn ban đầu
@@ -1029,6 +1065,31 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         >
           <RotateCcw size={16} />
         </button>
+
+        {/* Nút: Đổi hướng đứng hiện vật (Xoay 90° trục đứng) */}
+        {modelUrl && (
+          <button
+            type="button"
+            onClick={handleRotateModelAxis}
+            title="Đổi hướng đứng hiện vật (Xoay lật 90°)"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: 'rgba(20, 24, 33, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#34d399',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <RefreshCw size={16} />
+          </button>
+        )}
 
         {/* Nút 5: Toàn màn hình */}
         <button
