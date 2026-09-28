@@ -575,35 +575,14 @@ export async function runStartupDataSync() {
       }
     }
 
-    // Dọn sạch dứt điểm các phòng mock hạt nhân cũ (room-p-01 -> room-p-18) nếu còn tồn dư
-    const mockSeedRooms = await Room.find({ id: /^room-p-\d+$/ }).lean();
-    if (mockSeedRooms.length > 0) {
-      console.log(`[SyncEngine] Phát hiện ${mockSeedRooms.length} phòng mock hạt nhân cũ. Đang dọn sạch toàn bộ...`);
-      await Room.deleteMany({ id: /^room-p-\d+$/ });
-      await pgPool.query("DELETE FROM hotspots; DELETE FROM rooms WHERE id ~ '^room-p-\\d+$';");
-      // Dọn toàn bộ liên kết phòng giả trên sơ đồ mặt bằng
-      await FloorPlanMap.updateMany({}, {
-        $set: {
-          "nodes.$[].roomId": null,
-          "nodes.$[].roomCode": "",
-          "nodes.$[].panoramaUrl": "",
-          "nodes.$[].thumbnailUrl": ""
-        }
-      });
-      await pgPool.query("UPDATE floor_plan_nodes SET room_id = NULL, panorama_url = '', thumbnail_url = '';");
-      await pgPool.query("UPDATE artifacts SET room_id = NULL WHERE room_id ~ '^room-p-\\d+$';");
-      await ArtifactModel.updateMany({ roomId: /^room-p-\d+$/ }, { $set: { roomId: null, roomCode: '' } });
-      await cacheDelPattern('*');
-      console.log('[SyncEngine] Đã dọn sạch toàn bộ phòng mock và gỡ liên kết sơ đồ thành công!');
-    }
-
     // 2. Đồng bộ Rooms
     const pgRooms = await pgPool.query('SELECT COUNT(*) FROM rooms;');
     const pgRoomCount = parseInt(pgRooms.rows[0].count, 10);
     const mongoRooms = await Room.find().lean();
 
     if (pgRoomCount === 0 && mongoRooms.length === 0) {
-      console.log('[SyncEngine] CSDL phòng trưng bày đang trống (không tự ý chèn dữ liệu mẫu, chờ dữ liệu thật từ quản trị viên)...');
+      console.log('[SyncEngine] CSDL phòng trưng bày đang trống. Tự động khởi tạo 18 Gian phòng di sản thật và bảo vật cho Bảo tàng Lịch sử TP.HCM...');
+      await seedHeritageMuseumData();
     } else if (pgRoomCount === 0 && mongoRooms.length > 0) {
       console.log(`[SyncEngine] Đang di chuyển ${mongoRooms.length} Rooms & Hotspots từ MongoDB sang PostgreSQL...`);
       for (const r of mongoRooms) {

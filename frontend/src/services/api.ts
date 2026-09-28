@@ -96,6 +96,14 @@ export const api = {
     if (!json.success) throw new Error(json.message || 'Lỗi xóa điểm liên kết');
   },
 
+  async seedHeritageRooms(): Promise<{ success: boolean; data: MuseumRoom[]; count: number; message?: string }> {
+    const res = await fetch(`${API_BASE}/rooms/seed-heritage`, {
+      method: 'POST',
+      headers: getAuthHeaders(true)
+    });
+    return await safeJson(res, 'Lỗi khởi tạo dữ liệu di sản');
+  },
+
   async uploadPanorama(file: File): Promise<{ url: string; filename: string }> {
     const formData = new FormData();
     formData.append('file', file);

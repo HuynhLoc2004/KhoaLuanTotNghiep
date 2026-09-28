@@ -198,6 +198,24 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     loadTopics();
   }, []);
 
+  const [isSeedingHeritage, setIsSeedingHeritage] = useState(false);
+  const handleSeedHeritage = async () => {
+    try {
+      setIsSeedingHeritage(true);
+      const res = await api.seedHeritageRooms();
+      if (res.success) {
+        showToast(res.message || 'Đã khởi tạo thành công 18 gian phòng di sản!', 'success');
+        const refreshed = await api.getRooms();
+        refreshed.forEach((r) => onRoomCreated(r));
+        window.location.reload();
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khởi tạo dữ liệu di sản mẫu', 'error');
+    } finally {
+      setIsSeedingHeritage(false);
+    }
+  };
+
   useEffect(() => {
     setRoomPage(1);
     setPanoPage(1);
@@ -676,6 +694,20 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </>
             )}
 
+            {rooms.length === 0 && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleSeedHeritage}
+                disabled={isSeedingHeritage}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: '#D4A86A', color: '#D4A86A' }}
+                title="Khởi tạo sẵn 18 gian phòng di sản và bảo vật cho Bảo tàng Lịch sử TP.HCM"
+              >
+                <Sparkles size={15} />
+                <span>{isSeedingHeritage ? 'Đang nạp 18 phòng...' : 'Nạp 18 phòng di sản mẫu'}</span>
+              </button>
+            )}
+
             <button
               className="btn btn-primary btn-sm"
               onClick={() => {
@@ -957,17 +989,29 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         : 'Hãy thêm phòng trưng bày đầu tiên để bắt đầu xây dựng không gian tham quan 360° cho bảo tàng.'}
                     </div>
                     {!searchQuery && (
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={() => {
-                          setSelectedPanoForNewRoom(undefined);
-                          setShowNewModal(true);
-                        }}
-                      >
-                        <Plus size={14} />
-                        <span>Thêm phòng trưng bày mới</span>
-                      </button>
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => {
+                            setSelectedPanoForNewRoom(undefined);
+                            setShowNewModal(true);
+                          }}
+                        >
+                          <Plus size={14} />
+                          <span>Thêm phòng trưng bày mới</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={handleSeedHeritage}
+                          disabled={isSeedingHeritage}
+                          style={{ borderColor: '#D4A86A', color: '#D4A86A' }}
+                        >
+                          <Sparkles size={14} />
+                          <span>{isSeedingHeritage ? 'Đang nạp 18 phòng...' : 'Nạp 18 phòng di sản mẫu'}</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

@@ -14,6 +14,23 @@ const getId = (param: unknown): string => {
   return String(param || '');
 };
 
+// POST /api/rooms/seed-heritage (Khởi tạo lại 18 gian phòng di sản và bảo vật cho Bảo tàng Lịch sử TP.HCM)
+roomsRouter.post('/seed-heritage', async (req: Request, res: Response) => {
+  try {
+    const { seedHeritageMuseumData } = await import('../db/syncEngine.js');
+    await seedHeritageMuseumData();
+    const rooms = await RoomModel.find().lean();
+    res.json({
+      success: true,
+      message: 'Khởi tạo thành công 18 gian phòng di sản và bảo vật quốc gia!',
+      count: rooms.length,
+      data: rooms
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // GET all rooms (PostgreSQL Primary + Redis cache TTL 300s + MongoDB Fallback)
 roomsRouter.get('/', async (req: Request, res: Response) => {
   try {
