@@ -218,18 +218,17 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
         mcResolution: resolution >= 150 ? 256 : 192
       });
 
-      // 1.2 Đẩy thẳng luồng file từ đĩa lên Cloudflare R2 CDN Storage (Không tốn RAM VPS)
+      // 1.2 Đẩy thẳng luồng file từ đĩa lên Cloudflare R2 CDN Storage (Không tốn RAM VPS, dùng làm backup)
       let finalModelUrl = model3dUrl;
       try {
-        console.log(`[3D Consumer] Đang tải luồng file mô hình 3D lên Cloudflare R2 (models_3d/${outFilename})...`);
+        console.log(`[3D Consumer] Đang tải luồng file mô hình 3D lên Cloudflare R2 backup (models_3d/${outFilename})...`);
         const r2FileStream = fs.createReadStream(outGlbPath);
         const r2Url = await uploadToR2(`models_3d/${outFilename}`, r2FileStream, 'model/gltf-binary', tripoRes.sizeBytes);
         if (r2Url) {
-          finalModelUrl = r2Url;
-          console.log(`[3D Consumer] Đã đồng bộ luồng thành công lên Cloudflare R2 CDN:`, finalModelUrl);
+          console.log(`[3D Consumer] Đã đồng bộ luồng thành công lên Cloudflare R2 CDN backup:`, r2Url);
         }
       } catch (r2Err: any) {
-        console.warn(`[3D Consumer] Lỗi upload R2 (chuyển sang lưu máy chủ cục bộ VPS):`, r2Err.message);
+        console.warn(`[3D Consumer] Lỗi upload R2 (vẫn phục vụ tốt bằng máy chủ cục bộ VPS):`, r2Err.message);
       }
 
       const fileHash = computeFileHash(imagePath) + '_triposr_colab_t4';

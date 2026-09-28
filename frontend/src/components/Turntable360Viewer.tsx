@@ -156,12 +156,17 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   } | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
 
-  // Định dạng đường dẫn URL file 3D đầy đủ (với cơ chế lọc sạch undefined/null)
+  // Định dạng đường dẫn URL file 3D đầy đủ (với cơ chế lọc sạch undefined/null và giải quyết triệt để lỗi CORS của Cloudflare R2)
   const fullModelUrl = React.useMemo(() => {
     if (!modelUrl || typeof modelUrl !== 'string') return null;
     const trimmed = modelUrl.trim();
     if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
       return null;
+    }
+    // Nếu URL là Cloudflare R2 công khai bị thiếu header CORS, chuyển hướng qua đường dẫn /uploads/artifacts/models_3d/ của VPS có CORS 100%
+    if (trimmed.includes('r2.dev/models_3d/')) {
+      const filename = trimmed.split('/models_3d/').pop();
+      if (filename) return `${API_ROOT}/uploads/artifacts/models_3d/${filename}`;
     }
     return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
   }, [modelUrl]);
