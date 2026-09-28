@@ -342,6 +342,11 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
             <div style={{ flex: 1, minHeight: 460, position: 'relative' }}>
               <Turntable360Viewer
                 modelUrl={active3DArtifact.model3dUrl!}
+                imageUrl={
+                  active3DArtifact.thumbnailUrl ||
+                  active3DArtifact.images?.[0] ||
+                  undefined
+                }
                 artifactName={active3DArtifact.name}
                 artifactPeriod={active3DArtifact.period || active3DArtifact.category}
                 audioNarrationUrl={active3DArtifact.audioNarrationUrl}

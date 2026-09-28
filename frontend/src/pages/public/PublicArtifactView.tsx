@@ -373,6 +373,11 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                     ? artifact.model3dUrl
                     : `${API_ROOT}${artifact.model3dUrl.startsWith('/') ? '' : '/'}${artifact.model3dUrl}`
                 }
+                imageUrl={
+                  artifact.thumbnailUrl ||
+                  artifact.images?.[0] ||
+                  undefined
+                }
                 artifactName={displayName}
                 autoRotateSpeed={0.8}
                 audioNarrationUrl={activeAudioUrl || undefined}

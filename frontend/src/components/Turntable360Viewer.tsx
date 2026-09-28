@@ -55,6 +55,30 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // Định dạng đường dẫn URL file 3D đầy đủ
+  const fullModelUrl = React.useMemo(() => {
+    if (!modelUrl || typeof modelUrl !== 'string') return null;
+    const trimmed = modelUrl.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
+      return null;
+    }
+    if (trimmed.includes('r2.dev/models_3d/')) {
+      const filename = trimmed.split('/models_3d/').pop();
+      if (filename) return `${API_ROOT}/uploads/artifacts/models_3d/${filename}`;
+    }
+    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  }, [modelUrl]);
+
+  // Định dạng đường dẫn URL ảnh đầy đủ
+  const fullImageUrl = React.useMemo(() => {
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    const trimmed = imageUrl.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
+      return null;
+    }
+    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  }, [imageUrl]);
+
   // Trạng thái điều khiển 3D
   const [isAutoRotating, setIsAutoRotating] = useState(true);
   const isAutoRotatingRef = useRef(isAutoRotating);
@@ -72,6 +96,77 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   // Chế độ xem: 'parallax' (2.5D Parallax bảo toàn nét thật ±35°) | '360' (Xoay tròn tự do)
   const [viewMode, setViewMode] = useState<'parallax' | '360'>('parallax');
   const viewModeRef = useRef(viewMode);
+
+  // Chế độ vân bề mặt: 'photo' (Phủ ảnh gốc HD 100% màu thật) | 'vertex' (Màu đa giác 3D AI)
+  const [textureMode, setTextureMode] = useState<'photo' | 'vertex'>('photo');
+  const textureModeRef = useRef<'photo' | 'vertex'>('photo');
+  const originalTextureRef = useRef<THREE.Texture | null>(null);
+
+  const applyTextureMode = (mode: 'photo' | 'vertex') => {
+    textureModeRef.current = mode;
+    setTextureMode(mode);
+    if (!modelObjectRef.current) return;
+    modelObjectRef.current.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (mesh.material) {
+          const updateMat = (m: THREE.Material) => {
+            const std = m as THREE.MeshStandardMaterial;
+            if (mode === 'photo' && originalTextureRef.current) {
+              std.map = originalTextureRef.current;
+              std.vertexColors = false;
+              std.color.setHex(0xffffff);
+              std.roughness = 0.45;
+              std.metalness = 0.05;
+            } else {
+              std.map = null;
+              std.vertexColors = true;
+              std.color.setHex(0xffffff);
+              std.roughness = 0.55;
+              std.metalness = 0.12;
+            }
+            std.transparent = false;
+            std.opacity = 1.0;
+            std.depthWrite = true;
+            std.depthTest = true;
+            std.side = THREE.DoubleSide;
+            std.needsUpdate = true;
+          };
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(updateMat);
+          } else {
+            updateMat(mesh.material);
+          }
+        }
+      }
+    });
+  };
+
+  const toggleTextureMode = () => {
+    applyTextureMode(textureMode === 'photo' ? 'vertex' : 'photo');
+  };
+
+  // Nạp texture ảnh gốc chất lượng cao để chiếu lên mặt 3D
+  useEffect(() => {
+    if (!fullImageUrl) return;
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    loader.load(
+      fullImageUrl,
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.generateMipmaps = true;
+        originalTextureRef.current = tex;
+        if (textureModeRef.current === 'photo') {
+          applyTextureMode('photo');
+        }
+      },
+      undefined,
+      (err) => console.warn('[Turntable] Không tải được texture ảnh gốc:', err)
+    );
+  }, [fullImageUrl]);
 
   useEffect(() => {
     viewModeRef.current = viewMode;
@@ -135,6 +230,16 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const currentAudioItem = availableAudioLangs.find((x) => x.code === activeAudioLang) || availableAudioLangs[0] || null;
   const rawAudioUrl = currentAudioItem?.url || audioNarrationUrl || null;
 
+  // Định dạng đường dẫn Audio đầy đủ
+  const fullAudioUrl = React.useMemo(() => {
+    if (!rawAudioUrl || typeof rawAudioUrl !== 'string') return null;
+    const trimmed = rawAudioUrl.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
+      return null;
+    }
+    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  }, [rawAudioUrl]);
+
   // Trạng thái Thuyết minh Audio
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
@@ -157,40 +262,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   } | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
 
-  // Định dạng đường dẫn URL file 3D đầy đủ (với cơ chế lọc sạch undefined/null và giải quyết triệt để lỗi CORS của Cloudflare R2)
-  const fullModelUrl = React.useMemo(() => {
-    if (!modelUrl || typeof modelUrl !== 'string') return null;
-    const trimmed = modelUrl.trim();
-    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
-      return null;
-    }
-    // Nếu URL là Cloudflare R2 công khai bị thiếu header CORS, chuyển hướng qua đường dẫn /uploads/artifacts/models_3d/ của VPS có CORS 100%
-    if (trimmed.includes('r2.dev/models_3d/')) {
-      const filename = trimmed.split('/models_3d/').pop();
-      if (filename) return `${API_ROOT}/uploads/artifacts/models_3d/${filename}`;
-    }
-    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
-  }, [modelUrl]);
 
-  // Định dạng đường dẫn URL ảnh đầy đủ
-  const fullImageUrl = React.useMemo(() => {
-    if (!imageUrl || typeof imageUrl !== 'string') return null;
-    const trimmed = imageUrl.trim();
-    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
-      return null;
-    }
-    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
-  }, [imageUrl]);
-
-  // Định dạng đường dẫn Audio đầy đủ
-  const fullAudioUrl = React.useMemo(() => {
-    if (!rawAudioUrl || typeof rawAudioUrl !== 'string') return null;
-    const trimmed = rawAudioUrl.trim();
-    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed.endsWith('/undefined') || trimmed.endsWith('/null')) {
-      return null;
-    }
-    return trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
-  }, [rawAudioUrl]);
 
   // 1. Khởi tạo Three.js Scene, Camera, Lights, và Bục trưng bày Bảo tàng
   useEffect(() => {
@@ -450,8 +522,24 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 totalFaces += posAttr.count / 3;
               }
 
-              // PHỤC HỒI & NÂNG CAO ĐỘ RỰC RỠ MÀU SẮC (Color Vibrancy & Contrast Recovery):
-              // Khử hiện tượng Three.js áp dụng double-gamma làm bạc màu trắng toát.
+              // 1. TẠO TOẠ ĐỘ UV CHIẾU PHẲNG CHÍNH DIỆN TỪ ẢNH GỐC (Planar UV Projection):
+              // Giúp ánh xạ chuẩn xác từng pixel của ảnh gốc 2K/4K lên bề mặt khối 3D!
+              if (posAttr) {
+                if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+                const b = mesh.geometry.boundingBox || new THREE.Box3();
+                const s = new THREE.Vector3();
+                b.getSize(s);
+                const uvs = new Float32Array(posAttr.count * 2);
+                for (let i = 0; i < posAttr.count; i++) {
+                  const px = posAttr.getX(i);
+                  const py = posAttr.getY(i);
+                  uvs[i * 2] = (px - b.min.x) / (s.x || 1.0);
+                  uvs[i * 2 + 1] = (py - b.min.y) / (s.y || 1.0);
+                }
+                mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+              }
+
+              // 2. PHỤC HỒI & NÂNG CAO ĐỘ RỰC RỠ MÀU SẮC (Cho chế độ Đa giác 3D AI):
               const colorAttr = mesh.geometry.getAttribute('color');
               if (colorAttr) {
                 for (let i = 0; i < colorAttr.count; i++) {
@@ -487,8 +575,20 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 std.depthWrite = true;
                 std.depthTest = true;
                 std.side = THREE.DoubleSide; // Render 2 mặt, không bị rỗng thủng khi xoay
-                std.roughness = 0.55;
-                std.metalness = 0.12;
+
+                if (textureModeRef.current === 'photo' && originalTextureRef.current) {
+                  std.map = originalTextureRef.current;
+                  std.vertexColors = false;
+                  std.color.setHex(0xffffff);
+                  std.roughness = 0.45;
+                  std.metalness = 0.05;
+                } else {
+                  std.map = null;
+                  std.vertexColors = true;
+                  std.color.setHex(0xffffff);
+                  std.roughness = 0.55;
+                  std.metalness = 0.12;
+                }
                 std.needsUpdate = true;
               };
 
@@ -999,6 +1099,38 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           <Sparkles size={14} />
           <span>{viewMode === 'parallax' ? '2.5D Parallax' : 'Xoay 360°'}</span>
         </button>
+
+        {/* Nút Phủ Vân Ảnh Thật HD (100% màu sắc & chi tiết gốc) */}
+        {fullImageUrl && (
+          <button
+            type="button"
+            onClick={toggleTextureMode}
+            title={
+              textureMode === 'photo'
+                ? 'Đang bật: Phủ vân ảnh gốc HD 100% màu sắc và chi tiết gốc. Bấm để xem màu đa giác 3D AI'
+                : 'Đang bật: Màu đa giác 3D AI. Bấm để phủ vân ảnh thật HD (100% chuẩn màu gốc)'
+            }
+            style={{
+              height: 36,
+              padding: '0 10px',
+              borderRadius: 8,
+              background: textureMode === 'photo' ? 'rgba(56, 189, 248, 0.28)' : 'rgba(20, 24, 33, 0.75)',
+              border: textureMode === 'photo' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: textureMode === 'photo' ? '#38bdf8' : '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Camera size={14} />
+            <span>{textureMode === 'photo' ? 'Ảnh thật HD (100% màu)' : 'Màu AI 360°'}</span>
+          </button>
+        )}
 
         {/* Nút 1: Tự động xoay */}
         <button

@@ -1826,6 +1826,11 @@ export const AdminArtifactsPage: React.FC = () => {
                         : `${API_ROOT}${activeViewerArtifact.model3dUrl.startsWith('/') ? '' : '/'}${activeViewerArtifact.model3dUrl}`)
                     : undefined
                 }
+                imageUrl={
+                  activeViewerArtifact.thumbnailUrl ||
+                  activeViewerArtifact.images?.[0] ||
+                  undefined
+                }
                 artifactName={activeViewerArtifact.name}
                 artifactPeriod={activeViewerArtifact.period}
                 audioNarrationUrl={

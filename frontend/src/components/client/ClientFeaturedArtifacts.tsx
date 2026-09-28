@@ -71,6 +71,12 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                       ? activeArtifact.model3dUrl
                       : `${API_ROOT}${activeArtifact.model3dUrl.startsWith('/') ? '' : '/'}${activeArtifact.model3dUrl}`
                   }
+                  imageUrl={
+                    currentThumb ||
+                    activeArtifact.thumbnailUrl ||
+                    activeArtifact.images?.[0] ||
+                    undefined
+                  }
                   artifactName={currentTitle}
                   height={340}
                 />
