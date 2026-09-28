@@ -24,6 +24,39 @@ import numpy as np
 from PIL import Image
 import requests
 import torch
+
+# Patch PyTorch 2.6+ weights_only=False để nạp model.ckpt của TripoSR
+_orig_torch_load = torch.load
+def _safe_torch_load(*args, **kwargs):
+    if "weights_only" not in kwargs:
+        kwargs["weights_only"] = False
+    return _orig_torch_load(*args, **kwargs)
+torch.load = _safe_torch_load
+
+# Patch tương thích Transformers mới: Tự động map encoder.layer sang layers cho ViT/DINO
+_orig_load_state_dict = torch.nn.Module.load_state_dict
+def _compat_load_state_dict(self, state_dict, strict=True):
+    new_state_dict = {}
+    for k, v in state_dict.items():
+        if "image_tokenizer.model.encoder.layer." in k:
+            new_k = k.replace("image_tokenizer.model.encoder.layer.", "image_tokenizer.model.layers.")
+            new_k = new_k.replace(".attention.attention.query.", ".attention.q_proj.")
+            new_k = new_k.replace(".attention.attention.key.", ".attention.k_proj.")
+            new_k = new_k.replace(".attention.attention.value.", ".attention.v_proj.")
+            new_k = new_k.replace(".attention.output.dense.", ".attention.o_proj.")
+            new_k = new_k.replace(".intermediate.dense.", ".mlp.fc1.")
+            new_k = new_k.replace(".output.dense.", ".mlp.fc2.")
+            new_state_dict[new_k] = v
+        else:
+            new_state_dict[k] = v
+    try:
+        return _orig_load_state_dict(self, new_state_dict, strict=strict)
+    except Exception as _e:
+        print(f"[*] Chuyển sang nạp weights linh hoạt (strict=False) do phiên bản Transformers: {_e}")
+        return _orig_load_state_dict(self, new_state_dict, strict=False)
+
+torch.nn.Module.load_state_dict = _compat_load_state_dict
+
 import trimesh
 from fastapi import FastAPI, Header, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import Response, FileResponse
@@ -53,6 +86,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# -------------------------------------------------------------
+# 1.1 TỰ ĐỘNG BÙ ĐẮP: NẾU THIẾU TORCHMCUBES THÌ DÙNG PYMCUBES
+# -------------------------------------------------------------
+try:
+    import torchmcubes
+except ImportError:
+    try:
+        import mcubes
+        import types
+        import sys
+        mock_mc = types.ModuleType("torchmcubes")
+        def _mc_fallback(density, threshold):
+            d_np = density.squeeze().detach().cpu().numpy()
+            v, f = mcubes.marching_cubes(d_np, float(threshold))
+            return torch.from_numpy(v.astype(np.float32)).to(density.device), torch.from_numpy(f.astype(np.int64)).to(density.device)
+        mock_mc.marching_cubes = _mc_fallback
+        sys.modules["torchmcubes"] = mock_mc
+        print("[*] Đã kích hoạt PyMCubes Marching Cubes fallback thành công!")
+    except Exception as _mc_err:
+        print(f"[!] Cảnh báo fallback marching cubes: {_mc_err}")
 
 # -------------------------------------------------------------
 # 2. WARM-UP MODEL TRIPOSR VÀO GPU T4
@@ -175,12 +229,19 @@ async def render_from_url(
         if req.do_remove_background:
             pil_image = remove_background(pil_image, rembg_session=None)
             pil_image = resize_foreground(pil_image, req.foreground_ratio or 0.85)
+            img_np = np.array(pil_image).astype(np.float32) / 255.0
+            if img_np.shape[-1] == 4:
+                img_np = img_np[:, :, :3] * img_np[:, :, 3:4] + (1.0 - img_np[:, :, 3:4]) * 0.5
+            pil_image = Image.fromarray((img_np * 255.0).astype(np.uint8))
+        else:
+            pil_image = pil_image.convert("RGB")
 
         t0 = time.time()
         with torch.no_grad():
             scene_codes = model(pil_image, device=device)
             meshes = model.extract_mesh(
                 scene_codes,
+                True,
                 resolution=req.mc_resolution or 256,
                 threshold=25.0
             )
@@ -234,11 +295,17 @@ async def generate_3d_file(
         if do_remove_background:
             pil_image = remove_background(pil_image, rembg_session=None)
             pil_image = resize_foreground(pil_image, foreground_ratio)
+            img_np = np.array(pil_image).astype(np.float32) / 255.0
+            if img_np.shape[-1] == 4:
+                img_np = img_np[:, :, :3] * img_np[:, :, 3:4] + (1.0 - img_np[:, :, 3:4]) * 0.5
+            pil_image = Image.fromarray((img_np * 255.0).astype(np.uint8))
+        else:
+            pil_image = pil_image.convert("RGB")
 
         t0 = time.time()
         with torch.no_grad():
             scene_codes = model(pil_image, device=device)
-            meshes = model.extract_mesh(scene_codes, resolution=mc_resolution, threshold=25.0)
+            meshes = model.extract_mesh(scene_codes, True, resolution=mc_resolution, threshold=25.0)
 
         mesh = meshes[0]
         gen_time = round(time.time() - t0, 2)
