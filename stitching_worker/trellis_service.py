@@ -33,6 +33,12 @@ TRELLIS_SPACES = [
     "JeffreyXiang/TRELLIS",
 ]
 
+
+def log(msg: str):
+    """In log ra stderr (khong lan vao JSON stdout cho Node.js doc)"""
+    print(f"[TRELLIS Service] {msg}", file=sys.stderr, flush=True)
+
+
 # Doc HuggingFace Access Token tu bien moi truong ACCCESS_TOKEN_HUGE_SPACE
 # Token chi co quyen read - du de goi public Space API, khong can write
 HF_TOKEN = (
@@ -47,11 +53,6 @@ else:
     log("[WARN] Khong tim thay HuggingFace token, se goi anonymous (co the bi rate-limit)")
 
 TRELLIS_TIMEOUT = int(os.environ.get("TRELLIS_TIMEOUT", "300"))
-
-
-def log(msg: str):
-    """In log ra stderr (khong lan vao JSON stdout cho Node.js doc)"""
-    print(f"[TRELLIS Service] {msg}", file=sys.stderr, flush=True)
 
 
 def load_gradio_client():
