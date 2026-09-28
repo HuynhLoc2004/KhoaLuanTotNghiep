@@ -1973,28 +1973,35 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Lựa chọn độ dày nổi khối */}
-              <div className="form-group">
-                <label className="form-label" style={{ marginBottom: 6 }}>
-                  Độ dày nổi khối hình học (Depth Scale): <strong>{depthScale}</strong>
-                </label>
-                <input
-                  type="range"
-                  min="0.2"
-                  max="0.55"
-                  step="0.05"
-                  value={depthScale}
-                  onChange={(e) => setDepthScale(Number(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--primary)' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginTop: 4 }}>
-                  <span>0.20 (Phù điêu mỏng)</span>
-                  <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>0.35 (Chuẩn cổ vật)</span>
-                  <span>0.55 (Tượng tròn dày)</span>
+
+              {/* Thong tin engine TRELLIS */}
+              <div style={{
+                background: 'rgba(99, 102, 241, 0.08)',
+                border: '1px solid rgba(99, 102, 241, 0.25)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 14px',
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+                lineHeight: 1.6
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: '15px' }}>🤗</span>
+                  <span style={{ fontWeight: 600, color: 'var(--heading-color)' }}>TRELLIS — Microsoft AI Research</span>
+                  <span style={{
+                    background: 'rgba(34,197,94,0.15)',
+                    color: '#22c55e',
+                    borderRadius: 4,
+                    padding: '1px 7px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: 0.5
+                  }}>ACTIVE</span>
                 </div>
+                Mô hình tạo 3D chất lượng cao từ ảnh đơn, chạy trên <strong>HuggingFace Spaces</strong>. Thời gian xử lý khoảng <strong>30 – 90 giây</strong>.
               </div>
 
-              {/* Colab AI Worker Engine Status Indicator */}
+
+              {/* TRELLIS Engine Status */}
               <div
                 style={{
                   display: 'flex',
@@ -2002,8 +2009,8 @@ export const AdminArtifactsPage: React.FC = () => {
                   justifyContent: 'space-between',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
-                  background: colabStatus?.ok ? 'rgba(34, 197, 94, 0.08)' : 'rgba(234, 179, 8, 0.08)',
-                  border: `1px solid ${colabStatus?.ok ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
+                  background: 'rgba(34, 197, 94, 0.08)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
                   fontSize: '12px'
                 }}
               >
@@ -2013,30 +2020,16 @@ export const AdminArtifactsPage: React.FC = () => {
                       width: 8,
                       height: 8,
                       borderRadius: '50%',
-                      background: colabStatus?.ok ? 'var(--success, #22c55e)' : '#f59e0b',
-                      boxShadow: colabStatus?.ok ? '0 0 6px rgba(34, 197, 94, 0.6)' : 'none'
+                      background: 'var(--success, #22c55e)',
+                      boxShadow: '0 0 6px rgba(34, 197, 94, 0.6)'
                     }}
                   />
                   <span style={{ color: 'var(--text-muted)' }}>Động cơ AI:</span>
-                  <strong style={{ color: colabStatus?.ok ? 'var(--success, #22c55e)' : 'var(--accent-gold)' }}>
-                    {colabStatus?.ok ? 'TripoSR (Google Colab GPU T4)' : 'Python cục bộ (Local VPS)'}
+                  <strong style={{ color: 'var(--success, #22c55e)' }}>
+                    TRELLIS (HuggingFace Spaces)
                   </strong>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { setShowColabModal(true); fetchColabStatus(); }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--accent-gold)',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    textDecoration: 'underline',
-                    fontWeight: 600
-                  }}
-                >
-                  {colabStatus?.ok ? 'Đổi Tunnel' : 'Kết nối Colab T4'}
-                </button>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>🔑 Token đã cấu hình</span>
               </div>
 
               <div
@@ -2050,7 +2043,7 @@ export const AdminArtifactsPage: React.FC = () => {
                   border: '1px solid var(--border-color)'
                 }}
               >
-                Hệ thống tự động xử lý hình ảnh, ước tính độ sâu và tái tạo mô hình 3D đặc khép kín (Watertight) chuẩn bảo tàng.
+                Hệ thống gửi ảnh tới <strong>TRELLIS AI</strong> trên HuggingFace để tái tạo mô hình 3D chất lượng cao (GLB). Sau khi hoàn tất, model sẽ tự động hiển thị trên trang khách tham quan.
               </div>
             </div>
 
