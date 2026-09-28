@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Navigation, Info, MapPin, Compass, Check, ArrowRight } from 'lucide-react';
 import { MuseumRoom, Hotspot } from '../types';
 
@@ -41,6 +41,17 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
     }
   };
 
+  // Lắng nghe phím Escape để đóng modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -67,12 +78,16 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
         padding: '16px',
         zIndex: 9999
       }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         className="modal-card"
         style={{
           width: '100%',
           maxWidth: '520px',
+          maxHeight: 'min(90vh, 760px)',
           background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-color)',
@@ -80,6 +95,7 @@ export const HotspotModal: React.FC<HotspotModalProps> = ({
           border: '1px solid var(--border-color)',
           animation: 'modalEntrance 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         <style>{`
           @keyframes modalEntrance {

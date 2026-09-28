@@ -1622,6 +1622,35 @@
   position: relative;
 }
 
+.modal-card > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop {
+    padding: 8px;
+  }
+  .modal-card {
+    max-height: calc(100dvh - 16px);
+    width: 100% !important;
+    border-radius: var(--radius-md);
+  }
+  .modal-header {
+    padding: 12px 16px;
+  }
+  .modal-body {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .modal-footer {
+    padding: 12px 16px;
+  }
+}
+
 @keyframes modalFadeIn {
   from {
     opacity: 0;

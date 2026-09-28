@@ -34,6 +34,17 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
     return () => { isMounted = false; };
   }, []);
 
+  // Lắng nghe phím Escape để đóng modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !loading && !uploading) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loading, uploading, onClose]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -88,14 +99,31 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 1100 }}>
-      <div className="modal-card" style={{ maxWidth: 760, width: '92vw' }}>
+    <div
+      className="modal-backdrop"
+      style={{ zIndex: 1100 }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading && !uploading) onClose();
+      }}
+    >
+      <div
+        className="modal-card"
+        style={{
+          maxWidth: 760,
+          width: 'min(760px, 94vw)',
+          maxHeight: 'min(90vh, 800px)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <h2 className="modal-title">Chỉnh sửa gian phòng: {room.name}</h2>
           <button
             type="button"
             className="modal-close-btn"
             onClick={onClose}
+            disabled={loading || uploading}
             aria-label="Đóng"
           >
             <X size={18} />

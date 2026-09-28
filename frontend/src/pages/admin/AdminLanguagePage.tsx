@@ -92,6 +92,17 @@ export const AdminLanguagePage: React.FC = () => {
   }>({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Lắng nghe phím Escape để đóng modal thêm ngôn ngữ
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showAddModal && !submitting) {
+        setShowAddModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal, submitting]);
+
   // Áp dụng cấu hình tự động khi chọn ngôn ngữ từ thư viện
   const handleApplyPreset = (code: string) => {
     setSelectedPresetCode(code);
@@ -845,8 +856,24 @@ export const AdminLanguagePage: React.FC = () => {
 
         {/* MODAL THÊM NGÔN NGỮ */}
         {showAddModal && (
-          <div className="modal-backdrop" style={{ zIndex: 1200 }}>
-            <div className="modal-card" style={{ maxWidth: 520 }}>
+          <div
+            className="modal-backdrop"
+            style={{ zIndex: 1200 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !submitting) setShowAddModal(false);
+            }}
+          >
+            <div
+              className="modal-card"
+              style={{
+                maxWidth: 520,
+                width: 'min(520px, 94vw)',
+                maxHeight: 'min(90vh, 720px)',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="modal-header">
                 <div>
                   <h2 className="modal-title">{t('langPage.modalAddTitle', 'Thêm ngôn ngữ mới')}</h2>
@@ -858,14 +885,35 @@ export const AdminLanguagePage: React.FC = () => {
                   type="button"
                   className="modal-close-btn"
                   onClick={() => setShowAddModal(false)}
+                  disabled={submitting}
                   title={t('common.close', 'Đóng')}
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleAddSubmit} noValidate>
-                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form
+                onSubmit={handleAddSubmit}
+                noValidate
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1 1 auto',
+                  minHeight: 0,
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  className="modal-body"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 14,
+                    overflowY: 'auto',
+                    flex: '1 1 auto',
+                    minHeight: 0
+                  }}
+                >
                   {/* Danh mục mẫu chọn nhanh */}
                   <div className="form-group">
                     <label className="form-label">{t('langPage.selectPreset', 'Chọn ngôn ngữ mẫu (Tùy chọn)')}</label>
@@ -886,8 +934,8 @@ export const AdminLanguagePage: React.FC = () => {
                     </select>
                   </div>
 
-                  {/* Mã ISO & Cờ */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 12 }}>
+                  {/* Mã ISO & Cờ (Responsive Grid) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">
                         {t('langPage.isoCode', 'Mã ISO')} <span style={{ color: 'var(--error)' }}>*</span>
@@ -970,8 +1018,8 @@ export const AdminLanguagePage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Giọng đọc TTS & Giới tính */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 12 }}>
+                  {/* Giọng đọc TTS & Giới tính (Responsive Grid) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">{t('langPage.ttsVoiceCode', 'Mã giọng đọc (TTS Voice)')}</label>
                       <input

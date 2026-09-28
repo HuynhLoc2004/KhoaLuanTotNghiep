@@ -169,6 +169,19 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const [panoPage, setPanoPage] = useState(1);
   const [panoPageSize, setPanoPageSize] = useState(6);
 
+  // Lắng nghe phím Escape để đóng nhanh các modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (aiDrawerRoom) handleCloseAiDrawer();
+        if (showQrModal) setShowQrModal(false);
+        if (previewPanoUrl) setPreviewPanoUrl(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [aiDrawerRoom, showQrModal, previewPanoUrl]);
+
   const fetchPanoramas = async () => {
     try {
       setLoadingPanos(true);
@@ -1418,10 +1431,16 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
       {/* MODAL CẤU HÌNH THUYẾT MINH & TRỢ LÝ ẢO DI SẢN */}
       {aiDrawerRoom && (
-        <div className="modal-backdrop">
+        <div
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseAiDrawer();
+          }}
+        >
           <div
             className="modal-card"
-            style={{ maxWidth: 640, width: '100%' }}
+            style={{ maxWidth: 640, width: 'min(640px, 94vw)', maxHeight: 'min(90vh, 760px)', display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1683,8 +1702,17 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
       {/* MODAL XUẤT QR STANDEE BẢO TÀNG THỰC ĐỊA */}
       {showQrModal && selectedQrRoom && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 500 }}>
+        <div
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowQrModal(false);
+          }}
+        >
+          <div
+            className="modal-card"
+            style={{ maxWidth: 500, width: 'min(500px, 94vw)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <QrCode size={18} style={{ color: 'var(--primary)' }} />

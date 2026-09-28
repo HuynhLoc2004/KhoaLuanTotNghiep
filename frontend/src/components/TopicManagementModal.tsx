@@ -61,6 +61,17 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
     }
   };
 
+  // Lắng nghe phím Escape để đóng modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isCreating && !isUpdating) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCreating, isUpdating, onClose]);
+
   useEffect(() => {
     if (isOpen) {
       fetchTopics();
@@ -167,8 +178,24 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 1300 }}>
-      <div className="modal-card" style={{ maxWidth: 680, width: '92vw' }}>
+    <div
+      className="modal-backdrop"
+      style={{ zIndex: 1300 }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isCreating && !isUpdating) onClose();
+      }}
+    >
+      <div
+        className="modal-card"
+        style={{
+          maxWidth: 680,
+          width: 'min(680px, 94vw)',
+          maxHeight: 'min(90vh, 760px)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

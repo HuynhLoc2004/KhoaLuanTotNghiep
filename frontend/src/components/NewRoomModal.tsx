@@ -43,6 +43,17 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
     return () => { isMounted = false; };
   }, []);
 
+  // Lắng nghe phím Escape để đóng modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !loading) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loading, onClose]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -88,8 +99,24 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 1200 }}>
-      <div className="modal-card" style={{ maxWidth: 540 }}>
+    <div
+      className="modal-backdrop"
+      style={{ zIndex: 1200 }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onClose();
+      }}
+    >
+      <div
+        className="modal-card"
+        style={{
+          maxWidth: 540,
+          width: 'min(540px, 94vw)',
+          maxHeight: 'min(90vh, 760px)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <h2 className="modal-title" style={{ fontSize: '17px', margin: 0 }}>
             {t('rooms.addNewRoomTitle', 'Thêm gian phòng trưng bày mới')}
@@ -98,6 +125,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
             type="button"
             className="modal-close-btn"
             onClick={onClose}
+            disabled={loading}
             aria-label={t('common.close', 'Đóng')}
           >
             <X size={18} />
