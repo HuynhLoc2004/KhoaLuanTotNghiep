@@ -391,9 +391,10 @@ export const api = {
     const res = await fetch(`${API_BASE}/system/branding`, {
       method: 'POST',
       headers: getAuthHeaders(true),
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(20000)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Không thể cập nhật cấu hình bảo tàng');
     if (!json.success) throw new Error(json.message || 'Lỗi cập nhật nhận diện bảo tàng');
     return json.branding;
   },
@@ -406,9 +407,10 @@ export const api = {
     const res = await fetch(`${API_BASE}/upload/branding-logo`, {
       method: 'POST',
       headers,
-      body: formData
+      body: formData,
+      signal: AbortSignal.timeout(30000)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Không thể tải lên file ảnh logo');
     if (!json.success) throw new Error(json.message || 'Lỗi tải lên file ảnh logo');
     return { url: json.data.url };
   },
@@ -421,9 +423,10 @@ export const api = {
     const res = await fetch(`${API_BASE}/upload/branding-image`, {
       method: 'POST',
       headers,
-      body: formData
+      body: formData,
+      signal: AbortSignal.timeout(30000)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Không thể tải lên file ảnh');
     if (!json.success) throw new Error(json.message || 'Lỗi tải lên file ảnh');
     return { url: json.data.url };
   },

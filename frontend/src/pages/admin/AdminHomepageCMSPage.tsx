@@ -58,6 +58,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
   const [form, setForm] = useState<SystemBranding>(branding);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const isInitialLoadRef = useRef(true);
   const [activeSectionId, setActiveSectionId] = useState<string>(activeSection || 'panel-brand');
 
   // Hộp thoại xác nhận thay thế window.confirm / alert
@@ -95,11 +97,16 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       .catch((err) => console.warn('[AdminHomepageCMS] Lỗi tải danh sách phòng:', err));
   }, []);
 
+  // Chỉ nạp branding vào form khi tải lần đầu hoặc khi không có thay đổi chưa lưu (isDirty=false)
+  // Tránh việc đổi tab hoặc SSE ngầm đè mất nội dung người dùng đang nhập
   useEffect(() => {
     if (branding) {
-      setForm(branding);
+      if (isInitialLoadRef.current || !isDirty) {
+        setForm(branding);
+        isInitialLoadRef.current = false;
+      }
     }
-  }, [branding]);
+  }, [branding, isDirty]);
 
   useEffect(() => {
     if (activeSection) {
@@ -114,6 +121,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   const menuItems: HeaderMenuItem[] = form.headerMenuItems || DEFAULT_HEADER_MENU;
 
   const updateMenuItems = (newItems: HeaderMenuItem[]) => {
+    setIsDirty(true);
     setForm((prev) => ({
       ...prev,
       headerMenuItems: newItems
@@ -230,14 +238,15 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   };
 
   // Cập nhật giá trị một trường
-  const handleChange = (field: keyof SystemBranding, value: string) => {
+  const handleChange = (field: keyof SystemBranding, value: any) => {
+    setIsDirty(true);
     setForm((prev) => ({
       ...prev,
       [field]: value
     }));
   };
 
-  // Xử lý upload ảnh Logo
+  // Xử lý upload ảnh Logo (Tự động đồng bộ ngay vào CSDL & Client)
   const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -249,7 +258,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       setUploadingLogo(true);
       const res = await api.uploadBrandingLogo(file);
       handleChange('logoUrl', res.url);
-      showToast('Đã tải ảnh logo lên thành công! Nhớ nhấn "Lưu thay đổi" để áp dụng.', 'success');
+      await updateBranding({ logoUrl: res.url });
+      setIsDirty(false);
+      showToast('Đã tải ảnh logo lên và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tải file ảnh logo', 'error');
     } finally {
@@ -258,7 +269,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
     }
   };
 
-  // Xử lý upload ảnh Banner Hero
+  // Xử lý upload ảnh Banner Hero (Tự động đồng bộ ngay vào CSDL & Client)
   const handleUploadHeroBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -270,7 +281,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       setUploadingHeroBanner(true);
       const res = await api.uploadBrandingImage(file);
       handleChange('heroBannerUrl', res.url);
-      showToast('Đã tải ảnh banner Hero thành công! Nhớ nhấn "Lưu thay đổi" để áp dụng.', 'success');
+      await updateBranding({ heroBannerUrl: res.url });
+      setIsDirty(false);
+      showToast('Đã tải ảnh banner Hero và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tải file ảnh banner', 'error');
     } finally {
@@ -279,7 +292,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
     }
   };
 
-  // Xử lý upload ảnh kiến trúc Intro
+  // Xử lý upload ảnh kiến trúc Intro (Tự động đồng bộ ngay vào CSDL & Client)
   const handleUploadIntroImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -291,7 +304,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       setUploadingIntroImage(true);
       const res = await api.uploadBrandingImage(file);
       handleChange('introImageUrl', res.url);
-      showToast('Đã tải ảnh kiến trúc thành công! Nhớ nhấn "Lưu thay đổi" để áp dụng.', 'success');
+      await updateBranding({ introImageUrl: res.url });
+      setIsDirty(false);
+      showToast('Đã tải ảnh kiến trúc và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tải file ảnh kiến trúc', 'error');
     } finally {
@@ -316,6 +331,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
     try {
       setIsSaving(true);
       await updateBranding(form);
+      setIsDirty(false);
       const msg = sectionName
         ? `Đã lưu thành công ${sectionName}! Dữ liệu trang chủ đã đồng bộ ngay lập tức.`
         : 'Cập nhật thành công toàn bộ giao diện & nội dung Trang chủ! Hệ thống đã đồng bộ dữ liệu thật 100%.';
@@ -843,8 +859,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
             }}
           >
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, textAlign: 'left' }}>
+            <div className="admin-cms-table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 12.5, textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
                     <th style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-muted)', width: '32%' }}>
@@ -1773,7 +1789,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                           const res = await api.uploadBrandingImage(file);
                           if (res && res.url) {
                             handleChange('roomsShowcaseImageUrl', res.url);
-                            showToast('Đã tải ảnh đại diện gian phòng lên thành công!', 'success');
+                            await updateBranding({ roomsShowcaseImageUrl: res.url });
+                            setIsDirty(false);
+                            showToast('Đã tải ảnh đại diện gian phòng và tự động đồng bộ sang trang chủ!', 'success');
                           }
                         } catch (err: any) {
                           showToast(err.message || 'Lỗi tải ảnh lên', 'error');
@@ -2162,22 +2180,59 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       {/* 4. THANH HÀNH ĐỘNG CỐ ĐỊNH PHÍA DƯỚI (STICKY BOTTOM ACTION BAR) */}
       <div className="admin-cms-sticky-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CheckCircle2 size={16} style={{ color: 'var(--accent-gold)' }} />
-          <span style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 500 }}>
-            Hệ thống đã kết nối & Tự động đồng bộ
-          </span>
+          {isDirty ? (
+            <>
+              <span
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: '50%',
+                  background: '#f59e0b',
+                  boxShadow: '0 0 8px rgba(245, 158, 11, 0.7)',
+                  display: 'inline-block'
+                }}
+              />
+              <span style={{ fontSize: 12.5, color: '#f59e0b', fontWeight: 600 }}>
+                Có thay đổi chưa lưu
+              </span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={16} style={{ color: 'var(--success, #22c55e)' }} />
+              <span style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 500 }}>
+                Đã đồng bộ 100% với trang khách
+              </span>
+            </>
+          )}
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={() => handleSave()}
-          disabled={isSaving}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
-        >
-          <Save size={15} />
-          <span>{isSaving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}</span>
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isDirty && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setForm(branding);
+                setIsDirty(false);
+                showToast('Đã hủy các thay đổi chưa lưu và nạp lại từ máy chủ', 'info');
+              }}
+              disabled={isSaving}
+              style={{ fontSize: 12 }}
+            >
+              Hủy thay đổi
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => handleSave()}
+            disabled={isSaving}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
+          >
+            <Save size={15} />
+            <span>{isSaving ? 'Đang lưu...' : (isDirty ? 'Lưu tất cả thay đổi ngay' : 'Lưu tất cả thay đổi')}</span>
+          </button>
+        </div>
       </div>
 
       <ConfirmModal

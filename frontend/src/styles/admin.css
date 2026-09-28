@@ -2501,8 +2501,18 @@
   }
 
   /* Tự động trải đều form sang 1 cột trên mobile, chống tràn ngang 100% */
-  .admin-cms-card div[style*="gridTemplateColumns"] {
+  .admin-cms-card div[style*="gridTemplateColumns"],
+  .admin-cms-card div[style*="grid-template-columns"],
+  .admin-cms-grid-responsive {
     grid-template-columns: 1fr !important;
+  }
+
+  .admin-cms-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 16px;
+    border-radius: 8px;
   }
 
   /* ĐẢM BẢO TIÊU ĐỀ PHÂN KHU KHÔNG BAO GIỜ BỊ BÓP CO CHỮ */
