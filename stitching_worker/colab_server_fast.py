@@ -184,9 +184,26 @@ class RenderRequest(BaseModel):
 # -------------------------------------------------------------
 # 5. API ENDPOINTS
 # -------------------------------------------------------------
+@app.get("/")
+def root():
+    """Trang chủ hiển thị trạng thái khi người dùng click mở liên kết trên trình duyệt"""
+    gpu_allocated_mb = 0
+    gpu_name = "CPU"
+    if torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+        gpu_allocated_mb = round(torch.cuda.memory_allocated(0) / 1024 / 1024, 1)
+
+    return {
+        "ok": True,
+        "status": "online",
+        "service": "Bảo tàng Lịch sử - TripoSR Fast 3D Worker",
+        "device": f"{gpu_name} (Free VRAM: {round((15360 - gpu_allocated_mb)/1024, 1)} GB)",
+        "message": "Máy chủ Google Colab GPU T4 đang hoạt động tốt! Hãy copy URL này dán vào ô 'Cấu hình Colab Tunnel' trên Trang Quản trị Di vật (Admin Artifacts)."
+    }
+
 @app.get("/health")
-def health_check(api_key: str = Depends(verify_api_key)):
-    """Kiểm tra tình trạng tài nguyên GPU T4 và xác thực X-API-Key"""
+def health_check(x_api_key: Optional[str] = Header(None)):
+    """Kiểm tra tình trạng tài nguyên GPU T4 và kết nối liveness"""
     gpu_allocated_mb = 0
     gpu_name = "CPU"
     if torch.cuda.is_available():
