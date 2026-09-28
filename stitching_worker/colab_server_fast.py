@@ -142,15 +142,12 @@ except Exception as e:
 def to_threejs_3d_orientation(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     """
     Chuyển đổi toạ độ từ TripoSR sang Three.js chuẩn Web:
-    - Đứng thẳng trên mặt đất (Y-up)
-    - Chính diện quay ra phía người xem (+Z)
+    - Đứng thẳng trên mặt đất (+Y là Up)
+    - Mặt chính diện nhìn thẳng ra màn hình (+Z là Front)
+    - Tay phải hướng sang phải (+X là Right)
+    Phép xoay -90 độ quanh trục X chuẩn hóa hoàn hảo hệ toạ độ TripoSR -> Three.js
     """
-    # 1. Chuyển toạ độ gốc từ TripoSR
     mesh.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2, [1, 0, 0]))
-    mesh.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [0, 1, 0]))
-    # 2. Xoay đứng thẳng (Y-up) và hướng chính diện (+Z)
-    mesh.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [1, 0, 0]))
-    mesh.apply_transform(trimesh.transformations.rotation_matrix(np.pi, [0, 1, 0]))
     return mesh
 
 def optimize_mesh_to_glb_bytes(
@@ -163,10 +160,10 @@ def optimize_mesh_to_glb_bytes(
     - Xoay hướng chuẩn (Y-up, chính diện +Z)
     - Căn tâm vật thể về gốc toạ độ (0, 0, 0)
     - Chuẩn hóa kích thước lớn nhất về 1.2 mét
-    - Chiếu màu và nướng vân bề mặt UV từ ảnh chụp thực tế (Texture Projection Mapping)
-    - Xuất file nhị phân .GLB hoàn chỉnh nhúng sẵn Texture
+    - Chiếu màu sắc nét từ ảnh gốc lên mặt trước, bảo tồn màu 3D 360 độ tự nhiên ở mặt sau (không bị loang vân mặt trước ra sau mai/lưng)
+    - Xuất file nhị phân .GLB chất lượng cao
     """
-    # 1. Chuyển đổi hệ toạ độ theo chuẩn hiển thị Three.js Web (Y-up, chính diện)
+    # 1. Chuyển đổi hệ toạ độ theo chuẩn hiển thị Three.js Web (Y-up, chính diện nhìn ra +Z)
     mesh = to_threejs_3d_orientation(mesh)
 
     # 2. Căn giữa gốc toạ độ
@@ -178,8 +175,8 @@ def optimize_mesh_to_glb_bytes(
     if max_extent > 0:
         mesh.vertices *= (1.2 / max_extent)
 
-    # 4. CHIẾU MÀU TỪ ẢNH GỐC LÊN MÔ HÌNH 3D (Projection Mapping & UV Texture Baking)
-    # Phân tích ảnh gốc và ánh xạ màu sắc thực tế vào các đỉnh và mặt lưới đa giác
+    # 4. CHIẾU MÀU TỪ ẢNH GỐC LÊN MẶT TRƯỚC (Front Camera Projection)
+    # Phân tích ảnh gốc và ánh xạ màu sắc thực tế vào các đỉnh mặt trước (+Z), giữ nguyên 360° mặt sau
     if texture_image is not None and len(mesh.vertices) > 0:
         try:
             tex_w, tex_h = texture_image.size
@@ -194,7 +191,7 @@ def optimize_mesh_to_glb_bytes(
             dx = max(x_max - x_min, 1e-5)
             dy = max(y_max - y_min, 1e-5)
 
-            # Tọa độ chiếu phẳng (Planar UV coordinates)
+            # Tọa độ chiếu phẳng (Planar coordinates)
             u = np.clip((x_vals - x_min) / dx, 0.0, 1.0)
             v = np.clip((y_vals - y_min) / dy, 0.0, 1.0)
 
@@ -205,13 +202,13 @@ def optimize_mesh_to_glb_bytes(
 
             # Pháp tuyến đỉnh (Vertex Normals) để xác định góc chiếu thẳng vào camera (+Z)
             normals = mesh.vertex_normals
-            nz = normals[:, 2]
+            nz = normals[:, 2] # nz > 0 là mặt trước nhìn thẳng vào camera
 
-            # Mặt trước (nz > 0) nhận màu sắc nét từ ảnh gốc; mặt sau chuyển tiếp mượt mà
-            facing_weight = np.clip((nz + 0.2) / 1.2, 0.0, 1.0)[:, np.newaxis]
+            # Trọng số mặt trước: nz > 0 nhận màu ảnh thật, nz <= 0 (lưng/mai rùa) nhận màu 3D của TripoSR
+            facing_weight = np.clip(nz, 0.0, 1.0)[:, np.newaxis]
             if has_alpha:
-                alpha_weight = (sampled_pixels[:, 3:4].astype(np.float32) / 255.0)
-                facing_weight = facing_weight * alpha_weight
+                alpha_mask = (sampled_pixels[:, 3:4].astype(np.float32) / 255.0)
+                facing_weight = facing_weight * alpha_mask
 
             orig_rgb = sampled_pixels[:, :3].astype(np.float32)
 
@@ -220,21 +217,22 @@ def optimize_mesh_to_glb_bytes(
             else:
                 tripo_rgb = np.full_like(orig_rgb, 128.0)
 
-            # Pha trộn: Mặt trước giữ 100% màu gốc, mặt sau hài hòa
-            blended_rgb = facing_weight * orig_rgb + (1.0 - facing_weight) * tripo_rgb
+            # Pha trộn: Mặt trước lấy 90-100% màu thật, mặt sau giữ 100% màu khối 3D tự nhiên
+            blend_factor = np.power(facing_weight, 0.75)
+            blended_rgb = blend_factor * orig_rgb + (1.0 - blend_factor) * tripo_rgb
+
+            # Nâng cao độ tương phản và bão hòa màu để di vật trông rực rỡ và chân thực
             mean_c = np.mean(blended_rgb, axis=-1, keepdims=True)
-            vibrant_rgb = mean_c + (blended_rgb - mean_c) * 1.25
+            vibrant_rgb = mean_c + (blended_rgb - mean_c) * 1.3
             vibrant_rgb = np.clip(vibrant_rgb, 0.0, 255.0).astype(np.uint8)
 
-            # Gán Vertex Colors đã được tinh chỉnh
+            # Gán Vertex Colors đã được tinh chỉnh vào mesh
             alpha_col = np.full((len(mesh.vertices), 1), 255, dtype=np.uint8)
-            mesh.visual.vertex_colors = np.concatenate([vibrant_rgb, alpha_col], axis=-1)
-
-            # ĐỒNG THỜI tạo UV mapping và nhúng Texture ảnh gốc vào file GLB
-            uvs = np.column_stack([u, v])
-            rgb_tex_image = texture_image.convert("RGB")
-            mesh.visual = trimesh.visual.TextureVisuals(uv=uvs, image=rgb_tex_image)
-            print("[✓] Đã chiếu và nhúng Texture ảnh gốc thành công vào mô hình 3D!")
+            mesh.visual = trimesh.visual.ColorVisuals(
+                mesh=mesh,
+                vertex_colors=np.concatenate([vibrant_rgb, alpha_col], axis=-1)
+            )
+            print("[✓] Đã chiếu màu ảnh gốc vào mặt trước và giữ nguyên 360° mặt sau thành công!")
         except Exception as _proj_err:
             print(f"[!] Cảnh báo chiếu màu ảnh gốc: {_proj_err}")
     elif hasattr(mesh.visual, "vertex_colors") and mesh.visual.vertex_colors is not None:
@@ -323,15 +321,31 @@ async def render_from_url(
         if resp.status_code != 200:
             raise HTTPException(status_code=400, detail="Không thể tải ảnh từ URL cung cấp")
         image_bytes = io.BytesIO(resp.content)
-        pil_image = Image.open(image_bytes).convert("RGB")
+        raw_pil = Image.open(image_bytes)
+        if raw_pil.mode == "P":
+            raw_pil = raw_pil.convert("RGBA")
     except Exception as fetch_err:
         raise HTTPException(status_code=400, detail=f"Lỗi tải ảnh nguồn: {str(fetch_err)}")
 
     # 2. Xử lý ảnh và suy luận AI trên GPU T4
     try:
         texture_source = None
-        if req.do_remove_background:
-            nobg_pil = remove_background(pil_image, rembg_session=None)
+        has_existing_alpha = False
+        if raw_pil.mode == "RGBA":
+            alpha_check = np.array(raw_pil)[:, :, 3]
+            if np.any(alpha_check < 250):
+                has_existing_alpha = True
+
+        if has_existing_alpha:
+            # Ảnh đã có nền trong suốt (PNG): Giữ nguyên biên dạng thật sắc bén của cổ vật
+            nobg_pil = resize_foreground(raw_pil, req.foreground_ratio or 0.88)
+            texture_source = nobg_pil.copy()
+            img_np = np.array(nobg_pil).astype(np.float32) / 255.0
+            white_bg = img_np[:, :, :3] * img_np[:, :, 3:4] + (1.0 - img_np[:, :, 3:4]) * 0.5
+            input_image = Image.fromarray((white_bg * 255.0).astype(np.uint8))
+        elif req.do_remove_background:
+            rgb_input = raw_pil.convert("RGB")
+            nobg_pil = remove_background(rgb_input, rembg_session=None)
             nobg_pil = resize_foreground(nobg_pil, req.foreground_ratio or 0.85)
             texture_source = nobg_pil.copy()
             img_np = np.array(nobg_pil).astype(np.float32) / 255.0
@@ -339,8 +353,8 @@ async def render_from_url(
                 img_np = img_np[:, :, :3] * img_np[:, :, 3:4] + (1.0 - img_np[:, :, 3:4]) * 0.5
             input_image = Image.fromarray((img_np * 255.0).astype(np.uint8))
         else:
-            input_image = pil_image.convert("RGB")
-            texture_source = pil_image.copy()
+            input_image = raw_pil.convert("RGB")
+            texture_source = input_image.copy()
 
         t0 = time.time()
         with torch.no_grad():
@@ -348,7 +362,7 @@ async def render_from_url(
             meshes = model.extract_mesh(
                 scene_codes,
                 True,
-                resolution=req.mc_resolution or 256,
+                resolution=req.mc_resolution or 320,
                 threshold=20.0
             )
 

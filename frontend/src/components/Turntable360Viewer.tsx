@@ -97,9 +97,9 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const [viewMode, setViewMode] = useState<'parallax' | '360'>('parallax');
   const viewModeRef = useRef(viewMode);
 
-  // Chế độ vân bề mặt: 'photo' (Phủ ảnh gốc HD 100% màu thật) | 'vertex' (Màu đa giác 3D AI)
-  const [textureMode, setTextureMode] = useState<'photo' | 'vertex'>('photo');
-  const textureModeRef = useRef<'photo' | 'vertex'>('photo');
+  // Chế độ vân bề mặt: 'vertex' (Màu đa giác 3D 360° chiếu nét ảnh thật) | 'photo' (Phủ ảnh phẳng 2D)
+  const [textureMode, setTextureMode] = useState<'photo' | 'vertex'>('vertex');
+  const textureModeRef = useRef<'photo' | 'vertex'>('vertex');
   const originalTextureRef = useRef<THREE.Texture | null>(null);
 
   const applyTextureMode = (mode: 'photo' | 'vertex') => {
@@ -122,8 +122,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
               std.map = null;
               std.vertexColors = true;
               std.color.setHex(0xffffff);
-              std.roughness = 0.55;
-              std.metalness = 0.12;
+              std.roughness = 0.52;
+              std.metalness = 0.1;
             }
             std.transparent = false;
             std.opacity = 1.0;
@@ -1106,17 +1106,17 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             type="button"
             onClick={toggleTextureMode}
             title={
-              textureMode === 'photo'
-                ? 'Đang bật: Phủ vân ảnh gốc HD 100% màu sắc và chi tiết gốc. Bấm để xem màu đa giác 3D AI'
-                : 'Đang bật: Màu đa giác 3D AI. Bấm để phủ vân ảnh thật HD (100% chuẩn màu gốc)'
+              textureMode === 'vertex'
+                ? 'Đang bật: Màu 3D 360° (Mặt trước sắc nét chuẩn ảnh gốc, mặt sau giữ trọn vẹn khối mai/lưng 360°). Bấm để phủ ảnh phẳng'
+                : 'Đang bật: Phủ ảnh phẳng 2D. Bấm để chuyển về Màu 3D 360° sắc nét tự nhiên'
             }
             style={{
               height: 36,
               padding: '0 10px',
               borderRadius: 8,
-              background: textureMode === 'photo' ? 'rgba(56, 189, 248, 0.28)' : 'rgba(20, 24, 33, 0.75)',
-              border: textureMode === 'photo' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.15)',
-              color: textureMode === 'photo' ? '#38bdf8' : '#ffffff',
+              background: textureMode === 'vertex' ? 'rgba(56, 189, 248, 0.28)' : 'rgba(20, 24, 33, 0.75)',
+              border: textureMode === 'vertex' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: textureMode === 'vertex' ? '#38bdf8' : '#ffffff',
               display: 'flex',
               alignItems: 'center',
               gap: 6,
@@ -1128,7 +1128,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             }}
           >
             <Camera size={14} />
-            <span>{textureMode === 'photo' ? 'Ảnh thật HD (100% màu)' : 'Màu AI 360°'}</span>
+            <span>{textureMode === 'vertex' ? 'Màu 3D 360° (Chuẩn gốc)' : 'Phủ ảnh phẳng 2D'}</span>
           </button>
         )}
 
