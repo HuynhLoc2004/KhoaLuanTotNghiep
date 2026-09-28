@@ -189,6 +189,22 @@ export const AdminArtifactsPage: React.FC = () => {
     fetchColabStatus();
   }, []);
 
+  // Lắng nghe phím Escape để đóng nhanh các modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEditModalOpen(false);
+        setShowColabModal(false);
+        setIsViewerModalOpen(false);
+        setIsGenerateModalOpen(false);
+        setIsVoiceModalOpen(false);
+        setIsQRModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Polling tự động khi có hiện vật đang trong trạng thái 'processing'
   useEffect(() => {
     const hasProcessing = artifacts.some((a) => a.processingStatus === 'processing');
@@ -1412,8 +1428,23 @@ export const AdminArtifactsPage: React.FC = () => {
           MODAL 1: THÊM / CHỈNH SỬA HỒ SƠ HIỆN VẬT
           ========================================================================= */}
       {isEditModalOpen && editingArtifact && (
-        <div className="modal-backdrop" style={{ zIndex: 1200 }}>
-          <div className="modal-card" style={{ maxWidth: 620 }}>
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 1200 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsEditModalOpen(false);
+          }}
+        >
+          <div
+            className="modal-card"
+            style={{
+              maxWidth: 640,
+              width: '100%',
+              maxHeight: 'calc(100vh - 36px)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
             <div className="modal-header">
               <h2 className="modal-title" style={{ fontSize: '16px', margin: 0 }}>
                 {editingArtifact.id ? 'Cập nhật hồ sơ hiện vật' : 'Thêm hồ sơ cổ vật mới'}
@@ -1428,10 +1459,29 @@ export const AdminArtifactsPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveArtifact}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <form
+              onSubmit={handleSaveArtifact}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden'
+              }}
+            >
+              <div
+                className="modal-body"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  overflowY: 'auto',
+                  flex: 1,
+                  minHeight: 0
+                }}
+              >
                 {/* Hàng 1: Mã hiện vật & Tên */}
-                <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
                   <div className="form-group">
                     <label className="form-label">Mã định danh *</label>
                     <input
@@ -1443,7 +1493,7 @@ export const AdminArtifactsPage: React.FC = () => {
                       required
                     />
                   </div>
-                  <div className="form-group">
+                  <div className="form-group" style={{ gridColumn: 'span 1' }}>
                     <label className="form-label">Tên cổ vật di sản *</label>
                     <input
                       type="text"
@@ -1457,7 +1507,7 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
 
                 {/* Hàng 2: Danh mục & Niên đại */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                   <div className="form-group">
                     <label className="form-label">Danh mục / Loại hình</label>
                     <input
@@ -1481,7 +1531,7 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
 
                 {/* Hàng 3: Nguồn gốc & Kích thước */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                   <div className="form-group">
                     <label className="form-label">Nguồn gốc / Khảo cổ</label>
                     <input
@@ -1727,7 +1777,13 @@ export const AdminArtifactsPage: React.FC = () => {
           MODAL 2: XEM 3D ĐĨA XOAY 360°
           ========================================================================= */}
       {isViewerModalOpen && activeViewerArtifact && (
-        <div className="modal-backdrop" style={{ zIndex: 1250 }}>
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 1250 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsViewerModalOpen(false);
+          }}
+        >
           <div
             className="modal-card"
             style={{
@@ -1826,7 +1882,13 @@ export const AdminArtifactsPage: React.FC = () => {
           MODAL 3: CẤU HÌNH KHỞI TẠO MÔ HÌNH 3D
           ========================================================================= */}
       {isGenerateModalOpen && generatingArtifact && (
-        <div className="modal-backdrop" style={{ zIndex: 1250 }}>
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 1250 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsGenerateModalOpen(false);
+          }}
+        >
           <div className="modal-card" style={{ maxWidth: 480 }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2022,7 +2084,13 @@ export const AdminArtifactsPage: React.FC = () => {
 
       {/* MODAL CẤU HÌNH GOOGLE COLAB TRIPOSR AI TUNNEL */}
       {showColabModal && (
-        <div className="modal-backdrop" style={{ zIndex: 1300 }}>
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 1300 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowColabModal(false);
+          }}
+        >
           <div className="modal-card" style={{ maxWidth: 520 }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2171,7 +2239,13 @@ export const AdminArtifactsPage: React.FC = () => {
           MODAL 4: XUẤT THẺ STANDEE QR BẢO TÀNG (Đồng bộ 100% với AdminRoomsPage)
           ========================================================================= */}
       {isQRModalOpen && activeQRArtifact && (
-        <div className="modal-backdrop" style={{ zIndex: 1250 }}>
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 1250 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsQRModalOpen(false);
+          }}
+        >
           <div className="modal-card" style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2320,7 +2394,13 @@ export const AdminArtifactsPage: React.FC = () => {
           MODAL 5: THUYẾT MINH & VOICE AI ĐA NGÔN NGỮ (ĐỒNG BỘ VỚI HỆ THỐNG)
           ========================================================================= */}
       {isVoiceModalOpen && activeVoiceArtifact && (
-        <div className="modal-backdrop" style={{ zIndex: 1250 }}>
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 1250 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsVoiceModalOpen(false);
+          }}
+        >
           <div className="modal-card" style={{ maxWidth: 660, width: '100%' }}>
             {/* Modal Header */}
             <div className="modal-header">

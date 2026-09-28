@@ -1595,24 +1595,31 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 16px;
+  overflow-y: auto;
 }
 
 .modal-card {
   background: var(--bg-surface);
   width: 100%;
   max-width: 520px;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   border: 1px solid var(--border-color);
   animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  position: relative;
 }
 
 @keyframes modalFadeIn {
@@ -1633,6 +1640,7 @@
   align-items: center;
   justify-content: space-between;
   background-color: var(--bg-card-header);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -1654,6 +1662,7 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .modal-close-btn:hover {
@@ -1666,6 +1675,14 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-footer {
+  flex-shrink: 0;
 }
 
 .form-group {
