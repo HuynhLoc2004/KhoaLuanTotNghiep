@@ -34,14 +34,20 @@ export const safeJson = async (res: Response, defaultError = 'Lỗi kết nối 
 
 export const api = {
   async getRooms(): Promise<MuseumRoom[]> {
-    const res = await fetch(`${API_BASE}/rooms`);
+    const res = await fetch(`${API_BASE}/rooms?fresh=true&_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách phòng');
     return json.data;
   },
 
   async getRoom(id: string): Promise<MuseumRoom> {
-    const res = await fetch(`${API_BASE}/rooms/${id}`);
+    const res = await fetch(`${API_BASE}/rooms/${id}?fresh=true&_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải chi tiết phòng');
     return json.data;
@@ -648,7 +654,10 @@ export const api = {
   },
 
   async getFloorPlan(): Promise<FloorPlanMap> {
-    const res = await fetch(`${API_BASE}/floor-plan`);
+    const res = await fetch(`${API_BASE}/floor-plan?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải sơ đồ mặt bằng');
     return json.data;
@@ -673,7 +682,11 @@ export const api = {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', params.page.toString());
     if (params?.limit) query.append('limit', params.limit.toString());
-    const res = await fetch(`${API_BASE}/floor-plan/list?${query.toString()}`);
+    query.append('_t', Date.now().toString());
+    const res = await fetch(`${API_BASE}/floor-plan/list?${query.toString()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách bản đồ trong kho');
     return { data: json.data, activeId: json.activeId, pagination: json.pagination };

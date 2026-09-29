@@ -190,9 +190,30 @@ const AppContent: React.FC = () => {
 
   // Lắng nghe sự kiện đồng bộ thời gian thực cho Rooms và Artifacts (không cần reload trang)
   useEffect(() => {
-    const handleRoomsSync = () => {
-      api.getRooms().then((data) => setRooms(data || [])).catch(() => {});
+    const handleRoomsSync = (e?: any) => {
+      const detail = e?.detail;
+      if (Array.isArray(detail)) {
+        setRooms(detail);
+        return;
+      }
+      if (detail && detail.action === 'delete') {
+        const targetIds = [detail.roomId, detail.id, detail.mongoId, detail.roomCode].filter(Boolean);
+        setRooms((prev) => prev.filter((r) => !targetIds.includes(r.id) && !targetIds.includes((r as any).code)));
+      } else if (detail && detail.action === 'create' && detail.room) {
+        setRooms((prev) => {
+          if (prev.some((r) => r.id === detail.room.id)) return prev;
+          return [...prev, detail.room];
+        });
+      } else if (detail && detail.action === 'update' && detail.room) {
+        setRooms((prev) => prev.map((r) => (r.id === detail.room.id ? detail.room : r)));
+      } else if (detail && detail.action === 'delete_all') {
+        setRooms([]);
+      }
+      api.getRooms().then((data) => {
+        if (data) setRooms(data);
+      }).catch(() => {});
     };
+
     const handleArtifactsSync = () => {
       api.getArtifacts().then((data) => setArtifacts(data || [])).catch(() => {});
     };
@@ -323,7 +344,7 @@ const AppContent: React.FC = () => {
   const handleRoomCreated = (newRoom: MuseumRoom) => {
     setRooms((prev) => {
       const next = [...prev, newRoom];
-      window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: next }));
+      window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: { action: 'create', room: newRoom } }));
       return next;
     });
     showToast(`Đã thêm gian phòng "${newRoom.name}" thành công`, 'success');
@@ -333,7 +354,7 @@ const AppContent: React.FC = () => {
   const handleRoomUpdated = (updated: MuseumRoom) => {
     setRooms((prev) => {
       const next = prev.map((r) => (r.id === updated.id ? updated : r));
-      window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: next }));
+      window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: { action: 'update', room: updated } }));
       return next;
     });
     if (activeRoom && activeRoom.id === updated.id) {
@@ -348,7 +369,7 @@ const AppContent: React.FC = () => {
       await api.deleteRoom(roomId);
       setRooms((prev) => {
         const next = prev.filter((r) => r.id !== roomId);
-        window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: next }));
+        window.dispatchEvent(new CustomEvent('museum:rooms_updated', { detail: { action: 'delete', roomId } }));
         return next;
       });
       showToast('Đã xóa gian phòng thành công', 'success');

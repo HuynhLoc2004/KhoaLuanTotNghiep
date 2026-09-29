@@ -48,11 +48,24 @@ const upload = multer({
  */
 floorPlanRouter.get('/', async (req: Request, res: Response) => {
   try {
-    // 1. Kiểm tra số lượng sơ đồ trong CSDL
-    const totalCount = await FloorPlanMapModel.countDocuments();
+    // 1. Kiểm tra số lượng sơ đồ trong CSDL MongoDB
+    let totalCount = await FloorPlanMapModel.countDocuments();
     if (totalCount === 0) {
-      // CSDL không còn sơ đồ nào: Tự động dọn sạch liên kết sơ đồ cũ trong SystemBranding
-      await syncFloorPlanToBranding(null);
+      // Kiểm tra xem PostgreSQL có sơ đồ không để tự động phục hồi tức thì
+      try {
+        const pgCountRes = await pgPool.query('SELECT COUNT(*) FROM floor_plans;');
+        const pgCount = parseInt(pgCountRes.rows[0].count, 10);
+        if (pgCount > 0) {
+          const { runStartupDataSync } = await import('../db/syncEngine.js');
+          await runStartupDataSync();
+          totalCount = await FloorPlanMapModel.countDocuments();
+        }
+      } catch (err: any) {
+        console.warn('[FloorPlanRoute] Kiểm tra PostgreSQL fallback:', err.message);
+      }
+    }
+
+    if (totalCount === 0) {
       return res.json({
         success: true,
         data: null
@@ -89,7 +102,19 @@ floorPlanRouter.get('/list', async (req: Request, res: Response) => {
     const limit = Math.max(1, Math.min(50, parseInt(req.query.limit as string) || 6));
     const skip = (page - 1) * limit;
 
-    const total = await FloorPlanMapModel.countDocuments();
+    let total = await FloorPlanMapModel.countDocuments();
+    if (total === 0) {
+      try {
+        const pgCountRes = await pgPool.query('SELECT COUNT(*) FROM floor_plans;');
+        const pgCount = parseInt(pgCountRes.rows[0].count, 10);
+        if (pgCount > 0) {
+          const { runStartupDataSync } = await import('../db/syncEngine.js');
+          await runStartupDataSync();
+          total = await FloorPlanMapModel.countDocuments();
+        }
+      } catch {}
+    }
+
     const items = await FloorPlanMapModel.find()
       .sort({ active: -1, updatedAt: -1, createdAt: -1 })
       .skip(skip)

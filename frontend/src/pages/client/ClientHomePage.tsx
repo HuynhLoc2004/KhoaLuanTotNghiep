@@ -78,11 +78,39 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
 
     loadHomeData();
 
-    const handleRoomsSync = () => {
-      api.getRooms().then((data) => setRooms(data || [])).catch(() => {});
+    const handleRoomsSync = (e?: any) => {
+      const detail = e?.detail;
+      if (Array.isArray(detail)) {
+        if (isMounted) setRooms(detail);
+        return;
+      }
+      if (detail && detail.action === 'delete') {
+        const targetIds = [detail.roomId, detail.id, detail.mongoId, detail.roomCode].filter(Boolean);
+        if (isMounted) {
+          setRooms((prev) => prev.filter((r) => !targetIds.includes(r.id) && !targetIds.includes((r as any).code)));
+        }
+      } else if (detail && detail.action === 'create' && detail.room) {
+        if (isMounted) {
+          setRooms((prev) => {
+            if (prev.some((r) => r.id === detail.room.id)) return prev;
+            return [...prev, detail.room];
+          });
+        }
+      } else if (detail && detail.action === 'update' && detail.room) {
+        if (isMounted) {
+          setRooms((prev) => prev.map((r) => (r.id === detail.room.id ? detail.room : r)));
+        }
+      } else if (detail && detail.action === 'delete_all') {
+        if (isMounted) setRooms([]);
+      }
+      api.getRooms().then((data) => {
+        if (isMounted && data) setRooms(data);
+      }).catch(() => {});
     };
     const handleArtifactsSync = () => {
-      api.getArtifacts().then((data) => setArtifacts(data || [])).catch(() => {});
+      api.getArtifacts().then((data) => {
+        if (isMounted) setArtifacts(data || []);
+      }).catch(() => {});
     };
 
     window.addEventListener('museum:rooms_updated', handleRoomsSync);

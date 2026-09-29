@@ -704,7 +704,7 @@ export async function runStartupDataSync() {
       }
     }
 
-    // 4. Đồng bộ FloorPlan
+    // 4. Đồng bộ FloorPlan (Bảo toàn 2 chiều giữa PostgreSQL và MongoDB)
     const pgFp = await pgPool.query('SELECT COUNT(*) FROM floor_plans;');
     const pgFpCount = parseInt(pgFp.rows[0].count, 10);
     const mongoFp = await FloorPlanMap.find().lean();
@@ -714,9 +714,66 @@ export async function runStartupDataSync() {
       for (const fp of mongoFp) {
         await pgUpsertFloorPlan(fp);
       }
-    }
+    } else if (mongoFp.length === 0 && pgFpCount > 0) {
+      console.log(`[SyncEngine] Đang phục hồi ${pgFpCount} Sơ đồ mặt bằng từ PostgreSQL sang MongoDB...`);
+      const pgAllPlans = await pgPool.query('SELECT * FROM floor_plans ORDER BY created_at ASC;');
+      for (const fpRow of pgAllPlans.rows) {
+        const nodesRes = await pgPool.query('SELECT * FROM floor_plan_nodes WHERE floor_plan_id = $1;', [fpRow.id]);
+        const edgesRes = await pgPool.query('SELECT * FROM floor_plan_edges WHERE floor_plan_id = $1;', [fpRow.id]);
 
-    // Tuyệt đối không tự động gán phòng giả vào sơ đồ. Chỉ lưu trữ các liên kết do quản trị viên thiết lập.
+        const nodes = nodesRes.rows.map((n: any) => ({
+          id: n.id,
+          roomId: n.room_id || undefined,
+          code: n.code,
+          name: n.name,
+          period: n.period,
+          category: n.category,
+          x: n.x,
+          y: n.y,
+          width: n.width,
+          height: n.height,
+          isEntrance: n.is_entrance,
+          colorTag: n.color_tag,
+          panoramaUrl: n.panorama_url,
+          thumbnailUrl: n.thumbnail_url
+        }));
+
+        const edges = edgesRes.rows.map((e: any) => ({
+          id: e.id,
+          fromNodeId: e.from_node_id,
+          toNodeId: e.to_node_id,
+          direction: e.direction,
+          compassDirection: e.compass_direction,
+          doorX: e.door_x,
+          doorY: e.door_y,
+          label: e.label,
+          targetRoomName: e.target_room_name,
+          distance: e.distance,
+          isReturn: e.is_return
+        }));
+
+        await FloorPlanMap.updateOne(
+          { id: fpRow.id },
+          {
+            $set: {
+              id: fpRow.id,
+              title: fpRow.title,
+              description: fpRow.description,
+              imageUrl: fpRow.image_url,
+              imageWidth: fpRow.image_width,
+              imageHeight: fpRow.image_height,
+              analyzedAt: fpRow.analyzed_at,
+              analysisAlgorithm: fpRow.analysis_algorithm,
+              compassOrientation: typeof fpRow.compass_orientation === 'string' ? JSON.parse(fpRow.compass_orientation) : fpRow.compass_orientation,
+              active: fpRow.active,
+              nodes,
+              edges
+            }
+          },
+          { upsert: true }
+        );
+      }
+    }
 
     // 5. Đồng bộ Languages
     const pgLang = await pgPool.query('SELECT COUNT(*) FROM languages;');
@@ -740,8 +797,67 @@ export async function runStartupDataSync() {
       }
     }
 
-    // 7. Đồng bộ 2 chiều các khoá chéo (Cross-database Key Linking: mongo_id <-> id)
-    // Đảm bảo mọi bản ghi ở PostgreSQL có mongo_id và mọi document ở MongoDB có id
+    // 7. Đồng bộ Nhận diện thương hiệu & Banner (System Branding: PostgreSQL <-> MongoDB)
+    try {
+      const pgBrandingRes = await pgPool.query('SELECT * FROM system_branding ORDER BY updated_at DESC LIMIT 1;');
+      const mongoBrandingDoc = await SystemBranding.findOne().lean();
+
+      if (pgBrandingRes.rows.length > 0) {
+        const row = pgBrandingRes.rows[0];
+        // Nếu PostgreSQL có banner thật mà MongoDB rỗng hoặc đang dùng mặc định, phục hồi sang MongoDB
+        if (row.hero_banner_url && (!mongoBrandingDoc || !mongoBrandingDoc.heroBannerUrl)) {
+          console.log('[SyncEngine] Đang phục hồi Nhận diện thương hiệu & Banner từ PostgreSQL sang MongoDB...');
+          await SystemBranding.updateOne(
+            {},
+            {
+              $set: {
+                museumName: row.museum_name,
+                shortName: row.short_name,
+                emblemText: row.emblem_text,
+                logoUrl: row.logo_url,
+                tagline: row.tagline,
+                city: row.city,
+                address: row.address,
+                contactEmail: row.contact_email,
+                hotline: row.hotline,
+                heroTitle: row.hero_title,
+                heroTagline: row.hero_tagline,
+                heroBannerUrl: row.hero_banner_url,
+                heroVideoUrl: row.hero_video_url,
+                introTitle: row.intro_title,
+                introDesc: row.intro_desc,
+                introImageUrl: row.intro_image_url,
+                guideMapUrl: row.guide_map_url,
+                guideMapTitle: row.guide_map_title,
+                guideMapDesc: row.guide_map_desc,
+                guideOpeningDays: row.guide_opening_days,
+                guideMorningHours: row.guide_morning_hours,
+                guideAfternoonHours: row.guide_afternoon_hours,
+                guideClosedNote: row.guide_closed_note,
+                guideTicketAdult: row.guide_ticket_adult,
+                guideTicketStudent: row.guide_ticket_student,
+                guideTicketChild: row.guide_ticket_child,
+                guideBusRoutes: row.guide_bus_routes,
+                guideParkingInfo: row.guide_parking_info,
+                guideGoogleMapsUrl: row.guide_google_maps_url,
+                headerMenuItems: typeof row.header_menu_items === 'string' ? JSON.parse(row.header_menu_items) : (row.header_menu_items || [])
+              }
+            },
+            { upsert: true }
+          );
+          const updated = await SystemBranding.findOne().lean();
+          await cacheSet('system:branding:config', updated, 86400);
+        } else if (mongoBrandingDoc && mongoBrandingDoc.heroBannerUrl && !row.hero_banner_url) {
+          await pgUpsertBranding(mongoBrandingDoc);
+        }
+      } else if (mongoBrandingDoc) {
+        await pgUpsertBranding(mongoBrandingDoc);
+      }
+    } catch (brandingSyncErr: any) {
+      console.warn('[SyncEngine Warning] Lỗi đồng bộ Branding:', brandingSyncErr.message);
+    }
+
+    // 8. Đồng bộ 2 chiều các khoá chéo (Cross-database Key Linking: mongo_id <-> id)
     try {
       // Rooms
       const allMongoRooms = await Room.find().lean();
@@ -813,7 +929,7 @@ export async function runStartupDataSync() {
       const mongoBrandingDoc = await SystemBranding.findOne().lean();
       if (mongoBrandingDoc && mongoBrandingDoc._id) {
         await pgPool.query(
-          `UPDATE system_branding SET mongo_id = $1 WHERE id = 'default_branding' AND (mongo_id IS NULL OR mongo_id != $1)`,
+          `UPDATE system_branding SET mongo_id = $1 WHERE (id = 'system-branding-main' OR id = 'default_branding') AND (mongo_id IS NULL OR mongo_id != $1)`,
           [mongoBrandingDoc._id.toString()]
         );
       }

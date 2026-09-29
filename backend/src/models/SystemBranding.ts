@@ -581,6 +581,52 @@ export async function getSystemBrandingConfig(): Promise<any> {
 
   try {
     let branding = await SystemBranding.findOne().lean();
+
+    // Phục hồi dữ liệu từ PostgreSQL nếu MongoDB đang thiếu Banner hoặc chưa được khởi tạo
+    try {
+      const { pgPool } = await import('../db/postgres.js');
+      const pgRes = await pgPool.query('SELECT * FROM system_branding ORDER BY updated_at DESC LIMIT 1;');
+      if (pgRes.rows.length > 0) {
+        const row = pgRes.rows[0];
+        if (row.hero_banner_url && (!branding || !branding.heroBannerUrl)) {
+          const merged: Record<string, any> = {
+            museumName: row.museum_name || branding?.museumName || DEFAULT_BRANDING.museumName,
+            shortName: row.short_name || branding?.shortName || DEFAULT_BRANDING.shortName,
+            emblemText: row.emblem_text || branding?.emblemText || DEFAULT_BRANDING.emblemText,
+            logoUrl: row.logo_url || branding?.logoUrl || '',
+            tagline: row.tagline || branding?.tagline || DEFAULT_BRANDING.tagline,
+            city: row.city || branding?.city || DEFAULT_BRANDING.city,
+            address: row.address || branding?.address || DEFAULT_BRANDING.address,
+            contactEmail: row.contact_email || branding?.contactEmail || DEFAULT_BRANDING.contactEmail,
+            hotline: row.hotline || branding?.hotline || DEFAULT_BRANDING.hotline,
+            heroTitle: row.hero_title || branding?.heroTitle || DEFAULT_BRANDING.heroTitle,
+            heroTagline: row.hero_tagline || branding?.heroTagline || DEFAULT_BRANDING.heroTagline,
+            heroBannerUrl: row.hero_banner_url,
+            heroVideoUrl: row.hero_video_url || branding?.heroVideoUrl || '',
+            introTitle: row.intro_title || branding?.introTitle || DEFAULT_BRANDING.introTitle,
+            introDesc: row.intro_desc || branding?.introDesc || DEFAULT_BRANDING.introDesc,
+            introImageUrl: row.intro_image_url || branding?.introImageUrl || '',
+            guideMapUrl: row.guide_map_url || branding?.guideMapUrl || '',
+            guideMapTitle: row.guide_map_title || branding?.guideMapTitle || DEFAULT_BRANDING.guideMapTitle,
+            guideMapDesc: row.guide_map_desc || branding?.guideMapDesc || DEFAULT_BRANDING.guideMapDesc,
+            guideOpeningDays: row.guide_opening_days || branding?.guideOpeningDays || DEFAULT_BRANDING.guideOpeningDays,
+            guideMorningHours: row.guide_morning_hours || branding?.guideMorningHours || DEFAULT_BRANDING.guideMorningHours,
+            guideAfternoonHours: row.guide_afternoon_hours || branding?.guideAfternoonHours || DEFAULT_BRANDING.guideAfternoonHours,
+            guideClosedNote: row.guide_closed_note || branding?.guideClosedNote || DEFAULT_BRANDING.guideClosedNote,
+            guideTicketAdult: row.guide_ticket_adult || branding?.guideTicketAdult || DEFAULT_BRANDING.guideTicketAdult,
+            guideTicketStudent: row.guide_ticket_student || branding?.guideTicketStudent || DEFAULT_BRANDING.guideTicketStudent,
+            guideTicketChild: row.guide_ticket_child || branding?.guideTicketChild || DEFAULT_BRANDING.guideTicketChild,
+            guideBusRoutes: row.guide_bus_routes || branding?.guideBusRoutes || DEFAULT_BRANDING.guideBusRoutes,
+            guideParkingInfo: row.guide_parking_info || branding?.guideParkingInfo || DEFAULT_BRANDING.guideParkingInfo,
+            guideGoogleMapsUrl: row.guide_google_maps_url || branding?.guideGoogleMapsUrl || DEFAULT_BRANDING.guideGoogleMapsUrl,
+            headerMenuItems: typeof row.header_menu_items === 'string' ? JSON.parse(row.header_menu_items) : (row.header_menu_items || DEFAULT_HEADER_MENU)
+          };
+          await SystemBranding.updateOne({}, { $set: merged }, { upsert: true });
+          branding = await SystemBranding.findOne().lean();
+        }
+      }
+    } catch {}
+
     if (!branding) {
       const created = await SystemBranding.create(DEFAULT_BRANDING);
       branding = created.toObject();

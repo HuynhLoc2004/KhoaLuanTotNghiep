@@ -34,7 +34,7 @@ roomsRouter.post('/seed-heritage', async (req: Request, res: Response) => {
 // GET all rooms (PostgreSQL Primary + Redis cache TTL 30s + MongoDB Fallback)
 roomsRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const isFresh = req.query.fresh === 'true' || req.headers['cache-control'] === 'no-cache';
+    const isFresh = req.query.fresh === 'true' || req.query._t !== undefined || req.headers['cache-control'] === 'no-cache';
     if (!isFresh) {
       const cachedRooms = await cacheGet<any[]>('rooms:all');
       if (cachedRooms && cachedRooms.length > 0) {
@@ -370,7 +370,7 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
       cacheDelPattern('artifacts:*')
     ]);
 
-    broadcastRealtimeEvent('rooms_updated', { action: 'delete', roomId: realId });
+    broadcastRealtimeEvent('rooms_updated', { action: 'delete', roomId: realId, roomCode: realCode, mongoId, id });
     res.json({ success: true, message: 'Đã xóa gian phòng và đồng bộ dữ liệu thành công' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
