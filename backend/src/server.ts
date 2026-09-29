@@ -15,6 +15,7 @@ import { systemRouter } from './routes/system.js';
 import { artifactsRouter } from './routes/artifacts.js';
 import { floorPlanRouter } from './routes/floorPlan.js';
 import { usersRouter } from './routes/users.js';
+import { splatRouter } from './routes/splat.js';
 import { seedDefaultLanguages } from './models/Language.js';
 import { seedDefaultRoles } from './models/Role.js';
 import { seedDefaultAdmin } from './models/User.js';
@@ -53,6 +54,10 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
       res.setHeader('Content-Type', 'model/gltf-binary');
     } else if (filePath.endsWith('.gltf')) {
       res.setHeader('Content-Type', 'model/gltf+json');
+    } else if (filePath.endsWith('.ply')) {
+      res.setHeader('Content-Type', 'application/octet-stream');
+    } else if (filePath.endsWith('.splat')) {
+      res.setHeader('Content-Type', 'application/octet-stream');
     }
   }
 }));
@@ -147,6 +152,7 @@ app.use('/api/system', systemRouter);
 app.use('/api/artifacts', artifactsRouter);
 app.use('/api/floor-plan', floorPlanRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/splat', splatRouter);
 
 // Health check with real statuses
 app.get('/api/health', async (req, res) => {

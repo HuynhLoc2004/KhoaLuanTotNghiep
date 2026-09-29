@@ -33,6 +33,7 @@ import { ClientArtifactsPage } from './pages/client/ClientArtifactsPage';
 import { ClientGuidePage } from './pages/client/ClientGuidePage';
 import { ClientLoginOtpModal } from './components/client/ClientLoginOtpModal';
 import { QRScannerModal } from './components/client/QRScannerModal';
+import { GaussianSplatRoomViewer } from './components/GaussianSplatRoomViewer';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -109,6 +110,24 @@ const AppContent: React.FC = () => {
       }
     } catch {}
     return null;
+  });
+
+  // Kiểm tra chế độ xem 3D Gaussian Splatting (?splat hoặc ?3dgs)
+  const [publicSplatOpen, setPublicSplatOpen] = useState<boolean>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.has('splat') || params.has('3dgs');
+    } catch {
+      return false;
+    }
+  });
+  const [publicSplatUrl, setPublicSplatUrl] = useState<string | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('splat') || null;
+    } catch {
+      return null;
+    }
   });
 
   // Fetch all data from API (sử dụng chung cho cả Tour khách, các trang con và Quản trị viên)
@@ -418,6 +437,24 @@ const AppContent: React.FC = () => {
           setPublicArtifactId(null);
           try {
             window.history.replaceState({}, '', '/');
+          } catch {}
+        }}
+      />
+    );
+  }
+
+  // Chế độ xem 3D Gaussian Splatting
+  if (publicSplatOpen) {
+    return (
+      <GaussianSplatRoomViewer
+        initialPlyUrl={publicSplatUrl || undefined}
+        onClose={() => {
+          setPublicSplatOpen(false);
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('splat');
+            url.searchParams.delete('3dgs');
+            window.history.pushState({}, '', url.pathname + url.search);
           } catch {}
         }}
       />
