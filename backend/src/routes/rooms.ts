@@ -1,11 +1,18 @@
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
+import multer from 'multer';
 import { RoomModel, IRoom, IHotspot } from '../models/Room.js';
 import { ArtifactModel } from '../models/Artifact.js';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertRoom, pgDeleteRoom } from '../db/syncEngine.js';
+import {
+  startReconstructionJob,
+  getReconstructionJob,
+  listReconstructedModels,
+  checkToolsStatus
+} from '../services/sfmReconstructionService.js';
 
 export const roomsRouter = Router();
 
@@ -491,5 +498,84 @@ roomsRouter.delete('/:id/hotspots/:hotspotId', async (req: Request, res: Respons
     res.json({ success: true, message: 'Đã xóa hotspot khỏi cơ sở dữ liệu', room });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ==============================================================================
+// SFM + MVS CLASSICAL 3D ROOM RECONSTRUCTION ENDPOINTS (COLMAP + OPENMVS)
+// ==============================================================================
+
+const sfmUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 35 * 1024 * 1024,
+    files: 50
+  },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận các file ảnh (.jpg, .jpeg, .png, .webp)'));
+    }
+  }
+});
+
+// GET /api/rooms/sfm-tools-status (Kiểm tra xem hệ thống đã có COLMAP / OpenMVS chưa)
+roomsRouter.get('/sfm-tools-status', async (_req: Request, res: Response) => {
+  try {
+    const status = await checkToolsStatus();
+    res.json({ success: true, tools: status });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/rooms/reconstruct (Tiếp nhận 20-30 ảnh và khởi chạy COLMAP + OpenMVS)
+roomsRouter.post('/reconstruct', sfmUpload.array('images', 50), async (req: Request, res: Response) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vui lòng tải lên tối thiểu 3 bức ảnh góc rộng (Khuyến nghị 20–30 ảnh xoay vòng quanh phòng).'
+      });
+    }
+
+    const roomName = (req.body.roomName as string) || 'Gian Phòng Bảo Tàng 3D';
+    const cameraModel = (req.body.cameraModel as string) || 'OPENCV_FISHEYE';
+
+    const job = await startReconstructionJob(roomName, files, cameraModel);
+    res.json({
+      success: true,
+      message: 'Đã đưa tác vụ tái tạo không gian 3D vào hàng đợi xử lý nền.',
+      job
+    });
+  } catch (err: any) {
+    console.error('[SfM Reconstruction Error]:', err);
+    res.status(500).json({ success: false, error: err.message || 'Lỗi khi khởi chạy pipeline 3D' });
+  }
+});
+
+// GET /api/rooms/status/:job_id (Kiểm tra tiến độ SfM realtime)
+roomsRouter.get('/status/:job_id', async (req: Request, res: Response) => {
+  try {
+    const jobId = getId(req.params.job_id);
+    const job = await getReconstructionJob(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tác vụ tái tạo 3D này' });
+    }
+    res.json({ success: true, job });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/rooms/3d-models (Lấy danh sách các mô hình không gian 3D đã tái tạo)
+roomsRouter.get('/3d-models', async (_req: Request, res: Response) => {
+  try {
+    const models = await listReconstructedModels();
+    res.json({ success: true, models });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });

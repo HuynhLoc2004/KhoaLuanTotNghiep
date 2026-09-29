@@ -18,7 +18,8 @@ import {
   History,
   Clock,
   HardDrive,
-  Monitor
+  Monitor,
+  Box
 } from 'lucide-react';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../services/api';
@@ -643,17 +644,41 @@ function normalizePanoUrl(rawUrl: string): string {
     <div className="admin-content poc-stitching-page">
       <div className="studio-layout">
         {/* Top Header */}
-        <div className="studio-header">
-        <div className="studio-title-group">
-          <h2>
-            <Camera size={20} />
-            {t('stitching.title', 'Tạo & Ghép Ảnh Toàn Cảnh 360°')}
-          </h2>
-          <p>
-            {t('stitching.desc', 'Chụp trực tiếp bằng camera điện thoại hoặc tải lên chùm ảnh góc để ghép thành không gian tham quan 360° hoàn chỉnh.')}
-          </p>
+        <div className="studio-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div className="studio-title-group">
+            <h2>
+              <Camera size={20} />
+              {t('stitching.title', 'Tạo & Ghép Ảnh Toàn Cảnh 360°')}
+            </h2>
+            <p>
+              {t('stitching.desc', 'Chụp trực tiếp bằng camera điện thoại hoặc tải lên chùm ảnh góc để ghép thành không gian tham quan 360° hoàn chỉnh.')}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.search = '?sfm=true';
+            }}
+            className="btn btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 16px',
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15))',
+              borderColor: 'rgba(52, 211, 153, 0.4)',
+              color: '#34d399',
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: 'pointer'
+            }}
+            title="Chuyển sang chế độ Tái tạo phòng 3D hình học bằng COLMAP SfM & OpenMVS"
+          >
+            <Box size={16} />
+            <span>Tái Tạo Phòng 3D (COLMAP + OpenMVS)</span>
+          </button>
         </div>
-      </div>
 
       {/* Main Studio Grid: Left Control Panel + Right 360 Viewer */}
       <div className="studio-workspace-grid">

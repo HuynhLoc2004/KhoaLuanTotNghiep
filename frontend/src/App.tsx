@@ -34,6 +34,7 @@ import { ClientGuidePage } from './pages/client/ClientGuidePage';
 import { ClientLoginOtpModal } from './components/client/ClientLoginOtpModal';
 import { QRScannerModal } from './components/client/QRScannerModal';
 import { GaussianSplatRoomViewer } from './components/GaussianSplatRoomViewer';
+import { Room3DReconstructionViewer } from './components/Room3DReconstructionViewer';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -126,6 +127,28 @@ const AppContent: React.FC = () => {
       const params = new URLSearchParams(window.location.search);
       const val = params.get('splat') || params.get('3dgs');
       if (val && val !== 'true' && val !== '1' && (val.endsWith('.ply') || val.endsWith('.splat') || val.includes('/uploads/'))) {
+        return val;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Kiểm tra chế độ xem 3D SfM-MVS (?sfm hoặc ?colmap hoặc ?room3d)
+  const [publicSfmOpen, setPublicSfmOpen] = useState<boolean>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.has('sfm') || params.has('colmap') || params.has('room3d');
+    } catch {
+      return false;
+    }
+  });
+  const [publicSfmUrl, setPublicSfmUrl] = useState<string | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const val = params.get('model') || params.get('glb');
+      if (val && (val.endsWith('.glb') || val.endsWith('.obj') || val.includes('/uploads/'))) {
         return val;
       }
       return null;
@@ -479,6 +502,27 @@ const AppContent: React.FC = () => {
             const url = new URL(window.location.href);
             url.searchParams.delete('splat');
             url.searchParams.delete('3dgs');
+            window.history.pushState({}, '', url.pathname + url.search);
+          } catch {}
+        }}
+      />
+    );
+  }
+
+  // Chế độ xem 3D Phục dựng Không gian (COLMAP SfM + OpenMVS)
+  if (publicSfmOpen) {
+    return (
+      <Room3DReconstructionViewer
+        initialGlbUrl={publicSfmUrl || undefined}
+        onClose={() => {
+          setPublicSfmOpen(false);
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('sfm');
+            url.searchParams.delete('colmap');
+            url.searchParams.delete('room3d');
+            url.searchParams.delete('model');
+            url.searchParams.delete('glb');
             window.history.pushState({}, '', url.pathname + url.search);
           } catch {}
         }}
