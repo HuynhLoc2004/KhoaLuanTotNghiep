@@ -109,6 +109,8 @@ services:
       - R2_PUBLIC_DOMAIN=https://pub-bb1eeff16fd349f2abb33e4e71fe1ae7.r2.dev
       # HuggingFace Access Token (read-only) - dung de goi TRELLIS Space
       - ACCCESS_TOKEN_HUGE_SPACE=${ACCCESS_TOKEN_HUGE_SPACE}
+      # Google Colab 3DGS Reconstruction Worker (Cloudflare Tunnel)
+      - COLAB_3DGS_URL=${COLAB_3DGS_URL:-https://fireplace-end-specials-caps.trycloudflare.com}
     volumes:
       - uploads_data:/app/backend/public/uploads
       - ./maintenance_flag:/app/maintenance_flag

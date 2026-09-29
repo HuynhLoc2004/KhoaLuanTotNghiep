@@ -43,7 +43,7 @@ COPY --from=ts-builder /app/backend/dist ./dist
 COPY stitching_worker /app/stitching_worker
 
 # Tạo thư mục uploads tĩnh
-RUN mkdir -p /app/backend/public/uploads
+RUN mkdir -p /app/backend/public/uploads/splats
 
 ENV PORT=3000
 ENV NODE_ENV=production
