@@ -124,7 +124,11 @@ const AppContent: React.FC = () => {
   const [publicSplatUrl, setPublicSplatUrl] = useState<string | null>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      return params.get('splat') || null;
+      const val = params.get('splat') || params.get('3dgs');
+      if (val && val !== 'true' && val !== '1' && (val.endsWith('.ply') || val.endsWith('.splat') || val.includes('/uploads/'))) {
+        return val;
+      }
+      return null;
     } catch {
       return null;
     }
