@@ -485,15 +485,91 @@ def is_hugin_available():
     return True
 
 
+def estimate_camera_rotation_direction(image_paths):
+    """
+    Tự động nhận diện hướng quét/xoay camera của người dùng bằng ước lượng dịch chuyển quang học ORB:
+    - Nếu camera quay sang phải (Clockwise): các điểm ảnh dịch sang trái (dx < 0) -> trả về +1 (Yaw tăng dần).
+    - Nếu camera quay sang trái (Counter-Clockwise): các điểm ảnh dịch sang phải (dx > 0) -> trả về -1 (Yaw giảm dần).
+    """
+    if len(image_paths) < 2:
+        return 1
+    try:
+        orb = cv2.ORB_create(500)
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        dxs = []
+        num_checks = min(6, len(image_paths) - 1)
+        for i in range(num_checks):
+            im0 = cv2.imread(image_paths[i])
+            im1 = cv2.imread(image_paths[i + 1])
+            if im0 is None or im1 is None:
+                continue
+            h0, w0 = im0.shape[:2]
+            h1, w1 = im1.shape[:2]
+            im0 = cv2.resize(im0, (600, max(1, int(h0 * 600.0 / w0))))
+            im1 = cv2.resize(im1, (600, max(1, int(h1 * 600.0 / w1))))
+            kp0, des0 = orb.detectAndCompute(im0, None)
+            kp1, des1 = orb.detectAndCompute(im1, None)
+            if des0 is not None and des1 is not None and len(kp0) > 10 and len(kp1) > 10:
+                m = bf.match(des0, des1)
+                if len(m) >= 8:
+                    m = sorted(m, key=lambda x: x.distance)[:35]
+                    d = [kp1[x.trainIdx].pt[0] - kp0[x.queryIdx].pt[0] for x in m]
+                    dxs.append(float(np.median(d)))
+        if dxs:
+            overall_dx = float(np.median(dxs))
+            if overall_dx < -5.0:
+                return 1   # Clockwise (quay phải)
+            elif overall_dx > 5.0:
+                return -1  # Counter-Clockwise (quay trái)
+    except Exception as e:
+        log(f"[!] Warning estimate_camera_rotation_direction: {e}")
+    return 1
+
+
+def assign_initial_circular_yaw(pto_path, num_images, rot_dir=1):
+    """
+    Khởi tạo góc xoay Yaw ban đầu (0..360°) cho chuỗi ảnh xoay quanh tâm phòng.
+    Giúp autooptimiser hội tụ chính xác đúng chiều không gian thực tế,
+    ngăn ngừa triệt để hiện tượng bị lật ngược thứ tự trái/phải hoặc gấp khúc (inverted layout chirality).
+    """
+    if num_images <= 1 or not os.path.exists(pto_path):
+        return
+    try:
+        with open(pto_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+
+        step_deg = 360.0 / float(num_images)
+        img_idx = 0
+        new_lines = []
+
+        import re
+        for line in lines:
+            if line.startswith('i '):
+                deg = float(img_idx) * step_deg * float(rot_dir)
+                deg = ((deg + 180.0) % 360.0) - 180.0
+                if re.search(r'\by[-+]?[0-9]*\.?[0-9]+\b', line):
+                    line = re.sub(r'\by[-+]?[0-9]*\.?[0-9]+\b', f'y{deg:.3f}', line)
+                else:
+                    line = line.rstrip() + f' y{deg:.3f}\n'
+                img_idx += 1
+            new_lines.append(line)
+
+        with open(pto_path, 'w', encoding='utf-8') as f:
+            f.writelines(new_lines)
+        log(f"[✓] Đã khởi tạo cấu trúc góc Yaw 360° tuần hoàn (step={step_deg:.1f}°, rot_dir={rot_dir}) cho {img_idx} ảnh.")
+    except Exception as e:
+        log(f"[!] Lỗi khởi tạo Yaw trong PTO: {e}")
+
+
 def run_hugin_stitch(image_paths, output_path, target_width=4096):
     """
     Thực thi quy trình ghép ảnh toàn cảnh 360° bằng bộ công cụ Hugin CLI:
     1. pto_gen: Khởi tạo file dự án PTO từ danh sách ảnh.
-    2. cpfind --multirow: Tìm điểm khống chế liên kết (control points) giữa các ảnh gối đầu.
+    2. cpfind --linearmatch: Tìm điểm khống chế liên kết (control points) giữa các ảnh gối đầu.
     3. cpclean: Loại bỏ triệt để điểm khống chế sai lệch / outliers.
     4. linefind: Tự động phát hiện các đường thẳng đứng kiến trúc (tường, cột, tủ kính).
-    5. autooptimiser -a -m -l -s: Tối ưu hóa góc nhìn, căn thẳng đường chân trời, giữ tường 90° đứng.
-    6. pano_modify --projection=2: Thiết lập phép chiếu Equirectangular 2:1.
+    5. autooptimiser -a -m -l: Tối ưu hóa góc nhìn, căn thẳng đường chân trời, giữ tường 90° đứng.
+    6. pano_modify --projection=2 --fov=360: Thiết lập chuẩn xác phép chiếu Equirectangular 2:1 toàn vòng 360°.
     7. nona & enblend: Chiếu ảnh và hòa trộn đa băng tần không để lại vết nối.
     """
     log("[*] Phát hiện Hugin CLI Tools! Kích hoạt Động cơ Ghép Chuẩn Công nghiệp 360...")
@@ -511,12 +587,20 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             cv2.imwrite(dst_p, im, [cv2.IMWRITE_JPEG_QUALITY, 96])
             prepared_paths.append(dst_p)
 
-        # 1. pto_gen
+        # Ước lượng hướng xoay camera (Clockwise / Counter-Clockwise)
+        rot_dir = estimate_camera_rotation_direction(prepared_paths)
+        rot_label = "Quay sang phải (Clockwise)" if rot_dir == 1 else "Quay sang trái (Counter-Clockwise)"
+        log(f"[*] Hướng quét camera nhận diện: {rot_label}")
+
+        # 1. pto_gen (Khởi tạo dự án với thông số FOV ống kính điện thoại ~65°)
         log("[*] Hugin Step 1: Tạo cấu trúc dự án pto_gen...")
-        cmd_ptogen = ['pto_gen', '-o', pto_file] + prepared_paths
+        cmd_ptogen = ['pto_gen', '-f', '65', '-o', pto_file] + prepared_paths
         res = subprocess.run(cmd_ptogen, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
         if res.returncode != 0:
             raise RuntimeError(f"pto_gen lỗi: {res.stderr}")
+
+        # 1b. Khởi tạo góc Yaw 360° xoay vòng đều đặn quanh phòng để autooptimiser không bị lật ngược hướng
+        assign_initial_circular_yaw(pto_file, len(prepared_paths), rot_dir=rot_dir)
 
         # 2. cpfind (Khớp tuần tự siêu tốc theo chuỗi xoay vòng 360°, cấu hình chuẩn dưới 10s)
         log("[*] Hugin Step 2: Dò tìm điểm kiểm soát đa góc (cpfind --linearmatch)...")
@@ -528,7 +612,7 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             try:
                 loop_pto = os.path.join(temp_dir, "loop.pto")
                 first_last = [prepared_paths[0], prepared_paths[1], prepared_paths[-2], prepared_paths[-1]]
-                cmd_ptogen_loop = ['pto_gen', '-o', loop_pto] + first_last
+                cmd_ptogen_loop = ['pto_gen', '-f', '65', '-o', loop_pto] + first_last
                 if subprocess.run(cmd_ptogen_loop, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30).returncode == 0:
                     cmd_cpfind_loop = ['cpfind', '--multirow', '-o', loop_pto, loop_pto]
                     subprocess.run(cmd_cpfind_loop, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30)
@@ -571,18 +655,19 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             cmd_linefind = ['linefind', '-o', pto_file, pto_file]
             subprocess.run(cmd_linefind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
 
-        # 5. autooptimiser (Tối ưu hóa hình học, làm phẳng chân trời)
+        # 5. autooptimiser (Tối ưu hóa hình học, làm phẳng chân trời, giữ tường 90°)
+        # Bỏ cờ -s để tránh autooptimiser tự thu hẹp FOV/canvas làm biến dạng vòng tròn 360°
         if shutil.which('autooptimiser'):
             log("[*] Hugin Step 5: Tự động cân bằng chân trời & triệt tiêu méo (autooptimiser)...")
-            cmd_opt = ['autooptimiser', '-a', '-m', '-l', '-s', '-o', pto_file, pto_file]
+            cmd_opt = ['autooptimiser', '-a', '-m', '-l', '-o', pto_file, pto_file]
             subprocess.run(cmd_opt, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
 
-        # 6. pano_modify (Ép về Equirectangular 2:1 và căn thẳng)
+        # 6. pano_modify (Ép về chuẩn Equirectangular 2:1, bảo toàn đúng 360° FOV không bị chồng lặp)
         out_w = 4096 if target_width <= 0 else int(target_width)
         out_h = out_w // 2
         if shutil.which('pano_modify'):
-            log("[*] Hugin Step 6: Chuẩn hóa phép chiếu Equirectangular 2:1 (pano_modify)...")
-            cmd_mod = ['pano_modify', '--projection=2', f'--canvas={out_w}x{out_h}', '--center', '--straighten', '-o', pto_file, pto_file]
+            log("[*] Hugin Step 6: Chuẩn hóa phép chiếu Equirectangular 2:1 FOV 360° (pano_modify)...")
+            cmd_mod = ['pano_modify', '--projection=2', '--fov=360', f'--canvas={out_w}x{out_h}', '--center', '--straighten', '-o', pto_file, pto_file]
             subprocess.run(cmd_mod, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
 
         # 7. Render trực tiếp bằng Nona + Enblend (Không phụ thuộc makefile của hugin_executor)
