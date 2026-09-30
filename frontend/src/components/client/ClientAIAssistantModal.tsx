@@ -40,11 +40,11 @@ interface TopicOptionDef {
 }
 
 const TOPIC_RADIO_OPTIONS: TopicOptionDef[] = [
-  { id: 'general', label: 'Hỏi tự do', icon: <Sparkles size={13} /> },
-  { id: 'artifacts', label: 'Cổ vật & 3D', icon: <Crown size={13} /> },
-  { id: 'rooms', label: 'Gian phòng 360°', icon: <Compass size={13} /> },
-  { id: 'tickets_info', label: 'Vé & Giờ mở cửa', icon: <Ticket size={13} /> },
-  { id: 'contact_admin', label: 'Gặp Ban Quản lý', icon: <Headphones size={13} /> }
+  { id: 'general', label: 'Tự do', icon: <Sparkles size={11} /> },
+  { id: 'artifacts', label: 'Cổ vật 3D', icon: <Crown size={11} /> },
+  { id: 'rooms', label: 'Phòng 360°', icon: <Compass size={11} /> },
+  { id: 'tickets_info', label: 'Vé & Giờ', icon: <Ticket size={11} /> },
+  { id: 'contact_admin', label: 'Ban Quản lý', icon: <Headphones size={11} /> }
 ];
 
 export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
@@ -72,24 +72,24 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Lời chào mở đầu trang trọng và gọn gàng
+  // Lời chào mở đầu gọn gàng, tinh tế
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([
         {
           id: 'welcome',
           role: 'model',
-          text: `Kính chào Quý khách! Tôi là Trợ lý Di sản Ảo của ${branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}.\n\nTôi có thể hỗ trợ Quý khách giải đáp thông tin cổ vật, niên đại, tham quan phòng 360° hoặc tra cứu giá vé và giờ mở cửa. Quý khách cần hỗ trợ nội dung gì?`,
+          text: `Kính chào Quý khách! Tôi là Trợ lý AI của ${branding.shortName || 'Bảo tàng Lịch sử'}.\nQuý khách muốn tìm hiểu cổ vật, phòng 360° hay thông tin tham quan?`,
           createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
           suggestedQuestions: [
-            'Giá vé và khung giờ mở cửa tham quan?',
-            'Bảo tàng có những phòng 360° nào?',
-            'Những bảo vật quốc gia tiêu biểu?'
+            'Giá vé & giờ mở cửa?',
+            'Phòng 360° nổi bật?',
+            'Bảo vật quốc gia?'
           ]
         }
       ]);
     }
-  }, [branding.museumName]);
+  }, [branding.shortName]);
 
   // Tự động cuộn xuống cuối
   useEffect(() => {
@@ -223,12 +223,12 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
         <div className="ai-widget-header">
           <div className="ai-widget-header-brand">
             <div className="ai-brand-avatar">
-              <Bot size={18} />
+              <Bot size={15} />
               <span className="ai-brand-dot" />
             </div>
             <div className="ai-brand-text">
               <div className="ai-brand-title-wrap">
-                <span className="ai-brand-title">Trợ Lý Di Sản Ảo</span>
+                <span className="ai-brand-title">Trợ Lý Bảo Tàng</span>
                 <span className="ai-brand-chip">AI</span>
               </div>
               <span className="ai-brand-desc">
@@ -384,7 +384,7 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
           /* KHÔNG GIAN HỘI THOẠI AI */
           <div className="ai-widget-chat-pane">
             <div className="ai-chat-stream">
-              {messages.map((msg) => (
+              {messages.map((msg, mIdx) => (
                 <div
                   key={msg.id}
                   className={`ai-stream-row ${msg.role === 'user' ? 'is-user-msg' : 'is-bot-msg'}`}
@@ -443,8 +443,8 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
                       )}
                     </div>
 
-                    {/* Câu hỏi gợi ý dưới tin nhắn bot */}
-                    {msg.suggestedQuestions && msg.suggestedQuestions.length > 0 && (
+                    {/* Câu hỏi gợi ý dưới tin nhắn bot - chỉ hiện cho tin nhắn mới nhất để không choán màn hình */}
+                    {msg.suggestedQuestions && msg.suggestedQuestions.length > 0 && mIdx === messages.length - 1 && (
                       <div className="ai-followup-chips">
                         {msg.suggestedQuestions.map((q, idx) => (
                           <button
