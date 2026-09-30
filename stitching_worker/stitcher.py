@@ -342,13 +342,12 @@ def crop_clean_inscribed_rectangle(image, black_thresh=15):
     if not np.any(mask):
         return image
 
-    # Tỷ lệ pixel có nội dung trên mỗi hàng và mỗi cột
+    # Tỷ lệ pixel có nội dung trên mỗi hàng và mỗi cột (yêu cầu ít nhất 95% là nội dung thật, triệt tiêu 100% rìa đen lượn sóng)
     row_density = np.mean(mask, axis=1)
     col_density = np.mean(mask, axis=0)
 
-    # Chỉ cắt bỏ những hàng/cột có quá 40% là viền đen
-    valid_rows = np.where(row_density >= 0.60)[0]
-    valid_cols = np.where(col_density >= 0.60)[0]
+    valid_rows = np.where(row_density >= 0.95)[0]
+    valid_cols = np.where(col_density >= 0.95)[0]
 
     if len(valid_rows) > 50 and len(valid_cols) > 50:
         top = valid_rows[0]
@@ -359,7 +358,7 @@ def crop_clean_inscribed_rectangle(image, black_thresh=15):
     else:
         cropped = image
 
-    # Inpaint các vết đen nhỏ còn sót ở rìa mép
+    # Inpaint các vết đen nhỏ còn sót ở rìa mép nếu có
     if cropped.size > 0:
         c_gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
         dark_mask = (c_gray <= black_thresh).astype(np.uint8) * 255
@@ -656,20 +655,19 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             cmd_linefind = ['linefind', '-o', pto_file, pto_file]
             subprocess.run(cmd_linefind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
 
-        # 5. autooptimiser (Tối ưu hóa hình học, làm phẳng chân trời, giữ tường 90°)
-        # Dùng -a -l để cân chỉnh vị trí & chân trời thẳng đứng. Bỏ cờ -m (photometric) vì CLAHE và Enblend
-        # đã hòa trộn dải màu hoàn hảo, giúp tiết kiệm hơn 100 giây tính toán nặng
+        # 5. autooptimiser (Tối ưu hóa vị trí ngang Yaw, giữ nguyên trục thẳng đứng Pitch=0, Roll=0 để KHÔNG bị vặn xoắn)
         if shutil.which('autooptimiser'):
-            log("[*] Hugin Step 5: Tự động cân bằng chân trời & triệt tiêu méo (autooptimiser)...")
-            cmd_opt = ['autooptimiser', '-a', '-l', '-o', pto_file, pto_file]
+            log("[*] Hugin Step 5: Tự động cân bằng góc quét ngang, khóa góc thẳng đứng chống méo lồi (autooptimiser -p -l)...")
+            cmd_opt = ['autooptimiser', '-p', '-l', '-o', pto_file, pto_file]
             subprocess.run(cmd_opt, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
 
-        # 6. pano_modify (Ép về chuẩn Equirectangular 2:1, bảo toàn đúng 360° FOV không bị chồng lặp)
+        # 6. pano_modify: Sử dụng phép chiếu Hình Trụ (Cylindrical Projection --projection=1)
+        # Giữ 100% các đường thẳng đứng (tường, tủ, cửa) THẲNG ĐỨNG TUYỆT ĐỐI, không bao giờ bị phình lồi hay uốn lượn như hình cầu
         out_w = 4096 if target_width <= 0 else int(target_width)
         out_h = out_w // 2
         if shutil.which('pano_modify'):
-            log("[*] Hugin Step 6: Chuẩn hóa phép chiếu Equirectangular 2:1 FOV 360° (pano_modify)...")
-            cmd_mod = ['pano_modify', '--projection=2', '--fov=360', f'--canvas={out_w}x{out_h}', '--center', '--straighten', '-o', pto_file, pto_file]
+            log("[*] Hugin Step 6: Chuẩn hóa phép chiếu Hình Trụ Cylindrical phẳng mịn chống lồi méo (pano_modify)...")
+            cmd_mod = ['pano_modify', '--projection=1', '--fov=360', f'--canvas={out_w}x{out_h}', '--center', '--straighten', '-o', pto_file, pto_file]
             subprocess.run(cmd_mod, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
 
         # 7. Render trực tiếp bằng Nona + Enblend (Không phụ thuộc makefile của hugin_executor)
@@ -713,9 +711,9 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
         if hugin_result is None:
             raise ValueError("Không thể giải mã file kết quả của Hugin.")
 
-        # Hugin đã căn chỉnh đường thẳng đứng chuẩn xác 100% bằng linefind & autooptimiser.
-        # Giữ nguyên tỷ lệ 100%, chỉ làm mịn viền trần/sàn nếu chưa bao quát hết
-        equi = fit_to_equirectangular_2_to_1(hugin_result, target_width=out_w, is_full_360=True)
+        # Cắt xén sạch viền đen răng cưa nội tiếp thành 1 khung chữ nhật hoàn chỉnh, không nứt nẻ
+        cropped_res = crop_clean_inscribed_rectangle(hugin_result, black_thresh=10)
+        equi = fit_to_equirectangular_2_to_1(cropped_res, target_width=out_w, is_full_360=True)
         equi = enhance_museum_details(equi)
 
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
