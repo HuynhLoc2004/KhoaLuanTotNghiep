@@ -469,7 +469,7 @@ export const AdminSettingsPage: React.FC = () => {
                 {/* 1. Tên đầy đủ của bảo tàng */}
                 <div className="settings-form-field">
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    {t('settings.museumName', 'Tên đầy đủ của bảo tàng')} <span style={{ color: 'var(--primary)' }}>*</span>
+                    {t('settings.museumName', 'Tên đầy đủ của bảo tàng')} <span style={{ color: '#EF4444' }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -498,7 +498,7 @@ export const AdminSettingsPage: React.FC = () => {
                 <div className="settings-form-row-2col">
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                      {t('settings.shortName', 'Tên rút gọn / Tên ngắn')} <span style={{ color: 'var(--primary)' }}>*</span>
+                      {t('settings.shortName', 'Tên rút gọn / Tên ngắn')} <span style={{ color: '#EF4444' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -1184,8 +1184,9 @@ export const AdminSettingsPage: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  backgroundColor: 'rgba(212, 168, 106, 0.12)',
-                  color: 'var(--accent-gold)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-main)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -1381,16 +1382,16 @@ export const AdminSettingsPage: React.FC = () => {
                             borderRadius: 'var(--radius-sm, 5px)',
                             backgroundColor:
                               maintenance.estimatedMinutes === mins
-                                ? 'rgba(212, 168, 106, 0.15)'
+                                ? 'rgba(255, 255, 255, 0.1)'
                                 : 'var(--bg-subtle)',
                             color:
                               maintenance.estimatedMinutes === mins
-                                ? 'var(--accent-gold)'
+                                ? 'var(--text-main)'
                                 : 'var(--text-muted)',
                             border:
                               '1px solid ' +
                               (maintenance.estimatedMinutes === mins
-                                ? 'var(--accent-gold)'
+                                ? 'rgba(255, 255, 255, 0.28)'
                                 : 'var(--border-color)'),
                             cursor: 'pointer'
                           }}

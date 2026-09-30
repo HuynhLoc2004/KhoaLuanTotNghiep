@@ -270,18 +270,31 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsActive(!isActive)}
-            className={`btn ${isActive ? 'btn-primary' : 'btn-secondary'}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              padding: '8px 14px',
+              padding: '6px 14px',
               fontSize: 12.5,
               whiteSpace: 'nowrap',
-              flexShrink: 0
+              flexShrink: 0,
+              borderRadius: 6,
+              background: isActive ? 'rgba(34, 197, 94, 0.12)' : 'rgba(148, 163, 184, 0.1)',
+              border: isActive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(148, 163, 184, 0.3)',
+              color: isActive ? '#4ADE80' : '#94A3B8',
+              cursor: 'pointer',
+              fontWeight: 600
             }}
           >
-            <Bot size={15} />
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: isActive ? '#22C55E' : '#64748B',
+                display: 'inline-block'
+              }}
+            />
             <span>{isActive ? 'Đang Bật (Hoạt động)' : 'Đang Tắt (Tạm ngưng)'}</span>
           </button>
         </div>
@@ -289,7 +302,7 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
         {/* Cột 1: Tên Mô hình AI (Không fix cứng, nhập tự do) */}
         <div className="settings-form-field" style={{ marginBottom: 18 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-            Tên Mô Hình AI (Model Name) <span style={{ color: 'var(--primary)' }}>*</span>
+            Tên Mô Hình AI (Model Name) <span style={{ color: '#EF4444' }}>*</span>
           </label>
           <input
             type="text"
@@ -490,7 +503,7 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-main)' }}>Độ sáng tạo (Temperature):</label>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>{temperature}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-main)' }}>{temperature}</span>
               </div>
               <input
                 type="range"
@@ -499,7 +512,7 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
                 step="0.05"
                 value={temperature}
                 onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--c-gold, #D4AF37)' }}
               />
               <span style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                 0.0: Chuẩn xác dữ liệu • 0.4: Cân bằng (khuyên dùng)

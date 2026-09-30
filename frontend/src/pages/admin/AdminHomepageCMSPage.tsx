@@ -482,16 +482,15 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         <div className="admin-cms-header-info">
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
-              border: '1px solid var(--accent-gold)',
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              background: 'var(--bg-subtle, rgba(255, 255, 255, 0.05))',
+              border: '1px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#FFF8F0',
-              boxShadow: '0 4px 12px rgba(140, 45, 25, 0.3)',
+              color: 'var(--text-main)',
               flexShrink: 0
             }}
           >
@@ -546,7 +545,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
       {/* 2. THANH ĐIỀU HƯỚNG NHANH THEO TỪNG PHẦN (CHỌN TỪNG PHẦN ĐỘC LẬP) */}
       <div className="admin-cms-nav-tabs">
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4 }}>
           Chọn phần:
         </span>
         {HOMEPAGE_SECTIONS.map((sec) => {
@@ -561,16 +560,16 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 alignItems: 'center',
                 gap: 6,
                 padding: '6px 14px',
-                borderRadius: 8,
+                borderRadius: 6,
                 fontSize: 12.5,
                 fontWeight: isActive ? 600 : 500,
                 border: '1px solid',
-                borderColor: isActive ? 'rgba(212, 168, 106, 0.45)' : 'transparent',
-                background: isActive ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-                color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
+                borderColor: isActive ? 'rgba(255, 255, 255, 0.22)' : 'transparent',
+                background: isActive ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.15s ease'
               }}
             >
               <span
@@ -578,8 +577,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   width: 18,
                   height: 18,
                   borderRadius: 4,
-                  background: isActive ? 'var(--accent-gold)' : 'rgba(255,255,255,0.06)',
-                  color: isActive ? '#1A1512' : 'var(--text-muted)',
+                  background: isActive ? 'var(--text-main)' : 'rgba(255, 255, 255, 0.06)',
+                  color: isActive ? '#0F172A' : 'var(--text-muted)',
                   fontSize: 10.5,
                   fontWeight: 700,
                   display: 'flex',
@@ -606,7 +605,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         >
           <div className="admin-cms-section-header">
             <div className="admin-cms-title-group">
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Building2 size={18} />
               </div>
               <div className="admin-cms-title-text">
@@ -717,7 +716,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 {form.logoUrl ? (
                   <img src={form.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
-                  <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--accent-gold)' }}>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-main)' }}>
                     {form.emblemText || 'BT'}
                   </div>
                 )}
@@ -773,7 +772,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         >
           <div className="admin-cms-section-header">
             <div className="admin-cms-title-group">
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <MenuIcon size={18} />
               </div>
               <div className="admin-cms-title-text">
@@ -826,8 +825,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             style={{
               padding: '8px 14px',
               borderRadius: 8,
-              background: 'rgba(212, 168, 106, 0.06)',
-              border: '1px solid rgba(212, 168, 106, 0.2)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-color)',
               marginBottom: 14,
               fontSize: 12.5,
               color: 'var(--text-muted)',
@@ -839,12 +838,12 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Info size={15} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+              <Info size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
               <span>
                 Thứ tự và cấu trúc cây phân cấp dưới đây sẽ hiển thị trực tiếp trên thanh Header của khách tham quan.
               </span>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--accent-gold)', fontWeight: 600 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-main)', fontWeight: 600 }}>
               {menuItems.length} mục chính ({menuItems.reduce((acc, it) => acc + (it.children?.length || 0), 0)} menu con)
             </div>
           </div>
@@ -1333,7 +1332,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         >
           <div className="admin-cms-section-header">
             <div className="admin-cms-title-group">
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Image size={18} />
               </div>
               <div className="admin-cms-title-text">
@@ -1483,7 +1482,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         >
           <div className="admin-cms-section-header">
             <div className="admin-cms-title-group">
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Sparkles size={18} />
               </div>
               <div className="admin-cms-title-text">
@@ -1627,7 +1626,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         >
           <div className="admin-cms-section-header">
             <div className="admin-cms-title-group">
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Compass size={18} />
               </div>
               <div className="admin-cms-title-text">
@@ -1850,7 +1849,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         >
           <div className="admin-cms-section-header">
             <div className="admin-cms-title-group">
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Box size={18} />
               </div>
               <div className="admin-cms-title-text">
@@ -1940,7 +1939,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         >
           <div className="admin-cms-section-header">
             <div className="admin-cms-title-group">
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Layers size={18} />
               </div>
               <div className="admin-cms-title-text">
@@ -2064,7 +2063,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
         >
           <div className="admin-cms-section-header">
             <div className="admin-cms-title-group">
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Phone size={18} />
               </div>
               <div className="admin-cms-title-text">

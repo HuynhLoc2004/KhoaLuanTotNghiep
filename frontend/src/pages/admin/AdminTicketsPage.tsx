@@ -43,7 +43,7 @@ export const AdminTicketsPage: React.FC = () => {
 
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 6,
     total: 0,
     totalPages: 1
   });
@@ -329,7 +329,7 @@ export const AdminTicketsPage: React.FC = () => {
   });
   const [ordersPagination, setOrdersPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 6,
     total: 0,
     totalPages: 1
   });
@@ -888,18 +888,23 @@ export const AdminTicketsPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Phân trang */}
-            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Hiển thị {tickets.length} / {pagination.total} vé tham quan
+            {/* Phân trang chuẩn hệ thống [6, 9, 12, 18, 24] */}
+            {pagination.total > 0 && (
+              <div style={{ borderTop: '1px solid var(--border-color)' }}>
+                <Pagination
+                  currentPage={pagination.page}
+                  totalItems={pagination.total}
+                  pageSize={pagination.limit}
+                  onPageChange={(p) => fetchTickets(p, pagination.limit)}
+                  onPageSizeChange={(newSize) => {
+                    setPagination((prev) => ({ ...prev, limit: newSize }));
+                    fetchTickets(1, newSize);
+                  }}
+                  pageSizeOptions={[6, 9, 12, 18, 24]}
+                  itemLabel="vé"
+                />
               </div>
-              <Pagination
-                currentPage={pagination.page}
-                totalItems={pagination.total}
-                pageSize={pagination.limit}
-                onPageChange={(p) => fetchTickets(p, pagination.limit)}
-              />
-            </div>
+            )}
           </div>
         </>
       )}
@@ -1389,18 +1394,23 @@ export const AdminTicketsPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Phân trang */}
-            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Hiển thị {orders.length} / {ordersPagination.total} đơn hàng
+            {/* Phân trang chuẩn hệ thống [6, 9, 12, 18, 24] */}
+            {ordersPagination.total > 0 && (
+              <div style={{ borderTop: '1px solid var(--border-color)' }}>
+                <Pagination
+                  currentPage={ordersPagination.page}
+                  totalItems={ordersPagination.total}
+                  pageSize={ordersPagination.limit}
+                  onPageChange={(p) => fetchOrders(p, ordersPagination.limit)}
+                  onPageSizeChange={(newSize) => {
+                    setOrdersPagination((prev) => ({ ...prev, limit: newSize }));
+                    fetchOrders(1, newSize);
+                  }}
+                  pageSizeOptions={[6, 9, 12, 18, 24]}
+                  itemLabel="đơn hàng"
+                />
               </div>
-              <Pagination
-                currentPage={ordersPagination.page}
-                totalItems={ordersPagination.total}
-                pageSize={ordersPagination.limit}
-                onPageChange={(p) => fetchOrders(p, ordersPagination.limit)}
-              />
-            </div>
+            )}
           </div>
         </>
       )}
