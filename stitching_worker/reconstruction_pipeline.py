@@ -259,15 +259,35 @@ def run_pipeline(
             "--database_path", db_path,
             "--SiftMatching.use_gpu", gpu_flag,
             "--SequentialMatching.overlap", "10",
-            "--SequentialMatching.loop_detection", "1"
+            "--SequentialMatching.loop_detection", "0"
         ]
+        run_command(match_cmd, "COLMAP Sequential Matcher", cwd=work_dir)
+
+        # Đóng vòng lặp 360° (Loop Closure): Khớp các ảnh cuối với các ảnh đầu khi đi quanh phòng
+        try:
+            loop_pairs_file = os.path.join(work_dir, "loop_pairs.txt")
+            n_images = len(image_files)
+            with open(loop_pairs_file, "w") as f:
+                for last_i in range(max(0, n_images - 5), n_images):
+                    for first_i in range(min(5, n_images)):
+                        f.write(f"{image_files[last_i]} {image_files[first_i]}\n")
+
+            loop_cmd = [
+                colmap_bin, "image_pairs_matcher",
+                "--database_path", db_path,
+                "--match_list_path", loop_pairs_file,
+                "--SiftMatching.use_gpu", gpu_flag
+            ]
+            run_command(loop_cmd, "COLMAP Loop Closure Matcher", cwd=work_dir)
+        except Exception as e:
+            log(f"[WARN] Bỏ qua bước khớp vòng lặp phụ: {e}")
     else:
         match_cmd = [
             colmap_bin, "exhaustive_matcher",
             "--database_path", db_path,
             "--SiftMatching.use_gpu", gpu_flag
         ]
-    run_command(match_cmd, "COLMAP Matcher", cwd=work_dir)
+        run_command(match_cmd, "COLMAP Matcher", cwd=work_dir)
 
     # =========================================================================
     # STEP 3: COLMAP Sparse Reconstruction (Bundle Adjustment)
