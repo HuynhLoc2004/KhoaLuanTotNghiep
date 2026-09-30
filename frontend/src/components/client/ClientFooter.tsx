@@ -4,7 +4,7 @@ import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
 interface ClientFooterProps {
-  onNavigatePage?: (page: 'home' | 'rooms' | 'artifacts' | 'guide') => void;
+  onNavigatePage?: (page: any) => void;
 }
 
 export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) => {

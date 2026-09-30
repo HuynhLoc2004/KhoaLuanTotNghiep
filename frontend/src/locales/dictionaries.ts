@@ -22,6 +22,13 @@ export const DICTIONARY_VI: LocaleDictionary = {
   'nav.themeLight': 'Chuyển sang giao diện Sáng',
   'nav.themeDark': 'Chuyển sang giao diện Tối',
   'nav.dashboard': 'Bảng Điều Khiển',
+  'nav.profile': 'Hồ sơ tài khoản',
+  'nav.myTickets': 'Vé tham quan của tôi',
+  'profile.title': 'Hồ sơ người dùng & Quản lý vé',
+  'profile.backHome': 'Quay lại Cổng Bảo Tàng',
+  'profile.tabProfile': 'Thông tin cá nhân',
+  'profile.tabTickets': 'Vé tham quan của tôi',
+  'profile.tabBooking': 'Đặt vé tham quan mới',
 
   // Băng Thống kê Di sản (Heritage Stats Banner)
   'stats.roomsTitle': 'Gian phòng Trưng bày',

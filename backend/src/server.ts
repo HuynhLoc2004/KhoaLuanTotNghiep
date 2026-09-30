@@ -15,6 +15,7 @@ import { systemRouter } from './routes/system.js';
 import { artifactsRouter } from './routes/artifacts.js';
 import { floorPlanRouter } from './routes/floorPlan.js';
 import { usersRouter } from './routes/users.js';
+import { profileRouter } from './routes/profile.js';
 import { splatRouter } from './routes/splat.js';
 import { aiRouter } from './routes/ai.js';
 import { seedDefaultLanguages } from './models/Language.js';
@@ -153,6 +154,7 @@ app.use('/api/system', systemRouter);
 app.use('/api/artifacts', artifactsRouter);
 app.use('/api/floor-plan', floorPlanRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/profile', profileRouter);
 app.use('/api/splat', splatRouter);
 app.use('/api/ai', aiRouter);
 

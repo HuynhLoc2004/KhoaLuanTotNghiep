@@ -141,6 +141,65 @@ export interface AuthUser {
   permissions: string[];
 }
 
+export interface UserTicket {
+  id: string;
+  ticketCode: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  userPhone?: string;
+  ticketType: string;
+  ticketTitle: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  visitDate: string;
+  timeSlot: string;
+  status: 'paid' | 'used' | 'cancelled' | 'pending';
+  paymentMethod: string;
+  qrCodeData: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface UserProfileStats {
+  totalTickets: number;
+  activeTickets: number;
+  usedTickets: number;
+  cancelledTickets: number;
+  totalSpent: number;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  avatar?: string;
+  role: string;
+  roleName?: string;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt?: string;
+  stats?: UserProfileStats;
+}
+
+export interface BookTicketPayload {
+  ticketType: string;
+  ticketTitle: string;
+  quantity: number;
+  unitPrice: number;
+  visitDate: string;
+  timeSlot: string;
+  paymentMethod?: string;
+  notes?: string;
+  userName?: string;
+  userPhone?: string;
+}
+
 export interface RoleItem {
   _id: string;
   name: string;

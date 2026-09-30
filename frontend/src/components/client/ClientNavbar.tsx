@@ -15,7 +15,8 @@ import {
   Landmark,
   QrCode,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  Ticket
 } from 'lucide-react';
 import { useSystemBranding, DEFAULT_HEADER_MENU } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
@@ -28,7 +29,7 @@ interface ClientNavbarProps {
   onOpenLoginModal: () => void;
   onNavigateAdmin: () => void;
   activeSection?: string;
-  onNavigatePage?: (page: 'home' | 'rooms' | 'artifacts' | 'guide') => void;
+  onNavigatePage?: (page: any) => void;
   onOpenQRScanner?: () => void;
 }
 
@@ -128,7 +129,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
     }
 
     if (item.linkType === 'page') {
-      const pageTarget = item.target as 'home' | 'rooms' | 'artifacts' | 'guide';
+      const pageTarget = item.target as 'home' | 'rooms' | 'artifacts' | 'guide' | 'profile';
       if (onNavigatePage) {
         onNavigatePage(pageTarget);
         if (pageTarget === 'home') {
@@ -409,12 +410,52 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               </button>
 
               {isUserDropdownOpen && (
-                <div className="client-user-dropdown" style={{ minWidth: 180 }}>
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--c-border-subtle)', marginBottom: 2 }}>
+                <div className="client-user-dropdown" style={{ minWidth: 200 }}>
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--c-border-subtle)', marginBottom: 4 }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--c-text-primary)', wordBreak: 'break-all' }}>
                       {user.email || user.username}
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    className="client-user-dropdown-item"
+                    onClick={() => {
+                      setIsUserDropdownOpen(false);
+                      if (onNavigatePage) onNavigatePage('profile');
+                    }}
+                  >
+                    <User size={15} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                    <span>{t('nav.profile', 'Hồ sơ tài khoản')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="client-user-dropdown-item"
+                    onClick={() => {
+                      setIsUserDropdownOpen(false);
+                      if (onNavigatePage) onNavigatePage('profile');
+                    }}
+                  >
+                    <Ticket size={15} style={{ color: '#10B981' }} />
+                    <span>{t('nav.myTickets', 'Vé tham quan của tôi')}</span>
+                  </button>
+
+                  {user.role === 'admin' && (
+                    <button
+                      type="button"
+                      className="client-user-dropdown-item"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        onNavigateAdmin();
+                      }}
+                    >
+                      <Shield size={15} style={{ color: '#D4AF37' }} />
+                      <span>{t('nav.adminPanel', 'Trang quản trị')}</span>
+                    </button>
+                  )}
+
+                  <div style={{ height: 1, background: 'var(--c-border-subtle)', margin: '4px 0' }} />
 
                   <button
                     type="button"
@@ -593,6 +634,51 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               <div style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)', padding: '0 8px', wordBreak: 'break-all' }}>
                 {user.email || user.username}
               </div>
+
+              <button
+                type="button"
+                className="client-mobile-nav-link"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  if (onNavigatePage) onNavigatePage('profile');
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <User size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                  <span>{t('nav.profile', 'Hồ sơ tài khoản')}</span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="client-mobile-nav-link"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  if (onNavigatePage) onNavigatePage('profile');
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Ticket size={16} style={{ color: '#10B981' }} />
+                  <span>{t('nav.myTickets', 'Vé tham quan của tôi')}</span>
+                </span>
+              </button>
+
+              {user.role === 'admin' && (
+                <button
+                  type="button"
+                  className="client-mobile-nav-link"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onNavigateAdmin();
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Shield size={16} style={{ color: '#D4AF37' }} />
+                    <span>{t('nav.adminPanel', 'Trang quản trị')}</span>
+                  </span>
+                </button>
+              )}
+
               <button
                 type="button"
                 className="client-mobile-nav-link"

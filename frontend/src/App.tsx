@@ -35,6 +35,7 @@ import { ClientLoginOtpModal } from './components/client/ClientLoginOtpModal';
 import { QRScannerModal } from './components/client/QRScannerModal';
 import { GaussianSplatRoomViewer } from './components/GaussianSplatRoomViewer';
 import { ClientAIAssistantModal } from './components/client/ClientAIAssistantModal';
+import { UserProfilePage } from './pages/client/UserProfilePage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -64,26 +65,47 @@ const AppContent: React.FC = () => {
     } catch { }
   }, []);
 
-  // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'guide'
-  const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'guide'>(() => {
+  // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'guide' | 'profile'
+  const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'guide' | 'profile'>(() => {
     try {
+      const path = window.location.pathname;
+      if (path === '/profile' || path.startsWith('/profile')) return 'profile';
       const params = new URLSearchParams(window.location.search);
       const p = params.get('page');
-      if (p === 'rooms' || p === 'artifacts' || p === 'guide') {
+      if (p === 'rooms' || p === 'artifacts' || p === 'guide' || p === 'profile') {
         return p;
       }
     } catch { }
     return 'home';
   });
 
-  const handleNavigateClientPage = (page: 'home' | 'rooms' | 'artifacts' | 'guide') => {
+  const handleNavigateClientPage = (page: 'home' | 'rooms' | 'artifacts' | 'guide' | 'profile') => {
     setClientActivePage(page);
     try {
-      const url = page === 'home' ? '/' : `?page=${page}`;
+      const url = page === 'home' ? '/' : page === 'profile' ? '/profile' : `?page=${page}`;
       window.history.pushState({}, '', url);
     } catch { }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/profile' || path.startsWith('/profile')) {
+        setClientActivePage('profile');
+        return;
+      }
+      const params = new URLSearchParams(window.location.search);
+      const p = params.get('page');
+      if (p === 'rooms' || p === 'artifacts' || p === 'guide' || p === 'profile') {
+        setClientActivePage(p);
+      } else {
+        setClientActivePage('home');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Xác định đang truy cập tuyến Quản trị (/admin) hay Cổng thông tin Khách tham quan
   const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
@@ -597,6 +619,21 @@ const AppContent: React.FC = () => {
               handleNavigateClientPage('rooms');
             }
           }}
+          onOpenQRScanner={() => setIsQRScannerOpen(true)}
+        />
+      );
+    } else if (clientActivePage === 'profile') {
+      activeClientView = (
+        <UserProfilePage
+          onNavigateHome={() => handleNavigateClientPage('home')}
+          onNavigatePage={handleNavigateClientPage}
+          onNavigateAdmin={() => {
+            setIsAdminRoute(true);
+            try {
+              window.history.pushState({}, '', '/admin');
+            } catch { }
+          }}
+          onOpenLoginModal={() => setIsClientLoginModalOpen(true)}
           onOpenQRScanner={() => setIsQRScannerOpen(true)}
         />
       );

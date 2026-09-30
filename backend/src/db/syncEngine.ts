@@ -8,6 +8,7 @@ import { Language } from '../models/Language.js';
 import { SystemBranding, DEFAULT_BRANDING, DEFAULT_HEADER_MENU } from '../models/SystemBranding.js';
 import { User } from '../models/User.js';
 import { Role } from '../models/Role.js';
+import { Ticket } from '../models/Ticket.js';
 import { cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
@@ -625,8 +626,8 @@ export async function pgUpsertUser(user: any) {
     if (!id || !user.username) return;
 
     await pgPool.query(`
-      INSERT INTO users (id, username, email, password_hash, full_name, role_id, is_active, mongo_id, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+      INSERT INTO users (id, username, email, password_hash, full_name, role_id, is_active, phone, avatar_url, mongo_id, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         username = EXCLUDED.username,
         email = EXCLUDED.email,
@@ -634,6 +635,8 @@ export async function pgUpsertUser(user: any) {
         full_name = EXCLUDED.full_name,
         role_id = EXCLUDED.role_id,
         is_active = EXCLUDED.is_active,
+        phone = COALESCE(EXCLUDED.phone, users.phone),
+        avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
         mongo_id = COALESCE(EXCLUDED.mongo_id, users.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
     `, [
@@ -644,10 +647,78 @@ export async function pgUpsertUser(user: any) {
       user.fullName || '',
       user.role === 'admin' ? 'role-superadmin' : (user.role === 'editor' ? 'role-editor' : 'role-viewer'),
       user.isActive ?? true,
+      user.phone || '',
+      user.avatar || user.avatarUrl || '',
       mongoId
     ]);
   } catch (err: any) {
     console.warn(`[SyncEngine] Lỗi đồng bộ User sang PostgreSQL (${user.username}):`, err.message);
+  }
+}
+
+export async function pgUpsertTicket(ticket: any) {
+  try {
+    const id = ticket.id || ticket._id?.toString();
+    const mongoId = ticket._id ? ticket._id.toString() : (ticket.mongoId || ticket.mongo_id || null);
+    if (!id || !ticket.ticketCode) return;
+
+    await pgPool.query(`
+      INSERT INTO museum_tickets (
+        id, ticket_code, user_id, user_email, user_name, user_phone,
+        ticket_type, ticket_title, quantity, unit_price, total_amount,
+        visit_date, time_slot, status, payment_method, qr_code_data, notes,
+        mongo_id, updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET
+        ticket_code = EXCLUDED.ticket_code,
+        user_id = EXCLUDED.user_id,
+        user_email = EXCLUDED.user_email,
+        user_name = EXCLUDED.user_name,
+        user_phone = EXCLUDED.user_phone,
+        ticket_type = EXCLUDED.ticket_type,
+        ticket_title = EXCLUDED.ticket_title,
+        quantity = EXCLUDED.quantity,
+        unit_price = EXCLUDED.unit_price,
+        total_amount = EXCLUDED.total_amount,
+        visit_date = EXCLUDED.visit_date,
+        time_slot = EXCLUDED.time_slot,
+        status = EXCLUDED.status,
+        payment_method = EXCLUDED.payment_method,
+        qr_code_data = EXCLUDED.qr_code_data,
+        notes = EXCLUDED.notes,
+        mongo_id = COALESCE(EXCLUDED.mongo_id, museum_tickets.mongo_id),
+        updated_at = CURRENT_TIMESTAMP;
+    `, [
+      id,
+      ticket.ticketCode,
+      ticket.userId || null,
+      ticket.userEmail || '',
+      ticket.userName || '',
+      ticket.userPhone || '',
+      ticket.ticketType || 'standard',
+      ticket.ticketTitle || 'Vé Tham Quan Tiêu Chuẩn',
+      ticket.quantity ?? 1,
+      ticket.unitPrice ?? 30000,
+      ticket.totalAmount ?? 30000,
+      ticket.visitDate,
+      ticket.timeSlot || '08:00 - 11:30',
+      ticket.status || 'paid',
+      ticket.paymentMethod || 'VNPay / Chuyển khoản QR',
+      ticket.qrCodeData || '',
+      ticket.notes || '',
+      mongoId
+    ]);
+  } catch (err: any) {
+    console.warn(`[SyncEngine] Lỗi đồng bộ Ticket sang PostgreSQL (${ticket.ticketCode}):`, err.message);
+  }
+}
+
+export async function pgDeleteTicket(id: string) {
+  try {
+    await pgPool.query('DELETE FROM museum_tickets WHERE id = $1 OR mongo_id = $1 OR ticket_code = $1', [id]);
+  } catch (err: any) {
+    console.warn(`[SyncEngine] Lỗi xóa Ticket trong PostgreSQL (${id}):`, err.message);
   }
 }
 
@@ -1015,6 +1086,52 @@ export async function runStartupDataSync() {
       for (const u of mongoUsers) {
         await pgUpsertUser(u);
       }
+    }
+
+    // 6b. Đồng bộ Vé tham quan (Tickets: PostgreSQL Primary <-> MongoDB Mirror)
+    try {
+      const pgTickets = await pgPool.query('SELECT COUNT(*) FROM museum_tickets;');
+      const pgTicketCount = parseInt(pgTickets.rows[0].count, 10);
+      const mongoTickets = await Ticket.find().lean();
+
+      if (pgTicketCount === 0 && mongoTickets.length > 0) {
+        console.log(`[SyncEngine] Đang di chuyển ${mongoTickets.length} Vé từ MongoDB sang PostgreSQL...`);
+        for (const tk of mongoTickets) {
+          await pgUpsertTicket(tk);
+        }
+      } else if (mongoTickets.length === 0 && pgTicketCount > 0) {
+        console.log(`[SyncEngine] Đang phục hồi ${pgTicketCount} Vé từ PostgreSQL sang MongoDB...`);
+        const allPgTickets = await pgPool.query('SELECT * FROM museum_tickets ORDER BY created_at ASC;');
+        for (const row of allPgTickets.rows) {
+          await Ticket.updateOne(
+            { ticketCode: row.ticket_code },
+            {
+              $set: {
+                ticketCode: row.ticket_code,
+                userId: row.user_id,
+                userEmail: row.user_email,
+                userName: row.user_name,
+                userPhone: row.user_phone,
+                ticketType: row.ticket_type,
+                ticketTitle: row.ticket_title,
+                quantity: row.quantity,
+                unitPrice: row.unit_price,
+                totalAmount: row.total_amount,
+                visitDate: row.visit_date,
+                timeSlot: row.time_slot,
+                status: row.status,
+                paymentMethod: row.payment_method,
+                qrCodeData: row.qr_code_data,
+                notes: row.notes,
+                mongoId: row.mongo_id
+              }
+            },
+            { upsert: true }
+          );
+        }
+      }
+    } catch (tkErr: any) {
+      console.warn('[SyncEngine] Lỗi đồng bộ Vé:', tkErr.message);
     }
 
     // 7. Đồng bộ Nhận diện thương hiệu & CMS Toàn bộ Trang chủ (System Branding: PostgreSQL <-> MongoDB)

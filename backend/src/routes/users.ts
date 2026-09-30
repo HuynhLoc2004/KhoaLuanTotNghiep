@@ -1,7 +1,9 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { User, IUser } from '../models/User.js';
+import { Ticket } from '../models/Ticket.js';
 import { authenticate, requireAdmin, AuthRequest } from './auth.js';
+import { pgPool } from '../db/postgres.js';
 import { pgUpsertUser } from '../db/syncEngine.js';
 
 export const usersRouter = Router();
@@ -115,31 +117,52 @@ usersRouter.get('/:id', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
     }
 
-    // Mock dữ liệu lịch sử đặt vé / lịch tham quan để phục vụ tính năng đặt lịch & thanh toán sau này
-    const mockBookings = [
-      {
-        id: `BK-${user._id.toString().slice(-6).toUpperCase()}-01`,
-        visitDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
-        timeSlot: '09:00 - 11:30',
-        ticketType: 'Vé Tiêu Chuẩn + Thuyết Minh Audio Guide',
-        quantity: 2,
-        totalAmount: 60000,
-        paymentStatus: 'paid', // 'paid' | 'pending' | 'cancelled'
-        paymentMethod: 'Chuyển khoản QR / VNPay',
-        bookingDate: new Date(Date.now() - 4 * 86400000).toISOString()
-      },
-      {
-        id: `BK-${user._id.toString().slice(-6).toUpperCase()}-02`,
-        visitDate: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
-        timeSlot: '14:00 - 16:30',
-        ticketType: 'Vé Trải Nghiệm Tour 360 & Không Gian Di Sản',
-        quantity: 1,
-        totalAmount: 30000,
-        paymentStatus: 'paid',
-        paymentMethod: 'Thẻ tín dụng / Ví điện tử',
-        bookingDate: new Date(Date.now() - 1 * 86400000).toISOString()
+    // Truy vấn dữ liệu vé thật 100% từ CSDL (PostgreSQL Primary & MongoDB Mirror)
+    let realBookings: any[] = [];
+    try {
+      const pgTicketsRes = await pgPool.query(
+        `SELECT * FROM museum_tickets WHERE user_id = $1 OR user_email = $2 ORDER BY created_at DESC;`,
+        [user._id.toString(), user.email]
+      );
+      if (pgTicketsRes.rows.length > 0) {
+        realBookings = pgTicketsRes.rows.map((row: any) => ({
+          id: row.ticket_code,
+          ticketCode: row.ticket_code,
+          visitDate: row.visit_date ? new Date(row.visit_date).toISOString().split('T')[0] : '',
+          timeSlot: row.time_slot,
+          ticketType: row.ticket_title || row.ticket_type,
+          quantity: row.quantity,
+          totalAmount: row.total_amount,
+          paymentStatus: row.status,
+          paymentMethod: row.payment_method,
+          qrCodeData: row.qr_code_data,
+          bookingDate: row.created_at
+        }));
       }
-    ];
+    } catch (pgErr: any) {
+      console.warn('[Users API PG Ticket Query Warning]:', pgErr.message);
+    }
+
+    if (realBookings.length === 0) {
+      const mongoTickets = await Ticket.find({
+        $or: [{ userId: user._id.toString() }, { userEmail: user.email }]
+      }).sort({ createdAt: -1 }).lean();
+      realBookings = mongoTickets.map((t: any) => ({
+        id: t.ticketCode,
+        ticketCode: t.ticketCode,
+        visitDate: t.visitDate ? new Date(t.visitDate).toISOString().split('T')[0] : '',
+        timeSlot: t.timeSlot,
+        ticketType: t.ticketTitle || t.ticketType,
+        quantity: t.quantity,
+        totalAmount: t.totalAmount,
+        paymentStatus: t.status,
+        paymentMethod: t.paymentMethod,
+        qrCodeData: t.qrCodeData,
+        bookingDate: t.createdAt
+      }));
+    }
+
+    const calculatedTotalSpent = realBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
     res.json({
       success: true,
@@ -155,12 +178,12 @@ usersRouter.get('/:id', async (req: AuthRequest, res: Response) => {
         permissions: user.permissions || [],
         isActive: user.isActive !== false,
         notes: (user as any).notes || '',
-        bookingStats: (user as any).bookingStats || {
-          totalBookings: 2,
-          totalSpent: 90000,
-          lastBookingDate: new Date()
+        bookingStats: {
+          totalBookings: realBookings.length,
+          totalSpent: calculatedTotalSpent,
+          lastBookingDate: realBookings[0]?.bookingDate || user.updatedAt
         },
-        bookings: mockBookings,
+        bookings: realBookings,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt

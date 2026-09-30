@@ -292,10 +292,41 @@ export async function initPostgresTables(): Promise<boolean> {
         );
       `);
 
-      // 14. Nâng cấp Schema: Đảm bảo toàn bộ các bảng quan hệ đều có trường 'mongo_id' kèm Index
-      // Giúp ánh xạ và truy vấn hai chiều (Bidirectional Mapping) giữa SQL và NoSQL MongoDB mà không bao giờ thất lạc dữ liệu
+      // 14. Bảng Vé tham quan bảo tàng (Tickets - Relational với Users)
       await client.query(`
+        CREATE TABLE IF NOT EXISTS museum_tickets (
+          id VARCHAR(64) PRIMARY KEY,
+          ticket_code VARCHAR(64) UNIQUE NOT NULL,
+          user_id VARCHAR(64),
+          user_email VARCHAR(128) NOT NULL,
+          user_name VARCHAR(128),
+          user_phone VARCHAR(64),
+          ticket_type VARCHAR(64) NOT NULL DEFAULT 'standard',
+          ticket_title VARCHAR(256) DEFAULT 'Vé Tham Quan Tiêu Chuẩn',
+          quantity INT NOT NULL DEFAULT 1,
+          unit_price INT NOT NULL DEFAULT 30000,
+          total_amount INT NOT NULL DEFAULT 30000,
+          visit_date DATE NOT NULL,
+          time_slot VARCHAR(64) NOT NULL DEFAULT '08:00 - 11:30',
+          status VARCHAR(32) NOT NULL DEFAULT 'paid',
+          payment_method VARCHAR(64) NOT NULL DEFAULT 'VNPay / Chuyển khoản QR',
+          qr_code_data TEXT,
+          notes TEXT,
+          mongo_id VARCHAR(64),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_tickets_user_id ON museum_tickets(user_id);
+        CREATE INDEX IF NOT EXISTS idx_tickets_user_email ON museum_tickets(user_email);
+        CREATE INDEX IF NOT EXISTS idx_tickets_ticket_code ON museum_tickets(ticket_code);
+        CREATE INDEX IF NOT EXISTS idx_tickets_visit_date ON museum_tickets(visit_date);
+        CREATE INDEX IF NOT EXISTS idx_tickets_mongo_id ON museum_tickets(mongo_id);
+
+        -- Nâng cấp Schema: Đảm bảo toàn bộ các bảng quan hệ đều có trường 'mongo_id' kèm Index
         ALTER TABLE users ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(64);
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
         ALTER TABLE topics ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);

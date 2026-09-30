@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AISettings, AIChatResponse, AITopicOption } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -887,6 +887,82 @@ export const api = {
       body: JSON.stringify(data)
     });
     const json = await safeJson(res, 'Không thể kiểm tra kết nối Model AI');
+    return json;
+  },
+
+  // ==========================================
+  // PROFILE & TICKETS API (100% CSDL THẬT POSTGRESQL & MONGODB)
+  // ==========================================
+  async getUserProfile(): Promise<UserProfile> {
+    const res = await fetch(`${API_BASE}/profile?_t=${Date.now()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải hồ sơ người dùng');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi tải thông tin hồ sơ');
+    }
+    return json.data;
+  },
+
+  async updateUserProfile(data: { fullName: string; phone?: string; avatar?: string }): Promise<{ success: boolean; message: string; data: any }> {
+    const res = await fetch(`${API_BASE}/profile`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể cập nhật hồ sơ');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi cập nhật hồ sơ');
+    }
+    return json;
+  },
+
+  async changePassword(data: { oldPassword: string; newPassword: string; confirmPassword?: string }): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${API_BASE}/profile/change-password`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể đổi mật khẩu');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi đổi mật khẩu');
+    }
+    return json;
+  },
+
+  async getMyTickets(): Promise<UserTicket[]> {
+    const res = await fetch(`${API_BASE}/profile/tickets?_t=${Date.now()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải danh sách vé');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi tải danh sách vé');
+    }
+    return json.data || [];
+  },
+
+  async bookTicket(data: BookTicketPayload): Promise<{ success: boolean; message: string; data: UserTicket }> {
+    const res = await fetch(`${API_BASE}/profile/tickets`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể khởi tạo vé');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi đặt vé tham quan');
+    }
+    return json;
+  },
+
+  async cancelTicket(code: string): Promise<{ success: boolean; message: string; data: any }> {
+    const res = await fetch(`${API_BASE}/profile/tickets/${code}/cancel`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể hủy vé');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi hủy vé tham quan');
+    }
     return json;
   }
 };
