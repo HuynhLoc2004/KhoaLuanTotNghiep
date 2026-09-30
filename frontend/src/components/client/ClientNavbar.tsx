@@ -425,7 +425,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                       if (onNavigatePage) onNavigatePage('profile');
                     }}
                   >
-                    <User size={15} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                    <User size={15} />
                     <span>{t('nav.profile', 'Hồ sơ tài khoản')}</span>
                   </button>
 
@@ -437,23 +437,9 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                       if (onNavigatePage) onNavigatePage('profile');
                     }}
                   >
-                    <Ticket size={15} style={{ color: '#10B981' }} />
-                    <span>{t('nav.myTickets', 'Vé tham quan của tôi')}</span>
+                    <Ticket size={15} />
+                    <span>{t('nav.myTickets', 'Vé của tôi')}</span>
                   </button>
-
-                  {user.role === 'admin' && (
-                    <button
-                      type="button"
-                      className="client-user-dropdown-item"
-                      onClick={() => {
-                        setIsUserDropdownOpen(false);
-                        onNavigateAdmin();
-                      }}
-                    >
-                      <Shield size={15} style={{ color: '#D4AF37' }} />
-                      <span>{t('nav.adminPanel', 'Trang quản trị')}</span>
-                    </button>
-                  )}
 
                   <div style={{ height: 1, background: 'var(--c-border-subtle)', margin: '4px 0' }} />
 
@@ -644,7 +630,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <User size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                  <User size={16} />
                   <span>{t('nav.profile', 'Hồ sơ tài khoản')}</span>
                 </span>
               </button>
@@ -658,26 +644,10 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Ticket size={16} style={{ color: '#10B981' }} />
-                  <span>{t('nav.myTickets', 'Vé tham quan của tôi')}</span>
+                  <Ticket size={16} />
+                  <span>{t('nav.myTickets', 'Vé của tôi')}</span>
                 </span>
               </button>
-
-              {user.role === 'admin' && (
-                <button
-                  type="button"
-                  className="client-mobile-nav-link"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onNavigateAdmin();
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Shield size={16} style={{ color: '#D4AF37' }} />
-                    <span>{t('nav.adminPanel', 'Trang quản trị')}</span>
-                  </span>
-                </button>
-              )}
 
               <button
                 type="button"
