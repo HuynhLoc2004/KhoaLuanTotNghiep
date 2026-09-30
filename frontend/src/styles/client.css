@@ -7180,4 +7180,21 @@
   color: #F87171;
 }
 
+/* --- CLIENT TICKET BOOKING PAGE (ĐỒNG BỘ 100% CONTAINER 1440PX VỚI HEADER & FOOTER) --- */
+.client-booking-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(360px, 420px);
+  gap: 32px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .client-booking-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+
 

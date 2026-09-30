@@ -229,6 +229,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
   return (
     <div
       className="client-portal"
+      data-client-theme="dark"
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -246,44 +247,45 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
         onOpenQRScanner={onOpenQRScanner}
       />
 
-      <main style={{ flex: 1, paddingTop: '96px', paddingBottom: '56px' }}>
-        <div style={{ maxWidth: '1040px', margin: '0 auto', padding: '0 20px', boxSizing: 'border-box' }}>
-          {/* Nút quay lại */}
-          <div style={{ marginBottom: 14 }}>
-            <button
-              type="button"
-              onClick={onNavigateHome}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'transparent',
-                border: 'none',
-                color: '#94A3B8',
-                fontSize: '0.84rem',
-                cursor: 'pointer',
-                padding: '4px 0'
-              }}
-            >
-              <ArrowLeft size={14} />
-              <span>Quay lại trang chủ</span>
-            </button>
-          </div>
+      <main className="client-subpage" style={{ flex: 1, minHeight: 'calc(100vh - 80px)', paddingBottom: '72px' }}>
+        <div className="client-container">
+          {/* Header & Breadcrumb đồng bộ chuẩn các subpage */}
+          <div className="client-subpage-hero" style={{ padding: '0 0 24px 0' }}>
+            <div className="client-subpage-breadcrumb">
+              <button
+                type="button"
+                className="client-breadcrumb-btn"
+                onClick={onNavigateHome}
+              >
+                <ArrowLeft size={14} />
+                <span>Trang chủ</span>
+              </button>
+              <span className="client-breadcrumb-sep">/</span>
+              <span className="client-breadcrumb-current">
+                Đặt vé tham quan
+              </span>
+            </div>
 
-          {/* Tiêu đề ngắn gọn, hành chính chuẩn mực */}
-          <div style={{ marginBottom: 20 }}>
             <h1
+              className="client-subpage-title"
               style={{
-                fontSize: '1.4rem',
-                color: '#F8FAFC',
-                fontWeight: 600,
-                margin: '0 0 4px 0'
+                fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
+                margin: '6px 0 8px 0',
+                color: '#F8FAFC'
               }}
             >
               Đặt vé tham quan
             </h1>
-            <p style={{ color: '#94A3B8', fontSize: '0.84rem', margin: 0 }}>
-              Hệ thống bán vé điện tử chính thức của Bảo tàng Lịch sử TP. Hồ Chí Minh.
+            <p
+              className="client-subpage-lead"
+              style={{
+                fontSize: '0.92rem',
+                color: 'var(--c-text-secondary, #94A3B8)',
+                maxWidth: 'none',
+                margin: 0
+              }}
+            >
+              Hệ thống bán vé điện tử chính thức của Bảo tàng Lịch sử Thành phố Hồ Chí Minh.
             </p>
           </div>
 
@@ -293,34 +295,27 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
               <span style={{ fontSize: '0.86rem' }}>Đang tải bảng giá vé và khung giờ...</span>
             </div>
           ) : (
-            <form onSubmit={handleCheckout}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 1fr)',
-                  gap: 20,
-                  alignItems: 'flex-start'
-                }}
-              >
-                {/* CỘT TRÁI: CHỌN LỊCH, VÉ VÀ THÔNG TIN KHÁCH */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {/* 1. LỊCH THAM QUAN & KHUNG GIỜ (GỌN GÀNG TRONG 1 KHỐI) */}
+            <form onSubmit={handleCheckout} style={{ width: '100%' }}>
+              <div className="client-booking-grid">
+                {/* CỘT TRÁI (1.6fr): LỊCH, VÉ VÀ THÔNG TIN KHÁCH */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* 1. LỊCH THAM QUAN & KHUNG GIỜ */}
                   <div
                     style={{
-                      background: '#131824',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '16px 18px'
+                      background: 'var(--c-bg-card, #131824)',
+                      border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                      borderRadius: '10px',
+                      padding: '20px 24px'
                     }}
                   >
-                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Calendar size={15} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Calendar size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
                       <span>Thời gian tham quan</span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.76rem', color: '#94A3B8', marginBottom: 5 }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', marginBottom: 6 }}>
                           Ngày tham quan <span style={{ color: '#EF4444' }}>*</span>
                         </label>
                         <input
@@ -331,12 +326,12 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           required
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '5px',
+                            padding: '9px 12px',
+                            borderRadius: '6px',
                             background: '#0D111A',
                             border: '1px solid rgba(255, 255, 255, 0.12)',
                             color: '#F8FAFC',
-                            fontSize: '0.84rem',
+                            fontSize: '0.86rem',
                             colorScheme: 'dark',
                             boxSizing: 'border-box'
                           }}
@@ -344,7 +339,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.76rem', color: '#94A3B8', marginBottom: 5 }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', marginBottom: 6 }}>
                           Khung giờ đón tiếp <span style={{ color: '#EF4444' }}>*</span>
                         </label>
                         <select
@@ -353,12 +348,12 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           required
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '5px',
+                            padding: '9px 12px',
+                            borderRadius: '6px',
                             background: '#0D111A',
                             border: '1px solid rgba(255, 255, 255, 0.12)',
                             color: '#F8FAFC',
-                            fontSize: '0.84rem',
+                            fontSize: '0.86rem',
                             colorScheme: 'dark',
                             boxSizing: 'border-box'
                           }}
@@ -373,21 +368,21 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                     </div>
                   </div>
 
-                  {/* 2. CHỌN LOẠI VÉ (DẠNG DANH SÁCH BẢNG GỌN GÀNG, KHÔNG BULLETS) */}
+                  {/* 2. CHỌN LOẠI VÉ */}
                   <div
                     style={{
-                      background: '#131824',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '16px 18px'
+                      background: 'var(--c-bg-card, #131824)',
+                      border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                      borderRadius: '10px',
+                      padding: '20px 24px'
                     }}
                   >
-                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <CreditCard size={15} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <CreditCard size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
                       <span>Chọn loại vé</span>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {ticketTypes.map((type) => {
                         const qty = ticketQuantities[type.code] || 0;
 
@@ -395,46 +390,46 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           <div
                             key={type.id || type.code}
                             style={{
-                              background: qty > 0 ? 'rgba(212, 175, 55, 0.04)' : '#0D111A',
-                              border: qty > 0 ? '1px solid rgba(212, 175, 55, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '6px',
-                              padding: '10px 14px',
+                              background: qty > 0 ? 'rgba(212, 175, 55, 0.05)' : '#0D111A',
+                              border: qty > 0 ? '1px solid rgba(212, 175, 55, 0.35)' : '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '12px 18px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              gap: 12
+                              gap: 16
                             }}
                           >
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 600, color: '#F8FAFC', fontSize: '0.88rem' }}>
+                              <div style={{ fontWeight: 600, color: '#F8FAFC', fontSize: '0.92rem' }}>
                                 {type.name}
                               </div>
                               {type.description && (
-                                <div style={{ fontSize: '0.76rem', color: '#94A3B8', marginTop: 2 }}>
+                                <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 3 }}>
                                   {type.description}
                                 </div>
                               )}
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                              <div style={{ fontWeight: 600, color: '#F8FAFC', fontSize: '0.9rem', minWidth: 85, textAlign: 'right' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                              <div style={{ fontWeight: 600, color: '#F8FAFC', fontSize: '0.95rem', minWidth: 90, textAlign: 'right' }}>
                                 {formatVND(type.price)}
                               </div>
 
                               {/* Bộ tăng giảm số lượng gọn gàng */}
-                              <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 4, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 5, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
                                 <button
                                   type="button"
                                   onClick={() => handleQuantityChange(type.code, -1)}
                                   disabled={qty === 0}
                                   style={{
-                                    width: 28,
-                                    height: 28,
+                                    width: 30,
+                                    height: 30,
                                     background: 'transparent',
                                     border: 'none',
                                     color: qty > 0 ? '#F8FAFC' : '#475569',
                                     cursor: qty > 0 ? 'pointer' : 'not-allowed',
-                                    fontSize: '1rem',
+                                    fontSize: '1.1rem',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -443,20 +438,20 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                                 >
                                   −
                                 </button>
-                                <span style={{ width: 28, textAlign: 'center', fontSize: '0.84rem', fontWeight: 600, color: '#F8FAFC' }}>
+                                <span style={{ width: 32, textAlign: 'center', fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC' }}>
                                   {qty}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleQuantityChange(type.code, 1)}
                                   style={{
-                                    width: 28,
-                                    height: 28,
+                                    width: 30,
+                                    height: 30,
                                     background: 'transparent',
                                     border: 'none',
                                     color: '#F8FAFC',
                                     cursor: 'pointer',
-                                    fontSize: '1rem',
+                                    fontSize: '1.1rem',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -473,23 +468,23 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                     </div>
                   </div>
 
-                  {/* 3. THÔNG TIN KHÁCH NHẬN VÉ (3 TRƯỜNG THỰC TẾ) */}
+                  {/* 3. THÔNG TIN KHÁCH NHẬN VÉ */}
                   <div
                     style={{
-                      background: '#131824',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '16px 18px'
+                      background: 'var(--c-bg-card, #131824)',
+                      border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                      borderRadius: '10px',
+                      padding: '20px 24px'
                     }}
                   >
-                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <User size={15} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <User size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
                       <span>Thông tin người nhận vé</span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                       <div style={{ gridColumn: 'span 2' }}>
-                        <label style={{ display: 'block', fontSize: '0.76rem', color: '#94A3B8', marginBottom: 4 }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', marginBottom: 5 }}>
                           Họ và tên người đại diện <span style={{ color: '#EF4444' }}>*</span>
                         </label>
                         <input
@@ -500,19 +495,19 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           required
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '5px',
+                            padding: '9px 12px',
+                            borderRadius: '6px',
                             background: '#0D111A',
                             border: isNameValid || !customerName ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(239, 68, 68, 0.5)',
                             color: '#F8FAFC',
-                            fontSize: '0.84rem',
+                            fontSize: '0.86rem',
                             boxSizing: 'border-box'
                           }}
                         />
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.76rem', color: '#94A3B8', marginBottom: 4 }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', marginBottom: 5 }}>
                           Số điện thoại <span style={{ color: '#EF4444' }}>*</span>
                         </label>
                         <input
@@ -523,19 +518,19 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           required
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '5px',
+                            padding: '9px 12px',
+                            borderRadius: '6px',
                             background: '#0D111A',
                             border: customerPhone && !isPhoneValid ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255, 255, 255, 0.12)',
                             color: '#F8FAFC',
-                            fontSize: '0.84rem',
+                            fontSize: '0.86rem',
                             boxSizing: 'border-box'
                           }}
                         />
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.76rem', color: '#94A3B8', marginBottom: 4 }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', marginBottom: 5 }}>
                           Email nhận mã vé QR <span style={{ color: '#EF4444' }}>*</span>
                         </label>
                         <input
@@ -546,12 +541,12 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           required
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '5px',
+                            padding: '9px 12px',
+                            borderRadius: '6px',
                             background: '#0D111A',
                             border: customerEmail && !isEmailValid ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255, 255, 255, 0.12)',
                             color: '#F8FAFC',
-                            fontSize: '0.84rem',
+                            fontSize: '0.86rem',
                             boxSizing: 'border-box'
                           }}
                         />
@@ -560,44 +555,44 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                   </div>
                 </div>
 
-                {/* CỘT PHẢI: TÓM TẮT ĐƠN HÀNG (STICKY) */}
+                {/* CỘT PHẢI (STICKY): TÓM TẮT ĐƠN HÀNG */}
                 <div
                   style={{
-                    background: '#131824',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '8px',
-                    padding: '18px 20px',
+                    background: 'var(--c-bg-card, #131824)',
+                    border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                    borderRadius: '10px',
+                    padding: '22px 24px',
                     position: 'sticky',
-                    top: 90
+                    top: 100
                   }}
                 >
-                  <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 12 }}>
+                  <div style={{ fontSize: '0.98rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 16 }}>
                     Tóm tắt đơn hàng
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.82rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 6 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: '0.84rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 8 }}>
                       <span style={{ color: '#94A3B8' }}>Ngày tham quan:</span>
                       <span style={{ color: '#F8FAFC', fontWeight: 500 }}>{visitDate}</span>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 8 }}>
                       <span style={{ color: '#94A3B8' }}>Khung giờ:</span>
                       <span style={{ color: '#F8FAFC', fontWeight: 500 }}>{selectedSlot}</span>
                     </div>
 
                     {/* Chi tiết từng loại vé đã chọn */}
                     {totalTicketsCount === 0 ? (
-                      <div style={{ padding: '12px 0', color: '#64748B', textAlign: 'center', fontSize: '0.78rem' }}>
+                      <div style={{ padding: '16px 0', color: '#64748B', textAlign: 'center', fontSize: '0.8rem' }}>
                         Chưa chọn loại vé nào.
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '6px 0' }}>
                         {ticketTypes.map((type) => {
                           const qty = ticketQuantities[type.code] || 0;
                           if (qty === 0) return null;
                           return (
-                            <div key={type.code} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                            <div key={type.code} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
                               <span style={{ color: '#CBD5E1' }}>
                                 {type.name} (x{qty})
                               </span>
@@ -610,56 +605,56 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                       </div>
                     )}
 
-                    <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: 10, marginTop: 2 }}>
+                    <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: 14, marginTop: 4 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <span style={{ color: '#CBD5E1', fontSize: '0.86rem', fontWeight: 600 }}>Tổng tiền:</span>
-                        <span style={{ color: 'var(--c-gold, #D4AF37)', fontSize: '1.25rem', fontWeight: 700 }}>
+                        <span style={{ color: '#CBD5E1', fontSize: '0.9rem', fontWeight: 600 }}>Tổng thanh toán:</span>
+                        <span style={{ color: 'var(--c-gold, #D4AF37)', fontSize: '1.35rem', fontWeight: 700 }}>
                           {formatVND(totalAmount)}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginTop: 2 }}>
+                      <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 3 }}>
                         Tổng số lượng: {totalTicketsCount} vé
                       </div>
                     </div>
 
-                    {/* Nút thanh toán */}
+                    {/* Nút thanh toán PayOS */}
                     <button
                       type="submit"
                       disabled={!isFormComplete || isSubmitting}
                       style={{
                         width: '100%',
-                        marginTop: 12,
-                        padding: '10px 14px',
+                        marginTop: 14,
+                        padding: '12px 16px',
                         borderRadius: '6px',
                         background: isFormComplete ? 'var(--c-gold, #D4AF37)' : 'rgba(255, 255, 255, 0.06)',
                         color: isFormComplete ? '#0A0D14' : '#64748B',
                         border: 'none',
                         fontWeight: 600,
-                        fontSize: '0.88rem',
+                        fontSize: '0.9rem',
                         cursor: isFormComplete && !isSubmitting ? 'pointer' : 'not-allowed',
                         transition: 'all 0.15s ease',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 6
+                        gap: 8
                       }}
                     >
                       {isSubmitting ? (
                         <>
-                          <RefreshCw size={14} className="spin" />
+                          <RefreshCw size={15} className="spin" />
                           <span>Đang tạo mã thanh toán...</span>
                         </>
                       ) : (
                         <>
-                          <CreditCard size={14} />
+                          <CreditCard size={15} />
                           <span>Thanh toán VietQR (PayOS)</span>
                         </>
                       )}
                     </button>
 
                     {!isFormComplete && (
-                      <div style={{ fontSize: '0.74rem', color: '#94A3B8', textAlign: 'center', marginTop: 2 }}>
-                        Vui lòng chọn vé và điền thông tin để thanh toán.
+                      <div style={{ fontSize: '0.76rem', color: '#94A3B8', textAlign: 'center', marginTop: 4 }}>
+                        Vui lòng chọn vé và điền đầy đủ thông tin để thanh toán.
                       </div>
                     )}
                   </div>
@@ -687,7 +682,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                   background: '#131824',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
                   borderRadius: '10px',
-                  padding: '20px 24px',
+                  padding: '22px 26px',
                   maxWidth: 420,
                   width: '100%',
                   position: 'relative',
