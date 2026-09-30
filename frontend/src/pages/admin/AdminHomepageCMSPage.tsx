@@ -519,16 +519,6 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             <ExternalLink size={13} style={{ opacity: 0.6 }} />
           </a>
 
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={handleResetDefaults}
-            title="Đặt lại các nội dung về mẫu chuẩn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
-          >
-            <RotateCcw size={14} />
-            <span>Khôi phục mẫu</span>
-          </button>
 
           <button
             type="button"
@@ -786,16 +776,6 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={handleResetDefaultMenu}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                title="Khôi phục danh sách Menu mặc định"
-              >
-                <RotateCcw size={13} />
-                <span>Khôi phục menu chuẩn</span>
-              </button>
 
               <button
                 type="button"
@@ -883,7 +863,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   {menuItems.length === 0 ? (
                     <tr>
                       <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        Chưa có mục Menu nào. Bấm nút <strong>"Thêm mục Menu mới"</strong> hoặc <strong>"Khôi phục menu chuẩn"</strong> ở góc trên.
+                        Chưa có mục Menu nào. Bấm nút <strong>"Thêm mục Menu mới"</strong> ở góc trên để cấu hình.
                       </td>
                     </tr>
                   ) : (
@@ -1297,15 +1277,6 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </button>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={handleResetDefaultMenu}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-                >
-                  <RotateCcw size={12} />
-                  <span>Khôi phục menu chuẩn</span>
-                </button>
                 <button
                   type="button"
                   className="btn btn-primary btn-sm admin-cms-save-btn"

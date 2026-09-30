@@ -319,6 +319,17 @@ export const api = {
     return json.user;
   },
 
+  async logout(): Promise<void> {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: getAuthHeaders(true)
+      });
+    } catch {
+      // Ignored
+    }
+  },
+
   async getRoles(): Promise<RoleItem[]> {
     const res = await fetch(`${API_BASE}/auth/roles`, {
       headers: getAuthHeaders(false)

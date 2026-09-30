@@ -731,19 +731,6 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </>
             )}
 
-            {rooms.length === 0 && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={handleSeedHeritage}
-                disabled={isSeedingHeritage}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: '#D4A86A', color: '#D4A86A' }}
-                title="Khởi tạo sẵn 18 gian phòng di sản và bảo vật cho Bảo tàng Lịch sử TP.HCM"
-              >
-                <Sparkles size={15} />
-                <span>{isSeedingHeritage ? 'Đang nạp 18 phòng...' : 'Nạp 18 phòng di sản mẫu'}</span>
-              </button>
-            )}
 
             {rooms.length > 0 && (
               <button
@@ -1064,16 +1051,6 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         >
                           <Plus size={14} />
                           <span>Thêm phòng trưng bày mới</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={handleSeedHeritage}
-                          disabled={isSeedingHeritage}
-                          style={{ borderColor: '#D4A86A', color: '#D4A86A' }}
-                        >
-                          <Sparkles size={14} />
-                          <span>{isSeedingHeritage ? 'Đang nạp 18 phòng...' : 'Nạp 18 phòng di sản mẫu'}</span>
                         </button>
                       </div>
                     )}
@@ -1566,15 +1543,6 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
                         Nội dung tóm tắt lịch sử gian phòng
                       </label>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={handleLoadPresetKnowledge}
-                        style={{ fontSize: '11.5px', padding: '4px 10px' }}
-                      >
-                        <RotateCw size={11} style={{ marginRight: 4 }} />
-                        <span>Nạp văn bản gợi ý mẫu</span>
-                      </button>
                     </div>
 
                     <textarea
@@ -1614,15 +1582,6 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
                         Lời đọc thuyết minh gian phòng
                       </label>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={handleLoadPresetKnowledge}
-                        style={{ fontSize: '11.5px', padding: '4px 10px' }}
-                      >
-                        <RotateCw size={11} style={{ marginRight: 4 }} />
-                        <span>Nạp lời đọc mẫu</span>
-                      </button>
                     </div>
 
                     <textarea

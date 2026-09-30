@@ -808,17 +808,8 @@ export const AdminSettingsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Nút hành động Lưu & Khôi phục */}
+                {/* Nút hành động Lưu */}
                 <div className="settings-form-actions">
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={handleResetDefaultBranding}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <RotateCcw size={14} />
-                    <span>{t('settings.resetDefault', 'Khôi phục mẫu chuẩn')}</span>
-                  </button>
 
                   <button
                     type="submit"
@@ -1482,22 +1473,6 @@ export const AdminSettingsPage: React.FC = () => {
                       )}
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={handleResetDefaultText}
-                      className="btn btn-secondary"
-                      style={{
-                        padding: '9px 14px',
-                        fontSize: 12.5,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6
-                      }}
-                      title="Phục hồi nội dung chuẩn của Bảo tàng"
-                    >
-                      <RotateCcw size={13} />
-                      <span>{t('settings.btnResetDefault', 'Đặt lại mẫu chuẩn')}</span>
-                    </button>
                   </div>
 
                   <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>

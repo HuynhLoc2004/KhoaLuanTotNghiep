@@ -551,16 +551,6 @@ export const AdminGuideCMSPage: React.FC = () => {
             <ExternalLink size={12} style={{ opacity: 0.6 }} />
           </a>
 
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={handleResetDefaults}
-            title="Đặt lại các nội dung về mẫu chuẩn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <RotateCcw size={14} />
-            <span>Khôi phục mẫu</span>
-          </button>
 
           <button
             type="button"

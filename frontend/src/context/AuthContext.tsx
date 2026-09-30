@@ -33,8 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const savedToken = localStorage.getItem(TOKEN_KEY);
-    const savedUser = localStorage.getItem(USER_KEY);
-    return Boolean(savedToken && !savedUser);
+    return Boolean(savedToken);
   });
 
   // Xác minh phiên đăng nhập khi tải ứng dụng
@@ -122,15 +121,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(res.user);
   };
 
-  // 4. Đăng xuất an toàn
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    if (typeof document !== 'undefined') {
-      document.cookie = 'museum_admin_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  // 4. Đăng xuất an toàn và thu hồi phiên làm việc trên Redis
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // Bỏ qua lỗi mạng khi đăng xuất
+    } finally {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem('client_profile_cache');
+      try {
+        sessionStorage.clear();
+      } catch { }
+      if (typeof document !== 'undefined') {
+        document.cookie = 'museum_admin_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
+      setUser(null);
+      setToken(null);
     }
-    setUser(null);
-    setToken(null);
   };
 
   return (

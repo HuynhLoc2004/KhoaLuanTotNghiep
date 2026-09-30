@@ -5,6 +5,7 @@ import { Ticket } from '../models/Ticket.js';
 import { authenticate, requireAdmin, AuthRequest } from './auth.js';
 import { pgPool } from '../db/postgres.js';
 import { pgUpsertUser } from '../db/syncEngine.js';
+import { cacheDel, cacheDelPattern } from '../services/redis.js';
 
 export const usersRouter = Router();
 
@@ -27,11 +28,12 @@ usersRouter.get('/', async (req: AuthRequest, res: Response) => {
 
     if (search && typeof search === 'string' && search.trim()) {
       const term = search.trim();
+      const safeTerm = term.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
       query.$or = [
-        { fullName: { $regex: term, $options: 'i' } },
-        { email: { $regex: term, $options: 'i' } },
-        { username: { $regex: term, $options: 'i' } },
-        { phone: { $regex: term, $options: 'i' } }
+        { fullName: { $regex: safeTerm, $options: 'i' } },
+        { email: { $regex: safeTerm, $options: 'i' } },
+        { username: { $regex: safeTerm, $options: 'i' } },
+        { phone: { $regex: safeTerm, $options: 'i' } }
       ];
     }
 
@@ -285,6 +287,11 @@ usersRouter.post('/', async (req: AuthRequest, res: Response) => {
       await pgUpsertUser(newUser);
     } catch {}
 
+    await Promise.all([
+      cacheDelPattern('users:*'),
+      cacheDelPattern('profile:*')
+    ]);
+
     res.status(201).json({
       success: true,
       message: 'Tạo tài khoản người dùng thành công',
@@ -355,6 +362,13 @@ usersRouter.put('/:id', async (req: AuthRequest, res: Response) => {
       await pgUpsertUser(user);
     } catch {}
 
+    await Promise.all([
+      cacheDel(`user:${user._id.toString()}`),
+      cacheDel(`profile:${user._id.toString()}`),
+      cacheDelPattern('users:*'),
+      cacheDelPattern('profile:*')
+    ]);
+
     res.json({
       success: true,
       message: 'Cập nhật thông tin người dùng thành công',
@@ -397,6 +411,17 @@ usersRouter.patch('/:id/status', async (req: AuthRequest, res: Response) => {
     user.isActive = !user.isActive;
     await user.save();
 
+    try {
+      await pgUpsertUser(user);
+    } catch {}
+
+    await Promise.all([
+      cacheDel(`user:${user._id.toString()}`),
+      cacheDel(`profile:${user._id.toString()}`),
+      cacheDelPattern('users:*'),
+      cacheDelPattern('profile:*')
+    ]);
+
     res.json({
       success: true,
       message: user.isActive ? 'Đã kích hoạt tài khoản người dùng' : 'Đã tạm khóa tài khoản người dùng',
@@ -432,6 +457,21 @@ usersRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
     }
 
     await User.findByIdAndDelete(user._id);
+
+    // Xóa triệt để khỏi PostgreSQL Primary
+    try {
+      await pgPool.query('DELETE FROM users WHERE id = $1 OR email = $2;', [user._id.toString(), user.email]);
+    } catch (pgErr: any) {
+      console.warn('[Users DELETE] Lỗi xóa trong PostgreSQL:', pgErr.message);
+    }
+
+    // Xóa sạch cache người dùng trong Redis
+    await Promise.all([
+      cacheDel(`user:${user._id.toString()}`),
+      cacheDel(`profile:${user._id.toString()}`),
+      cacheDelPattern('users:*'),
+      cacheDelPattern('profile:*')
+    ]);
 
     res.json({
       success: true,

@@ -62,11 +62,12 @@ export const AdminArtifactsPage: React.FC = () => {
 
   // Phân trang
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(9);
+  const [pageSize, setPageSize] = useState(6);
 
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingArtifact, setEditingArtifact] = useState<Partial<Artifact> | null>(null);
+  const [editFormErrors, setEditFormErrors] = useState<{ code?: string; name?: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -294,6 +295,7 @@ export const AdminArtifactsPage: React.FC = () => {
 
   const handleCreateNew = () => {
     setAutoGenerate3D(true);
+    setEditFormErrors({});
     setEditingArtifact({
       code: `HV-${100 + Math.floor(Math.random() * 900)}`,
       name: '',
@@ -315,6 +317,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const handleEdit = (artifact: Artifact) => {
     const targetId = artifact.id || (artifact as any)._id;
     setAutoGenerate3D(!artifact.model3dUrl);
+    setEditFormErrors({});
     setEditingArtifact({ ...artifact, id: targetId });
     setIsEditModalOpen(true);
   };
@@ -348,10 +351,22 @@ export const AdminArtifactsPage: React.FC = () => {
 
   const handleSaveArtifact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingArtifact || !editingArtifact.name || !editingArtifact.code) {
-      showToast('Vui lòng nhập đầy đủ Tên và Mã hiện vật', 'error');
+    if (!editingArtifact) return;
+
+    const errors: { code?: string; name?: string } = {};
+    const codeVal = editingArtifact.code?.trim() || '';
+    const nameVal = editingArtifact.name?.trim() || '';
+
+    if (!codeVal) errors.code = 'Vui lòng nhập mã định danh hiện vật';
+    if (!nameVal) errors.name = 'Vui lòng nhập tên cổ vật di sản';
+
+    if (Object.keys(errors).length > 0) {
+      setEditFormErrors(errors);
+      showToast('Vui lòng nhập đầy đủ các trường bắt buộc', 'error');
       return;
     }
+
+    setEditFormErrors({});
 
     try {
       setIsSaving(true);
@@ -1488,10 +1503,19 @@ export const AdminArtifactsPage: React.FC = () => {
                       type="text"
                       className="form-control"
                       value={editingArtifact.code || ''}
-                      onChange={(e) => setEditingArtifact({ ...editingArtifact, code: e.target.value })}
+                      onChange={(e) => {
+                        setEditingArtifact({ ...editingArtifact, code: e.target.value });
+                        if (editFormErrors.code) setEditFormErrors((prev) => ({ ...prev, code: undefined }));
+                      }}
                       placeholder="HV-101..."
+                      style={{ borderColor: editFormErrors.code ? '#EF4444' : undefined }}
                       required
                     />
+                    {editFormErrors.code && (
+                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                        {editFormErrors.code}
+                      </span>
+                    )}
                   </div>
                   <div className="form-group" style={{ gridColumn: 'span 1' }}>
                     <label className="form-label">Tên cổ vật di sản *</label>
@@ -1499,10 +1523,19 @@ export const AdminArtifactsPage: React.FC = () => {
                       type="text"
                       className="form-control"
                       value={editingArtifact.name || ''}
-                      onChange={(e) => setEditingArtifact({ ...editingArtifact, name: e.target.value })}
+                      onChange={(e) => {
+                        setEditingArtifact({ ...editingArtifact, name: e.target.value });
+                        if (editFormErrors.name) setEditFormErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
                       placeholder="Ví dụ: Tượng Bồ Tát Tara sa thạch..."
+                      style={{ borderColor: editFormErrors.name ? '#EF4444' : undefined }}
                       required
                     />
+                    {editFormErrors.name && (
+                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                        {editFormErrors.name}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -2550,15 +2583,6 @@ export const AdminArtifactsPage: React.FC = () => {
                   <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '12.5px' }}>
                     Lời đọc thuyết minh ({selectedVoiceLang.toUpperCase()})
                   </label>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={handleLoadPresetKnowledge}
-                    style={{ fontSize: '11.5px', padding: '3px 10px' }}
-                  >
-                    <RotateCw size={11} style={{ marginRight: 4 }} />
-                    <span>Nạp lời đọc mẫu</span>
-                  </button>
                 </div>
 
                 <textarea

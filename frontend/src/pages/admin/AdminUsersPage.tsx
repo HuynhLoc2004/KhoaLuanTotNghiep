@@ -43,7 +43,7 @@ export const AdminUsersPage: React.FC = () => {
 
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 6,
     total: 0,
     totalPages: 1
   });
@@ -782,7 +782,7 @@ export const AdminUsersPage: React.FC = () => {
             pageSize={pagination.limit}
             onPageChange={handlePageChange}
             onPageSizeChange={handleLimitChange}
-            pageSizeOptions={[10, 20, 50]}
+            pageSizeOptions={[6, 9, 12, 18, 24]}
             itemLabel="người dùng"
           />
         )}

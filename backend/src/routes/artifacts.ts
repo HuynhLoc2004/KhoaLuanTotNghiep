@@ -125,8 +125,8 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
       if (category && category !== 'all') filter.category = category;
       if (status && status !== 'all') filter.status = status;
       if (roomId) filter.roomId = roomId;
-      if (search && typeof search === 'string') {
-        const q = search.trim();
+      if (search && typeof search === 'string' && search.trim()) {
+        const q = search.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
         filter.$or = [
           { name: { $regex: q, $options: 'i' } },
           { code: { $regex: q, $options: 'i' } },

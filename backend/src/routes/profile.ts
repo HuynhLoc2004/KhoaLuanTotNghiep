@@ -6,6 +6,7 @@ import { Ticket } from '../models/Ticket.js';
 import { authenticate, AuthRequest } from './auth.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertTicket, pgUpsertUser } from '../db/syncEngine.js';
+import { cacheDel, cacheDelPattern } from '../services/redis.js';
 
 export const profileRouter = Router();
 
@@ -223,6 +224,14 @@ profileRouter.put('/', async (req: AuthRequest, res: Response) => {
       username: req.user?.username,
       details: { fullName: cleanFullName, phone: cleanPhone }
     });
+
+    // 4. Xóa cache Redis để đồng bộ ngay lập tức
+    await Promise.all([
+      cacheDel(`user:${userId}`),
+      cacheDel(`profile:${userId}`),
+      cacheDelPattern('users:*'),
+      cacheDelPattern('profile:*')
+    ]);
 
     return res.json({
       success: true,
