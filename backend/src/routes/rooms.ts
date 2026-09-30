@@ -508,8 +508,8 @@ roomsRouter.delete('/:id/hotspots/:hotspotId', async (req: Request, res: Respons
 const sfmUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 35 * 1024 * 1024,
-    files: 50
+    fileSize: 50 * 1024 * 1024,
+    files: 200
   },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -530,14 +530,30 @@ roomsRouter.get('/sfm-tools-status', async (_req: Request, res: Response) => {
   }
 });
 
-// POST /api/rooms/reconstruct (Tiếp nhận 20-30 ảnh và khởi chạy COLMAP + OpenMVS)
-roomsRouter.post('/reconstruct', sfmUpload.array('images', 50), async (req: Request, res: Response) => {
+// POST /api/rooms/reconstruct (Tiếp nhận ảnh và khởi chạy COLMAP + OpenMVS)
+roomsRouter.post('/reconstruct', (req: Request, res: Response, next) => {
+  sfmUpload.array('images', 200)(req, res, (err: any) => {
+    if (err) {
+      if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.message?.includes('Too many files')) {
+        return res.status(400).json({
+          success: false,
+          error: 'Số lượng ảnh vượt quá giới hạn tối đa 200 ảnh.'
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        error: `Lỗi tải ảnh: ${err.message}`
+      });
+    }
+    next();
+  });
+}, async (req: Request, res: Response) => {
   try {
     const files = req.files as Express.Multer.File[];
     if (!files || files.length < 3) {
       return res.status(400).json({
         success: false,
-        error: 'Vui lòng tải lên tối thiểu 3 bức ảnh góc rộng (Khuyến nghị 20–30 ảnh xoay vòng quanh phòng).'
+        error: 'Vui lòng tải lên tối thiểu 3 bức ảnh góc rộng (Khuyến nghị 20–60 ảnh xoay vòng quanh phòng).'
       });
     }
 
