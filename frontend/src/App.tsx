@@ -37,6 +37,7 @@ import { QRScannerModal } from './components/client/QRScannerModal';
 import { GaussianSplatRoomViewer } from './components/GaussianSplatRoomViewer';
 import { ClientAIAssistantModal } from './components/client/ClientAIAssistantModal';
 import { UserProfilePage } from './pages/client/UserProfilePage';
+import { ClientTicketBookingPage } from './pages/client/ClientTicketBookingPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -66,24 +67,25 @@ const AppContent: React.FC = () => {
     } catch { }
   }, []);
 
-  // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'guide' | 'profile'
-  const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'guide' | 'profile'>(() => {
+  // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'guide' | 'profile' | 'booking'
+  const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'guide' | 'profile' | 'booking'>(() => {
     try {
       const path = window.location.pathname;
       if (path === '/profile' || path.startsWith('/profile')) return 'profile';
+      if (path === '/booking' || path.startsWith('/booking')) return 'booking';
       const params = new URLSearchParams(window.location.search);
       const p = params.get('page');
-      if (p === 'rooms' || p === 'artifacts' || p === 'guide' || p === 'profile') {
+      if (p === 'rooms' || p === 'artifacts' || p === 'guide' || p === 'profile' || p === 'booking') {
         return p;
       }
     } catch { }
     return 'home';
   });
 
-  const handleNavigateClientPage = (page: 'home' | 'rooms' | 'artifacts' | 'guide' | 'profile') => {
+  const handleNavigateClientPage = (page: 'home' | 'rooms' | 'artifacts' | 'guide' | 'profile' | 'booking') => {
     setClientActivePage(page);
     try {
-      const url = page === 'home' ? '/' : page === 'profile' ? '/profile' : `?page=${page}`;
+      const url = page === 'home' ? '/' : page === 'profile' ? '/profile' : page === 'booking' ? '/booking' : `?page=${page}`;
       window.history.pushState({}, '', url);
     } catch { }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -96,9 +98,13 @@ const AppContent: React.FC = () => {
         setClientActivePage('profile');
         return;
       }
+      if (path === '/booking' || path.startsWith('/booking')) {
+        setClientActivePage('booking');
+        return;
+      }
       const params = new URLSearchParams(window.location.search);
       const p = params.get('page');
-      if (p === 'rooms' || p === 'artifacts' || p === 'guide' || p === 'profile') {
+      if (p === 'rooms' || p === 'artifacts' || p === 'guide' || p === 'profile' || p === 'booking') {
         setClientActivePage(p);
       } else {
         setClientActivePage('home');
@@ -626,6 +632,21 @@ const AppContent: React.FC = () => {
     } else if (clientActivePage === 'profile') {
       activeClientView = (
         <UserProfilePage
+          onNavigateHome={() => handleNavigateClientPage('home')}
+          onNavigatePage={handleNavigateClientPage}
+          onNavigateAdmin={() => {
+            setIsAdminRoute(true);
+            try {
+              window.history.pushState({}, '', '/admin');
+            } catch { }
+          }}
+          onOpenLoginModal={() => setIsClientLoginModalOpen(true)}
+          onOpenQRScanner={() => setIsQRScannerOpen(true)}
+        />
+      );
+    } else if (clientActivePage === 'booking') {
+      activeClientView = (
+        <ClientTicketBookingPage
           onNavigateHome={() => handleNavigateClientPage('home')}
           onNavigatePage={handleNavigateClientPage}
           onNavigateAdmin={() => {

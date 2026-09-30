@@ -16,6 +16,9 @@ import { artifactsRouter } from './routes/artifacts.js';
 import { floorPlanRouter } from './routes/floorPlan.js';
 import { usersRouter } from './routes/users.js';
 import { adminTicketsRouter } from './routes/adminTickets.js';
+import { ticketsRouter } from './routes/tickets.js';
+import { adminTicketSettingsRouter } from './routes/adminTicketSettings.js';
+import { startOrderCleanupJob } from './services/orderCleanup.js';
 import { profileRouter } from './routes/profile.js';
 import { splatRouter } from './routes/splat.js';
 import { aiRouter } from './routes/ai.js';
@@ -156,6 +159,8 @@ app.use('/api/artifacts', artifactsRouter);
 app.use('/api/floor-plan', floorPlanRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/admin/tickets', adminTicketsRouter);
+app.use('/api/admin/ticket-settings', adminTicketSettingsRouter);
+app.use('/api/tickets', ticketsRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/splat', splatRouter);
 app.use('/api/ai', aiRouter);
@@ -230,6 +235,9 @@ connectMongoDB().then(async () => {
 
   // Khởi động kênh Redis Pub/Sub đồng bộ thời gian thực cho mọi container/client
   initRealtimeRedisSubscriber();
+
+  // Khởi động tiến trình dọn dẹp đơn hàng rác/quá hạn định kỳ (chống spam)
+  startOrderCleanupJob(60000);
 
   app.listen(PORT, () => {
     console.log(`[Bảo tàng Lịch sử TP.HCM API] Máy chủ chạy tại http://localhost:${PORT}`);

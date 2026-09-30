@@ -98,6 +98,7 @@ export interface AdminTicketItem {
   paymentMethod: string;
   qrCodeData?: string;
   notes?: string;
+  usedAt?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -558,6 +559,113 @@ export interface AITopicOption {
   label: string;
   description: string;
   icon: string;
+}
+
+// ================= TICKET PRICING & PAYOS CHECKOUT INTERFACES =================
+
+export interface TicketTypeItem {
+  id: string;
+  code: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  description?: string;
+  benefits?: string[];
+  isActive: boolean;
+  displayOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TicketTimeSlotItem {
+  id: string;
+  slotName: string;
+  startTime?: string;
+  endTime?: string;
+  maxCapacity?: number;
+  isActive: boolean;
+  displayOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TicketCatalogData {
+  ticketTypes: TicketTypeItem[];
+  timeSlots: TicketTimeSlotItem[];
+}
+
+export interface TicketCheckoutItem {
+  ticketTypeCode: string;
+  quantity: number;
+}
+
+export interface TicketCheckoutPayload {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  visitDate: string;
+  timeSlot: string;
+  items: TicketCheckoutItem[];
+  notes?: string;
+}
+
+export interface TicketCheckoutResponse {
+  orderCode: number;
+  orderId: string;
+  totalAmount: number;
+  checkoutUrl: string;
+  qrCode: string;
+  accountNumber?: string;
+  accountName?: string;
+  bin?: string;
+  expiresAt: string;
+  items: any[];
+}
+
+export interface OrderItemDetail {
+  id?: string;
+  ticketTypeCode: string;
+  ticketTitle: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  visitDate: string;
+  timeSlot: string;
+}
+
+export interface AdminOrderItem {
+  id: string;
+  orderCode: number;
+  userId?: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  totalAmount: number;
+  status: 'pending' | 'paid' | 'cancelled' | 'expired';
+  paymentMethod: string;
+  checkoutUrl?: string;
+  qrCodeData?: string;
+  paidAt?: string;
+  expiresAt: string;
+  createdAt: string;
+  items: OrderItemDetail[];
+}
+
+export interface AdminOrdersResponse {
+  data: AdminOrderItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  stats: {
+    totalOrders: number;
+    paidOrders: number;
+    pendingOrders: number;
+    expiredOrders: number;
+    totalRevenue: number;
+  };
 }
 
 

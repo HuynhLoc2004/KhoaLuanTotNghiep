@@ -17,6 +17,7 @@ export interface ITicket extends Document {
   status: 'paid' | 'used' | 'cancelled' | 'pending';
   paymentMethod: string;
   qrCodeData: string;
+  orderId?: string;
   notes?: string;
   mongoId?: string;
   createdAt: Date;
@@ -98,6 +99,10 @@ const TicketSchema: Schema = new Schema(
     qrCodeData: {
       type: String,
       default: ''
+    },
+    orderId: {
+      type: String,
+      index: true
     },
     notes: {
       type: String,

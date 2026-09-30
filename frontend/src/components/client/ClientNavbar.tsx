@@ -377,6 +377,33 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             )}
           </div>
 
+          {/* Nút Đặt Vé Trực Tuyến */}
+          <button
+            type="button"
+            className="client-theme-toggle client-nav-booking-btn"
+            onClick={() => {
+              if (onNavigatePage) onNavigatePage('booking');
+            }}
+            title={t('nav.bookTicketsTooltip', 'Đặt vé tham quan bảo tàng trực tuyến')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 12px',
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.06) 100%)',
+              border: '1px solid rgba(212,175,55,0.35)',
+              color: '#D4AF37',
+              fontWeight: 600,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Ticket size={15} />
+            <span>{t('nav.bookTicket', 'Đặt vé')}</span>
+          </button>
+
           {/* Nút Quét mã QR Hiện Vật bằng Camera Trực Tiếp */}
           {onOpenQRScanner && (
             <button
@@ -562,6 +589,35 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               </button>
             );
           })}
+
+          {/* Nút Đặt Vé Trực Tuyến Trên Mobile */}
+          <button
+            type="button"
+            className="client-mobile-booking-btn"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              if (onNavigatePage) onNavigatePage('booking');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '12px',
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.25) 0%, rgba(212,175,55,0.12) 100%)',
+              border: '1px solid rgba(212,175,55,0.5)',
+              color: '#D4AF37',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              marginTop: 10
+            }}
+          >
+            <Ticket size={18} />
+            <span>{t('nav.bookTicketsMobile', 'Đặt Vé Tham Quan Trực Tuyến')}</span>
+          </button>
 
           {/* Nút Quét mã QR bằng Camera */}
           {onOpenQRScanner && (

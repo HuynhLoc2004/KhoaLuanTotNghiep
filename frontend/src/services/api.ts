@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload, TicketTypeItem, TicketTimeSlotItem, TicketCatalogData, TicketCheckoutPayload, TicketCheckoutResponse, AdminOrderItem, AdminOrdersResponse } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -1019,6 +1019,137 @@ export const api = {
       throw new Error(json.message || 'Lỗi hủy vé tham quan');
     }
     return json;
+  },
+
+  // === CỔNG BÁN VÉ CLIENT & THANH TOÁN PAYOS ===
+  async getTicketCatalog(): Promise<TicketCatalogData> {
+    const res = await fetch(`${API_BASE}/tickets/catalog?_t=${Date.now()}`);
+    const json = await safeJson(res, 'Không thể tải bảng giá vé');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi tải bảng giá vé tham quan');
+    }
+    return json.data;
+  },
+
+  async checkoutTickets(payload: TicketCheckoutPayload): Promise<TicketCheckoutResponse> {
+    const res = await fetch(`${API_BASE}/tickets/checkout`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(payload)
+    });
+    const json = await safeJson(res, 'Không thể khởi tạo đơn hàng thanh toán');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi tạo đơn hàng thanh toán vé');
+    }
+    return json.data;
+  },
+
+  async getOrderStatus(orderCode: number | string): Promise<AdminOrderItem> {
+    const res = await fetch(`${API_BASE}/tickets/orders/${orderCode}?_t=${Date.now()}`);
+    const json = await safeJson(res, 'Không thể tra cứu trạng thái đơn hàng');
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Lỗi kiểm tra đơn hàng');
+    }
+    return json.data;
+  },
+
+  // === QUẢN TRỊ BẢNG GIÁ VÉ & KHUNG GIỜ THAM QUAN (ADMIN CMS) ===
+  async getAdminTicketTypes(): Promise<TicketTypeItem[]> {
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/types?_t=${Date.now()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải danh sách loại vé');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải loại vé');
+    return json.data || [];
+  },
+
+  async createAdminTicketType(data: Partial<TicketTypeItem>): Promise<any> {
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/types`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể thêm loại vé');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi thêm loại vé');
+    return json;
+  },
+
+  async updateAdminTicketType(id: string, data: Partial<TicketTypeItem>): Promise<any> {
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/types/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể cập nhật loại vé');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi cập nhật loại vé');
+    return json;
+  },
+
+  async deleteAdminTicketType(id: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/types/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể xóa loại vé');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi xóa loại vé');
+    return json;
+  },
+
+  async getAdminTicketSlots(): Promise<TicketTimeSlotItem[]> {
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/slots?_t=${Date.now()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải khung giờ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải khung giờ');
+    return json.data || [];
+  },
+
+  async createAdminTicketSlot(data: Partial<TicketTimeSlotItem>): Promise<any> {
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/slots`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể thêm khung giờ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi thêm khung giờ');
+    return json;
+  },
+
+  async updateAdminTicketSlot(id: string, data: Partial<TicketTimeSlotItem>): Promise<any> {
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/slots/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể cập nhật khung giờ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi cập nhật khung giờ');
+    return json;
+  },
+
+  async deleteAdminTicketSlot(id: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/slots/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể xóa khung giờ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi xóa khung giờ');
+    return json;
+  },
+
+  // === QUẢN TRỊ LỊCH SỬ ĐƠN HÀNG PAYOS ===
+  async getAdminOrders(params?: { status?: string; search?: string; page?: number; limit?: number }): Promise<AdminOrdersResponse> {
+    const query = new URLSearchParams();
+    if (params?.status) query.append('status', params.status);
+    if (params?.search) query.append('search', params.search);
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+
+    const res = await fetch(`${API_BASE}/admin/ticket-settings/orders?${query.toString()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải danh sách đơn hàng');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải đơn hàng');
+    return { data: json.data || [], pagination: json.pagination, stats: json.stats };
   }
 };
 

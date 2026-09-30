@@ -40,6 +40,15 @@ export const DEFAULT_HEADER_MENU = [
     active: true,
     order: 4,
     children: []
+  },
+  {
+    id: 'menu-booking',
+    label: 'Đặt vé',
+    linkType: 'page' as const,
+    target: 'booking',
+    active: true,
+    order: 5,
+    children: []
   }
 ];
 

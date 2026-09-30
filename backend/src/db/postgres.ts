@@ -323,6 +323,77 @@ export async function initPostgresTables(): Promise<boolean> {
         CREATE INDEX IF NOT EXISTS idx_tickets_visit_date ON museum_tickets(visit_date);
         CREATE INDEX IF NOT EXISTS idx_tickets_mongo_id ON museum_tickets(mongo_id);
 
+        -- 15. Bảng Quản lý Cấu hình Loại vé & Đơn giá thật (Ticket Types - Admin CMS)
+        CREATE TABLE IF NOT EXISTS ticket_types (
+          id VARCHAR(64) PRIMARY KEY,
+          code VARCHAR(64) UNIQUE NOT NULL,
+          name VARCHAR(256) NOT NULL,
+          price INT NOT NULL DEFAULT 30000,
+          original_price INT DEFAULT 0,
+          description TEXT,
+          benefits JSONB DEFAULT '[]',
+          is_active BOOLEAN DEFAULT TRUE,
+          display_order INT DEFAULT 0,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_ticket_types_code ON ticket_types(code);
+        CREATE INDEX IF NOT EXISTS idx_ticket_types_active ON ticket_types(is_active);
+
+        -- 16. Bảng Quản lý Khung giờ tham quan (Ticket Time Slots)
+        CREATE TABLE IF NOT EXISTS ticket_time_slots (
+          id VARCHAR(64) PRIMARY KEY,
+          slot_name VARCHAR(128) NOT NULL,
+          max_capacity INT DEFAULT 300,
+          is_active BOOLEAN DEFAULT TRUE,
+          display_order INT DEFAULT 0,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 17. Bảng Hóa đơn / Lịch sử đơn hàng (Orders - Tích hợp PayOS)
+        CREATE TABLE IF NOT EXISTS orders (
+          id VARCHAR(64) PRIMARY KEY,
+          order_code BIGINT UNIQUE NOT NULL,
+          user_id VARCHAR(64),
+          customer_name VARCHAR(128) NOT NULL,
+          customer_email VARCHAR(128) NOT NULL,
+          customer_phone VARCHAR(64) NOT NULL,
+          total_amount INT NOT NULL,
+          status VARCHAR(32) NOT NULL DEFAULT 'pending', -- pending, paid, cancelled, expired
+          payment_method VARCHAR(64) DEFAULT 'PayOS',
+          payment_link_id VARCHAR(128),
+          checkout_url TEXT,
+          qr_code_data TEXT,
+          paid_at TIMESTAMP WITH TIME ZONE,
+          expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_orders_order_code ON orders(order_code);
+        CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+        CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders(customer_email);
+        CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+        CREATE INDEX IF NOT EXISTS idx_orders_expires_at ON orders(expires_at);
+
+        -- 18. Bảng Chi tiết đơn hàng (Order Items)
+        CREATE TABLE IF NOT EXISTS order_items (
+          id VARCHAR(64) PRIMARY KEY,
+          order_id VARCHAR(64) REFERENCES orders(id) ON DELETE CASCADE,
+          ticket_type_code VARCHAR(64) NOT NULL,
+          ticket_title VARCHAR(256) NOT NULL,
+          quantity INT NOT NULL DEFAULT 1,
+          unit_price INT NOT NULL DEFAULT 30000,
+          total_price INT NOT NULL DEFAULT 30000,
+          visit_date DATE NOT NULL,
+          time_slot VARCHAR(64) NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+
+        -- Bổ sung order_id vào bảng museum_tickets
+        ALTER TABLE museum_tickets ADD COLUMN IF NOT EXISTS order_id VARCHAR(64);
+        CREATE INDEX IF NOT EXISTS idx_tickets_order_id ON museum_tickets(order_id);
+
         -- Nâng cấp Schema: Đảm bảo toàn bộ các bảng quan hệ đều có trường 'mongo_id' kèm Index
         ALTER TABLE users ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(64);
@@ -418,6 +489,32 @@ export async function initPostgresTables(): Promise<boolean> {
           VALUES ('user-admin-default', 'admin', 'huynhtanlocpp09@gmail.com', $1, 'Quản Trị Viên Bảo Tàng', 'role-superadmin', true);
         `, [defaultHash]);
         console.log('[PostgreSQL] Đã khởi tạo tài khoản quản trị mặc định (admin) trong PostgreSQL.');
+      }
+
+      // Khởi tạo các loại vé mẫu chuẩn bảo tàng nếu bảng trống
+      const ticketTypeCheck = await client.query('SELECT COUNT(*) FROM ticket_types;');
+      if (parseInt(ticketTypeCheck.rows[0].count, 10) === 0) {
+        await client.query(`
+          INSERT INTO ticket_types (id, code, name, price, original_price, description, benefits, is_active, display_order)
+          VALUES
+          ('tt_standard', 'standard', 'Vé Người Lớn (Tiêu Chuẩn)', 30000, 30000, 'Khách tham quan công dân Việt Nam và quốc tế từ 16 đến 59 tuổi', '["Tham quan toàn bộ gian phòng di sản 360°", "Thuyết minh tự động qua mã QR", "Tự do trải nghiệm sa bàn và hiện vật"]', true, 1),
+          ('tt_student', 'student', 'Vé Học Sinh - Sinh Viên', 15000, 30000, 'Xuất trình thẻ học sinh hoặc thẻ sinh viên còn hiệu lực tại cổng vào', '["Giảm 50% giá vé tham quan tiêu chuẩn", "Tham quan toàn bộ bảo tàng", "Thuyết minh tự động qua mã QR"]', true, 2),
+          ('tt_senior', 'senior', 'Vé Người Cao Tuổi & Trẻ Em', 15000, 30000, 'Dành cho người cao tuổi từ 60 tuổi trở lên hoặc trẻ em từ 6 đến 15 tuổi', '["Ưu đãi giá vé di sản đặc biệt", "Lối đi ưu tiên tại cổng soát vé", "Hỗ trợ hướng dẫn tận tình"]', true, 3),
+          ('tt_vip', 'vip', 'Vé Tham Quan Toàn Diện VIP', 100000, 120000, 'Trải nghiệm trọn gói kèm thuyết minh viên chuyên nghiệp và tương tác 3D', '["Thuyết minh viên chuyên nghiệp đi cùng đoàn", "Trải nghiệm không gian 3D tương tác đa phương tiện", "Bản đồ di sản lưu niệm bảo tàng", "Hàng lối soát vé ưu tiên riêng biệt"]', true, 4);
+        `);
+        console.log('[PostgreSQL] Đã khởi tạo 4 loại vé tham quan mẫu chuẩn.');
+      }
+
+      // Khởi tạo các khung giờ tham quan nếu bảng trống
+      const slotCheck = await client.query('SELECT COUNT(*) FROM ticket_time_slots;');
+      if (parseInt(slotCheck.rows[0].count, 10) === 0) {
+        await client.query(`
+          INSERT INTO ticket_time_slots (id, slot_name, max_capacity, is_active, display_order)
+          VALUES
+          ('slot_morning', 'Buổi sáng: 08:00 - 11:30', 300, true, 1),
+          ('slot_afternoon', 'Buổi chiều: 13:30 - 17:00', 300, true, 2);
+        `);
+        console.log('[PostgreSQL] Đã khởi tạo 2 khung giờ tham quan chuẩn.');
       }
 
       return true;
