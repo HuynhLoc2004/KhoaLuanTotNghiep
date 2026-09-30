@@ -288,10 +288,9 @@ def level_and_straighten_spherical_panorama(image):
     tilt_mag = float(np.hypot(A, B))
     tilt_azimuth = float(np.arctan2(B, -A))
 
-    # Giới hạn an toàn: chỉ nắn nghiêng nhẹ (1.5° đến 5.0°).
-    # Nếu tilt_mag > 5.0°, là do nhận diện nhầm đường chéo kiến trúc (gạch men, hoa văn), tuyệt đối không được xoay làm nghiêng cả căn phòng!
-    if tilt_mag < 1.5 or tilt_mag > 5.0:
-        log(f"[*] Góc nghiêng {tilt_mag:.1f}° ngoài ngưỡng an toàn (1.5°-5.0°) -> Giữ nguyên góc nhìn thực tế, không xoay cầu.")
+    # Tự động nắn nghiêng chân trời cho các góc lệch từ 1.0° đến 20.0°
+    if tilt_mag < 1.0 or tilt_mag > 20.0:
+        log(f"[*] Góc nghiêng {tilt_mag:.1f}° ngoài khoảng cân chỉnh (1.0°-20.0°) -> Giữ nguyên góc nhìn thực tế.")
         return image
 
     log(f"[*] Phát hiện góc nghiêng mặt phẳng xoay máy nhẹ: {tilt_mag:.1f}° tại phương vị {np.degrees(tilt_azimuth):.1f}° -> Đang cân bằng lại chân trời...")
@@ -328,12 +327,10 @@ def level_and_straighten_spherical_panorama(image):
     return leveled
 
 
-def crop_clean_inscribed_rectangle(image, black_thresh=10):
+def crop_clean_inscribed_rectangle(image, black_thresh=15):
     """
-    Cắt xén hình chữ nhật nội tiếp sạch sẽ:
-    - Loại bỏ 100% các viền răng cưa đen uốn lượn do quá trình ghép sinh ra.
-    - Dùng thuật toán Inpainting khử sạch bất kỳ vết khuyết đen nào ở rìa góc.
-    - Đảm bảo hình ảnh đầu ra là khối ảnh chữ nhật phẳng lì, vuông vức.
+    Cắt xén các viền đen răng cưa do quá trình ghép sinh ra,
+    bảo toàn 100% tỷ lệ hình học và không cắt xén quá mức nội dung thật.
     """
     if image is None or image.size == 0:
         return image
@@ -345,36 +342,30 @@ def crop_clean_inscribed_rectangle(image, black_thresh=10):
     if not np.any(mask):
         return image
 
-    top_profile = np.zeros(w, dtype=int)
-    bot_profile = np.zeros(w, dtype=int)
+    # Tỷ lệ pixel có nội dung trên mỗi hàng và mỗi cột
+    row_density = np.mean(mask, axis=1)
+    col_density = np.mean(mask, axis=0)
 
-    for x in range(w):
-        col = mask[:, x]
-        nonzero = np.where(col > 0)[0]
-        if len(nonzero) > 0:
-            top_profile[x] = nonzero[0]
-            bot_profile[x] = nonzero[-1]
-        else:
-            top_profile[x] = 0
-            bot_profile[x] = h - 1
+    # Chỉ cắt bỏ những hàng/cột có quá 40% là viền đen
+    valid_rows = np.where(row_density >= 0.60)[0]
+    valid_cols = np.where(col_density >= 0.60)[0]
 
-    # Lấy phân vị an toàn để loại bỏ đường viền lồi lõm không mong muốn
-    clean_top = int(np.percentile(top_profile, 94))
-    clean_bot = int(np.percentile(bot_profile, 6))
-
-    clean_top = max(0, min(clean_top, h // 3))
-    clean_bot = min(h, max(clean_bot, int(h * 0.67)))
-
-    if clean_bot > clean_top + 100:
-        cropped = image[clean_top:clean_bot, :]
+    if len(valid_rows) > 50 and len(valid_cols) > 50:
+        top = valid_rows[0]
+        bot = valid_rows[-1] + 1
+        left = valid_cols[0]
+        right = valid_cols[-1] + 1
+        cropped = image[top:bot, left:right]
     else:
         cropped = image
 
-    # Kiểm tra xem còn vết đen lẻ loi nào ở mép không -> Inpaint tức thì
-    c_gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
-    dark_mask = (c_gray <= black_thresh).astype(np.uint8) * 255
-    if np.sum(dark_mask > 0) > 0 and np.sum(dark_mask > 0) < cropped.size * 0.05:
-        cropped = cv2.inpaint(cropped, dark_mask, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
+    # Inpaint các vết đen nhỏ còn sót ở rìa mép
+    if cropped.size > 0:
+        c_gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+        dark_mask = (c_gray <= black_thresh).astype(np.uint8) * 255
+        dark_count = int(np.sum(dark_mask > 0))
+        if 0 < dark_count < cropped.size * 0.05:
+            cropped = cv2.inpaint(cropped, dark_mask, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
 
     return cropped
 
@@ -386,104 +377,85 @@ def crop_clean_inscribed_rectangle(image, black_thresh=10):
 def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True):
     """
     Chuẩn hóa ảnh thành định dạng Equirectangular chuẩn 2:1 cho Web 360 / VR Viewer:
-    - Bố trí ảnh toàn cảnh phẳng phiu ngay tại đường chân trời mắt nhìn (Equator Y = H / 2).
-    - Cực Bắc (Zenith - Trần nhà): Mở rộng mượt mà bằng màu trần thực tế của phòng,
-      tuyệt đối KHÔNG DÙNG HIỆU ỨNG VỒM LỒI gây biến dạng không gian.
-    - Cực Nam (Nadir - Sàn nhà): Mở rộng mượt mà phẳng lì theo màu sàn gạch/thảm của phòng.
-    - Kết quả: Khi xoay góc nhìn 360 độ trên trình duyệt, các bức tường đứng thẳng 90°,
-      trần và sàn phẳng phiu, tạo cảm giác đứng trực tiếp tại phòng trưng bày như vr360.com.vn.
+    - BẢO TOÀN 100% TỶ LỆ HÌNH HỌC THẬT CỦA CĂN PHÒNG (KHÔNG ÉP CO GIÃN BẤT ĐỐI XỨNG).
+    - Giữ trọn vẹn chiều cao và góc nhìn thực tế của người chụp.
+    - Lấp đầy mượt mà vùng trần (Zenith) và sàn (Nadir) chưa bao quát bằng màu thực tế.
     """
     if panorama is None or panorama.size == 0:
         return panorama
 
-    h_orig, w_orig = panorama.shape[:2]
-    ar_orig = float(w_orig) / float(max(1, h_orig))
-
     ew = 4096 if target_width <= 0 else int(target_width)
     eh = ew // 2
 
-    # Nếu ảnh đã chuẩn 2:1
-    if abs(ar_orig - 2.0) <= 0.05 and is_full_360:
-        return cv2.resize(panorama, (ew, eh), interpolation=cv2.INTER_LANCZOS4)
+    h_orig, w_orig = panorama.shape[:2]
+    ar_orig = float(w_orig) / float(max(1, h_orig))
 
-    # Chiều cao chiếm giữ tự nhiên của dải xoay ngang phòng (chiếm 65% - 82% chiều cao cầu)
-    if is_full_360 or ar_orig >= 2.4:
-        target_h = int(np.clip(eh * 0.78, eh * 0.65, eh * 0.85))
-        scaled_pano = cv2.resize(panorama, (ew, target_h), interpolation=cv2.INTER_LANCZOS4)
-    else:
-        target_h = int(eh * 0.78)
-        target_w = int(target_h * ar_orig)
-        if target_w > ew:
-            target_w = ew
-            target_h = int(target_w / ar_orig)
-        scaled_pano = cv2.resize(panorama, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
-        if target_w < ew:
-            pad_left = (ew - target_w) // 2
-            pad_right = ew - target_w - pad_left
-            scaled_pano = cv2.copyMakeBorder(scaled_pano, 0, 0, pad_left, pad_right, borderType=cv2.BORDER_REFLECT_101)
+    # Nếu ảnh đã chuẩn 2:1 (ví dụ đầu ra của Hugin đã là canvas 2:1)
+    if abs(ar_orig - 2.0) <= 0.05:
+        scaled_pano = cv2.resize(panorama, (ew, eh), interpolation=cv2.INTER_LANCZOS4)
+        canvas = scaled_pano.copy()
 
-    cur_h, cur_w = scaled_pano.shape[:2]
+        # Kiểm tra xem đỉnh và đáy có khoảng đen không để bù màu nhẹ nhàng
+        gray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
+        top_mask = (gray[0:max(1, eh // 8), :] <= 15).astype(np.uint8)
+        bot_mask = (gray[int(eh * 7 / 8):eh, :] <= 15).astype(np.uint8)
+
+        if np.mean(top_mask) > 0.04 or np.mean(bot_mask) > 0.04:
+            full_mask = (gray <= 15).astype(np.uint8) * 255
+            canvas = cv2.inpaint(canvas, full_mask, inpaintRadius=7, flags=cv2.INPAINT_TELEA)
+        return canvas
+
+    # Co giãn ĐỒNG DẠNG (ngang và dọc cùng 1 hệ số scale - tuyệt đối không méo hình)
+    scale = ew / float(w_orig)
+    scaled_w = ew
+    scaled_h = int(h_orig * scale)
+
+    if scaled_h > eh:
+        scale = eh / float(h_orig)
+        scaled_h = eh
+        scaled_w = int(w_orig * scale)
+
+    scaled_pano = cv2.resize(panorama, (scaled_w, scaled_h), interpolation=cv2.INTER_LANCZOS4)
+
     canvas = np.zeros((eh, ew, 3), dtype=np.uint8)
-    y_offset = (eh - cur_h) // 2
-    canvas[y_offset : y_offset + cur_h, 0 : ew] = scaled_pano
+    y_offset = (eh - scaled_h) // 2
+    x_offset = (ew - scaled_w) // 2
 
-    # =========================================================================
-    # XỬ LÝ TRẦN NHÀ (ZENITH, Y = 0 ĐẾN Y_OFFSET) - PHẲNG PHIU, KHÔNG LỒI
-    # =========================================================================
+    canvas[y_offset : y_offset + scaled_h, x_offset : x_offset + scaled_w] = scaled_pano
+
+    # Xử lý trần nhà (Zenith) mượt mà không làm méo vật thể
     if y_offset > 0:
-        top_sample = scaled_pano[0:min(25, cur_h), :]
-        top_col_avg = np.mean(top_sample, axis=0, keepdims=True)  # (1, ew, 3)
-        global_zenith_color = np.mean(top_col_avg, axis=1)[0]
-
+        top_strip = scaled_pano[0:min(20, scaled_h), :]
+        top_col = np.mean(top_strip, axis=0, keepdims=True)
+        zenith_avg = np.mean(top_col, axis=1)[0]
         for y in range(y_offset):
-            # t = 0 tại đỉnh cực Bắc, t = 1 tại mép ảnh gốc
             t = float(y) / float(y_offset)
-            blur_kernel_w = int((1.0 - t) * (ew // 6)) * 2 + 1
-            blur_kernel_w = max(3, min(blur_kernel_w, ew - 1))
-            if blur_kernel_w % 2 == 0:
-                blur_kernel_w += 1
-
-            blurred_row = cv2.GaussianBlur(top_col_avg, (blur_kernel_w, 1), 0)[0]
-            # Đường cong Hermite chuyển tiếp phẳng lì
             s = t * t * (3.0 - 2.0 * t)
-            blended_row = (1.0 - s) * global_zenith_color + s * blurred_row
-            canvas[y, :] = np.clip(blended_row, 0, 255).astype(np.uint8)
+            blended = (1.0 - s) * zenith_avg + s * top_col[0]
+            if scaled_w < ew:
+                canvas[y, x_offset : x_offset + scaled_w] = np.clip(blended, 0, 255).astype(np.uint8)
+            else:
+                canvas[y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
-        # Khử mí viền tiếp giáp trần 4 hàng pixel
-        for j in range(4):
-            alpha = (j + 1) / 5.0
-            idx = y_offset - 2 + j
-            if 0 <= idx < eh:
-                canvas[idx, :] = cv2.addWeighted(canvas[idx, :], 1.0 - alpha, scaled_pano[min(j, cur_h - 1), :], alpha, 0)
-
-    # =========================================================================
-    # XỬ LÝ SÀN NHÀ (NADIR, Y = Y_OFFSET + CUR_H ĐẾN EH) - PHẲNG PHIU, KHÔNG LÕM
-    # =========================================================================
-    floor_start = y_offset + cur_h
-    floor_h = eh - floor_start
-    if floor_h > 0:
-        bot_sample = scaled_pano[max(0, cur_h - 25) : cur_h, :]
-        bot_col_avg = np.mean(bot_sample, axis=0, keepdims=True)
-        global_nadir_color = np.mean(bot_col_avg, axis=1)[0]
-
+    # Xử lý sàn nhà (Nadir) mượt mà
+    floor_start = y_offset + scaled_h
+    if floor_start < eh:
+        bot_strip = scaled_pano[max(0, scaled_h - 20) : scaled_h, :]
+        bot_col = np.mean(bot_strip, axis=0, keepdims=True)
+        nadir_avg = np.mean(bot_col, axis=1)[0]
+        floor_h = eh - floor_start
         for y in range(floor_h):
             t = float(y) / float(floor_h)
-            blur_kernel_w = int(t * (ew // 6)) * 2 + 1
-            blur_kernel_w = max(3, min(blur_kernel_w, ew - 1))
-            if blur_kernel_w % 2 == 0:
-                blur_kernel_w += 1
-
-            blurred_row = cv2.GaussianBlur(bot_col_avg, (blur_kernel_w, 1), 0)[0]
             s = (1.0 - t) * (1.0 - t) * (3.0 - 2.0 * (1.0 - t))
-            blended_row = s * blurred_row + (1.0 - s) * global_nadir_color
-            canvas[floor_start + y, :] = np.clip(blended_row, 0, 255).astype(np.uint8)
+            blended = s * bot_col[0] + (1.0 - s) * nadir_avg
+            if scaled_w < ew:
+                canvas[floor_start + y, x_offset : x_offset + scaled_w] = np.clip(blended, 0, 255).astype(np.uint8)
+            else:
+                canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
-        # Khử mí viền tiếp giáp sàn
-        for j in range(4):
-            alpha = (j + 1) / 5.0
-            idx = floor_start - 2 + j
-            if 0 <= idx < eh:
-                canvas[idx, :] = cv2.addWeighted(scaled_pano[max(0, cur_h - 4 + j), :], 1.0 - alpha, canvas[idx, :], alpha, 0)
+    if x_offset > 0:
+        canvas[:, 0:x_offset] = canvas[:, x_offset:x_offset+1]
+        canvas[:, x_offset+scaled_w:ew] = canvas[:, x_offset+scaled_w-1:x_offset+scaled_w]
 
     return canvas
 
@@ -546,10 +518,47 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
         if res.returncode != 0:
             raise RuntimeError(f"pto_gen lỗi: {res.stderr}")
 
-        # 2. cpfind (Tối ưu sieve để tìm điểm nhanh gấp 4 lần, tránh timeout trên VPS)
-        log("[*] Hugin Step 2: Dò tìm điểm kiểm soát đa góc (cpfind)...")
-        cmd_cpfind = ['cpfind', '--sieve1width', '1000', '--sieve1height', '1000', '--multirow', '-o', pto_file, pto_file]
-        subprocess.run(cmd_cpfind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
+        # 2. cpfind (Khớp tuần tự theo chuỗi xoay vòng 360° siêu tốc, không bao giờ timeout)
+        log("[*] Hugin Step 2: Dò tìm điểm kiểm soát đa góc (cpfind --linearmatch)...")
+        cmd_cpfind = ['cpfind', '--sieve1width', '1000', '--sieve1height', '1000', '--linearmatch', '--linearmatchlen', '2', '-o', pto_file, pto_file]
+        subprocess.run(cmd_cpfind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
+
+        # Bổ sung khép vòng 360° nối ảnh cuối với ảnh đầu
+        if len(prepared_paths) >= 4:
+            try:
+                loop_pto = os.path.join(temp_dir, "loop.pto")
+                first_last = [prepared_paths[0], prepared_paths[1], prepared_paths[-2], prepared_paths[-1]]
+                cmd_ptogen_loop = ['pto_gen', '-o', loop_pto] + first_last
+                if subprocess.run(cmd_ptogen_loop, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30).returncode == 0:
+                    cmd_cpfind_loop = ['cpfind', '--multirow', '-o', loop_pto, loop_pto]
+                    subprocess.run(cmd_cpfind_loop, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30)
+                    if os.path.exists(loop_pto):
+                        with open(loop_pto, 'r', encoding='utf-8', errors='ignore') as f_lp:
+                            loop_lines = f_lp.readlines()
+                        idx_map = {0: 0, 1: 1, 2: len(prepared_paths)-2, 3: len(prepared_paths)-1}
+                        new_cp_lines = []
+                        for line in loop_lines:
+                            if line.startswith('c '):
+                                parts = line.split()
+                                if len(parts) >= 3:
+                                    try:
+                                        n_from = int(parts[0].replace('c', '').replace('n', ''))
+                                        n_to = int(parts[1].replace('N', ''))
+                                        mf = idx_map.get(n_from, n_from)
+                                        mt = idx_map.get(n_to, n_to)
+                                        if (mf in (0, 1) and mt in (len(prepared_paths)-2, len(prepared_paths)-1)) or \
+                                           (mt in (0, 1) and mf in (len(prepared_paths)-2, len(prepared_paths)-1)):
+                                            parts[0] = f"c n{mf}"
+                                            parts[1] = f"N{mt}"
+                                            new_cp_lines.append(" ".join(parts) + "\n")
+                                    except Exception:
+                                        pass
+                        if new_cp_lines:
+                            with open(pto_file, 'a', encoding='utf-8') as f_pto:
+                                f_pto.writelines(new_cp_lines)
+                            log(f"[✓] Đã tạo thành công {len(new_cp_lines)} điểm khép vòng 360° nối ảnh cuối về ảnh đầu.")
+            except Exception as loop_e:
+                log(f"[!] Bỏ qua khép vòng Hugin: {loop_e}")
 
         # 3. cpclean
         log("[*] Hugin Step 3: Lọc điểm nhiễu (cpclean)...")
@@ -568,12 +577,12 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             cmd_opt = ['autooptimiser', '-a', '-m', '-l', '-s', '-o', pto_file, pto_file]
             subprocess.run(cmd_opt, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
 
-        # 6. pano_modify (Ép về Equirectangular 2:1)
+        # 6. pano_modify (Ép về Equirectangular 2:1 và căn thẳng)
         out_w = 4096 if target_width <= 0 else int(target_width)
         out_h = out_w // 2
         if shutil.which('pano_modify'):
             log("[*] Hugin Step 6: Chuẩn hóa phép chiếu Equirectangular 2:1 (pano_modify)...")
-            cmd_mod = ['pano_modify', '--projection=2', f'--canvas={out_w}x{out_h}', '--crop=AUTO', '-o', pto_file, pto_file]
+            cmd_mod = ['pano_modify', '--projection=2', f'--canvas={out_w}x{out_h}', '--center', '--straighten', '-o', pto_file, pto_file]
             subprocess.run(cmd_mod, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
 
         # 7. Render (hugin_executor hoặc nona + enblend)
@@ -584,7 +593,6 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             prefix = os.path.join(temp_dir, "pano_out")
             cmd_exec = ['hugin_executor', '--stitching', f'--prefix={prefix}', pto_file]
             subprocess.run(cmd_exec, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
-            # Tìm file ảnh kết quả do hugin_executor tạo ra
             cand_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith('pano_out') and f.endswith(('.tif', '.tiff', '.jpg', '.png'))]
             if cand_files:
                 rendered_tif = cand_files[0]
@@ -594,7 +602,7 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             subprocess.run(cmd_nona, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
             nona_tifs = sorted([os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith('nona_') and f.endswith('.tif')])
             if nona_tifs:
-                cmd_enblend = ['enblend', '-o', rendered_tif, '--fine-mask'] + nona_tifs
+                cmd_enblend = ['enblend', '--wrap=360', '-o', rendered_tif, '--fine-mask'] + nona_tifs
                 subprocess.run(cmd_enblend, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
 
         if not os.path.exists(rendered_tif):
@@ -604,10 +612,9 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
         if hugin_result is None:
             raise ValueError("Không thể giải mã file kết quả của Hugin.")
 
-        # Hậu xử lý hoàn thiện
-        leveled = level_and_straighten_spherical_panorama(hugin_result)
-        cropped = crop_clean_inscribed_rectangle(leveled)
-        equi = fit_to_equirectangular_2_to_1(cropped, target_width=out_w, is_full_360=True)
+        # Hugin đã căn chỉnh đường thẳng đứng chuẩn xác 100% bằng linefind & autooptimiser.
+        # Giữ nguyên tỷ lệ 100%, chỉ làm mịn viền trần/sàn nếu chưa bao quát hết
+        equi = fit_to_equirectangular_2_to_1(hugin_result, target_width=out_w, is_full_360=True)
         equi = enhance_museum_details(equi)
 
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
