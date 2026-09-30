@@ -7196,39 +7196,15 @@
   }
 }
 
-.client-booking-steps-grid {
+.client-museum-rules-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
 }
 
-@media (max-width: 820px) {
-  .client-booking-steps-grid {
+@media (max-width: 860px) {
+  .client-museum-rules-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 20px;
   }
 }
-
-.client-booking-info-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-
-@media (max-width: 1024px) {
-  .client-booking-info-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-}
-
-@media (max-width: 580px) {
-  .client-booking-info-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-}
-
-
-
-
