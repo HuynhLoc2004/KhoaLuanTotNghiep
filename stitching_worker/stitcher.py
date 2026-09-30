@@ -540,16 +540,16 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
                         for line in loop_lines:
                             if line.startswith('c '):
                                 parts = line.split()
-                                if len(parts) >= 3:
+                                if len(parts) >= 3 and parts[1].startswith('n') and parts[2].startswith('N'):
                                     try:
-                                        n_from = int(parts[0].replace('c', '').replace('n', ''))
-                                        n_to = int(parts[1].replace('N', ''))
+                                        n_from = int(parts[1][1:])
+                                        n_to = int(parts[2][1:])
                                         mf = idx_map.get(n_from, n_from)
                                         mt = idx_map.get(n_to, n_to)
                                         if (mf in (0, 1) and mt in (len(prepared_paths)-2, len(prepared_paths)-1)) or \
                                            (mt in (0, 1) and mf in (len(prepared_paths)-2, len(prepared_paths)-1)):
-                                            parts[0] = f"c n{mf}"
-                                            parts[1] = f"N{mt}"
+                                            parts[1] = f"n{mf}"
+                                            parts[2] = f"N{mt}"
                                             new_cp_lines.append(" ".join(parts) + "\n")
                                     except Exception:
                                         pass
@@ -585,25 +585,34 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             cmd_mod = ['pano_modify', '--projection=2', f'--canvas={out_w}x{out_h}', '--center', '--straighten', '-o', pto_file, pto_file]
             subprocess.run(cmd_mod, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
 
-        # 7. Render (hugin_executor hoặc nona + enblend)
-        log("[*] Hugin Step 7: Hòa trộn đa băng tần Enblend...")
+        # 7. Render trực tiếp bằng Nona + Enblend (Không phụ thuộc makefile của hugin_executor)
         rendered_tif = os.path.join(temp_dir, "output.tif")
+        if shutil.which('nona') and shutil.which('enblend'):
+            log("[*] Hugin Step 7: Nona remapping (phép chiếu cầu 360°)...")
+            nona_prefix = os.path.join(temp_dir, "nona_")
+            cmd_nona = ['nona', '-m', 'TIFF_m', '-o', nona_prefix, pto_file]
+            res_nona = subprocess.run(cmd_nona, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
+            if res_nona.returncode != 0:
+                log(f"[!] Nona stderr: {res_nona.stderr}")
+                raise RuntimeError(f"nona lỗi: {res_nona.stderr[:200]}")
 
-        if shutil.which('hugin_executor'):
+            nona_tifs = sorted([os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith('nona_') and f.endswith(('.tif', '.tiff'))])
+            if not nona_tifs:
+                raise FileNotFoundError("Nona không sinh ra file remapped TIFF nào.")
+
+            log(f"[*] Hugin Step 7b: Enblend hòa trộn đa dải tần ({len(nona_tifs)} ảnh, wrap 360°)...")
+            cmd_enblend = ['enblend', '--wrap=360', '-o', rendered_tif, '--fine-mask'] + nona_tifs
+            res_enblend = subprocess.run(cmd_enblend, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
+            if res_enblend.returncode != 0:
+                log(f"[!] Enblend stderr: {res_enblend.stderr}")
+                raise RuntimeError(f"enblend lỗi: {res_enblend.stderr[:200]}")
+        elif shutil.which('hugin_executor'):
             prefix = os.path.join(temp_dir, "pano_out")
             cmd_exec = ['hugin_executor', '--stitching', f'--prefix={prefix}', pto_file]
             subprocess.run(cmd_exec, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
             cand_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith('pano_out') and f.endswith(('.tif', '.tiff', '.jpg', '.png'))]
             if cand_files:
                 rendered_tif = cand_files[0]
-        elif shutil.which('nona') and shutil.which('enblend'):
-            nona_prefix = os.path.join(temp_dir, "nona_")
-            cmd_nona = ['nona', '-m', 'TIFF_m', '-o', nona_prefix, pto_file]
-            subprocess.run(cmd_nona, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
-            nona_tifs = sorted([os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith('nona_') and f.endswith('.tif')])
-            if nona_tifs:
-                cmd_enblend = ['enblend', '--wrap=360', '-o', rendered_tif, '--fine-mask'] + nona_tifs
-                subprocess.run(cmd_enblend, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
 
         if not os.path.exists(rendered_tif):
             raise FileNotFoundError("Không tìm thấy ảnh sau khi Hugin render.")
