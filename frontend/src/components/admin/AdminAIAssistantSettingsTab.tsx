@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
   Bot,
-  Sparkles,
   Zap,
-  Key,
-  ShieldCheck,
-  ShieldAlert,
   Save,
   Loader2,
   CheckCircle2,
   AlertTriangle,
   RotateCcw,
-  Sliders,
-  Clock,
   Eye,
   EyeOff,
   Inbox,
-  Send,
-  MessageSquare
+  ShieldCheck,
+  SlidersHorizontal,
+  Mail,
+  User,
+  Clock
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../Toast';
@@ -33,13 +30,6 @@ interface VisitorInquiryItem {
   createdAt: string;
 }
 
-const PRESET_MODELS = [
-  { name: 'gemini-2.5-flash', tag: 'Mặc định • Tốc độ cao', provider: 'gemini' },
-  { name: 'gemini-1.5-pro', tag: 'Chuyên sâu • Lịch sử', provider: 'gemini' },
-  { name: 'gemini-2.0-flash', tag: 'Thế hệ mới • Siêu tốc', provider: 'gemini' },
-  { name: 'gpt-4o-mini', tag: 'OpenAI Compatible', provider: 'openai' }
-];
-
 export const AdminAIAssistantSettingsTab: React.FC = () => {
   const { showToast } = useToast();
 
@@ -50,7 +40,6 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
 
   // Form state
   const [isActive, setIsActive] = useState(true);
-  const [provider, setProvider] = useState<'gemini' | 'openai' | 'custom'>('gemini');
   const [modelName, setModelName] = useState('gemini-2.5-flash');
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKeyMasked, setApiKeyMasked] = useState('');
@@ -60,6 +49,10 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
   const [maxTokens, setMaxTokens] = useState(1024);
   const [antiSpamCooldownSec, setAntiSpamCooldownSec] = useState(3);
   const [maxRequestsPerMinute, setMaxRequestsPerMinute] = useState(15);
+
+  // Validation errors
+  const [modelError, setModelError] = useState<string | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
   // Test result state
   const [testResult, setTestResult] = useState<{
@@ -73,18 +66,50 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
   const [inquiries, setInquiries] = useState<VisitorInquiryItem[]>([]);
   const [loadingInquiries, setLoadingInquiries] = useState(false);
 
+  // Validation functions (Chống Injection & bảo vệ form)
+  const validateModelName = (val: string): boolean => {
+    const trimmed = val.trim();
+    if (!trimmed) {
+      setModelError('Tên mô hình AI không được để trống.');
+      return false;
+    }
+    // Chỉ chấp nhận ký tự an toàn: a-z, A-Z, 0-9, ., -, _, :, /
+    if (!/^[a-zA-Z0-9._\-\/:]{2,80}$/.test(trimmed)) {
+      setModelError('Tên mô hình chỉ gồm chữ cái, chữ số, dấu gạch ngang (-), gạch dưới (_) hoặc chấm (.).');
+      return false;
+    }
+    setModelError(null);
+    return true;
+  };
+
+  const validateApiKey = (val: string): boolean => {
+    const trimmed = val.trim();
+    if (!trimmed) {
+      setApiKeyError(null);
+      return true;
+    }
+    if (trimmed.includes(' ') || !/^[A-Za-z0-9_\-\.\:\+]{6,256}$/.test(trimmed)) {
+      setApiKeyError('Định dạng API Key không hợp lệ. Vui lòng kiểm tra lại mã khóa.');
+      return false;
+    }
+    setApiKeyError(null);
+    return true;
+  };
+
   // Nạp cấu hình từ Backend
   const fetchSettings = async () => {
     try {
       setLoading(true);
       const data = await api.getAISettings();
       setIsActive(data.isActive ?? true);
-      setProvider(data.provider || 'gemini');
       setModelName(data.modelName || 'gemini-2.5-flash');
       setApiKeyMasked(data.apiKeyMasked || '');
       setHasApiKey(Boolean(data.hasApiKey));
       setTemperature(typeof data.temperature === 'number' ? data.temperature : 0.4);
-      setSystemPrompt(data.systemPrompt || '');
+      setSystemPrompt(
+        data.systemPrompt ||
+          'Bạn là Trợ lý Di sản Ảo của Bảo tàng Lịch sử TP. Hồ Chí Minh. Nhiệm vụ của bạn là giải đáp thông tin, hướng dẫn du khách tham quan các gian phòng 360°, giới thiệu chi tiết các cổ vật, hiện vật lịch sử và cung cấp thông tin vé, giờ mở cửa một cách lịch sự, trang trọng và chính xác tuyệt đối dựa trên cơ sở dữ liệu của bảo tàng.'
+      );
       setMaxTokens(data.maxTokens || 1024);
       setAntiSpamCooldownSec(data.antiSpamCooldownSec || 3);
       setMaxRequestsPerMinute(data.maxRequestsPerMinute || 15);
@@ -123,14 +148,24 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
   // Kiểm tra kết nối Model
   const handleTestConnection = async () => {
     if (testing) return;
+
+    if (!validateModelName(modelName)) {
+      showToast('Vui lòng kiểm tra lại tên mô hình AI trước khi thử nghiệm', 'warning');
+      return;
+    }
+
+    if (apiKeyInput && !validateApiKey(apiKeyInput)) {
+      showToast('API Key nhập vào không hợp lệ', 'warning');
+      return;
+    }
+
     setTesting(true);
     setTestResult(null);
 
     try {
       const res = await api.testAIConnection({
-        provider,
-        modelName,
-        apiKey: apiKeyInput
+        modelName: modelName.trim(),
+        apiKey: apiKeyInput.trim()
       });
 
       setTestResult(res);
@@ -156,8 +191,11 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
     e.preventDefault();
     if (saving) return;
 
-    if (!modelName.trim()) {
-      showToast('Vui lòng nhập tên mã mô hình AI', 'warning');
+    const isModelValid = validateModelName(modelName);
+    const isKeyValid = validateApiKey(apiKeyInput);
+
+    if (!isModelValid || !isKeyValid) {
+      showToast('Vui lòng khắc phục các lỗi định dạng trước khi lưu cấu hình.', 'warning');
       return;
     }
 
@@ -165,7 +203,6 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
     try {
       const payload: Partial<AISettings> = {
         isActive,
-        provider,
         modelName: modelName.trim(),
         temperature,
         systemPrompt: systemPrompt.trim(),
@@ -196,240 +233,135 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
-        <Loader2 size={32} className="spin" style={{ color: 'var(--accent-gold, #c5a880)', margin: '0 auto 12px auto' }} />
-        <p style={{ margin: 0, fontSize: 13.5 }}>Đang tải cấu hình Trợ lý AI & Model...</p>
+      <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <Loader2 size={30} className="spin" style={{ color: 'var(--primary)', margin: '0 auto 12px auto' }} />
+        <p style={{ margin: 0, fontSize: 13.5 }}>Đang nạp cấu hình Trợ lý AI...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, animation: 'fadeIn 0.2s ease-out' }}>
-      {/* 1. THẺ TỔNG QUAN TRẠNG THÁI TRỢ LÝ AI */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 14
-        }}
-      >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%', boxSizing: 'border-box' }}>
+      {/* KHỐI 1: CẤU HÌNH TRỢ LÝ AI & MÔ HÌNH VẬN HÀNH */}
+      <form onSubmit={handleSaveSettings} className="settings-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+        {/* Card Header chuẩn Admin */}
         <div
           style={{
-            background: '#131d31',
-            border: '1px solid rgba(148, 163, 184, 0.14)',
-            borderRadius: 10,
-            padding: '14px 16px',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 16,
+            flexWrap: 'wrap',
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: '1px solid var(--border-color)'
           }}
         >
-          <div>
-            <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginBottom: 2 }}>Trạng thái hoạt động</span>
-            <strong style={{ fontSize: 14, color: isActive ? '#34d399' : '#f87171' }}>
-              {isActive ? 'Đang Bật (Sẵn sàng)' : 'Đang Tắt (Tạm ngưng)'}
-            </strong>
+          <div style={{ minWidth: 260, flex: 1 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+              Cấu Hình Trợ Lý AI & Quản Lý Mô Hình
+            </h2>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+              Quản trị viên có thể nhập bất kỳ tên mô hình AI nào (Gemini, OpenAI,...). Hệ thống sẽ tự động liên kết dữ liệu thật và đồng bộ ngay lập tức.
+            </p>
           </div>
+
+          {/* Toggle trạng thái hoạt động */}
           <button
             type="button"
             onClick={() => setIsActive(!isActive)}
-            className="btn btn-sm"
+            className={`btn ${isActive ? 'btn-primary' : 'btn-secondary'}`}
             style={{
-              background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-              borderColor: isActive ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)',
-              color: isActive ? '#34d399' : '#f87171',
-              padding: '6px 12px',
-              fontSize: 12
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 14px',
+              fontSize: 12.5,
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
-            {isActive ? 'Tắt trợ lý' : 'Bật trợ lý'}
+            <Bot size={15} />
+            <span>{isActive ? 'Đang Bật (Hoạt động)' : 'Đang Tắt (Tạm ngưng)'}</span>
           </button>
         </div>
 
-        <div
-          style={{
-            background: '#131d31',
-            border: '1px solid rgba(148, 163, 184, 0.14)',
-            borderRadius: 10,
-            padding: '14px 16px'
-          }}
-        >
-          <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginBottom: 2 }}>Model AI đang vận hành</span>
-          <strong style={{ fontSize: 14, color: '#f8fafc', fontFamily: 'monospace' }}>{modelName || 'Chưa gán'}</strong>
-        </div>
-
-        <div
-          style={{
-            background: '#131d31',
-            border: '1px solid rgba(148, 163, 184, 0.14)',
-            borderRadius: 10,
-            padding: '14px 16px'
-          }}
-        >
-          <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginBottom: 2 }}>Khóa API (API Key)</span>
-          <strong style={{ fontSize: 13, color: hasApiKey ? '#34d399' : '#fbbf24' }}>
-            {hasApiKey ? `Đã cấu hình (${apiKeyMasked || '••••••••'})` : 'Dùng Env Máy Chủ'}
-          </strong>
-        </div>
-
-        <div
-          style={{
-            background: '#131d31',
-            border: '1px solid rgba(148, 163, 184, 0.14)',
-            borderRadius: 10,
-            padding: '14px 16px'
-          }}
-        >
-          <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginBottom: 2 }}>Bảo vệ chống Spam</span>
-          <strong style={{ fontSize: 13, color: '#cbd5e1' }}>
-            Giãn cách {antiSpamCooldownSec}s • Max {maxRequestsPerMinute} req/phút
-          </strong>
-        </div>
-      </div>
-
-      {/* 2. FORM CẤU HÌNH MODEL AI & THAM SỐ CHÍNH */}
-      <form
-        onSubmit={handleSaveSettings}
-        style={{
-          background: '#0f172a',
-          border: '1px solid rgba(148, 163, 184, 0.16)',
-          borderRadius: 12,
-          padding: 22,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 20
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(148, 163, 184, 0.12)', paddingBottom: 14 }}>
-          <div>
-            <h3 style={{ margin: '0 0 4px 0', fontSize: 15.5, fontWeight: 600, color: '#f8fafc' }}>
-              Quản Trị Model & Khóa API Cho Trợ Lý Ảo
-            </h3>
-            <p style={{ margin: 0, fontSize: 12, color: '#94a3b8' }}>
-              Không fix cứng model. Quản trị viên chỉ cần gán tên model vào ô bên dưới và lưu lại, trợ lý sẽ ngay lập tức chuyển sang sử dụng model đó.
-            </p>
-          </div>
-          <span
-            style={{
-              fontSize: 11.5,
-              padding: '4px 10px',
-              borderRadius: 6,
-              background: 'rgba(197, 168, 128, 0.12)',
-              border: '1px solid rgba(197, 168, 128, 0.3)',
-              color: '#c5a880',
-              fontWeight: 500
+        {/* Cột 1: Tên Mô hình AI (Không fix cứng, nhập tự do) */}
+        <div className="settings-form-field" style={{ marginBottom: 18 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+            Tên Mô Hình AI (Model Name) <span style={{ color: 'var(--primary)' }}>*</span>
+          </label>
+          <input
+            type="text"
+            className="input-field"
+            value={modelName}
+            onChange={(e) => {
+              setModelName(e.target.value);
+              validateModelName(e.target.value);
             }}
-          >
-            Đồng bộ thời gian thực
-          </span>
+            placeholder="Ví dụ: gemini-2.5-flash, gemini-2.0-flash, gpt-4o..."
+            required
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '10px 14px',
+              fontSize: 13.5,
+              fontFamily: 'monospace',
+              backgroundColor: 'var(--bg-subtle)',
+              border: `1px solid ${modelError ? 'var(--error, #e53e3e)' : 'var(--border-color)'}`,
+              borderRadius: 'var(--radius-sm, 6px)',
+              color: 'var(--text-main)'
+            }}
+          />
+          {modelError ? (
+            <span style={{ fontSize: 11.5, color: 'var(--error, #e53e3e)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <AlertTriangle size={12} />
+              {modelError}
+            </span>
+          ) : (
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, display: 'block', wordBreak: 'break-word' }}>
+              Quản trị viên có thể nhập bất kỳ mã model nào (khuyên dùng: <code>gemini-2.5-flash</code> hoặc <code>gemini-2.0-flash</code>). Hệ thống sẽ tự nhận diện nhà cung cấp tương ứng.
+            </span>
+          )}
         </div>
 
-        {/* Lựa chọn Nhà cung cấp & Tên Model */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
-              Nhà cung cấp AI (Provider):
-            </label>
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as any)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: '#131d31',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                borderRadius: 7,
-                color: '#f8fafc',
-                fontSize: 13,
-                outline: 'none'
-              }}
-            >
-              <option value="gemini">Google Gemini API (Khuyên dùng • Miễn phí & Sắc bén)</option>
-              <option value="openai">OpenAI Compatible (ChatGPT / GPT-4o-mini)</option>
-              <option value="custom">Custom REST API Model</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
-              Mã / Tên Mô Hình AI (Model Identifier): <span style={{ color: '#ef4444' }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={modelName}
-              onChange={(e) => setModelName(e.target.value)}
-              placeholder="Ví dụ: gemini-2.5-flash, gemini-1.5-pro, gpt-4o-mini..."
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: '#131d31',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                borderRadius: 7,
-                color: '#f8fafc',
-                fontSize: 13,
-                fontFamily: 'monospace',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              required
-            />
-            {/* Quick preset chips */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {PRESET_MODELS.map((m) => (
-                <button
-                  key={m.name}
-                  type="button"
-                  onClick={() => {
-                    setModelName(m.name);
-                    setProvider(m.provider as any);
-                  }}
-                  style={{
-                    padding: '3px 8px',
-                    fontSize: 11,
-                    borderRadius: 5,
-                    background: modelName === m.name ? 'rgba(197, 168, 128, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid ' + (modelName === m.name ? 'rgba(197, 168, 128, 0.6)' : 'rgba(148, 163, 184, 0.15)'),
-                    color: modelName === m.name ? '#c5a880' : '#94a3b8',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {m.name} <span style={{ opacity: 0.7 }}>({m.tag})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Khóa API Key bí mật */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <label style={{ fontSize: 12.5, fontWeight: 600, color: '#cbd5e1' }}>
-              Khóa API Key Bí Mật:
+        {/* Cột 2: Khóa API Key */}
+        <div className="settings-form-field" style={{ marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
+              Khóa API (API Key)
             </label>
             {hasApiKey && (
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                Khóa hiện tại: <code style={{ color: '#c5a880' }}>{apiKeyMasked}</code>
+              <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                Khóa hiện dùng: <code style={{ color: 'var(--primary)' }}>{apiKeyMasked}</code>
               </span>
             )}
           </div>
 
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', width: '100%' }}>
             <input
               type={showApiKey ? 'text' : 'password'}
+              className="input-field"
               value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder={hasApiKey ? 'Nhập khóa mới nếu muốn thay đổi (để trống giữ nguyên)...' : 'Dán API Key (Ví dụ: AIzaSy...)'}
+              onChange={(e) => {
+                setApiKeyInput(e.target.value);
+                validateApiKey(e.target.value);
+              }}
+              placeholder={
+                hasApiKey
+                  ? 'Đã cấu hình khóa bảo mật (để trống nếu muốn giữ nguyên khóa này)...'
+                  : 'Nhập API Key nếu có (để trống sẽ tự động dùng khóa mặc định trên máy chủ)...'
+              }
               style={{
                 width: '100%',
-                padding: '10px 42px 10px 12px',
-                background: '#131d31',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                borderRadius: 7,
-                color: '#f8fafc',
-                fontSize: 13,
+                boxSizing: 'border-box',
+                padding: '10px 42px 10px 14px',
+                fontSize: 13.5,
                 fontFamily: 'monospace',
-                outline: 'none',
-                boxSizing: 'border-box'
+                backgroundColor: 'var(--bg-subtle)',
+                border: `1px solid ${apiKeyError ? 'var(--error, #e53e3e)' : 'var(--border-color)'}`,
+                borderRadius: 'var(--radius-sm, 6px)',
+                color: 'var(--text-main)'
               }}
             />
             <button
@@ -437,27 +369,37 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
               onClick={() => setShowApiKey(!showApiKey)}
               style={{
                 position: 'absolute',
-                right: 8,
+                right: 10,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 background: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
-                padding: 4
+                padding: 4,
+                display: 'flex',
+                alignItems: 'center'
               }}
               title={showApiKey ? 'Ẩn khóa' : 'Hiện khóa'}
             >
               {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          <span style={{ display: 'block', fontSize: 11, color: '#64748b', marginTop: 5 }}>
-            Hệ thống lưu trữ bảo mật trong cơ sở dữ liệu và chỉ nạp qua máy chủ backend, tuyệt đối không lộ ra trình duyệt người dùng.
-          </span>
+
+          {apiKeyError ? (
+            <span style={{ fontSize: 11.5, color: 'var(--error, #e53e3e)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <AlertTriangle size={12} />
+              {apiKeyError}
+            </span>
+          ) : (
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, display: 'block' }}>
+              Khóa API được mã hóa an toàn trên máy chủ. Nếu để trống, hệ thống sẽ sử dụng khóa môi trường (Environment Variable) được cấu hình sẵn.
+            </span>
+          )}
         </div>
 
-        {/* Kiểm tra kết nối Model */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        {/* Nút Kiểm tra kết nối & Hiển thị kết quả */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
           <button
             type="button"
             onClick={handleTestConnection}
@@ -465,22 +407,22 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
             className="btn btn-secondary btn-sm"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
           >
-            {testing ? <Loader2 size={14} className="spin" /> : <Zap size={14} style={{ color: '#c5a880' }} />}
-            <span>{testing ? 'Đang gửi ping thử nghiệm...' : 'Kiểm tra kết nối Model'}</span>
+            {testing ? <Loader2 size={14} className="spin" /> : <Zap size={14} />}
+            <span>{testing ? 'Đang gửi tín hiệu thử nghiệm...' : 'Kiểm tra kết nối Model'}</span>
           </button>
 
           {testResult && (
             <div
               style={{
                 padding: '6px 12px',
-                borderRadius: 6,
+                borderRadius: 'var(--radius-sm, 6px)',
                 fontSize: 12,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                background: testResult.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid ' + (testResult.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'),
-                color: testResult.success ? '#34d399' : '#f87171'
+                backgroundColor: testResult.success ? 'var(--success-bg, #f0ede4)' : 'var(--error-bg, #fdf3f3)',
+                border: `1px solid ${testResult.success ? 'var(--success-border, #d8d1c2)' : 'var(--error-border, #f7bfbf)'}`,
+                color: testResult.success ? 'var(--success-text, #3d5a45)' : 'var(--error-text, #7f1d1d)'
               }}
             >
               {testResult.success ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
@@ -489,178 +431,191 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
           )}
         </div>
 
-        {/* Tham số điều khiển: Nhiệt độ & Chống Spam */}
-        <div
-          style={{
-            background: '#131d31',
-            border: '1px solid rgba(148, 163, 184, 0.14)',
-            borderRadius: 8,
-            padding: 16,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 16
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>Nhiệt độ (Temperature):</label>
-              <span style={{ fontSize: 12, color: '#c5a880', fontWeight: 600 }}>{temperature}</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={temperature}
-              onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              style={{ width: '100%', accentColor: '#c5a880', cursor: 'pointer' }}
-            />
-            <span style={{ display: 'block', fontSize: 10.5, color: '#64748b', marginTop: 4 }}>
-              0.0: Chính xác tuyệt đối • 0.4: Cân bằng (khuyên dùng) • 1.0: Sáng tạo văn học
-            </span>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
-              Giãn cách câu hỏi (Cooldown):
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="number"
-                min="1"
-                max="30"
-                value={antiSpamCooldownSec}
-                onChange={(e) => setAntiSpamCooldownSec(parseInt(e.target.value) || 3)}
-                style={{
-                  width: 90,
-                  padding: '7px 10px',
-                  background: '#0a0f1d',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  borderRadius: 6,
-                  color: '#f8fafc',
-                  fontSize: 13
-                }}
-              />
-              <span style={{ fontSize: 12, color: '#94a3b8' }}>giây / câu (chống spam)</span>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
-              Giới hạn tần suất:
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="number"
-                min="3"
-                max="100"
-                value={maxRequestsPerMinute}
-                onChange={(e) => setMaxRequestsPerMinute(parseInt(e.target.value) || 15)}
-                style={{
-                  width: 90,
-                  padding: '7px 10px',
-                  background: '#0a0f1d',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  borderRadius: 6,
-                  color: '#f8fafc',
-                  fontSize: 13
-                }}
-              />
-              <span style={{ fontSize: 12, color: '#94a3b8' }}>câu / phút / IP</span>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
-              Giới hạn Token (Max Output):
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="number"
-                min="256"
-                max="4096"
-                step="128"
-                value={maxTokens}
-                onChange={(e) => setMaxTokens(parseInt(e.target.value) || 1024)}
-                style={{
-                  width: 90,
-                  padding: '7px 10px',
-                  background: '#0a0f1d',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  borderRadius: 6,
-                  color: '#f8fafc',
-                  fontSize: 13
-                }}
-              />
-              <span style={{ fontSize: 12, color: '#94a3b8' }}>tokens</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Lời nhắc hệ thống (System Prompt) */}
-        <div>
-          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>
-            Lời Nhắc Hệ Thống (System Persona & Prompt):
+        {/* Lời nhắc hệ thống (System Persona / Prompt) */}
+        <div className="settings-form-field" style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+            Lời Nhắc Hệ Thống (System Persona & Prompt)
           </label>
           <textarea
             rows={4}
+            className="input-field"
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
-            placeholder="Định nghĩa phong cách, vai trò và giới hạn của Trợ lý Di sản Ảo..."
+            placeholder="Định nghĩa phong cách xưng hô, vai trò và chuẩn mực hướng dẫn của Trợ lý AI..."
+            maxLength={3000}
             style={{
               width: '100%',
-              padding: '10px 12px',
-              background: '#131d31',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              borderRadius: 7,
-              color: '#f8fafc',
-              fontSize: 12.5,
-              lineHeight: 1.5,
+              boxSizing: 'border-box',
+              padding: '10px 14px',
+              fontSize: 13,
+              lineHeight: 1.55,
+              backgroundColor: 'var(--bg-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm, 6px)',
+              color: 'var(--text-main)',
               fontFamily: 'inherit',
-              outline: 'none',
-              boxSizing: 'border-box'
+              resize: 'vertical'
             }}
           />
+          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, display: 'block' }}>
+            Quy định phong cách phản hồi của Trợ lý AI khi du khách tương tác trên cổng di sản ảo.
+          </span>
         </div>
 
-        {/* Nút lưu */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 10, borderTop: '1px solid rgba(148, 163, 184, 0.12)' }}>
+        {/* Cài đặt nâng cao: Nhiệt độ & Kiểm soát tần suất */}
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 'var(--radius-md, 8px)',
+            backgroundColor: 'var(--bg-subtle)',
+            border: '1px solid var(--border-color)',
+            marginBottom: 22
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+            <SlidersHorizontal size={14} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)' }}>
+              Tham Số Vận Hành & Chống Tấn Công Spam (Anti-Spam)
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: 16
+            }}
+          >
+            {/* Nhiệt độ sáng tạo */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-main)' }}>Độ sáng tạo (Temperature):</label>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>{temperature}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={temperature}
+                onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--primary)' }}
+              />
+              <span style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                0.0: Chuẩn xác dữ liệu • 0.4: Cân bằng (khuyên dùng)
+              </span>
+            </div>
+
+            {/* Giãn cách câu hỏi */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-main)', marginBottom: 6 }}>
+                Giãn cách câu hỏi (Cooldown):
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={antiSpamCooldownSec}
+                  onChange={(e) => setAntiSpamCooldownSec(parseInt(e.target.value) || 3)}
+                  className="input-field"
+                  style={{
+                    width: 80,
+                    padding: '6px 10px',
+                    fontSize: 13,
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    color: 'var(--text-main)'
+                  }}
+                />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>giây / câu hỏi</span>
+              </div>
+            </div>
+
+            {/* Giới hạn số câu hỏi mỗi phút */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-main)', marginBottom: 6 }}>
+                Giới hạn lượt hỏi / phút:
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="number"
+                  min="5"
+                  max="120"
+                  value={maxRequestsPerMinute}
+                  onChange={(e) => setMaxRequestsPerMinute(parseInt(e.target.value) || 15)}
+                  className="input-field"
+                  style={{
+                    width: 80,
+                    padding: '6px 10px',
+                    fontSize: 13,
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    color: 'var(--text-main)'
+                  }}
+                />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>câu / phút / IP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Hàng nút bấm Lưu cấu hình */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            paddingTop: 16,
+            borderTop: '1px solid var(--border-color)'
+          }}
+        >
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || Boolean(modelError) || Boolean(apiKeyError)}
             className="btn btn-primary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 22px', fontSize: 13.5 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 22px',
+              fontSize: 13.5
+            }}
           >
             {saving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-            <span>{saving ? 'Đang lưu cấu hình...' : 'Lưu Cấu Hình Model AI'}</span>
+            <span>{saving ? 'Đang lưu cấu hình...' : 'Lưu Cấu Hình Trợ Lý AI'}</span>
           </button>
         </div>
       </form>
 
-      {/* 3. BẢNG DANH SÁCH YÊU CẦU / TIN NHẮN TỪ KHÁCH THAM QUAN */}
-      <div
-        style={{
-          background: '#0f172a',
-          border: '1px solid rgba(148, 163, 184, 0.16)',
-          borderRadius: 12,
-          padding: 22,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* KHỐI 2: HỘP THƯ DU KHÁCH (GỬI ĐẾN BAN QUẢN LÝ) */}
+      <div className="settings-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+            marginBottom: 16,
+            paddingBottom: 14,
+            borderBottom: '1px solid var(--border-color)'
+          }}
+        >
           <div>
-            <h3 style={{ margin: '0 0 4px 0', fontSize: 15, fontWeight: 600, color: '#f8fafc' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
               Hộp Thư Yêu Cầu Du Khách (Gửi tới Ban Quản Lý)
             </h3>
-            <p style={{ margin: 0, fontSize: 12, color: '#94a3b8' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
               Danh sách các tin nhắn, yêu cầu hỗ trợ và đặt lịch do khách tham quan gửi qua chức năng "Liên hệ Ban Quản lý".
             </p>
           </div>
+
           <button
             type="button"
             onClick={fetchInquiries}
+            disabled={loadingInquiries}
             className="btn btn-secondary btn-sm"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
@@ -672,40 +627,42 @@ export const AdminAIAssistantSettingsTab: React.FC = () => {
         {inquiries.length === 0 ? (
           <div
             style={{
-              padding: '36px 20px',
+              padding: '40px 20px',
               textAlign: 'center',
-              background: '#131d31',
-              borderRadius: 8,
-              border: '1px dashed rgba(148, 163, 184, 0.2)'
+              backgroundColor: 'var(--bg-subtle)',
+              borderRadius: 'var(--radius-md, 8px)',
+              border: '1px dashed var(--border-color)'
             }}
           >
-            <Inbox size={28} style={{ color: '#64748b', margin: '0 auto 8px auto' }} />
-            <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>Hòm thư hiện chưa có tin nhắn nào từ du khách.</p>
+            <Inbox size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 8px auto' }} />
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+              Hòm thư hiện chưa có tin nhắn nào từ du khách.
+            </p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.15)', color: '#94a3b8', fontSize: 11.5 }}>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5 }}>
                   <th style={{ padding: '8px 12px' }}>Thời gian</th>
                   <th style={{ padding: '8px 12px' }}>Khách tham quan</th>
-                  <th style={{ padding: '8px 12px' }}>Liên hệ</th>
+                  <th style={{ padding: '8px 12px' }}>Thông tin liên hệ</th>
                   <th style={{ padding: '8px 12px' }}>Nội dung yêu cầu</th>
                 </tr>
               </thead>
               <tbody>
                 {inquiries.map((inq) => (
-                  <tr key={inq._id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
-                    <td style={{ padding: '10px 12px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                  <tr key={inq._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '10px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(inq.createdAt).toLocaleString('vi-VN')}
                     </td>
-                    <td style={{ padding: '10px 12px', color: '#f8fafc', fontWeight: 600 }}>
+                    <td style={{ padding: '10px 12px', color: 'var(--text-main)', fontWeight: 600 }}>
                       {inq.visitorName}
                     </td>
-                    <td style={{ padding: '10px 12px', color: '#c5a880', fontFamily: 'monospace' }}>
+                    <td style={{ padding: '10px 12px', color: 'var(--primary)', fontFamily: 'monospace' }}>
                       {inq.visitorContact || 'Không để lại'}
                     </td>
-                    <td style={{ padding: '10px 12px', color: '#cbd5e1' }}>
+                    <td style={{ padding: '10px 12px', color: 'var(--text-main)', wordBreak: 'break-word' }}>
                       {inq.message}
                     </td>
                   </tr>

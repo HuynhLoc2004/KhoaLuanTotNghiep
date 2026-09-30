@@ -58,8 +58,46 @@ aiRouter.get('/topics', (req: Request, res: Response) => {
 });
 
 /**
+ * Helper kiểm tra và làm sạch chuỗi chống Prompt Injection, XSS và SQL Injection
+ */
+function sanitizeInput(str: string): string {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/<[^>]*>?/gm, '') // Xóa thẻ HTML/Script tags
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/onload=|onerror=|onclick=/gi, '')
+    .trim();
+}
+
+const DANGEROUS_SQL_PATTERNS = [
+  /(\b(UNION(\s+ALL)?|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC|EXECUTE)\b\s+)/i,
+  /(--|\/\*|\*\/|;|\bOR\b\s+['"\d\w]+\s*=\s*['"\d\w]+)/i
+];
+
+function containsDangerousInjection(str: string): boolean {
+  if (!str) return false;
+  // Kiểm tra pattern SQL injection nguy hiểm
+  for (const pattern of DANGEROUS_SQL_PATTERNS) {
+    if (pattern.test(str)) return true;
+  }
+  return false;
+}
+
+/**
+ * Tự động nhận diện provider từ tên model
+ */
+function inferProviderFromModelName(name: string): 'gemini' | 'openai' | 'custom' {
+  const lower = (name || '').toLowerCase().trim();
+  if (lower.startsWith('gpt') || lower.startsWith('o1') || lower.startsWith('o3') || lower.startsWith('chatgpt')) {
+    return 'openai';
+  }
+  return 'gemini';
+}
+
+/**
  * POST /api/ai/chat
- * Endpoint chính cho du khách tương tác với Trợ lý AI (Có kiểm soát chống spam)
+ * Endpoint chính cho du khách tương tác với Trợ lý AI (Có kiểm soát chống spam & lọc Injection)
  */
 aiRouter.post('/chat', async (req: Request, res: Response) => {
   try {
@@ -69,14 +107,31 @@ aiRouter.post('/chat', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Nội dung câu hỏi không được để trống.' });
     }
 
-    if (message.length > 1000) {
-      return res.status(400).json({ error: 'Câu hỏi vượt quá giới hạn 1000 ký tự. Vui lòng rút gọn nội dung.' });
+    if (message.length > 500) {
+      return res.status(400).json({ error: 'Câu hỏi vượt quá giới hạn 500 ký tự. Vui lòng rút gọn nội dung.' });
+    }
+
+    // Làm sạch câu hỏi, loại bỏ script và mã độc hại
+    const cleanMessage = sanitizeInput(message);
+    if (!cleanMessage) {
+      return res.status(400).json({ error: 'Nội dung câu hỏi chứa ký tự không hợp lệ.' });
     }
 
     // Lấy IP của người gửi để chống spam
     const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1';
 
-    const result = await executeAIChat(message.trim(), topic, history, clientIp);
+    // Làm sạch topic
+    const safeTopic = ['general', 'artifacts', 'rooms', 'tickets_info', 'contact_admin'].includes(topic) ? topic : 'general';
+
+    // Làm sạch history (chống payload injection qua mảng lịch sử)
+    const safeHistory: Array<{ role: 'model' | 'user'; text: string }> = Array.isArray(history)
+      ? history.slice(-6).map((h: any) => ({
+          role: (h?.role === 'model' ? 'model' : 'user') as 'model' | 'user',
+          text: sanitizeInput(String(h?.text || '')).slice(0, 500)
+        }))
+      : [];
+
+    const result = await executeAIChat(cleanMessage, safeTopic, safeHistory, clientIp);
 
     res.json(result);
   } catch (err: any) {
@@ -100,11 +155,19 @@ aiRouter.post('/contact-admin', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Vui lòng nhập nội dung cần liên hệ Ban Quản lý.' });
     }
 
+    const cleanMsg = sanitizeInput(message);
+    if (!cleanMsg) {
+      return res.status(400).json({ error: 'Nội dung tin nhắn không hợp lệ.' });
+    }
+
+    const cleanName = sanitizeInput(String(visitorName || '')).slice(0, 80) || 'Khách tham quan';
+    const cleanContact = sanitizeInput(String(visitorContact || '')).slice(0, 100);
+
     const result = await submitVisitorInquiryToAdmin({
-      visitorName: visitorName ? String(visitorName).trim() : 'Khách tham quan',
-      visitorContact: visitorContact ? String(visitorContact).trim() : '',
-      message: message.trim(),
-      topic
+      visitorName: cleanName,
+      visitorContact: cleanContact,
+      message: cleanMsg,
+      topic: sanitizeInput(String(topic || 'contact_admin'))
     });
 
     res.json(result);
@@ -144,14 +207,13 @@ aiRouter.get('/settings', authenticate, requireAdmin, async (req: AuthRequest, r
 
 /**
  * PUT /api/ai/settings
- * Cập nhật cấu hình Trợ lý AI & Model động (Chỉ dành cho Quản trị viên)
+ * Cập nhật cấu hình Trợ lý AI & Model động (Chỉ dành cho Quản trị viên, có kiểm tra Injection chặt chẽ)
  */
 aiRouter.put('/settings', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const current = await getAISettings();
     const {
       isActive,
-      provider,
       modelName,
       apiKey,
       temperature,
@@ -163,32 +225,90 @@ aiRouter.put('/settings', authenticate, requireAdmin, async (req: AuthRequest, r
 
     const updateData: any = {};
 
-    if (typeof isActive === 'boolean') updateData.isActive = isActive;
-    if (provider && ['gemini', 'openai', 'custom'].includes(provider)) updateData.provider = provider;
-    if (modelName && typeof modelName === 'string') updateData.modelName = modelName.trim();
-
-    // Chỉ cập nhật apiKey nếu người dùng gõ chuỗi mới (không phải chuỗi mask)
-    if (typeof apiKey === 'string' && apiKey.trim() && !apiKey.includes('****')) {
-      updateData.apiKey = apiKey.trim();
-    } else if (apiKey === '') {
-      // Cho phép xóa key để dùng env fallback
-      updateData.apiKey = '';
+    if (typeof isActive === 'boolean') {
+      updateData.isActive = isActive;
     }
 
-    if (typeof temperature === 'number' && temperature >= 0 && temperature <= 1) {
-      updateData.temperature = temperature;
+    // Validation Tên Model (Chống Injection)
+    if (modelName !== undefined) {
+      if (typeof modelName !== 'string' || !modelName.trim()) {
+        return res.status(400).json({ error: 'Tên mô hình AI không được để trống.' });
+      }
+      const trimmedModel = modelName.trim();
+      // Chỉ chấp nhận ký tự an toàn chuẩn identifier: a-z, A-Z, 0-9, ., -, _, /, :
+      const MODEL_REGEX = /^[a-zA-Z0-9._\-\/:]{2,80}$/;
+      if (!MODEL_REGEX.test(trimmedModel) || containsDangerousInjection(trimmedModel)) {
+        return res.status(400).json({
+          error: 'Tên mô hình AI không hợp lệ. Chỉ cho phép chữ cái, chữ số, dấu chấm (.), gạch ngang (-) và gạch dưới (_) từ 2 đến 80 ký tự.'
+        });
+      }
+      updateData.modelName = trimmedModel;
+      updateData.provider = inferProviderFromModelName(trimmedModel);
     }
-    if (typeof systemPrompt === 'string') {
-      updateData.systemPrompt = systemPrompt.trim();
+
+    // Validation API Key (Chống Injection & Token bất hợp lệ)
+    if (apiKey !== undefined) {
+      if (typeof apiKey === 'string') {
+        const trimmedKey = apiKey.trim();
+        if (trimmedKey && !trimmedKey.includes('****')) {
+          // Khóa API không được chứa khoảng trắng, ký tự điều khiển hay script
+          const API_KEY_REGEX = /^[A-Za-z0-9_\-\.\:\+]{6,256}$/;
+          if (!API_KEY_REGEX.test(trimmedKey) || containsDangerousInjection(trimmedKey)) {
+            return res.status(400).json({
+              error: 'Khóa API Key không hợp lệ. Vui lòng kiểm tra lại định dạng khóa của nhà cung cấp.'
+            });
+          }
+          updateData.apiKey = trimmedKey;
+        } else if (trimmedKey === '') {
+          // Cho phép xóa key để dùng env fallback của server
+          updateData.apiKey = '';
+        }
+      }
     }
-    if (typeof maxTokens === 'number' && maxTokens > 0) {
-      updateData.maxTokens = maxTokens;
+
+    // Validation Temperature
+    if (temperature !== undefined) {
+      const numTemp = Number(temperature);
+      if (isNaN(numTemp) || numTemp < 0 || numTemp > 1) {
+        return res.status(400).json({ error: 'Nhiệt độ sáng tạo (Temperature) phải là số từ 0.0 đến 1.0.' });
+      }
+      updateData.temperature = numTemp;
     }
-    if (typeof antiSpamCooldownSec === 'number' && antiSpamCooldownSec >= 1) {
-      updateData.antiSpamCooldownSec = antiSpamCooldownSec;
+
+    // Validation System Prompt
+    if (systemPrompt !== undefined) {
+      if (typeof systemPrompt === 'string') {
+        const cleanPrompt = sanitizeInput(systemPrompt);
+        if (cleanPrompt.length > 3000) {
+          return res.status(400).json({ error: 'Lời nhắc hệ thống không được vượt quá 3000 ký tự.' });
+        }
+        updateData.systemPrompt = cleanPrompt;
+      }
     }
-    if (typeof maxRequestsPerMinute === 'number' && maxRequestsPerMinute >= 1) {
-      updateData.maxRequestsPerMinute = maxRequestsPerMinute;
+
+    // Validation Giới hạn tokens & Anti-Spam
+    if (maxTokens !== undefined) {
+      const numTokens = Number(maxTokens);
+      if (isNaN(numTokens) || numTokens < 100 || numTokens > 4096) {
+        return res.status(400).json({ error: 'Giới hạn Token đầu ra phải từ 100 đến 4096.' });
+      }
+      updateData.maxTokens = numTokens;
+    }
+
+    if (antiSpamCooldownSec !== undefined) {
+      const numCooldown = Number(antiSpamCooldownSec);
+      if (isNaN(numCooldown) || numCooldown < 1 || numCooldown > 60) {
+        return res.status(400).json({ error: 'Thời gian giãn cách câu hỏi phải từ 1 đến 60 giây.' });
+      }
+      updateData.antiSpamCooldownSec = numCooldown;
+    }
+
+    if (maxRequestsPerMinute !== undefined) {
+      const numRpm = Number(maxRequestsPerMinute);
+      if (isNaN(numRpm) || numRpm < 5 || numRpm > 120) {
+        return res.status(400).json({ error: 'Giới hạn số câu hỏi mỗi phút phải từ 5 đến 120.' });
+      }
+      updateData.maxRequestsPerMinute = numRpm;
     }
 
     const updated = await saveAISettings(updateData, req.user?.username || 'Admin');
@@ -223,13 +343,14 @@ aiRouter.put('/settings', authenticate, requireAdmin, async (req: AuthRequest, r
  */
 aiRouter.post('/test-connection', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const { provider = 'gemini', modelName, apiKey } = req.body;
+    const { modelName, apiKey } = req.body;
 
     const current = await getAISettings();
     const effectiveKey = (apiKey && !apiKey.includes('****')) ? apiKey.trim() : (current.apiKey || process.env.GEMINI_API_KEY || '');
     const effectiveModel = modelName ? modelName.trim() : (current.modelName || 'gemini-2.5-flash');
+    const effectiveProvider = inferProviderFromModelName(effectiveModel);
 
-    const result = await testAIModelConnection(provider, effectiveModel, effectiveKey);
+    const result = await testAIModelConnection(effectiveProvider, effectiveModel, effectiveKey);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({
