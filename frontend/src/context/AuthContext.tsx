@@ -15,13 +15,27 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_KEY = 'museum_admin_token';
+const USER_KEY = 'museum_admin_user';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(() => {
     return typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const savedUser = localStorage.getItem(USER_KEY);
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const savedToken = localStorage.getItem(TOKEN_KEY);
+    const savedUser = localStorage.getItem(USER_KEY);
+    return Boolean(savedToken && !savedUser);
+  });
 
   // Xác minh phiên đăng nhập khi tải ứng dụng
   useEffect(() => {
@@ -37,11 +51,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (currentUser) {
           setUser(currentUser);
           setToken(savedToken);
-          if (typeof document !== 'undefined' && currentUser.role === 'admin') {
+          localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+          if (typeof document !== 'undefined' && (currentUser.role === 'admin' || currentUser.role?.includes('admin') || currentUser.permissions?.includes('*'))) {
             document.cookie = 'museum_admin_bypass=1; path=/; max-age=604800; SameSite=Lax';
           }
         } else {
           localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
           if (typeof document !== 'undefined') {
             document.cookie = 'museum_admin_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           }
@@ -53,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (err?.status === 401 || err?.status === 403) {
           console.warn('[AuthContext] Phiên đăng nhập hết hạn:', err);
           localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
           if (typeof document !== 'undefined') {
             document.cookie = 'museum_admin_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           }
@@ -82,7 +99,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Không thể xác thực thông tin tài khoản');
     }
     localStorage.setItem(TOKEN_KEY, res.token);
-    if (typeof document !== 'undefined' && res.user.role === 'admin') {
+    localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    if (typeof document !== 'undefined' && (res.user.role === 'admin' || res.user.permissions?.includes('*'))) {
       document.cookie = 'museum_admin_bypass=1; path=/; max-age=604800; SameSite=Lax';
     }
     setToken(res.token);
@@ -96,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Tài khoản của bạn không có quyền Quản trị viên (Admin) để truy cập trang này');
     }
     localStorage.setItem(TOKEN_KEY, res.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(res.user));
     if (typeof document !== 'undefined') {
       document.cookie = 'museum_admin_bypass=1; path=/; max-age=604800; SameSite=Lax';
     }
@@ -106,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 4. Đăng xuất an toàn
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     if (typeof document !== 'undefined') {
       document.cookie = 'museum_admin_bypass=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     }

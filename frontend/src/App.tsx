@@ -739,7 +739,18 @@ const AppContent: React.FC = () => {
   }
 
   // Chặn người dùng chưa đăng nhập hoặc không có quyền Admin
-  if (!user || user.role !== 'admin') {
+  const isUserAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'role-superadmin' ||
+      (user as any).roleId === 'role-superadmin' ||
+      user.permissions?.includes('*') ||
+      user.role?.toLowerCase().includes('admin') ||
+      user.role?.toLowerCase().includes('quản trị')
+    )
+  );
+
+  if (!isUserAdmin) {
     return (
       <AdminLoginPage
         onBackToHome={() => {

@@ -438,6 +438,11 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
       `, [userId, userEmail]);
       if (pgRes.rows.length > 0) {
         const u = pgRes.rows[0];
+        const isSuperAdmin = u.role_id === 'role-superadmin' || u.role_id === 'admin' || !u.role_id ||
+          (Array.isArray(u.permissions) && u.permissions.includes('*')) ||
+          (typeof u.permissions === 'string' && u.permissions.includes('*'));
+        const standardRole = isSuperAdmin ? 'admin' : (u.role_id || 'admin');
+
         return res.json({
           success: true,
           user: {
@@ -445,7 +450,9 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
             username: u.username,
             email: u.email,
             fullName: u.full_name || u.username,
-            role: u.role_name || u.role_id || 'admin',
+            role: standardRole,
+            roleName: u.role_name || 'Quản trị viên',
+            roleId: u.role_id || 'role-superadmin',
             permissions: u.permissions || ['*'],
             isActive: u.is_active
           }
