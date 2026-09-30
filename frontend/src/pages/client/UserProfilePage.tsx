@@ -202,7 +202,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
         onOpenQRScanner={onOpenQRScanner}
       />
 
-      <main style={{ flex: 1, padding: '96px 16px 60px 16px', maxWidth: 960, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <main className="client-container" style={{ flex: 1, paddingTop: '108px', paddingBottom: '64px' }}>
         {/* Nút quay lại */}
         <div style={{ marginBottom: 20 }}>
           <button
@@ -355,7 +355,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
             {/* TAB 1: THÔNG TIN TÀI KHOẢN */}
             {activeTab === 'profile' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: 24 }}>
                 {/* Cập nhật thông tin cá nhân */}
                 <div
                   style={{
@@ -549,7 +549,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 20 }}>
                     {filteredTickets.map((tk) => {
                       const statusInfo = getTicketStatusInfo(tk);
 
