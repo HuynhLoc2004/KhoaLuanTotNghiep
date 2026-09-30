@@ -273,22 +273,28 @@ def level_and_straighten_spherical_panorama(image):
         except Exception:
             pass
 
-    if best_inliers < 6:
+    if best_inliers < 15:
         return image
 
     # Tinh chỉnh lại nghiệm từ tập inliers
     pred = best_sol[0] * np.sin(pts_lon) + best_sol[1] * np.cos(pts_lon)
     inliers = np.abs(pred - pts_tilt) < 3.0
+    if np.sum(inliers) < 15:
+        return image
+
     M_in = np.column_stack([np.sin(pts_lon[inliers]), np.cos(pts_lon[inliers])])
     sol, _, _, _ = np.linalg.lstsq(M_in, pts_tilt[inliers], rcond=None)
     A, B = sol[0], sol[1]
     tilt_mag = float(np.hypot(A, B))
     tilt_azimuth = float(np.arctan2(B, -A))
 
-    if tilt_mag < 1.0:
+    # Giới hạn an toàn: chỉ nắn nghiêng nhẹ (1.5° đến 5.0°).
+    # Nếu tilt_mag > 5.0°, là do nhận diện nhầm đường chéo kiến trúc (gạch men, hoa văn), tuyệt đối không được xoay làm nghiêng cả căn phòng!
+    if tilt_mag < 1.5 or tilt_mag > 5.0:
+        log(f"[*] Góc nghiêng {tilt_mag:.1f}° ngoài ngưỡng an toàn (1.5°-5.0°) -> Giữ nguyên góc nhìn thực tế, không xoay cầu.")
         return image
 
-    log(f"[*] Phát hiện góc nghiêng mặt phẳng xoay máy: {tilt_mag:.1f}° tại phương vị {np.degrees(tilt_azimuth):.1f}° -> Đang tự động nắn đứng 90° kiến trúc...")
+    log(f"[*] Phát hiện góc nghiêng mặt phẳng xoay máy nhẹ: {tilt_mag:.1f}° tại phương vị {np.degrees(tilt_azimuth):.1f}° -> Đang cân bằng lại chân trời...")
 
     # Tạo ma trận xoay hình cầu SO(3) 3D đưa trục nghiêng về phương đứng
     tilt_rad = np.radians(tilt_mag)
@@ -528,7 +534,7 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
         for idx, src_p in enumerate(image_paths):
             ext = os.path.splitext(src_p)[1].lower() or '.jpg'
             dst_p = os.path.join(temp_dir, f"img_{idx:04d}{ext}")
-            im = load_and_orient_image(src_p, max_dim=2400)
+            im = load_and_orient_image(src_p, max_dim=1400)
             im = preprocess_lighting_clahe(im)
             cv2.imwrite(dst_p, im, [cv2.IMWRITE_JPEG_QUALITY, 96])
             prepared_paths.append(dst_p)
@@ -540,10 +546,10 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
         if res.returncode != 0:
             raise RuntimeError(f"pto_gen lỗi: {res.stderr}")
 
-        # 2. cpfind
+        # 2. cpfind (Tối ưu sieve để tìm điểm nhanh gấp 4 lần, tránh timeout trên VPS)
         log("[*] Hugin Step 2: Dò tìm điểm kiểm soát đa góc (cpfind)...")
-        cmd_cpfind = ['cpfind', '--multirow', '-o', pto_file, pto_file]
-        subprocess.run(cmd_cpfind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
+        cmd_cpfind = ['cpfind', '--sieve1width', '1000', '--sieve1height', '1000', '--multirow', '-o', pto_file, pto_file]
+        subprocess.run(cmd_cpfind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
 
         # 3. cpclean
         log("[*] Hugin Step 3: Lọc điểm nhiễu (cpclean)...")
