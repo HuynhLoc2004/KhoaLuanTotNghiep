@@ -497,10 +497,10 @@ export async function initPostgresTables(): Promise<boolean> {
         await client.query(`
           INSERT INTO ticket_types (id, code, name, price, original_price, description, benefits, is_active, display_order)
           VALUES
-          ('tt_standard', 'standard', 'Vé Người Lớn (Tiêu Chuẩn)', 30000, 30000, 'Khách tham quan công dân Việt Nam và quốc tế từ 16 đến 59 tuổi', '["Tham quan toàn bộ gian phòng di sản 360°", "Thuyết minh tự động qua mã QR", "Tự do trải nghiệm sa bàn và hiện vật"]', true, 1),
-          ('tt_student', 'student', 'Vé Học Sinh - Sinh Viên', 15000, 30000, 'Xuất trình thẻ học sinh hoặc thẻ sinh viên còn hiệu lực tại cổng vào', '["Giảm 50% giá vé tham quan tiêu chuẩn", "Tham quan toàn bộ bảo tàng", "Thuyết minh tự động qua mã QR"]', true, 2),
-          ('tt_senior', 'senior', 'Vé Người Cao Tuổi & Trẻ Em', 15000, 30000, 'Dành cho người cao tuổi từ 60 tuổi trở lên hoặc trẻ em từ 6 đến 15 tuổi', '["Ưu đãi giá vé di sản đặc biệt", "Lối đi ưu tiên tại cổng soát vé", "Hỗ trợ hướng dẫn tận tình"]', true, 3),
-          ('tt_vip', 'vip', 'Vé Tham Quan Toàn Diện VIP', 100000, 120000, 'Trải nghiệm trọn gói kèm thuyết minh viên chuyên nghiệp và tương tác 3D', '["Thuyết minh viên chuyên nghiệp đi cùng đoàn", "Trải nghiệm không gian 3D tương tác đa phương tiện", "Bản đồ di sản lưu niệm bảo tàng", "Hàng lối soát vé ưu tiên riêng biệt"]', true, 4);
+          ('tt_standard', 'standard', 'Vé Người Lớn', 30000, 30000, 'Khách tham quan từ 16 đến 59 tuổi', '[]', true, 1),
+          ('tt_student', 'student', 'Vé Học Sinh - Sinh Viên', 15000, 15000, 'Xuất trình thẻ học sinh hoặc sinh viên tại cổng', '[]', true, 2),
+          ('tt_senior', 'senior', 'Vé Trẻ Em & Người Cao Tuổi', 15000, 15000, 'Dành cho trẻ em hoặc người từ 60 tuổi trở lên', '[]', true, 3),
+          ('tt_vip', 'vip', 'Vé VIP Có Thuyết Minh', 100000, 100000, 'Bao gồm hướng dẫn viên đi cùng đoàn', '[]', true, 4);
         `);
         console.log('[PostgreSQL] Đã khởi tạo 4 loại vé tham quan mẫu chuẩn.');
       }
