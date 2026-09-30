@@ -645,21 +645,26 @@ export const Room3DReconstructionViewer: React.FC<Room3DReconstructionViewerProp
 
             {/* Trạng thái công cụ */}
             <div className="r3d-tool-status">
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#e2e8f0' }}>
-                <Cpu size={16} style={{ color: toolsStatus?.colmap ? '#34d399' : '#f87171' }} />
-                <span>Thuật toán học thuật: <strong>{toolsStatus?.colmap ? 'COLMAP SfM Sẵn sàng' : 'Chưa cài đặt COLMAP'}</strong></span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#f8fafc', fontSize: 13, fontWeight: 600 }}>
+                <Cpu size={18} style={{ color: toolsStatus?.colmap ? '#34d399' : '#f59e0b' }} />
+                <span>
+                  Động cơ học thuật:{' '}
+                  <strong style={{ color: toolsStatus?.colmap ? '#34d399' : '#fbbf24' }}>
+                    {toolsStatus?.colmap ? '✓ COLMAP SfM Sẵn Sàng' : 'COLMAP CLI (Đang kết nối Container)'}
+                  </strong>
+                </span>
               </span>
-              <span style={{ fontSize: 10, color: '#94a3b8' }}>
-                {toolsStatus?.openMVS ? 'OpenMVS: [OK]' : 'Mesh: COLMAP Native'}
+              <span style={{ fontSize: 12, color: '#94a3b8', background: 'rgba(255,255,255,0.06)', padding: '4px 10px', borderRadius: 8 }}>
+                {toolsStatus?.openMVS ? 'OpenMVS: Dense Mesh' : 'Dựng hình: SfM Point Cloud / Mesh'}
               </span>
             </div>
 
             {/* Danh sách model 3D đã tái tạo trước đó */}
             {savedModels.length > 0 && (
-              <div className="r3d-saved-models">
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="r3d-saved-models" style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <FolderOpen size={16} style={{ color: '#34d399' }} />
-                  Hoặc chọn không gian 3D đã tái tạo:
+                  Hoặc chọn nhanh không gian 3D đã lưu trước đó:
                 </label>
                 <div className="r3d-saved-list">
                   {savedModels.map((m) => (
@@ -682,33 +687,33 @@ export const Room3DReconstructionViewer: React.FC<Room3DReconstructionViewerProp
 
             <form onSubmit={handleUploadAndReconstruct}>
               <div className="r3d-form-group">
-                <label className="r3d-label">Tên Không Gian / Căn Phòng</label>
+                <label className="r3d-label">1. Tên Không Gian / Căn Phòng Bảo Tàng</label>
                 <input
                   type="text"
                   value={customRoomName}
                   onChange={(e) => setCustomRoomName(e.target.value)}
                   className="r3d-input"
-                  placeholder="Ví dụ: Gian Trưng Bày Đồ Gốm Thời Lý"
+                  placeholder="Ví dụ: Gian Trưng Bày Cổ Vật Thời Lý - Trần"
                   required
                 />
               </div>
 
               <div className="r3d-form-group">
-                <label className="r3d-label">Mô Hình Camera Khử Méo (COLMAP Camera Model)</label>
+                <label className="r3d-label">2. Mô Hình Camera Khử Méo (COLMAP Camera Model)</label>
                 <select
                   value={cameraModel}
                   onChange={(e) => setCameraModel(e.target.value)}
                   className="r3d-select"
                 >
-                  <option value="OPENCV_FISHEYE">OPENCV_FISHEYE (Khuyên dùng cho Camera góc rộng 0.5x)</option>
-                  <option value="RADIAL">RADIAL (Camera điện thoại tiêu chuẩn 1x)</option>
-                  <option value="PINHOLE">PINHOLE (Góc hẹp / Không méo quang học)</option>
+                  <option value="OPENCV_FISHEYE">🔍 OPENCV_FISHEYE (Khuyên dùng cho Camera góc rộng 0.5x điện thoại)</option>
+                  <option value="RADIAL">📷 RADIAL (Camera điện thoại tiêu chuẩn 1x)</option>
+                  <option value="PINHOLE">📐 PINHOLE (Camera không méo quang học / Góc hẹp)</option>
                 </select>
               </div>
 
               <div className="r3d-form-group">
                 <label className="r3d-label">
-                  Chọn 20–30 ảnh chụp camera 0.5x quanh phòng (Multi-view SfM)
+                  3. Tải lên 20–30 ảnh chụp camera 0.5x di chuyển quanh phòng
                 </label>
                 <div className="r3d-dropzone">
                   <input
@@ -725,18 +730,21 @@ export const Room3DReconstructionViewer: React.FC<Room3DReconstructionViewerProp
                   />
                   <label htmlFor="sfm-file-input" style={{ cursor: 'pointer', display: 'block' }}>
                     <Upload className="r3d-dropzone-icon" />
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', margin: '0 0 4px 0' }}>
-                      Bấm vào đây để chọn toàn bộ ảnh căn phòng
+                    <p style={{ fontSize: 16, fontWeight: 800, color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '0.2px' }}>
+                      Bấm vào đây để chọn toàn bộ ảnh căn phòng (20–30 ảnh)
                     </p>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                      (Định dạng JPG, PNG - Khuyến nghị 20–30 ảnh có độ gối đầu 60%)
+                    <p style={{ fontSize: 13, color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
+                      Định dạng JPG, PNG • Chụp di chuyển từng bước quanh phòng • Độ gối đầu mỗi góc ít nhất 60%
                     </p>
                   </label>
                 </div>
                 {selectedFiles.length > 0 && (
-                  <p style={{ fontSize: 12, color: '#34d399', marginTop: 8, fontWeight: 600 }}>
-                    ✓ Đã chọn {selectedFiles.length} bức ảnh
-                  </p>
+                  <div style={{ marginTop: 10, padding: '8px 14px', borderRadius: 10, background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(52, 211, 153, 0.4)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <CheckCircle2 size={16} style={{ color: '#34d399' }} />
+                    <span style={{ fontSize: 13, color: '#6ee7b7', fontWeight: 700 }}>
+                      Đã chọn sẵn sàng {selectedFiles.length} bức ảnh để nạp vào giải thuật SfM!
+                    </span>
+                  </div>
                 )}
               </div>
 
