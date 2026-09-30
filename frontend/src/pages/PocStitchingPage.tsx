@@ -553,11 +553,11 @@ function normalizePanoUrl(rawUrl: string): string {
 
     const formData = new FormData();
 
-    // Nếu chùm ảnh quá dày (>24 ảnh), tự động chắt lọc 24 góc then chốt đều đặn quanh vòng 360°
-    // Giữ nguyên ảnh đầu và ảnh cuối để khép vòng, tối ưu thời gian ghép (dưới 60s) và chống tràn RAM
+    // Giữ trọn vẹn 100% tất cả các góc ảnh người dùng đã tải lên (ví dụ 54 ảnh),
+    // không tự ý cắt giảm xuống 24 để bảo toàn mật độ chồng lấp quang học tối đa
     let targetFrames = framesToStitch;
-    if (framesToStitch.length > 24) {
-      const targetCount = 24;
+    if (framesToStitch.length > 120) {
+      const targetCount = 120;
       const step = (framesToStitch.length - 1) / (targetCount - 1);
       const chosenIndices = Array.from({ length: targetCount }, (_, i) => Math.round(i * step));
       const uniqueIndices = Array.from(new Set(chosenIndices));

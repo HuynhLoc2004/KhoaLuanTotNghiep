@@ -1160,10 +1160,10 @@ export async function runStartupDataSync() {
       const allMongoTopics = await Topic.find().lean();
       for (const mt of allMongoTopics) {
         const mId = mt._id ? mt._id.toString() : null;
-        if (mId && (mt.id || (mt as any).code)) {
+        if (mId && mt.id) {
           await pgPool.query(
-            `UPDATE topics SET mongo_id = $1 WHERE (id = $2 OR code = $3) AND (mongo_id IS NULL OR mongo_id != $1)`,
-            [mId, mt.id || '', (mt as any).code || '']
+            `UPDATE topics SET mongo_id = $1 WHERE id = $2 AND (mongo_id IS NULL OR mongo_id != $1)`,
+            [mId, mt.id]
           );
         }
       }
