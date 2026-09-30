@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import {
@@ -60,7 +61,7 @@ export const Room3DReconstructionViewer: React.FC<Room3DReconstructionViewerProp
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const orbitControlsRef = useRef<OrbitControls | null>(null);
   const fpsControlsRef = useRef<PointerLockControls | null>(null);
-  const currentModelRef = useRef<THREE.Group | null>(null);
+  const currentModelRef = useRef<THREE.Object3D | null>(null);
 
   // States
   const [activeGlbUrl, setActiveGlbUrl] = useState<string>(initialGlbUrl || '');
@@ -283,75 +284,146 @@ export const Room3DReconstructionViewer: React.FC<Room3DReconstructionViewerProp
       currentModelRef.current = null;
     }
 
-    const loader = new GLTFLoader();
-    loader.load(
-      activeGlbUrl,
-      (gltf) => {
-        const model = gltf.scene;
+    const isPly = activeGlbUrl.toLowerCase().split('?')[0].endsWith('.ply');
 
-        // Tự động căn giữa và đưa về kích thước phòng thực tế
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
+    if (isPly) {
+      const plyLoader = new PLYLoader();
+      plyLoader.load(
+        activeGlbUrl,
+        (geometry) => {
+          geometry.computeVertexNormals();
+          const hasColors = geometry.hasAttribute('color');
+          const pcdMaterial = new THREE.PointsMaterial({
+            size: 0.07,
+            vertexColors: hasColors,
+            sizeAttenuation: true,
+            color: hasColors ? 0xffffff : 0x38bdf8
+          });
 
-        model.position.x -= center.x;
-        model.position.y -= center.y;
-        model.position.z -= center.z;
+          const points = new THREE.Points(geometry, pcdMaterial);
+          geometry.computeBoundingBox();
+          const box = geometry.boundingBox || new THREE.Box3();
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
 
-        // Chuẩn hóa tỷ lệ nếu quá lớn hoặc quá nhỏ
-        const maxDim = Math.max(size.x, size.y, size.z);
-        if (maxDim > 50) {
-          const s = 20 / maxDim;
-          model.scale.set(s, s, s);
-        } else if (maxDim < 2) {
-          const s = 10 / maxDim;
-          model.scale.set(s, s, s);
-        }
+          points.position.x -= center.x;
+          points.position.y -= center.y;
+          points.position.z -= center.z;
 
-        // Tối ưu vật liệu nhìn hai mặt (DoubleSide)
-        model.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            if (mesh.material) {
-              if (Array.isArray(mesh.material)) {
-                mesh.material.forEach((m) => {
-                  m.side = THREE.DoubleSide;
-                });
-              } else {
-                mesh.material.side = THREE.DoubleSide;
-              }
+          const maxDim = Math.max(size.x, size.y, size.z);
+          if (maxDim > 50) {
+            const s = 20 / maxDim;
+            points.scale.set(s, s, s);
+          } else if (maxDim < 2 && maxDim > 0) {
+            const s = 10 / maxDim;
+            points.scale.set(s, s, s);
+          }
+
+          sceneRef.current?.add(points);
+          currentModelRef.current = points;
+
+          if (cameraRef.current) {
+            cameraRef.current.position.set(0, 0.5, 0.2);
+            cameraRef.current.lookAt(0, 0.5, -2);
+            if (orbitControlsRef.current) {
+              orbitControlsRef.current.target.set(0, 0.5, 0);
+              orbitControlsRef.current.update();
             }
           }
-        });
 
-        sceneRef.current?.add(model);
-        currentModelRef.current = model;
-
-        // Đặt camera nhìn vào phòng
-        if (cameraRef.current) {
-          cameraRef.current.position.set(0, 1.5, Math.max(size.z, 6));
-          cameraRef.current.lookAt(0, 0, 0);
-          if (orbitControlsRef.current) {
-            orbitControlsRef.current.target.set(0, 0, 0);
-            orbitControlsRef.current.update();
+          setLoading(false);
+        },
+        (xhr) => {
+          if (xhr.total > 0) {
+            const p = Math.round((xhr.loaded / xhr.total) * 100);
+            setLoadPercent(p);
+            setStatusText(`Đang nạp đám mây điểm không gian... (${p}%)`);
           }
+        },
+        (err) => {
+          console.error('Lỗi nạp PLY:', err);
+          setErrorMsg('Không thể nạp đám mây điểm PLY. Hãy kiểm tra kết nối.');
+          setLoading(false);
         }
+      );
+    } else {
+      const loader = new GLTFLoader();
+      loader.load(
+        activeGlbUrl,
+        (gltf) => {
+          const model = gltf.scene;
 
-        setLoading(false);
-      },
-      (xhr) => {
-        if (xhr.total > 0) {
-          const p = Math.round((xhr.loaded / xhr.total) * 100);
-          setLoadPercent(p);
-          setStatusText(`Đang nạp 3D... (${p}%)`);
+          // Tự động căn giữa và đưa về kích thước phòng thực tế
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+
+          model.position.x -= center.x;
+          model.position.y -= center.y;
+          model.position.z -= center.z;
+
+          // Chuẩn hóa tỷ lệ nếu quá lớn hoặc quá nhỏ
+          const maxDim = Math.max(size.x, size.y, size.z);
+          if (maxDim > 50) {
+            const s = 20 / maxDim;
+            model.scale.set(s, s, s);
+          } else if (maxDim < 2 && maxDim > 0) {
+            const s = 10 / maxDim;
+            model.scale.set(s, s, s);
+          }
+
+          // Xử lý cả Mesh lẫn Points trong file GLB
+          model.traverse((child) => {
+            if ((child as THREE.Points).isPoints) {
+              const pts = child as THREE.Points;
+              pts.material = new THREE.PointsMaterial({
+                size: 0.07,
+                vertexColors: true,
+                sizeAttenuation: true
+              });
+            } else if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh;
+              if (mesh.material) {
+                if (Array.isArray(mesh.material)) {
+                  mesh.material.forEach((m) => {
+                    m.side = THREE.DoubleSide;
+                  });
+                } else {
+                  mesh.material.side = THREE.DoubleSide;
+                }
+              }
+            }
+          });
+
+          sceneRef.current?.add(model);
+          currentModelRef.current = model;
+
+          // Đặt camera đứng ở giữa phòng nhìn ra
+          if (cameraRef.current) {
+            cameraRef.current.position.set(0, 0.8, 0.5);
+            cameraRef.current.lookAt(0, 0.8, -2);
+            if (orbitControlsRef.current) {
+              orbitControlsRef.current.target.set(0, 0.8, 0);
+              orbitControlsRef.current.update();
+            }
+          }
+
+          setLoading(false);
+        },
+        (xhr) => {
+          if (xhr.total > 0) {
+            const p = Math.round((xhr.loaded / xhr.total) * 100);
+            setLoadPercent(p);
+            setStatusText(`Đang nạp không gian 3D... (${p}%)`);
+          }
+        },
+        (err) => {
+          console.error('Lỗi nạp GLB:', err);
+          setErrorMsg('Không thể nạp mô hình 3D. Hãy kiểm tra lại file hoặc mạng kết nối.');
+          setLoading(false);
         }
-      },
-      (err) => {
-        console.error('Lỗi nạp GLB:', err);
-        setErrorMsg('Không thể nạp mô hình 3D. Hãy kiểm tra lại file hoặc mạng kết nối.');
-        setLoading(false);
-      }
-    );
+      );
+    }
   }, [activeGlbUrl]);
 
   // 5. Gửi 20-30 ảnh sang Backend để chạy COLMAP + OpenMVS

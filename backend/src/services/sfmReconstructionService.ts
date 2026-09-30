@@ -258,7 +258,7 @@ export async function listReconstructedModels(): Promise<Array<{ filename: strin
     if (!fs.existsSync(ROOMS_3D_DIR)) return result;
     const files = fs.readdirSync(ROOMS_3D_DIR);
     for (const f of files) {
-      if (f.endsWith('.glb') || f.endsWith('.obj')) {
+      if (f.endsWith('.glb') || f.endsWith('.obj') || f.endsWith('.ply')) {
         const fullPath = path.join(ROOMS_3D_DIR, f);
         const stats = fs.statSync(fullPath);
         result.push({

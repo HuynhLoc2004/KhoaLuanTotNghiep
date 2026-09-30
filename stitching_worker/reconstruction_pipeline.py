@@ -387,8 +387,8 @@ def run_pipeline(
                 final_obj = os.path.join(work_dir, f)
                 break
     else:
-        # Fallback khi máy chỉ có COLMAP (Chuyển sparse/dense model sang PLY và tạo mesh qua Trimesh)
-        emit_progress(6, total_steps, "COLMAP Model Converter", "Đang xuất đám mây điểm PLY từ COLMAP...", 75)
+        # Xuất đám mây điểm PLY thực tế từ COLMAP có màu sắc ảnh
+        emit_progress(6, total_steps, "COLMAP Model Converter", "Đang xuất đám mây điểm PLY có màu từ COLMAP...", 75)
         dense_ply = os.path.join(work_dir, "points.ply")
         conv_cmd = [
             colmap_bin, "model_converter",
@@ -398,23 +398,32 @@ def run_pipeline(
         ]
         run_command(conv_cmd, "COLMAP Model Converter", cwd=work_dir)
 
-        # Dùng Trimesh tạo lưới bao lồi / Poisson mesh
+        # Lưu bản PLY có màu trực tiếp vào thư mục đầu ra
+        output_ply_path = output_glb_path.replace(".glb", ".ply")
+        shutil.copy2(dense_ply, output_ply_path)
+        log(f"[✓] Đã lưu đám mây điểm 3D PLY có màu gốc: {output_ply_path}")
+
+        # Đóng gói sang GLB Point Cloud giữ nguyên màu sắc của từng điểm ảnh
         import trimesh
         pcd = trimesh.load(dense_ply)
-        hull = pcd.convex_hull if hasattr(pcd, 'convex_hull') else pcd
-        final_obj = os.path.join(work_dir, "scene_mesh.obj")
-        hull.export(final_obj)
+        try:
+            glb_data = trimesh.exchange.gltf.export_glb(pcd)
+            with open(output_glb_path, 'wb') as f:
+                f.write(glb_data)
+            log(f"[✓] Đã xuất thành công GLB Point Cloud có màu: {output_glb_path}")
+            final_obj = None
+        except Exception as e:
+            log(f"[WARN] Lỗi đóng gói GLB từ point cloud: {e}")
+            final_obj = dense_ply
 
     # =========================================================================
-    # STEP 8: Chuyển đổi sang GLB hoàn chỉnh
+    # STEP 8: Đảm bảo file GLB hoàn chỉnh
     # =========================================================================
-    emit_progress(8, total_steps, "Tối ưu hóa GLB", "Đang đóng gói file GLB tương thích WebGL Three.js...", 98)
-    success = convert_obj_to_glb(final_obj, output_glb_path)
-    if not success or not os.path.exists(output_glb_path):
-        # Nếu trimesh không xuất được GLB, copy trực tiếp OBJ làm fallback
-        fallback_obj_dest = output_glb_path.replace(".glb", ".obj")
-        shutil.copy2(final_obj, fallback_obj_dest)
-        output_glb_path = fallback_obj_dest
+    if final_obj and (not os.path.exists(output_glb_path) or os.path.getsize(output_glb_path) == 0):
+        emit_progress(8, total_steps, "Tối ưu hóa GLB", "Đang đóng gói file GLB tương thích WebGL Three.js...", 98)
+        success = convert_obj_to_glb(final_obj, output_glb_path)
+        if not success or not os.path.exists(output_glb_path):
+            shutil.copy2(final_obj, output_glb_path)
 
     elapsed = time.time() - start_time
     file_size = os.path.getsize(output_glb_path) if os.path.exists(output_glb_path) else 0
