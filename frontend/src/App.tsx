@@ -11,7 +11,7 @@ import { AdminArtifactsPage } from './pages/admin/AdminArtifactsPage';
 import { PublicArtifactView } from './pages/public/PublicArtifactView';
 import { MuseumRoom, AdminTab, Artifact, TopicItem } from './types';
 import { api } from './services/api';
-import { Loader2, AlertCircle, Landmark, RefreshCw, QrCode } from 'lucide-react';
+import { Loader2, AlertCircle, Landmark, RefreshCw, QrCode, Bot } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -34,6 +34,7 @@ import { ClientGuidePage } from './pages/client/ClientGuidePage';
 import { ClientLoginOtpModal } from './components/client/ClientLoginOtpModal';
 import { QRScannerModal } from './components/client/QRScannerModal';
 import { GaussianSplatRoomViewer } from './components/GaussianSplatRoomViewer';
+import { ClientAIAssistantModal } from './components/client/ClientAIAssistantModal';
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -52,14 +53,15 @@ const AppContent: React.FC = () => {
   const [isLagging, setIsLagging] = useState(false);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
 
   // Client Portal luôn hoạt động ở chế độ Dark Mode di sản sang trọng (loại bỏ hoàn toàn Light Mode)
   const clientTheme = 'dark';
-  const toggleClientTheme = () => {};
+  const toggleClientTheme = () => { };
   useEffect(() => {
     try {
       localStorage.setItem('client_theme_v2', 'dark');
-    } catch {}
+    } catch { }
   }, []);
 
   // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'guide'
@@ -70,7 +72,7 @@ const AppContent: React.FC = () => {
       if (p === 'rooms' || p === 'artifacts' || p === 'guide') {
         return p;
       }
-    } catch {}
+    } catch { }
     return 'home';
   });
 
@@ -79,7 +81,7 @@ const AppContent: React.FC = () => {
     try {
       const url = page === 'home' ? '/' : `?page=${page}`;
       window.history.pushState({}, '', url);
-    } catch {}
+    } catch { }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -108,7 +110,7 @@ const AppContent: React.FC = () => {
         const seg = path.split('/artifact/')[1];
         if (seg) return seg.split('/')[0];
       }
-    } catch {}
+    } catch { }
     return null;
   });
 
@@ -216,11 +218,11 @@ const AppContent: React.FC = () => {
       }
       api.getRooms().then((data) => {
         if (data) setRooms(data);
-      }).catch(() => {});
+      }).catch(() => { });
     };
 
     const handleArtifactsSync = () => {
-      api.getArtifacts().then((data) => setArtifacts(data || [])).catch(() => {});
+      api.getArtifacts().then((data) => setArtifacts(data || [])).catch(() => { });
     };
 
     window.addEventListener('museum:rooms_updated', handleRoomsSync);
@@ -256,7 +258,7 @@ const AppContent: React.FC = () => {
         } else {
           setClientActivePage('home');
         }
-      } catch {}
+      } catch { }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -448,7 +450,7 @@ const AppContent: React.FC = () => {
           setIsAdminRoute(true);
           try {
             window.history.pushState({}, '', '/admin');
-          } catch {}
+          } catch { }
         }}
       />
     );
@@ -463,7 +465,7 @@ const AppContent: React.FC = () => {
           setPublicArtifactId(null);
           try {
             window.history.replaceState({}, '', '/');
-          } catch {}
+          } catch { }
         }}
       />
     );
@@ -481,11 +483,12 @@ const AppContent: React.FC = () => {
             url.searchParams.delete('splat');
             url.searchParams.delete('3dgs');
             window.history.pushState({}, '', url.pathname + url.search);
-          } catch {}
+          } catch { }
         }}
       />
     );
   }
+
 
   // Khách tham quan mở Tour 360 từ Trang chủ hoặc quét mã QR gian phòng
   if (publicTourRoom) {
@@ -497,7 +500,7 @@ const AppContent: React.FC = () => {
           setPublicTourRoom(null);
           try {
             window.history.replaceState({}, '', '/');
-          } catch {}
+          } catch { }
         }}
         onNavigateRoom={(room) => setPublicTourRoom(room)}
       />
@@ -512,7 +515,7 @@ const AppContent: React.FC = () => {
           setIsAdminRoute(true);
           try {
             window.history.pushState({}, '', '/admin');
-          } catch {}
+          } catch { }
         }}
         onSelectRoomForTour={(room) => {
           setPublicTourRoom(room);
@@ -521,7 +524,7 @@ const AppContent: React.FC = () => {
           setPublicArtifactId(artifactId);
           try {
             window.history.pushState({}, '', `?artifact=${artifactId}`);
-          } catch {}
+          } catch { }
         }}
         onNavigatePage={handleNavigateClientPage}
         onOpenQRScanner={() => setIsQRScannerOpen(true)}
@@ -542,7 +545,7 @@ const AppContent: React.FC = () => {
             setIsAdminRoute(true);
             try {
               window.history.pushState({}, '', '/admin');
-            } catch {}
+            } catch { }
           }}
           onOpenQRScanner={() => setIsQRScannerOpen(true)}
         />
@@ -555,7 +558,7 @@ const AppContent: React.FC = () => {
             setPublicArtifactId(artifactId);
             try {
               window.history.pushState({}, '', `?artifact=${artifactId}`);
-            } catch {}
+            } catch { }
           }}
           onNavigateHome={() => handleNavigateClientPage('home')}
           onNavigatePage={handleNavigateClientPage}
@@ -566,7 +569,7 @@ const AppContent: React.FC = () => {
             setIsAdminRoute(true);
             try {
               window.history.pushState({}, '', '/admin');
-            } catch {}
+            } catch { }
           }}
           onOpenQRScanner={() => setIsQRScannerOpen(true)}
         />
@@ -584,7 +587,7 @@ const AppContent: React.FC = () => {
             setIsAdminRoute(true);
             try {
               window.history.pushState({}, '', '/admin');
-            } catch {}
+            } catch { }
           }}
           onSelectRoom360={(roomId) => {
             const room = rooms.find((r) => r.id === roomId || r.code === roomId);
@@ -621,24 +624,40 @@ const AppContent: React.FC = () => {
             setPublicArtifactId(artifactId);
             try {
               window.history.pushState({}, '', `?artifact=${artifactId}`);
-            } catch {}
+            } catch { }
           }}
           onSelectRoomForTour={(room) => {
             setPublicTourRoom(room);
           }}
         />
 
-        {/* Nút nổi Quét QR nhanh ở góc dưới màn hình */}
+        {/* Nút nổi Trợ lý Di sản Ảo AI ở góc dưới màn hình */}
         <button
           type="button"
-          className="client-floating-qr-btn"
-          onClick={() => setIsQRScannerOpen(true)}
-          title={t('nav.scanQrTooltip', 'Quét mã QR hiện vật tại bảo tàng bằng Camera')}
-          aria-label={t('nav.scanQr', 'Quét QR')}
+          className="client-floating-ai-btn"
+          onClick={() => setIsAIAssistantOpen(true)}
+          title="Trò chuyện và hỏi đáp cùng Trợ lý Di sản Ảo AI"
+          aria-label="Trợ lý AI"
         >
-          <QrCode size={20} />
-          <span className="client-floating-qr-label">{t('nav.scanQr', 'Quét QR')}</span>
+          <div className="client-floating-ai-icon-wrap">
+            <Bot size={20} />
+            <span className="client-floating-ai-pulse" />
+          </div>
+          <span className="client-floating-ai-label">Trợ lý AI</span>
         </button>
+
+        {/* Cửa sổ Trợ lý Di sản Ảo AI */}
+        <ClientAIAssistantModal
+          isOpen={isAIAssistantOpen}
+          onClose={() => setIsAIAssistantOpen(false)}
+          allRooms={rooms}
+          onOpenRoomTour={(roomId) => {
+            const targetRoom = rooms.find((r) => r.id === roomId);
+            if (targetRoom) {
+              setPublicTourRoom(targetRoom);
+            }
+          }}
+        />
       </>
     );
   }
@@ -714,7 +733,7 @@ const AppContent: React.FC = () => {
           setIsAdminRoute(false);
           try {
             window.history.replaceState({}, '', '/');
-          } catch {}
+          } catch { }
         }}
       />
     );

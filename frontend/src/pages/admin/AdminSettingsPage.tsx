@@ -34,8 +34,10 @@ import {
   Landmark,
   Lock,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Bot
 } from 'lucide-react';
+import { AdminAIAssistantSettingsTab } from '../../components/admin/AdminAIAssistantSettingsTab';
 
 const DEFAULT_MUSEUM_TITLE = 'Hệ Thống Đang Nâng Cấp & Bảo Trì';
 const DEFAULT_MUSEUM_MESSAGE =
@@ -66,7 +68,7 @@ export const AdminSettingsPage: React.FC = () => {
   const { setLocalMaintenance } = useMaintenance();
   const { t } = useClientTranslation();
 
-  const [settingsTab, setSettingsTab] = useState<'branding' | 'maintenance'>('branding');
+  const [settingsTab, setSettingsTab] = useState<'branding' | 'maintenance' | 'ai_assistant'>('branding');
   const [brandingForm, setBrandingForm] = useState<SystemBranding>(branding);
   const [savingBranding, setSavingBranding] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -369,7 +371,9 @@ export const AdminSettingsPage: React.FC = () => {
               <p className="settings-header-desc">
                 {settingsTab === 'branding'
                   ? t('settings.descBranding', 'Quản lý danh tính, logo, biểu trưng và thông tin liên hệ đa bảo tàng. Tự động đồng bộ 100% dữ liệu thật trên toàn hệ thống.')
-                  : t('settings.descMaintenance', 'Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.')}
+                  : settingsTab === 'maintenance'
+                    ? t('settings.descMaintenance', 'Quản lý trạng thái trực tuyến của cổng tham quan 360 và giám sát hạ tầng máy chủ.')
+                    : 'Quản lý mô hình AI động, khóa API, lời nhắc và kiểm soát tốc độ cho Trợ lý Di sản Ảo.'}
               </p>
             </div>
           </div>
@@ -431,6 +435,16 @@ export const AdminSettingsPage: React.FC = () => {
             <SlidersHorizontal size={16} />
             <span className="tab-label-desktop">{t('settings.tabMaintenance', 'Vận Hành & Bảo Trì Hệ Thống')}</span>
             <span className="tab-label-short">{t('settings.tabMaintenanceShort', 'Vận Hành & Bảo Trì')}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSettingsTab('ai_assistant')}
+            className={`btn settings-tab-btn ${settingsTab === 'ai_assistant' ? 'btn-primary' : 'btn-secondary'}`}
+          >
+            <Bot size={16} />
+            <span className="tab-label-desktop">Trợ Lý AI & Quản Lý Model</span>
+            <span className="tab-label-short">Trợ Lý AI</span>
           </button>
         </div>
 
@@ -972,7 +986,7 @@ export const AdminSettingsPage: React.FC = () => {
               </div>
             </div>
           </div>
-        ) : (
+        ) : settingsTab === 'maintenance' ? (
           /* TAB 2: VẬN HÀNH & BẢO TRÌ HỆ THỐNG */
           <>
         {/* 4 THẺ METRICS / TỔNG QUAN HỆ THỐNG */}
@@ -1854,6 +1868,9 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
         </div>
         </>
+        ) : (
+          /* TAB 3: TRỢ LÝ AI & QUẢN TRỊ MODEL ĐỘNG */
+          <AdminAIAssistantSettingsTab />
         )}
       </div>
     </div>

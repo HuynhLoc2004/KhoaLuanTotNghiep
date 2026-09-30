@@ -416,4 +416,48 @@ export interface FloorPlanMap {
   active: boolean;
 }
 
+export interface AISettings {
+  id: string;
+  isActive: boolean;
+  provider: 'gemini' | 'openai' | 'custom';
+  modelName: string;
+  apiKeyMasked?: string;
+  hasApiKey?: boolean;
+  apiKey?: string;
+  temperature: number;
+  systemPrompt: string;
+  maxTokens: number;
+  antiSpamCooldownSec: number;
+  maxRequestsPerMinute: number;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface AIChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  createdAt: string;
+  suggestedQuestions?: string[];
+  relatedRooms?: Array<{ id: string; name: string; tourUrl?: string }>;
+  relatedArtifacts?: Array<{ id: string; name: string; period?: string; room?: string; model3dUrl?: string }>;
+}
+
+export interface AIChatResponse {
+  reply: string;
+  topic: string;
+  modelUsed: string;
+  suggestedQuestions: string[];
+  relatedRooms: Array<{ id: string; name: string; tourUrl?: string }>;
+  relatedArtifacts: Array<{ id: string; name: string; period?: string; room?: string; model3dUrl?: string }>;
+}
+
+export interface AITopicOption {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+}
+
+
 

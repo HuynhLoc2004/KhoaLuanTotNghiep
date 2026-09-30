@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AISettings, AIChatResponse, AITopicOption } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -798,7 +798,96 @@ export const api = {
     });
     const json = await safeJson(res, 'Không thể xóa tài khoản');
     if (!json.success) throw new Error(json.message || 'Lỗi xóa người dùng');
-  }
+  },
 
+  // ===================== TRỢ LÝ AI & QUẢN LÝ MODEL =====================
+  async getAITopics(): Promise<AITopicOption[]> {
+    try {
+      const res = await fetch(`${API_BASE}/ai/topics`);
+      const json = await safeJson(res);
+      return json.topics || [];
+    } catch {
+      return [
+        { id: 'artifacts', label: 'Hiện vật & Cổ vật', description: 'Tra cứu cổ vật và xem 3D', icon: 'Crown' },
+        { id: 'rooms', label: 'Không gian 360°', description: 'Khám phá các phòng trưng bày', icon: 'Compass' },
+        { id: 'tickets_info', label: 'Vé & Tham quan', description: 'Giờ mở cửa, giá vé, di chuyển', icon: 'Ticket' },
+        { id: 'general', label: 'Hỏi đáp tự do', description: 'Lịch sử, văn hóa và thông tin chung', icon: 'Sparkles' },
+        { id: 'contact_admin', label: 'Liên hệ Ban Quản lý', description: 'Kết nối trực tiếp Ban Quản lý', icon: 'Headphones' }
+      ];
+    }
+  },
+
+  async sendAIChat(
+    message: string,
+    topic: string = 'general',
+    history: Array<{ role: 'user' | 'model'; text: string }> = []
+  ): Promise<AIChatResponse> {
+    const res = await fetch(`${API_BASE}/ai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, topic, history })
+    });
+    const json = await safeJson(res, 'Trợ lý AI chưa thể phản hồi lúc này');
+    if (!res.ok) {
+      throw new Error(json.error || json.message || 'Lỗi gửi tin nhắn đến Trợ lý AI');
+    }
+    return json;
+  },
+
+  async sendAIContactAdmin(data: {
+    visitorName: string;
+    visitorContact: string;
+    message: string;
+    topic?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${API_BASE}/ai/contact-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể gửi tin nhắn đến Ban Quản lý');
+    if (!res.ok) {
+      throw new Error(json.error || json.message || 'Lỗi gửi tin nhắn');
+    }
+    return json;
+  },
+
+  async getAISettings(): Promise<AISettings> {
+    const res = await fetch(`${API_BASE}/ai/settings?_t=${Date.now()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải cấu hình Trợ lý AI');
+    if (!res.ok) {
+      throw new Error(json.error || 'Lỗi tải cấu hình AI');
+    }
+    return json;
+  },
+
+  async updateAISettings(settings: Partial<AISettings>): Promise<{ success: boolean; message: string; settings: AISettings }> {
+    const res = await fetch(`${API_BASE}/ai/settings`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(settings)
+    });
+    const json = await safeJson(res, 'Không thể cập nhật cấu hình Trợ lý AI');
+    if (!res.ok) {
+      throw new Error(json.error || 'Lỗi cập nhật cấu hình AI');
+    }
+    return json;
+  },
+
+  async testAIConnection(data: {
+    provider?: string;
+    modelName?: string;
+    apiKey?: string;
+  }): Promise<{ success: boolean; latencyMs: number; message: string; responseSnippet?: string }> {
+    const res = await fetch(`${API_BASE}/ai/test-connection`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể kiểm tra kết nối Model AI');
+    return json;
+  }
 };
 
