@@ -5454,4 +5454,24 @@
   }
 }
 
+/* Đảm bảo toàn bộ Dropdown Select và Option trên trang Admin hiển thị rõ nét chữ, không bị trắng nền mất chữ */
+.admin-content select,
+.admin-select {
+  color-scheme: dark !important;
+  background-color: #1c1917 !important;
+  color: #f8fafc !important;
+}
+
+.admin-content select option,
+.admin-select option,
+select option {
+  background-color: #1c1917 !important;
+  color: #f8fafc !important;
+}
+
+.admin-date-input {
+  color-scheme: dark !important;
+}
+
+
 

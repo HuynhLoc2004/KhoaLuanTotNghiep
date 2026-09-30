@@ -108,13 +108,23 @@ export const AdminUsersPage: React.FC = () => {
     }
   };
 
+  // Lọc nhanh tức thời (Debounced 250ms)
   useEffect(() => {
-    fetchUsers(1, pagination.limit);
-  }, [roleFilter, statusFilter]);
+    const timer = setTimeout(() => {
+      fetchUsers(1, pagination.limit);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchTerm, roleFilter, statusFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchUsers(1, pagination.limit);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setRoleFilter('all');
+    setStatusFilter('all');
   };
 
   const handleRefresh = () => {
@@ -516,42 +526,58 @@ export const AdminUsersPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Filter size={13} style={{ color: 'var(--text-muted)' }} />
             <select
+              className="admin-select"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
               style={{
                 padding: '6px 10px',
-                background: 'var(--bg-main)',
+                background: '#1c1917',
                 border: '1px solid var(--border-color)',
                 borderRadius: 6,
-                color: 'var(--text-main)',
-                fontSize: 12.5
+                color: '#f8fafc',
+                fontSize: 12.5,
+                colorScheme: 'dark'
               }}
             >
-              <option value="all">Tất cả vai trò</option>
-              <option value="admin">Quản trị viên</option>
-              <option value="staff">Nhân viên</option>
-              <option value="client">Khách tham quan</option>
+              <option value="all" style={{ background: '#1c1917', color: '#f8fafc' }}>Tất cả vai trò</option>
+              <option value="admin" style={{ background: '#1c1917', color: '#f8fafc' }}>Quản trị viên</option>
+              <option value="staff" style={{ background: '#1c1917', color: '#f8fafc' }}>Nhân viên</option>
+              <option value="client" style={{ background: '#1c1917', color: '#f8fafc' }}>Khách tham quan</option>
             </select>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <select
+              className="admin-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{
                 padding: '6px 10px',
-                background: 'var(--bg-main)',
+                background: '#1c1917',
                 border: '1px solid var(--border-color)',
                 borderRadius: 6,
-                color: 'var(--text-main)',
-                fontSize: 12.5
+                color: '#f8fafc',
+                fontSize: 12.5,
+                colorScheme: 'dark'
               }}
             >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="locked">Tạm khóa</option>
+              <option value="all" style={{ background: '#1c1917', color: '#f8fafc' }}>Tất cả trạng thái</option>
+              <option value="active" style={{ background: '#1c1917', color: '#f8fafc' }}>Đang hoạt động</option>
+              <option value="locked" style={{ background: '#1c1917', color: '#f8fafc' }}>Tạm khóa</option>
             </select>
           </div>
+
+          {(searchTerm || roleFilter !== 'all' || statusFilter !== 'all') && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleClearFilters}
+              title="Đặt lại toàn bộ điều kiện lọc"
+              style={{ fontSize: 12, padding: '5px 10px' }}
+            >
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
       </div>
 

@@ -10,6 +10,27 @@ export const adminTicketsRouter = Router();
 // Tất cả các route bên dưới bắt buộc quyền Quản trị viên (Admin)
 adminTicketsRouter.use(authenticate, requireAdmin);
 
+function normalizeDateStr(input: string): { isoDate: string; dmyDate: string } | null {
+  if (!input) return null;
+  const s = input.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-');
+    return { isoDate: s, dmyDate: `${d}/${m}/${y}` };
+  }
+  const parts = s.split(/[/.-]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const iso = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      return { isoDate: iso, dmyDate: `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}` };
+    }
+    if (parts[2].length === 4) {
+      const iso = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      return { isoDate: iso, dmyDate: `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}` };
+    }
+  }
+  return null;
+}
+
 /**
  * GET /api/admin/tickets
  * Quản trị toàn bộ vé tham quan của bảo tàng với tốc độ truy vấn tối ưu
@@ -82,8 +103,22 @@ adminTicketsRouter.get('/', async (req: AuthRequest, res: Response) => {
       }
 
       if (visitDate && typeof visitDate === 'string' && visitDate.trim()) {
-        queryParams.push(visitDate.trim());
-        whereClauses.push(`visit_date = $${queryParams.length}`);
+        const dateInfo = normalizeDateStr(visitDate.trim());
+        if (dateInfo) {
+          queryParams.push(dateInfo.isoDate);
+          const idx = queryParams.length;
+          whereClauses.push(`(
+            DATE(visit_date) = $${idx}::date OR
+            TO_CHAR(visit_date, 'YYYY-MM-DD') = $${idx}
+          )`);
+        } else {
+          queryParams.push(`%${visitDate.trim()}%`);
+          const idx = queryParams.length;
+          whereClauses.push(`(
+            TO_CHAR(visit_date, 'YYYY-MM-DD') LIKE $${idx} OR
+            TO_CHAR(visit_date, 'DD/MM/YYYY') LIKE $${idx}
+          )`);
+        }
       }
 
       const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -168,10 +203,17 @@ adminTicketsRouter.get('/', async (req: AuthRequest, res: Response) => {
       if (status && status !== 'all') mongoQuery.status = status;
       if (ticketType && ticketType !== 'all') mongoQuery.ticketType = ticketType;
       if (visitDate && typeof visitDate === 'string' && visitDate.trim()) {
-        const start = new Date(visitDate.trim());
-        const end = new Date(visitDate.trim());
-        end.setDate(end.getDate() + 1);
-        mongoQuery.visitDate = { $gte: start, $lt: end };
+        const dateInfo = normalizeDateStr(visitDate.trim());
+        if (dateInfo) {
+          const start = new Date(`${dateInfo.isoDate}T00:00:00.000Z`);
+          const end = new Date(`${dateInfo.isoDate}T23:59:59.999Z`);
+          const localStart = new Date(new Date(`${dateInfo.isoDate}T00:00:00`).setHours(0, 0, 0, 0));
+          const localEnd = new Date(new Date(`${dateInfo.isoDate}T23:59:59`).setHours(23, 59, 59, 999));
+          mongoQuery.$or = [
+            { visitDate: { $gte: start, $lte: end } },
+            { visitDate: { $gte: localStart, $lte: localEnd } }
+          ];
+        }
       }
 
       const [mongoTickets, mongoTotal] = await Promise.all([

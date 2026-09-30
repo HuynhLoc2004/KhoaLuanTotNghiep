@@ -152,6 +152,20 @@ input, textarea, select {
   font-family: inherit;
 }
 
+select {
+  color-scheme: dark;
+}
+
+select option,
+select optgroup {
+  background-color: #1e1e1e !important;
+  color: #f8fafc !important;
+}
+
+input[type="date"] {
+  color-scheme: dark;
+}
+
 /* Global Loading & Spinning Animations (Hoạt cảnh xoay loading mượt mà toàn hệ thống) */
 @keyframes spin {
   from {

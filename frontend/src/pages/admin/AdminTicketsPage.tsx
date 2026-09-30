@@ -93,13 +93,24 @@ export const AdminTicketsPage: React.FC = () => {
     }
   };
 
+  // Thuật toán lọc nhanh tức thời (Debounced 250ms) - Tự động truy vấn ngay khi người dùng gõ hoặc chọn bộ lọc
   useEffect(() => {
-    fetchTickets(1, pagination.limit);
-  }, [statusFilter, typeFilter, dateFilter]);
+    const timer = setTimeout(() => {
+      fetchTickets(1, pagination.limit);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchTerm, statusFilter, typeFilter, dateFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchTickets(1, pagination.limit);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setDateFilter('');
   };
 
   const handleRefresh = () => {
@@ -419,59 +430,98 @@ export const AdminTicketsPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Filter size={13} style={{ color: 'var(--text-muted)' }} />
             <select
+              className="admin-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{
                 padding: '6px 10px',
-                background: 'var(--bg-main)',
+                background: '#1c1917',
                 border: '1px solid var(--border-color)',
                 borderRadius: 6,
-                color: 'var(--text-main)',
-                fontSize: 12.5
+                color: '#f8fafc',
+                fontSize: 12.5,
+                colorScheme: 'dark'
               }}
             >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="paid">Hợp lệ (Chờ vào)</option>
-              <option value="used">Đã soát vé</option>
-              <option value="cancelled">Đã hủy</option>
+              <option value="all" style={{ background: '#1c1917', color: '#f8fafc' }}>Tất cả trạng thái</option>
+              <option value="paid" style={{ background: '#1c1917', color: '#f8fafc' }}>Hợp lệ (Chờ vào)</option>
+              <option value="used" style={{ background: '#1c1917', color: '#f8fafc' }}>Đã soát vé</option>
+              <option value="cancelled" style={{ background: '#1c1917', color: '#f8fafc' }}>Đã hủy</option>
             </select>
           </div>
 
           {/* Lọc Loại vé */}
           <select
+            className="admin-select"
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             style={{
               padding: '6px 10px',
-              background: 'var(--bg-main)',
+              background: '#1c1917',
               border: '1px solid var(--border-color)',
               borderRadius: 6,
-              color: 'var(--text-main)',
-              fontSize: 12.5
+              color: '#f8fafc',
+              fontSize: 12.5,
+              colorScheme: 'dark'
             }}
           >
-            <option value="all">Tất cả loại vé</option>
-            <option value="standard">Tiêu chuẩn</option>
-            <option value="student">Học sinh - Sinh viên</option>
-            <option value="senior">Người cao tuổi</option>
-            <option value="vip">Tham quan VIP</option>
+            <option value="all" style={{ background: '#1c1917', color: '#f8fafc' }}>Tất cả loại vé</option>
+            <option value="standard" style={{ background: '#1c1917', color: '#f8fafc' }}>Tiêu chuẩn</option>
+            <option value="student" style={{ background: '#1c1917', color: '#f8fafc' }}>Học sinh – Sinh viên</option>
+            <option value="senior" style={{ background: '#1c1917', color: '#f8fafc' }}>Người cao tuổi</option>
+            <option value="vip" style={{ background: '#1c1917', color: '#f8fafc' }}>Tham quan VIP</option>
           </select>
 
           {/* Lọc Ngày tham quan */}
-          <input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            title="Lọc theo ngày tham quan"
-            style={{
-              padding: '5px 8px',
-              background: 'var(--bg-main)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 6,
-              color: 'var(--text-main)',
-              fontSize: 12.5
-            }}
-          />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <input
+              type="date"
+              className="admin-date-input"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              title="Lọc theo ngày tham quan"
+              style={{
+                padding: '6px 10px',
+                background: '#1c1917',
+                border: '1px solid var(--border-color)',
+                borderRadius: 6,
+                color: '#f8fafc',
+                fontSize: 12.5,
+                colorScheme: 'dark'
+              }}
+            />
+            {dateFilter && (
+              <button
+                type="button"
+                onClick={() => setDateFilter('')}
+                title="Bỏ lọc theo ngày"
+                style={{
+                  position: 'absolute',
+                  right: 28,
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 2
+                }}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Nút Xóa nhanh toàn bộ bộ lọc */}
+          {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || dateFilter) && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleClearFilters}
+              title="Đặt lại toàn bộ điều kiện lọc"
+              style={{ fontSize: 12, padding: '5px 10px' }}
+            >
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
       </div>
 
