@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   X,
-  Eye,
-  EyeOff,
   RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -48,13 +46,21 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [phone, setPhone] = useState<string>('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState<boolean>(false);
 
-  // Form Change Password State
-  const [oldPassword, setOldPassword] = useState<string>('');
-  const [newPassword, setNewPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [showOldPass, setShowOldPass] = useState<boolean>(false);
-  const [showNewPass, setShowNewPass] = useState<boolean>(false);
-  const [isChangingPass, setIsChangingPass] = useState<boolean>(false);
+  // Định dạng ngày tháng
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return '—';
+    }
+  };
 
   // Tải dữ liệu thật từ Backend (PostgreSQL Primary + MongoDB Mirror)
   const loadData = async () => {
@@ -106,39 +112,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
       showToast(err.message || 'Lỗi cập nhật hồ sơ', 'error');
     } finally {
       setIsUpdatingProfile(false);
-    }
-  };
-
-  // Đổi mật khẩu tài khoản
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!oldPassword || !newPassword) {
-      showToast('Vui lòng nhập mật khẩu hiện tại và mật khẩu mới', 'error');
-      return;
-    }
-    if (newPassword.length < 6) {
-      showToast('Mật khẩu mới phải có tối thiểu 6 ký tự', 'error');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showToast('Xác nhận mật khẩu mới không trùng khớp', 'error');
-      return;
-    }
-    try {
-      setIsChangingPass(true);
-      const res = await api.changePassword({
-        oldPassword,
-        newPassword,
-        confirmPassword
-      });
-      showToast(res.message || 'Đổi mật khẩu thành công', 'success');
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi đổi mật khẩu', 'error');
-    } finally {
-      setIsChangingPass(false);
     }
   };
 
@@ -380,10 +353,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </button>
             </div>
 
-            {/* TAB 1: THÔNG TIN TÀI KHOẢN & ĐỔI MẬT KHẨU */}
+            {/* TAB 1: THÔNG TIN TÀI KHOẢN */}
             {activeTab === 'profile' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
-                {/* Cập nhật thông tin */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                {/* Cập nhật thông tin cá nhân */}
                 <div
                   style={{
                     background: 'var(--c-bg-card, #151A26)',
@@ -397,28 +370,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   </h2>
 
                   <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: '#94A3B8', marginBottom: 5 }}>
-                        Địa chỉ Email
-                      </label>
-                      <input
-                        type="email"
-                        value={profile?.email || ''}
-                        disabled
-                        style={{
-                          width: '100%',
-                          padding: '9px 12px',
-                          borderRadius: '6px',
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          color: '#64748B',
-                          fontSize: '0.88rem',
-                          cursor: 'not-allowed',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-
                     <div>
                       <label style={{ display: 'block', fontSize: '0.82rem', color: '#CBD5E1', marginBottom: 5 }}>
                         Họ và tên
@@ -476,7 +427,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                         border: 'none',
                         fontWeight: 600,
                         fontSize: '0.88rem',
-                        cursor: isUpdatingProfile ? 'wait' : 'pointer'
+                        cursor: isUpdatingProfile ? 'wait' : 'pointer',
+                        alignSelf: 'flex-start'
                       }}
                     >
                       {isUpdatingProfile ? 'Đang lưu...' : 'Lưu thông tin'}
@@ -484,7 +436,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   </form>
                 </div>
 
-                {/* Đổi mật khẩu */}
+                {/* Chi tiết tài khoản & Phương thức đăng nhập */}
                 <div
                   style={{
                     background: 'var(--c-bg-card, #151A26)',
@@ -494,133 +446,53 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   }}
                 >
                   <h2 style={{ fontSize: '1rem', color: '#FFF', margin: '0 0 16px 0', fontWeight: 600 }}>
-                    Đổi mật khẩu
+                    Chi tiết tài khoản
                   </h2>
 
-                  <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: '#CBD5E1', marginBottom: 5 }}>
-                        Mật khẩu hiện tại
-                      </label>
-                      <div style={{ position: 'relative' }}>
-                        <input
-                          type={showOldPass ? 'text' : 'password'}
-                          value={oldPassword}
-                          onChange={(e) => setOldPassword(e.target.value)}
-                          placeholder="Mật khẩu hiện tại"
-                          required
-                          style={{
-                            width: '100%',
-                            padding: '9px 36px 9px 12px',
-                            borderRadius: '6px',
-                            background: 'rgba(0, 0, 0, 0.25)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#FFF',
-                            fontSize: '0.88rem',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowOldPass(!showOldPass)}
-                          style={{
-                            position: 'absolute',
-                            right: 10,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#94A3B8',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {showOldPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                        </button>
+                      <span style={{ display: 'block', fontSize: '0.82rem', color: '#94A3B8', marginBottom: 4 }}>
+                        Địa chỉ Email
+                      </span>
+                      <div style={{ fontSize: '0.88rem', color: '#FFF', fontWeight: 500 }}>
+                        {profile?.email || user?.email || '—'}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: 2 }}>
+                        Email dùng để nhận thông tin vé tham quan và mã OTP đăng nhập
                       </div>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: '#CBD5E1', marginBottom: 5 }}>
-                        Mật khẩu mới (tối thiểu 6 ký tự)
-                      </label>
-                      <div style={{ position: 'relative' }}>
-                        <input
-                          type={showNewPass ? 'text' : 'password'}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Mật khẩu mới"
-                          required
-                          style={{
-                            width: '100%',
-                            padding: '9px 36px 9px 12px',
-                            borderRadius: '6px',
-                            background: 'rgba(0, 0, 0, 0.25)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#FFF',
-                            fontSize: '0.88rem',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPass(!showNewPass)}
-                          style={{
-                            position: 'absolute',
-                            right: 10,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#94A3B8',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                        </button>
+                      <span style={{ display: 'block', fontSize: '0.82rem', color: '#94A3B8', marginBottom: 4 }}>
+                        Phương thức đăng nhập
+                      </span>
+                      <div style={{ fontSize: '0.88rem', color: '#FFF', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
+                        <span>Mã xác thực OTP gửi qua Email</span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: 2 }}>
+                        Đăng nhập an toàn không cần mật khẩu tĩnh
                       </div>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: '#CBD5E1', marginBottom: 5 }}>
-                        Xác nhận mật khẩu mới
-                      </label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Nhập lại mật khẩu mới"
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '9px 12px',
-                          borderRadius: '6px',
-                          background: 'rgba(0, 0, 0, 0.25)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          color: '#FFF',
-                          fontSize: '0.88rem',
-                          boxSizing: 'border-box'
-                        }}
-                      />
+                      <span style={{ display: 'block', fontSize: '0.82rem', color: '#94A3B8', marginBottom: 4 }}>
+                        Trạng thái tài khoản
+                      </span>
+                      <div style={{ fontSize: '0.88rem', color: '#22C55E', fontWeight: 500 }}>
+                        Đang hoạt động
+                      </div>
                     </div>
 
-                    <button
-                      type="submit"
-                      disabled={isChangingPass}
-                      style={{
-                        marginTop: 6,
-                        padding: '10px 18px',
-                        borderRadius: '6px',
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: '#FFF',
-                        fontWeight: 600,
-                        fontSize: '0.88rem',
-                        cursor: isChangingPass ? 'wait' : 'pointer'
-                      }}
-                    >
-                      {isChangingPass ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
-                    </button>
-                  </form>
+                    <div>
+                      <span style={{ display: 'block', fontSize: '0.82rem', color: '#94A3B8', marginBottom: 4 }}>
+                        Ngày tham gia
+                      </span>
+                      <div style={{ fontSize: '0.88rem', color: '#CBD5E1' }}>
+                        {formatDate(profile?.createdAt || (user as any)?.createdAt)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
