@@ -242,7 +242,9 @@ def run_pipeline(
         "--image_path", images_dir,
         "--ImageReader.single_camera", "1",
         "--ImageReader.camera_model", camera_model,
-        "--SiftExtraction.use_gpu", gpu_flag
+        "--SiftExtraction.use_gpu", gpu_flag,
+        "--SiftExtraction.max_image_size", "1600",
+        "--SiftExtraction.max_num_features", "8192"
     ]
     try:
         run_command(extract_cmd, "COLMAP Feature Extractor", cwd=work_dir)
