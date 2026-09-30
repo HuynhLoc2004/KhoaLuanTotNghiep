@@ -233,17 +233,17 @@ def run_pipeline(
                 with Image.open(src_p) as im:
                     w, h = im.size
                     max_dim = max(w, h)
-                    if max_dim > 1600:
-                        scale = 1600.0 / max_dim
+                    if max_dim > 1280:
+                        scale = 1280.0 / max_dim
                         new_w, new_h = int(w * scale), int(h * scale)
                         im_resized = im.resize((new_w, new_h), Image.Resampling.LANCZOS)
-                        im_resized.save(dst_p, quality=90)
+                        im_resized.save(dst_p, quality=88)
                     else:
-                        im.save(dst_p, quality=90)
+                        im.save(dst_p, quality=88)
             except Exception:
                 shutil.copy2(src_p, dst_p)
         feed_images_dir = optimized_images_dir
-        log(f"[✓] Đã tối ưu hóa {len(image_files)} ảnh về chuẩn 1600px sắc nét, chống tràn RAM.")
+        log(f"[✓] Đã tối ưu hóa {len(image_files)} ảnh về chuẩn 1280px siêu nhẹ cho VPS 2C-8G.")
     except Exception as e:
         log(f"[WARN] Bỏ qua bước resize ảnh: {e}")
         feed_images_dir = images_dir
@@ -256,7 +256,7 @@ def run_pipeline(
         )
 
     # =========================================================================
-    # STEP 2: COLMAP Feature Extraction (Tối ưu hóa bộ nhớ RAM và tốc độ)
+    # STEP 2: COLMAP Feature Extraction (Tối ưu siêu tốc cho VPS 2 Core CPU)
     # =========================================================================
     emit_progress(2, total_steps, "Trích xuất đặc trưng SIFT", "Trích xuất đặc trưng hình học SIFT siêu tốc...", 25)
     gpu_flag = "1" if use_gpu else "0"
@@ -268,8 +268,8 @@ def run_pipeline(
         "--ImageReader.single_camera", "1",
         "--ImageReader.camera_model", camera_model,
         "--SiftExtraction.use_gpu", gpu_flag,
-        "--SiftExtraction.max_image_size", "1600",
-        "--SiftExtraction.max_num_features", "4096"
+        "--SiftExtraction.max_image_size", "1280",
+        "--SiftExtraction.max_num_features", "3072"
     ]
     try:
         run_command(extract_cmd, "COLMAP Feature Extractor", cwd=work_dir)
@@ -285,7 +285,7 @@ def run_pipeline(
             colmap_bin, "sequential_matcher",
             "--database_path", db_path,
             "--SiftMatching.use_gpu", gpu_flag,
-            "--SequentialMatching.overlap", "5",
+            "--SequentialMatching.overlap", "3",
             "--SequentialMatching.loop_detection", "0"
         ]
         run_command(match_cmd, "COLMAP Sequential Matcher", cwd=work_dir)
