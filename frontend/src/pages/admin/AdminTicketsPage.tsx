@@ -187,90 +187,35 @@ export const AdminTicketsPage: React.FC = () => {
     }
   };
 
-  // Trả về nhãn trạng thái và màu sắc trung tính
+  // Trả về nhãn trạng thái tối giản chuẩn mực hệ thống (chấm tròn + chữ, không nền màu mè)
   const renderStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '2px 8px',
-              borderRadius: 4,
-              fontSize: 11.5,
-              fontWeight: 500,
-              background: 'rgba(34, 197, 94, 0.1)',
-              color: '#22C55E',
-              border: '1px solid rgba(34, 197, 94, 0.25)'
-            }}
-          >
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22C55E' }} />
-            Hợp lệ (Chờ vào)
-          </span>
-        );
-      case 'used':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '2px 8px',
-              borderRadius: 4,
-              fontSize: 11.5,
-              fontWeight: 500,
-              background: 'rgba(59, 130, 246, 0.1)',
-              color: '#60A5FA',
-              border: '1px solid rgba(59, 130, 246, 0.25)'
-            }}
-          >
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#60A5FA' }} />
-            Đã soát vé
-          </span>
-        );
-      case 'cancelled':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '2px 8px',
-              borderRadius: 4,
-              fontSize: 11.5,
-              fontWeight: 500,
-              background: 'rgba(239, 68, 68, 0.1)',
-              color: '#F87171',
-              border: '1px solid rgba(239, 68, 68, 0.25)'
-            }}
-          >
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#F87171' }} />
-            Đã hủy
-          </span>
-        );
-      default:
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '2px 8px',
-              borderRadius: 4,
-              fontSize: 11.5,
-              fontWeight: 500,
-              background: 'rgba(234, 179, 8, 0.1)',
-              color: '#FBBF24',
-              border: '1px solid rgba(234, 179, 8, 0.25)'
-            }}
-          >
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FBBF24' }} />
-            Chờ thanh toán
-          </span>
-        );
+    let dotColor = '#64748B';
+    let text = 'Chờ xử lý';
+    if (status === 'paid') {
+      dotColor = '#22C55E';
+      text = 'Chưa sử dụng';
+    } else if (status === 'used') {
+      dotColor = '#64748B';
+      text = 'Đã vào cổng';
+    } else if (status === 'cancelled') {
+      dotColor = '#EF4444';
+      text = 'Đã hủy';
     }
+
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: dotColor,
+            display: 'inline-block'
+          }}
+        />
+        <span style={{ color: 'var(--text-main)' }}>{text}</span>
+      </div>
+    );
   };
 
   const getTicketTypeLabel = (type: string) => {
@@ -312,10 +257,10 @@ export const AdminTicketsPage: React.FC = () => {
             }}
           >
             <Ticket size={20} style={{ color: 'var(--primary)' }} />
-            <span>Quản lý Vé Tham Quan Bảo Tàng</span>
+            <span>Quản lý Vé Tham Quan</span>
           </h1>
           <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, margin: 0 }}>
-            Kiểm soát vé vào cổng, tra cứu nhanh với bộ chỉ mục tối ưu và soát vé trực tiếp
+            Danh sách vé tham quan, thông tin người đặt và trạng thái vào cổng
           </p>
         </div>
 
@@ -331,47 +276,49 @@ export const AdminTicketsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* 2. CHỈ SỐ KPI TỔNG HỢP */}
+      {/* 2. THANH CHỈ SỐ KPI TỐI GIẢN (ĐỒNG BỘ CHUẨN MỰC BẢNG QUẢN TRỊ) */}
       <div
         style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 8,
+          marginBottom: 18,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 12,
-          marginBottom: 20
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
         }}
       >
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-            Tổng số vé phát hành
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Tổng số vé
           </div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--heading-color)', marginTop: 4 }}>
-            {stats.totalTickets.toLocaleString()}
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-            Vé hợp lệ (Chờ soát)
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#22C55E', marginTop: 4 }}>
-            {stats.activeTickets.toLocaleString()}
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+            {stats.totalTickets}
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-            Đã soát vé vào cổng
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Chưa sử dụng
           </div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#60A5FA', marginTop: 4 }}>
-            {stats.usedTickets.toLocaleString()}
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+            {stats.activeTickets}
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Đã vào cổng
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+            {stats.usedTickets}
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 20px' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Doanh thu bán vé
           </div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--heading-color)', marginTop: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
             {formatVND(stats.totalRevenue)}
           </div>
         </div>
@@ -574,21 +521,8 @@ export const AdminTicketsPage: React.FC = () => {
                     className="admin-table-row"
                   >
                     {/* Cột 1: Mã vé */}
-                    <td style={{ padding: '12px 16px' }}>
-                      <span
-                        style={{
-                          fontFamily: 'monospace',
-                          fontWeight: 700,
-                          fontSize: 12.5,
-                          color: 'var(--heading-color)',
-                          background: 'var(--bg-main)',
-                          padding: '3px 7px',
-                          borderRadius: 4,
-                          border: '1px solid var(--border-color)'
-                        }}
-                      >
-                        {t.ticketCode}
-                      </span>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-main)', fontSize: 12.5, fontFamily: 'monospace' }}>
+                      {t.ticketCode}
                     </td>
 
                     {/* Cột 2: Khách tham quan */}
@@ -640,8 +574,8 @@ export const AdminTicketsPage: React.FC = () => {
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => setCheckinTarget(t)}
-                            title="Soát vé cho khách vào cổng"
-                            style={{ padding: '4px 8px', color: '#22C55E' }}
+                            title="Soát vé vào cổng"
+                            style={{ padding: '4px 8px' }}
                           >
                             <CheckCircle size={13} />
                           </button>
@@ -665,7 +599,7 @@ export const AdminTicketsPage: React.FC = () => {
                             className="btn btn-secondary btn-sm"
                             onClick={() => setCancelTarget(t)}
                             title="Hủy vé tham quan"
-                            style={{ padding: '4px 8px', color: '#EF4444' }}
+                            style={{ padding: '4px 8px' }}
                           >
                             <XCircle size={13} />
                           </button>
