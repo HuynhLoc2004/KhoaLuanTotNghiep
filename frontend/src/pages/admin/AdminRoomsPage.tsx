@@ -51,6 +51,7 @@ interface AdminRoomsPageProps {
   onRoomCreated: (newRoom: MuseumRoom) => void;
   onRoomUpdated?: (updatedRoom: MuseumRoom) => void;
   onDeleteRoom: (roomId: string) => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 interface PanoHistoryItem {
@@ -89,7 +90,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   onOpenStudio,
   onRoomCreated,
   onRoomUpdated,
-  onDeleteRoom
+  onDeleteRoom,
+  onNavigateTab
 }) => {
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
@@ -754,6 +756,19 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               >
                 <Trash2 size={14} />
                 <span>{isClearingAll ? 'Đang xóa...' : 'Xóa tất cả'}</span>
+              </button>
+            )}
+
+            {onNavigateTab && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => onNavigateTab('poc_stitching')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: '#D4A86A', color: '#D4A86A' }}
+                title="Tải 16-24 ảnh chụp quanh phòng để server tự ghép thành không gian 360°"
+              >
+                <Camera size={15} />
+                <span>Ghép ảnh 360° từ tập ảnh</span>
               </button>
             )}
 

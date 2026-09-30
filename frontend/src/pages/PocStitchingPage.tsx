@@ -19,8 +19,10 @@ import {
   Clock,
   HardDrive,
   Monitor,
-  Box
+  Box,
+  Plus
 } from 'lucide-react';
+import { NewRoomModal } from '../components/NewRoomModal';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { API_BASE } from '../services/api';
 import { useToast } from '../components/Toast';
@@ -99,6 +101,7 @@ export const PocStitchingPage: React.FC = () => {
   const [copiedHistoryUrl, setCopiedHistoryUrl] = useState<string | null>(null);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
+  const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
 
   // Tab chuyển đổi: Ghép ảnh 360 Panorama vs Tái tạo Phòng 3D (COLMAP)
   const [activeStudioTab, setActiveStudioTab] = useState<'stitching' | 'reconstruction3d'>(() => {
@@ -1117,6 +1120,17 @@ function normalizePanoUrl(rawUrl: string): string {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
                   <button
                     type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setShowCreateRoomModal(true)}
+                    style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
+                    title="Tạo ngay một gian phòng trưng bày mới trong bảo tàng từ ảnh này"
+                  >
+                    <Plus size={14} />
+                    <span>Tạo Gian Phòng từ ảnh này</span>
+                  </button>
+
+                  <button
+                    type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={async () => {
                       if (!stitchResult.panoramaUrl) return;
@@ -1431,6 +1445,18 @@ function normalizePanoUrl(rawUrl: string): string {
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
       />
+
+      {/* Modal Tạo Gian Phòng Trực Tiếp Từ Ảnh 360 Vừa Ghép Xong */}
+      {showCreateRoomModal && stitchResult && (
+        <NewRoomModal
+          initialPanoramaUrl={stitchResult.panoramaUrl}
+          onClose={() => setShowCreateRoomModal(false)}
+          onCreated={(newRoom) => {
+            setShowCreateRoomModal(false);
+            showToast(`Đã tạo gian phòng di sản mới: ${newRoom.name}!`, 'success');
+          }}
+        />
+      )}
       </div>
     </div>
   );

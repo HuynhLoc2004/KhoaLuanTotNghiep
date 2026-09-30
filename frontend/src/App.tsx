@@ -967,6 +967,7 @@ const AppContent: React.FC = () => {
             onRoomCreated={handleRoomCreated}
             onRoomUpdated={handleRoomUpdated}
             onDeleteRoom={handleDeleteRoom}
+            onNavigateTab={(tab) => setCurrentTab(tab as any)}
           />
         ) : currentTab === 'artifacts' ? (
           <AdminArtifactsPage />
