@@ -5,7 +5,7 @@ import { Room } from '../models/Room.js';
 import { ArtifactModel } from '../models/Artifact.js';
 import { FloorPlanMap } from '../models/FloorPlanMap.js';
 import { Language } from '../models/Language.js';
-import { SystemBranding } from '../models/SystemBranding.js';
+import { SystemBranding, DEFAULT_BRANDING, DEFAULT_HEADER_MENU } from '../models/SystemBranding.js';
 import { User } from '../models/User.js';
 import { Role } from '../models/Role.js';
 import { cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
@@ -447,19 +447,45 @@ export async function pgUpsertBranding(branding: any) {
   try {
     const id = branding.id || 'system-branding-main';
     const mongoId = branding._id ? branding._id.toString() : (branding.mongoId || branding.mongo_id || null);
+    const cleanData = branding.toObject ? branding.toObject() : { ...branding };
+    delete cleanData._id;
+    delete cleanData.__v;
+
     await pgPool.query(`
       INSERT INTO system_branding (
         id, museum_name, short_name, emblem_text, logo_url, tagline,
         city, address, contact_email, hotline, header_menu_items,
         hero_title, hero_tagline, hero_banner_url, hero_video_url,
-        intro_title, intro_desc, intro_image_url, guide_map_url,
-        guide_map_title, guide_map_desc, guide_opening_days,
+        hero_cta1_text, hero_cta2_text,
+        intro_tag, intro_title, intro_desc, intro_badge_text, intro_image_url, intro_cta_text,
+        rooms_tag, rooms_title, rooms_desc, rooms_cta_text, rooms_featured_id, rooms_showcase_image_url,
+        artifacts_tag, artifacts_title, artifacts_desc, artifacts_cta_text,
+        guide_tag, guide_title, guide_desc, guide_cta_text,
+        guide_map_url, guide_map_title, guide_map_desc, guide_opening_days,
         guide_morning_hours, guide_afternoon_hours, guide_closed_note,
         guide_ticket_adult, guide_ticket_student, guide_ticket_child,
-        guide_bus_routes, guide_parking_info, guide_google_maps_url,
-        data, mongo_id, updated_at
+        guide_bus_routes, guide_parking_info, guide_google_maps_url, guide_google_maps_embed,
+        guide_rule1_title, guide_rule1_desc, guide_rule2_title, guide_rule2_desc,
+        guide_rule3_title, guide_rule3_desc, guide_rule4_title, guide_rule4_desc,
+        footer_copyright_text, data, mongo_id, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, CURRENT_TIMESTAMP)
+      VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10, $11,
+        $12, $13, $14, $15,
+        $16, $17,
+        $18, $19, $20, $21, $22, $23,
+        $24, $25, $26, $27, $28, $29,
+        $30, $31, $32, $33,
+        $34, $35, $36, $37,
+        $38, $39, $40, $41,
+        $42, $43, $44,
+        $45, $46, $47,
+        $48, $49, $50, $51,
+        $52, $53, $54, $55,
+        $56, $57, $58, $59,
+        $60, $61, $62, CURRENT_TIMESTAMP
+      )
       ON CONFLICT (id) DO UPDATE SET
         museum_name = EXCLUDED.museum_name,
         short_name = EXCLUDED.short_name,
@@ -475,9 +501,28 @@ export async function pgUpsertBranding(branding: any) {
         hero_tagline = EXCLUDED.hero_tagline,
         hero_banner_url = EXCLUDED.hero_banner_url,
         hero_video_url = EXCLUDED.hero_video_url,
+        hero_cta1_text = EXCLUDED.hero_cta1_text,
+        hero_cta2_text = EXCLUDED.hero_cta2_text,
+        intro_tag = EXCLUDED.intro_tag,
         intro_title = EXCLUDED.intro_title,
         intro_desc = EXCLUDED.intro_desc,
+        intro_badge_text = EXCLUDED.intro_badge_text,
         intro_image_url = EXCLUDED.intro_image_url,
+        intro_cta_text = EXCLUDED.intro_cta_text,
+        rooms_tag = EXCLUDED.rooms_tag,
+        rooms_title = EXCLUDED.rooms_title,
+        rooms_desc = EXCLUDED.rooms_desc,
+        rooms_cta_text = EXCLUDED.rooms_cta_text,
+        rooms_featured_id = EXCLUDED.rooms_featured_id,
+        rooms_showcase_image_url = EXCLUDED.rooms_showcase_image_url,
+        artifacts_tag = EXCLUDED.artifacts_tag,
+        artifacts_title = EXCLUDED.artifacts_title,
+        artifacts_desc = EXCLUDED.artifacts_desc,
+        artifacts_cta_text = EXCLUDED.artifacts_cta_text,
+        guide_tag = EXCLUDED.guide_tag,
+        guide_title = EXCLUDED.guide_title,
+        guide_desc = EXCLUDED.guide_desc,
+        guide_cta_text = EXCLUDED.guide_cta_text,
         guide_map_url = EXCLUDED.guide_map_url,
         guide_map_title = EXCLUDED.guide_map_title,
         guide_map_desc = EXCLUDED.guide_map_desc,
@@ -491,42 +536,81 @@ export async function pgUpsertBranding(branding: any) {
         guide_bus_routes = EXCLUDED.guide_bus_routes,
         guide_parking_info = EXCLUDED.guide_parking_info,
         guide_google_maps_url = EXCLUDED.guide_google_maps_url,
+        guide_google_maps_embed = EXCLUDED.guide_google_maps_embed,
+        guide_rule1_title = EXCLUDED.guide_rule1_title,
+        guide_rule1_desc = EXCLUDED.guide_rule1_desc,
+        guide_rule2_title = EXCLUDED.guide_rule2_title,
+        guide_rule2_desc = EXCLUDED.guide_rule2_desc,
+        guide_rule3_title = EXCLUDED.guide_rule3_title,
+        guide_rule3_desc = EXCLUDED.guide_rule3_desc,
+        guide_rule4_title = EXCLUDED.guide_rule4_title,
+        guide_rule4_desc = EXCLUDED.guide_rule4_desc,
+        footer_copyright_text = EXCLUDED.footer_copyright_text,
         data = EXCLUDED.data,
         mongo_id = COALESCE(EXCLUDED.mongo_id, system_branding.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
     `, [
       id,
-      branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
-      branding.shortName || 'BTLS',
-      branding.emblemText || '',
+      branding.museumName || DEFAULT_BRANDING.museumName,
+      branding.shortName || DEFAULT_BRANDING.shortName,
+      branding.emblemText || DEFAULT_BRANDING.emblemText,
       branding.logoUrl || '',
-      branding.tagline || '',
-      branding.city || 'TP. Hồ Chí Minh',
-      branding.address || '',
-      branding.contactEmail || '',
-      branding.hotline || '',
-      JSON.stringify(branding.headerMenuItems || []),
-      branding.heroTitle || '',
-      branding.heroTagline || '',
+      branding.tagline || DEFAULT_BRANDING.tagline,
+      branding.city || DEFAULT_BRANDING.city,
+      branding.address || DEFAULT_BRANDING.address,
+      branding.contactEmail || DEFAULT_BRANDING.contactEmail,
+      branding.hotline || DEFAULT_BRANDING.hotline,
+      JSON.stringify(branding.headerMenuItems || DEFAULT_HEADER_MENU),
+      branding.heroTitle || DEFAULT_BRANDING.heroTitle,
+      branding.heroTagline || DEFAULT_BRANDING.heroTagline,
       branding.heroBannerUrl || '',
       branding.heroVideoUrl || '',
-      branding.introTitle || '',
-      branding.introDesc || '',
+      branding.heroCta1Text || DEFAULT_BRANDING.heroCta1Text,
+      branding.heroCta2Text || DEFAULT_BRANDING.heroCta2Text,
+      branding.introTag || DEFAULT_BRANDING.introTag,
+      branding.introTitle || DEFAULT_BRANDING.introTitle,
+      branding.introDesc || DEFAULT_BRANDING.introDesc,
+      branding.introBadgeText || DEFAULT_BRANDING.introBadgeText,
       branding.introImageUrl || '',
+      branding.introCtaText || DEFAULT_BRANDING.introCtaText,
+      branding.roomsTag || DEFAULT_BRANDING.roomsTag,
+      branding.roomsTitle || DEFAULT_BRANDING.roomsTitle,
+      branding.roomsDesc || DEFAULT_BRANDING.roomsDesc,
+      branding.roomsCtaText || DEFAULT_BRANDING.roomsCtaText,
+      branding.roomsFeaturedId || '',
+      branding.roomsShowcaseImageUrl || '',
+      branding.artifactsTag || DEFAULT_BRANDING.artifactsTag,
+      branding.artifactsTitle || DEFAULT_BRANDING.artifactsTitle,
+      branding.artifactsDesc || DEFAULT_BRANDING.artifactsDesc,
+      branding.artifactsCtaText || DEFAULT_BRANDING.artifactsCtaText,
+      branding.guideTag || DEFAULT_BRANDING.guideTag,
+      branding.guideTitle || DEFAULT_BRANDING.guideTitle,
+      branding.guideDesc || DEFAULT_BRANDING.guideDesc,
+      branding.guideCtaText || DEFAULT_BRANDING.guideCtaText,
       branding.guideMapUrl || '',
-      branding.guideMapTitle || '',
-      branding.guideMapDesc || '',
-      branding.guideOpeningDays || '',
-      branding.guideMorningHours || '',
-      branding.guideAfternoonHours || '',
-      branding.guideClosedNote || '',
-      branding.guideTicketAdult || '30.000 VNĐ',
-      branding.guideTicketStudent || '15.000 VNĐ',
-      branding.guideTicketChild || 'Miễn phí',
-      branding.guideBusRoutes || '',
-      branding.guideParkingInfo || '',
-      branding.guideGoogleMapsUrl || '',
-      JSON.stringify(branding.data ? { ...branding, ...branding.data } : branding),
+      branding.guideMapTitle || DEFAULT_BRANDING.guideMapTitle,
+      branding.guideMapDesc || DEFAULT_BRANDING.guideMapDesc,
+      branding.guideOpeningDays || DEFAULT_BRANDING.guideOpeningDays,
+      branding.guideMorningHours || DEFAULT_BRANDING.guideMorningHours,
+      branding.guideAfternoonHours || DEFAULT_BRANDING.guideAfternoonHours,
+      branding.guideClosedNote || DEFAULT_BRANDING.guideClosedNote,
+      branding.guideTicketAdult || DEFAULT_BRANDING.guideTicketAdult,
+      branding.guideTicketStudent || DEFAULT_BRANDING.guideTicketStudent,
+      branding.guideTicketChild || DEFAULT_BRANDING.guideTicketChild,
+      branding.guideBusRoutes || DEFAULT_BRANDING.guideBusRoutes,
+      branding.guideParkingInfo || DEFAULT_BRANDING.guideParkingInfo,
+      branding.guideGoogleMapsUrl || DEFAULT_BRANDING.guideGoogleMapsUrl,
+      branding.guideGoogleMapsEmbed || DEFAULT_BRANDING.guideGoogleMapsEmbed,
+      branding.guideRule1Title || DEFAULT_BRANDING.guideRule1Title,
+      branding.guideRule1Desc || DEFAULT_BRANDING.guideRule1Desc,
+      branding.guideRule2Title || DEFAULT_BRANDING.guideRule2Title,
+      branding.guideRule2Desc || DEFAULT_BRANDING.guideRule2Desc,
+      branding.guideRule3Title || DEFAULT_BRANDING.guideRule3Title,
+      branding.guideRule3Desc || DEFAULT_BRANDING.guideRule3Desc,
+      branding.guideRule4Title || DEFAULT_BRANDING.guideRule4Title,
+      branding.guideRule4Desc || DEFAULT_BRANDING.guideRule4Desc,
+      branding.footerCopyrightText || '',
+      JSON.stringify(cleanData),
       mongoId
     ]);
   } catch (err: any) {
@@ -590,33 +674,169 @@ export async function runStartupDataSync() {
         await pgUpsertTopic(t);
         await Topic.updateOne({ id: t.id }, { $set: t }, { upsert: true });
       }
+    } else if (mongoTopics.length === 0 && pgTopicCount > 0) {
+      console.log(`[SyncEngine] Đang phục hồi ${pgTopicCount} Topics từ PostgreSQL sang MongoDB...`);
+      const pgAllTopics = await pgPool.query('SELECT * FROM topics ORDER BY order_index ASC;');
+      for (const tRow of pgAllTopics.rows) {
+        await Topic.updateOne({ id: tRow.id }, {
+          $set: {
+            id: tRow.id,
+            name: tRow.name,
+            description: tRow.description,
+            orderIndex: tRow.order_index,
+            active: tRow.active
+          }
+        }, { upsert: true });
+      }
+    } else {
+      for (const t of mongoTopics) {
+        await pgUpsertTopic(t);
+      }
+      const pgAllTopics = await pgPool.query('SELECT * FROM topics ORDER BY order_index ASC;');
+      for (const tRow of pgAllTopics.rows) {
+        await Topic.updateOne({ id: tRow.id }, {
+          $set: {
+            id: tRow.id,
+            name: tRow.name,
+            description: tRow.description,
+            orderIndex: tRow.order_index,
+            active: tRow.active
+          }
+        }, { upsert: true });
+      }
     }
 
-    // 2. Đồng bộ Rooms
+    // 2. Đồng bộ Rooms (Bảo toàn 100% dữ liệu di sản - Tuyệt đối không xóa nhầm)
     const pgRooms = await pgPool.query('SELECT COUNT(*) FROM rooms;');
     const pgRoomCount = parseInt(pgRooms.rows[0].count, 10);
     const mongoRooms = await Room.find().lean();
 
     if (pgRoomCount === 0 && mongoRooms.length === 0) {
-      console.log('[SyncEngine] CSDL phòng trưng bày đang trống (không tự động nạp mẫu để tôn trọng thao tác của quản trị viên; có thể nạp từ Admin hoặc API seed-heritage)...');
+      console.log('[SyncEngine] CSDL phòng trưng bày đang trống (chờ dữ liệu thật từ quản trị viên)...');
     } else if (pgRoomCount === 0 && mongoRooms.length > 0) {
       console.log(`[SyncEngine] Đang di chuyển ${mongoRooms.length} Rooms & Hotspots từ MongoDB sang PostgreSQL...`);
       for (const r of mongoRooms) {
         await pgUpsertRoom(r);
       }
     } else if (mongoRooms.length === 0 && pgRoomCount > 0) {
-      console.log(`[SyncEngine] Đồng bộ dọn sạch các phòng còn sót lại trong PostgreSQL do MongoDB đang trống...`);
-      await pgPool.query('DELETE FROM hotspots; DELETE FROM rooms;');
-      await cacheDelPattern('rooms:*');
-    } else if (mongoRooms.length > 0 && pgRoomCount > 0) {
-      // Cả 2 đều có dữ liệu: dọn dẹp các phòng thừa trong PostgreSQL nếu đã bị xóa khỏi MongoDB từ trước
-      const mongoRoomIds = new Set(mongoRooms.map(r => r.id));
-      const pgAll = await pgPool.query('SELECT id, code, mongo_id FROM rooms;');
-      for (const row of pgAll.rows) {
-        if (!mongoRoomIds.has(row.id) && !mongoRoomIds.has(row.code) && (!row.mongo_id || !mongoRoomIds.has(row.mongo_id))) {
-          console.log(`[SyncEngine] Dọn dẹp phòng thừa trong PostgreSQL do đã bị xóa từ trước: ${row.id} (${row.code})`);
-          await pgDeleteRoom(row.id, row.code, row.mongo_id);
-        }
+      console.log(`[SyncEngine] Đang phục hồi toàn diện ${pgRoomCount} Rooms & Hotspots từ PostgreSQL sang MongoDB...`);
+      const pgAllRooms = await pgPool.query(`
+        SELECT r.*,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'id', h.id,
+                     'type', h.type,
+                     'title', h.title,
+                     'description', h.description,
+                     'targetRoomId', h.target_room_id,
+                     'artifactId', h.artifact_id,
+                     'pitch', h.pitch,
+                     'yaw', h.yaw
+                   )
+                 ) FILTER (WHERE h.id IS NOT NULL), '[]'
+               ) as hotspots
+        FROM rooms r
+        LEFT JOIN hotspots h ON r.id = h.room_id
+        GROUP BY r.id
+        ORDER BY r.order_index ASC;
+      `);
+
+      for (const row of pgAllRooms.rows) {
+        const roomId = row.id || row.mongo_id;
+        const hotspots = typeof row.hotspots === 'string' ? JSON.parse(row.hotspots) : (row.hotspots || []);
+        const initialView = typeof row.initial_view === 'string' ? JSON.parse(row.initial_view) : (row.initial_view || { pitch: 0, yaw: 0, fov: 90 });
+        const translations = typeof row.translations === 'string' ? JSON.parse(row.translations) : (row.translations || {});
+
+        await Room.updateOne(
+          { $or: [{ id: roomId }, { code: row.code }, ...(row.mongo_id ? [{ _id: row.mongo_id }] : [])] },
+          {
+            $set: {
+              id: roomId,
+              code: row.code,
+              name: row.name,
+              period: row.period,
+              category: row.category,
+              description: row.description || '',
+              panoramaUrl: row.panorama_url,
+              thumbnailUrl: row.thumbnail_url,
+              initialView,
+              hotspots,
+              orderIndex: row.order_index ?? 1,
+              active: row.active ?? true,
+              aiVoiceEnabled: !!row.ai_voice_enabled,
+              aiKnowledgePrompt: row.ai_knowledge_prompt || '',
+              aiScript: row.ai_script || '',
+              aiVoiceLang: row.ai_voice_lang || 'vi-south',
+              qrScanCount: row.qr_scan_count || 0,
+              scenesCount: row.scenes_count || 1,
+              translations
+            }
+          },
+          { upsert: true }
+        );
+      }
+    } else {
+      // Cả 2 đều có dữ liệu: Đồng bộ hai chiều bảo toàn tuyệt đối, không xoá bất kỳ phòng nào
+      console.log(`[SyncEngine] Đồng bộ hai chiều giữa PostgreSQL (${pgRoomCount}) và MongoDB (${mongoRooms.length}) cho toàn bộ gian phòng...`);
+      for (const r of mongoRooms) {
+        await pgUpsertRoom(r);
+      }
+      const pgAllRooms = await pgPool.query(`
+        SELECT r.*,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'id', h.id,
+                     'type', h.type,
+                     'title', h.title,
+                     'description', h.description,
+                     'targetRoomId', h.target_room_id,
+                     'artifactId', h.artifact_id,
+                     'pitch', h.pitch,
+                     'yaw', h.yaw
+                   )
+                 ) FILTER (WHERE h.id IS NOT NULL), '[]'
+               ) as hotspots
+        FROM rooms r
+        LEFT JOIN hotspots h ON r.id = h.room_id
+        GROUP BY r.id
+        ORDER BY r.order_index ASC;
+      `);
+
+      for (const row of pgAllRooms.rows) {
+        const roomId = row.id || row.mongo_id;
+        const hotspots = typeof row.hotspots === 'string' ? JSON.parse(row.hotspots) : (row.hotspots || []);
+        const initialView = typeof row.initial_view === 'string' ? JSON.parse(row.initial_view) : (row.initial_view || { pitch: 0, yaw: 0, fov: 90 });
+        const translations = typeof row.translations === 'string' ? JSON.parse(row.translations) : (row.translations || {});
+
+        await Room.updateOne(
+          { $or: [{ id: roomId }, { code: row.code }, ...(row.mongo_id ? [{ _id: row.mongo_id }] : [])] },
+          {
+            $set: {
+              id: roomId,
+              code: row.code,
+              name: row.name,
+              period: row.period,
+              category: row.category,
+              description: row.description || '',
+              panoramaUrl: row.panorama_url,
+              thumbnailUrl: row.thumbnail_url,
+              initialView,
+              hotspots,
+              orderIndex: row.order_index ?? 1,
+              active: row.active ?? true,
+              aiVoiceEnabled: !!row.ai_voice_enabled,
+              aiKnowledgePrompt: row.ai_knowledge_prompt || '',
+              aiScript: row.ai_script || '',
+              aiVoiceLang: row.ai_voice_lang || 'vi-south',
+              qrScanCount: row.qr_scan_count || 0,
+              scenesCount: row.scenes_count || 1,
+              translations
+            }
+          },
+          { upsert: true }
+        );
       }
     }
 
@@ -797,61 +1017,96 @@ export async function runStartupDataSync() {
       }
     }
 
-    // 7. Đồng bộ Nhận diện thương hiệu & Banner (System Branding: PostgreSQL <-> MongoDB)
+    // 7. Đồng bộ Nhận diện thương hiệu & CMS Toàn bộ Trang chủ (System Branding: PostgreSQL <-> MongoDB)
     try {
       const pgBrandingRes = await pgPool.query('SELECT * FROM system_branding ORDER BY updated_at DESC LIMIT 1;');
       const mongoBrandingDoc = await SystemBranding.findOne().lean();
 
       if (pgBrandingRes.rows.length > 0) {
         const row = pgBrandingRes.rows[0];
-        // Nếu PostgreSQL có banner thật mà MongoDB rỗng hoặc đang dùng mặc định, phục hồi sang MongoDB
-        if (row.hero_banner_url && (!mongoBrandingDoc || !mongoBrandingDoc.heroBannerUrl)) {
-          console.log('[SyncEngine] Đang phục hồi Nhận diện thương hiệu & Banner từ PostgreSQL sang MongoDB...');
-          await SystemBranding.updateOne(
-            {},
-            {
-              $set: {
-                museumName: row.museum_name,
-                shortName: row.short_name,
-                emblemText: row.emblem_text,
-                logoUrl: row.logo_url,
-                tagline: row.tagline,
-                city: row.city,
-                address: row.address,
-                contactEmail: row.contact_email,
-                hotline: row.hotline,
-                heroTitle: row.hero_title,
-                heroTagline: row.hero_tagline,
-                heroBannerUrl: row.hero_banner_url,
-                heroVideoUrl: row.hero_video_url,
-                introTitle: row.intro_title,
-                introDesc: row.intro_desc,
-                introImageUrl: row.intro_image_url,
-                guideMapUrl: row.guide_map_url,
-                guideMapTitle: row.guide_map_title,
-                guideMapDesc: row.guide_map_desc,
-                guideOpeningDays: row.guide_opening_days,
-                guideMorningHours: row.guide_morning_hours,
-                guideAfternoonHours: row.guide_afternoon_hours,
-                guideClosedNote: row.guide_closed_note,
-                guideTicketAdult: row.guide_ticket_adult,
-                guideTicketStudent: row.guide_ticket_student,
-                guideTicketChild: row.guide_ticket_child,
-                guideBusRoutes: row.guide_bus_routes,
-                guideParkingInfo: row.guide_parking_info,
-                guideGoogleMapsUrl: row.guide_google_maps_url,
-                headerMenuItems: typeof row.header_menu_items === 'string' ? JSON.parse(row.header_menu_items) : (row.header_menu_items || [])
-              }
-            },
-            { upsert: true }
-          );
+        const pgData = typeof row.data === 'string' ? JSON.parse(row.data || '{}') : (row.data || {});
+        const pgUpdatedAt = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+        const mongoUpdatedAt = mongoBrandingDoc?.updatedAt ? new Date(mongoBrandingDoc.updatedAt).getTime() : 0;
+
+        // Nếu PostgreSQL có bản ghi mới hơn HOẶC MongoDB chưa khởi tạo / đang là dữ liệu rỗng
+        if (!mongoBrandingDoc || pgUpdatedAt >= mongoUpdatedAt) {
+          console.log('[SyncEngine] Đang phục hồi toàn diện Nhận diện thương hiệu & CMS Trang chủ từ PostgreSQL sang MongoDB...');
+          const merged: Record<string, any> = {
+            ...DEFAULT_BRANDING,
+            ...pgData,
+            museumName: row.museum_name || pgData.museumName || DEFAULT_BRANDING.museumName,
+            shortName: row.short_name || pgData.shortName || DEFAULT_BRANDING.shortName,
+            emblemText: row.emblem_text || pgData.emblemText || DEFAULT_BRANDING.emblemText,
+            logoUrl: row.logo_url ?? pgData.logoUrl ?? '',
+            tagline: row.tagline || pgData.tagline || DEFAULT_BRANDING.tagline,
+            city: row.city || pgData.city || DEFAULT_BRANDING.city,
+            address: row.address || pgData.address || DEFAULT_BRANDING.address,
+            contactEmail: row.contact_email || pgData.contactEmail || DEFAULT_BRANDING.contactEmail,
+            hotline: row.hotline || pgData.hotline || DEFAULT_BRANDING.hotline,
+            headerMenuItems: typeof row.header_menu_items === 'string' ? JSON.parse(row.header_menu_items) : (row.header_menu_items || pgData.headerMenuItems || DEFAULT_HEADER_MENU),
+            heroTitle: row.hero_title || pgData.heroTitle || DEFAULT_BRANDING.heroTitle,
+            heroTagline: row.hero_tagline || pgData.heroTagline || DEFAULT_BRANDING.heroTagline,
+            heroBannerUrl: row.hero_banner_url ?? pgData.heroBannerUrl ?? '',
+            heroVideoUrl: row.hero_video_url ?? pgData.heroVideoUrl ?? '',
+            heroCta1Text: pgData.heroCta1Text || DEFAULT_BRANDING.heroCta1Text,
+            heroCta2Text: pgData.heroCta2Text || DEFAULT_BRANDING.heroCta2Text,
+            introTag: pgData.introTag || DEFAULT_BRANDING.introTag,
+            introTitle: row.intro_title || pgData.introTitle || DEFAULT_BRANDING.introTitle,
+            introDesc: row.intro_desc || pgData.introDesc || DEFAULT_BRANDING.introDesc,
+            introBadgeText: pgData.introBadgeText || DEFAULT_BRANDING.introBadgeText,
+            introImageUrl: row.intro_image_url ?? pgData.introImageUrl ?? '',
+            introCtaText: pgData.introCtaText || DEFAULT_BRANDING.introCtaText,
+            roomsTag: pgData.roomsTag || DEFAULT_BRANDING.roomsTag,
+            roomsTitle: pgData.roomsTitle || DEFAULT_BRANDING.roomsTitle,
+            roomsDesc: pgData.roomsDesc || DEFAULT_BRANDING.roomsDesc,
+            roomsCtaText: pgData.roomsCtaText || DEFAULT_BRANDING.roomsCtaText,
+            roomsFeaturedId: pgData.roomsFeaturedId || '',
+            roomsShowcaseImageUrl: pgData.roomsShowcaseImageUrl || '',
+            artifactsTag: pgData.artifactsTag || DEFAULT_BRANDING.artifactsTag,
+            artifactsTitle: pgData.artifactsTitle || DEFAULT_BRANDING.artifactsTitle,
+            artifactsDesc: pgData.artifactsDesc || DEFAULT_BRANDING.artifactsDesc,
+            artifactsCtaText: pgData.artifactsCtaText || DEFAULT_BRANDING.artifactsCtaText,
+            guideTag: pgData.guideTag || DEFAULT_BRANDING.guideTag,
+            guideTitle: pgData.guideTitle || DEFAULT_BRANDING.guideTitle,
+            guideDesc: pgData.guideDesc || DEFAULT_BRANDING.guideDesc,
+            guideCtaText: pgData.guideCtaText || DEFAULT_BRANDING.guideCtaText,
+            guideMapUrl: row.guide_map_url ?? pgData.guideMapUrl ?? '',
+            guideMapTitle: row.guide_map_title || pgData.guideMapTitle || DEFAULT_BRANDING.guideMapTitle,
+            guideMapDesc: row.guide_map_desc || pgData.guideMapDesc || DEFAULT_BRANDING.guideMapDesc,
+            guideOpeningDays: row.guide_opening_days || pgData.guideOpeningDays || DEFAULT_BRANDING.guideOpeningDays,
+            guideMorningHours: row.guide_morning_hours || pgData.guideMorningHours || DEFAULT_BRANDING.guideMorningHours,
+            guideAfternoonHours: row.guide_afternoon_hours || pgData.guideAfternoonHours || DEFAULT_BRANDING.guideAfternoonHours,
+            guideClosedNote: row.guide_closed_note || pgData.guideClosedNote || DEFAULT_BRANDING.guideClosedNote,
+            guideTicketAdult: row.guide_ticket_adult || pgData.guideTicketAdult || DEFAULT_BRANDING.guideTicketAdult,
+            guideTicketStudent: row.guide_ticket_student || pgData.guideTicketStudent || DEFAULT_BRANDING.guideTicketStudent,
+            guideTicketChild: row.guide_ticket_child || pgData.guideTicketChild || DEFAULT_BRANDING.guideTicketChild,
+            guideBusRoutes: row.guide_bus_routes || pgData.guideBusRoutes || DEFAULT_BRANDING.guideBusRoutes,
+            guideParkingInfo: row.guide_parking_info || pgData.guideParkingInfo || DEFAULT_BRANDING.guideParkingInfo,
+            guideGoogleMapsUrl: row.guide_google_maps_url || pgData.guideGoogleMapsUrl || DEFAULT_BRANDING.guideGoogleMapsUrl,
+            guideGoogleMapsEmbed: pgData.guideGoogleMapsEmbed || DEFAULT_BRANDING.guideGoogleMapsEmbed,
+            guideRule1Title: pgData.guideRule1Title || DEFAULT_BRANDING.guideRule1Title,
+            guideRule1Desc: pgData.guideRule1Desc || DEFAULT_BRANDING.guideRule1Desc,
+            guideRule2Title: pgData.guideRule2Title || DEFAULT_BRANDING.guideRule2Title,
+            guideRule2Desc: pgData.guideRule2Desc || DEFAULT_BRANDING.guideRule2Desc,
+            guideRule3Title: pgData.guideRule3Title || DEFAULT_BRANDING.guideRule3Title,
+            guideRule3Desc: pgData.guideRule3Desc || DEFAULT_BRANDING.guideRule3Desc,
+            guideRule4Title: pgData.guideRule4Title || DEFAULT_BRANDING.guideRule4Title,
+            guideRule4Desc: pgData.guideRule4Desc || DEFAULT_BRANDING.guideRule4Desc,
+            footerCopyrightText: pgData.footerCopyrightText || ''
+          };
+
+          await SystemBranding.updateOne({}, { $set: merged }, { upsert: true });
           const updated = await SystemBranding.findOne().lean();
           await cacheSet('system:branding:config', updated, 86400);
-        } else if (mongoBrandingDoc && mongoBrandingDoc.heroBannerUrl && !row.hero_banner_url) {
+        } else if (mongoBrandingDoc && mongoUpdatedAt > pgUpdatedAt) {
+          console.log('[SyncEngine] Đang đồng bộ Nhận diện thương hiệu & CMS Trang chủ từ MongoDB sang PostgreSQL...');
           await pgUpsertBranding(mongoBrandingDoc);
+          await cacheSet('system:branding:config', mongoBrandingDoc, 86400);
         }
       } else if (mongoBrandingDoc) {
+        console.log('[SyncEngine] Đang khởi tạo PostgreSQL từ MongoDB Branding...');
         await pgUpsertBranding(mongoBrandingDoc);
+        await cacheSet('system:branding:config', mongoBrandingDoc, 86400);
       }
     } catch (brandingSyncErr: any) {
       console.warn('[SyncEngine Warning] Lỗi đồng bộ Branding:', brandingSyncErr.message);

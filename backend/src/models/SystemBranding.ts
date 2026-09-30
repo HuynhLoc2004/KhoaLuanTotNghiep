@@ -582,50 +582,91 @@ export async function getSystemBrandingConfig(): Promise<any> {
   try {
     let branding = await SystemBranding.findOne().lean();
 
-    // Phục hồi dữ liệu từ PostgreSQL nếu MongoDB đang thiếu Banner hoặc chưa được khởi tạo
+    // Phục hồi dữ liệu hai chiều giữa PostgreSQL (Primary) và MongoDB (Mirror)
     try {
       const { pgPool } = await import('../db/postgres.js');
       const pgRes = await pgPool.query('SELECT * FROM system_branding ORDER BY updated_at DESC LIMIT 1;');
       if (pgRes.rows.length > 0) {
         const row = pgRes.rows[0];
-        if (row.hero_banner_url && (!branding || !branding.heroBannerUrl)) {
+        const pgData = typeof row.data === 'string' ? JSON.parse(row.data || '{}') : (row.data || {});
+        const pgUpdatedAt = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+        const mongoUpdatedAt = branding?.updatedAt ? new Date(branding.updatedAt).getTime() : 0;
+
+        // Nếu PostgreSQL có cập nhật mới hơn MongoDB hoặc MongoDB chưa có dữ liệu hoàn chỉnh
+        if (!branding || pgUpdatedAt >= mongoUpdatedAt) {
           const merged: Record<string, any> = {
-            museumName: row.museum_name || branding?.museumName || DEFAULT_BRANDING.museumName,
-            shortName: row.short_name || branding?.shortName || DEFAULT_BRANDING.shortName,
-            emblemText: row.emblem_text || branding?.emblemText || DEFAULT_BRANDING.emblemText,
-            logoUrl: row.logo_url || branding?.logoUrl || '',
-            tagline: row.tagline || branding?.tagline || DEFAULT_BRANDING.tagline,
-            city: row.city || branding?.city || DEFAULT_BRANDING.city,
-            address: row.address || branding?.address || DEFAULT_BRANDING.address,
-            contactEmail: row.contact_email || branding?.contactEmail || DEFAULT_BRANDING.contactEmail,
-            hotline: row.hotline || branding?.hotline || DEFAULT_BRANDING.hotline,
-            heroTitle: row.hero_title || branding?.heroTitle || DEFAULT_BRANDING.heroTitle,
-            heroTagline: row.hero_tagline || branding?.heroTagline || DEFAULT_BRANDING.heroTagline,
-            heroBannerUrl: row.hero_banner_url,
-            heroVideoUrl: row.hero_video_url || branding?.heroVideoUrl || '',
-            introTitle: row.intro_title || branding?.introTitle || DEFAULT_BRANDING.introTitle,
-            introDesc: row.intro_desc || branding?.introDesc || DEFAULT_BRANDING.introDesc,
-            introImageUrl: row.intro_image_url || branding?.introImageUrl || '',
-            guideMapUrl: row.guide_map_url || branding?.guideMapUrl || '',
-            guideMapTitle: row.guide_map_title || branding?.guideMapTitle || DEFAULT_BRANDING.guideMapTitle,
-            guideMapDesc: row.guide_map_desc || branding?.guideMapDesc || DEFAULT_BRANDING.guideMapDesc,
-            guideOpeningDays: row.guide_opening_days || branding?.guideOpeningDays || DEFAULT_BRANDING.guideOpeningDays,
-            guideMorningHours: row.guide_morning_hours || branding?.guideMorningHours || DEFAULT_BRANDING.guideMorningHours,
-            guideAfternoonHours: row.guide_afternoon_hours || branding?.guideAfternoonHours || DEFAULT_BRANDING.guideAfternoonHours,
-            guideClosedNote: row.guide_closed_note || branding?.guideClosedNote || DEFAULT_BRANDING.guideClosedNote,
-            guideTicketAdult: row.guide_ticket_adult || branding?.guideTicketAdult || DEFAULT_BRANDING.guideTicketAdult,
-            guideTicketStudent: row.guide_ticket_student || branding?.guideTicketStudent || DEFAULT_BRANDING.guideTicketStudent,
-            guideTicketChild: row.guide_ticket_child || branding?.guideTicketChild || DEFAULT_BRANDING.guideTicketChild,
-            guideBusRoutes: row.guide_bus_routes || branding?.guideBusRoutes || DEFAULT_BRANDING.guideBusRoutes,
-            guideParkingInfo: row.guide_parking_info || branding?.guideParkingInfo || DEFAULT_BRANDING.guideParkingInfo,
-            guideGoogleMapsUrl: row.guide_google_maps_url || branding?.guideGoogleMapsUrl || DEFAULT_BRANDING.guideGoogleMapsUrl,
-            headerMenuItems: typeof row.header_menu_items === 'string' ? JSON.parse(row.header_menu_items) : (row.header_menu_items || DEFAULT_HEADER_MENU)
+            ...DEFAULT_BRANDING,
+            ...pgData,
+            museumName: row.museum_name || pgData.museumName || DEFAULT_BRANDING.museumName,
+            shortName: row.short_name || pgData.shortName || DEFAULT_BRANDING.shortName,
+            emblemText: row.emblem_text || pgData.emblemText || DEFAULT_BRANDING.emblemText,
+            logoUrl: row.logo_url ?? pgData.logoUrl ?? '',
+            tagline: row.tagline || pgData.tagline || DEFAULT_BRANDING.tagline,
+            city: row.city || pgData.city || DEFAULT_BRANDING.city,
+            address: row.address || pgData.address || DEFAULT_BRANDING.address,
+            contactEmail: row.contact_email || pgData.contactEmail || DEFAULT_BRANDING.contactEmail,
+            hotline: row.hotline || pgData.hotline || DEFAULT_BRANDING.hotline,
+            headerMenuItems: typeof row.header_menu_items === 'string' ? JSON.parse(row.header_menu_items) : (row.header_menu_items || pgData.headerMenuItems || DEFAULT_HEADER_MENU),
+            heroTitle: row.hero_title || pgData.heroTitle || DEFAULT_BRANDING.heroTitle,
+            heroTagline: row.hero_tagline || pgData.heroTagline || DEFAULT_BRANDING.heroTagline,
+            heroBannerUrl: row.hero_banner_url ?? pgData.heroBannerUrl ?? '',
+            heroVideoUrl: row.hero_video_url ?? pgData.heroVideoUrl ?? '',
+            heroCta1Text: pgData.heroCta1Text || DEFAULT_BRANDING.heroCta1Text,
+            heroCta2Text: pgData.heroCta2Text || DEFAULT_BRANDING.heroCta2Text,
+            introTag: pgData.introTag || DEFAULT_BRANDING.introTag,
+            introTitle: row.intro_title || pgData.introTitle || DEFAULT_BRANDING.introTitle,
+            introDesc: row.intro_desc || pgData.introDesc || DEFAULT_BRANDING.introDesc,
+            introBadgeText: pgData.introBadgeText || DEFAULT_BRANDING.introBadgeText,
+            introImageUrl: row.intro_image_url ?? pgData.introImageUrl ?? '',
+            introCtaText: pgData.introCtaText || DEFAULT_BRANDING.introCtaText,
+            roomsTag: pgData.roomsTag || DEFAULT_BRANDING.roomsTag,
+            roomsTitle: pgData.roomsTitle || DEFAULT_BRANDING.roomsTitle,
+            roomsDesc: pgData.roomsDesc || DEFAULT_BRANDING.roomsDesc,
+            roomsCtaText: pgData.roomsCtaText || DEFAULT_BRANDING.roomsCtaText,
+            roomsFeaturedId: pgData.roomsFeaturedId || '',
+            roomsShowcaseImageUrl: pgData.roomsShowcaseImageUrl || '',
+            artifactsTag: pgData.artifactsTag || DEFAULT_BRANDING.artifactsTag,
+            artifactsTitle: pgData.artifactsTitle || DEFAULT_BRANDING.artifactsTitle,
+            artifactsDesc: pgData.artifactsDesc || DEFAULT_BRANDING.artifactsDesc,
+            artifactsCtaText: pgData.artifactsCtaText || DEFAULT_BRANDING.artifactsCtaText,
+            guideTag: pgData.guideTag || DEFAULT_BRANDING.guideTag,
+            guideTitle: pgData.guideTitle || DEFAULT_BRANDING.guideTitle,
+            guideDesc: pgData.guideDesc || DEFAULT_BRANDING.guideDesc,
+            guideCtaText: pgData.guideCtaText || DEFAULT_BRANDING.guideCtaText,
+            guideMapUrl: row.guide_map_url ?? pgData.guideMapUrl ?? '',
+            guideMapTitle: row.guide_map_title || pgData.guideMapTitle || DEFAULT_BRANDING.guideMapTitle,
+            guideMapDesc: row.guide_map_desc || pgData.guideMapDesc || DEFAULT_BRANDING.guideMapDesc,
+            guideOpeningDays: row.guide_opening_days || pgData.guideOpeningDays || DEFAULT_BRANDING.guideOpeningDays,
+            guideMorningHours: row.guide_morning_hours || pgData.guideMorningHours || DEFAULT_BRANDING.guideMorningHours,
+            guideAfternoonHours: row.guide_afternoon_hours || pgData.guideAfternoonHours || DEFAULT_BRANDING.guideAfternoonHours,
+            guideClosedNote: row.guide_closed_note || pgData.guideClosedNote || DEFAULT_BRANDING.guideClosedNote,
+            guideTicketAdult: row.guide_ticket_adult || pgData.guideTicketAdult || DEFAULT_BRANDING.guideTicketAdult,
+            guideTicketStudent: row.guide_ticket_student || pgData.guideTicketStudent || DEFAULT_BRANDING.guideTicketStudent,
+            guideTicketChild: row.guide_ticket_child || pgData.guideTicketChild || DEFAULT_BRANDING.guideTicketChild,
+            guideBusRoutes: row.guide_bus_routes || pgData.guideBusRoutes || DEFAULT_BRANDING.guideBusRoutes,
+            guideParkingInfo: row.guide_parking_info || pgData.guideParkingInfo || DEFAULT_BRANDING.guideParkingInfo,
+            guideGoogleMapsUrl: row.guide_google_maps_url || pgData.guideGoogleMapsUrl || DEFAULT_BRANDING.guideGoogleMapsUrl,
+            guideGoogleMapsEmbed: pgData.guideGoogleMapsEmbed || DEFAULT_BRANDING.guideGoogleMapsEmbed,
+            guideRule1Title: pgData.guideRule1Title || DEFAULT_BRANDING.guideRule1Title,
+            guideRule1Desc: pgData.guideRule1Desc || DEFAULT_BRANDING.guideRule1Desc,
+            guideRule2Title: pgData.guideRule2Title || DEFAULT_BRANDING.guideRule2Title,
+            guideRule2Desc: pgData.guideRule2Desc || DEFAULT_BRANDING.guideRule2Desc,
+            guideRule3Title: pgData.guideRule3Title || DEFAULT_BRANDING.guideRule3Title,
+            guideRule3Desc: pgData.guideRule3Desc || DEFAULT_BRANDING.guideRule3Desc,
+            guideRule4Title: pgData.guideRule4Title || DEFAULT_BRANDING.guideRule4Title,
+            guideRule4Desc: pgData.guideRule4Desc || DEFAULT_BRANDING.guideRule4Desc,
+            footerCopyrightText: pgData.footerCopyrightText || ''
           };
           await SystemBranding.updateOne({}, { $set: merged }, { upsert: true });
           branding = await SystemBranding.findOne().lean();
+        } else if (branding && mongoUpdatedAt > pgUpdatedAt) {
+          const { pgUpsertBranding } = await import('../db/syncEngine.js');
+          await pgUpsertBranding(branding);
         }
       }
-    } catch {}
+    } catch (pgErr: any) {
+      console.warn('[SystemBranding PG Fallback Warning]:', pgErr.message);
+    }
 
     if (!branding) {
       const created = await SystemBranding.create(DEFAULT_BRANDING);
