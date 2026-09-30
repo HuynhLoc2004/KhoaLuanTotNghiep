@@ -600,12 +600,16 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             if not nona_tifs:
                 raise FileNotFoundError("Nona không sinh ra file remapped TIFF nào.")
 
-            log(f"[*] Hugin Step 7b: Enblend hòa trộn đa dải tần ({len(nona_tifs)} ảnh, wrap 360°)...")
-            cmd_enblend = ['enblend', '--wrap=360', '-o', rendered_tif, '--fine-mask'] + nona_tifs
+            log(f"[*] Hugin Step 7b: Enblend hòa trộn đa dải tần ({len(nona_tifs)} ảnh, wrap horizontal)...")
+            cmd_enblend = ['enblend', '--wrap=horizontal', '-o', rendered_tif, '--fine-mask'] + nona_tifs
             res_enblend = subprocess.run(cmd_enblend, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
             if res_enblend.returncode != 0:
-                log(f"[!] Enblend stderr: {res_enblend.stderr}")
-                raise RuntimeError(f"enblend lỗi: {res_enblend.stderr[:200]}")
+                log(f"[!] Enblend wrap horizontal warning: {res_enblend.stderr[:100]}, thử chế độ chuẩn...")
+                cmd_enblend_fallback = ['enblend', '-o', rendered_tif, '--fine-mask'] + nona_tifs
+                res_enblend2 = subprocess.run(cmd_enblend_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
+                if res_enblend2.returncode != 0:
+                    log(f"[!] Enblend stderr: {res_enblend2.stderr}")
+                    raise RuntimeError(f"enblend lỗi: {res_enblend2.stderr[:200]}")
         elif shutil.which('hugin_executor'):
             prefix = os.path.join(temp_dir, "pano_out")
             cmd_exec = ['hugin_executor', '--stitching', f'--prefix={prefix}', pto_file]
