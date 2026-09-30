@@ -506,7 +506,7 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
         for idx, src_p in enumerate(image_paths):
             ext = os.path.splitext(src_p)[1].lower() or '.jpg'
             dst_p = os.path.join(temp_dir, f"img_{idx:04d}{ext}")
-            im = load_and_orient_image(src_p, max_dim=1400)
+            im = load_and_orient_image(src_p, max_dim=1100)
             im = preprocess_lighting_clahe(im)
             cv2.imwrite(dst_p, im, [cv2.IMWRITE_JPEG_QUALITY, 96])
             prepared_paths.append(dst_p)
@@ -518,10 +518,10 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
         if res.returncode != 0:
             raise RuntimeError(f"pto_gen lỗi: {res.stderr}")
 
-        # 2. cpfind (Khớp tuần tự theo chuỗi xoay vòng 360° siêu tốc, không bao giờ timeout)
+        # 2. cpfind (Khớp tuần tự siêu tốc theo chuỗi xoay vòng 360°, cấu hình chuẩn dưới 10s)
         log("[*] Hugin Step 2: Dò tìm điểm kiểm soát đa góc (cpfind --linearmatch)...")
-        cmd_cpfind = ['cpfind', '--sieve1width', '1000', '--sieve1height', '1000', '--linearmatch', '--linearmatchlen', '2', '-o', pto_file, pto_file]
-        subprocess.run(cmd_cpfind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
+        cmd_cpfind = ['cpfind', '--linearmatch', '--linearmatchlen', '2', '-o', pto_file, pto_file]
+        subprocess.run(cmd_cpfind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
 
         # Bổ sung khép vòng 360° nối ảnh cuối với ảnh đầu
         if len(prepared_paths) >= 4:
