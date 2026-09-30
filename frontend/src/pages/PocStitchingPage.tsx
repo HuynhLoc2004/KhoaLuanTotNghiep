@@ -33,7 +33,6 @@ import { copyTextToClipboard } from '../utils/clipboard';
 import { supportsNativeCameraCapture } from '../utils/device';
 import { useClientTranslation } from '../context/ClientTranslationContext';
 import { ConfirmModal } from '../components/ConfirmModal';
-import { Room3DReconstructionViewer } from '../components/Room3DReconstructionViewer';
 
 /** Cấu hình hỗ trợ số lượng ảnh linh hoạt từ 3 ảnh đến 100+ ảnh */
 const FRAME_RECOMMENDED_MIN = 12;
@@ -102,16 +101,6 @@ export const PocStitchingPage: React.FC = () => {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
-
-  // Tab chuyển đổi: Ghép ảnh 360 Panorama vs Tái tạo Phòng 3D (COLMAP)
-  const [activeStudioTab, setActiveStudioTab] = useState<'stitching' | 'reconstruction3d'>(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.has('sfm') || params.has('colmap') || params.has('room3d') ? 'reconstruction3d' : 'stitching';
-    } catch {
-      return 'stitching';
-    }
-  });
 
   // Custom Heritage Confirm Modal
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -661,86 +650,17 @@ function normalizePanoUrl(rawUrl: string): string {
         <div className="studio-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div className="studio-title-group">
             <h2>
-              {activeStudioTab === 'stitching' ? <Camera size={20} /> : <Box size={20} />}
-              {activeStudioTab === 'stitching'
-                ? t('stitching.title', 'Tạo & Ghép Ảnh Toàn Cảnh 360° (Pannellum)')
-                : 'Tái Tạo Không Gian Phòng 3D (COLMAP + OpenMVS)'}
+              <Camera size={20} />
+              {t('stitching.title', 'Tạo Không Gian Toàn Cảnh 360°')}
             </h2>
             <p>
-              {activeStudioTab === 'stitching'
-                ? t('stitching.desc', 'Chụp trực tiếp bằng camera điện thoại hoặc tải lên chùm ảnh góc để ghép thành không gian tham quan 360° hoàn chỉnh.')
-                : 'Khôi phục hình học không gian 3D bảo tàng từ 20–30 ảnh góc rộng bằng giải thuật SfM & MVS.'}
+              {t('stitching.desc', 'Tải lên các góc ảnh chụp quanh phòng để tự động ghép thành không gian tham quan 360° hoàn chỉnh, sắc nét và phẳng phiu.')}
             </p>
           </div>
         </div>
 
-        {/* Big Navigation Tabs */}
-        <div style={{
-          display: 'flex',
-          gap: 12,
-          padding: '6px',
-          background: 'rgba(255, 255, 255, 0.04)',
-          borderRadius: 14,
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          marginBottom: 20
-        }}>
-          <button
-            type="button"
-            onClick={() => setActiveStudioTab('stitching')}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              padding: '12px 18px',
-              borderRadius: 10,
-              border: activeStudioTab === 'stitching' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid transparent',
-              background: activeStudioTab === 'stitching' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1))' : 'transparent',
-              color: activeStudioTab === 'stitching' ? '#fbbf24' : 'rgba(255, 255, 255, 0.6)',
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Camera size={18} />
-            <span>1. Ghép Ảnh 360° Panorama (Ảnh cầu 2D)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveStudioTab('reconstruction3d')}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              padding: '12px 18px',
-              borderRadius: 10,
-              border: activeStudioTab === 'reconstruction3d' ? '1px solid rgba(52, 211, 153, 0.5)' : '1px solid transparent',
-              background: activeStudioTab === 'reconstruction3d' ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.1))' : 'transparent',
-              color: activeStudioTab === 'reconstruction3d' ? '#34d399' : 'rgba(255, 255, 255, 0.6)',
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Box size={18} />
-            <span>2. Tái Tạo Không Gian 3D (COLMAP + OpenMVS - Thuật toán hình học)</span>
-          </button>
-        </div>
-
-        {activeStudioTab === 'reconstruction3d' ? (
-          <div style={{ minHeight: '80vh', borderRadius: 16, overflow: 'hidden' }}>
-            <Room3DReconstructionViewer onClose={() => setActiveStudioTab('stitching')} />
-          </div>
-        ) : (
-          <>
-            {/* Main Studio Grid: Left Control Panel + Right 360 Viewer */}
-            <div className="studio-workspace-grid">
+        {/* Main Studio Grid: Left Control Panel + Right 360 Viewer */}
+        <div className="studio-workspace-grid">
         {/* Left Column: Input Panel */}
         <div className="studio-controls-col">
           {/* Card: Nguồn ảnh & Thao tác */}
@@ -1094,11 +1014,21 @@ function normalizePanoUrl(rawUrl: string): string {
                   </>
                 )}
               </button>
-              /* Error message */
               {errorMsg && (
-                <div style={{ padding: '10px 12px', background: 'var(--error-bg)', border: '1px solid var(--error-border)', borderRadius: 'var(--radius-sm)', color: 'var(--error)', fontSize: '12.5px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-                  <div>{errorMsg}</div>
+                <div style={{
+                  padding: '9px 12px',
+                  background: 'rgba(239, 68, 68, 0.06)',
+                  border: '1px solid rgba(239, 68, 68, 0.22)',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  color: '#e2e8f0',
+                  fontSize: '12.5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  lineHeight: 1.4
+                }}>
+                  <AlertTriangle size={15} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <span>{errorMsg}</span>
                 </div>
               )}
             </div>
@@ -1417,8 +1347,6 @@ function normalizePanoUrl(rawUrl: string): string {
             )}
           </button>
         </div>
-      )}
-      </>
       )}
 
       {/* Guide Slide-up Modal */}
