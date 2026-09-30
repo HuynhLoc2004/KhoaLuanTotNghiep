@@ -34,6 +34,8 @@ export const Header: React.FC<HeaderProps> = ({
       case 'homepage_cms': return t('nav.homepageCms', 'Quản lý Trang chủ & Giao diện');
       case 'guide': return t('nav.guidePage', 'Quản lý Trang Cẩm nang & Sơ đồ');
       case 'languages': return t('nav.languages', 'Quản trị Ngôn ngữ & Voice AI');
+      case 'users': return t('nav.users', 'Quản lý Người dùng & Khách');
+      case 'tickets': return t('nav.tickets', 'Quản lý Vé Tham Quan');
       case 'analytics': return t('nav.analytics', 'Báo cáo & Thống kê');
       case 'settings': return t('nav.settings', 'Cấu hình hệ thống');
       default: return t('nav.dashboard', 'Bảng Điều Khiển');

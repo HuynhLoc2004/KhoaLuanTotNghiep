@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -798,6 +798,61 @@ export const api = {
     });
     const json = await safeJson(res, 'Không thể xóa tài khoản');
     if (!json.success) throw new Error(json.message || 'Lỗi xóa người dùng');
+  },
+
+  // ===================== QUẢN LÝ VÉ THAM QUAN BẢO TÀNG (ADMIN) =====================
+  async getAdminTickets(params?: {
+    search?: string;
+    status?: string;
+    ticketType?: string;
+    visitDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<AdminTicketListResponse> {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.status) query.append('status', params.status);
+    if (params?.ticketType) query.append('ticketType', params.ticketType);
+    if (params?.visitDate) query.append('visitDate', params.visitDate);
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+
+    const res = await fetch(`${API_BASE}/admin/tickets?${query.toString()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải danh sách vé quản trị');
+    if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách vé');
+    return json;
+  },
+
+  async adminCheckinTicket(code: string): Promise<{ success: boolean; message: string; data: any }> {
+    const res = await fetch(`${API_BASE}/admin/tickets/${code}/checkin`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể thực hiện soát vé');
+    if (!json.success) throw new Error(json.message || 'Lỗi soát vé');
+    return json;
+  },
+
+  async adminCancelTicket(code: string): Promise<{ success: boolean; message: string; data: any }> {
+    const res = await fetch(`${API_BASE}/admin/tickets/${code}/cancel`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể hủy vé');
+    if (!json.success) throw new Error(json.message || 'Lỗi hủy vé');
+    return json;
+  },
+
+  async adminDeleteTicket(code: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${API_BASE}/admin/tickets/${code}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể xóa vé');
+    if (!json.success) throw new Error(json.message || 'Lỗi xóa vé');
+    return json;
   },
 
   // ===================== TRỢ LÝ AI & QUẢN LÝ MODEL =====================

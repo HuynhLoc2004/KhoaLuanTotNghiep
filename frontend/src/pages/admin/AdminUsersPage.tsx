@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   UserPlus,
@@ -11,15 +11,15 @@ import {
   Lock,
   Unlock,
   X,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight
+  ExternalLink,
+  Calendar,
+  Clock
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { UserItem, UserBookingItem, UserListResponse } from '../../types';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Pagination } from '../../components/Pagination';
 
 interface FormErrors {
   fullName?: string;
@@ -310,6 +310,39 @@ export const AdminUsersPage: React.FC = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
   };
 
+  // Định dạng ngày tháng chuẩn Việt Nam
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return '—';
+    }
+  };
+
+  const formatDateTime = (dateStr?: string) => {
+    if (!dateStr) return '— Chưa đăng nhập';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '—';
+    }
+  };
+
   // Render Role dạng nhãn chữ trung tính
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -541,7 +574,8 @@ export const AdminUsersPage: React.FC = () => {
                 <th style={{ padding: '10px 16px' }}>Email / Tên đăng nhập</th>
                 <th style={{ padding: '10px 16px' }}>Số điện thoại</th>
                 <th style={{ padding: '10px 16px' }}>Vai trò</th>
-                <th style={{ padding: '10px 16px' }}>Đặt lịch & Chi tiêu</th>
+                <th style={{ padding: '10px 16px' }}>Ngày tạo</th>
+                <th style={{ padding: '10px 16px' }}>Đăng nhập cuối</th>
                 <th style={{ padding: '10px 16px' }}>Trạng thái</th>
                 <th style={{ padding: '10px 16px', textAlign: 'right' }}>Thao tác</th>
               </tr>
@@ -549,22 +583,20 @@ export const AdminUsersPage: React.FC = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
                     <RefreshCw size={18} className="spin" style={{ margin: '0 auto 8px', display: 'block', color: 'var(--primary)' }} />
                     <span>Đang nạp danh sách tài khoản...</span>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
                     <span>Không có người dùng nào phù hợp với bộ lọc.</span>
                   </td>
                 </tr>
               ) : (
                 users.map((u) => {
                   const initial = (u.fullName || u.username || 'U').charAt(0).toUpperCase();
-                  const bookingsCount = u.bookingStats?.totalBookings || 0;
-                  const spent = u.bookingStats?.totalSpent || 0;
 
                   return (
                     <tr
@@ -634,19 +666,17 @@ export const AdminUsersPage: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Cột 5: Đặt lịch & Chi tiêu */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ color: 'var(--text-main)', fontSize: 12.5 }}>
-                          {bookingsCount > 0 ? `${bookingsCount} lượt đặt` : 'Chưa đặt'}
-                        </div>
-                        {spent > 0 && (
-                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                            {formatVND(spent)}
-                          </div>
-                        )}
+                      {/* Cột 5: Ngày tạo tài khoản */}
+                      <td style={{ padding: '12px 16px', color: 'var(--text-main)', fontSize: 12.5 }}>
+                        {formatDate(u.createdAt)}
                       </td>
 
-                      {/* Cột 6: Trạng thái */}
+                      {/* Cột 6: Đăng nhập cuối */}
+                      <td style={{ padding: '12px 16px', color: u.lastLogin ? 'var(--text-main)' : 'var(--text-muted)', fontSize: 12 }}>
+                        {formatDateTime(u.lastLogin)}
+                      </td>
+
+                      {/* Cột 7: Trạng thái */}
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                           <span
@@ -664,14 +694,14 @@ export const AdminUsersPage: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Cột 7: Thao tác */}
+                      {/* Cột 8: Thao tác */}
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenDetail(u)}
-                            title="Xem chi tiết hồ sơ & lịch sử đặt vé"
+                            title="Xem chi tiết hồ sơ tài khoản"
                             style={{ padding: '4px 8px' }}
                           >
                             <Eye size={13} />
@@ -718,113 +748,18 @@ export const AdminUsersPage: React.FC = () => {
           </table>
         </div>
 
-        {/* 5. PHÂN TRANG CHUẨN ĐẦY ĐỦ */}
-        <div
-          style={{
-            padding: '12px 16px',
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 12,
-            fontSize: 12.5,
-            color: 'var(--text-muted)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span>
-              Hiển thị {fromIndex} - {toIndex} trên tổng {pagination.total} người dùng
-            </span>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span>Dòng mỗi trang:</span>
-              <select
-                value={pagination.limit}
-                onChange={(e) => handleLimitChange(Number(e.target.value))}
-                style={{
-                  padding: '3px 8px',
-                  background: 'var(--bg-main)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 4,
-                  color: 'var(--text-main)',
-                  fontSize: 12
-                }}
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => handlePageChange(1)}
-              disabled={pagination.page <= 1}
-              style={{ padding: '4px 6px' }}
-              title="Trang đầu"
-            >
-              <ChevronsLeft size={13} />
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={pagination.page <= 1}
-              style={{ padding: '4px 8px' }}
-              title="Trang trước"
-            >
-              <ChevronLeft size={13} />
-            </button>
-
-            {/* Các nút số trang */}
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-              .filter((p) => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.page) <= 1)
-              .map((p, idx, arr) => {
-                const prev = arr[idx - 1];
-                const showEllipsis = prev && p - prev > 1;
-                return (
-                  <React.Fragment key={p}>
-                    {showEllipsis && <span style={{ padding: '0 4px', color: 'var(--text-muted)' }}>...</span>}
-                    <button
-                      type="button"
-                      className={`btn btn-sm ${p === pagination.page ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => handlePageChange(p)}
-                      style={{ minWidth: 28, padding: '4px 6px', fontSize: 12 }}
-                    >
-                      {p}
-                    </button>
-                  </React.Fragment>
-                );
-              })}
-
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={pagination.page >= pagination.totalPages}
-              style={{ padding: '4px 8px' }}
-              title="Trang tiếp"
-            >
-              <ChevronRight size={13} />
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => handlePageChange(pagination.totalPages)}
-              disabled={pagination.page >= pagination.totalPages}
-              style={{ padding: '4px 6px' }}
-              title="Trang cuối"
-            >
-              <ChevronsRight size={13} />
-            </button>
-          </div>
-        </div>
+        {/* 5. PHÂN TRANG CHUẨN CỦA HỆ THỐNG QUẢN TRỊ */}
+        {pagination.total > 0 && (
+          <Pagination
+            currentPage={pagination.page}
+            totalItems={pagination.total}
+            pageSize={pagination.limit}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handleLimitChange}
+            pageSizeOptions={[10, 20, 50]}
+            itemLabel="người dùng"
+          />
+        )}
       </div>
 
       {/* 6. MODAL XEM CHI TIẾT HỒ SƠ & LỊCH SỬ ĐẶT VÉ (GỌN GÀNG, TỐI GIẢN) */}
@@ -884,7 +819,7 @@ export const AdminUsersPage: React.FC = () => {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
                 gap: 12,
-                marginBottom: 20,
+                marginBottom: 16,
                 fontSize: 12.5
               }}
             >
@@ -903,18 +838,30 @@ export const AdminUsersPage: React.FC = () => {
                 </span>
               </div>
               <div>
+                <span style={{ color: 'var(--text-muted)' }}>Ngày tạo tài khoản: </span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                  {formatDateTime(detailUser.createdAt)}
+                </span>
+              </div>
+              <div>
                 <span style={{ color: 'var(--text-muted)' }}>Lần đăng nhập cuối: </span>
                 <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
-                  {detailUser.lastLogin ? new Date(detailUser.lastLogin).toLocaleString('vi-VN') : 'Chưa có thông tin'}
+                  {formatDateTime(detailUser.lastLogin)}
+                </span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Ghi chú quản trị: </span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                  {detailUser.notes || 'Không có'}
                 </span>
               </div>
             </div>
 
-            {/* Lịch sử Đặt lịch & Thanh toán */}
+            {/* Dữ liệu tổng hợp vé tham quan */}
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
-                  Lịch sử Đặt lịch & Thanh toán vé
+                  Thông tin vé & Đặt chỗ tham quan
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Tổng chi tiêu:{' '}
@@ -924,46 +871,30 @@ export const AdminUsersPage: React.FC = () => {
                 </div>
               </div>
 
-              {detailUser.bookings && detailUser.bookings.length > 0 ? (
-                <div style={{ border: '1px solid var(--border-color)', borderRadius: 6, overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                        <th style={{ padding: '8px 10px' }}>Mã đặt chỗ</th>
-                        <th style={{ padding: '8px 10px' }}>Ngày tham quan</th>
-                        <th style={{ padding: '8px 10px' }}>Loại vé</th>
-                        <th style={{ padding: '8px 10px' }}>Số tiền</th>
-                        <th style={{ padding: '8px 10px', textAlign: 'right' }}>Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detailUser.bookings.map((b) => (
-                        <tr key={b.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                          <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-main)' }}>
-                            #{b.id}
-                          </td>
-                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>
-                            {b.visitDate} ({b.timeSlot})
-                          </td>
-                          <td style={{ padding: '8px 10px', color: 'var(--text-main)' }}>
-                            {b.ticketType} (x{b.quantity})
-                          </td>
-                          <td style={{ padding: '8px 10px', color: 'var(--text-main)', fontWeight: 600 }}>
-                            {formatVND(b.totalAmount)}
-                          </td>
-                          <td style={{ padding: '8px 10px', textAlign: 'right', color: '#22C55E' }}>
-                            Đã thanh toán
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div
+                style={{
+                  padding: '12px 14px',
+                  background: 'var(--bg-main)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 600 }}>
+                    {detailUser.bookingStats?.totalBookings && detailUser.bookingStats.totalBookings > 0
+                      ? `Đã đăng ký ${detailUser.bookingStats.totalBookings} vé tham quan bảo tàng`
+                      : 'Chưa có vé tham quan nào trong hệ thống'}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                    Vé tham quan được lưu trữ và quản lý tập trung tại trang Dashboard Vé riêng biệt
+                  </div>
                 </div>
-              ) : (
-                <div style={{ padding: 14, textAlign: 'center', background: 'var(--bg-main)', borderRadius: 6, color: 'var(--text-muted)', fontSize: 12 }}>
-                  Chưa ghi nhận lượt đặt lịch tham quan nào.
-                </div>
-              )}
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>

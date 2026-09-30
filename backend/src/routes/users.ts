@@ -57,28 +57,58 @@ usersRouter.get('/', async (req: AuthRequest, res: Response) => {
       User.countDocuments({ isActive: true })
     ]);
 
-    // Thêm dữ liệu đặt lịch mô phỏng cho người dùng (nếu chưa có trong CSDL)
-    const formattedUsers = users.map((u: any) => ({
-      id: u._id.toString(),
-      _id: u._id.toString(),
-      username: u.username,
-      email: u.email,
-      fullName: u.fullName || u.username,
-      phone: u.phone || '',
-      avatar: u.avatar || '',
-      role: u.role || 'client',
-      permissions: u.permissions || [],
-      isActive: u.isActive !== false,
-      notes: u.notes || '',
-      bookingStats: u.bookingStats || {
-        totalBookings: u.role === 'admin' ? 0 : Math.floor((parseInt(u._id.toString().slice(-4), 16) % 7)),
-        totalSpent: u.role === 'admin' ? 0 : Math.floor((parseInt(u._id.toString().slice(-4), 16) % 7)) * 30000,
-        lastBookingDate: u.updatedAt
+    // Đếm số vé thực tế của từng tài khoản từ cơ sở dữ liệu thật (0% mock data)
+    const userIds = users.map((u: any) => u._id.toString());
+    const userEmails = users.map((u: any) => u.email).filter(Boolean);
+
+    const ticketStats = await Ticket.aggregate([
+      {
+        $match: {
+          $or: [
+            { userId: { $in: userIds } },
+            { userEmail: { $in: userEmails } }
+          ]
+        }
       },
-      lastLogin: u.lastLogin,
-      createdAt: u.createdAt,
-      updatedAt: u.updatedAt
-    }));
+      {
+        $group: {
+          _id: '$userEmail',
+          totalBookings: { $sum: 1 },
+          totalSpent: { $sum: '$totalAmount' },
+          lastBookingDate: { $max: '$createdAt' }
+        }
+      }
+    ]);
+
+    const statsMap = new Map();
+    ticketStats.forEach((t: any) => {
+      statsMap.set(t._id, t);
+    });
+
+    const formattedUsers = users.map((u: any) => {
+      const realStats = statsMap.get(u.email);
+      return {
+        id: u._id.toString(),
+        _id: u._id.toString(),
+        username: u.username,
+        email: u.email,
+        fullName: u.fullName || u.username,
+        phone: u.phone || '',
+        avatar: u.avatar || '',
+        role: u.role || 'client',
+        permissions: u.permissions || [],
+        isActive: u.isActive !== false,
+        notes: u.notes || '',
+        bookingStats: {
+          totalBookings: realStats ? realStats.totalBookings : 0,
+          totalSpent: realStats ? realStats.totalSpent : 0,
+          lastBookingDate: realStats ? realStats.lastBookingDate : null
+        },
+        lastLogin: u.lastLogin || null,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt
+      };
+    });
 
     res.json({
       success: true,
