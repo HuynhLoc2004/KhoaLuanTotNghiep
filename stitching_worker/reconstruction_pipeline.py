@@ -214,37 +214,62 @@ def run_pipeline(
     log(f"Kiểm tra công cụ: OpenMVS: {'[OK]' if has_openmvs else '[THIẾU]'}")
 
     # =========================================================================
-    # STEP 1: Khởi tạo CSDL COLMAP
+    # STEP 1: Tiền xử lý tối ưu hóa ảnh & Khởi tạo CSDL COLMAP
     # =========================================================================
-    emit_progress(1, total_steps, "Khởi tạo CSDL", "Đang phân tích định dạng ảnh góc rộng 0.5x...", 10)
+    emit_progress(1, total_steps, "Tiền xử lý ảnh", f"Đang chuẩn hóa độ phân giải {len(image_files)} ảnh về chuẩn Full HD để tối ưu RAM...", 10)
     db_path = os.path.join(work_dir, "database.db")
     sparse_dir = os.path.join(work_dir, "sparse")
     os.makedirs(sparse_dir, exist_ok=True)
 
+    # Tự động nén ảnh về kích thước tối đa 1600px để tránh tràn RAM (OOM Killer exit 137) trên VPS
+    optimized_images_dir = os.path.join(work_dir, "optimized_images")
+    os.makedirs(optimized_images_dir, exist_ok=True)
+    try:
+        from PIL import Image
+        for img_name in image_files:
+            src_p = os.path.join(images_dir, img_name)
+            dst_p = os.path.join(optimized_images_dir, img_name)
+            try:
+                with Image.open(src_p) as im:
+                    w, h = im.size
+                    max_dim = max(w, h)
+                    if max_dim > 1600:
+                        scale = 1600.0 / max_dim
+                        new_w, new_h = int(w * scale), int(h * scale)
+                        im_resized = im.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                        im_resized.save(dst_p, quality=90)
+                    else:
+                        im.save(dst_p, quality=90)
+            except Exception:
+                shutil.copy2(src_p, dst_p)
+        feed_images_dir = optimized_images_dir
+        log(f"[✓] Đã tối ưu hóa {len(image_files)} ảnh về chuẩn 1600px sắc nét, chống tràn RAM.")
+    except Exception as e:
+        log(f"[WARN] Bỏ qua bước resize ảnh: {e}")
+        feed_images_dir = images_dir
+
     if not has_colmap:
-        # Nếu chưa cài đặt binary COLMAP trên máy, cung cấp chỉ dẫn chuẩn và fallback point cloud
         emit_progress(total_steps, total_steps, "Thiếu công cụ COLMAP", "Hệ thống cần binary COLMAP để chạy SfM.", 100)
         raise RuntimeError(
             "Chưa tìm thấy binary 'colmap' trên hệ thống. "
-            "Trên Ubuntu/Linux: Hãy chạy lệnh 'sudo apt-get install -y colmap'. "
-            "Trên Windows: Tải bản release COLMAP-x.x-windows-no-cuda.zip và thêm vào PATH."
+            "Trên Ubuntu/Linux: Hãy chạy lệnh 'sudo apt-get install -y colmap'."
         )
 
     # =========================================================================
-    # STEP 2: COLMAP Feature Extraction (Hỗ trợ camera góc rộng 0.5x OPENCV_FISHEYE)
+    # STEP 2: COLMAP Feature Extraction (Tối ưu hóa bộ nhớ RAM và tốc độ)
     # =========================================================================
-    emit_progress(2, total_steps, "Trích xuất đặc trưng SIFT", "Trích xuất đặc trưng hình học SIFT & khử méo góc rộng...", 25)
+    emit_progress(2, total_steps, "Trích xuất đặc trưng SIFT", "Trích xuất đặc trưng hình học SIFT siêu tốc...", 25)
     gpu_flag = "1" if use_gpu else "0"
     
     extract_cmd = [
         colmap_bin, "feature_extractor",
         "--database_path", db_path,
-        "--image_path", images_dir,
+        "--image_path", feed_images_dir,
         "--ImageReader.single_camera", "1",
         "--ImageReader.camera_model", camera_model,
         "--SiftExtraction.use_gpu", gpu_flag,
         "--SiftExtraction.max_image_size", "1600",
-        "--SiftExtraction.max_num_features", "8192"
+        "--SiftExtraction.max_num_features", "4096"
     ]
     try:
         run_command(extract_cmd, "COLMAP Feature Extractor", cwd=work_dir)
@@ -260,7 +285,7 @@ def run_pipeline(
             colmap_bin, "sequential_matcher",
             "--database_path", db_path,
             "--SiftMatching.use_gpu", gpu_flag,
-            "--SequentialMatching.overlap", "10",
+            "--SequentialMatching.overlap", "5",
             "--SequentialMatching.loop_detection", "0"
         ]
         run_command(match_cmd, "COLMAP Sequential Matcher", cwd=work_dir)
