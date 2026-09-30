@@ -1,28 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Ticket,
   Search,
   Filter,
   RefreshCw,
   Eye,
   CheckCircle,
   XCircle,
-  QrCode,
-  Calendar,
-  Clock,
-  User,
-  Mail,
-  Phone,
-  CreditCard,
   X,
   Plus,
   Edit2,
-  Trash2,
-  DollarSign,
-  Layers,
-  ShoppingBag,
-  AlertCircle,
-  ShieldCheck
+  Trash2
 } from 'lucide-react';
 import { api } from '../../services/api';
 import {
@@ -30,8 +17,7 @@ import {
   AdminTicketStats,
   TicketTypeItem,
   TicketTimeSlotItem,
-  AdminOrderItem,
-  AdminOrdersResponse
+  AdminOrderItem
 } from '../../types';
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -40,7 +26,7 @@ import { Pagination } from '../../components/Pagination';
 export const AdminTicketsPage: React.FC = () => {
   const { showToast } = useToast();
 
-  // Tab con hiện tại: 'tickets' (Soát vé & danh sách vé) | 'pricing' (Cấu hình giá vé & khung giờ) | 'orders' (Lịch sử đơn hàng PayOS)
+  // Tab con: 'tickets' | 'pricing' | 'orders'
   const [subTab, setSubTab] = useState<'tickets' | 'pricing' | 'orders'>('tickets');
 
   // ==========================================
@@ -114,7 +100,6 @@ export const AdminTicketsPage: React.FC = () => {
     }
   };
 
-  // Thuật toán lọc nhanh tức thời (Debounced 250ms)
   useEffect(() => {
     if (subTab !== 'tickets') return;
     const timer = setTimeout(() => {
@@ -123,7 +108,7 @@ export const AdminTicketsPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter, typeFilter, dateFilter, subTab]);
 
-  // Xử lý soát vé trực tiếp
+  // Soát vé
   const handleConfirmCheckin = async () => {
     if (!checkinTarget) return;
     try {
@@ -142,7 +127,7 @@ export const AdminTicketsPage: React.FC = () => {
     }
   };
 
-  // Xử lý hủy vé
+  // Hủy vé
   const handleConfirmCancel = async () => {
     if (!cancelTarget) return;
     try {
@@ -162,20 +147,22 @@ export const AdminTicketsPage: React.FC = () => {
   };
 
   // ==========================================
-  // TAB 2: CẤU HÌNH GIÁ VÉ & KHUNG GIỜ (CRUD)
+  // TAB 2: CẤU HÌNH GIÁ VÉ & KHUNG GIỜ
   // ==========================================
   const [ticketTypes, setTicketTypes] = useState<TicketTypeItem[]>([]);
   const [timeSlots, setTimeSlots] = useState<TicketTimeSlotItem[]>([]);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
 
-  // Modal Sửa / Thêm loại vé
+  // Modal Sửa / Thêm loại vé & Lỗi Validation
   const [editingType, setEditingType] = useState<Partial<TicketTypeItem> | null>(null);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+  const [typeErrors, setTypeErrors] = useState<{ code?: string; name?: string; price?: string }>({});
   const [deleteTypeTarget, setDeleteTypeTarget] = useState<TicketTypeItem | null>(null);
 
-  // Modal Sửa / Thêm khung giờ
+  // Modal Sửa / Thêm khung giờ & Lỗi Validation
   const [editingSlot, setEditingSlot] = useState<Partial<TicketTimeSlotItem> | null>(null);
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
+  const [slotErrors, setSlotErrors] = useState<{ slotName?: string; maxCapacity?: string }>({});
   const [deleteSlotTarget, setDeleteSlotTarget] = useState<TicketTimeSlotItem | null>(null);
 
   const fetchPricingData = async () => {
@@ -188,7 +175,7 @@ export const AdminTicketsPage: React.FC = () => {
       setTicketTypes(typesRes || []);
       setTimeSlots(slotsRes || []);
     } catch (err: any) {
-      showToast(err.message || 'Không thể tải cấu hình giá vé & khung giờ', 'error');
+      showToast(err.message || 'Không thể tải cấu hình giá vé và khung giờ', 'error');
     } finally {
       setIsLoadingPricing(false);
     }
@@ -200,35 +187,58 @@ export const AdminTicketsPage: React.FC = () => {
     }
   }, [subTab]);
 
+  // Xử lý lưu loại vé (Có Validation chặt chẽ)
   const handleSaveTicketType = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingType || !editingType.code || !editingType.name) {
-      showToast('Vui lòng nhập mã và tên loại vé', 'warning');
+    const errors: { code?: string; name?: string; price?: string } = {};
+
+    if (!editingType?.code?.trim()) {
+      errors.code = 'Vui lòng nhập mã loại vé';
+    } else if (!/^[a-z0-9_-]+$/.test(editingType.code.trim().toLowerCase())) {
+      errors.code = 'Mã vé chỉ gồm chữ thường không dấu, số và gạch dưới (ví dụ: standard)';
+    }
+
+    if (!editingType?.name?.trim()) {
+      errors.name = 'Vui lòng nhập tên loại vé';
+    } else if (editingType.name.trim().length < 2) {
+      errors.name = 'Tên loại vé phải từ 2 ký tự trở lên';
+    }
+
+    if (editingType?.price === undefined || editingType?.price === null || isNaN(Number(editingType.price))) {
+      errors.price = 'Vui lòng nhập giá vé hợp lệ';
+    } else if (Number(editingType.price) < 0) {
+      errors.price = 'Giá vé không thể là số âm';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setTypeErrors(errors);
       return;
     }
+
     try {
-      if (editingType.id) {
+      if (editingType?.id) {
         await api.updateAdminTicketType(editingType.id, {
-          name: editingType.name,
+          name: editingType.name!.trim(),
           price: Number(editingType.price) || 0,
-          description: editingType.description || '',
+          description: editingType.description?.trim() || '',
           isActive: editingType.isActive !== false,
-          displayOrder: Number(editingType.displayOrder) || 0
+          displayOrder: Number(editingType.displayOrder) || 1
         });
-        showToast('Cập nhật loại vé thành công!', 'success');
+        showToast('Cập nhật loại vé thành công', 'success');
       } else {
         await api.createAdminTicketType({
-          code: editingType.code.trim().toLowerCase(),
-          name: editingType.name.trim(),
-          price: Number(editingType.price) || 0,
-          description: editingType.description || '',
-          isActive: editingType.isActive !== false,
-          displayOrder: Number(editingType.displayOrder) || 0
+          code: editingType!.code!.trim().toLowerCase(),
+          name: editingType!.name!.trim(),
+          price: Number(editingType!.price) || 0,
+          description: editingType?.description?.trim() || '',
+          isActive: editingType?.isActive !== false,
+          displayOrder: Number(editingType?.displayOrder) || (ticketTypes.length + 1)
         });
-        showToast('Thêm loại vé mới thành công!', 'success');
+        showToast('Thêm loại vé mới thành công', 'success');
       }
       setIsTypeModalOpen(false);
       setEditingType(null);
+      setTypeErrors({});
       fetchPricingData();
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi lưu loại vé', 'error');
@@ -247,34 +257,47 @@ export const AdminTicketsPage: React.FC = () => {
     }
   };
 
+  // Xử lý lưu khung giờ (Có Validation)
   const handleSaveSlot = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingSlot || !editingSlot.slotName || !editingSlot.startTime || !editingSlot.endTime) {
-      showToast('Vui lòng điền đủ thông tin khung giờ', 'warning');
+    const errors: { slotName?: string; maxCapacity?: string } = {};
+
+    if (!editingSlot?.slotName?.trim()) {
+      errors.slotName = 'Vui lòng nhập tên khung giờ (ví dụ: Buổi sáng: 08:00 - 11:30)';
+    } else if (editingSlot.slotName.trim().length < 3) {
+      errors.slotName = 'Tên khung giờ phải từ 3 ký tự trở lên';
+    }
+
+    if (!editingSlot?.maxCapacity || isNaN(Number(editingSlot.maxCapacity)) || Number(editingSlot.maxCapacity) <= 0) {
+      errors.maxCapacity = 'Sức chứa tối đa phải lớn hơn 0';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setSlotErrors(errors);
       return;
     }
+
     try {
-      if (editingSlot.id) {
+      if (editingSlot?.id) {
         await api.updateAdminTicketSlot(editingSlot.id, {
-          slotName: editingSlot.slotName,
-          startTime: editingSlot.startTime,
-          endTime: editingSlot.endTime,
-          maxCapacity: Number(editingSlot.maxCapacity) || 500,
-          isActive: editingSlot.isActive !== false
+          slotName: editingSlot.slotName!.trim(),
+          maxCapacity: Number(editingSlot.maxCapacity) || 300,
+          isActive: editingSlot.isActive !== false,
+          displayOrder: Number(editingSlot.displayOrder) || 1
         });
-        showToast('Cập nhật khung giờ thành công!', 'success');
+        showToast('Cập nhật khung giờ thành công', 'success');
       } else {
         await api.createAdminTicketSlot({
-          slotName: editingSlot.slotName,
-          startTime: editingSlot.startTime,
-          endTime: editingSlot.endTime,
-          maxCapacity: Number(editingSlot.maxCapacity) || 500,
-          isActive: editingSlot.isActive !== false
+          slotName: editingSlot!.slotName!.trim(),
+          maxCapacity: Number(editingSlot!.maxCapacity) || 300,
+          isActive: editingSlot?.isActive !== false,
+          displayOrder: Number(editingSlot?.displayOrder) || (timeSlots.length + 1)
         });
-        showToast('Thêm khung giờ mới thành công!', 'success');
+        showToast('Thêm khung giờ mới thành công', 'success');
       }
       setIsSlotModalOpen(false);
       setEditingSlot(null);
+      setSlotErrors({});
       fetchPricingData();
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi lưu khung giờ', 'error');
@@ -294,7 +317,7 @@ export const AdminTicketsPage: React.FC = () => {
   };
 
   // ==========================================
-  // TAB 3: LỊCH SỬ ĐƠN HÀNG (PAYOS)
+  // TAB 3: LỊCH SỬ ĐƠN HÀNG
   // ==========================================
   const [orders, setOrders] = useState<AdminOrderItem[]>([]);
   const [orderStats, setOrderStats] = useState({
@@ -338,7 +361,7 @@ export const AdminTicketsPage: React.FC = () => {
         }
       }
     } catch (err: any) {
-      showToast(err.message || 'Không thể tải lịch sử đơn hàng PayOS', 'error');
+      showToast(err.message || 'Không thể tải lịch sử đơn hàng', 'error');
     } finally {
       setIsLoadingOrders(false);
     }
@@ -352,12 +375,12 @@ export const AdminTicketsPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [orderSearch, orderStatusFilter, subTab]);
 
-  // Định dạng số tiền VNĐ
+  // Format tiền tệ VNĐ
   const formatVND = (num: number = 0) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
   };
 
-  // Định dạng ngày
+  // Format ngày
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—';
     try {
@@ -421,7 +444,7 @@ export const AdminTicketsPage: React.FC = () => {
     );
   };
 
-  // Badge trạng thái đơn hàng PayOS
+  // Badge trạng thái đơn hàng
   const renderOrderStatusBadge = (status: string) => {
     let dotColor = '#EAB308';
     let text = 'Chờ thanh toán';
@@ -429,8 +452,8 @@ export const AdminTicketsPage: React.FC = () => {
       dotColor = '#22C55E';
       text = 'Đã thanh toán';
     } else if (status === 'expired') {
-      dotColor = '#94A3B8';
-      text = 'Hết hạn (Đã dọn)';
+      dotColor = '#64748B';
+      text = 'Hết hạn';
     } else if (status === 'cancelled') {
       dotColor = '#EF4444';
       text = 'Đã hủy';
@@ -478,14 +501,14 @@ export const AdminTicketsPage: React.FC = () => {
 
   return (
     <div className="admin-content" style={{ padding: '24px 28px' }}>
-      {/* 1. TIÊU ĐỀ TRANG QUẢN TRỊ & NÚT LÀM MỚI */}
+      {/* 1. TIÊU ĐỀ TRANG QUẢN TRỊ */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 16,
+          gap: 12,
           marginBottom: 16
         }}
       >
@@ -495,17 +518,13 @@ export const AdminTicketsPage: React.FC = () => {
               fontSize: 18,
               fontWeight: 700,
               color: 'var(--heading-color)',
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
+              margin: 0
             }}
           >
-            <Ticket size={20} style={{ color: 'var(--primary)' }} />
-            <span>Quản trị Vé & Đơn hàng PayOS</span>
+            Quản lý vé & Đơn hàng
           </h1>
           <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, margin: 0 }}>
-            Quản lý soát vé vào cổng, đồng bộ bảng giá vé, khung giờ và theo dõi lịch sử thanh toán PayOS
+            Soát vé tham quan, quản lý giá vé và theo dõi lịch sử thanh toán
           </p>
         </div>
 
@@ -521,14 +540,13 @@ export const AdminTicketsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* 2. CHUYỂN ĐỔI TAB CON TỐI GIẢN (SUB-TABS) */}
+      {/* 2. CHUYỂN ĐỔI TAB CON TỐI GIẢN */}
       <div
         style={{
           display: 'flex',
-          gap: 6,
+          gap: 4,
           borderBottom: '1px solid var(--border-color)',
-          marginBottom: 18,
-          paddingBottom: 0
+          marginBottom: 18
         }}
       >
         <button
@@ -538,20 +556,16 @@ export const AdminTicketsPage: React.FC = () => {
             padding: '8px 16px',
             fontSize: 13,
             fontWeight: subTab === 'tickets' ? 600 : 500,
-            color: subTab === 'tickets' ? 'var(--primary)' : 'var(--text-muted)',
+            color: subTab === 'tickets' ? 'var(--text-main)' : 'var(--text-muted)',
             border: 'none',
-            borderBottom: subTab === 'tickets' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderBottom: subTab === 'tickets' ? '2px solid var(--text-main)' : '2px solid transparent',
             background: 'transparent',
             cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
             marginBottom: -1,
             transition: 'all 0.15s ease'
           }}
         >
-          <QrCode size={14} />
-          <span>Soát vé & Danh sách vé</span>
+          Soát vé & Danh sách vé
         </button>
 
         <button
@@ -561,20 +575,16 @@ export const AdminTicketsPage: React.FC = () => {
             padding: '8px 16px',
             fontSize: 13,
             fontWeight: subTab === 'pricing' ? 600 : 500,
-            color: subTab === 'pricing' ? 'var(--primary)' : 'var(--text-muted)',
+            color: subTab === 'pricing' ? 'var(--text-main)' : 'var(--text-muted)',
             border: 'none',
-            borderBottom: subTab === 'pricing' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderBottom: subTab === 'pricing' ? '2px solid var(--text-main)' : '2px solid transparent',
             background: 'transparent',
             cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
             marginBottom: -1,
             transition: 'all 0.15s ease'
           }}
         >
-          <DollarSign size={14} />
-          <span>Cấu hình Giá vé & Khung giờ</span>
+          Bảng giá & Khung giờ
         </button>
 
         <button
@@ -584,20 +594,16 @@ export const AdminTicketsPage: React.FC = () => {
             padding: '8px 16px',
             fontSize: 13,
             fontWeight: subTab === 'orders' ? 600 : 500,
-            color: subTab === 'orders' ? 'var(--primary)' : 'var(--text-muted)',
+            color: subTab === 'orders' ? 'var(--text-main)' : 'var(--text-muted)',
             border: 'none',
-            borderBottom: subTab === 'orders' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderBottom: subTab === 'orders' ? '2px solid var(--text-main)' : '2px solid transparent',
             background: 'transparent',
             cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
             marginBottom: -1,
             transition: 'all 0.15s ease'
           }}
         >
-          <ShoppingBag size={14} />
-          <span>Lịch sử Đơn hàng (PayOS)</span>
+          Lịch sử đơn hàng
         </button>
       </div>
 
@@ -606,7 +612,7 @@ export const AdminTicketsPage: React.FC = () => {
           ======================================================== */}
       {subTab === 'tickets' && (
         <>
-          {/* THANH CHỈ SỐ KPI TỐI GIẢN */}
+          {/* KPI TỐI GIẢN */}
           <div
             style={{
               background: 'var(--bg-card)',
@@ -654,7 +660,7 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* BỘ LỌC TỐC ĐỘ CAO */}
+          {/* BỘ LỌC */}
           <div
             style={{
               background: 'var(--bg-card)',
@@ -669,7 +675,7 @@ export const AdminTicketsPage: React.FC = () => {
               gap: 12
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 260 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 240 }}>
               <div style={{ position: 'relative', width: '100%' }}>
                 <Search
                   size={14}
@@ -687,7 +693,15 @@ export const AdminTicketsPage: React.FC = () => {
                   placeholder="Tìm theo mã vé, tên khách, email, số điện thoại..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ paddingLeft: 34 }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 34px',
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 6,
+                    color: 'var(--text-main)',
+                    fontSize: 13
+                  }}
                 />
               </div>
             </div>
@@ -696,10 +710,17 @@ export const AdminTicketsPage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Filter size={13} style={{ color: 'var(--text-muted)' }} />
                 <select
-                  className="form-control form-control-sm"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{ minWidth: 125 }}
+                  style={{
+                    padding: '6px 10px',
+                    background: '#1c1917',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 6,
+                    color: '#f8fafc',
+                    fontSize: 12.5,
+                    colorScheme: 'dark'
+                  }}
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="paid">Chưa sử dụng</option>
@@ -709,10 +730,17 @@ export const AdminTicketsPage: React.FC = () => {
               </div>
 
               <select
-                className="form-control form-control-sm"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                style={{ minWidth: 125 }}
+                style={{
+                  padding: '6px 10px',
+                  background: '#1c1917',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 6,
+                  color: '#f8fafc',
+                  fontSize: 12.5,
+                  colorScheme: 'dark'
+                }}
               >
                 <option value="all">Tất cả loại vé</option>
                 <option value="standard">Tiêu chuẩn</option>
@@ -723,10 +751,17 @@ export const AdminTicketsPage: React.FC = () => {
 
               <input
                 type="date"
-                className="form-control form-control-sm"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                title="Lọc theo ngày tham quan"
+                style={{
+                  padding: '6px 10px',
+                  background: '#1c1917',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 6,
+                  color: '#f8fafc',
+                  fontSize: 12.5,
+                  colorScheme: 'dark'
+                }}
               />
 
               {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || dateFilter) && (
@@ -747,7 +782,7 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* BẢNG DANH SÁCH VÉ */}
+          {/* BẢNG DANH SÁCH VÉ (RESPONSIVE CHUẨN) */}
           <div
             style={{
               background: 'var(--bg-card)',
@@ -757,17 +792,17 @@ export const AdminTicketsPage: React.FC = () => {
               marginBottom: 16
             }}
           >
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+              <table style={{ minWidth: 780, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                    <th style={{ padding: '10px 16px' }}>Mã vé</th>
-                    <th style={{ padding: '10px 16px' }}>Khách tham quan</th>
-                    <th style={{ padding: '10px 16px' }}>Loại vé</th>
-                    <th style={{ padding: '10px 16px' }}>Lịch tham quan</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'right' }}>Giá vé</th>
-                    <th style={{ padding: '10px 16px' }}>Trạng thái</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'center' }}>Thao tác</th>
+                  <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    <th style={{ padding: '10px 16px', width: '13%' }}>Mã vé</th>
+                    <th style={{ padding: '10px 16px', width: '22%' }}>Khách tham quan</th>
+                    <th style={{ padding: '10px 16px', width: '15%' }}>Loại vé</th>
+                    <th style={{ padding: '10px 16px', width: '18%' }}>Lịch tham quan</th>
+                    <th style={{ padding: '10px 16px', width: '14%', textAlign: 'right' }}>Giá vé</th>
+                    <th style={{ padding: '10px 16px', width: '10%' }}>Trạng thái</th>
+                    <th style={{ padding: '10px 16px', width: '8%', textAlign: 'center' }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -775,7 +810,7 @@ export const AdminTicketsPage: React.FC = () => {
                     <tr>
                       <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
                         <RefreshCw size={18} className="spin" style={{ margin: '0 auto 8px', display: 'block' }} />
-                        <span>Đang tải danh sách vé tham quan...</span>
+                        <span>Đang tải danh sách vé...</span>
                       </td>
                     </tr>
                   ) : tickets.length === 0 ? (
@@ -788,12 +823,10 @@ export const AdminTicketsPage: React.FC = () => {
                     tickets.map((t) => (
                       <tr
                         key={t.id || t.ticketCode}
-                        style={{
-                          borderBottom: '1px solid var(--border-color)',
-                          transition: 'background 0.15s ease'
-                        }}
+                        style={{ borderBottom: '1px solid var(--border-color)' }}
+                        className="admin-table-row"
                       >
-                        <td style={{ padding: '11px 16px', fontWeight: 600, color: 'var(--primary)', fontFamily: 'monospace' }}>
+                        <td style={{ padding: '11px 16px', fontWeight: 600, color: 'var(--text-main)', fontFamily: 'monospace' }}>
                           {t.ticketCode}
                         </td>
                         <td style={{ padding: '11px 16px' }}>
@@ -855,7 +888,7 @@ export const AdminTicketsPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Phân trang chuẩn */}
+            {/* Phân trang */}
             <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 Hiển thị {tickets.length} / {pagination.total} vé tham quan
@@ -872,10 +905,10 @@ export const AdminTicketsPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          NỘI DUNG TAB 2: CẤU HÌNH GIÁ VÉ & KHUNG GIỜ (CRUD)
+          NỘI DUNG TAB 2: CẤU HÌNH GIÁ VÉ & KHUNG GIỜ
           ======================================================== */}
       {subTab === 'pricing' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* PHẦN 1: BẢNG GIÁ CÁC LOẠI VÉ */}
           <div
             style={{
@@ -885,13 +918,13 @@ export const AdminTicketsPage: React.FC = () => {
               padding: '16px 20px'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                  Bảng giá các loại vé tham quan
+                <h2 style={{ fontSize: 14.5, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
+                  Bảng giá các loại vé
                 </h2>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                  Giá vé được đồng bộ hóa tức thì lên giao diện khách đặt vé và cổng thanh toán PayOS (được lưu cache Redis 5 phút)
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '3px 0 0' }}>
+                  Danh mục giá vé tham quan niêm yết tại bảo tàng
                 </p>
               </div>
 
@@ -907,57 +940,57 @@ export const AdminTicketsPage: React.FC = () => {
                     isActive: true,
                     displayOrder: ticketTypes.length + 1
                   });
+                  setTypeErrors({});
                   setIsTypeModalOpen(true);
                 }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <Plus size={14} />
-                <span>Thêm loại vé mới</span>
+                <Plus size={13} />
+                <span>Thêm loại vé</span>
               </button>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+              <table style={{ minWidth: 700, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '8px 12px' }}>Mã loại</th>
-                    <th style={{ padding: '8px 12px' }}>Tên loại vé</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'right' }}>Giá niêm yết</th>
-                    <th style={{ padding: '8px 12px' }}>Mô tả quy định</th>
-                    <th style={{ padding: '8px 12px' }}>Trạng thái</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>Thứ tự</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>Thao tác</th>
+                  <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase' }}>
+                    <th style={{ padding: '9px 14px', width: '14%' }}>Mã loại</th>
+                    <th style={{ padding: '9px 14px', width: '24%' }}>Tên loại vé</th>
+                    <th style={{ padding: '9px 14px', width: '16%', textAlign: 'right' }}>Giá niêm yết</th>
+                    <th style={{ padding: '9px 14px', width: '26%' }}>Quy định áp dụng</th>
+                    <th style={{ padding: '9px 14px', width: '10%' }}>Trạng thái</th>
+                    <th style={{ padding: '9px 14px', width: '10%', textAlign: 'center' }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoadingPricing ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
                         Đang tải danh mục vé...
                       </td>
                     </tr>
                   ) : ticketTypes.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
-                        Chưa có loại vé nào được cấu hình trong cơ sở dữ liệu.
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
+                        Chưa có loại vé nào.
                       </td>
                     </tr>
                   ) : (
                     ticketTypes.map((t) => (
                       <tr key={t.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>
+                        <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: 'var(--text-main)', fontSize: 12.5 }}>
                           {t.code}
                         </td>
-                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-main)' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-main)' }}>
                           {t.name}
                         </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-main)' }}>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                           {formatVND(t.price)}
                         </td>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 12, maxWidth: 280 }}>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: 12 }}>
                           {t.description || '—'}
                         </td>
-                        <td style={{ padding: '10px 12px' }}>
+                        <td style={{ padding: '10px 14px' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                             <span
                               style={{
@@ -973,19 +1006,17 @@ export const AdminTicketsPage: React.FC = () => {
                             </span>
                           </div>
                         </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                          {t.displayOrder}
-                        </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => {
                                 setEditingType(t);
+                                setTypeErrors({});
                                 setIsTypeModalOpen(true);
                               }}
-                              title="Sửa loại vé"
+                              title="Chỉnh sửa"
                               style={{ padding: '4px 8px' }}
                             >
                               <Edit2 size={13} />
@@ -1018,13 +1049,13 @@ export const AdminTicketsPage: React.FC = () => {
               padding: '16px 20px'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                  Khung giờ đón tiếp & Giới hạn khách tham quan
+                <h2 style={{ fontSize: 14.5, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
+                  Khung giờ tham quan
                 </h2>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                  Quy định các ca tham quan trong ngày và sức chứa tối đa để điều phối lượng khách hợp lý
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '3px 0 0' }}>
+                  Danh sách các ca đón khách tham quan trong ngày
                 </p>
               </div>
 
@@ -1034,61 +1065,53 @@ export const AdminTicketsPage: React.FC = () => {
                 onClick={() => {
                   setEditingSlot({
                     slotName: '',
-                    startTime: '08:00',
-                    endTime: '11:30',
-                    maxCapacity: 500,
-                    isActive: true
+                    maxCapacity: 300,
+                    isActive: true,
+                    displayOrder: timeSlots.length + 1
                   });
+                  setSlotErrors({});
                   setIsSlotModalOpen(true);
                 }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <Plus size={14} />
-                <span>Thêm khung giờ mới</span>
+                <Plus size={13} />
+                <span>Thêm khung giờ</span>
               </button>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+              <table style={{ minWidth: 600, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '8px 12px' }}>Tên khung giờ</th>
-                    <th style={{ padding: '8px 12px' }}>Giờ bắt đầu</th>
-                    <th style={{ padding: '8px 12px' }}>Giờ kết thúc</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sức chứa tối đa</th>
-                    <th style={{ padding: '8px 12px' }}>Trạng thái</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>Thao tác</th>
+                  <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase' }}>
+                    <th style={{ padding: '9px 14px', width: '50%' }}>Tên khung giờ</th>
+                    <th style={{ padding: '9px 14px', width: '22%', textAlign: 'right' }}>Sức chứa tối đa</th>
+                    <th style={{ padding: '9px 14px', width: '16%' }}>Trạng thái</th>
+                    <th style={{ padding: '9px 14px', width: '12%', textAlign: 'center' }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoadingPricing ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
                         Đang tải khung giờ...
                       </td>
                     </tr>
                   ) : timeSlots.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
-                        Chưa có khung giờ tham quan nào được thiết lập.
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
+                        Chưa có khung giờ nào được thiết lập.
                       </td>
                     </tr>
                   ) : (
                     timeSlots.map((s) => (
                       <tr key={s.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-main)' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-main)' }}>
                           {s.slotName}
                         </td>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-main)', fontFamily: 'monospace' }}>
-                          {s.startTime}
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
+                          {s.maxCapacity || 300} người
                         </td>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-main)', fontFamily: 'monospace' }}>
-                          {s.endTime}
-                        </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
-                          {s.maxCapacity} người
-                        </td>
-                        <td style={{ padding: '10px 12px' }}>
+                        <td style={{ padding: '10px 14px' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                             <span
                               style={{
@@ -1104,16 +1127,17 @@ export const AdminTicketsPage: React.FC = () => {
                             </span>
                           </div>
                         </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => {
                                 setEditingSlot(s);
+                                setSlotErrors({});
                                 setIsSlotModalOpen(true);
                               }}
-                              title="Sửa khung giờ"
+                              title="Chỉnh sửa"
                               style={{ padding: '4px 8px' }}
                             >
                               <Edit2 size={13} />
@@ -1140,7 +1164,7 @@ export const AdminTicketsPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          NỘI DUNG TAB 3: LỊCH SỬ ĐƠN HÀNG (PAYOS)
+          NỘI DUNG TAB 3: LỊCH SỬ ĐƠN HÀNG
           ======================================================== */}
       {subTab === 'orders' && (
         <>
@@ -1166,7 +1190,7 @@ export const AdminTicketsPage: React.FC = () => {
 
             <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Đã thanh toán (PayOS)
+                Đã thanh toán
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
                 {orderStats.paidOrders}
@@ -1175,7 +1199,7 @@ export const AdminTicketsPage: React.FC = () => {
 
             <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Chờ thanh toán (15p)
+                Chờ thanh toán
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
                 {orderStats.pendingOrders}
@@ -1184,7 +1208,7 @@ export const AdminTicketsPage: React.FC = () => {
 
             <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Đã hủy / Quá hạn
+                Đã hết hạn / Hủy
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
                 {orderStats.expiredOrders}
@@ -1193,7 +1217,7 @@ export const AdminTicketsPage: React.FC = () => {
 
             <div style={{ padding: '14px 20px' }}>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Doanh thu PayOS thực nhận
+                Doanh thu thanh toán
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
                 {formatVND(orderStats.totalRevenue)}
@@ -1216,7 +1240,7 @@ export const AdminTicketsPage: React.FC = () => {
               gap: 12
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 260 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 240 }}>
               <div style={{ position: 'relative', width: '100%' }}>
                 <Search
                   size={14}
@@ -1230,27 +1254,42 @@ export const AdminTicketsPage: React.FC = () => {
                 />
                 <input
                   type="text"
-                  className="form-control form-control-sm"
-                  placeholder="Tìm mã đơn hàng PayOS, email người mua, tên, SĐT..."
+                  placeholder="Tìm theo mã đơn, email, người mua, SĐT..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
-                  style={{ paddingLeft: 34 }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 34px',
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 6,
+                    color: 'var(--text-main)',
+                    fontSize: 13
+                  }}
                 />
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <select
-                className="form-control form-control-sm"
                 value={orderStatusFilter}
                 onChange={(e) => setOrderStatusFilter(e.target.value)}
-                style={{ minWidth: 150 }}
+                style={{
+                  padding: '6px 10px',
+                  background: '#1c1917',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 6,
+                  color: '#f8fafc',
+                  fontSize: 12.5,
+                  colorScheme: 'dark',
+                  minWidth: 140
+                }}
               >
                 <option value="all">Tất cả trạng thái</option>
-                <option value="paid">Đã thanh toán (Thành công)</option>
-                <option value="pending">Chờ thanh toán (Đang mở)</option>
-                <option value="expired">Hết hạn (Đã dọn dẹp)</option>
-                <option value="cancelled">Đã hủy bỏ</option>
+                <option value="paid">Đã thanh toán</option>
+                <option value="pending">Chờ thanh toán</option>
+                <option value="expired">Hết hạn</option>
+                <option value="cancelled">Đã hủy</option>
               </select>
 
               {(orderSearch || orderStatusFilter !== 'all') && (
@@ -1269,7 +1308,7 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* BẢNG DANH SÁCH ĐƠN HÀNG */}
+          {/* BẢNG ĐƠN HÀNG */}
           <div
             style={{
               background: 'var(--bg-card)',
@@ -1279,16 +1318,16 @@ export const AdminTicketsPage: React.FC = () => {
               marginBottom: 16
             }}
           >
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+              <table style={{ minWidth: 780, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '10px 16px' }}>Mã đơn (PayOS)</th>
-                    <th style={{ padding: '10px 16px' }}>Khách hàng</th>
-                    <th style={{ padding: '10px 16px' }}>Chi tiết vé đặt</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'right' }}>Tổng thanh toán</th>
-                    <th style={{ padding: '10px 16px' }}>Trạng thái</th>
-                    <th style={{ padding: '10px 16px' }}>Thời gian tạo / Hết hạn</th>
+                  <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase' }}>
+                    <th style={{ padding: '10px 16px', width: '14%' }}>Mã đơn</th>
+                    <th style={{ padding: '10px 16px', width: '22%' }}>Khách hàng</th>
+                    <th style={{ padding: '10px 16px', width: '26%' }}>Chi tiết vé</th>
+                    <th style={{ padding: '10px 16px', width: '14%', textAlign: 'right' }}>Tổng thanh toán</th>
+                    <th style={{ padding: '10px 16px', width: '12%' }}>Trạng thái</th>
+                    <th style={{ padding: '10px 16px', width: '12%' }}>Thời gian tạo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1296,7 +1335,7 @@ export const AdminTicketsPage: React.FC = () => {
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
                         <RefreshCw size={18} className="spin" style={{ margin: '0 auto 8px', display: 'block' }} />
-                        <span>Đang tải lịch sử đơn hàng PayOS...</span>
+                        <span>Đang tải đơn hàng...</span>
                       </td>
                     </tr>
                   ) : orders.length === 0 ? (
@@ -1308,7 +1347,7 @@ export const AdminTicketsPage: React.FC = () => {
                   ) : (
                     orders.map((o) => (
                       <tr key={o.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '11px 16px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>
+                        <td style={{ padding: '11px 16px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--text-main)' }}>
                           #{o.orderCode}
                         </td>
                         <td style={{ padding: '11px 16px' }}>
@@ -1329,22 +1368,17 @@ export const AdminTicketsPage: React.FC = () => {
                             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
                           )}
                         </td>
-                        <td style={{ padding: '11px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-main)' }}>
+                        <td style={{ padding: '11px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                           {formatVND(o.totalAmount)}
                         </td>
                         <td style={{ padding: '11px 16px' }}>
                           {renderOrderStatusBadge(o.status)}
                         </td>
                         <td style={{ padding: '11px 16px', fontSize: 12 }}>
-                          <div style={{ color: 'var(--text-main)' }}>Tạo: {formatDateTime(o.createdAt)}</div>
-                          {o.status === 'pending' && (
-                            <div style={{ color: '#EAB308', fontSize: 11.5 }}>
-                              Hết hạn: {formatDateTime(o.expiresAt)}
-                            </div>
-                          )}
+                          <div style={{ color: 'var(--text-main)' }}>{formatDateTime(o.createdAt)}</div>
                           {o.paidAt && (
-                            <div style={{ color: '#22C55E', fontSize: 11.5 }}>
-                              Thanh toán: {formatDateTime(o.paidAt)}
+                            <div style={{ color: '#22C55E', fontSize: 11 }}>
+                              Đã trả: {formatDateTime(o.paidAt)}
                             </div>
                           )}
                         </td>
@@ -1355,7 +1389,7 @@ export const AdminTicketsPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Phân trang đơn hàng */}
+            {/* Phân trang */}
             <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 Hiển thị {orders.length} / {ordersPagination.total} đơn hàng
@@ -1375,13 +1409,14 @@ export const AdminTicketsPage: React.FC = () => {
           MODALS
           ======================================================== */}
 
-      {/* MODAL CHI TIẾT VÉ & SOÁT VÉ QR (TAB 1) */}
+      {/* MODAL CHI TIẾT VÉ */}
       {detailTicket && (
         <div
+          className="modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.65)',
+            background: 'rgba(0, 0, 0, 0.7)',
             zIndex: 1050,
             display: 'flex',
             alignItems: 'center',
@@ -1391,53 +1426,48 @@ export const AdminTicketsPage: React.FC = () => {
           onClick={() => setDetailTicket(null)}
         >
           <div
+            className="modal-content"
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
+              borderRadius: 8,
               width: '100%',
-              maxWidth: 480,
+              maxWidth: 460,
               padding: '20px 24px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
               position: 'relative'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 12, marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Ticket size={18} style={{ color: 'var(--primary)' }} />
-                <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                  Chi tiết vé tham quan #{detailTicket.ticketCode}
-                </h3>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 10, marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
+                Chi tiết vé #{detailTicket.ticketCode}
+              </h3>
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
                 onClick={() => setDetailTicket(null)}
-                style={{ padding: '4px 6px' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
               >
                 <X size={15} />
               </button>
             </div>
 
-            {/* Khối hiển thị mã QR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 0 16px', borderBottom: '1px solid var(--border-color)', marginBottom: 14 }}>
+            {/* Mã QR */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0 14px', borderBottom: '1px solid var(--border-color)', marginBottom: 14 }}>
               <div
                 style={{
                   background: '#FFFFFF',
-                  padding: 12,
-                  borderRadius: 8,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  padding: 10,
+                  borderRadius: 6,
                   display: 'inline-flex'
                 }}
               >
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(detailTicket.qrCodeData || detailTicket.ticketCode)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(detailTicket.qrCodeData || detailTicket.ticketCode)}`}
                   alt="QR Code"
-                  style={{ width: 140, height: 140, display: 'block' }}
+                  style={{ width: 130, height: 130, display: 'block' }}
                 />
               </div>
-              <div style={{ marginTop: 8, fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: 'var(--primary)', letterSpacing: '0.05em' }}>
+              <div style={{ marginTop: 8, fontFamily: 'monospace', fontWeight: 600, fontSize: 13, color: 'var(--text-main)' }}>
                 {detailTicket.ticketCode}
               </div>
               <div style={{ marginTop: 4 }}>
@@ -1445,46 +1475,42 @@ export const AdminTicketsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Bảng kê thông tin chi tiết */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 6 }}>
+            {/* Bảng chi tiết */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, fontSize: 12.5 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Khách tham quan:</span>
                 <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{detailTicket.userName || 'Khách vãng lai'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 6 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Email liên hệ:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Email:</span>
                 <span style={{ color: 'var(--text-main)' }}>{detailTicket.userEmail || '—'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Số điện thoại:</span>
                 <span style={{ color: 'var(--text-main)' }}>{detailTicket.userPhone || '—'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Loại vé:</span>
                 <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{getTicketTypeLabel(detailTicket.ticketType)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Ngày tham quan:</span>
                 <span style={{ color: 'var(--text-main)' }}>{formatDate(detailTicket.visitDate)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 6 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Khung giờ vào cổng:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Khung giờ:</span>
                 <span style={{ color: 'var(--text-main)' }}>{detailTicket.timeSlot || 'Cả ngày'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 6 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Tổng thanh toán:</span>
-                <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 13.5 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 2 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Tổng tiền:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                   {formatVND(detailTicket.totalAmount)}
                 </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 4 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Phương thức:</span>
-                <span style={{ color: 'var(--text-main)' }}>{detailTicket.paymentMethod || 'Chuyển khoản VietQR (PayOS)'}</span>
-              </div>
             </div>
 
-            {/* Các nút hành động trong Modal */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18, borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+            {/* Nút hành động */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16, borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
               {detailTicket.status === 'paid' && (
                 <button
                   type="button"
@@ -1511,13 +1537,14 @@ export const AdminTicketsPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL THÊM / SỬA LOẠI VÉ (TAB 2) */}
+      {/* MODAL THÊM / SỬA LOẠI VÉ (CÓ VALIDATION & THIẾT KẾ GỌN GÀNG) */}
       {isTypeModalOpen && editingType && (
         <div
+          className="modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.65)',
+            background: 'rgba(0, 0, 0, 0.7)',
             zIndex: 1050,
             display: 'flex',
             alignItems: 'center',
@@ -1527,104 +1554,168 @@ export const AdminTicketsPage: React.FC = () => {
           onClick={() => setIsTypeModalOpen(false)}
         >
           <div
+            className="modal-content"
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
+              borderRadius: 8,
               width: '100%',
-              maxWidth: 480,
+              maxWidth: 460,
               padding: '20px 24px',
               position: 'relative'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 10, marginBottom: 14 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                {editingType.id ? 'Chỉnh sửa loại vé' : 'Thêm loại vé tham quan mới'}
+                {editingType.id ? 'Chỉnh sửa loại vé' : 'Thêm loại vé mới'}
               </h3>
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
                 onClick={() => setIsTypeModalOpen(false)}
-                style={{ padding: '4px 6px' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
               >
                 <X size={15} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveTicketType}>
+            <form onSubmit={handleSaveTicketType} noValidate>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                    Mã loại vé (Duy nhất, ví dụ: standard, student, vip) *
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                    Mã loại vé *
                   </label>
                   <input
                     type="text"
-                    className="form-control form-control-sm"
                     value={editingType.code || ''}
                     disabled={Boolean(editingType.id)}
-                    onChange={(e) => setEditingType({ ...editingType, code: e.target.value })}
-                    required
+                    placeholder="standard"
+                    onChange={(e) => {
+                      setEditingType({ ...editingType, code: e.target.value.toLowerCase().trim() });
+                      if (typeErrors.code) setTypeErrors({ ...typeErrors, code: undefined });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'var(--bg-main)',
+                      border: `1px solid ${typeErrors.code ? '#EF4444' : 'var(--border-color)'}`,
+                      borderRadius: 6,
+                      color: 'var(--text-main)',
+                      fontSize: 13,
+                      opacity: editingType.id ? 0.6 : 1
+                    }}
                   />
+                  {typeErrors.code && (
+                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      {typeErrors.code}
+                    </span>
+                  )}
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                    Tên hiển thị loại vé *
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                    Tên loại vé *
                   </label>
                   <input
                     type="text"
-                    className="form-control form-control-sm"
                     value={editingType.name || ''}
-                    onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
-                    required
+                    placeholder="Vé Người Lớn"
+                    onChange={(e) => {
+                      setEditingType({ ...editingType, name: e.target.value });
+                      if (typeErrors.name) setTypeErrors({ ...typeErrors, name: undefined });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'var(--bg-main)',
+                      border: `1px solid ${typeErrors.name ? '#EF4444' : 'var(--border-color)'}`,
+                      borderRadius: 6,
+                      color: 'var(--text-main)',
+                      fontSize: 13
+                    }}
                   />
+                  {typeErrors.name && (
+                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      {typeErrors.name}
+                    </span>
+                  )}
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                    Giá vé niêm yết (VNĐ) *
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                    Giá vé (VNĐ) *
                   </label>
                   <input
                     type="number"
                     min="0"
                     step="1000"
-                    className="form-control form-control-sm"
-                    value={editingType.price || 0}
-                    onChange={(e) => setEditingType({ ...editingType, price: Number(e.target.value) })}
-                    required
+                    value={editingType.price !== undefined ? editingType.price : 30000}
+                    onChange={(e) => {
+                      setEditingType({ ...editingType, price: Number(e.target.value) });
+                      if (typeErrors.price) setTypeErrors({ ...typeErrors, price: undefined });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'var(--bg-main)',
+                      border: `1px solid ${typeErrors.price ? '#EF4444' : 'var(--border-color)'}`,
+                      borderRadius: 6,
+                      color: 'var(--text-main)',
+                      fontSize: 13
+                    }}
                   />
+                  {typeErrors.price && (
+                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      {typeErrors.price}
+                    </span>
+                  )}
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                    Mô tả đối tượng áp dụng
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                    Quy định đối tượng áp dụng
                   </label>
-                  <textarea
-                    className="form-control form-control-sm"
-                    rows={2}
+                  <input
+                    type="text"
                     value={editingType.description || ''}
+                    placeholder="Khách tham quan từ 16 đến 59 tuổi"
                     onChange={(e) => setEditingType({ ...editingType, description: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'var(--bg-main)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 6,
+                      color: 'var(--text-main)',
+                      fontSize: 13
+                    }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                      Thứ tự hiển thị
+                  <div style={{ width: 100 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Thứ tự
                     </label>
                     <input
                       type="number"
                       min="1"
-                      className="form-control form-control-sm"
                       value={editingType.displayOrder || 1}
                       onChange={(e) => setEditingType({ ...editingType, displayOrder: Number(e.target.value) })}
-                      style={{ width: 90 }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-main)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 6,
+                        color: 'var(--text-main)',
+                        fontSize: 13
+                      }}
                     />
                   </div>
 
-                  <div style={{ marginTop: 18 }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                  <div style={{ marginTop: 20 }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
                       <input
                         type="checkbox"
                         checked={editingType.isActive !== false}
@@ -1636,7 +1727,7 @@ export const AdminTicketsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20, borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18, borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -1645,7 +1736,7 @@ export const AdminTicketsPage: React.FC = () => {
                   Hủy bỏ
                 </button>
                 <button type="submit" className="btn btn-primary btn-sm">
-                  Lưu thông tin
+                  Lưu loại vé
                 </button>
               </div>
             </form>
@@ -1653,13 +1744,14 @@ export const AdminTicketsPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL THÊM / SỬA KHUNG GIỜ (TAB 2) */}
+      {/* MODAL THÊM / SỬA KHUNG GIỜ (CÓ VALIDATION & GỌN GÀNG) */}
       {isSlotModalOpen && editingSlot && (
         <div
+          className="modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.65)',
+            background: 'rgba(0, 0, 0, 0.7)',
             zIndex: 1050,
             display: 'flex',
             alignItems: 'center',
@@ -1669,89 +1761,93 @@ export const AdminTicketsPage: React.FC = () => {
           onClick={() => setIsSlotModalOpen(false)}
         >
           <div
+            className="modal-content"
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
+              borderRadius: 8,
               width: '100%',
-              maxWidth: 460,
+              maxWidth: 440,
               padding: '20px 24px',
               position: 'relative'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 10, marginBottom: 14 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                {editingSlot.id ? 'Chỉnh sửa khung giờ' : 'Thêm khung giờ tham quan mới'}
+                {editingSlot.id ? 'Chỉnh sửa khung giờ' : 'Thêm khung giờ mới'}
               </h3>
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
                 onClick={() => setIsSlotModalOpen(false)}
-                style={{ padding: '4px 6px' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
               >
                 <X size={15} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveSlot}>
+            <form onSubmit={handleSaveSlot} noValidate>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                    Tên khung giờ (ví dụ: Buổi sáng, Buổi chiều) *
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                    Tên khung giờ tham quan *
                   </label>
                   <input
                     type="text"
-                    className="form-control form-control-sm"
                     value={editingSlot.slotName || ''}
-                    onChange={(e) => setEditingSlot({ ...editingSlot, slotName: e.target.value })}
-                    required
+                    placeholder="Buổi sáng: 08:00 - 11:30"
+                    onChange={(e) => {
+                      setEditingSlot({ ...editingSlot, slotName: e.target.value });
+                      if (slotErrors.slotName) setSlotErrors({ ...slotErrors, slotName: undefined });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'var(--bg-main)',
+                      border: `1px solid ${slotErrors.slotName ? '#EF4444' : 'var(--border-color)'}`,
+                      borderRadius: 6,
+                      color: 'var(--text-main)',
+                      fontSize: 13
+                    }}
                   />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                      Giờ bắt đầu *
-                    </label>
-                    <input
-                      type="time"
-                      className="form-control form-control-sm"
-                      value={editingSlot.startTime || '08:00'}
-                      onChange={(e) => setEditingSlot({ ...editingSlot, startTime: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                      Giờ kết thúc *
-                    </label>
-                    <input
-                      type="time"
-                      className="form-control form-control-sm"
-                      value={editingSlot.endTime || '11:30'}
-                      onChange={(e) => setEditingSlot({ ...editingSlot, endTime: e.target.value })}
-                      required
-                    />
-                  </div>
+                  {slotErrors.slotName && (
+                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      {slotErrors.slotName}
+                    </span>
+                  )}
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                    Sức chứa tối đa (người) *
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                    Sức chứa tối đa trong ca (người) *
                   </label>
                   <input
                     type="number"
                     min="1"
-                    className="form-control form-control-sm"
-                    value={editingSlot.maxCapacity || 500}
-                    onChange={(e) => setEditingSlot({ ...editingSlot, maxCapacity: Number(e.target.value) })}
-                    required
+                    value={editingSlot.maxCapacity || 300}
+                    onChange={(e) => {
+                      setEditingSlot({ ...editingSlot, maxCapacity: Number(e.target.value) });
+                      if (slotErrors.maxCapacity) setSlotErrors({ ...slotErrors, maxCapacity: undefined });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'var(--bg-main)',
+                      border: `1px solid ${slotErrors.maxCapacity ? '#EF4444' : 'var(--border-color)'}`,
+                      borderRadius: 6,
+                      color: 'var(--text-main)',
+                      fontSize: 13
+                    }}
                   />
+                  {slotErrors.maxCapacity && (
+                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      {slotErrors.maxCapacity}
+                    </span>
+                  )}
                 </div>
 
-                <div style={{ marginTop: 6 }}>
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                <div style={{ marginTop: 4 }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
                     <input
                       type="checkbox"
                       checked={editingSlot.isActive !== false}
@@ -1762,7 +1858,7 @@ export const AdminTicketsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20, borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18, borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -1805,7 +1901,7 @@ export const AdminTicketsPage: React.FC = () => {
       <ConfirmModal
         isOpen={Boolean(deleteTypeTarget)}
         title="Xác nhận xóa loại vé"
-        message={`Bạn có chắc muốn xóa loại vé "${deleteTypeTarget?.name}" (${deleteTypeTarget?.code})? Khách tham quan sẽ không thể đặt loại vé này nữa.`}
+        message={`Bạn có chắc muốn xóa loại vé "${deleteTypeTarget?.name}" (${deleteTypeTarget?.code})?`}
         confirmText="Xác nhận xóa"
         cancelText="Hủy bỏ"
         type="danger"
@@ -1816,7 +1912,7 @@ export const AdminTicketsPage: React.FC = () => {
       <ConfirmModal
         isOpen={Boolean(deleteSlotTarget)}
         title="Xác nhận xóa khung giờ"
-        message={`Bạn có chắc muốn xóa khung giờ "${deleteSlotTarget?.slotName}" (${deleteSlotTarget?.startTime} - ${deleteSlotTarget?.endTime})?`}
+        message={`Bạn có chắc muốn xóa khung giờ "${deleteSlotTarget?.slotName}"?`}
         confirmText="Xác nhận xóa"
         cancelText="Hủy bỏ"
         type="danger"
