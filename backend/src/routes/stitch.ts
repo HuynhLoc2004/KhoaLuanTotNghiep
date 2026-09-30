@@ -271,10 +271,12 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   let stderrData = '';
   let isClosed = false;
 
-  // Giám sát Timeout 300 giây (5 phút) bảo đảm hoàn tất chùm ảnh lớn an toàn
+  // Giám sát Timeout linh hoạt (tối thiểu 600 giây / 10 phút, khớp với proxy_read_timeout 600s của Nginx)
+  const timeoutMs = Math.max(600000, imagePaths.length * 25000);
+  const timeoutSec = Math.round(timeoutMs / 1000);
   const timeoutTimer = setTimeout(() => {
     if (!isClosed) {
-      console.error('[Stitch API] Quá thời gian ghép ảnh (300s). Đang tự động kết thúc tiến trình...');
+      console.error(`[Stitch API] Quá thời gian ghép ảnh (${timeoutSec}s). Đang tự động kết thúc tiến trình...`);
       isClosed = true;
       try {
         pyProcess.kill('SIGKILL');
@@ -285,11 +287,11 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
         return res.status(504).json({
           success: false,
           error: 'ERR_TIMEOUT',
-          message: 'Quá trình xử lý vượt quá thời gian cho phép (300s). Vui lòng thử lại với chùm ảnh có độ chồng lấp rõ ràng hơn.'
+          message: `Quá trình xử lý vượt quá thời gian cho phép (${timeoutSec}s). Vui lòng thử lại với chùm ảnh có độ chồng lấp rõ ràng hơn.`
         });
       }
     }
-  }, 300000);
+  }, timeoutMs);
 
   pyProcess.stdout.on('data', (data) => {
     stdoutData += data.toString();

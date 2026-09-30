@@ -429,10 +429,13 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 
     // 1. Kiểm tra PostgreSQL Primary trước
     try {
-      const pgRes = await pgPool.query(
-        'SELECT id, username, email, full_name, role, permissions, is_active FROM users WHERE id = $1 OR email = $2 OR mongo_id = $1 LIMIT 1',
-        [userId, userEmail]
-      );
+      const pgRes = await pgPool.query(`
+        SELECT u.id, u.username, u.email, u.full_name, u.role_id, r.name as role_name, r.permissions, u.is_active
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        WHERE u.id = $1 OR u.email = $2
+        LIMIT 1;
+      `, [userId, userEmail]);
       if (pgRes.rows.length > 0) {
         const u = pgRes.rows[0];
         return res.json({
@@ -442,7 +445,7 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
             username: u.username,
             email: u.email,
             fullName: u.full_name || u.username,
-            role: u.role || 'admin',
+            role: u.role_name || u.role_id || 'admin',
             permissions: u.permissions || ['*'],
             isActive: u.is_active
           }

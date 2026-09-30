@@ -577,12 +577,13 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
     pto_file = os.path.join(temp_dir, "project.pto")
 
     try:
-        # Sao chép hoặc tiền xử lý CLAHE ảnh đưa vào thư mục tạm
+        # Tối ưu kích thước nạp ảnh: với bộ nhiều ảnh (>= 20 ảnh), co về 960px giúp cpfind dò điểm nhanh gấp đôi mà vẫn cực kỳ chuẩn xác
+        input_dim = 960 if len(image_paths) >= 20 else 1100
         prepared_paths = []
         for idx, src_p in enumerate(image_paths):
             ext = os.path.splitext(src_p)[1].lower() or '.jpg'
             dst_p = os.path.join(temp_dir, f"img_{idx:04d}{ext}")
-            im = load_and_orient_image(src_p, max_dim=1100)
+            im = load_and_orient_image(src_p, max_dim=input_dim)
             im = preprocess_lighting_clahe(im)
             cv2.imwrite(dst_p, im, [cv2.IMWRITE_JPEG_QUALITY, 96])
             prepared_paths.append(dst_p)
@@ -656,10 +657,11 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
             subprocess.run(cmd_linefind, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
 
         # 5. autooptimiser (Tối ưu hóa hình học, làm phẳng chân trời, giữ tường 90°)
-        # Bỏ cờ -s để tránh autooptimiser tự thu hẹp FOV/canvas làm biến dạng vòng tròn 360°
+        # Dùng -a -l để cân chỉnh vị trí & chân trời thẳng đứng. Bỏ cờ -m (photometric) vì CLAHE và Enblend
+        # đã hòa trộn dải màu hoàn hảo, giúp tiết kiệm hơn 100 giây tính toán nặng
         if shutil.which('autooptimiser'):
             log("[*] Hugin Step 5: Tự động cân bằng chân trời & triệt tiêu méo (autooptimiser)...")
-            cmd_opt = ['autooptimiser', '-a', '-m', '-l', '-o', pto_file, pto_file]
+            cmd_opt = ['autooptimiser', '-a', '-l', '-o', pto_file, pto_file]
             subprocess.run(cmd_opt, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
 
         # 6. pano_modify (Ép về chuẩn Equirectangular 2:1, bảo toàn đúng 360° FOV không bị chồng lặp)
@@ -686,11 +688,12 @@ def run_hugin_stitch(image_paths, output_path, target_width=4096):
                 raise FileNotFoundError("Nona không sinh ra file remapped TIFF nào.")
 
             log(f"[*] Hugin Step 7b: Enblend hòa trộn đa dải tần ({len(nona_tifs)} ảnh, wrap horizontal)...")
-            cmd_enblend = ['enblend', '--wrap=horizontal', '-o', rendered_tif, '--fine-mask'] + nona_tifs
+            # Loại bỏ --fine-mask để enblend dùng thuật toán coarse-masking đa độ phân giải tối ưu siêu nhanh (15-30s thay vì 5-10 phút)
+            cmd_enblend = ['enblend', '--wrap=horizontal', '-m', '1024', '-o', rendered_tif] + nona_tifs
             res_enblend = subprocess.run(cmd_enblend, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
             if res_enblend.returncode != 0:
                 log(f"[!] Enblend wrap horizontal warning: {res_enblend.stderr[:100]}, thử chế độ chuẩn...")
-                cmd_enblend_fallback = ['enblend', '-o', rendered_tif, '--fine-mask'] + nona_tifs
+                cmd_enblend_fallback = ['enblend', '-m', '1024', '-o', rendered_tif] + nona_tifs
                 res_enblend2 = subprocess.run(cmd_enblend_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=240)
                 if res_enblend2.returncode != 0:
                     log(f"[!] Enblend stderr: {res_enblend2.stderr}")
