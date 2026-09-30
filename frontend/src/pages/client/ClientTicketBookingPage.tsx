@@ -12,7 +12,10 @@ import {
   ExternalLink,
   ShieldCheck,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  QrCode,
+  Info,
+  PhoneCall
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
@@ -662,6 +665,163 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
               </div>
             </form>
           )}
+
+          {/* PHẦN 1: QUY TRÌNH 3 BƯỚC ĐẶT VÉ VÀ VÀO CỔNG */}
+          <div style={{ marginTop: 44, paddingTop: 32, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ marginBottom: 18 }}>
+              <h2 style={{ fontSize: '1.12rem', color: '#F8FAFC', fontWeight: 600, margin: '0 0 5px 0' }}>
+                Quy trình đặt vé & Vào cổng tham quan
+              </h2>
+              <p style={{ fontSize: '0.84rem', color: 'var(--c-text-secondary, #94A3B8)', margin: 0 }}>
+                Các bước đơn giản để mua vé điện tử và vào cổng bảo tàng nhanh chóng
+              </p>
+            </div>
+
+            <div className="client-booking-steps-grid">
+              <div
+                style={{
+                  background: 'var(--c-bg-card, #131824)',
+                  border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                  borderRadius: '10px',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--c-gold, #D4AF37)', letterSpacing: '0.06em', marginBottom: 8 }}>
+                  BƯỚC 01
+                </div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 6 }}>
+                  Chọn lịch & Số lượng vé
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.6 }}>
+                  Lựa chọn ngày tham quan, khung giờ đón tiếp trong ngày và số lượng vé cho từng đối tượng trong đoàn.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--c-bg-card, #131824)',
+                  border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                  borderRadius: '10px',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--c-gold, #D4AF37)', letterSpacing: '0.06em', marginBottom: 8 }}>
+                  BƯỚC 02
+                </div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 6 }}>
+                  Thanh toán qua VietQR
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.6 }}>
+                  Quét mã VietQR bằng bất kỳ ứng dụng ngân hàng nào. Cổng PayOS tự động xác nhận thanh toán tức thời.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--c-bg-card, #131824)',
+                  border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                  borderRadius: '10px',
+                  padding: '20px 22px'
+                }}
+              >
+                <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--c-gold, #D4AF37)', letterSpacing: '0.06em', marginBottom: 8 }}>
+                  BƯỚC 03
+                </div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 6 }}>
+                  Xuất trình mã QR tại cổng
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.6 }}>
+                  Mã vé QR được gửi về email và lưu tại mục "Vé của tôi". Quét mã trực tiếp tại cửa kiểm soát để vào cổng ngay.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* PHẦN 2: LƯU Ý & QUY ĐỊNH THAM QUAN (4 CỘT) */}
+          <div style={{ marginTop: 36, paddingTop: 30, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ marginBottom: 18 }}>
+              <h2 style={{ fontSize: '1.12rem', color: '#F8FAFC', fontWeight: 600, margin: '0 0 5px 0' }}>
+                Thông tin & Lưu ý dành cho khách tham quan
+              </h2>
+              <p style={{ fontSize: '0.84rem', color: 'var(--c-text-secondary, #94A3B8)', margin: 0 }}>
+                Các quy định và hướng dẫn quan trọng để buổi tham quan diễn ra thuận tiện và chu đáo
+              </p>
+            </div>
+
+            <div className="client-booking-info-grid">
+              <div
+                style={{
+                  background: 'var(--c-bg-card, #131824)',
+                  border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                  borderRadius: '10px',
+                  padding: '18px 20px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <Clock size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC' }}>Thời gian đón tiếp</span>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.6 }}>
+                  Mở cửa từ Thứ Ba đến Chủ Nhật hàng tuần.<br />
+                  • Sáng: 08:00 - 11:30<br />
+                  • Chiều: 13:30 - 17:00<br />
+                  <i>(Thứ Hai đóng cửa định kỳ)</i>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--c-bg-card, #131824)',
+                  border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                  borderRadius: '10px',
+                  padding: '18px 20px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <QrCode size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC' }}>Vé điện tử thông minh</span>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.6 }}>
+                  Không cần in vé giấy. Khách tham quan chỉ cần xuất trình mã QR trên điện thoại tại cổng kiểm soát để vào tham quan.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--c-bg-card, #131824)',
+                  border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                  borderRadius: '10px',
+                  padding: '18px 20px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <Info size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC' }}>Chính sách ưu đãi</span>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.6 }}>
+                  Học sinh, sinh viên và người cao tuổi vui lòng mang theo thẻ HSSV hoặc giấy tờ tùy thân để đối chiếu khi qua cổng soát vé.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--c-bg-card, #131824)',
+                  border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
+                  borderRadius: '10px',
+                  padding: '18px 20px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <PhoneCall size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC' }}>Hỗ trợ khách tham quan</span>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.6 }}>
+                  Hotline hướng dẫn: <b>(028) 3829 8146</b>.<br />
+                  Địa chỉ: Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh.
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* MODAL THANH TOÁN VIETQR PAYOS */}
           {activePaymentModal && (
