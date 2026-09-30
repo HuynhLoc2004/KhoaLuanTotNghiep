@@ -31,22 +31,6 @@ interface ClientAIAssistantModalProps {
   allRooms?: MuseumRoom[];
 }
 
-type AITopicKey = 'general' | 'artifacts' | 'rooms' | 'tickets_info' | 'contact_admin';
-
-interface TopicOptionDef {
-  id: AITopicKey;
-  label: string;
-  icon: React.ReactNode;
-}
-
-const TOPIC_RADIO_OPTIONS: TopicOptionDef[] = [
-  { id: 'general', label: 'Tự do', icon: <Sparkles size={11} /> },
-  { id: 'artifacts', label: 'Cổ vật 3D', icon: <Crown size={11} /> },
-  { id: 'rooms', label: 'Phòng 360°', icon: <Compass size={11} /> },
-  { id: 'tickets_info', label: 'Vé & Giờ', icon: <Ticket size={11} /> },
-  { id: 'contact_admin', label: 'Ban Quản lý', icon: <Headphones size={11} /> }
-];
-
 export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
   isOpen,
   onClose,
@@ -55,19 +39,11 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
   allRooms = []
 }) => {
   const { branding } = useSystemBranding();
-  const [selectedTopic, setSelectedTopic] = useState<AITopicKey>('general');
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<AIChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
-
-  // Form liên hệ Ban Quản lý khi chọn radio này
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactNote, setContactNote] = useState('');
-  const [contactSubmitting, setContactSubmitting] = useState(false);
-  const [contactSuccess, setContactSuccess] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -96,14 +72,14 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isOpen, isLoading, selectedTopic]);
+  }, [messages, isOpen, isLoading]);
 
   // Focus ô nhập khi mở
   useEffect(() => {
     if (isOpen && window.innerWidth > 768) {
       setTimeout(() => inputRef.current?.focus(), 150);
     }
-  }, [isOpen, selectedTopic]);
+  }, [isOpen]);
 
   // Bộ đếm chống spam
   useEffect(() => {
@@ -141,7 +117,7 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
         text: m.text
       }));
 
-      const res: AIChatResponse = await api.sendAIChat(query, selectedTopic, historyPayload);
+      const res: AIChatResponse = await api.sendAIChat(query, 'general', historyPayload);
 
       const aiReply: AIChatMessage = {
         id: 'ai-' + Date.now(),
@@ -161,42 +137,6 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
     }
   };
 
-  // Gửi tin nhắn đến Ban Quản Lý
-  const handleSendToAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!contactNote.trim() || contactSubmitting) return;
-
-    setContactSubmitting(true);
-    setContactSuccess(null);
-    setErrorMessage(null);
-
-    try {
-      const res = await api.sendAIContactAdmin({
-        visitorName: contactName.trim() || 'Khách tham quan',
-        visitorContact: contactPhone.trim(),
-        message: contactNote.trim(),
-        topic: 'contact_admin'
-      });
-
-      setContactSuccess(res.message || 'Đã chuyển tin nhắn đến Ban Quản lý thành công!');
-      setContactNote('');
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: 'admin-ack-' + Date.now(),
-          role: 'model',
-          text: `Đã chuyển tiếp tin nhắn của Quý khách tới Ban Quản lý Bảo tàng thành công. Quản trị viên sẽ sớm liên hệ lại qua "${contactPhone || 'thông tin của Quý khách'}".\n\nHotline hỗ trợ: ${branding.hotline || '(028) 3829 8146'}.`,
-          createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Không thể gửi tin nhắn lúc này.');
-    } finally {
-      setContactSubmitting(false);
-    }
-  };
-
   // Làm mới hội thoại
   const handleResetChat = () => {
     setMessages([
@@ -206,33 +146,28 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
         text: `Cuộc trò chuyện đã được làm mới. Tôi sẵn sàng hỗ trợ Quý khách giải đáp về ${branding.shortName || 'Bảo tàng Lịch sử'}.`,
         createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         suggestedQuestions: [
-          'Giá vé và khung giờ mở cửa?',
+          'Giá vé & giờ mở cửa?',
           'Khám phá phòng 360° nổi bật',
           'Tra cứu bảo vật quốc gia'
         ]
       }
     ]);
     setErrorMessage(null);
-    setContactSuccess(null);
   };
 
   return (
     <div className="ai-widget-backdrop" onClick={onClose}>
       <div className="ai-widget-window" onClick={(e) => e.stopPropagation()}>
-        {/* HEADER DÁNG NỔI BẢO TÀNG SỐ SANG TRỌNG */}
+        {/* HEADER GIAO DIỆN BẢO TÀNG SỐ ĐỒNG BỘ CLIENT */}
         <div className="ai-widget-header">
           <div className="ai-widget-header-brand">
             <div className="ai-brand-avatar">
               <Bot size={15} />
-              <span className="ai-brand-dot" />
             </div>
             <div className="ai-brand-text">
-              <div className="ai-brand-title-wrap">
-                <span className="ai-brand-title">Trợ Lý Bảo Tàng</span>
-                <span className="ai-brand-chip">AI</span>
-              </div>
+              <span className="ai-brand-title">Trợ Lý Bảo Tàng</span>
               <span className="ai-brand-desc">
-                {branding.shortName || 'Bảo tàng Lịch sử TP.HCM'} • CSDL Trực tuyến
+                {branding.shortName || 'Bảo tàng Lịch sử TP.HCM'} • Hỗ trợ trực tuyến
               </span>
             </div>
           </div>
@@ -253,137 +188,14 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
               title="Thu nhỏ cửa sổ"
               aria-label="Đóng"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
         </div>
 
-        {/* BỘ CHỌN CHỦ ĐỀ: CHECK RADIO DẠNG PILL THANH THOÁT (KHÔNG BỊ CẮT CHỮ) */}
-        <div className="ai-widget-radio-strip">
-          <div className="ai-radio-pill-track" role="radiogroup" aria-label="Chủ đề trợ lý AI">
-            {TOPIC_RADIO_OPTIONS.map((opt) => {
-              const isChecked = selectedTopic === opt.id;
-              return (
-                <label
-                  key={opt.id}
-                  className={`ai-radio-pill ${isChecked ? 'is-active' : ''}`}
-                  htmlFor={`ai-topic-${opt.id}`}
-                >
-                  <input
-                    type="radio"
-                    id={`ai-topic-${opt.id}`}
-                    name="ai_concierge_topic"
-                    value={opt.id}
-                    checked={isChecked}
-                    onChange={() => setSelectedTopic(opt.id)}
-                    className="ai-radio-hidden-native"
-                  />
-                  <span className="ai-pill-dot" />
-                  <span className="ai-pill-icon">{opt.icon}</span>
-                  <span className="ai-pill-text">{opt.label}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* NỘI DUNG CHÍNH */}
-        {selectedTopic === 'contact_admin' ? (
-          /* GIAO DIỆN KẾT NỐI BAN QUẢN LÝ */
-          <div className="ai-widget-contact-pane">
-            <div className="ai-contact-quick-card">
-              <div className="ai-card-headline">
-                <Headphones size={15} style={{ color: '#d4af37' }} />
-                <span>Liên Hệ Trực Tiếp Ban Quản Lý</span>
-              </div>
-              <div className="ai-contact-rows">
-                <a href={`tel:${branding.hotline || '02838298146'}`} className="ai-contact-row-item">
-                  <Phone size={13} />
-                  <span>Hotline: <strong>{branding.hotline || '(028) 3829 8146'}</strong></span>
-                </a>
-                <a href={`mailto:${branding.contactEmail || 'btls.tphcm@gmail.com'}`} className="ai-contact-row-item">
-                  <Mail size={13} />
-                  <span>Email: <strong>{branding.contactEmail || 'btls.tphcm@gmail.com'}</strong></span>
-                </a>
-                <div className="ai-contact-row-item">
-                  <Clock size={13} />
-                  <span>08:00 - 11:30 | 13:00 - 17:00 (Thứ 3 - CN)</span>
-                </div>
-                <div className="ai-contact-row-item">
-                  <MapPin size={13} />
-                  <span>{branding.address || 'Số 2 Nguyễn Bỉnh Khiêm, Q.1, TP.HCM'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* FORM GỬI TIN NHẮN ĐẾN BAN QUẢN LÝ */}
-            <form onSubmit={handleSendToAdmin} className="ai-contact-simple-form">
-              <span className="ai-form-prompt">Gửi yêu cầu / câu hỏi tới Quản trị viên:</span>
-
-              {contactSuccess && (
-                <div className="ai-status-alert is-success">
-                  <CheckCircle2 size={14} />
-                  <span>{contactSuccess}</span>
-                </div>
-              )}
-
-              {errorMessage && (
-                <div className="ai-status-alert is-error">
-                  <AlertCircle size={14} />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              <div className="ai-input-grid-2">
-                <input
-                  type="text"
-                  placeholder="Họ tên của Quý khách..."
-                  value={contactName}
-                  onChange={(e) => setContactName(e.target.value)}
-                  className="ai-input-glass"
-                />
-                <input
-                  type="text"
-                  placeholder="Số điện thoại hoặc Email..."
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  className="ai-input-glass"
-                  required
-                />
-              </div>
-
-              <textarea
-                rows={3}
-                placeholder="Nhập nội dung Quý khách cần Ban Quản lý hỗ trợ..."
-                value={contactNote}
-                onChange={(e) => setContactNote(e.target.value)}
-                className="ai-input-glass ai-textarea-glass"
-                required
-              />
-
-              <button
-                type="submit"
-                disabled={contactSubmitting || !contactNote.trim()}
-                className="ai-btn-gold-submit"
-              >
-                {contactSubmitting ? (
-                  <>
-                    <Loader2 size={14} className="spin" />
-                    <span>Đang chuyển tin nhắn...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send size={14} />
-                    <span>Gửi tin nhắn đến Ban Quản lý</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        ) : (
-          /* KHÔNG GIAN HỘI THOẠI AI */
-          <div className="ai-widget-chat-pane">
-            <div className="ai-chat-stream">
+        {/* KHÔNG GIAN HỘI THOẠI AI CHÍNH THỨC */}
+        <div className="ai-widget-chat-pane">
+          <div className="ai-chat-stream">
               {messages.map((msg, mIdx) => (
                 <div
                   key={msg.id}
@@ -508,15 +320,7 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={
-                    selectedTopic === 'artifacts'
-                      ? 'Hỏi về niên đại, hoa văn, hiện vật 3D...'
-                      : selectedTopic === 'rooms'
-                        ? 'Hỏi về phòng trưng bày, tour 360°...'
-                        : selectedTopic === 'tickets_info'
-                          ? 'Hỏi về giá vé, giờ mở cửa, gửi xe...'
-                          : 'Nhập câu hỏi của Quý khách về bảo tàng...'
-                  }
+                  placeholder="Nhập câu hỏi của Quý khách về bảo tàng..."
                   className="ai-footer-input"
                   disabled={isLoading}
                   maxLength={500}
@@ -539,7 +343,6 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
               </form>
             </div>
           </div>
-        )}
       </div>
     </div>
   );
