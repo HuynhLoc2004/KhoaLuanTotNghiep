@@ -380,28 +380,15 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
           {/* Nút Đặt Vé Trực Tuyến */}
           <button
             type="button"
-            className="client-theme-toggle client-nav-booking-btn"
+            className="client-nav-booking-btn"
             onClick={() => {
               if (onNavigatePage) onNavigatePage('booking');
             }}
             title={t('nav.bookTicketsTooltip', 'Đặt vé tham quan bảo tàng trực tuyến')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 12px',
-              borderRadius: '20px',
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.06) 100%)',
-              border: '1px solid rgba(212,175,55,0.35)',
-              color: '#D4AF37',
-              fontWeight: 600,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
+            aria-label={t('nav.bookTicket', 'Đặt vé')}
           >
-            <Ticket size={15} />
-            <span>{t('nav.bookTicket', 'Đặt vé')}</span>
+            <Ticket size={15} className="client-nav-booking-icon" />
+            <span className="client-nav-booking-text">{t('nav.bookTicket', 'Đặt vé')}</span>
           </button>
 
           {/* Nút Quét mã QR Hiện Vật bằng Camera Trực Tiếp */}

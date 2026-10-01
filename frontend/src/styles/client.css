@@ -570,6 +570,63 @@
   text-align: center;
 }
 
+.client-nav-booking-btn {
+  height: 38px;
+  width: auto;
+  min-width: max-content;
+  padding: 0 13px;
+  border-radius: var(--c-radius-pill);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.08) 100%);
+  color: #D4AF37;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-sizing: border-box;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.client-nav-booking-btn:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.35) 0%, rgba(212, 175, 55, 0.16) 100%);
+  border-color: #F3E0A3;
+  color: #F3E0A3;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(212, 175, 55, 0.25);
+}
+
+.client-nav-booking-btn:active {
+  transform: translateY(0);
+}
+
+.client-nav-booking-icon {
+  flex-shrink: 0;
+}
+
+.client-nav-booking-text {
+  white-space: nowrap;
+  line-height: 1;
+  display: inline-block;
+}
+
+.client-portal[data-client-theme="light"] .client-nav-booking-btn {
+  background: linear-gradient(135deg, rgba(184, 134, 11, 0.15) 0%, rgba(184, 134, 11, 0.05) 100%);
+  border-color: rgba(184, 134, 11, 0.4);
+  color: #8A6018;
+}
+
+.client-portal[data-client-theme="light"] .client-nav-booking-btn:hover {
+  background: linear-gradient(135deg, rgba(184, 134, 11, 0.25) 0%, rgba(184, 134, 11, 0.1) 100%);
+  border-color: #8A6018;
+  color: #6D4C0E;
+}
+
 .client-nav-qr-btn {
   width: auto;
   padding: 0 12px;
@@ -588,6 +645,12 @@
   }
   .client-nav-qr-text {
     display: none;
+  }
+  .client-nav-booking-btn {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 0.78rem;
+    gap: 5px;
   }
   /* 1. Thu gọn cụm logo bên trái: ẩn bớt dòng subtitle dài để nhường không gian cho menu */
   .client-nav-subtitle-row {
@@ -655,6 +718,27 @@
   .client-nav-lang-code {
     font-size: 0.74rem !important;
     line-height: 1 !important;
+  }
+}
+
+@media (max-width: 1080px) {
+  .client-nav-booking-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    justify-content: center;
+  }
+  .client-nav-booking-text {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .client-nav-actions .client-nav-booking-btn {
+    display: none !important;
   }
 }
 
