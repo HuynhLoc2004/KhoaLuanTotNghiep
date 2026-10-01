@@ -206,12 +206,23 @@ export async function generate3DWithTrellis(
           engine: parsed.engine || 'TRELLIS (HuggingFace Spaces)',
         });
       } else {
-        const errorMsg = parsed.error
+        const rawMsg = parsed.error
           || stderrData.split('\n').filter(Boolean).slice(-3).join(' | ')
           || stdoutData
           || `Python exit code ${code}`;
-        console.error(`[TRELLIS Client] ✗ Job ${jobId} thất bại:`, errorMsg);
-        reject(new Error(errorMsg));
+        const lower = (rawMsg || '').toLowerCase();
+        let formattedMsg = rawMsg;
+        if (lower.includes('429') || lower.includes('quota') || lower.includes('rate limit') || lower.includes('exceeded') || lower.includes('too many requests')) {
+          formattedMsg = `Hết hạn mức token API HuggingFace hoặc vượt quá giới hạn lượt gọi (Rate Limit 429). Chi tiết: ${rawMsg.slice(0, 160)}`;
+        } else if (lower.includes('timeout') || lower.includes('timed out')) {
+          formattedMsg = 'Quá thời gian phản hồi (Timeout). HuggingFace Space GPU đang bận hoặc đang khởi động lại. Vui lòng thử lại sau ít phút.';
+        } else if (lower.includes('sleeping') || lower.includes('paused') || lower.includes('space is not running')) {
+          formattedMsg = 'HuggingFace Space TRELLIS đang trong chế độ tạm dừng/ngủ (Sleeping). Vui lòng thử lại sau vài giây để Space thức dậy.';
+        } else if (lower.includes('unauthorized') || lower.includes('401') || lower.includes('invalid token')) {
+          formattedMsg = 'Token HuggingFace (ACCCESS_TOKEN_HUGE_SPACE) không hợp lệ hoặc đã hết hạn quyền truy cập.';
+        }
+        console.error(`[TRELLIS Client] ✗ Job ${jobId} thất bại:`, formattedMsg);
+        reject(new Error(formattedMsg));
       }
     });
 

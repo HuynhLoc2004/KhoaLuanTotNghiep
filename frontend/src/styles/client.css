@@ -5236,12 +5236,23 @@
   box-shadow: var(--c-shadow-sm);
   display: flex;
   flex-direction: column;
-  opacity: 0;
-  transform: translateY(22px);
-  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+  opacity: 1;
+  transform: translateY(0);
+  animation: clientGalleryCardFade 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.35s ease,
               border-color 0.35s ease;
+}
+
+@keyframes clientGalleryCardFade {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .client-gallery-card.is-revealed {
@@ -5249,6 +5260,7 @@
   transform: translateY(0);
 }
 
+.client-gallery-card:hover,
 .client-gallery-card.is-revealed:hover {
   transform: translateY(-7px);
   border-color: rgba(212, 168, 106, 0.45);

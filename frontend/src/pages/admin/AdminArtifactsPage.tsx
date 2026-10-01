@@ -35,8 +35,7 @@ import {
   BookOpen,
   Mic,
   Info,
-  Globe,
-  Cpu
+  Globe
 } from 'lucide-react';
 import { api, API_ROOT } from '../../services/api';
 import { Artifact, LanguageItem } from '../../types';
@@ -114,48 +113,6 @@ export const AdminArtifactsPage: React.FC = () => {
   // Polling ref cho các job 3D đang chạy
   const pollingTimerRef = useRef<any>(null);
 
-  // Google Colab GPU T4 TripoSR Tunnel State
-  const [colabTunnelUrl, setColabTunnelUrl] = useState('');
-  const [colabStatus, setColabStatus] = useState<{
-    url?: string;
-    configured?: boolean;
-    ok?: boolean;
-    status?: string;
-    device?: string;
-    model?: string;
-    message?: string;
-    latencyMs?: number;
-  } | null>(null);
-  const [isCheckingColab, setIsCheckingColab] = useState(false);
-  const [showColabModal, setShowColabModal] = useState(false);
-
-  const fetchColabStatus = async () => {
-    try {
-      const data = await api.getColabTunnelConfig();
-      setColabStatus(data);
-      if (data.url) setColabTunnelUrl(data.url);
-    } catch (err: any) {
-      console.warn('[Colab Status Warning]:', err.message);
-    }
-  };
-
-  const handleSaveColabTunnel = async () => {
-    try {
-      setIsCheckingColab(true);
-      const data = await api.updateColabTunnelUrl(colabTunnelUrl.trim());
-      setColabStatus(data);
-      if (data.ok) {
-        showToast(`Kết nối Colab GPU T4 thành công! (${data.latencyMs}ms)`, 'success');
-      } else {
-        showToast(data.message || 'Không thể kết nối đến URL này. Hãy kiểm tra Google Colab!', 'warning');
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi lưu cấu hình Colab', 'error');
-    } finally {
-      setIsCheckingColab(false);
-    }
-  };
-
   const fetchArtifacts = async () => {
     try {
       setLoading(true);
@@ -187,7 +144,6 @@ export const AdminArtifactsPage: React.FC = () => {
   useEffect(() => {
     fetchArtifacts();
     fetchLanguages();
-    fetchColabStatus();
   }, []);
 
   // Lắng nghe phím Escape để đóng nhanh các modal
@@ -195,7 +151,6 @@ export const AdminArtifactsPage: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsEditModalOpen(false);
-        setShowColabModal(false);
         setIsViewerModalOpen(false);
         setIsGenerateModalOpen(false);
         setIsVoiceModalOpen(false);
@@ -213,7 +168,26 @@ export const AdminArtifactsPage: React.FC = () => {
       pollingTimerRef.current = setInterval(async () => {
         try {
           const freshList = await api.getArtifacts();
-          setArtifacts(freshList);
+
+          // Đối chiếu phát hiện hiện vật nào vừa hoàn tất hoặc vừa thất bại
+          setArtifacts((prevList) => {
+            freshList.forEach((freshItem) => {
+              const freshId = freshItem.id || (freshItem as any)._id;
+              const prevItem = prevList.find(
+                (p) => (p.id || (p as any)._id) === freshId
+              );
+
+              if (prevItem && prevItem.processingStatus === 'processing') {
+                if (freshItem.processingStatus === 'completed') {
+                  showToast(`Hiện vật "${freshItem.name}" đã hoàn tất số hóa mô hình 3D!`, 'success');
+                } else if (freshItem.processingStatus === 'failed') {
+                  const reason = freshItem.processingError || 'Lỗi xử lý dựng 3D hoặc hết hạn mức token API';
+                  showToast(`Số hóa 3D "${freshItem.name}" thất bại: ${reason}`, 'error');
+                }
+              }
+            });
+            return freshList;
+          });
 
           // Tự động đồng bộ modal xem 3D nếu người dùng đang mở đĩa xoay của hiện vật này
           setActiveViewerArtifact((prev) => {
@@ -225,7 +199,6 @@ export const AdminArtifactsPage: React.FC = () => {
           const stillProcessing = freshList.some((a) => a.processingStatus === 'processing');
           if (!stillProcessing && pollingTimerRef.current) {
             clearInterval(pollingTimerRef.current);
-            showToast('Đã hoàn thành số hóa mô hình 3D cho các hiện vật trong hàng đợi!', 'success');
           }
         } catch {
           // Ignored in polling
@@ -274,7 +247,8 @@ export const AdminArtifactsPage: React.FC = () => {
         selectedStatus3D === 'all' ||
         (selectedStatus3D === 'has_3d' && !!art.model3dUrl) ||
         (selectedStatus3D === 'processing' && art.processingStatus === 'processing') ||
-        (selectedStatus3D === 'no_3d' && !art.model3dUrl && art.processingStatus !== 'processing');
+        (selectedStatus3D === 'failed' && art.processingStatus === 'failed') ||
+        (selectedStatus3D === 'no_3d' && !art.model3dUrl && art.processingStatus !== 'processing' && art.processingStatus !== 'failed');
 
       return matchesSearch && matchesCategory && matches3D;
     });
@@ -289,6 +263,7 @@ export const AdminArtifactsPage: React.FC = () => {
   // Thống kê di sản chuẩn mực của hệ thống
   const totalArtifacts = artifacts.length;
   const with3DCount = artifacts.filter((a) => !!a.model3dUrl).length;
+  const failed3DCount = artifacts.filter((a) => a.processingStatus === 'failed').length;
   const percent3D = totalArtifacts > 0 ? Math.round((with3DCount / totalArtifacts) * 100) : 0;
   const withAudioCount = artifacts.filter((a) => !!a.audioNarrationUrl || (a.translations && Object.values(a.translations).some((t) => !!t.audioNarrationUrl))).length;
   const withQrCount = artifacts.filter((a) => !!a.qrCodeUrl).length;
@@ -922,32 +897,6 @@ export const AdminArtifactsPage: React.FC = () => {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => { setShowColabModal(true); fetchColabStatus(); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                borderColor: colabStatus?.ok ? 'rgba(34, 197, 94, 0.5)' : undefined,
-                background: colabStatus?.ok ? 'rgba(34, 197, 94, 0.08)' : undefined
-              }}
-              title="Cấu hình Google Colab GPU Tesla T4 (TripoSR Cloudflare Quick Tunnel)"
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: colabStatus?.ok ? 'var(--success, #22c55e)' : (colabStatus?.configured ? '#f59e0b' : '#94a3b8'),
-                  boxShadow: colabStatus?.ok ? '0 0 6px rgba(34, 197, 94, 0.6)' : 'none'
-                }}
-              />
-              <Cpu size={14} style={{ color: colabStatus?.ok ? 'var(--success, #22c55e)' : 'inherit' }} />
-              <span>AI Colab T4 {colabStatus?.ok ? '(Sẵn sàng)' : ''}</span>
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
               onClick={fetchArtifacts}
               disabled={loading}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
@@ -1039,6 +988,9 @@ export const AdminArtifactsPage: React.FC = () => {
               <option value="all">Tất cả trạng thái 3D</option>
               <option value="has_3d">Đã có mô hình 3D ({with3DCount})</option>
               <option value="processing">Đang dựng 3D</option>
+              {failed3DCount > 0 && (
+                <option value="failed">Lỗi dựng 3D ({failed3DCount})</option>
+              )}
               <option value="no_3d">Chưa có 3D ({totalArtifacts - with3DCount})</option>
             </select>
           </div>
@@ -1100,6 +1052,7 @@ export const AdminArtifactsPage: React.FC = () => {
             {paginatedArtifacts.map((art) => {
               const has3D = !!art.model3dUrl;
               const isProcessing = art.processingStatus === 'processing';
+              const isFailed = !has3D && !isProcessing && art.processingStatus === 'failed';
               const imgUrl = art.thumbnailUrl || (art.images && art.images.length > 0 ? art.images[0] : null);
               const fullImgUrl = imgUrl
                 ? imgUrl.startsWith('http')
@@ -1143,6 +1096,19 @@ export const AdminArtifactsPage: React.FC = () => {
                           <Sparkles size={11} />
                           <span>Mô hình 3D</span>
                         </>
+                      ) : isProcessing ? (
+                        <span style={{ color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Loader2 size={11} className="spin" />
+                          <span>Đang dựng 3D</span>
+                        </span>
+                      ) : isFailed ? (
+                        <span
+                          style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          title={art.processingError || 'Lỗi dựng 3D / Hết hạn mức API'}
+                        >
+                          <AlertCircle size={11} />
+                          <span>Lỗi dựng 3D</span>
+                        </span>
                       ) : (
                         <>
                           <ImageIcon size={11} />
@@ -1173,6 +1139,34 @@ export const AdminArtifactsPage: React.FC = () => {
                     <div className="room-name" title={art.name}>{art.name}</div>
                     <div className="room-desc" title={art.description}>{art.description || 'Chưa có thông tin tư liệu khảo cứu cho hiện vật này.'}</div>
 
+                    {/* Hiển thị cảnh báo rõ ràng nếu việc dựng 3D bị lỗi hoặc hết token API */}
+                    {isFailed && art.processingError && (
+                      <div
+                        style={{
+                          margin: '6px 0',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          color: '#fca5a5',
+                          fontSize: '11px',
+                          lineHeight: '1.4',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 6
+                        }}
+                        title={art.processingError}
+                      >
+                        <AlertCircle size={13} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+                        <div style={{ overflow: 'hidden' }}>
+                          <strong style={{ color: '#f87171' }}>Lỗi dựng 3D:</strong>{' '}
+                          <span style={{ display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {art.processingError}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Thông số phụ từ DB */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', padding: '6px 0', borderTop: '1px dashed var(--border-color)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1198,6 +1192,20 @@ export const AdminArtifactsPage: React.FC = () => {
                           >
                             <RotateCw size={13} style={{ flexShrink: 0 }} />
                             <span className="room-card-btn-label">Xem 3D 360°</span>
+                          </button>
+                        ) : isFailed ? (
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm room-card-btn-action"
+                            onClick={() => handleOpenGenerate3D(art)}
+                            style={{
+                              borderColor: 'rgba(239, 68, 68, 0.6)',
+                              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.3) 100%)'
+                            }}
+                            title={`Lỗi: ${art.processingError || 'Hết token hoặc lỗi API'}. Bấm để xem chi tiết và thử lại`}
+                          >
+                            <AlertCircle size={13} style={{ flexShrink: 0, color: '#fca5a5' }} />
+                            <span className="room-card-btn-label">Thử lại dựng 3D</span>
                           </button>
                         ) : (
                           <button
@@ -1340,7 +1348,27 @@ export const AdminArtifactsPage: React.FC = () => {
                             <Loader2 size={12} className="spin" /> Đang dựng 3D...
                           </span>
                         )}
-                        {!has3D && !isProcessing && (
+                        {!has3D && !isProcessing && art.processingStatus === 'failed' && (
+                          <span
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              color: '#ef4444',
+                              border: '1px solid rgba(239, 68, 68, 0.35)',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              cursor: 'pointer'
+                            }}
+                            title={art.processingError || 'Lỗi dựng 3D / Hết hạn mức API'}
+                            onClick={() => handleOpenGenerate3D(art)}
+                          >
+                            <AlertCircle size={12} /> Lỗi dựng 3D
+                          </span>
+                        )}
+                        {!has3D && !isProcessing && art.processingStatus !== 'failed' && (
                           <span className="badge-3d-none">Ảnh 2D</span>
                         )}
                       </td>
@@ -1382,9 +1410,14 @@ export const AdminArtifactsPage: React.FC = () => {
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleOpenGenerate3D(art)}
-                              title="Khởi tạo mô hình 3D từ ảnh"
+                              style={art.processingStatus === 'failed' ? { borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' } : undefined}
+                              title={art.processingStatus === 'failed' ? `Lỗi: ${art.processingError}. Bấm để xem và thử lại` : "Khởi tạo mô hình 3D từ ảnh"}
                             >
-                              <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+                              {art.processingStatus === 'failed' ? (
+                                <AlertCircle size={13} style={{ color: '#ef4444' }} />
+                              ) : (
+                                <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+                              )}
                             </button>
                           )}
                           <button
@@ -2007,6 +2040,78 @@ export const AdminArtifactsPage: React.FC = () => {
               </div>
 
 
+              {/* Cảnh báo lỗi nếu lần tạo trước thất bại hoặc hết hạn mức token */}
+              {generatingArtifact.processingStatus === 'failed' && (
+                <div
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '12px 14px',
+                    fontSize: '12px',
+                    color: '#fca5a5',
+                    lineHeight: 1.5
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>
+                    <AlertCircle size={16} />
+                    <span>Lỗi lần tạo trước:</span>
+                  </div>
+                  <div style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.35)', borderRadius: 4, fontFamily: 'monospace', fontSize: '11.5px', color: '#fecaca', wordBreak: 'break-word' }}>
+                    {generatingArtifact.processingError || 'Hết hạn mức token API HuggingFace / TRELLIS hoặc Space đang bận.'}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                    💡 <strong>Gợi ý:</strong> Bạn có thể nhấn <strong>"Thử lại số hóa 3D"</strong> bên dưới sau ít phút, hoặc sử dụng tính năng tải file GLB trực tiếp có sẵn.
+                  </div>
+                </div>
+              )}
+
+              {/* Tùy chọn tải trực tiếp file 3D .GLB nếu không muốn dùng AI hoặc hết quota token */}
+              <div
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-subtle)',
+                  border: '1px dashed var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12
+                }}
+              >
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  <strong style={{ color: 'var(--heading-color)' }}>Đã có sẵn file 3D (.glb)?</strong>
+                  <span style={{ display: 'block', fontSize: '11px', marginTop: 2 }}>Tải lên file GLB trực tiếp mà không cần chờ AI suy luận:</span>
+                </div>
+                <label className="btn btn-secondary btn-xs" style={{ cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Upload size={13} />
+                  <span>Tải file .GLB</span>
+                  <input
+                    type="file"
+                    accept=".glb,.gltf"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        showToast('Đang tải lên file mô hình 3D (.glb)...', 'info');
+                        const res = await api.uploadArtifactModel(file);
+                        await api.updateArtifact(generatingArtifact.id, {
+                          model3dUrl: res.url,
+                          processingStatus: 'completed',
+                          processingError: ''
+                        });
+                        showToast('Đã đính kèm mô hình 3D thành công!', 'success');
+                        setIsGenerateModalOpen(false);
+                        fetchArtifacts();
+                      } catch (err: any) {
+                        showToast(err.message || 'Lỗi tải file 3D', 'error');
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
               {/* Thong tin engine TRELLIS */}
               <div style={{
                 background: 'rgba(99, 102, 241, 0.08)',
@@ -2032,7 +2137,6 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
                 Mô hình tạo 3D chất lượng cao từ ảnh đơn, chạy trên <strong>HuggingFace Spaces</strong>. Thời gian xử lý khoảng <strong>30 – 90 giây</strong>.
               </div>
-
 
               {/* TRELLIS Engine Status */}
               <div
@@ -2104,160 +2208,7 @@ export const AdminArtifactsPage: React.FC = () => {
                 ) : (
                   <>
                     <Box size={14} />
-                    <span>Bắt đầu số hóa 3D</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CẤU HÌNH GOOGLE COLAB TRIPOSR AI TUNNEL */}
-      {showColabModal && (
-        <div
-          className="modal-backdrop"
-          style={{ zIndex: 1300 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowColabModal(false);
-          }}
-        >
-          <div className="modal-card" style={{ maxWidth: 520 }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Cpu size={18} style={{ color: 'var(--accent-gold)' }} />
-                <h2 className="modal-title" style={{ fontSize: '16px', margin: 0 }}>
-                  Cấu hình AI Worker TripoSR (Google Colab T4)
-                </h2>
-              </div>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setShowColabModal(false)}
-                aria-label="Đóng"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div
-                style={{
-                  background: 'var(--bg-subtle)',
-                  padding: '12px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '12px',
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.6,
-                  border: '1px solid var(--border-color)'
-                }}
-              >
-                💡 <strong>Tối ưu tài nguyên:</strong> Máy chủ VPS có tài nguyên thấp (2GB RAM). Việc tái tạo mô hình 3D (TripoSR) được ủy quyền xử lý trên <strong>GPU Tesla T4 (15GB VRAM)</strong> của Google Colab và phơi cổng qua Cloudflare Quick Tunnel.
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" style={{ marginBottom: 6, fontWeight: 600 }}>
-                  Endpoint Cloudflare Quick Tunnel:
-                </label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="url"
-                    className="form-input"
-                    placeholder="https://xxxx.trycloudflare.com"
-                    value={colabTunnelUrl}
-                    onChange={(e) => setColabTunnelUrl(e.target.value)}
-                    style={{ flex: 1, fontFamily: 'monospace', fontSize: '13px' }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setColabTunnelUrl('')}
-                    title="Xóa URL"
-                  >
-                    Xóa
-                  </button>
-                </div>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                  Copy URL HTTPS được tạo từ lệnh <code>cloudflared tunnel --url http://localhost:8000</code> trên Google Colab.
-                </span>
-              </div>
-
-              {/* Trạng thái kết nối thời gian thực */}
-              <div
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: colabStatus?.ok
-                    ? 'rgba(34, 197, 94, 0.08)'
-                    : (colabStatus?.configured ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-subtle)'),
-                  border: `1px solid ${
-                    colabStatus?.ok
-                      ? 'rgba(34, 197, 94, 0.3)'
-                      : (colabStatus?.configured ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)')
-                  }`
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span
-                      style={{
-                        width: 9,
-                        height: 9,
-                        borderRadius: '50%',
-                        background: colabStatus?.ok ? '#22c55e' : (colabStatus?.configured ? '#ef4444' : '#94a3b8'),
-                        boxShadow: colabStatus?.ok ? '0 0 8px rgba(34, 197, 94, 0.7)' : 'none'
-                      }}
-                    />
-                    <strong style={{ fontSize: '13px', color: colabStatus?.ok ? 'var(--success, #22c55e)' : 'inherit' }}>
-                      {colabStatus?.ok
-                        ? '🟢 GPU T4 Sẵn sàng hoạt động'
-                        : (colabStatus?.configured ? '🔴 Mất kết nối Colab' : '⚪ Chưa thiết lập kết nối')}
-                    </strong>
-                  </div>
-                  {colabStatus?.latencyMs ? (
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Độ trễ: {colabStatus.latencyMs}ms
-                    </span>
-                  ) : null}
-                </div>
-
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  {colabStatus?.message || 'Nhập URL Tunnel và bấm Kiểm tra kết nối bên dưới.'}
-                </div>
-
-                {colabStatus?.ok && (
-                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed rgba(34, 197, 94, 0.2)', fontSize: '11px', display: 'flex', gap: 16 }}>
-                    <span>Thiết bị: <strong>{colabStatus.device || 'NVIDIA T4'}</strong></span>
-                    <span>Mô hình: <strong>{colabStatus.model || 'TripoSR'}</strong></span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '12px 20px', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowColabModal(false)}
-              >
-                Đóng
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleSaveColabTunnel}
-                disabled={isCheckingColab}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                {isCheckingColab ? (
-                  <>
-                    <Loader2 size={14} className="spin" />
-                    <span>Đang kiểm tra...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 size={14} />
-                    <span>Lưu & Kiểm tra kết nối</span>
+                    <span>{generatingArtifact.processingStatus === 'failed' ? 'Thử lại số hóa 3D' : 'Bắt đầu số hóa 3D'}</span>
                   </>
                 )}
               </button>

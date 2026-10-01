@@ -84,6 +84,30 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
     return filteredArtifacts.slice(start, start + pageSize);
   }, [filteredArtifacts, currentPage, pageSize]);
 
+  // Hiệu ứng cuộn hiển thị nhẹ nhàng (Scroll Reveal Animation)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const cards = document.querySelectorAll('.client-gallery-card');
+      if (!cards.length) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-revealed');
+            }
+          });
+        },
+        { threshold: 0.05, rootMargin: '0px 0px -10px 0px' }
+      );
+
+      cards.forEach((el) => observer.observe(el));
+      return () => observer.disconnect();
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [paginatedArtifacts]);
+
   const getArtifactThumb = (art: Artifact) => {
     const raw = art.thumbnailUrl || (art.images && art.images[0]);
     if (!raw) return '';
@@ -214,11 +238,12 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                   const thumb = getArtifactThumb(art);
                   const has3D = !!art.model3dUrl;
 
+                  const artId = String(art.id || (art as any)._id || '');
                   return (
-                    <div key={art.id} className="client-gallery-card">
+                    <div key={artId || title} className="client-gallery-card is-revealed">
                       <div
                         className={`client-gallery-media clickable ${!thumb ? 'has-placeholder' : ''}`}
-                        onClick={() => onSelectArtifactDetail(art.id)}
+                        onClick={() => onSelectArtifactDetail(artId)}
                         role="button"
                         tabIndex={0}
                       >
@@ -258,7 +283,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                             type="button"
                             className="client-zigzag-btn-primary"
                             style={{ width: '100%', justifyContent: 'center' }}
-                            onClick={() => onSelectArtifactDetail(art.id)}
+                            onClick={() => onSelectArtifactDetail(artId)}
                           >
                             <Box size={15} />
                             <span>{t('artifacts.btnViewDetail', 'Chiêm ngưỡng chi tiết & 3D')}</span>

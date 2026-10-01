@@ -251,13 +251,14 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
     });
 
   } catch (trellisErr: any) {
-    const errMsg = trellisErr.message || 'Lỗi không xác định từ TRELLIS';
+    const rawMsg = trellisErr.message || 'Lỗi không xác định từ TRELLIS';
+    const errMsg = rawMsg.startsWith('TRELLIS 3D') || rawMsg.startsWith('Lỗi') ? rawMsg : `Lỗi dựng 3D: ${rawMsg}`;
     console.error(`[3D Consumer] ✗ TRELLIS Job ${jobId} thất bại:`, errMsg);
     job.status = 'failed';
     job.error = errMsg;
     await updateArtifact3DState(artifactId, {
       processingStatus: 'failed',
-      processingError: `TRELLIS 3D thất bại: ${errMsg}`
+      processingError: errMsg
     });
     await cacheDelPattern('artifacts:*');
 
@@ -266,7 +267,7 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
       action: 'update',
       artifactId,
       processingStatus: 'failed',
-      processingError: `TRELLIS 3D thất bại: ${errMsg}`
+      processingError: errMsg
     });
   }
 }
