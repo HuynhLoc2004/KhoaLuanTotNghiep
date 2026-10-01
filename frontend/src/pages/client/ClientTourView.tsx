@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MuseumRoom, Hotspot, LanguageItem } from '../../types';
-import { ThreePanoramaViewer } from '../../viewer360/ThreePanoramaViewer';
+import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
 import { API_ROOT } from '../../services/api';
 import {
   ArrowLeft,
@@ -215,6 +215,16 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
   const rawPeriod = localize(currentRoom, 'period', currentRoom.period || currentRoom.category || 'Gian phòng di sản');
   const period = sanitizeMuseumText(rawPeriod);
   const description = localize(currentRoom, 'description', currentRoom.description || '');
+
+  // Định dạng hotspots chuẩn cho trình chiếu Pannellum 360° đồng bộ với Admin Studio
+  const pannellumHotspots: PannellumHotSpot[] = (currentRoom.hotspots || []).map((h) => ({
+    pitch: h.pitch,
+    yaw: h.yaw,
+    type: (h.type === 'navigation' ? 'scene' : 'info') as 'scene' | 'info',
+    text: sanitizeMuseumText(h.title),
+    roomId: h.targetRoomId,
+    onClick: () => handleHotspotClick(h)
+  }));
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#0a0d14', fontFamily: 'inherit' }}>
@@ -650,14 +660,30 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         </div>
       </header>
 
-      {/* 2. TRÌNH CHIẾU THREE.JS PANORAMA 360 (ĐÃ ẨN TOP-BANNER THỪA & NÚT ADMIN) */}
-      <ThreePanoramaViewer
-        room={currentRoom}
-        allRooms={allRooms}
-        onHotspotClick={handleHotspotClick}
-        hideTopBanner={true}
-        isClientView={true}
-      />
+      {/* 2. TRÌNH CHIẾU PANNELLUM 360° CHUẨN XÁC, ĐỒNG BỘ 100% VỚI XEM THỬ & STUDIO BÊN ADMIN */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+        <Pannellum360Viewer
+          key={currentRoom.id}
+          panoramaUrl={currentRoom.panoramaUrl}
+          title=""
+          autoStartLittlePlanet={false}
+          hotspots={pannellumHotspots}
+          onHotspotClick={(hs) => {
+            const origin = currentRoom.hotspots?.find(
+              (h) => (h.targetRoomId && h.targetRoomId === hs.roomId) || h.title === hs.text
+            );
+            if (origin) {
+              handleHotspotClick(origin);
+            } else if (hs.roomId) {
+              const target = allRooms.find((r) => r.id === hs.roomId || r.code === hs.roomId);
+              if (target) onNavigateRoom(target);
+            }
+          }}
+          initialPitch={currentRoom.initialView?.pitch ?? 0}
+          initialYaw={currentRoom.initialView?.yaw ?? 0}
+          initialHfov={currentRoom.initialView?.fov ? Math.min(currentRoom.initialView.fov, 100) : 100}
+        />
+      </div>
 
       {/* 3. POPUP THÔNG TIN HOTSPOT KHI KHÁCH CLICK VÀO ĐIỂM CHÚ THÍCH */}
       {selectedHotspot && (
