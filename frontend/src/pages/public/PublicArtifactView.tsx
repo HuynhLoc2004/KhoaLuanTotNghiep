@@ -28,6 +28,7 @@ import { Artifact, LanguageItem } from '../../types';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import '../../styles/artifacts.css';
 
 interface PublicArtifactViewProps {
   artifactId?: string;
@@ -503,9 +504,9 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                 }
                 artifactName={displayName}
                 autoRotateSpeed={0.8}
-                audioNarrationUrl={activeAudioUrl || undefined}
+                audioNarrationUrl={undefined}
                 translations={artifact.translations}
-                autoPlayAudio={true}
+                autoPlayAudio={false}
                 height="100%"
               />
             </div>
@@ -559,29 +560,35 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 
           {/* AI Voice Narration Guide Player */}
           {activeAudioUrl && (
-            <div className="voice-guide-player">
+            <div className={`voice-guide-player ${isPlayingAudio ? 'is-playing' : ''}`}>
               <div className="player-top">
                 <div className="player-info">
-                  <div className="guide-icon-pulse">
-                    <Volume2 size={16} />
+                  <div className={`guide-icon-pulse ${isPlayingAudio ? 'anim-pulse' : ''}`}>
+                    <Volume2 size={20} />
                   </div>
-                  <div>
-                    <div className="guide-label">Thuyết minh giọng đọc Di sản AI</div>
+                  <div className="guide-meta-texts">
+                    <div className="guide-title-row">
+                      <span className="guide-label">Thuyết minh Di sản AI</span>
+                      <span className="guide-badge-ai">Voice AI</span>
+                    </div>
                     <div className="guide-lang-sub">
+                      <span className="lang-status-dot" />
                       Ngôn ngữ:{' '}
-                      {systemLanguages.find((l) => l.code === actualSpokenLang)?.nativeName ||
-                        (actualSpokenLang === 'vi'
-                          ? 'Tiếng Việt'
-                          : actualSpokenLang === 'en'
-                          ? 'English'
-                          : actualSpokenLang === 'fr'
-                          ? 'Français'
-                          : actualSpokenLang === 'zh'
-                          ? '中文'
-                          : actualSpokenLang.toUpperCase())}
+                      <strong className="lang-highlight">
+                        {systemLanguages.find((l) => l.code === actualSpokenLang)?.nativeName ||
+                          (actualSpokenLang === 'vi'
+                            ? 'Tiếng Việt'
+                            : actualSpokenLang === 'en'
+                            ? 'English'
+                            : actualSpokenLang === 'fr'
+                            ? 'Français'
+                            : actualSpokenLang === 'zh'
+                            ? '中文'
+                            : actualSpokenLang.toUpperCase())}
+                      </strong>
                       {actualSpokenLang !== selectedLanguage && (
-                        <span style={{ fontSize: '11px', color: 'var(--accent-gold)', marginLeft: 6 }}>
-                          (Mặc định Tiếng Việt)
+                        <span className="lang-fallback-tag">
+                          (Dùng bản Tiếng Việt)
                         </span>
                       )}
                     </div>
@@ -589,43 +596,47 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                 </div>
 
                 <button
-                  className="mute-btn"
+                  type="button"
+                  className={`mute-btn ${isAudioMuted ? 'muted' : ''}`}
                   onClick={toggleAudioMute}
                   title={isAudioMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
                 >
-                  {isAudioMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                  {isAudioMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                 </button>
               </div>
 
-              {/* Progress Bar */}
+              {/* Progress Bar & Slider */}
               <div className="player-progress-row">
-                <span className="player-time">{formatTime(audioCurrentTime)}</span>
-                <input
-                  type="range"
-                  min="0"
-                  max={audioDuration || 100}
-                  step="0.1"
-                  value={audioCurrentTime}
-                  onChange={handleAudioSeek}
-                  className="player-slider"
-                />
-                <span className="player-time">{formatTime(audioDuration)}</span>
+                <span className="player-time current">{formatTime(audioCurrentTime)}</span>
+                <div className="slider-wrapper">
+                  <input
+                    type="range"
+                    min="0"
+                    max={audioDuration || 100}
+                    step="0.1"
+                    value={audioCurrentTime}
+                    onChange={handleAudioSeek}
+                    className="player-slider"
+                  />
+                </div>
+                <span className="player-time total">{formatTime(audioDuration)}</span>
               </div>
 
               <div className="player-actions">
                 <button
+                  type="button"
                   className={`btn-play-pause ${isPlayingAudio ? 'playing' : ''}`}
                   onClick={toggleAudio}
                 >
                   {isPlayingAudio ? (
                     <>
-                      <Pause size={16} />
-                      <span>Tạm dừng</span>
+                      <Pause size={17} />
+                      <span>Tạm dừng thuyết minh</span>
                     </>
                   ) : (
                     <>
-                      <Play size={16} />
-                      <span>Nghe thuyết minh</span>
+                      <Play size={17} />
+                      <span>Nghe thuyết minh di sản</span>
                     </>
                   )}
                 </button>
