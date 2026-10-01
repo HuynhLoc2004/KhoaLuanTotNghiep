@@ -20,7 +20,8 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { api, API_ROOT } from '../../services/api';
 import { Artifact, LanguageItem } from '../../types';
@@ -43,6 +44,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   const [systemLanguages, setSystemLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   // Audio player state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -65,7 +67,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     if (propArtifactId) return propArtifactId;
     try {
       const searchParams = new URLSearchParams(window.location.search);
-      const qArtifact = searchParams.get('artifact');
+      const qArtifact = searchParams.get('artifact') || searchParams.get('id') || searchParams.get('code');
       if (qArtifact) return qArtifact;
 
       const path = window.location.pathname;
@@ -88,10 +90,32 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       try {
         setLoading(true);
         setError(null);
-        const [data, langs] = await Promise.all([
-          api.getArtifact(targetId),
-          api.getLanguages().catch(() => [] as LanguageItem[])
-        ]);
+
+        let data: Artifact | null = null;
+        try {
+          data = await api.getArtifact(targetId);
+        } catch (singleErr: any) {
+          console.warn('[PublicArtifactView] Direct getArtifact failed, attempting list fallback lookup:', singleErr);
+          // Fallback: Tìm trong danh sách hiện vật (hỗ trợ theo code, id, mongoId)
+          try {
+            const allArtifacts = await api.getArtifacts();
+            const cleanTarget = targetId.trim().toLowerCase();
+            const found = allArtifacts.find((item: any) =>
+              (item.id && String(item.id).toLowerCase() === cleanTarget) ||
+              (item._id && String(item._id).toLowerCase() === cleanTarget) ||
+              (item.code && String(item.code).toLowerCase() === cleanTarget)
+            );
+            if (found) {
+              data = found;
+            } else {
+              throw singleErr;
+            }
+          } catch {
+            throw singleErr;
+          }
+        }
+
+        const langs = await api.getLanguages().catch(() => [] as LanguageItem[]);
         setArtifact(data);
         if (langs && langs.length > 0) {
           setSystemLanguages(langs.filter((l) => l.isActive));
@@ -121,14 +145,19 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           }
         }
       } catch (err: any) {
-        setError(err.message || 'Không thể tải dữ liệu hiện vật');
+        const raw = err.message || '';
+        if (raw.includes('<!DOCTYPE') || raw.includes('JSON') || raw.includes('Unexpected token')) {
+          setError('Hệ thống máy chủ đang khởi động hoặc cập nhật. Vui lòng bấm "Thử tải lại".');
+        } else {
+          setError(raw || 'Không thể tải dữ liệu hiện vật');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [targetId]);
+  }, [targetId, retryTrigger]);
 
   // Đồng bộ khi du khách chuyển đổi ngôn ngữ trên trang
   useEffect(() => {
@@ -344,13 +373,27 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           <Info size={48} className="error-icon" />
           <h2>Không tìm thấy cổ vật</h2>
           <p>{error || 'Hiện vật không tồn tại hoặc đã được chuyển vào kho lưu trữ bảo quản.'}</p>
-          <button
-            className="btn btn-primary"
-            onClick={onBackToTour || (() => (window.location.href = '/'))}
-          >
-            <Compass size={18} />
-            Quay lại tham quan gian phòng
-          </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '18px', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setError(null);
+                setRetryTrigger((prev) => prev + 1);
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              <RefreshCw size={18} />
+              Thử tải lại
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={onBackToTour || (() => (window.location.href = '/'))}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              <Compass size={18} />
+              Quay lại tham quan gian phòng
+            </button>
+          </div>
         </div>
       </div>
     );

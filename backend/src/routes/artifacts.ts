@@ -210,8 +210,13 @@ artifactsRouter.post('/colab-tunnel', async (req: Request, res: Response) => {
  */
 artifactsRouter.get('/:id', async (req: Request, res: Response) => {
   try {
-    const id = req.params.id as string;
-    const cacheKey = `artifacts:item:${id}`;
+    const rawId = req.params.id as string;
+    const id = decodeURIComponent(String(rawId || '').trim());
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Thiếu mã hiện vật' });
+    }
+
+    const cacheKey = `artifacts:item:${id.toLowerCase()}`;
     const cached = await cacheGet<any>(cacheKey);
     if (cached) {
       return res.json({ success: true, data: cached, fromCache: true });
@@ -230,7 +235,7 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
                model_metadata as "modelMetadata", translations, order_index as "orderIndex",
                created_at as "createdAt", updated_at as "updatedAt"
         FROM artifacts
-        WHERE id = $1 OR code = $1 OR mongo_id = $1
+        WHERE id = $1 OR code = $1 OR LOWER(code) = LOWER($1) OR mongo_id = $1
         LIMIT 1;
       `, [id]);
 
@@ -243,7 +248,10 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
 
     // 2. Fallback sang MongoDB
     if (!artifact) {
-      const query = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { id }, { code: id }] } : { $or: [{ id }, { code: id }] };
+      const codeRegex = new RegExp(`^${id.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
+      const query = mongoose.isValidObjectId(id)
+        ? { $or: [{ _id: id }, { id }, { code: id }, { code: codeRegex }] }
+        : { $or: [{ id }, { code: id }, { code: codeRegex }] };
       const item = await ArtifactModel.findOne(query);
       if (item) {
         artifact = item.toJSON();

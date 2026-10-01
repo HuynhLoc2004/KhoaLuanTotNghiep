@@ -38,7 +38,7 @@ export const api = {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache' }
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi tải danh sách phòng');
     if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách phòng');
     return json.data;
   },
@@ -48,7 +48,7 @@ export const api = {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache' }
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi tải chi tiết phòng');
     if (!json.success) throw new Error(json.message || 'Lỗi tải chi tiết phòng');
     return json.data;
   },
@@ -59,7 +59,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(room)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi thêm phòng mới');
     if (!json.success) throw new Error(json.message || 'Lỗi thêm phòng mới');
     return json.data;
   },
@@ -70,7 +70,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi cập nhật phòng');
     if (!json.success) throw new Error(json.message || 'Lỗi cập nhật phòng');
     return json.data;
   },
@@ -79,7 +79,7 @@ export const api = {
     const res = await fetch(`${API_BASE}/rooms/${id}`, {
       method: 'DELETE'
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi xóa phòng');
     if (!json.success) throw new Error(json.message || 'Lỗi xóa phòng');
   },
 
@@ -89,7 +89,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(hotspot)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi thêm điểm liên kết');
     if (!json.success) throw new Error(json.message || 'Lỗi thêm điểm liên kết');
     return json.data;
   },
@@ -98,7 +98,7 @@ export const api = {
     const res = await fetch(`${API_BASE}/rooms/${roomId}/hotspots/${hotspotId}`, {
       method: 'DELETE'
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi xóa điểm liên kết');
     if (!json.success) throw new Error(json.message || 'Lỗi xóa điểm liên kết');
   },
 
@@ -145,14 +145,14 @@ export const api = {
         'Pragma': 'no-cache'
       }
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi tải danh mục ngôn ngữ');
     if (!json.success) throw new Error(json.message || 'Lỗi tải danh mục ngôn ngữ');
     return json.data;
   },
 
   async getActiveLanguages(): Promise<any[]> {
     const res = await fetch(`${API_BASE}/languages/active`);
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi tải danh mục ngôn ngữ kích hoạt');
     if (!json.success) throw new Error(json.message || 'Lỗi tải danh mục ngôn ngữ kích hoạt');
     return json.data;
   },
@@ -163,7 +163,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi thêm ngôn ngữ');
     if (!json.success) throw new Error(json.message || 'Lỗi thêm ngôn ngữ');
     return json.data;
   },
@@ -174,7 +174,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi cập nhật ngôn ngữ');
     if (!json.success) throw new Error(json.message || 'Lỗi cập nhật ngôn ngữ');
     return json.data;
   },
@@ -472,7 +472,7 @@ export const api = {
     if (params?.status) query.append('status', params.status);
 
     const res = await fetch(`${API_BASE}/artifacts?${query.toString()}`);
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi tải danh sách hiện vật');
     if (!json.success) throw new Error(json.message || 'Lỗi tải danh sách hiện vật');
     const list = Array.isArray(json.data) ? json.data : [];
     return list.map((art: any) => ({
@@ -482,9 +482,10 @@ export const api = {
   },
 
   async getArtifact(id: string): Promise<Artifact> {
-    const res = await fetch(`${API_BASE}/artifacts/${id}`);
-    const json = await res.json();
-    if (!json.success) throw new Error(json.message || 'Lỗi tải chi tiết hiện vật');
+    const cleanId = encodeURIComponent(String(id || '').trim());
+    const res = await fetch(`${API_BASE}/artifacts/${cleanId}`);
+    const json = await safeJson(res, 'Lỗi kết nối khi tải chi tiết hiện vật');
+    if (!json.success || !json.data) throw new Error(json.message || 'Không tìm thấy hiện vật');
     return { ...json.data, id: String(json.data.id || json.data._id || '') };
   },
 
@@ -494,7 +495,7 @@ export const api = {
       headers: getAuthHeaders(true),
       body: JSON.stringify(artifact)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi tạo hiện vật mới');
     if (!json.success) throw new Error(json.message || 'Lỗi tạo hiện vật mới');
     return { ...json.data, id: String(json.data.id || json.data._id || '') };
   },
@@ -505,7 +506,7 @@ export const api = {
       headers: getAuthHeaders(true),
       body: JSON.stringify(patch)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi cập nhật hiện vật');
     if (!json.success) throw new Error(json.message || 'Lỗi cập nhật hiện vật');
     return { ...json.data, id: String(json.data.id || json.data._id || '') };
   },
@@ -519,7 +520,7 @@ export const api = {
       method: 'DELETE',
       headers: getAuthHeaders(true)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi xóa hiện vật');
     if (!json.success) throw new Error(json.message || 'Lỗi xóa hiện vật');
   },
 
@@ -533,7 +534,7 @@ export const api = {
       headers,
       body: formData
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi tải ảnh hiện vật lên');
     if (!json.success) throw new Error(json.message || 'Lỗi tải ảnh hiện vật');
     return json.data;
   },
@@ -548,7 +549,7 @@ export const api = {
       headers,
       body: formData
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi tải file 3D');
     if (!json.success) throw new Error(json.message || 'Lỗi tải file 3D');
     return json.data;
   },
@@ -562,7 +563,7 @@ export const api = {
       headers: getAuthHeaders(true),
       body: JSON.stringify(options || {})
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi kết nối khi kích hoạt tiến trình dựng 3D');
     if (!json.success) throw new Error(json.message || 'Lỗi kích hoạt tiến trình dựng 3D');
     return json.data;
   },
