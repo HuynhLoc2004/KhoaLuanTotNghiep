@@ -122,6 +122,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const [isSavingAi, setIsSavingAi] = useState(false);
   const [isGeneratingTts, setIsGeneratingTts] = useState(false);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [isGeneratingAllVoices, setIsGeneratingAllVoices] = useState(false);
+  const [generatingAllStatus, setGeneratingAllStatus] = useState<string>('');
 
   // Modal QR Standee
   const [selectedQrRoom, setSelectedQrRoom] = useState<MuseumRoom | null>(null);
@@ -414,6 +416,132 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       showToast('Lỗi khi dịch tự động: ' + err.message, 'error');
     } finally {
       setIsTranslatingAi(false);
+    }
+  };
+
+  // Tự động Dịch và Tạo Voice AI cho TẤT CẢ các ngôn ngữ còn lại từ đoạn text đang có (Ngôn ngữ A -> B, C...)
+  const handleGenerateAllLanguagesVoice = async () => {
+    if (!aiDrawerRoom) return;
+    const sourceScript = aiScript.trim();
+    const sourceKnowledge = aiKnowledgePrompt.trim();
+
+    if (!sourceScript) {
+      showToast('Vui lòng nhập lời đọc thuyết minh trước khi tạo tự động cho các ngôn ngữ khác', 'warning');
+      return;
+    }
+
+    try {
+      setIsGeneratingAllVoices(true);
+      const sourceLangCode = selectedVoiceLang;
+      const targetLangs = languages.filter(l => l.code !== sourceLangCode);
+
+      // 1. Tạo audio cho ngôn ngữ hiện tại (A) nếu chưa có
+      setGeneratingAllStatus(`Đang tạo Voice AI cho ${languages.find(l => l.code === sourceLangCode)?.nativeName || sourceLangCode.toUpperCase()}...`);
+      let sourceAudio = previewAudioUrl;
+      try {
+        const sourceRes = await api.generateTtsAudio({
+          text: sourceScript,
+          langCode: sourceLangCode,
+          roomCode: aiDrawerRoom.code
+        });
+        sourceAudio = sourceRes.audioUrl.startsWith('http')
+          ? sourceRes.audioUrl
+          : `${API_BASE.replace('/api', '')}${sourceRes.audioUrl}`;
+        setPreviewAudioUrl(sourceAudio);
+      } catch (e: any) {
+        console.warn('Lỗi tạo audio ngôn ngữ gốc:', e.message);
+      }
+
+      const newTranslations: Record<string, any> = {
+        ...(aiDrawerRoom.translations || {}),
+        ...workingTranslations,
+        [sourceLangCode]: {
+          ...(workingTranslations[sourceLangCode] || aiDrawerRoom.translations?.[sourceLangCode] || {}),
+          name: workingTranslations[sourceLangCode]?.name || (sourceLangCode === 'vi' ? aiDrawerRoom.name : undefined),
+          period: workingTranslations[sourceLangCode]?.period || (sourceLangCode === 'vi' ? aiDrawerRoom.period : undefined),
+          description: workingTranslations[sourceLangCode]?.description || (sourceLangCode === 'vi' ? aiDrawerRoom.description : undefined),
+          aiKnowledgePrompt: sourceKnowledge,
+          narrationScript: sourceScript,
+          audioUrl: sourceAudio || workingTranslations[sourceLangCode]?.audioUrl || ''
+        }
+      };
+
+      // 2. Dịch và tạo Voice AI lần lượt cho các ngôn ngữ B, C...
+      for (const targetLang of targetLangs) {
+        setGeneratingAllStatus(`Đang dịch thuật và tạo Voice AI cho ${targetLang.nativeName || targetLang.code.toUpperCase()}...`);
+        try {
+          // Dịch AI kết hợp từ điển Heritage Glossary
+          const draft = await api.translateDraft({
+            targetLang: targetLang.code,
+            name: aiDrawerRoom.name,
+            period: aiDrawerRoom.period,
+            description: sourceKnowledge || aiDrawerRoom.description || '',
+            narrationScript: sourceScript
+          });
+
+          const transScript = draft.narrationScript || sourceScript;
+          const transKnowledge = draft.description || sourceKnowledge;
+
+          // Sinh file âm thanh Voice AI thật bằng Google TTS
+          let audioUrl = '';
+          try {
+            const ttsRes = await api.generateTtsAudio({
+              text: transScript,
+              langCode: targetLang.code,
+              roomCode: aiDrawerRoom.code
+            });
+            audioUrl = ttsRes.audioUrl.startsWith('http')
+              ? ttsRes.audioUrl
+              : `${API_BASE.replace('/api', '')}${ttsRes.audioUrl}`;
+          } catch (ttsErr: any) {
+            console.warn(`Lỗi tạo TTS cho ${targetLang.code}:`, ttsErr.message);
+          }
+
+          newTranslations[targetLang.code] = {
+            name: draft.name || aiDrawerRoom.name,
+            period: draft.period || aiDrawerRoom.period,
+            description: draft.description || '',
+            aiKnowledgePrompt: transKnowledge,
+            narrationScript: transScript,
+            audioUrl: audioUrl || newTranslations[targetLang.code]?.audioUrl || ''
+          };
+        } catch (langErr: any) {
+          console.warn(`Lỗi dịch cho ${targetLang.code}:`, langErr.message);
+        }
+      }
+
+      setWorkingTranslations(newTranslations);
+
+      // 3. Tự động lưu luôn vào Database (MongoDB & PostgreSQL)
+      setGeneratingAllStatus('Đang đồng bộ dữ liệu vào cơ sở dữ liệu...');
+      const payload: any = {
+        translations: newTranslations
+      };
+      if (sourceLangCode === 'vi') {
+        payload.aiKnowledgePrompt = sourceKnowledge;
+        payload.aiScript = sourceScript;
+        payload.aiVoiceEnabled = true;
+        payload.aiVoiceLang = aiVoiceLang;
+        if (sourceAudio) payload.audioUrl = sourceAudio;
+      }
+
+      const updated = await api.updateRoom(aiDrawerRoom.id, payload);
+      aiDrawerRoom.translations = updated.translations;
+      if (sourceLangCode === 'vi') {
+        aiDrawerRoom.aiKnowledgePrompt = updated.aiKnowledgePrompt;
+        aiDrawerRoom.aiScript = updated.aiScript;
+        aiDrawerRoom.aiVoiceEnabled = true;
+        aiDrawerRoom.aiVoiceLang = aiVoiceLang;
+        if (sourceAudio) (aiDrawerRoom as any).audioUrl = sourceAudio;
+      }
+      if (onRoomUpdated) onRoomUpdated(updated);
+
+      showToast(`⚡ Đã tự động tạo Voice AI và dịch thành công cho toàn bộ ngôn ngữ (${languages.map(l => l.nativeName || l.code.toUpperCase()).join(', ')})!`, 'success');
+    } catch (err: any) {
+      showToast('Lỗi khi tạo tự động đa ngôn ngữ: ' + err.message, 'error');
+    } finally {
+      setIsGeneratingAllVoices(false);
+      setGeneratingAllStatus('');
     }
   };
 
@@ -1830,6 +1958,80 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               ) : (
                 /* TAB 2: THUYẾT MINH ÂM THANH */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Banner Tự động Dịch & Sinh Voice AI cho toàn bộ ngôn ngữ khác (Ngôn ngữ A -> B, C...) */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.14) 0%, rgba(26, 23, 21, 0.6) 100%)',
+                    border: '1px solid rgba(212, 168, 106, 0.35)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 260 }}>
+                      <div style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 8,
+                        background: 'rgba(212, 168, 106, 0.2)',
+                        color: 'var(--accent-gold)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <Sparkles size={17} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--heading-color)' }}>
+                          Tạo Voice AI cho tất cả ngôn ngữ từ văn bản này
+                        </div>
+                        <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 2 }}>
+                          Dán văn bản vào ô dưới, hệ thống sẽ tự dịch và sinh giọng đọc thật cho {languages.filter(l => l.code !== selectedVoiceLang).map(l => l.nativeName || l.code.toUpperCase()).join(', ')}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGenerateAllLanguagesVoice}
+                      disabled={isGeneratingAllVoices || isSavingAi || !aiScript.trim()}
+                      className="btn btn-primary"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: '12.5px',
+                        padding: '8px 16px',
+                        fontWeight: 700,
+                        flexShrink: 0
+                      }}
+                      title="Tự động dịch sang tất cả ngôn ngữ khác và sinh file Voice AI MP3 thật"
+                    >
+                      {isGeneratingAllVoices ? <RotateCw size={14} className="spin" /> : <Sparkles size={14} />}
+                      <span>{isGeneratingAllVoices ? 'Đang xử lý...' : '⚡ Tạo Voice tất cả ngôn ngữ'}</span>
+                    </button>
+                  </div>
+
+                  {/* Tiến trình tạo tự động nếu đang chạy */}
+                  {isGeneratingAllVoices && generatingAllStatus && (
+                    <div style={{
+                      padding: '8px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(212, 168, 106, 0.1)',
+                      border: '1px dashed rgba(212, 168, 106, 0.4)',
+                      fontSize: '12px',
+                      color: 'var(--accent-gold)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8
+                    }}>
+                      <RotateCw size={13} className="spin" />
+                      <span>{generatingAllStatus}</span>
+                    </div>
+                  )}
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: 6 }}>
                       Chọn giọng đọc thuyết minh ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})

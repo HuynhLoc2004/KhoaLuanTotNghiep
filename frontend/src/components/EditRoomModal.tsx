@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Image as ImageIcon, Loader2, Check, Globe, Layers } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Loader2, Check, Globe, Layers, Volume2 } from 'lucide-react';
 import { MuseumRoom, RoomTranslation, TopicItem } from '../types';
 import { api } from '../services/api';
 import { LocalizedTabEditor } from './LocalizedTabEditor';
@@ -313,26 +313,42 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
               </div>
             )}
 
-            {/* Bộ biên tập Bản dịch Đa ngôn ngữ & Voice AI Thuyết minh */}
+            {/* Chỉ dẫn sang tính năng Thuyết minh chuyên biệt */}
             <div style={{ marginTop: 20, borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-                <Globe size={16} style={{ color: 'var(--primary)' }} />
-                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                  Bản dịch Đa ngôn ngữ & Voice AI Thuyết minh Di sản
-                </h3>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--bg-subtle)',
+                padding: '14px 18px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'rgba(212, 168, 106, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--accent-gold)',
+                    flexShrink: 0
+                  }}>
+                    <Volume2 size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--heading-color)' }}>
+                      Quản trị Thuyết minh & Voice AI đa ngôn ngữ
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>
+                      Để tạo, biên tập lời đọc và sinh Voice AI đa ngôn ngữ (Tiếng Việt, English, Français...), vui lòng sử dụng nút <strong>"Thuyết minh"</strong> ngoài danh sách gian phòng.
+                    </div>
+                  </div>
+                </div>
               </div>
-              <LocalizedTabEditor
-                primaryValues={{
-                  name,
-                  period,
-                  description,
-                  narrationScript: room.aiScript || '',
-                  audioUrl: room.translations?.vi?.audioUrl || ''
-                }}
-                translations={translations}
-                onChange={setTranslations}
-                roomCode={code}
-              />
             </div>
           </div>
 
