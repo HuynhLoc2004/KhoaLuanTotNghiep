@@ -370,7 +370,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     }
   };
 
-  // Dịch tự động từ Tiếng Việt sang ngôn ngữ đang chọn bằng AI
+  // Dịch tự động từ Tiếng Việt sang ngôn ngữ đang chọn VÀ SINH LUÔN FILE VOICE AI MP3 (Tạo Voice luôn)
   const handleAutoTranslateCurrentLang = async () => {
     if (!aiDrawerRoom || selectedVoiceLang === 'vi') return;
     try {
@@ -380,10 +380,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       const viScript = viData.narrationScript || aiDrawerRoom.aiScript || '';
 
       if (!viKnowledge && !viScript) {
-        showToast('Chưa có nội dung tiếng Việt để dịch sang ngôn ngữ này', 'warning');
+        showToast('Chưa có nội dung tiếng Việt để dịch và tạo voice cho ngôn ngữ này', 'warning');
         return;
       }
 
+      // 1. Dịch văn bản với AI Di sản & Heritage Glossary
       const draft = await api.translateDraft({
         targetLang: selectedVoiceLang,
         name: aiDrawerRoom.name,
@@ -398,6 +399,24 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       if (translatedKnowledge) setAiKnowledgePrompt(translatedKnowledge);
       if (translatedScript) setAiScript(translatedScript);
 
+      // 2. SINH LUÔN FILE VOICE AI MP3 CHO NGÔN NGỮ NÀY
+      let audioUrl = '';
+      if (translatedScript.trim()) {
+        try {
+          const ttsRes = await api.generateTtsAudio({
+            text: translatedScript.trim(),
+            langCode: selectedVoiceLang,
+            roomCode: aiDrawerRoom.code
+          });
+          audioUrl = ttsRes.audioUrl.startsWith('http')
+            ? ttsRes.audioUrl
+            : `${API_BASE.replace('/api', '')}${ttsRes.audioUrl}`;
+          setPreviewAudioUrl(audioUrl);
+        } catch (ttsErr: any) {
+          console.warn('Lỗi sinh voice TTS:', ttsErr.message);
+        }
+      }
+
       setWorkingTranslations(prev => ({
         ...prev,
         [selectedVoiceLang]: {
@@ -406,14 +425,15 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           period: draft.period || aiDrawerRoom.period,
           description: draft.description || '',
           aiKnowledgePrompt: translatedKnowledge,
-          narrationScript: translatedScript
+          narrationScript: translatedScript,
+          audioUrl: audioUrl || prev[selectedVoiceLang]?.audioUrl || ''
         }
       }));
 
       const langObj = languages.find(l => l.code === selectedVoiceLang);
-      showToast(`Đã dịch tự động sang ${langObj?.nativeName || selectedVoiceLang.toUpperCase()} thành công!`, 'success');
+      showToast(`Đã dịch thuật & sinh file Voice AI ${langObj?.nativeName || selectedVoiceLang.toUpperCase()} thành công!`, 'success');
     } catch (err: any) {
-      showToast('Lỗi khi dịch tự động: ' + err.message, 'error');
+      showToast('Lỗi khi dịch & tạo voice: ' + err.message, 'error');
     } finally {
       setIsTranslatingAi(false);
     }
@@ -604,6 +624,24 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     try {
       setIsSavingAi(true);
 
+      let currentAudio = previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || '';
+      // Tự động sinh Voice AI nếu chưa có file âm thanh mà người dùng đã nhập lời đọc thuyết minh
+      if (!currentAudio && aiScript.trim()) {
+        try {
+          const ttsRes = await api.generateTtsAudio({
+            text: aiScript.trim(),
+            langCode: selectedVoiceLang,
+            roomCode: aiDrawerRoom.code
+          });
+          currentAudio = ttsRes.audioUrl.startsWith('http')
+            ? ttsRes.audioUrl
+            : `${API_BASE.replace('/api', '')}${ttsRes.audioUrl}`;
+          setPreviewAudioUrl(currentAudio);
+        } catch (e: any) {
+          console.warn('Lỗi tự động sinh Voice AI khi lưu:', e.message);
+        }
+      }
+
       const finalTranslations = {
         ...(aiDrawerRoom.translations || {}),
         ...workingTranslations,
@@ -614,7 +652,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           description: workingTranslations[selectedVoiceLang]?.description || (selectedVoiceLang === 'vi' ? aiDrawerRoom.description : undefined),
           aiKnowledgePrompt: aiKnowledgePrompt.trim(),
           narrationScript: aiScript.trim(),
-          audioUrl: previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || ''
+          audioUrl: currentAudio || workingTranslations[selectedVoiceLang]?.audioUrl || ''
         }
       };
 
@@ -627,7 +665,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
         payload.aiScript = aiScript.trim();
         payload.aiVoiceEnabled = true;
         payload.aiVoiceLang = aiVoiceLang;
-        if (previewAudioUrl) payload.audioUrl = previewAudioUrl;
+        if (currentAudio) payload.audioUrl = currentAudio;
       }
 
       const updated = await api.updateRoom(aiDrawerRoom.id, payload);
@@ -638,12 +676,12 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
         aiDrawerRoom.aiScript = updated.aiScript;
         aiDrawerRoom.aiVoiceEnabled = true;
         aiDrawerRoom.aiVoiceLang = aiVoiceLang;
-        if (previewAudioUrl) (aiDrawerRoom as any).audioUrl = previewAudioUrl;
+        if (currentAudio) (aiDrawerRoom as any).audioUrl = currentAudio;
       }
       if (onRoomUpdated) onRoomUpdated(updated);
 
       const langObj = languages.find(l => l.code === selectedVoiceLang);
-      showToast(`Đã lưu thuyết minh & tư liệu (${langObj?.nativeName || selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
+      showToast(`Đã lưu thuyết minh & Voice AI (${langObj?.nativeName || selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
       handleCloseAiDrawer();
     } catch (err: any) {
       showToast('Lỗi khi lưu dữ liệu: ' + err.message, 'error');
@@ -1810,48 +1848,79 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </div>
             </div>
 
-            {/* Dải công cụ dịch thuật AI nếu đang ở ngôn ngữ quốc tế */}
-            {selectedVoiceLang !== 'vi' && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 16px',
-                  background: 'rgba(212, 168, 106, 0.08)',
-                  borderBottom: '1px solid rgba(212, 168, 106, 0.2)',
-                  fontSize: '12px',
-                  gap: 10,
-                  flexWrap: 'wrap'
-                }}
-              >
-                <div style={{ color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Sparkles size={14} />
-                  <span>Dịch tự động nội dung sang <strong>{languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}</strong> bằng AI Di sản</span>
-                </div>
+            {/* Dải công cụ dịch thuật & Tạo Voice AI tự động */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 16px',
+                background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.12) 0%, rgba(26, 23, 21, 0.6) 100%)',
+                borderBottom: '1px solid rgba(212, 168, 106, 0.25)',
+                fontSize: '12px',
+                gap: 10,
+                flexWrap: 'wrap'
+              }}
+            >
+              <div style={{ color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 240 }}>
+                <Sparkles size={15} style={{ flexShrink: 0 }} />
+                <span>
+                  {selectedVoiceLang === 'vi' ? (
+                    <>
+                      <strong>Tự động hóa Voice AI:</strong> Nhập văn bản tiếng Việt rồi bấm <strong>"⚡ Tạo Voice tất cả ngôn ngữ"</strong> để tự động dịch và sinh giọng đọc MP3 thật cho {languages.filter(l => l.code !== 'vi').map(l => l.nativeName || l.code.toUpperCase()).join(', ')}.
+                    </>
+                  ) : (
+                    <>
+                      Dịch tự động và tạo ngay Voice AI MP3 cho <strong>{languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}</strong> từ nội dung Tiếng Việt.
+                    </>
+                  )}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                {selectedVoiceLang !== 'vi' && (
+                  <button
+                    type="button"
+                    onClick={handleAutoTranslateCurrentLang}
+                    disabled={isTranslatingAi}
+                    className="btn btn-primary btn-sm"
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                    title="Dịch từ tiếng Việt và sinh ngay file Voice AI MP3 cho ngôn ngữ này"
+                  >
+                    {isTranslatingAi ? <RotateCw size={12} className="spin" /> : <Volume2 size={12} />}
+                    <span>{isTranslatingAi ? 'Đang dịch & tạo voice...' : `🎙️ Dịch & Tạo Voice (${selectedVoiceLang.toUpperCase()})`}</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={handleAutoTranslateCurrentLang}
-                  disabled={isTranslatingAi}
+                  onClick={handleGenerateAllLanguagesVoice}
+                  disabled={isGeneratingAllVoices || isSavingAi || !aiScript.trim()}
+                  className={selectedVoiceLang === 'vi' ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}
                   style={{
                     padding: '5px 12px',
                     borderRadius: 'var(--radius-sm)',
-                    background: 'var(--accent-gold)',
-                    color: '#000',
-                    border: 'none',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '12px',
-                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6
                   }}
+                  title="Dịch tự động và sinh file Voice AI MP3 thật cho tất cả ngôn ngữ cùng lúc"
                 >
-                  {isTranslatingAi ? <RotateCw size={12} className="spin" /> : <Sparkles size={12} />}
-                  <span>{isTranslatingAi ? 'Đang dịch thuật...' : 'Dịch từ Tiếng Việt'}</span>
+                  {isGeneratingAllVoices ? <RotateCw size={12} className="spin" /> : <Sparkles size={12} />}
+                  <span>{isGeneratingAllVoices ? 'Đang xử lý...' : '⚡ Tạo Voice tất cả ngôn ngữ'}</span>
                 </button>
               </div>
-            )}
+            </div>
 
             {/* Sub-Tabs dạng thanh chuyển đổi di sản */}
             <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-subtle)' }}>
@@ -1958,80 +2027,25 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               ) : (
                 /* TAB 2: THUYẾT MINH ÂM THANH */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Banner Tự động Dịch & Sinh Voice AI cho toàn bộ ngôn ngữ khác (Ngôn ngữ A -> B, C...) */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.14) 0%, rgba(26, 23, 21, 0.6) 100%)',
-                    border: '1px solid rgba(212, 168, 106, 0.35)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '12px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    flexWrap: 'wrap'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 260 }}>
-                      <div style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 8,
-                        background: 'rgba(212, 168, 106, 0.2)',
-                        color: 'var(--accent-gold)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <Sparkles size={17} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--heading-color)' }}>
-                          Tạo Voice AI cho tất cả ngôn ngữ từ văn bản này
-                        </div>
-                        <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                          Dán văn bản vào ô dưới, hệ thống sẽ tự dịch và sinh giọng đọc thật cho {languages.filter(l => l.code !== selectedVoiceLang).map(l => l.nativeName || l.code.toUpperCase()).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleGenerateAllLanguagesVoice}
-                      disabled={isGeneratingAllVoices || isSavingAi || !aiScript.trim()}
-                      className="btn btn-primary"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontSize: '12.5px',
-                        padding: '8px 16px',
-                        fontWeight: 700,
-                        flexShrink: 0
-                      }}
-                      title="Tự động dịch sang tất cả ngôn ngữ khác và sinh file Voice AI MP3 thật"
-                    >
-                      {isGeneratingAllVoices ? <RotateCw size={14} className="spin" /> : <Sparkles size={14} />}
-                      <span>{isGeneratingAllVoices ? 'Đang xử lý...' : '⚡ Tạo Voice tất cả ngôn ngữ'}</span>
-                    </button>
-                  </div>
-
                   {/* Tiến trình tạo tự động nếu đang chạy */}
                   {isGeneratingAllVoices && generatingAllStatus && (
                     <div style={{
-                      padding: '8px 14px',
+                      padding: '10px 14px',
                       borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(212, 168, 106, 0.1)',
-                      border: '1px dashed rgba(212, 168, 106, 0.4)',
-                      fontSize: '12px',
+                      background: 'rgba(212, 168, 106, 0.12)',
+                      border: '1px dashed rgba(212, 168, 106, 0.5)',
+                      fontSize: '12.5px',
                       color: 'var(--accent-gold)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 8
+                      gap: 8,
+                      fontWeight: 600
                     }}>
-                      <RotateCw size={13} className="spin" />
+                      <RotateCw size={14} className="spin" />
                       <span>{generatingAllStatus}</span>
                     </div>
                   )}
+
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: 6 }}>
                       Chọn giọng đọc thuyết minh ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
@@ -2071,21 +2085,43 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   </div>
 
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
                       <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
                         Lời đọc thuyết minh gian phòng ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
                       </label>
-                      {selectedVoiceLang === 'vi' && (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {selectedVoiceLang === 'vi' && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={handleLoadPresetKnowledge}
+                            style={{ fontSize: '11.5px', padding: '3px 8px' }}
+                          >
+                            <Sparkles size={12} style={{ color: 'var(--accent-gold)' }} />
+                            <span>Gợi ý mẫu</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          onClick={handleLoadPresetKnowledge}
-                          style={{ fontSize: '11.5px', padding: '3px 8px' }}
+                          onClick={handleGenerateTtsAudio}
+                          disabled={isGeneratingTts || !aiScript.trim()}
+                          style={{
+                            fontSize: '11.5px',
+                            padding: '3px 10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            borderColor: 'var(--accent-gold)',
+                            color: 'var(--accent-gold)',
+                            fontWeight: 600
+                          }}
+                          title="Bấm để sinh file âm thanh Voice AI (MP3) cho văn bản này ngay tại chỗ"
                         >
-                          <Sparkles size={12} style={{ color: 'var(--accent-gold)' }} />
-                          <span>Gợi ý mẫu</span>
+                          {isGeneratingTts ? <RotateCw size={12} className="spin" /> : <Volume2 size={12} />}
+                          <span>{isGeneratingTts ? 'Đang tạo voice...' : '🎙️ Tạo Voice AI ngay'}</span>
                         </button>
-                      )}
+                      </div>
                     </div>
 
                     <textarea
@@ -2102,22 +2138,31 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   </div>
 
                   {/* Audio Player nghe thử */}
-                  {previewAudioUrl && (
+                  {(previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || aiDrawerRoom.translations?.[selectedVoiceLang]?.audioUrl || (selectedVoiceLang === 'vi' ? (aiDrawerRoom as any).audioUrl : '')) && (
                     <div style={{
-                      background: 'var(--bg-subtle)',
-                      border: '1px solid var(--border-color)',
+                      background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.08) 0%, rgba(26, 23, 21, 0.5) 100%)',
+                      border: '1px solid rgba(212, 168, 106, 0.3)',
                       padding: '12px 14px',
                       borderRadius: 'var(--radius-md)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 8
                     }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Volume2 size={14} />
-                        <span>Bản nghe thử giọng đọc ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}):</span>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Volume2 size={15} />
+                          <span>Bản nghe thử Voice AI ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}):</span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 600 }}>
+                          ✓ Đã có file MP3 thực tế
+                        </span>
                       </div>
-                      <audio controls key={previewAudioUrl} style={{ width: '100%', height: 36 }}>
-                        <source src={previewAudioUrl} />
+                      <audio
+                        controls
+                        key={previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || aiDrawerRoom.translations?.[selectedVoiceLang]?.audioUrl || (selectedVoiceLang === 'vi' ? (aiDrawerRoom as any).audioUrl : '')}
+                        style={{ width: '100%', height: 36 }}
+                      >
+                        <source src={previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || aiDrawerRoom.translations?.[selectedVoiceLang]?.audioUrl || (selectedVoiceLang === 'vi' ? (aiDrawerRoom as any).audioUrl : '')} />
                         Trình duyệt của bạn không hỗ trợ thẻ audio.
                       </audio>
                     </div>
@@ -2126,7 +2171,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               )}
             </div>
 
-            <div className="modal-footer" style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', background: 'var(--bg-card-header)' }}>
+            <div className="modal-footer" style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', background: 'var(--bg-card-header)', flexWrap: 'wrap', gap: 10 }}>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -2135,19 +2180,33 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 <span>Đóng</span>
               </button>
 
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 {drawerActiveTab === 'tts' && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleGenerateTtsAudio}
-                    disabled={isGeneratingTts || !aiScript.trim()}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                    title={`Sinh giọng đọc AI ${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}`}
-                  >
-                    {isGeneratingTts ? <RotateCw size={14} className="spin" /> : <Play size={14} />}
-                    <span>{isGeneratingTts ? 'Đang tạo voice...' : 'Nghe thử giọng đọc'}</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleGenerateAllLanguagesVoice}
+                      disabled={isGeneratingAllVoices || isSavingAi || !aiScript.trim()}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)', fontWeight: 600 }}
+                      title="Dịch tự động và tạo file Voice AI MP3 cho tất cả các ngôn ngữ cùng lúc"
+                    >
+                      {isGeneratingAllVoices ? <RotateCw size={14} className="spin" /> : <Sparkles size={14} />}
+                      <span>{isGeneratingAllVoices ? 'Đang tạo Voice...' : '⚡ Tạo Voice tất cả ngôn ngữ'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleGenerateTtsAudio}
+                      disabled={isGeneratingTts || !aiScript.trim()}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                      title={`Sinh giọng đọc AI ${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}`}
+                    >
+                      {isGeneratingTts ? <RotateCw size={14} className="spin" /> : <Play size={14} />}
+                      <span>{isGeneratingTts ? 'Đang tạo...' : '🎙️ Tạo & Nghe thử'}</span>
+                    </button>
+                  </>
                 )}
 
                 <button
