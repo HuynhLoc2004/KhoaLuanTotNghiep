@@ -56,13 +56,25 @@ export async function pgUpsertRoom(room: any) {
     const mongoId = room._id ? room._id.toString() : (room.mongoId || room.mongo_id || null);
     if (!id) return;
 
+    // Chuẩn hóa translations từ Map hoặc Object để JSON.stringify không bị rỗng {}
+    let translationsObj: any = room.translations || {};
+    if (translationsObj instanceof Map) {
+      translationsObj = Object.fromEntries(translationsObj);
+    } else if (translationsObj && typeof translationsObj === 'object' && typeof (translationsObj as any).entries === 'function') {
+      try {
+        translationsObj = Object.fromEntries((translationsObj as any).entries());
+      } catch { }
+    }
+
+    const audioUrl = room.audioUrl || room.audio_url || (translationsObj?.vi?.audioUrl) || '';
+
     await pgPool.query(`
       INSERT INTO rooms (
         id, code, name, period, category, description, panorama_url, thumbnail_url,
         initial_view, order_index, active, ai_voice_enabled, ai_knowledge_prompt,
-        ai_script, ai_voice_lang, qr_scan_count, scenes_count, translations, topic_id, mongo_id, updated_at
+        ai_script, ai_voice_lang, qr_scan_count, scenes_count, translations, topic_id, mongo_id, audio_url, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         code = EXCLUDED.code,
         name = EXCLUDED.name,
@@ -83,6 +95,7 @@ export async function pgUpsertRoom(room: any) {
         translations = EXCLUDED.translations,
         topic_id = EXCLUDED.topic_id,
         mongo_id = COALESCE(EXCLUDED.mongo_id, rooms.mongo_id),
+        audio_url = COALESCE(EXCLUDED.audio_url, rooms.audio_url),
         updated_at = CURRENT_TIMESTAMP;
     `, [
       id,
@@ -102,9 +115,10 @@ export async function pgUpsertRoom(room: any) {
       room.aiVoiceLang || 'vi-south',
       room.qrScanCount ?? 0,
       room.scenesCount ?? 1,
-      JSON.stringify(room.translations || {}),
+      JSON.stringify(translationsObj || {}),
       room.topicId || null,
-      mongoId
+      mongoId,
+      audioUrl || null
     ]);
 
     // Đồng bộ danh sách Hotspots con (Quan hệ 1-N)

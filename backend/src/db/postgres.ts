@@ -123,6 +123,7 @@ export async function initPostgresTables(): Promise<boolean> {
           qr_scan_count INT DEFAULT 0,
           scenes_count INT DEFAULT 1,
           translations JSONB DEFAULT '{}',
+          audio_url TEXT,
           topic_id VARCHAR(64) REFERENCES topics(id) ON DELETE SET NULL,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -402,6 +403,7 @@ export async function initPostgresTables(): Promise<boolean> {
         ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
         ALTER TABLE topics ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE rooms ADD COLUMN IF NOT EXISTS audio_url TEXT;
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE floor_plan_nodes ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);

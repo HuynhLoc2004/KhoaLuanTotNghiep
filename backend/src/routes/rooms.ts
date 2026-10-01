@@ -61,6 +61,7 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
                r.ai_knowledge_prompt as "aiKnowledgePrompt", r.ai_script as "aiScript",
                r.ai_voice_lang as "aiVoiceLang", r.qr_scan_count as "qrScanCount",
                r.scenes_count as "scenesCount", r.translations, r.topic_id as "topicId",
+               r.audio_url as "audioUrl",
                COALESCE(
                  json_agg(
                    json_build_object(
@@ -124,6 +125,7 @@ roomsRouter.get('/:id', async (req: Request, res: Response) => {
                r.ai_knowledge_prompt as "aiKnowledgePrompt", r.ai_script as "aiScript",
                r.ai_voice_lang as "aiVoiceLang", r.qr_scan_count as "qrScanCount",
                r.scenes_count as "scenesCount", r.translations, r.topic_id as "topicId",
+               r.audio_url as "audioUrl",
                COALESCE(
                  json_agg(
                    json_build_object(
@@ -218,7 +220,7 @@ roomsRouter.post('/', async (req: Request, res: Response) => {
     });
 
     // Đồng bộ lập tức sang PostgreSQL Primary
-    await pgUpsertRoom(newRoom.toObject());
+    await pgUpsertRoom(newRoom.toObject({ flattenMaps: true }));
     await logAudit('CREATE_ROOM', 'rooms', { details: { id: newRoom.id, name: newRoom.name } });
 
     await Promise.all([
@@ -250,13 +252,17 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
       room.markModified('translations');
     }
 
+    if (req.body.audioUrl !== undefined) {
+      room.set('audioUrl', req.body.audioUrl);
+    }
+
     const { translations, ...restFields } = req.body;
     Object.assign(room, restFields);
 
     const updated = await room.save();
 
-    // Đồng bộ sang PostgreSQL Primary
-    await pgUpsertRoom(updated.toObject());
+    // Đồng bộ sang PostgreSQL Primary với flattenMaps để translations là plain Object
+    await pgUpsertRoom(updated.toObject({ flattenMaps: true }));
     await logAudit('UPDATE_ROOM', 'rooms', { details: { id: updated.id, name: updated.name } });
 
     await Promise.all([
@@ -264,8 +270,9 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
       cacheDel(`rooms:detail:${id}`),
       cacheDel(`rooms:detail:${room.id}`)
     ]);
-    broadcastRealtimeEvent('rooms_updated', { action: 'update', room: updated.toJSON() });
-    res.json({ success: true, data: updated.toJSON() });
+    const finalRoomData = updated.toJSON({ flattenMaps: true });
+    broadcastRealtimeEvent('rooms_updated', { action: 'update', room: finalRoomData });
+    res.json({ success: true, data: finalRoomData });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -415,7 +422,7 @@ roomsRouter.post('/:id/hotspots', async (req: Request, res: Response) => {
     await room.save();
 
     // Đồng bộ sang PostgreSQL Primary
-    await pgUpsertRoom(room.toObject());
+    await pgUpsertRoom(room.toObject({ flattenMaps: true }));
 
     await Promise.all([
       cacheDel('rooms:all'),
@@ -452,7 +459,7 @@ roomsRouter.put('/:id/hotspots/:hotspotId', async (req: Request, res: Response) 
     await room.save();
 
     // Đồng bộ sang PostgreSQL Primary
-    await pgUpsertRoom(room.toObject());
+    await pgUpsertRoom(room.toObject({ flattenMaps: true }));
 
     await Promise.all([
       cacheDel('rooms:all'),
@@ -486,7 +493,7 @@ roomsRouter.delete('/:id/hotspots/:hotspotId', async (req: Request, res: Respons
     await room.save();
 
     // Đồng bộ sang PostgreSQL Primary
-    await pgUpsertRoom(room.toObject());
+    await pgUpsertRoom(room.toObject({ flattenMaps: true }));
 
     await Promise.all([
       cacheDel('rooms:all'),

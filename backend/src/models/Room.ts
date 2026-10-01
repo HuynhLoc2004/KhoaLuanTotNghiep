@@ -42,6 +42,7 @@ export interface IRoom extends Document {
   aiKnowledgePrompt?: string;
   aiScript?: string;
   aiVoiceLang?: string;
+  audioUrl?: string;
   qrScanCount?: number;
   scenesCount?: number;
   translations?: Record<string, IRoomTranslation>;
@@ -81,6 +82,7 @@ const RoomSchema = new Schema<IRoom>({
   aiKnowledgePrompt: { type: String, default: '' },
   aiScript: { type: String, default: '' },
   aiVoiceLang: { type: String, default: 'vi-south' },
+  audioUrl: { type: String, default: '' },
   qrScanCount: { type: Number, default: 0 },
   scenesCount: { type: Number, default: 1 },
   translations: {

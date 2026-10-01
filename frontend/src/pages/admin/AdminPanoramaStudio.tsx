@@ -93,51 +93,67 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const isAudioFileUrl = (url?: string): boolean => {
     if (!url || typeof url !== 'string') return false;
     const trimmed = url.trim().toLowerCase();
-    return trimmed.endsWith('.mp3') || trimmed.endsWith('.ogg') || trimmed.endsWith('.wav') || trimmed.includes('/uploads/audio/') || trimmed.includes('actions.google.com');
+    return trimmed.length > 4 && (
+      trimmed.endsWith('.mp3') ||
+      trimmed.endsWith('.ogg') ||
+      trimmed.endsWith('.wav') ||
+      trimmed.includes('/uploads/audio/') ||
+      trimmed.includes('/audio') ||
+      trimmed.includes('actions.google.com') ||
+      trimmed.startsWith('blob:') ||
+      trimmed.startsWith('data:audio') ||
+      trimmed.startsWith('http') ||
+      trimmed.startsWith('/')
+    );
   };
 
   // Danh mục ngôn ngữ THỰC TẾ:
-  // 1. Phải có file âm thanh thật .mp3 trong Database của phòng này
+  // 1. Phải có file âm thanh thật trong Database của phòng này
   // 2. TUYỆT ĐỐI KHÔNG HIỂN THỊ NẾU ADMIN ĐÃ TẮT HOẠT ĐỘNG (isActive === false) trong hệ thống
   const availableVoiceLangs = useMemo(() => {
     const langs: Array<{ code: string; label: string; flag: string; audioUrl: string; script?: string }> = [];
     const activeMap = new Map(activeLanguages.map((l: any) => [l.code.toLowerCase(), l]));
 
+    let transObj: Record<string, any> = {};
+    if (typeof currentRoom.translations === 'string') {
+      try { transObj = JSON.parse(currentRoom.translations); } catch { transObj = {}; }
+    } else if (currentRoom.translations && typeof currentRoom.translations === 'object') {
+      transObj = currentRoom.translations;
+    }
+
     // Kiểm tra tiếng Việt: CHỈ THÊM NẾU CÓ FILE ÂM THANH THẬT TRONG DB
-    const viAudio = currentRoom.translations?.vi?.audioUrl || (currentRoom as any).audioUrl;
+    const viAudio = transObj?.vi?.audioUrl || (currentRoom as any).audioUrl || (currentRoom as any).audio_url;
     if (isAudioFileUrl(viAudio)) {
       langs.push({
         code: 'vi',
         label: 'Tiếng Việt',
         flag: 'VI',
         audioUrl: viAudio.trim(),
-        script: currentRoom.translations?.vi?.narrationScript || currentRoom.aiScript || ''
+        script: transObj?.vi?.narrationScript || currentRoom.aiScript || ''
       });
     }
 
     // Kiểm tra các ngôn ngữ khác: Chỉ thêm nếu có file MP3 THẬT VÀ ĐANG ACTIVE TRONG HỆ THỐNG
-    if (currentRoom.translations) {
-      for (const [code, trans] of Object.entries(currentRoom.translations)) {
-        const cleanCode = code.toLowerCase();
-        if (cleanCode === 'vi') continue;
+    for (const [code, trans] of Object.entries(transObj)) {
+      const cleanCode = code.toLowerCase();
+      if (cleanCode === 'vi') continue;
 
-        // Bỏ qua nếu Admin đã tắt hoạt động ngôn ngữ này trong trang Quản trị Ngôn ngữ
-        if (activeLanguages.length > 0 && !activeMap.has(cleanCode)) {
-          continue;
-        }
+      // Bỏ qua nếu Admin đã tắt hoạt động ngôn ngữ này trong trang Quản trị Ngôn ngữ
+      if (activeLanguages.length > 0 && !activeMap.has(cleanCode)) {
+        continue;
+      }
 
-        if (trans && isAudioFileUrl(trans.audioUrl)) {
-          const dbLang = activeMap.get(cleanCode);
-          const meta = LANGUAGE_META[cleanCode];
-          const label = dbLang?.nativeName || meta?.label || cleanCode.toUpperCase();
-          langs.push({
-            code: cleanCode,
-            label,
-            flag: cleanCode.toUpperCase(),
-            audioUrl: (trans.audioUrl as string).trim(),
-            script: trans.narrationScript || ''
-          });
-        }
+      if (trans && isAudioFileUrl((trans as any).audioUrl)) {
+        const dbLang = activeMap.get(cleanCode);
+        const meta = LANGUAGE_META[cleanCode];
+        const label = dbLang?.nativeName || meta?.label || cleanCode.toUpperCase();
+        langs.push({
+          code: cleanCode,
+          label,
+          flag: cleanCode.toUpperCase(),
+          audioUrl: ((trans as any).audioUrl as string).trim(),
+          script: (trans as any).narrationScript || ''
+        });
       }
     }
 
