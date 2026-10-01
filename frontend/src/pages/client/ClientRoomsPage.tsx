@@ -421,7 +421,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                     >
                       {/* KHUNG MEDIA ẢNH TOÀN CẢNH */}
                       <div
-                        className="client-gallery-media clickable"
+                        className={`client-gallery-media clickable ${!thumb ? 'has-placeholder' : ''}`}
                         onClick={() => onSelectRoomForTour(room)}
                         role="button"
                         tabIndex={0}

@@ -24,7 +24,7 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
         {/* ZIG-ZAG 1: NẰM BÊN PHẢI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
         <div className="client-zigzag-card horizontal-split align-right reveal-on-scroll">
           {/* CỘT ẢNH: KIẾN TRÚC BẢO TÀNG TINH TẾ */}
-          <div className="client-zigzag-card-media">
+          <div className={`client-zigzag-card-media ${!branding.introImageUrl ? 'has-placeholder' : ''}`}>
             {branding.introImageUrl ? (
               <img
                 src={branding.introImageUrl}

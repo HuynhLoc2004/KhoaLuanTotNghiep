@@ -43,7 +43,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
         <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
           {/* CỘT MEDIA: ẢNH TOÀN CẢNH GIAN PHÒNG THỰC TẾ */}
           <div
-            className="client-zigzag-card-media clickable"
+            className={`client-zigzag-card-media clickable ${!fullFeaturedThumb ? 'has-placeholder' : ''}`}
             onClick={onViewAllRooms}
             role="button"
             tabIndex={0}

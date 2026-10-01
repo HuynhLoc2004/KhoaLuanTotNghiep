@@ -3953,6 +3953,10 @@
   height: clamp(280px, 32vw, 360px);
   overflow: hidden;
   background: #080A10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 /* VIGNETTE MỊN MÀNG HÒA VÀO NỀN THẺ - KHÔNG CẮT THÔ */
@@ -3975,6 +3979,12 @@
 
 [data-client-theme="light"] .client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-media::after {
   background: linear-gradient(270deg, transparent 70%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+.client-zigzag-card.horizontal-split .client-zigzag-card-media:has(.client-media-placeholder)::after,
+.client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-media:has(.client-media-placeholder)::after,
+.client-zigzag-card-media.has-placeholder::after {
+  display: none !important;
 }
 
 @media (max-width: 960px) {
@@ -4003,6 +4013,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  flex-shrink: 0;
   transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -5249,6 +5260,10 @@
   height: 220px;
   overflow: hidden;
   background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .client-gallery-media.clickable {
@@ -5259,6 +5274,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  flex-shrink: 0;
   transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s ease;
 }
 
@@ -6358,14 +6374,19 @@
 /* ==========================================================================
    KHUNG THÔNG BÁO TINH TẾ KHI CHƯA CẬP NHẬT HÌNH ẢNH THỰC TẾ (KHÔNG DÙNG ẢNH MOCK)
    ========================================================================== */
+.client-zigzag-card-media.has-placeholder,
+.client-zigzag-card-media:has(.client-media-placeholder),
+.client-gallery-media.has-placeholder,
+.client-gallery-media:has(.client-media-placeholder),
+.client-guide-map-canvas.has-placeholder,
+.client-guide-map-canvas:has(.client-media-placeholder),
 .client-zigzag-card-media.placeholder-box,
 .client-gallery-media.placeholder-box {
-  background: radial-gradient(circle at 50% 40%, rgba(212, 168, 106, 0.06) 0%, rgba(26, 23, 21, 0.95) 100%) !important;
-  border: 1px dashed rgba(212, 168, 106, 0.28) !important;
   min-height: 280px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .client-media-placeholder {
@@ -6375,9 +6396,14 @@
   justify-content: center;
   text-align: center;
   padding: 36px 24px;
-  max-width: 380px;
+  max-width: 440px;
   margin: auto;
   width: 100%;
+  height: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 3;
 }
 
 .client-media-placeholder-icon {
@@ -6392,6 +6418,7 @@
   justify-content: center;
   margin-bottom: 14px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
 }
 
 .client-media-placeholder-title {
@@ -6406,6 +6433,16 @@
   font-size: 12px;
   color: #8C8075;
   line-height: 1.55;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+[data-client-theme="light"] .client-media-placeholder-title {
+  color: #1E293B;
+}
+
+[data-client-theme="light"] .client-media-placeholder-desc {
+  color: #64748B;
 }
 
 /* --- BADGE TIÊU ĐỀ SUBPAGE TINH GỌN, ÍT MÀU SẮC (THEO YÊU CẦU NGƯỜI DÙNG) --- */

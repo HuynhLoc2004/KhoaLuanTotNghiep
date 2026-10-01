@@ -217,7 +217,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                   return (
                     <div key={art.id} className="client-gallery-card">
                       <div
-                        className="client-gallery-media clickable"
+                        className={`client-gallery-media clickable ${!thumb ? 'has-placeholder' : ''}`}
                         onClick={() => onSelectArtifactDetail(art.id)}
                         role="button"
                         tabIndex={0}

@@ -119,7 +119,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             </div>
 
             {/* 2. VÙNG KHUNG CANVAS HIỂN THỊ CHÍNH */}
-            <div className="client-guide-map-canvas">
+            <div className={`client-guide-map-canvas ${!hasSimulationNodes && !hasMapDrawing ? 'has-placeholder' : ''}`}>
               {hasSimulationNodes && viewMode === 'simulation' ? (
                 <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                   <InteractiveFloorPlanMap

@@ -71,7 +71,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
         <div className="client-zigzag-card horizontal-split align-right reveal-on-scroll">
           {/* CỘT MEDIA: MÔ HÌNH 3D / ẢNH HIỆN VẬT LỊCH SỬ CHUẨN MỰC */}
           <div
-            className="client-zigzag-card-media dark-vitrine clickable"
+            className={`client-zigzag-card-media dark-vitrine clickable ${!currentThumb && !activeArtifact?.model3dUrl ? 'has-placeholder' : ''}`}
             onClick={handleArtifactClick}
             role="button"
             tabIndex={0}
