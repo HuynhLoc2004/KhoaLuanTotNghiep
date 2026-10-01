@@ -94,6 +94,8 @@ export const AdminArtifactsPage: React.FC = () => {
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [isGeneratingTts, setIsGeneratingTts] = useState(false);
   const [isSavingVoice, setIsSavingVoice] = useState(false);
+  const [isTranslatingAi, setIsTranslatingAi] = useState(false);
+  const [workingVoiceTranslations, setWorkingVoiceTranslations] = useState<Record<string, any>>({});
 
   // Heritage Confirm Dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -561,35 +563,192 @@ export const AdminArtifactsPage: React.FC = () => {
   // === QUẢN TRỊ THUYẾT MINH & VOICE AI ĐA NGÔN NGỮ ===
   const handleOpenVoiceModal = (artifact: Artifact) => {
     const targetId = artifact.id || (artifact as any)._id;
-    setActiveVoiceArtifact({ ...artifact, id: targetId });
+    const currentArtifact = { ...artifact, id: targetId };
+    setActiveVoiceArtifact(currentArtifact);
     const initialLang = 'vi';
     setSelectedVoiceLang(initialLang);
 
+    // Khởi tạo bộ nhớ tạm workingVoiceTranslations từ translations hiện có
+    const initialWorking: Record<string, any> = {};
+    if (artifact.translations) {
+      Object.entries(artifact.translations).forEach(([code, val]) => {
+        initialWorking[code] = { ...(val as any) };
+      });
+    }
+    setWorkingVoiceTranslations(initialWorking);
+
     const trans = artifact.translations?.[initialLang];
-    setVoiceName(trans?.name || artifact.name);
-    setVoicePeriod(trans?.period || artifact.period);
+    setVoiceName(trans?.name || artifact.name || '');
+    setVoicePeriod(trans?.period || artifact.period || '');
     setVoiceScript(trans?.narrationScript || trans?.description || artifact.description || '');
-    setPreviewAudioUrl(trans?.audioNarrationUrl || artifact.audioNarrationUrl || null);
+    const viAudio = trans?.audioNarrationUrl || artifact.audioNarrationUrl || null;
+    setPreviewAudioUrl(viAudio ? (viAudio.startsWith('http') ? viAudio : `${API_ROOT}${viAudio}`) : null);
 
     setIsVoiceModalOpen(true);
   };
 
+  // Chuyển đổi giữa các tab ngôn ngữ trong modal thuyết minh
   const handleSwitchVoiceLanguage = (langCode: string) => {
     if (!activeVoiceArtifact) return;
+
+    // Lưu lại văn bản và audio của ngôn ngữ hiện tại vào workingVoiceTranslations
+    const currentScript = voiceScript.trim();
+    const currentName = voiceName.trim();
+    const currentPeriod = voicePeriod.trim();
+    const updatedWorking = {
+      ...workingVoiceTranslations,
+      [selectedVoiceLang]: {
+        ...(workingVoiceTranslations[selectedVoiceLang] || {}),
+        name: currentName,
+        period: currentPeriod,
+        narrationScript: currentScript,
+        description: currentScript,
+        audioNarrationUrl: previewAudioUrl || workingVoiceTranslations[selectedVoiceLang]?.audioNarrationUrl || ''
+      }
+    };
+    setWorkingVoiceTranslations(updatedWorking);
     setSelectedVoiceLang(langCode);
 
+    // Nạp dữ liệu của tab ngôn ngữ mới
+    const workingData = updatedWorking[langCode];
+    const trans = activeVoiceArtifact.translations?.[langCode];
+
     if (langCode === 'vi') {
-      const trans = activeVoiceArtifact.translations?.vi;
-      setVoiceName(trans?.name || activeVoiceArtifact.name);
-      setVoicePeriod(trans?.period || activeVoiceArtifact.period);
-      setVoiceScript(trans?.narrationScript || trans?.description || activeVoiceArtifact.description || '');
-      setPreviewAudioUrl(trans?.audioNarrationUrl || activeVoiceArtifact.audioNarrationUrl || null);
+      const vName = workingData?.name ?? trans?.name ?? activeVoiceArtifact.name ?? '';
+      const vPeriod = workingData?.period ?? trans?.period ?? activeVoiceArtifact.period ?? '';
+      const vScript = workingData?.narrationScript ?? trans?.narrationScript ?? trans?.description ?? activeVoiceArtifact.description ?? '';
+      const vAudio = workingData?.audioNarrationUrl ?? trans?.audioNarrationUrl ?? activeVoiceArtifact.audioNarrationUrl ?? null;
+
+      setVoiceName(vName);
+      setVoicePeriod(vPeriod);
+      setVoiceScript(vScript);
+      setPreviewAudioUrl(vAudio ? (vAudio.startsWith('http') ? vAudio : `${API_ROOT}${vAudio}`) : null);
     } else {
-      const trans = activeVoiceArtifact.translations?.[langCode];
-      setVoiceName(trans?.name || '');
-      setVoicePeriod(trans?.period || '');
-      setVoiceScript(trans?.narrationScript || trans?.description || '');
-      setPreviewAudioUrl(trans?.audioNarrationUrl || null);
+      const tName = workingData?.name ?? trans?.name ?? '';
+      const tPeriod = workingData?.period ?? trans?.period ?? '';
+      const tScript = workingData?.narrationScript ?? trans?.narrationScript ?? trans?.description ?? '';
+      const tAudio = workingData?.audioNarrationUrl ?? trans?.audioNarrationUrl ?? null;
+
+      // Tuyệt đối không hiển thị audio của tiếng Việt cho các ngôn ngữ khác nếu chưa tạo voice riêng
+      const viAudio = activeVoiceArtifact.audioNarrationUrl || '';
+      const isValidAudio = tAudio && tAudio !== viAudio && tScript.trim().length > 0;
+
+      setVoiceName(tName);
+      setVoicePeriod(tPeriod);
+      setVoiceScript(tScript);
+      setPreviewAudioUrl(isValidAudio ? (tAudio.startsWith('http') ? tAudio : `${API_ROOT}${tAudio}`) : null);
+    }
+  };
+
+  // Tìm nguồn văn bản tốt nhất từ ngôn ngữ khác để tự động dịch
+  const getBestTranslationSource = () => {
+    // 1. Kiểm tra tiếng Việt trong workingVoiceTranslations hoặc activeVoiceArtifact
+    const viWorking = workingVoiceTranslations.vi;
+    const viTrans = activeVoiceArtifact?.translations?.vi;
+    const viScript = viWorking?.narrationScript?.trim() || viTrans?.narrationScript?.trim() || activeVoiceArtifact?.description?.trim();
+    const viName = viWorking?.name?.trim() || viTrans?.name?.trim() || activeVoiceArtifact?.name?.trim();
+    const viPeriod = viWorking?.period?.trim() || viTrans?.period?.trim() || activeVoiceArtifact?.period?.trim();
+
+    if (selectedVoiceLang !== 'vi' && (viScript || viName)) {
+      return {
+        lang: 'vi',
+        name: viName || activeVoiceArtifact?.name || '',
+        period: viPeriod || activeVoiceArtifact?.period || '',
+        script: viScript || ''
+      };
+    }
+
+    // 2. Tìm bất kỳ ngôn ngữ nào trong workingVoiceTranslations có nội dung
+    for (const [code, val] of Object.entries(workingVoiceTranslations)) {
+      if (code !== selectedVoiceLang && ((val as any)?.narrationScript?.trim() || (val as any)?.name?.trim())) {
+        return {
+          lang: code,
+          name: (val as any).name?.trim() || activeVoiceArtifact?.name || '',
+          period: (val as any).period?.trim() || activeVoiceArtifact?.period || '',
+          script: (val as any).narrationScript?.trim() || ''
+        };
+      }
+    }
+
+    // 3. Tìm trong activeVoiceArtifact.translations
+    if (activeVoiceArtifact?.translations) {
+      for (const [code, val] of Object.entries(activeVoiceArtifact.translations)) {
+        if (code !== selectedVoiceLang && ((val as any)?.narrationScript?.trim() || (val as any)?.name?.trim())) {
+          return {
+            lang: code,
+            name: (val as any).name?.trim() || activeVoiceArtifact?.name || '',
+            period: (val as any).period?.trim() || activeVoiceArtifact?.period || '',
+            script: (val as any).narrationScript?.trim() || ''
+          };
+        }
+      }
+    }
+
+    // 4. Nếu activeVoiceArtifact có thông tin gốc
+    if (activeVoiceArtifact && (activeVoiceArtifact.description?.trim() || activeVoiceArtifact.name?.trim())) {
+      return {
+        lang: 'vi',
+        name: activeVoiceArtifact.name || '',
+        period: activeVoiceArtifact.period || '',
+        script: activeVoiceArtifact.description || ''
+      };
+    }
+
+    return null;
+  };
+
+  // Dịch tự động nội dung sang ngôn ngữ đang chọn
+  const handleAutoTranslateCurrentLang = async () => {
+    if (!activeVoiceArtifact) return;
+    const source = getBestTranslationSource();
+    if (!source || (!source.script && !source.name)) {
+      showToast('Chưa có nội dung văn bản ở bất kỳ ngôn ngữ nào để dịch thuật. Vui lòng nhập nội dung thuyết minh trước!', 'warning');
+      return;
+    }
+
+    try {
+      setIsTranslatingAi(true);
+      const sourceLangObj = languages.find((l) => l.code === source.lang);
+      const targetLangObj = languages.find((l) => l.code === selectedVoiceLang);
+      const sourceName = sourceLangObj?.nativeName || (source.lang === 'vi' ? 'Tiếng Việt' : source.lang.toUpperCase());
+      const targetName = targetLangObj?.nativeName || selectedVoiceLang.toUpperCase();
+
+      const draft = await api.translateDraft({
+        targetLang: selectedVoiceLang,
+        name: source.name || activeVoiceArtifact.name,
+        period: source.period || activeVoiceArtifact.period,
+        description: source.script,
+        narrationScript: source.script
+      });
+
+      const translatedName = draft.name || source.name || activeVoiceArtifact.name;
+      const translatedPeriod = draft.period || source.period || activeVoiceArtifact.period || '';
+      const translatedScript = draft.narrationScript || draft.description || '';
+
+      setVoiceName(translatedName);
+      setVoicePeriod(translatedPeriod);
+      setVoiceScript(translatedScript);
+
+      // Reset preview audio vì văn bản mới dịch chưa được tạo Voice AI
+      setPreviewAudioUrl(null);
+
+      setWorkingVoiceTranslations((prev) => ({
+        ...prev,
+        [selectedVoiceLang]: {
+          ...(prev[selectedVoiceLang] || {}),
+          name: translatedName,
+          period: translatedPeriod,
+          narrationScript: translatedScript,
+          description: translatedScript,
+          audioNarrationUrl: '' // Reset vì nội dung mới dịch chưa tạo voice
+        }
+      }));
+
+      showToast(`Đã tự động dịch từ ${sourceName} sang ${targetName} thành công! Hãy bấm "Tạo giọng đọc (Voice AI)" để sinh giọng đọc.`, 'success');
+    } catch (err: any) {
+      showToast('Lỗi khi dịch thuật: ' + (err.message || 'Không thể dịch'), 'error');
+    } finally {
+      setIsTranslatingAi(false);
     }
   };
 
@@ -626,7 +785,7 @@ export const AdminArtifactsPage: React.FC = () => {
 
   const handleGenerateVoiceAudio = async () => {
     if (!voiceScript.trim()) {
-      showToast('Vui lòng nhập lời đọc thuyết minh trước khi tạo giọng đọc Voice AI', 'error');
+      showToast('Chưa có nội dung lời đọc thuyết minh để tạo voice AI! Vui lòng nhập nội dung hoặc bấm "Dịch tự động".', 'warning');
       return;
     }
     if (!activeVoiceArtifact) return;
@@ -645,10 +804,24 @@ export const AdminArtifactsPage: React.FC = () => {
 
       setPreviewAudioUrl(fullUrl);
 
+      // Cập nhật workingVoiceTranslations
+      setWorkingVoiceTranslations((prev) => ({
+        ...prev,
+        [selectedVoiceLang]: {
+          ...(prev[selectedVoiceLang] || {}),
+          name: voiceName.trim() || activeVoiceArtifact.name,
+          period: voicePeriod.trim() || activeVoiceArtifact.period,
+          narrationScript: voiceScript.trim(),
+          description: voiceScript.trim(),
+          audioNarrationUrl: res.audioUrl
+        }
+      }));
+
       // Tự động lưu và cập nhật ngay vào cơ sở dữ liệu để đồng bộ tức thì
       const existingTranslations = activeVoiceArtifact.translations || {};
       const updatedTranslations = {
         ...existingTranslations,
+        ...workingVoiceTranslations,
         [selectedVoiceLang]: {
           ...(existingTranslations[selectedVoiceLang] || {}),
           name: voiceName.trim() || activeVoiceArtifact.name,
@@ -686,20 +859,26 @@ export const AdminArtifactsPage: React.FC = () => {
       setIsSavingVoice(true);
       const existingTranslations = activeVoiceArtifact.translations || {};
 
-      const updatedTranslations = {
+      const currentLangPayload = {
+        name: voiceName.trim() || activeVoiceArtifact.name,
+        period: voicePeriod.trim() || activeVoiceArtifact.period,
+        narrationScript: voiceScript.trim(),
+        description: voiceScript.trim(),
+        audioNarrationUrl: previewAudioUrl || workingVoiceTranslations[selectedVoiceLang]?.audioNarrationUrl || existingTranslations[selectedVoiceLang]?.audioNarrationUrl || ''
+      };
+
+      const mergedTranslations = {
         ...existingTranslations,
+        ...workingVoiceTranslations,
         [selectedVoiceLang]: {
           ...(existingTranslations[selectedVoiceLang] || {}),
-          name: voiceName.trim() || activeVoiceArtifact.name,
-          period: voicePeriod.trim() || activeVoiceArtifact.period,
-          narrationScript: voiceScript.trim(),
-          description: voiceScript.trim(),
-          audioNarrationUrl: previewAudioUrl || existingTranslations[selectedVoiceLang]?.audioNarrationUrl || ''
+          ...(workingVoiceTranslations[selectedVoiceLang] || {}),
+          ...currentLangPayload
         }
       };
 
       const patchPayload: Partial<Artifact> = {
-        translations: updatedTranslations
+        translations: mergedTranslations
       };
 
       if ((selectedVoiceLang === 'vi' || !activeVoiceArtifact.audioNarrationUrl) && previewAudioUrl) {
@@ -2435,8 +2614,8 @@ export const AdminArtifactsPage: React.FC = () => {
                 const isSelected = selectedVoiceLang === lang.code;
                 const hasVoice =
                   lang.code === 'vi'
-                    ? !!(activeVoiceArtifact.audioNarrationUrl || activeVoiceArtifact.translations?.vi?.audioNarrationUrl)
-                    : !!activeVoiceArtifact.translations?.[lang.code]?.audioNarrationUrl;
+                    ? !!(activeVoiceArtifact.audioNarrationUrl || activeVoiceArtifact.translations?.vi?.audioNarrationUrl || workingVoiceTranslations.vi?.audioNarrationUrl)
+                    : !!(activeVoiceArtifact.translations?.[lang.code]?.audioNarrationUrl || workingVoiceTranslations[lang.code]?.audioNarrationUrl);
 
                 return (
                   <button
@@ -2534,7 +2713,82 @@ export const AdminArtifactsPage: React.FC = () => {
                   <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '12.5px' }}>
                     Lời đọc thuyết minh ({selectedVoiceLang.toUpperCase()})
                   </label>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {selectedVoiceLang === 'vi' ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleLoadPresetKnowledge}
+                        style={{ fontSize: '11.5px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 5 }}
+                        title="Nạp lời đọc gợi ý tiếng Việt"
+                      >
+                        <BookOpen size={12} />
+                        <span>Gợi ý mẫu</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleAutoTranslateCurrentLang}
+                        disabled={isTranslatingAi}
+                        style={{
+                          fontSize: '11.5px',
+                          padding: '3px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          color: '#D4A86A',
+                          borderColor: 'rgba(212, 168, 106, 0.5)'
+                        }}
+                        title="Tự động dịch nội dung từ ngôn ngữ đã có sang ngôn ngữ này"
+                      >
+                        {isTranslatingAi ? <RotateCw size={12} className="spin" /> : <Globe size={12} />}
+                        <span>{isTranslatingAi ? 'Đang dịch...' : 'Dịch tự động'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Banner gợi ý dịch tự động nếu ngôn ngữ hiện tại chưa có nội dung */}
+                {selectedVoiceLang !== 'vi' && !voiceScript.trim() && (
+                  <div style={{
+                    background: 'rgba(212, 168, 106, 0.08)',
+                    border: '1px dashed rgba(212, 168, 106, 0.4)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    marginBottom: 10
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <Globe size={15} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '12px', color: 'var(--text-main)' }}>
+                        Chưa có nội dung ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}). Bạn có thể bấm nút bên để tự động dịch:
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleAutoTranslateCurrentLang}
+                      disabled={isTranslatingAi}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        color: '#D4A86A',
+                        borderColor: 'rgba(212, 168, 106, 0.5)',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {isTranslatingAi ? <RotateCw size={12} className="spin" /> : <Globe size={12} />}
+                      <span>{isTranslatingAi ? 'Đang dịch...' : 'Dịch tự động'}</span>
+                    </button>
+                  </div>
+                )}
 
                 <textarea
                   rows={5}
@@ -2550,7 +2804,7 @@ export const AdminArtifactsPage: React.FC = () => {
               </div>
 
               {/* Audio Player nghe thử */}
-              {previewAudioUrl && (
+              {previewAudioUrl && voiceScript.trim() && (
                 <div
                   style={{
                     background: 'var(--bg-subtle)',
@@ -2598,7 +2852,7 @@ export const AdminArtifactsPage: React.FC = () => {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={handleGenerateVoiceAudio}
-                  disabled={isGeneratingTts || !voiceScript.trim()}
+                  disabled={isGeneratingTts}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   {isGeneratingTts ? <RotateCw size={13} className="spin" /> : <Play size={13} />}

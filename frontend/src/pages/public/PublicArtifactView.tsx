@@ -26,6 +26,7 @@ import { api, API_ROOT } from '../../services/api';
 import { Artifact, LanguageItem } from '../../types';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { useClientTranslation } from '../../context/ClientTranslationContext';
 
 interface PublicArtifactViewProps {
   artifactId?: string;
@@ -37,6 +38,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   onBackToTour
 }) => {
   const { branding } = useSystemBranding();
+  const { currentLang, changeLanguage } = useClientTranslation();
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [systemLanguages, setSystemLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,8 +96,29 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         if (langs && langs.length > 0) {
           setSystemLanguages(langs.filter((l) => l.isActive));
         }
-        if (data.voiceLanguage) {
-          setSelectedLanguage(data.voiceLanguage);
+
+        // Tự động xác định ngôn ngữ thuyết minh tương ứng với ngôn ngữ du khách đang xem trên trang
+        const clientLang = currentLang || localStorage.getItem('museum_client_lang') || 'vi';
+        const hasClientLangVoice =
+          clientLang === 'vi'
+            ? !!(data.audioNarrationUrl || data.translations?.vi?.audioNarrationUrl)
+            : !!(data.translations?.[clientLang]?.audioNarrationUrl);
+
+        if (hasClientLangVoice) {
+          // Ngôn ngữ client chọn có sẵn giọng đọc thuyết minh
+          setSelectedLanguage(clientLang);
+        } else {
+          // Ngôn ngữ du khách đang dùng không có text/voice -> tự động fallback về tiếng Việt (ngôn ngữ chính của website)
+          const hasViVoice = !!(data.audioNarrationUrl || data.translations?.vi?.audioNarrationUrl);
+          if (hasViVoice) {
+            setSelectedLanguage('vi');
+          } else {
+            // Nếu tiếng Việt cũng chưa có, lấy ngôn ngữ đầu tiên có sẵn voice
+            const anyLang = Object.entries(data.translations || {}).find(
+              ([_, trans]: [string, any]) => !!trans?.audioNarrationUrl
+            );
+            setSelectedLanguage(anyLang ? anyLang[0] : clientLang);
+          }
         }
       } catch (err: any) {
         setError(err.message || 'Không thể tải dữ liệu hiện vật');
@@ -107,25 +130,67 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     loadData();
   }, [targetId]);
 
-  // Audio handling
+  // Đồng bộ khi du khách chuyển đổi ngôn ngữ trên trang
+  useEffect(() => {
+    if (!artifact) return;
+    const clientLang = currentLang || localStorage.getItem('museum_client_lang') || 'vi';
+    const hasClientLangVoice =
+      clientLang === 'vi'
+        ? !!(artifact.audioNarrationUrl || artifact.translations?.vi?.audioNarrationUrl)
+        : !!(artifact.translations?.[clientLang]?.audioNarrationUrl);
+
+    if (hasClientLangVoice) {
+      setSelectedLanguage(clientLang);
+    } else {
+      const hasViVoice = !!(artifact.audioNarrationUrl || artifact.translations?.vi?.audioNarrationUrl);
+      if (hasViVoice) {
+        setSelectedLanguage('vi');
+      }
+    }
+  }, [currentLang, artifact]);
+
+  // Xác định ngôn ngữ thực tế của giọng đọc phát ra (dùng để hiển thị nhãn thuyết minh chính xác)
+  const actualSpokenLang = React.useMemo(() => {
+    if (!artifact) return 'vi';
+    if (selectedLanguage !== 'vi' && artifact.translations?.[selectedLanguage]?.audioNarrationUrl) {
+      return selectedLanguage;
+    }
+    if (artifact.audioNarrationUrl || artifact.translations?.vi?.audioNarrationUrl) {
+      return 'vi';
+    }
+    if (artifact.translations) {
+      const anyLang = Object.entries(artifact.translations).find(([_, t]: [string, any]) => !!t?.audioNarrationUrl);
+      if (anyLang) return anyLang[0];
+    }
+    return selectedLanguage;
+  }, [artifact, selectedLanguage]);
+
+  // Audio handling: ưu tiên ngôn ngữ chọn, tự động fallback về tiếng Việt nếu ngôn ngữ chọn không có voice
   const activeAudioUrl = React.useMemo(() => {
     if (!artifact) return null;
+    let url: string | null = null;
     if (selectedLanguage !== 'vi' && artifact.translations) {
       const trans = artifact.translations[selectedLanguage];
       if (trans && trans.audioNarrationUrl) {
-        return trans.audioNarrationUrl.startsWith('http')
-          ? trans.audioNarrationUrl
-          : `${API_ROOT}${trans.audioNarrationUrl}`;
+        url = trans.audioNarrationUrl;
       }
     }
-    if (artifact.audioNarrationUrl) {
-      return artifact.audioNarrationUrl.startsWith('http')
-        ? artifact.audioNarrationUrl
-        : `${API_ROOT}${artifact.audioNarrationUrl}`;
+    // Nếu ngôn ngữ đang xem không có voice -> fallback về tiếng Việt (ngôn ngữ chính gốc)
+    if (!url) {
+      url = artifact.translations?.vi?.audioNarrationUrl || artifact.audioNarrationUrl || null;
     }
-    return null;
+    // Nếu vẫn chưa có, lấy bất kỳ ngôn ngữ nào có voice
+    if (!url && artifact.translations) {
+      const anyVoice = Object.values(artifact.translations).find((t: any) => !!t?.audioNarrationUrl) as any;
+      if (anyVoice?.audioNarrationUrl) {
+        url = anyVoice.audioNarrationUrl;
+      }
+    }
+    if (!url) return null;
+    return url.startsWith('http') ? url : `${API_ROOT}${url.startsWith('/') ? '' : '/'}${url}`;
   }, [artifact, selectedLanguage]);
 
+  // Tự động phát thuyết minh Voice AI khi vào xem hiện vật 3D
   useEffect(() => {
     if (!activeAudioUrl) {
       setIsPlayingAudio(false);
@@ -138,12 +203,16 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     const onTimeUpdate = () => setAudioCurrentTime(audio.currentTime);
     const onLoadedMetadata = () => setAudioDuration(audio.duration);
     const onEnded = () => setIsPlayingAudio(false);
+    const onPlay = () => setIsPlayingAudio(true);
+    const onPause = () => setIsPlayingAudio(false);
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
 
-    // Tự động phát thuyết minh khi du khách quét mã QR xem cổ vật
+    // Tự động phát ngay lập tức khi vào xem mô hình 3D cổ vật
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise
@@ -157,9 +226,11 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             audio.play().then(() => setIsPlayingAudio(true)).catch(() => {});
             window.removeEventListener('click', handleFirstTouch);
             window.removeEventListener('touchstart', handleFirstTouch);
+            window.removeEventListener('pointerdown', handleFirstTouch);
           };
           window.addEventListener('click', handleFirstTouch, { once: true });
           window.addEventListener('touchstart', handleFirstTouch, { once: true });
+          window.addEventListener('pointerdown', handleFirstTouch, { once: true });
         });
     }
 
@@ -168,6 +239,8 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
     };
   }, [activeAudioUrl]);
 
@@ -178,6 +251,13 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       setIsPlayingAudio(false);
     } else {
       audioRef.play().then(() => setIsPlayingAudio(true)).catch(console.error);
+    }
+  };
+
+  const handleSelectLanguage = (langCode: string) => {
+    setSelectedLanguage(langCode);
+    if (changeLanguage) {
+      changeLanguage(langCode).catch(() => {});
     }
   };
 
@@ -310,7 +390,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   <button
                     key={lang.code}
                     className={`lang-btn ${selectedLanguage === lang.code ? 'active' : ''}`}
-                    onClick={() => setSelectedLanguage(lang.code)}
+                    onClick={() => handleSelectLanguage(lang.code)}
                     title={`${lang.nativeName} (${lang.name})`}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
@@ -336,7 +416,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                 <button
                   key={code}
                   className={`lang-btn ${selectedLanguage === code ? 'active' : ''}`}
-                  onClick={() => setSelectedLanguage(code)}
+                  onClick={() => handleSelectLanguage(code)}
                 >
                   {code.toUpperCase()}
                 </button>
@@ -446,16 +526,21 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                     <div className="guide-label">Thuyết minh giọng đọc Di sản AI</div>
                     <div className="guide-lang-sub">
                       Ngôn ngữ:{' '}
-                      {systemLanguages.find((l) => l.code === selectedLanguage)?.nativeName ||
-                        (selectedLanguage === 'vi'
+                      {systemLanguages.find((l) => l.code === actualSpokenLang)?.nativeName ||
+                        (actualSpokenLang === 'vi'
                           ? 'Tiếng Việt'
-                          : selectedLanguage === 'en'
+                          : actualSpokenLang === 'en'
                           ? 'English'
-                          : selectedLanguage === 'fr'
+                          : actualSpokenLang === 'fr'
                           ? 'Français'
-                          : selectedLanguage === 'zh'
+                          : actualSpokenLang === 'zh'
                           ? '中文'
-                          : selectedLanguage.toUpperCase())}
+                          : actualSpokenLang.toUpperCase())}
+                      {actualSpokenLang !== selectedLanguage && (
+                        <span style={{ fontSize: '11px', color: 'var(--accent-gold)', marginLeft: 6 }}>
+                          (Mặc định Tiếng Việt)
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
