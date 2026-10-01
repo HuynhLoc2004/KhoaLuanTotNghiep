@@ -133,11 +133,15 @@ const AppContent: React.FC = () => {
     try {
       const params = new URLSearchParams(window.location.search);
       const q = params.get('artifact');
-      if (q) return q;
+      if (q && q !== 'undefined' && q !== 'null' && q.trim()) return q.trim();
       const path = window.location.pathname;
       if (path.startsWith('/artifact/')) {
         const seg = path.split('/artifact/')[1];
-        if (seg) return seg.split('/')[0];
+        if (seg && seg !== 'undefined' && seg !== 'null' && seg.trim()) return seg.split('/')[0].trim();
+      }
+      // Tự động làm sạch URL nếu dính ?artifact=undefined
+      if (q === 'undefined' || q === 'null') {
+        window.history.replaceState({}, '', window.location.pathname);
       }
     } catch { }
     return null;
@@ -272,11 +276,12 @@ const AppContent: React.FC = () => {
         setIsAdminRoute(path.startsWith('/admin') || search.includes('admin'));
         const params = new URLSearchParams(search);
         const q = params.get('artifact');
-        if (q) {
-          setPublicArtifactId(q);
+        if (q && q !== 'undefined' && q !== 'null' && q.trim()) {
+          setPublicArtifactId(q.trim());
         } else if (path.startsWith('/artifact/')) {
           const seg = path.split('/artifact/')[1];
-          setPublicArtifactId(seg ? seg.split('/')[0] : null);
+          const cleanSeg = seg ? seg.split('/')[0].trim() : '';
+          setPublicArtifactId(cleanSeg && cleanSeg !== 'undefined' && cleanSeg !== 'null' ? cleanSeg : null);
         } else {
           setPublicArtifactId(null);
         }
@@ -305,46 +310,44 @@ const AppContent: React.FC = () => {
     return () => clearInterval(interval);
   }, [error]);
 
-  // Xử lý deep link: Quét QR hoặc mở liên kết ?room=CODE hoặc ?room=ID
+  // Xử lý deep link: Quét QR hoặc mở liên kết ?room=CODE hoặc ?room=ID hoặc /tour/CODE hoặc /rooms/CODE
   useEffect(() => {
     const handleCheckRoomUrl = () => {
       const params = new URLSearchParams(window.location.search);
-      const roomQuery = params.get('room');
-
-      // Kiểm tra nếu người dùng vừa thực hiện F5 / Reload trang
-      let isReload = false;
-      try {
-        const navEntries = performance.getEntriesByType('navigation');
-        if (navEntries.length > 0) {
-          isReload = (navEntries[0] as PerformanceNavigationTiming).type === 'reload';
-        }
-      } catch {
-        // Fallback
-      }
-
-      // Xoá ngay tham số ?room khỏi thanh địa chỉ trình duyệt
-      // để khi người dùng F5 / refresh trang không bị kẹt vĩnh viễn vào Studio
-      if (roomQuery) {
-        try {
-          window.history.replaceState({}, '', window.location.pathname);
-        } catch {
-          // Ignored
+      let roomQuery = params.get('room');
+      if (!roomQuery) {
+        const path = window.location.pathname;
+        if (path.startsWith('/tour/')) {
+          roomQuery = path.split('/tour/')[1]?.split('/')[0];
+        } else if (path.startsWith('/rooms/')) {
+          roomQuery = path.split('/rooms/')[1]?.split('/')[0];
         }
       }
 
-      // Nếu là thao tác F5 / Reload hoặc không có query hoặc chưa có phòng, giữ nguyên trang hiện tại
-      if (isReload || !roomQuery || rooms.length === 0) {
+      // Bỏ qua nếu roomQuery không có hoặc là giá trị rác
+      if (!roomQuery || roomQuery === 'undefined' || roomQuery === 'null' || !roomQuery.trim()) {
         return;
       }
 
+      // Nếu danh sách phòng đang tải (chưa có phần tử), không xoá URL mà đợi nạp xong
+      if (rooms.length === 0) {
+        return;
+      }
+
+      const cleanQuery = roomQuery.trim().toLowerCase();
       const matched = rooms.find(
         (r) =>
-          r.code?.toLowerCase() === roomQuery.toLowerCase() ||
-          r.id === roomQuery ||
-          (r as any)._id === roomQuery
+          r.code?.toLowerCase() === cleanQuery ||
+          r.id?.toLowerCase() === cleanQuery ||
+          (r as any)._id?.toString().toLowerCase() === cleanQuery
       );
 
       if (matched) {
+        // Sau khi đã khớp và chuẩn bị mở gian phòng, dọn sạch URL để reload trang không bị kẹt
+        try {
+          window.history.replaceState({}, '', window.location.pathname);
+        } catch { }
+
         if (isAdminRoute && user && user.role === 'admin') {
           setActiveRoom(matched);
           setCurrentTab('studio');
@@ -550,6 +553,7 @@ const AppContent: React.FC = () => {
           setPublicTourRoom(room);
         }}
         onSelectArtifactDetail={(artifactId) => {
+          if (!artifactId || artifactId === 'undefined' || artifactId === 'null') return;
           setPublicArtifactId(artifactId);
           try {
             window.history.pushState({}, '', `?artifact=${artifactId}`);
@@ -680,6 +684,7 @@ const AppContent: React.FC = () => {
           artifacts={artifacts}
           rooms={rooms}
           onSelectArtifactDetail={(artifactId) => {
+            if (!artifactId || artifactId === 'undefined' || artifactId === 'null') return;
             setPublicArtifactId(artifactId);
             try {
               window.history.pushState({}, '', `?artifact=${artifactId}`);

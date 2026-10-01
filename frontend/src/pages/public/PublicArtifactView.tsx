@@ -789,8 +789,9 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             <div className="qr-image-wrapper">
               <img
                 src={
-                  artifact.qrCodeUrl ||
-                  api.getArtifactQRDownloadUrl(artifact.id)
+                  (artifact.qrCodeUrl && !artifact.qrCodeUrl.includes('undefined'))
+                    ? artifact.qrCodeUrl
+                    : api.getArtifactQRDownloadUrl(artifact.code || artifact.id)
                 }
                 alt={`QR ${artifact.code}`}
                 className="qr-img"
@@ -808,7 +809,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                 {copiedLink ? 'Đã sao chép' : 'Sao chép liên kết'}
               </button>
               <a
-                href={api.getArtifactQRDownloadUrl(artifact.id)}
+                href={api.getArtifactQRDownloadUrl(artifact.code || artifact.id)}
                 download={`QR_${artifact.code}.png`}
                 className="btn btn-primary"
               >

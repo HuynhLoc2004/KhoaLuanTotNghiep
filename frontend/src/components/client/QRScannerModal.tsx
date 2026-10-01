@@ -317,82 +317,121 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     playBeep();
     setScanSuccessResult(rawData);
 
-    console.log('[QRScanner] Đã quét thành công mã QR:', rawData);
+    const trimmed = (rawData || '').trim();
+    console.log('[QRScanner] Đã quét thành công mã QR:', trimmed);
 
-    let targetArtifactId: string | null = null;
-    let targetRoomId: string | null = null;
+    let parsedArtifactQuery: string | null = null;
+    let parsedRoomQuery: string | null = null;
 
     try {
-      if (rawData.includes('artifact=') || rawData.includes('/artifact/')) {
-        if (rawData.includes('artifact=')) {
-          const urlObj = new URL(rawData, window.location.origin);
-          targetArtifactId = urlObj.searchParams.get('artifact');
-        } else if (rawData.includes('/artifact/')) {
-          const parts = rawData.split('/artifact/')[1];
-          if (parts) targetArtifactId = parts.split(/[?#&/]/)[0];
+      if (trimmed.includes('artifact=') || trimmed.includes('/artifact/')) {
+        if (trimmed.includes('artifact=')) {
+          const urlObj = new URL(trimmed, window.location.origin);
+          parsedArtifactQuery = urlObj.searchParams.get('artifact');
+        } else if (trimmed.includes('/artifact/')) {
+          const parts = trimmed.split('/artifact/')[1];
+          if (parts) parsedArtifactQuery = parts.split(/[?#&/]/)[0];
         }
-      } else if (rawData.includes('room=') || rawData.includes('/tour/') || rawData.includes('/rooms/')) {
-        if (rawData.includes('room=')) {
-          const urlObj = new URL(rawData, window.location.origin);
-          targetRoomId = urlObj.searchParams.get('room');
-        } else if (rawData.includes('/tour/')) {
-          const parts = rawData.split('/tour/')[1];
-          if (parts) targetRoomId = parts.split(/[?#&/]/)[0];
+      }
+      if (trimmed.includes('room=') || trimmed.includes('/tour/') || trimmed.includes('/rooms/')) {
+        if (trimmed.includes('room=')) {
+          const urlObj = new URL(trimmed, window.location.origin);
+          parsedRoomQuery = urlObj.searchParams.get('room');
+        } else if (trimmed.includes('/tour/')) {
+          const parts = trimmed.split('/tour/')[1];
+          if (parts) parsedRoomQuery = parts.split(/[?#&/]/)[0];
+        } else if (trimmed.includes('/rooms/')) {
+          const parts = trimmed.split('/rooms/')[1];
+          if (parts) parsedRoomQuery = parts.split(/[?#&/]/)[0];
         }
       }
     } catch {}
 
-    // Khớp theo ID hoặc Mã hiện vật trong CSDL
-    if (!targetArtifactId) {
-      const matchedArt = artifacts.find(
-        (a) => a.id === rawData || a.code === rawData || rawData.includes(a.id) || (a.code && rawData.includes(a.code))
-      );
-      if (matchedArt) {
-        targetArtifactId = matchedArt.id;
-      }
+    // Làm sạch và loại bỏ các giá trị rác 'undefined' / 'null'
+    if (parsedArtifactQuery && (parsedArtifactQuery === 'undefined' || parsedArtifactQuery === 'null' || !parsedArtifactQuery.trim())) {
+      parsedArtifactQuery = null;
+    }
+    if (parsedRoomQuery && (parsedRoomQuery === 'undefined' || parsedRoomQuery === 'null' || !parsedRoomQuery.trim())) {
+      parsedRoomQuery = null;
     }
 
-    // Khớp theo ID hoặc Mã phòng trong CSDL
-    if (!targetRoomId) {
-      const matchedRoom = rooms.find(
-        (r) => r.id === rawData || r.code === rawData || rawData.includes(r.id) || (r.code && rawData.includes(r.code))
-      );
-      if (matchedRoom) {
-        targetRoomId = matchedRoom.id;
+    let detectedRoom: MuseumRoom | null = null;
+    let detectedArtifact: Artifact | null = null;
+
+    // 1. Nếu có query room trong URL -> Tìm phòng chính xác
+    if (parsedRoomQuery) {
+      const q = parsedRoomQuery.toLowerCase();
+      detectedRoom = rooms.find(
+        (r) =>
+          (r.code && r.code.toLowerCase() === q) ||
+          (r.id && r.id.toLowerCase() === q) ||
+          ((r as any)._id && (r as any)._id.toString().toLowerCase() === q)
+      ) || null;
+    }
+
+    // 2. Nếu có query artifact trong URL -> Tìm hiện vật chính xác
+    if (parsedArtifactQuery) {
+      const q = parsedArtifactQuery.toLowerCase();
+      detectedArtifact = artifacts.find(
+        (a) =>
+          (a.code && a.code.toLowerCase() === q) ||
+          (a.id && a.id.toLowerCase() === q) ||
+          ((a as any)._id && (a as any)._id.toString().toLowerCase() === q)
+      ) || null;
+    }
+
+    // 3. Nếu không có query trong URL hoặc chưa match, thử đối sánh trực tiếp với text/mã
+    if (!detectedRoom && !detectedArtifact) {
+      const cleanRaw = trimmed.toLowerCase();
+      // Ưu tiên đối sánh Gian phòng (Code: GP-01, ID...)
+      detectedRoom = rooms.find(
+        (r) =>
+          (r.code && r.code.toLowerCase() === cleanRaw) ||
+          (r.id && r.id.toLowerCase() === cleanRaw) ||
+          ((r as any)._id && (r as any)._id.toString().toLowerCase() === cleanRaw)
+      ) || null;
+
+      // Tiếp theo đối sánh Hiện vật (Code: HV-001, ID...)
+      if (!detectedRoom) {
+        detectedArtifact = artifacts.find(
+          (a) =>
+            (a.code && a.code.toLowerCase() === cleanRaw) ||
+            (a.id && a.id.toLowerCase() === cleanRaw) ||
+            ((a as any)._id && (a as any)._id.toString().toLowerCase() === cleanRaw)
+        ) || null;
       }
     }
 
     // Tìm tên để hiển thị thông báo thân thiện
-    if (targetArtifactId) {
-      const foundArt = artifacts.find((a) => a.id === targetArtifactId || a.code === targetArtifactId);
-      if (foundArt) setMatchedItemName(`Hiện vật: ${foundArt.name}`);
-    } else if (targetRoomId) {
-      const foundRoom = rooms.find((r) => r.id === targetRoomId || r.code === targetRoomId);
-      if (foundRoom) setMatchedItemName(`Gian phòng: ${foundRoom.name}`);
+    if (detectedRoom) {
+      setMatchedItemName(`Gian phòng 360°: ${detectedRoom.name}`);
+    } else if (detectedArtifact) {
+      setMatchedItemName(`Hiện vật 3D: ${detectedArtifact.name}`);
+    } else if (parsedArtifactQuery) {
+      setMatchedItemName(`Hiện vật: ${parsedArtifactQuery}`);
     }
 
-    // Điều hướng sau 500ms
+    // Điều hướng an toàn tuyệt đối
     setTimeout(() => {
-      if (targetArtifactId && onSelectArtifactDetail) {
+      if (detectedRoom && onSelectRoomForTour) {
         onClose();
-        onSelectArtifactDetail(targetArtifactId);
-      } else if (targetRoomId && onSelectRoomForTour) {
-        const foundRoom = rooms.find((r) => r.id === targetRoomId || r.code === targetRoomId);
-        if (foundRoom) {
-          onClose();
-          onSelectRoomForTour(foundRoom);
-        } else {
-          onClose();
-        }
+        onSelectRoomForTour(detectedRoom);
+      } else if (detectedArtifact && onSelectArtifactDetail) {
+        onClose();
+        const artTarget = detectedArtifact.code || detectedArtifact.id;
+        onSelectArtifactDetail(artTarget);
+      } else if (parsedArtifactQuery && onSelectArtifactDetail) {
+        onClose();
+        onSelectArtifactDetail(parsedArtifactQuery);
       } else {
-        if (rawData.startsWith('http://') || rawData.startsWith('https://')) {
-          window.location.href = rawData;
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          window.location.href = trimmed;
         } else {
-          showToast(`Nội dung mã QR: ${rawData}`, 'info');
+          showToast(`Nội dung mã QR: ${trimmed}`, 'info');
           onClose();
         }
       }
-    }, 600);
+    }, 500);
   };
 
   if (!isOpen) return null;

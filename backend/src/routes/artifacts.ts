@@ -247,6 +247,10 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
     }
 
     // 2. Fallback sang MongoDB
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(404).json({ success: false, message: 'Mã hiện vật không hợp lệ' });
+    }
+
     if (!artifact) {
       const codeRegex = new RegExp(`^${id.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
       const query = mongoose.isValidObjectId(id)
@@ -262,16 +266,19 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật' });
     }
 
-    // Tự động tạo mã QR data URL nếu chưa có
-    if (!artifact.qrCodeUrl) {
+    // Tự động tạo mã QR data URL chuẩn nếu chưa có hoặc nếu trước đó bị lỗi undefined
+    const targetCode = artifact.code || artifact.id || (artifact._id ? artifact._id.toString() : '');
+    const isCorruptQr = !artifact.qrCodeUrl || artifact.qrCodeUrl.includes('undefined') || !artifact.qrCodeUrl.startsWith('data:image/');
+    if (isCorruptQr && targetCode && targetCode !== 'undefined') {
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
-      const targetUrl = `${protocol}://${host}/artifact/${artifact.id}`;
+      const targetUrl = `${protocol}://${host}/?artifact=${encodeURIComponent(targetCode)}`;
       try {
         const qrDataUrl = await generateQRCodeDataURL(targetUrl, 320);
         artifact.qrCodeUrl = qrDataUrl;
-        await ArtifactModel.updateOne({ id: artifact.id }, { $set: { qrCodeUrl: qrDataUrl } });
-        await pgPool.query('UPDATE artifacts SET qr_code_url = $1 WHERE id = $2', [qrDataUrl, artifact.id]);
+        const targetId = artifact.id || (artifact._id ? artifact._id.toString() : targetCode);
+        await ArtifactModel.updateOne({ $or: [{ id: targetId }, { code: targetCode }] }, { $set: { qrCodeUrl: qrDataUrl } });
+        await pgPool.query('UPDATE artifacts SET qr_code_url = $1 WHERE id = $2 OR code = $3', [qrDataUrl, targetId, targetCode]);
       } catch (qrErr) {
         console.warn('[Artifacts] Không thể sinh mã QR:', qrErr);
       }
@@ -325,9 +332,10 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
     });
 
     // Tạo mã QR cho trang xem hiện vật
+    const targetCode = created.code || created.id;
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.get('host');
-    const targetUrl = `${protocol}://${host}/artifact/${created.id}`;
+    const targetUrl = `${protocol}://${host}/?artifact=${encodeURIComponent(targetCode)}`;
     try {
       created.qrCodeUrl = await generateQRCodeDataURL(targetUrl, 320);
       await created.save();
@@ -701,20 +709,29 @@ artifactsRouter.get('/:id/3d-status', async (req: Request, res: Response) => {
  */
 artifactsRouter.get('/:id/qr-download', async (req: Request, res: Response) => {
   try {
-    const id = req.params.id as string;
-    const item = await ArtifactModel.findById(id);
+    const id = (req.params.id as string || '').trim();
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(404).send('Không tìm thấy hiện vật');
+    }
+
+    const codeRegex = new RegExp(`^${id.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
+    const query = mongoose.isValidObjectId(id)
+      ? { $or: [{ _id: id }, { id }, { code: id }, { code: codeRegex }] }
+      : { $or: [{ id }, { code: id }, { code: codeRegex }] };
+    const item = await ArtifactModel.findOne(query);
     if (!item) {
       return res.status(404).send('Không tìm thấy hiện vật');
     }
 
+    const targetCode = item.code || item.id || item._id.toString();
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.get('host') || process.env.PUBLIC_API_URL?.replace(/https?:\/\//, '') || 'museumhcm.duckdns.org';
-    const targetUrl = `${protocol}://${host}/artifact/${item.id}`;
+    const targetUrl = `${protocol}://${host}/?artifact=${encodeURIComponent(targetCode)}`;
 
     const buffer = await generateQRCodeBuffer(targetUrl, 1000);
 
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Disposition', `attachment; filename="QR_${item.code}_${item.id}.png"`);
+    res.setHeader('Content-Disposition', `attachment; filename="QR_${item.code || targetCode}.png"`);
     res.send(buffer);
   } catch (err: any) {
     res.status(500).send('Lỗi sinh mã QR: ' + err.message);
