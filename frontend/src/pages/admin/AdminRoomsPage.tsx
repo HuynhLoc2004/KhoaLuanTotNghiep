@@ -1848,80 +1848,6 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </div>
             </div>
 
-            {/* Dải công cụ dịch thuật & Tạo Voice AI tự động */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '9px 16px',
-                background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.12) 0%, rgba(26, 23, 21, 0.6) 100%)',
-                borderBottom: '1px solid rgba(212, 168, 106, 0.25)',
-                fontSize: '12px',
-                gap: 10,
-                flexWrap: 'wrap'
-              }}
-            >
-              <div style={{ color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 240 }}>
-                <Sparkles size={15} style={{ flexShrink: 0 }} />
-                <span>
-                  {selectedVoiceLang === 'vi' ? (
-                    <>
-                      <strong>Tự động hóa Voice AI:</strong> Nhập văn bản tiếng Việt rồi bấm <strong>"⚡ Tạo Voice tất cả ngôn ngữ"</strong> để tự động dịch và sinh giọng đọc MP3 thật cho {languages.filter(l => l.code !== 'vi').map(l => l.nativeName || l.code.toUpperCase()).join(', ')}.
-                    </>
-                  ) : (
-                    <>
-                      Dịch tự động và tạo ngay Voice AI MP3 cho <strong>{languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}</strong> từ nội dung Tiếng Việt.
-                    </>
-                  )}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                {selectedVoiceLang !== 'vi' && (
-                  <button
-                    type="button"
-                    onClick={handleAutoTranslateCurrentLang}
-                    disabled={isTranslatingAi}
-                    className="btn btn-primary btn-sm"
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      fontWeight: 600,
-                      fontSize: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6
-                    }}
-                    title="Dịch từ tiếng Việt và sinh ngay file Voice AI MP3 cho ngôn ngữ này"
-                  >
-                    {isTranslatingAi ? <RotateCw size={12} className="spin" /> : <Volume2 size={12} />}
-                    <span>{isTranslatingAi ? 'Đang dịch & tạo voice...' : `🎙️ Dịch & Tạo Voice (${selectedVoiceLang.toUpperCase()})`}</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleGenerateAllLanguagesVoice}
-                  disabled={isGeneratingAllVoices || isSavingAi || !aiScript.trim()}
-                  className={selectedVoiceLang === 'vi' ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontWeight: 700,
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                  title="Dịch tự động và sinh file Voice AI MP3 thật cho tất cả ngôn ngữ cùng lúc"
-                >
-                  {isGeneratingAllVoices ? <RotateCw size={12} className="spin" /> : <Sparkles size={12} />}
-                  <span>{isGeneratingAllVoices ? 'Đang xử lý...' : '⚡ Tạo Voice tất cả ngôn ngữ'}</span>
-                </button>
-              </div>
-            </div>
-
             {/* Sub-Tabs dạng thanh chuyển đổi di sản */}
             <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-subtle)' }}>
               <button
@@ -1998,15 +1924,26 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
                         Nội dung tóm tắt lịch sử gian phòng ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
                       </label>
-                      {selectedVoiceLang === 'vi' && (
+                      {selectedVoiceLang === 'vi' ? (
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
                           onClick={handleLoadPresetKnowledge}
                           style={{ fontSize: '11.5px', padding: '3px 8px' }}
                         >
-                          <Sparkles size={12} style={{ color: 'var(--accent-gold)' }} />
+                          <BookOpen size={12} />
                           <span>Gợi ý mẫu</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={handleAutoTranslateCurrentLang}
+                          disabled={isTranslatingAi}
+                          style={{ fontSize: '11.5px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 5 }}
+                        >
+                          {isTranslatingAi ? <RotateCw size={12} className="spin" /> : <Globe size={12} />}
+                          <span>{isTranslatingAi ? 'Đang dịch...' : 'Dịch từ Tiếng Việt'}</span>
                         </button>
                       )}
                     </div>
@@ -2027,28 +1964,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               ) : (
                 /* TAB 2: THUYẾT MINH ÂM THANH */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Tiến trình tạo tự động nếu đang chạy */}
-                  {isGeneratingAllVoices && generatingAllStatus && (
-                    <div style={{
-                      padding: '10px 14px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(212, 168, 106, 0.12)',
-                      border: '1px dashed rgba(212, 168, 106, 0.5)',
-                      fontSize: '12.5px',
-                      color: 'var(--accent-gold)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      fontWeight: 600
-                    }}>
-                      <RotateCw size={14} className="spin" />
-                      <span>{generatingAllStatus}</span>
-                    </div>
-                  )}
-
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: 6 }}>
-                      Chọn giọng đọc thuyết minh ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
+                      Chọn giọng đọc ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
                     </label>
                     <select
                       className="form-control"
@@ -2087,40 +2005,31 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
                       <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
-                        Lời đọc thuyết minh gian phòng ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
+                        Lời đọc thuyết minh ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
                       </label>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        {selectedVoiceLang === 'vi' && (
+                        {selectedVoiceLang === 'vi' ? (
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={handleLoadPresetKnowledge}
                             style={{ fontSize: '11.5px', padding: '3px 8px' }}
                           >
-                            <Sparkles size={12} style={{ color: 'var(--accent-gold)' }} />
+                            <BookOpen size={12} />
                             <span>Gợi ý mẫu</span>
                           </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={handleAutoTranslateCurrentLang}
+                            disabled={isTranslatingAi}
+                            style={{ fontSize: '11.5px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 5 }}
+                          >
+                            {isTranslatingAi ? <RotateCw size={12} className="spin" /> : <Globe size={12} />}
+                            <span>{isTranslatingAi ? 'Đang dịch...' : 'Dịch từ Tiếng Việt'}</span>
+                          </button>
                         )}
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={handleGenerateTtsAudio}
-                          disabled={isGeneratingTts || !aiScript.trim()}
-                          style={{
-                            fontSize: '11.5px',
-                            padding: '3px 10px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            borderColor: 'var(--accent-gold)',
-                            color: 'var(--accent-gold)',
-                            fontWeight: 600
-                          }}
-                          title="Bấm để sinh file âm thanh Voice AI (MP3) cho văn bản này ngay tại chỗ"
-                        >
-                          {isGeneratingTts ? <RotateCw size={12} className="spin" /> : <Volume2 size={12} />}
-                          <span>{isGeneratingTts ? 'Đang tạo voice...' : '🎙️ Tạo Voice AI ngay'}</span>
-                        </button>
                       </div>
                     </div>
 
@@ -2130,7 +2039,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       style={{ width: '100%', fontSize: '13px', lineHeight: 1.6, resize: 'vertical' }}
                       value={aiScript}
                       onChange={(e) => setAiScript(e.target.value)}
-                      placeholder={`Nhập lời chào và nội dung thuyết minh tự động phát khi du khách bước vào không gian 360° (${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})...`}
+                      placeholder={`Nhập nội dung thuyết minh phát tự động khi khách tham quan gian phòng (${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})...`}
                     />
                     <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
                       {aiScript.length} ký tự
@@ -2140,21 +2049,21 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   {/* Audio Player nghe thử */}
                   {(previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || aiDrawerRoom.translations?.[selectedVoiceLang]?.audioUrl || (selectedVoiceLang === 'vi' ? (aiDrawerRoom as any).audioUrl : '')) && (
                     <div style={{
-                      background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.08) 0%, rgba(26, 23, 21, 0.5) 100%)',
-                      border: '1px solid rgba(212, 168, 106, 0.3)',
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-color)',
                       padding: '12px 14px',
                       borderRadius: 'var(--radius-md)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 8
                     }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Volume2 size={15} />
-                          <span>Bản nghe thử Voice AI ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}):</span>
+                          <Volume2 size={14} style={{ color: 'var(--accent-gold)' }} />
+                          <span>File âm thanh ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}):</span>
                         </div>
-                        <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 600 }}>
-                          ✓ Đã có file MP3 thực tế
+                        <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 500 }}>
+                          ✓ Sẵn sàng phát khi tham quan
                         </span>
                       </div>
                       <audio
@@ -2163,7 +2072,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         style={{ width: '100%', height: 36 }}
                       >
                         <source src={previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || aiDrawerRoom.translations?.[selectedVoiceLang]?.audioUrl || (selectedVoiceLang === 'vi' ? (aiDrawerRoom as any).audioUrl : '')} />
-                        Trình duyệt của bạn không hỗ trợ thẻ audio.
+                        Trình duyệt không hỗ trợ thẻ audio.
                       </audio>
                     </div>
                   )}
@@ -2182,31 +2091,17 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 {drawerActiveTab === 'tts' && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={handleGenerateAllLanguagesVoice}
-                      disabled={isGeneratingAllVoices || isSavingAi || !aiScript.trim()}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)', fontWeight: 600 }}
-                      title="Dịch tự động và tạo file Voice AI MP3 cho tất cả các ngôn ngữ cùng lúc"
-                    >
-                      {isGeneratingAllVoices ? <RotateCw size={14} className="spin" /> : <Sparkles size={14} />}
-                      <span>{isGeneratingAllVoices ? 'Đang tạo Voice...' : '⚡ Tạo Voice tất cả ngôn ngữ'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={handleGenerateTtsAudio}
-                      disabled={isGeneratingTts || !aiScript.trim()}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                      title={`Sinh giọng đọc AI ${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}`}
-                    >
-                      {isGeneratingTts ? <RotateCw size={14} className="spin" /> : <Play size={14} />}
-                      <span>{isGeneratingTts ? 'Đang tạo...' : '🎙️ Tạo & Nghe thử'}</span>
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleGenerateTtsAudio}
+                    disabled={isGeneratingTts || !aiScript.trim()}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    title={`Tạo giọng đọc ${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}`}
+                  >
+                    {isGeneratingTts ? <RotateCw size={14} className="spin" /> : <Play size={14} />}
+                    <span>{isGeneratingTts ? 'Đang tạo...' : 'Tạo giọng đọc & Nghe thử'}</span>
+                  </button>
                 )}
 
                 <button
@@ -2217,7 +2112,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   {isSavingAi ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
-                  <span>Lưu lời thuyết minh ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})</span>
+                  <span>Lưu ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})</span>
                 </button>
               </div>
             </div>
