@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box } from 'lucide-react';
 import { Artifact } from '../../types';
 import { API_ROOT } from '../../services/api';
@@ -39,20 +39,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     });
   }, [artifacts]);
 
-  const [selectedArtifactId, setSelectedArtifactId] = useState<string>(
-    sortedArtifacts[0]?.id || ''
-  );
-
-  React.useEffect(() => {
-    if (sortedArtifacts.length > 0) {
-      if (!selectedArtifactId || !sortedArtifacts.some((a) => a.id === selectedArtifactId)) {
-        setSelectedArtifactId(sortedArtifacts[0].id);
-      }
-    }
-  }, [sortedArtifacts, selectedArtifactId]);
-
-  const activeArtifact =
-    sortedArtifacts.find((a) => a.id === selectedArtifactId) || sortedArtifacts[0];
+  const activeArtifact = sortedArtifacts[0];
 
   const getFullThumb = (art?: Artifact) => {
     if (!art) return '';
@@ -92,7 +79,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
             style={{ cursor: 'pointer' }}
           >
             {activeArtifact?.model3dUrl ? (
-              <div style={{ width: '100%', height: 340, cursor: 'pointer' }}>
+              <div style={{ width: '100%', height: '100%', minHeight: 380, cursor: 'pointer' }}>
                 <Turntable360Viewer
                   modelUrl={
                     activeArtifact.model3dUrl.startsWith('http')
@@ -106,7 +93,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                     undefined
                   }
                   artifactName={currentTitle}
-                  height={340}
+                  height={380}
                   hideControls={true}
                   onClick={handleArtifactClick}
                 />
@@ -134,27 +121,6 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                 <span className="client-media-placeholder-desc">
                   {t('artifacts.noArtifactDesc', 'Thông tin và mô hình 3D sẽ xuất hiện sau khi được quản trị viên tải lên hệ thống.')}
                 </span>
-              </div>
-            )}
-
-            {/* Dải thumbnail chọn nhanh hiện vật */}
-            {sortedArtifacts.length > 1 && (
-              <div className="client-zigzag-shelf" onClick={(e) => e.stopPropagation()}>
-                {sortedArtifacts.slice(0, 4).map((art) => {
-                  const isSelected = art.id === (activeArtifact?.id || '');
-                  const thumb = getFullThumb(art);
-                  return (
-                    <button
-                      key={art.id}
-                      type="button"
-                      className={`client-zigzag-shelf-item ${isSelected ? 'active' : ''}`}
-                      onClick={() => setSelectedArtifactId(art.id)}
-                      title={localize(art, 'name', art.name)}
-                    >
-                      <img src={thumb} alt={localize(art, 'name', art.name)} />
-                    </button>
-                  );
-                })}
               </div>
             )}
           </div>

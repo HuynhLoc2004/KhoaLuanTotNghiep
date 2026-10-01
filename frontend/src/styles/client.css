@@ -3838,7 +3838,7 @@
   max-width: 1220px;
   margin: 0 auto;
   background: linear-gradient(145deg, rgba(20, 26, 38, 0.9) 0%, rgba(11, 15, 23, 0.96) 100%);
-  border: 1px solid rgba(212, 175, 55, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -3992,10 +3992,11 @@
   background: #0A0D15;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 16px;
-  height: auto;
-  min-height: 360px;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  height: 100%;
+  min-height: 380px;
 }
 
 .client-zigzag-card-img {
@@ -4268,29 +4269,31 @@
   flex-direction: column;
 }
 
-/* TAG / EYEBROW TINH TẾ - KHÔNG VÀNG CHÓI */
+/* TAG / EYEBROW TINH TẾ - ĐỒNG BỘ THEO HỆ THỐNG */
 .client-zigzag-tag {
-  font-size: 0.74rem;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #C5A059;
-  letter-spacing: 0.18em;
+  color: #9CA3AF;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   margin-bottom: 12px;
   display: inline-block;
 }
 
 [data-client-theme="light"] .client-zigzag-tag {
-  color: #9E7427;
+  color: #6B7280;
 }
 
-/* TIÊU ĐỀ NGHỆ THUẬT SERIF LORA */
+/* TIÊU ĐỀ NGHỆ THUẬT HIỆN ĐẠI SANS-SERIF */
 .client-zigzag-title {
-  font-family: 'Lora', Georgia, serif;
-  font-size: clamp(1.85rem, 2.5vw, 2.35rem);
-  font-weight: 600;
-  color: #FAF8F5;
-  line-height: 1.3;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: clamp(1.8rem, 2.4vw, 2.3rem);
+  font-weight: 700;
+  color: #F9FAFB;
+  line-height: 1.32;
   margin: 0 0 14px 0;
+  letter-spacing: -0.015em;
 }
 
 [data-client-theme="light"] .client-zigzag-title {
@@ -4299,9 +4302,10 @@
 
 /* MÔ TẢ NỀN NÃ - KHÔNG ĐẬM QUÁ KHÔNG NHẠT QUÁ */
 .client-zigzag-desc {
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 0.94rem;
   line-height: 1.76;
-  color: #A6A095;
+  color: #9CA3AF;
   margin: 0 0 18px 0;
   max-width: 620px;
 }
@@ -4312,23 +4316,24 @@
 
 /* DÒNG THÔNG SỐ TINH TẾ (THAY THẾ CHIP HỘP RỜM RÀ) */
 .client-zigzag-meta-line {
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
   margin: 14px 0 22px 0;
   font-size: 0.85rem;
-  color: #8C867A;
+  color: #9CA3AF;
 }
 
 .client-zigzag-meta-item strong {
-  color: #DFC07D;
+  color: #F9FAFB;
   font-weight: 600;
 }
 
 .client-zigzag-meta-sep {
-  color: #8C867A;
-  opacity: 0.45;
+  color: #4B5563;
+  opacity: 0.55;
 }
 
 [data-client-theme="light"] .client-zigzag-meta-line {
@@ -4336,7 +4341,7 @@
 }
 
 [data-client-theme="light"] .client-zigzag-meta-item strong {
-  color: #966C1E;
+  color: #111827;
 }
 
 /* KHU VỰC NÚT BẤM */
@@ -4367,11 +4372,11 @@
 }
 
 .client-zigzag-btn-primary:hover {
-  background: #D4AF37;
+  background: #FFFFFF;
   color: #0A0D14;
-  border-color: #D4AF37;
+  border-color: #FFFFFF;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* BẢN LIGHT: GRAPHITE SẬM TRẦM TĨNH */
@@ -4715,36 +4720,7 @@
 }
 
 .client-zigzag-shelf {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.client-zigzag-shelf-item {
-  width: 52px;
-  height: 52px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #000;
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.client-zigzag-shelf-item.active {
-  border-color: #D4AF37;
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
-}
-
-.client-zigzag-shelf-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  display: none !important;
 }
 
 .client-zigzag-meta-grid {
