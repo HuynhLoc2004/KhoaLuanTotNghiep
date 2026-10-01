@@ -33,7 +33,7 @@ import {
   Download,
   AlertCircle
 } from 'lucide-react';
-import { MuseumRoom, TopicItem } from '../../types';
+import { MuseumRoom, TopicItem, LanguageItem } from '../../types';
 import { NewRoomModal } from '../../components/NewRoomModal';
 import { EditRoomModal } from '../../components/EditRoomModal';
 import { TopicManagementModal } from '../../components/TopicManagementModal';
@@ -109,9 +109,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  // Slide-over Drawer: Cấu hình AI & Thuyết minh
+  // Slide-over Drawer: Cấu hình AI & Thuyết minh Đa ngôn ngữ
   const [aiDrawerRoom, setAiDrawerRoom] = useState<MuseumRoom | null>(null);
   const [drawerActiveTab, setDrawerActiveTab] = useState<'rag' | 'tts'>('rag');
+  const [languages, setLanguages] = useState<LanguageItem[]>([]);
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState<string>('vi');
+  const [workingTranslations, setWorkingTranslations] = useState<Record<string, any>>({});
+  const [isTranslatingAi, setIsTranslatingAi] = useState(false);
   const [aiKnowledgePrompt, setAiKnowledgePrompt] = useState('');
   const [aiScript, setAiScript] = useState('');
   const [aiVoiceLang, setAiVoiceLang] = useState('vi-south');
@@ -208,9 +212,32 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     }
   };
 
+  const fetchLanguages = async () => {
+    try {
+      const data = await api.getLanguages();
+      const active = data.filter((l: any) => l.isActive);
+      if (active.length > 0) {
+        setLanguages(active);
+      } else {
+        setLanguages([
+          { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flagIcon: '🇻🇳', isDefault: true, isActive: true, order: 1 },
+          { code: 'en', name: 'English', nativeName: 'English', flagIcon: '🇬🇧', isDefault: false, isActive: true, order: 2 },
+          { code: 'fr', name: 'French', nativeName: 'Français', flagIcon: '🇫🇷', isDefault: false, isActive: true, order: 3 }
+        ]);
+      }
+    } catch {
+      setLanguages([
+        { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flagIcon: '🇻🇳', isDefault: true, isActive: true, order: 1 },
+        { code: 'en', name: 'English', nativeName: 'English', flagIcon: '🇬🇧', isDefault: false, isActive: true, order: 2 },
+        { code: 'fr', name: 'French', nativeName: 'Français', flagIcon: '🇫🇷', isDefault: false, isActive: true, order: 3 }
+      ]);
+    }
+  };
+
   useEffect(() => {
     fetchPanoramas();
     loadTopics();
+    fetchLanguages();
   }, []);
 
   const [isSeedingHeritage, setIsSeedingHeritage] = useState(false);
@@ -261,21 +288,133 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   // Khi mở Slide-over Drawer của phòng nào, nạp đúng dữ liệu của phòng đó từ DB và Translations
   const handleOpenAiDrawer = (room: MuseumRoom) => {
     setAiDrawerRoom(room);
-    const knowledge = room.aiKnowledgePrompt || room.description || '';
-    const script = room.aiScript || room.translations?.vi?.narrationScript || room.translations?.en?.narrationScript || (room.translations ? Object.values(room.translations).find(t => t.narrationScript)?.narrationScript : '') || '';
-    const audio = room.translations?.vi?.audioUrl || room.translations?.en?.audioUrl || (room.translations ? Object.values(room.translations).find(t => t.audioUrl)?.audioUrl : null) || null;
+    setSelectedVoiceLang('vi');
 
-    setAiKnowledgePrompt(knowledge);
-    setAiScript(script);
+    // Khởi tạo map bản dịch từ room.translations
+    const existingTrans: Record<string, any> = room.translations ? JSON.parse(JSON.stringify(room.translations)) : {};
+
+    // Chuẩn bị sẵn tiếng Việt nếu chưa có trong map
+    if (!existingTrans.vi) {
+      existingTrans.vi = {
+        name: room.name,
+        period: room.period,
+        description: room.description,
+        narrationScript: room.aiScript || '',
+        audioUrl: (room as any).audioUrl || '',
+        aiKnowledgePrompt: room.aiKnowledgePrompt || room.description || ''
+      };
+    } else {
+      if (!existingTrans.vi.narrationScript && room.aiScript) {
+        existingTrans.vi.narrationScript = room.aiScript;
+      }
+      if (!existingTrans.vi.aiKnowledgePrompt && room.aiKnowledgePrompt) {
+        existingTrans.vi.aiKnowledgePrompt = room.aiKnowledgePrompt;
+      }
+      if (!existingTrans.vi.audioUrl && (room as any).audioUrl) {
+        existingTrans.vi.audioUrl = (room as any).audioUrl;
+      }
+    }
+
+    setWorkingTranslations(existingTrans);
+
+    const viData = existingTrans.vi;
+    setAiKnowledgePrompt(viData.aiKnowledgePrompt || room.aiKnowledgePrompt || room.description || '');
+    setAiScript(viData.narrationScript || room.aiScript || '');
     setAiVoiceLang(room.aiVoiceLang || 'vi-south');
-    setPreviewAudioUrl(audio);
-    // Khi người dùng bấm nút [Thuyết minh], mở thẳng Tab "Thuyết minh âm thanh" để người dùng nghe và kiểm tra lời đọc
+    setPreviewAudioUrl(viData.audioUrl || (room as any).audioUrl || null);
+
     setDrawerActiveTab('tts');
   };
 
   const handleCloseAiDrawer = () => {
     setAiDrawerRoom(null);
     setPreviewAudioUrl(null);
+    setWorkingTranslations({});
+  };
+
+  // Chuyển đổi giữa các ngôn ngữ trong Drawer
+  const handleSwitchDrawerLanguage = (targetLangCode: string) => {
+    if (!aiDrawerRoom) return;
+
+    // Lưu nội dung ngôn ngữ hiện tại vào workingTranslations
+    const updated = {
+      ...workingTranslations,
+      [selectedVoiceLang]: {
+        ...(workingTranslations[selectedVoiceLang] || {}),
+        name: workingTranslations[selectedVoiceLang]?.name || (selectedVoiceLang === 'vi' ? aiDrawerRoom.name : undefined),
+        period: workingTranslations[selectedVoiceLang]?.period || (selectedVoiceLang === 'vi' ? aiDrawerRoom.period : undefined),
+        description: workingTranslations[selectedVoiceLang]?.description || (selectedVoiceLang === 'vi' ? aiDrawerRoom.description : undefined),
+        aiKnowledgePrompt: aiKnowledgePrompt.trim(),
+        narrationScript: aiScript.trim(),
+        audioUrl: previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || ''
+      }
+    };
+    setWorkingTranslations(updated);
+
+    setSelectedVoiceLang(targetLangCode);
+
+    // Nạp dữ liệu của targetLangCode
+    const targetData = updated[targetLangCode] || aiDrawerRoom.translations?.[targetLangCode];
+    if (targetLangCode === 'vi') {
+      setAiKnowledgePrompt(targetData?.aiKnowledgePrompt || aiDrawerRoom.aiKnowledgePrompt || aiDrawerRoom.description || '');
+      setAiScript(targetData?.narrationScript || aiDrawerRoom.aiScript || '');
+      setPreviewAudioUrl(targetData?.audioUrl || (aiDrawerRoom as any).audioUrl || null);
+      setAiVoiceLang(aiDrawerRoom.aiVoiceLang || 'vi-south');
+    } else {
+      setAiKnowledgePrompt(targetData?.aiKnowledgePrompt || '');
+      setAiScript(targetData?.narrationScript || '');
+      setPreviewAudioUrl(targetData?.audioUrl || null);
+      setAiVoiceLang(targetLangCode === 'en' ? 'en-us' : targetLangCode === 'fr' ? 'fr-fr' : targetLangCode);
+    }
+  };
+
+  // Dịch tự động từ Tiếng Việt sang ngôn ngữ đang chọn bằng AI
+  const handleAutoTranslateCurrentLang = async () => {
+    if (!aiDrawerRoom || selectedVoiceLang === 'vi') return;
+    try {
+      setIsTranslatingAi(true);
+      const viData = workingTranslations.vi || {};
+      const viKnowledge = viData.aiKnowledgePrompt || aiDrawerRoom.aiKnowledgePrompt || aiDrawerRoom.description || '';
+      const viScript = viData.narrationScript || aiDrawerRoom.aiScript || '';
+
+      if (!viKnowledge && !viScript) {
+        showToast('Chưa có nội dung tiếng Việt để dịch sang ngôn ngữ này', 'warning');
+        return;
+      }
+
+      const draft = await api.translateDraft({
+        targetLang: selectedVoiceLang,
+        name: aiDrawerRoom.name,
+        period: aiDrawerRoom.period,
+        description: viKnowledge,
+        narrationScript: viScript
+      });
+
+      const translatedKnowledge = draft.description || draft.narrationScript || '';
+      const translatedScript = draft.narrationScript || '';
+
+      if (translatedKnowledge) setAiKnowledgePrompt(translatedKnowledge);
+      if (translatedScript) setAiScript(translatedScript);
+
+      setWorkingTranslations(prev => ({
+        ...prev,
+        [selectedVoiceLang]: {
+          ...(prev[selectedVoiceLang] || {}),
+          name: draft.name || aiDrawerRoom.name,
+          period: draft.period || aiDrawerRoom.period,
+          description: draft.description || '',
+          aiKnowledgePrompt: translatedKnowledge,
+          narrationScript: translatedScript
+        }
+      }));
+
+      const langObj = languages.find(l => l.code === selectedVoiceLang);
+      showToast(`Đã dịch tự động sang ${langObj?.nativeName || selectedVoiceLang.toUpperCase()} thành công!`, 'success');
+    } catch (err: any) {
+      showToast('Lỗi khi dịch tự động: ' + err.message, 'error');
+    } finally {
+      setIsTranslatingAi(false);
+    }
   };
 
   // Nạp tư liệu mẫu nếu phòng này là một trong các phòng chuẩn của Bảo tàng Lịch sử TP.HCM
@@ -295,28 +434,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     }
   };
 
-  // Lưu tư liệu hỏi - đáp cho gian phòng
-  const handleSaveRagKnowledge = async () => {
-    if (!aiDrawerRoom) return;
-    try {
-      setIsSavingAi(true);
-      const updated = await api.updateRoom(aiDrawerRoom.id, {
-        aiKnowledgePrompt: aiKnowledgePrompt.trim(),
-        period: aiDrawerRoom.period || 'Tiến trình Lịch sử VN'
-      });
-      // Cập nhật state phòng tại chỗ
-      aiDrawerRoom.aiKnowledgePrompt = updated.aiKnowledgePrompt;
-      if (onRoomUpdated) onRoomUpdated(updated);
-      showToast('Đã lưu tư liệu lịch sử cho gian phòng thành công', 'success');
-      handleCloseAiDrawer();
-    } catch (err: any) {
-      showToast('Lỗi khi lưu tư liệu: ' + err.message, 'error');
-    } finally {
-      setIsSavingAi(false);
-    }
-  };
-
-  // Tạo bản nghe thử giọng đọc thuyết minh tiếng Việt chuẩn
+  // Tạo bản nghe thử giọng đọc thuyết minh thật theo đúng ngôn ngữ đang chọn
   const handleGenerateTtsAudio = async () => {
     if (!aiScript.trim()) {
       showToast('Vui lòng nhập lời đọc thuyết minh trước khi tạo giọng đọc', 'error');
@@ -326,14 +444,25 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       setIsGeneratingTts(true);
       const res = await api.generateTtsAudio({
         text: aiScript.trim(),
-        langCode: 'vi',
+        langCode: selectedVoiceLang,
         roomCode: aiDrawerRoom?.code || 'room'
       });
       const resolvedUrl = res.audioUrl.startsWith('http')
         ? res.audioUrl
         : `${API_BASE.replace('/api', '')}${res.audioUrl}`;
       setPreviewAudioUrl(resolvedUrl);
-      showToast('Đã xuất bản Voice AI thuyết minh tiếng Việt thành công!', 'success');
+
+      setWorkingTranslations(prev => ({
+        ...prev,
+        [selectedVoiceLang]: {
+          ...(prev[selectedVoiceLang] || {}),
+          audioUrl: resolvedUrl,
+          narrationScript: aiScript.trim()
+        }
+      }));
+
+      const langObj = languages.find(l => l.code === selectedVoiceLang);
+      showToast(`Đã xuất bản Voice AI thuyết minh ${langObj?.nativeName || selectedVoiceLang.toUpperCase()} thành công!`, 'success');
     } catch (err: any) {
       showToast('Lỗi khi tạo Voice AI: ' + err.message, 'error');
     } finally {
@@ -341,46 +470,62 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     }
   };
 
-  // Lưu lời thuyết minh vào hệ thống
-  const handleSaveTtsVoice = async () => {
+  // Lưu toàn bộ dữ liệu thuyết minh & tư liệu thật vào Database (Cả MongoDB và PostgreSQL)
+  const handleSaveAiData = async () => {
     if (!aiDrawerRoom) return;
     try {
       setIsSavingAi(true);
 
-      // Cập nhật đồng bộ cả translations.vi và trường gốc của phòng
-      const existingTranslations = aiDrawerRoom.translations || {};
-      const updatedTranslations = {
-        ...existingTranslations,
-        vi: {
-          ...(existingTranslations.vi || {}),
-          name: existingTranslations.vi?.name || aiDrawerRoom.name,
-          period: existingTranslations.vi?.period || aiDrawerRoom.period,
-          description: existingTranslations.vi?.description || aiDrawerRoom.description,
+      const finalTranslations = {
+        ...(aiDrawerRoom.translations || {}),
+        ...workingTranslations,
+        [selectedVoiceLang]: {
+          ...(workingTranslations[selectedVoiceLang] || aiDrawerRoom.translations?.[selectedVoiceLang] || {}),
+          name: workingTranslations[selectedVoiceLang]?.name || (selectedVoiceLang === 'vi' ? aiDrawerRoom.name : undefined),
+          period: workingTranslations[selectedVoiceLang]?.period || (selectedVoiceLang === 'vi' ? aiDrawerRoom.period : undefined),
+          description: workingTranslations[selectedVoiceLang]?.description || (selectedVoiceLang === 'vi' ? aiDrawerRoom.description : undefined),
+          aiKnowledgePrompt: aiKnowledgePrompt.trim(),
           narrationScript: aiScript.trim(),
-          audioUrl: previewAudioUrl || existingTranslations.vi?.audioUrl || ''
+          audioUrl: previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || ''
         }
       };
 
-      const updated = await api.updateRoom(aiDrawerRoom.id, {
-        aiScript: aiScript.trim(),
-        aiVoiceEnabled: true,
-        aiVoiceLang: aiVoiceLang,
-        audioUrl: previewAudioUrl || (aiDrawerRoom as any).audioUrl,
-        translations: updatedTranslations
-      });
-      aiDrawerRoom.aiScript = updated.aiScript;
-      aiDrawerRoom.aiVoiceEnabled = true;
-      aiDrawerRoom.aiVoiceLang = aiVoiceLang;
+      const payload: any = {
+        translations: finalTranslations
+      };
+
+      if (selectedVoiceLang === 'vi') {
+        payload.aiKnowledgePrompt = aiKnowledgePrompt.trim();
+        payload.aiScript = aiScript.trim();
+        payload.aiVoiceEnabled = true;
+        payload.aiVoiceLang = aiVoiceLang;
+        if (previewAudioUrl) payload.audioUrl = previewAudioUrl;
+      }
+
+      const updated = await api.updateRoom(aiDrawerRoom.id, payload);
+
       aiDrawerRoom.translations = updated.translations;
+      if (selectedVoiceLang === 'vi') {
+        aiDrawerRoom.aiKnowledgePrompt = updated.aiKnowledgePrompt;
+        aiDrawerRoom.aiScript = updated.aiScript;
+        aiDrawerRoom.aiVoiceEnabled = true;
+        aiDrawerRoom.aiVoiceLang = aiVoiceLang;
+        if (previewAudioUrl) (aiDrawerRoom as any).audioUrl = previewAudioUrl;
+      }
       if (onRoomUpdated) onRoomUpdated(updated);
-      showToast(`Đã lưu lời thuyết minh và đồng bộ Voice AI tiếng Việt cho gian phòng "${aiDrawerRoom.name}"`, 'success');
+
+      const langObj = languages.find(l => l.code === selectedVoiceLang);
+      showToast(`Đã lưu thuyết minh & tư liệu (${langObj?.nativeName || selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
       handleCloseAiDrawer();
     } catch (err: any) {
-      showToast('Lỗi lưu lời thuyết minh: ' + err.message, 'error');
+      showToast('Lỗi khi lưu dữ liệu: ' + err.message, 'error');
     } finally {
       setIsSavingAi(false);
     }
   };
+
+  const handleSaveRagKnowledge = handleSaveAiData;
+  const handleSaveTtsVoice = handleSaveAiData;
 
   // Mở modal Standee QR
   const handleOpenQrModal = (room: MuseumRoom) => {
@@ -1471,6 +1616,115 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </button>
             </div>
 
+            {/* Thanh chuyển đổi ngôn ngữ đa quốc gia */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                background: 'var(--bg-subtle)',
+                borderBottom: '1px solid var(--border-color)',
+                overflowX: 'auto'
+              }}
+            >
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginRight: 6, flexShrink: 0 }}>
+                <Globe size={14} />
+                <span>Ngôn ngữ:</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', overflowX: 'auto' }}>
+                {languages.map((lang) => {
+                  const isSelected = selectedVoiceLang === lang.code;
+                  const langTrans = workingTranslations[lang.code] || aiDrawerRoom.translations?.[lang.code];
+                  const hasData = lang.code === 'vi'
+                    ? !!(aiDrawerRoom.aiScript || aiDrawerRoom.aiKnowledgePrompt || langTrans?.narrationScript)
+                    : !!(langTrans?.narrationScript || langTrans?.aiKnowledgePrompt || langTrans?.audioUrl);
+
+                  return (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => handleSwitchDrawerLanguage(lang.code)}
+                      style={{
+                        padding: '6px 12px',
+                        background: isSelected ? 'var(--bg-surface)' : 'transparent',
+                        border: '1px solid ' + (isSelected ? 'var(--accent-gold)' : 'var(--border-color)'),
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: isSelected ? 700 : 500,
+                        fontSize: '12px',
+                        color: isSelected ? 'var(--accent-gold)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s ease',
+                        boxShadow: isSelected ? '0 1px 4px rgba(0,0,0,0.2)' : 'none'
+                      }}
+                    >
+                      <span>{lang.flagIcon || '🌐'}</span>
+                      <span>{lang.nativeName || lang.name}</span>
+                      {hasData && (
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            backgroundColor: '#10B981',
+                            display: 'inline-block'
+                          }}
+                          title="Đã có dữ liệu thuyết minh"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Dải công cụ dịch thuật AI nếu đang ở ngôn ngữ quốc tế */}
+            {selectedVoiceLang !== 'vi' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 16px',
+                  background: 'rgba(212, 168, 106, 0.08)',
+                  borderBottom: '1px solid rgba(212, 168, 106, 0.2)',
+                  fontSize: '12px',
+                  gap: 10,
+                  flexWrap: 'wrap'
+                }}
+              >
+                <div style={{ color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Sparkles size={14} />
+                  <span>Dịch tự động nội dung sang <strong>{languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}</strong> bằng AI Di sản</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAutoTranslateCurrentLang}
+                  disabled={isTranslatingAi}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--accent-gold)',
+                    color: '#000',
+                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  {isTranslatingAi ? <RotateCw size={12} className="spin" /> : <Sparkles size={12} />}
+                  <span>{isTranslatingAi ? 'Đang dịch thuật...' : 'Dịch từ Tiếng Việt'}</span>
+                </button>
+              </div>
+            )}
+
             {/* Sub-Tabs dạng thanh chuyển đổi di sản */}
             <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-subtle)' }}>
               <button
@@ -1537,16 +1791,27 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                   }}>
                     <div style={{ fontWeight: 600, color: 'var(--heading-color)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Info size={14} style={{ color: 'var(--accent-gold)' }} />
-                      <span>Tư liệu bối cảnh phục vụ giải đáp du khách:</span>
+                      <span>Tư liệu bối cảnh phục vụ giải đáp du khách ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}):</span>
                     </div>
-                    Hệ thống sẽ dựa vào nội dung tư liệu này để trả lời chính xác các câu hỏi của khách tham quan khi quét mã QR hoặc trò chuyện với trợ lý ảo tại gian phòng, đảm bảo thông tin luôn chuẩn xác theo hồ sơ bảo tàng.
+                    Hệ thống sẽ dựa vào nội dung tư liệu này để trả lời chính xác các câu hỏi của khách tham quan khi quét mã QR hoặc trò chuyện với trợ lý ảo tại gian phòng theo đúng ngôn ngữ đã chọn.
                   </div>
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                       <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
-                        Nội dung tóm tắt lịch sử gian phòng
+                        Nội dung tóm tắt lịch sử gian phòng ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
                       </label>
+                      {selectedVoiceLang === 'vi' && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={handleLoadPresetKnowledge}
+                          style={{ fontSize: '11.5px', padding: '3px 8px' }}
+                        >
+                          <Sparkles size={12} style={{ color: 'var(--accent-gold)' }} />
+                          <span>Gợi ý mẫu</span>
+                        </button>
+                      )}
                     </div>
 
                     <textarea
@@ -1555,7 +1820,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       style={{ width: '100%', fontSize: '13px', lineHeight: 1.6, resize: 'vertical' }}
                       value={aiKnowledgePrompt}
                       onChange={(e) => setAiKnowledgePrompt(e.target.value)}
-                      placeholder="Nhập tóm tắt bối cảnh lịch sử, niên đại, các hiện vật tiêu biểu và câu chuyện nổi bật của gian phòng..."
+                      placeholder={`Nhập tóm tắt bối cảnh lịch sử, niên đại, các hiện vật tiêu biểu và câu chuyện nổi bật của gian phòng bằng ${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}...`}
                     />
                     <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
                       {aiKnowledgePrompt.length} ký tự
@@ -1567,7 +1832,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: 6 }}>
-                      Chọn giọng đọc thuyết minh
+                      Chọn giọng đọc thuyết minh ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
                     </label>
                     <select
                       className="form-control"
@@ -1575,17 +1840,50 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       onChange={(e) => setAiVoiceLang(e.target.value)}
                       style={{ fontSize: '13px' }}
                     >
-                      <option value="vi-south">Nữ Miền Nam (Giọng truyền cảm - Phù hợp Bảo tàng TP.HCM)</option>
-                      <option value="vi-north">Nam Miền Bắc (Trang trọng, chuẩn mực)</option>
-                      <option value="en">Tiếng Anh (English - Chuẩn quốc tế cho khách nước ngoài)</option>
+                      {selectedVoiceLang === 'vi' ? (
+                        <>
+                          <option value="vi-south">Nữ Miền Nam (Giọng truyền cảm - Phù hợp Bảo tàng TP.HCM)</option>
+                          <option value="vi-north">Nam Miền Bắc (Trang trọng, chuẩn mực)</option>
+                        </>
+                      ) : selectedVoiceLang === 'en' ? (
+                        <>
+                          <option value="en-us">English - US (Standard International Voice)</option>
+                          <option value="en-gb">English - UK (Academic Heritage Voice)</option>
+                        </>
+                      ) : selectedVoiceLang === 'fr' ? (
+                        <>
+                          <option value="fr-fr">Français (Standard Voice - Chuẩn Pháp)</option>
+                        </>
+                      ) : selectedVoiceLang === 'zh' ? (
+                        <>
+                          <option value="zh-cn">中文普通话 (Standard Mandarin Voice)</option>
+                        </>
+                      ) : selectedVoiceLang === 'ja' ? (
+                        <>
+                          <option value="ja-jp">日本語 (Standard Japanese Voice)</option>
+                        </>
+                      ) : (
+                        <option value={selectedVoiceLang}>Giọng bản ngữ ({selectedVoiceLang.toUpperCase()})</option>
+                      )}
                     </select>
                   </div>
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                       <label className="form-label" style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>
-                        Lời đọc thuyết minh gian phòng
+                        Lời đọc thuyết minh gian phòng ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})
                       </label>
+                      {selectedVoiceLang === 'vi' && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={handleLoadPresetKnowledge}
+                          style={{ fontSize: '11.5px', padding: '3px 8px' }}
+                        >
+                          <Sparkles size={12} style={{ color: 'var(--accent-gold)' }} />
+                          <span>Gợi ý mẫu</span>
+                        </button>
+                      )}
                     </div>
 
                     <textarea
@@ -1594,7 +1892,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                       style={{ width: '100%', fontSize: '13px', lineHeight: 1.6, resize: 'vertical' }}
                       value={aiScript}
                       onChange={(e) => setAiScript(e.target.value)}
-                      placeholder="Nhập lời chào và nội dung thuyết minh tự động phát khi du khách bước vào không gian 360°..."
+                      placeholder={`Nhập lời chào và nội dung thuyết minh tự động phát khi du khách bước vào không gian 360° (${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})...`}
                     />
                     <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
                       {aiScript.length} ký tự
@@ -1614,7 +1912,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                     }}>
                       <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Volume2 size={14} />
-                        <span>Bản nghe thử giọng đọc thuyết minh:</span>
+                        <span>Bản nghe thử giọng đọc ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}):</span>
                       </div>
                       <audio controls key={previewAudioUrl} style={{ width: '100%', height: 36 }}>
                         <source src={previewAudioUrl} />
@@ -1636,42 +1934,30 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </button>
 
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                {drawerActiveTab === 'rag' ? (
+                {drawerActiveTab === 'tts' && (
                   <button
                     type="button"
-                    className="btn btn-primary"
-                    onClick={handleSaveRagKnowledge}
-                    disabled={isSavingAi}
+                    className="btn btn-secondary"
+                    onClick={handleGenerateTtsAudio}
+                    disabled={isGeneratingTts || !aiScript.trim()}
                     style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    title={`Sinh giọng đọc AI ${languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()}`}
                   >
-                    {isSavingAi ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
-                    <span>Lưu tư liệu phòng</span>
+                    {isGeneratingTts ? <RotateCw size={14} className="spin" /> : <Play size={14} />}
+                    <span>{isGeneratingTts ? 'Đang tạo voice...' : 'Nghe thử giọng đọc'}</span>
                   </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={handleGenerateTtsAudio}
-                      disabled={isGeneratingTts}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                      {isGeneratingTts ? <RotateCw size={14} className="spin" /> : <Play size={14} />}
-                      <span>Nghe thử giọng đọc</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={handleSaveTtsVoice}
-                      disabled={isSavingAi}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                      {isSavingAi ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
-                      <span>Lưu lời thuyết minh</span>
-                    </button>
-                  </>
                 )}
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveAiData}
+                  disabled={isSavingAi}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  {isSavingAi ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
+                  <span>Lưu lời thuyết minh ({languages.find(l => l.code === selectedVoiceLang)?.nativeName || selectedVoiceLang.toUpperCase()})</span>
+                </button>
               </div>
             </div>
           </div>
