@@ -1094,7 +1094,8 @@ export const PocStitchingPage: React.FC = () => {
                         </>
                       )}
                     </button>
-              /* Error message */
+
+                    {/* Error message */}
                     {errorMsg && (
                       <div style={{ padding: '10px 12px', background: 'var(--error-bg)', border: '1px solid var(--error-border)', borderRadius: 'var(--radius-sm)', color: 'var(--error)', fontSize: '12.5px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                         <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
