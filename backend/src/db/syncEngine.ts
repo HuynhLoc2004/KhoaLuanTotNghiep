@@ -1013,15 +1013,12 @@ export async function runStartupDataSync() {
       }
     }
 
-    // Tự động dọn dẹp triệt để các mã QR bị lỗi sinh ra có chứa 'undefined' trong PostgreSQL & MongoDB
+    // Tự động dọn dẹp triệt để các mã QR base64 cũ trong PostgreSQL & MongoDB
     try {
-      await pgPool.query("UPDATE artifacts SET qr_code_url = NULL WHERE qr_code_url IS NOT NULL AND (qr_code_url LIKE '%undefined%' OR length(qr_code_url) < 30);");
-      await ArtifactModel.updateMany(
-        { $or: [{ qrCodeUrl: { $regex: 'undefined', $options: 'i' } }, { qrCodeUrl: '' }] },
-        { $unset: { qrCodeUrl: 1 } }
-      );
+      await pgPool.query("UPDATE artifacts SET qr_code_url = NULL;");
+      await ArtifactModel.updateMany({}, { $unset: { qrCodeUrl: 1 } });
     } catch (cleanupErr) {
-      console.warn('[SyncEngine] Lỗi dọn mã QR undefined:', cleanupErr);
+      console.warn('[SyncEngine] Lỗi dọn mã QR:', cleanupErr);
     }
 
     // 4. Đồng bộ FloorPlan (Bảo toàn 2 chiều giữa PostgreSQL và MongoDB)

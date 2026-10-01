@@ -788,11 +788,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 
             <div className="qr-image-wrapper">
               <img
-                src={
-                  (artifact.qrCodeUrl && !artifact.qrCodeUrl.includes('undefined'))
-                    ? artifact.qrCodeUrl
-                    : api.getArtifactQRDownloadUrl(artifact.code || artifact.id)
-                }
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${window.location.origin}/?artifact=${encodeURIComponent(artifact.code || artifact.id)}`)}`}
                 alt={`QR ${artifact.code}`}
                 className="qr-img"
               />

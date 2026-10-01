@@ -2574,11 +2574,7 @@ export const AdminArtifactsPage: React.FC = () => {
                   }}
                 >
                   <img
-                    src={
-                      (activeQRArtifact.qrCodeUrl && !activeQRArtifact.qrCodeUrl.includes('undefined'))
-                        ? activeQRArtifact.qrCodeUrl
-                        : `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${window.location.origin}/?artifact=${encodeURIComponent(activeQRArtifact.code || activeQRArtifact.id)}`)}`
-                    }
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${window.location.origin}/?artifact=${encodeURIComponent(activeQRArtifact.code || activeQRArtifact.id)}`)}`}
                     alt={`QR Code ${activeQRArtifact.name}`}
                     style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                   />
