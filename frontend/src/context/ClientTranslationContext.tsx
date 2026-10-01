@@ -1021,8 +1021,15 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       return item[field] || fallback || '';
     }
 
-    // 1. Ưu tiên đọc bản dịch đã lưu trong Document của phòng/hiện vật trong MongoDB
-    const translatedVal = item.translations?.[currentLang]?.[field];
+    // 1. Ưu tiên đọc bản dịch đã lưu trong Document của phòng/hiện vật trong MongoDB / PostgreSQL
+    let transObj: any = item.translations;
+    if (typeof transObj === 'string') {
+      try { transObj = JSON.parse(transObj); } catch { transObj = {}; }
+    } else if (!transObj || typeof transObj !== 'object') {
+      transObj = {};
+    }
+
+    const translatedVal = transObj?.[currentLang]?.[field];
     if (translatedVal && typeof translatedVal === 'string' && translatedVal.trim()) {
       return translatedVal;
     }
@@ -1042,7 +1049,7 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     }
 
     // 3. Fallback sang tiếng Anh nếu có trong translations
-    const enVal = item.translations?.en?.[field];
+    const enVal = transObj?.en?.[field];
     if (enVal && typeof enVal === 'string' && enVal.trim()) {
       return enVal;
     }

@@ -46,6 +46,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [voiceProgress, setVoiceProgress] = useState(0); // 0 - 100
   const [hasVoiceAudio, setHasVoiceAudio] = useState(false);
+  const [voiceToast, setVoiceToast] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const roomDropdownRef = useRef<HTMLDivElement>(null);
@@ -67,20 +68,35 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
 
   // Xác định file âm thanh hoặc văn bản thuyết minh theo ngôn ngữ hiện hành
   const getNarrationData = () => {
+    let transObj: Record<string, any> = {};
+    if (typeof currentRoom.translations === 'string') {
+      try { transObj = JSON.parse(currentRoom.translations); } catch { transObj = {}; }
+    } else if (currentRoom.translations && typeof currentRoom.translations === 'object') {
+      transObj = currentRoom.translations;
+    }
+
+    const lang = (currentLang || 'vi').toLowerCase();
+    const langData = transObj[lang] || {};
+
     let audioUrl = '';
     let scriptText = '';
 
-    if (currentLang === 'vi') {
-      audioUrl = currentRoom.audioUrl || '';
-      scriptText = currentRoom.aiScript || currentRoom.description || '';
+    if (lang === 'vi') {
+      audioUrl = langData.audioUrl || currentRoom.audioUrl || (currentRoom as any).audio_url || '';
+      scriptText = langData.narrationScript || currentRoom.aiScript || currentRoom.description || '';
     } else {
-      const trans = currentRoom.translations?.[currentLang];
-      audioUrl = trans?.audioUrl || currentRoom.audioUrl || '';
-      scriptText = trans?.narrationScript || trans?.description || currentRoom.description || '';
+      audioUrl = langData.audioUrl || (currentRoom as any).audioUrl || (currentRoom as any).audio_url || '';
+      scriptText = langData.narrationScript || langData.description || currentRoom.description || '';
+    }
+
+    let resolvedAudio = '';
+    if (audioUrl && typeof audioUrl === 'string' && audioUrl.trim()) {
+      const trimmed = audioUrl.trim();
+      resolvedAudio = trimmed.startsWith('http') ? trimmed : `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
     }
 
     return {
-      audioUrl: audioUrl ? (audioUrl.startsWith('http') ? audioUrl : `${API_ROOT}${audioUrl.startsWith('/') ? '' : '/'}${audioUrl}`) : '',
+      audioUrl: resolvedAudio,
       scriptText: scriptText.trim()
     };
   };
@@ -92,9 +108,6 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
       audioRef.current.currentTime = 0;
       audioRef.current = null;
     }
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
     setIsPlayingVoice(false);
     setVoiceProgress(0);
   };
@@ -103,82 +116,55 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
   useEffect(() => {
     stopAudio();
     const data = getNarrationData();
-    setHasVoiceAudio(Boolean(data.audioUrl || data.scriptText));
+    setHasVoiceAudio(Boolean(data.audioUrl));
     return () => {
       stopAudio();
     };
-  }, [currentRoom.id, currentLang]);
+  }, [currentRoom.id, currentLang, currentRoom.translations, currentRoom.audioUrl]);
 
-  // Xử lý bật / tắt thuyết minh Voice AI
+  // Xử lý bật / tắt thuyết minh Voice AI (CHỈ PHÁT FILE ÂM THANH THẬT ĐƯỢC ADMIN TẠO)
   const toggleVoicePlayback = () => {
     if (isPlayingVoice) {
       stopAudio();
       return;
     }
 
-    const { audioUrl, scriptText } = getNarrationData();
+    const { audioUrl } = getNarrationData();
 
-    if (audioUrl) {
-      // Ưu tiên phát file Voice AI pre-rendered trên máy chủ
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-
-      audio.onplay = () => setIsPlayingVoice(true);
-      audio.onended = () => {
-        setIsPlayingVoice(false);
-        setVoiceProgress(0);
-      };
-      audio.onerror = () => {
-        setIsPlayingVoice(false);
-        // Fallback sang Web Speech Synthesis nếu file audio lỗi
-        speakWithBrowserSynthesis(scriptText);
-      };
-      audio.ontimeupdate = () => {
-        if (audio.duration > 0) {
-          setVoiceProgress((audio.currentTime / audio.duration) * 100);
-        }
-      };
-
-      audio.play().catch(() => {
-        speakWithBrowserSynthesis(scriptText);
-      });
-    } else if (scriptText) {
-      // Nếu chưa có file audio vật lý, dùng Web Speech Synthesis giọng chuẩn
-      speakWithBrowserSynthesis(scriptText);
-    }
-  };
-
-  const speakWithBrowserSynthesis = (text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis || !text) {
+    if (!audioUrl) {
+      // TUYỆT ĐỐI KHÔNG DÙNG GIỌNG BROWSER NÓI BẬY BẠ! Chỉ phát file giọng thật do Ban quản trị tạo
       setIsPlayingVoice(false);
+      const langUpper = (currentLang || 'vi').toUpperCase();
+      setVoiceToast(`Gian phòng chưa có bản thu âm thuyết minh cho ngôn ngữ [${langUpper}]. Ban quản lý đang cập nhật.`);
+      setTimeout(() => setVoiceToast(null), 3500);
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Phát file Voice AI pre-rendered trên máy chủ do Admin tạo
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
 
-    // Ánh xạ mã ngôn ngữ sang giọng đọc chuẩn quốc tế
-    const langMap: Record<string, string> = {
-      vi: 'vi-VN',
-      en: 'en-US',
-      fr: 'fr-FR',
-      zh: 'zh-CN',
-      ja: 'ja-JP'
-    };
-    utterance.lang = langMap[currentLang] || 'vi-VN';
-    utterance.rate = 0.95;
-
-    utterance.onstart = () => setIsPlayingVoice(true);
-    utterance.onend = () => {
+    audio.onplay = () => setIsPlayingVoice(true);
+    audio.onended = () => {
       setIsPlayingVoice(false);
       setVoiceProgress(0);
     };
-    utterance.onerror = () => {
+    audio.onerror = () => {
       setIsPlayingVoice(false);
-      setVoiceProgress(0);
+      setVoiceToast('Không thể tải tệp âm thanh thuyết minh từ máy chủ.');
+      setTimeout(() => setVoiceToast(null), 3500);
+    };
+    audio.ontimeupdate = () => {
+      if (audio.duration > 0) {
+        setVoiceProgress((audio.currentTime / audio.duration) * 100);
+      }
     };
 
-    window.speechSynthesis.speak(utterance);
+    audio.play().catch(() => {
+      setIsPlayingVoice(false);
+      setVoiceToast('Trình duyệt chặn tự động phát âm thanh. Vui lòng bấm lại để nghe.');
+      setTimeout(() => setVoiceToast(null), 3500);
+    });
   };
 
   const handleHotspotClick = (hotspot: Hotspot) => {
@@ -660,6 +646,37 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         </div>
       </header>
 
+      {/* Thông báo trạng thái thuyết minh Voice AI */}
+      {voiceToast && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 76,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 110,
+            background: 'rgba(18, 22, 30, 0.95)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(212, 168, 106, 0.45)',
+            color: '#FDE68A',
+            padding: '9px 20px',
+            borderRadius: 30,
+            fontSize: '12.5px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            pointerEvents: 'none',
+            maxWidth: '90vw',
+            textAlign: 'center'
+          }}
+        >
+          <VolumeX size={15} style={{ color: '#F59E0B', flexShrink: 0 }} />
+          <span>{voiceToast}</span>
+        </div>
+      )}
+
       {/* 2. TRÌNH CHIẾU PANNELLUM 360° CHUẨN XÁC, ĐỒNG BỘ 100% VỚI XEM THỬ & STUDIO BÊN ADMIN */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
         <Pannellum360Viewer
@@ -808,8 +825,8 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   <span>{isPlayingVoice ? 'Tạm dừng' : 'Nghe đọc'}</span>
                 </button>
               </div>
-              <p style={{ fontSize: '13px', lineHeight: 1.65, color: '#D1D5DB', margin: 0 }}>
-                {description || 'Chưa có thông tin giới thiệu chi tiết cho gian phòng này.'}
+              <p style={{ fontSize: '13px', lineHeight: 1.65, color: '#D1D5DB', margin: 0, whiteSpace: 'pre-line' }}>
+                {getNarrationData().scriptText || description || 'Chưa có thông tin giới thiệu chi tiết cho gian phòng này.'}
               </p>
             </div>
 
