@@ -361,12 +361,23 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                             boxSizing: 'border-box'
                           }}
                         >
-                          {timeSlots.map((slot) => (
-                            <option key={slot.id} value={slot.slotName} style={{ background: '#0D111A', color: '#F8FAFC' }}>
-                              {slot.slotName}
-                            </option>
-                          ))}
+                          {timeSlots.map((slot) => {
+                            const timeText = slot.openTime && slot.closeTime ? `${slot.openTime} – ${slot.closeTime}` : '';
+                            const displayText = slot.slotName.includes('–') || slot.slotName.includes('-')
+                              ? slot.slotName
+                              : timeText
+                                ? `${slot.slotName} (${timeText})`
+                                : slot.slotName;
+                            return (
+                              <option key={slot.id} value={slot.slotName} style={{ background: '#0D111A', color: '#F8FAFC' }}>
+                                {displayText}
+                              </option>
+                            );
+                          })}
                         </select>
+                        <span style={{ display: 'block', fontSize: '0.74rem', color: '#94A3B8', marginTop: 4 }}>
+                          Bảo tàng mở cửa đón khách mọi khung giờ trong ngày theo lịch trên. Quý khách có thể mua vé và đến tham quan tự do trong khoảng giờ này.
+                        </span>
                       </div>
                     </div>
                   </div>

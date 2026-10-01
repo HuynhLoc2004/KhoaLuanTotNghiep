@@ -53,14 +53,16 @@ ticketsRouter.get('/catalog', async (_req: Request, res: Response) => {
       }));
 
       const slotsRes = await pgPool.query(
-        `SELECT id, slot_name, max_capacity, is_active, display_order 
+        `SELECT id, slot_name, open_time, close_time, max_capacity, is_active, display_order 
          FROM ticket_time_slots 
          WHERE is_active = true 
-         ORDER BY display_order ASC;`
+         ORDER BY display_order ASC, created_at ASC;`
       );
       timeSlots = slotsRes.rows.map((r: any) => ({
         id: r.id,
         slotName: r.slot_name,
+        openTime: r.open_time || '08:00',
+        closeTime: r.close_time || '17:00',
         maxCapacity: r.max_capacity,
         isActive: r.is_active,
         displayOrder: r.display_order
@@ -90,6 +92,8 @@ ticketsRouter.get('/catalog', async (_req: Request, res: Response) => {
       timeSlots = mongoSlots.map((s: any) => ({
         id: s._id.toString(),
         slotName: s.slotName,
+        openTime: (s as any).openTime || '08:00',
+        closeTime: (s as any).closeTime || '17:00',
         maxCapacity: s.maxCapacity,
         isActive: s.isActive,
         displayOrder: s.displayOrder

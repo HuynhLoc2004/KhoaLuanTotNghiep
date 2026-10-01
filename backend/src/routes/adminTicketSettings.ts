@@ -246,7 +246,7 @@ adminTicketSettingsRouter.delete('/types/:id', async (req: AuthRequest, res: Res
 adminTicketSettingsRouter.get('/slots', async (_req: AuthRequest, res: Response) => {
   try {
     const pgRes = await pgPool.query(
-      `SELECT id, slot_name, max_capacity, is_active, display_order, created_at, updated_at
+      `SELECT id, slot_name, open_time, close_time, max_capacity, is_active, display_order, created_at, updated_at
        FROM ticket_time_slots
        ORDER BY display_order ASC, created_at ASC;`
     );
@@ -254,6 +254,8 @@ adminTicketSettingsRouter.get('/slots', async (_req: AuthRequest, res: Response)
     const slots = pgRes.rows.map((r: any) => ({
       id: r.id,
       slotName: r.slot_name,
+      openTime: r.open_time || '08:00',
+      closeTime: r.close_time || '17:00',
       maxCapacity: r.max_capacity,
       isActive: r.is_active,
       displayOrder: r.display_order,
@@ -273,22 +275,40 @@ adminTicketSettingsRouter.get('/slots', async (_req: AuthRequest, res: Response)
  */
 adminTicketSettingsRouter.post('/slots', async (req: AuthRequest, res: Response) => {
   try {
-    const { slotName, maxCapacity = 300, isActive = true, displayOrder = 0 } = req.body;
-    if (!slotName || !slotName.trim()) {
-      return res.status(400).json({ success: false, message: 'Tên khung giờ không được để trống' });
-    }
+    const {
+      slotName,
+      openTime = '08:00',
+      closeTime = '17:00',
+      maxCapacity = 300,
+      isActive = true,
+      displayOrder = 0
+    } = req.body;
+
+    const finalSlotName = (slotName && slotName.trim()) 
+      ? slotName.trim() 
+      : `Khung giờ mở cửa: ${openTime} - ${closeTime}`;
 
     const slotId = `slot_${Date.now()}_${crypto.randomBytes(2).toString('hex')}`;
     const cleanCapacity = Math.max(1, parseInt(maxCapacity, 10) || 300);
 
     await pgPool.query(
-      `INSERT INTO ticket_time_slots (id, slot_name, max_capacity, is_active, display_order)
-       VALUES ($1, $2, $3, $4, $5);`,
-      [slotId, slotName.trim(), cleanCapacity, Boolean(isActive), parseInt(displayOrder, 10) || 0]
+      `INSERT INTO ticket_time_slots (id, slot_name, open_time, close_time, max_capacity, is_active, display_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+      [
+        slotId,
+        finalSlotName,
+        String(openTime || '08:00').trim(),
+        String(closeTime || '17:00').trim(),
+        cleanCapacity,
+        Boolean(isActive),
+        parseInt(displayOrder, 10) || 0
+      ]
     );
 
     await TicketTimeSlot.create({
-      slotName: slotName.trim(),
+      slotName: finalSlotName,
+      openTime: String(openTime || '08:00').trim(),
+      closeTime: String(closeTime || '17:00').trim(),
       maxCapacity: cleanCapacity,
       isActive: Boolean(isActive),
       displayOrder: parseInt(displayOrder, 10) || 0
@@ -298,8 +318,14 @@ adminTicketSettingsRouter.post('/slots', async (req: AuthRequest, res: Response)
 
     return res.status(201).json({
       success: true,
-      message: `Đã thêm khung giờ "${slotName}"`,
-      data: { id: slotId, slotName, maxCapacity: cleanCapacity }
+      message: `Đã thêm khung giờ "${finalSlotName}" (${openTime} - ${closeTime})`,
+      data: {
+        id: slotId,
+        slotName: finalSlotName,
+        openTime,
+        closeTime,
+        maxCapacity: cleanCapacity
+      }
     });
   } catch (err: any) {
     console.error('[Admin Time Slots POST Error]:', err);
@@ -313,7 +339,7 @@ adminTicketSettingsRouter.post('/slots', async (req: AuthRequest, res: Response)
 adminTicketSettingsRouter.put('/slots/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { slotName, maxCapacity, isActive, displayOrder } = req.body;
+    const { slotName, openTime, closeTime, maxCapacity, isActive, displayOrder } = req.body;
 
     const findRes = await pgPool.query('SELECT * FROM ticket_time_slots WHERE id = $1;', [id]);
     if (findRes.rows.length === 0) {
@@ -321,26 +347,39 @@ adminTicketSettingsRouter.put('/slots/:id', async (req: AuthRequest, res: Respon
     }
 
     const current = findRes.rows[0];
-    const newName = slotName !== undefined ? slotName.trim() : current.slot_name;
+    const newOpen = openTime !== undefined ? String(openTime).trim() : (current.open_time || '08:00');
+    const newClose = closeTime !== undefined ? String(closeTime).trim() : (current.close_time || '17:00');
+    const newName = slotName !== undefined && slotName.trim()
+      ? slotName.trim()
+      : (current.slot_name || `Khung giờ mở cửa: ${newOpen} - ${newClose}`);
     const newCapacity = maxCapacity !== undefined ? Math.max(1, parseInt(maxCapacity, 10) || 300) : current.max_capacity;
     const newActive = isActive !== undefined ? Boolean(isActive) : current.is_active;
     const newOrder = displayOrder !== undefined ? parseInt(displayOrder, 10) || 0 : current.display_order;
 
     await pgPool.query(
       `UPDATE ticket_time_slots 
-       SET slot_name = $1, max_capacity = $2, is_active = $3, display_order = $4, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $5;`,
-      [newName, newCapacity, newActive, newOrder, id]
+       SET slot_name = $1, open_time = $2, close_time = $3, max_capacity = $4, is_active = $5, display_order = $6, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7;`,
+      [newName, newOpen, newClose, newCapacity, newActive, newOrder, id]
     );
 
     await TicketTimeSlot.updateOne(
       { slotName: current.slot_name },
-      { $set: { slotName: newName, maxCapacity: newCapacity, isActive: newActive, displayOrder: newOrder } }
+      {
+        $set: {
+          slotName: newName,
+          openTime: newOpen,
+          closeTime: newClose,
+          maxCapacity: newCapacity,
+          isActive: newActive,
+          displayOrder: newOrder
+        }
+      }
     ).catch(() => {});
 
     await cacheDel(TICKETS_CATALOG_CACHE_KEY);
 
-    return res.json({ success: true, message: `Đã cập nhật khung giờ "${newName}"` });
+    return res.json({ success: true, message: `Đã cập nhật khung giờ "${newName}" (${newOpen} - ${newClose})` });
   } catch (err: any) {
     console.error('[Admin Time Slots PUT Error]:', err);
     return res.status(500).json({ success: false, message: 'Lỗi cập nhật khung giờ', error: err.message });

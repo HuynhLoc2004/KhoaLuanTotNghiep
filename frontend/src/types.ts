@@ -580,6 +580,8 @@ export interface TicketTypeItem {
 export interface TicketTimeSlotItem {
   id: string;
   slotName: string;
+  openTime?: string;
+  closeTime?: string;
   startTime?: string;
   endTime?: string;
   maxCapacity?: number;

@@ -2,6 +2,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ITicketTimeSlot extends Document {
   slotName: string;
+  openTime?: string;
+  closeTime?: string;
   maxCapacity: number;
   isActive: boolean;
   displayOrder: number;
@@ -15,6 +17,16 @@ const TicketTimeSlotSchema: Schema = new Schema(
       type: String,
       required: true,
       trim: true
+    },
+    openTime: {
+      type: String,
+      trim: true,
+      default: '08:00'
+    },
+    closeTime: {
+      type: String,
+      trim: true,
+      default: '17:00'
     },
     maxCapacity: {
       type: Number,

@@ -344,6 +344,8 @@ export async function initPostgresTables(): Promise<boolean> {
         CREATE TABLE IF NOT EXISTS ticket_time_slots (
           id VARCHAR(64) PRIMARY KEY,
           slot_name VARCHAR(128) NOT NULL,
+          open_time VARCHAR(16) DEFAULT '08:00',
+          close_time VARCHAR(16) DEFAULT '17:00',
           max_capacity INT DEFAULT 300,
           is_active BOOLEAN DEFAULT TRUE,
           display_order INT DEFAULT 0,
@@ -458,6 +460,9 @@ export async function initPostgresTables(): Promise<boolean> {
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_copyright_text TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS data JSONB DEFAULT '{}';
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+        ALTER TABLE ticket_time_slots ADD COLUMN IF NOT EXISTS open_time VARCHAR(16) DEFAULT '08:00';
+        ALTER TABLE ticket_time_slots ADD COLUMN IF NOT EXISTS close_time VARCHAR(16) DEFAULT '17:00';
 
         CREATE INDEX IF NOT EXISTS idx_users_mongo_id ON users(mongo_id);
         CREATE INDEX IF NOT EXISTS idx_topics_mongo_id ON topics(mongo_id);

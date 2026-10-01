@@ -9,7 +9,8 @@ import {
   X,
   Plus,
   Edit2,
-  Trash2
+  Trash2,
+  Clock
 } from 'lucide-react';
 import { api } from '../../services/api';
 import {
@@ -162,7 +163,7 @@ export const AdminTicketsPage: React.FC = () => {
   // Modal Sửa / Thêm khung giờ & Lỗi Validation
   const [editingSlot, setEditingSlot] = useState<Partial<TicketTimeSlotItem> | null>(null);
   const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
-  const [slotErrors, setSlotErrors] = useState<{ slotName?: string; maxCapacity?: string }>({});
+  const [slotErrors, setSlotErrors] = useState<{ slotName?: string; maxCapacity?: string; timeRange?: string }>({});
   const [deleteSlotTarget, setDeleteSlotTarget] = useState<TicketTimeSlotItem | null>(null);
 
   const fetchPricingData = async () => {
@@ -257,15 +258,21 @@ export const AdminTicketsPage: React.FC = () => {
     }
   };
 
-  // Xử lý lưu khung giờ (Có Validation)
+  // Xử lý lưu khung giờ & giờ mở/đóng cửa (Có Validation)
   const handleSaveSlot = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: { slotName?: string; maxCapacity?: string } = {};
+    const errors: { slotName?: string; maxCapacity?: string; timeRange?: string } = {};
 
-    if (!editingSlot?.slotName?.trim()) {
-      errors.slotName = 'Vui lòng nhập tên khung giờ (ví dụ: Buổi sáng: 08:00 - 11:30)';
-    } else if (editingSlot.slotName.trim().length < 3) {
-      errors.slotName = 'Tên khung giờ phải từ 3 ký tự trở lên';
+    const openTime = editingSlot?.openTime?.trim() || '08:00';
+    const closeTime = editingSlot?.closeTime?.trim() || '17:00';
+    let slotName = editingSlot?.slotName?.trim() || '';
+
+    if (!slotName) {
+      slotName = `Khung giờ mở cửa: ${openTime} - ${closeTime}`;
+    }
+
+    if (openTime && closeTime && openTime >= closeTime) {
+      errors.timeRange = 'Giờ mở cửa phải trước giờ đóng cửa';
     }
 
     if (!editingSlot?.maxCapacity || isNaN(Number(editingSlot.maxCapacity)) || Number(editingSlot.maxCapacity) <= 0) {
@@ -280,20 +287,24 @@ export const AdminTicketsPage: React.FC = () => {
     try {
       if (editingSlot?.id) {
         await api.updateAdminTicketSlot(editingSlot.id, {
-          slotName: editingSlot.slotName!.trim(),
+          slotName,
+          openTime,
+          closeTime,
           maxCapacity: Number(editingSlot.maxCapacity) || 300,
           isActive: editingSlot.isActive !== false,
           displayOrder: Number(editingSlot.displayOrder) || 1
         });
-        showToast('Cập nhật khung giờ thành công', 'success');
+        showToast(`Cập nhật khung giờ "${slotName}" thành công`, 'success');
       } else {
         await api.createAdminTicketSlot({
-          slotName: editingSlot!.slotName!.trim(),
-          maxCapacity: Number(editingSlot!.maxCapacity) || 300,
+          slotName,
+          openTime,
+          closeTime,
+          maxCapacity: Number(editingSlot?.maxCapacity) || 300,
           isActive: editingSlot?.isActive !== false,
           displayOrder: Number(editingSlot?.displayOrder) || (timeSlots.length + 1)
         });
-        showToast('Thêm khung giờ mới thành công', 'success');
+        showToast(`Thêm khung giờ mới "${slotName}" thành công`, 'success');
       }
       setIsSlotModalOpen(false);
       setEditingSlot(null);
@@ -1045,7 +1056,7 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* PHẦN 2: CẤU HÌNH KHUNG GIỜ THAM QUAN */}
+          {/* PHẦN 2: CẤU HÌNH THỜI GIAN MỞ CỬA & KHUNG GIỜ THAM QUAN */}
           <div
             style={{
               background: 'var(--bg-card)',
@@ -1056,11 +1067,12 @@ export const AdminTicketsPage: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <h2 style={{ fontSize: 14.5, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                  Khung giờ tham quan
+                <h2 style={{ fontSize: 14.5, fontWeight: 700, margin: 0, color: 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Clock size={16} />
+                  <span>Thời gian mở cửa & Khung giờ đón khách</span>
                 </h2>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '3px 0 0' }}>
-                  Danh sách các ca đón khách tham quan trong ngày
+                  Quản trị viên thiết lập giờ mở cửa, đóng cửa và các khung giờ tham quan (Khách có thể đặt vé tham quan mọi giờ trong khoảng mở cửa)
                 </p>
               </div>
 
@@ -1069,8 +1081,10 @@ export const AdminTicketsPage: React.FC = () => {
                 className="btn btn-primary btn-sm"
                 onClick={() => {
                   setEditingSlot({
-                    slotName: '',
-                    maxCapacity: 300,
+                    slotName: 'Mở cửa cả ngày (08:00 - 17:00)',
+                    openTime: '08:00',
+                    closeTime: '17:00',
+                    maxCapacity: 500,
                     isActive: true,
                     displayOrder: timeSlots.length + 1
                   });
@@ -1085,25 +1099,26 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
 
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
-              <table style={{ minWidth: 600, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <table style={{ minWidth: 650, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '9px 14px', width: '50%' }}>Tên khung giờ</th>
-                    <th style={{ padding: '9px 14px', width: '22%', textAlign: 'right' }}>Sức chứa tối đa</th>
-                    <th style={{ padding: '9px 14px', width: '16%' }}>Trạng thái</th>
+                    <th style={{ padding: '9px 14px', width: '38%' }}>Tên khung giờ đón tiếp</th>
+                    <th style={{ padding: '9px 14px', width: '22%' }}>Giờ mở – Đóng cửa</th>
+                    <th style={{ padding: '9px 14px', width: '16%', textAlign: 'right' }}>Sức chứa tối đa</th>
+                    <th style={{ padding: '9px 14px', width: '12%' }}>Trạng thái</th>
                     <th style={{ padding: '9px 14px', width: '12%', textAlign: 'center' }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoadingPricing ? (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
                         Đang tải khung giờ...
                       </td>
                     </tr>
                   ) : timeSlots.length === 0 ? (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
                         Chưa có khung giờ nào được thiết lập.
                       </td>
                     </tr>
@@ -1111,7 +1126,27 @@ export const AdminTicketsPage: React.FC = () => {
                     timeSlots.map((s) => (
                       <tr key={s.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-main)' }}>
-                          {s.slotName}
+                          <div>{s.slotName}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginTop: 2 }}>
+                            Khách mua vé được vào cửa mọi giờ trong khoảng này
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '3px 8px',
+                            borderRadius: 4,
+                            background: 'rgba(56, 189, 248, 0.1)',
+                            border: '1px solid rgba(56, 189, 248, 0.25)',
+                            color: '#38BDF8',
+                            fontSize: 12,
+                            fontWeight: 600
+                          }}>
+                            <Clock size={12} />
+                            {s.openTime || '08:00'} – {s.closeTime || '17:00'}
+                          </span>
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                           {s.maxCapacity || 300} người
@@ -1128,7 +1163,7 @@ export const AdminTicketsPage: React.FC = () => {
                               }}
                             />
                             <span style={{ color: 'var(--text-main)' }}>
-                              {s.isActive ? 'Hoạt động' : 'Tạm dừng'}
+                              {s.isActive ? 'Đang mở cửa' : 'Tạm dừng'}
                             </span>
                           </div>
                         </td>
@@ -1142,7 +1177,7 @@ export const AdminTicketsPage: React.FC = () => {
                                 setSlotErrors({});
                                 setIsSlotModalOpen(true);
                               }}
-                              title="Chỉnh sửa"
+                              title="Chỉnh sửa giờ mở / đóng cửa"
                               style={{ padding: '4px 8px' }}
                             >
                               <Edit2 size={13} />
@@ -1784,8 +1819,9 @@ export const AdminTicketsPage: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 10, marginBottom: 14 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                {editingSlot.id ? 'Chỉnh sửa khung giờ' : 'Thêm khung giờ mới'}
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Clock size={16} />
+                <span>{editingSlot.id ? 'Chỉnh sửa Giờ Mở Cửa & Khung Giờ' : 'Thêm Giờ Mở Cửa & Khung Giờ Mới'}</span>
               </h3>
               <button
                 type="button"
@@ -1797,15 +1833,128 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveSlot} noValidate>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Thiết lập Giờ mở cửa & Giờ đóng cửa */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Khoảng thời gian mở cửa đón khách *
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>
+                        Giờ mở cửa (Bắt đầu)
+                      </span>
+                      <input
+                        type="time"
+                        value={editingSlot.openTime || '08:00'}
+                        onChange={(e) => {
+                          const openTime = e.target.value;
+                          setEditingSlot({ ...editingSlot, openTime });
+                          if (slotErrors.timeRange) setSlotErrors({ ...slotErrors, timeRange: undefined });
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          background: 'var(--bg-main)',
+                          border: `1px solid ${slotErrors.timeRange ? '#EF4444' : 'var(--border-color)'}`,
+                          borderRadius: 6,
+                          color: 'var(--text-main)',
+                          fontSize: 13,
+                          colorScheme: 'dark'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>
+                        Giờ đóng cửa (Kết thúc)
+                      </span>
+                      <input
+                        type="time"
+                        value={editingSlot.closeTime || '17:00'}
+                        onChange={(e) => {
+                          const closeTime = e.target.value;
+                          setEditingSlot({ ...editingSlot, closeTime });
+                          if (slotErrors.timeRange) setSlotErrors({ ...slotErrors, timeRange: undefined });
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          background: 'var(--bg-main)',
+                          border: `1px solid ${slotErrors.timeRange ? '#EF4444' : 'var(--border-color)'}`,
+                          borderRadius: 6,
+                          color: 'var(--text-main)',
+                          fontSize: 13,
+                          colorScheme: 'dark'
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {slotErrors.timeRange && (
+                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 4 }}>
+                      {slotErrors.timeRange}
+                    </span>
+                  )}
+                  {/* Preset Buttons */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: 11, padding: '3px 8px' }}
+                      onClick={() => {
+                        setEditingSlot({
+                          ...editingSlot,
+                          openTime: '08:00',
+                          closeTime: '17:00',
+                          slotName: 'Mở cửa cả ngày (08:00 - 17:00)'
+                        });
+                        setSlotErrors({});
+                      }}
+                    >
+                      Cả ngày (08:00 – 17:00)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: 11, padding: '3px 8px' }}
+                      onClick={() => {
+                        setEditingSlot({
+                          ...editingSlot,
+                          openTime: '08:00',
+                          closeTime: '11:30',
+                          slotName: 'Ca sáng (08:00 – 11:30)'
+                        });
+                        setSlotErrors({});
+                      }}
+                    >
+                      Ca sáng (08:00 – 11:30)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: 11, padding: '3px 8px' }}
+                      onClick={() => {
+                        setEditingSlot({
+                          ...editingSlot,
+                          openTime: '13:30',
+                          closeTime: '17:00',
+                          slotName: 'Ca chiều (13:30 – 17:00)'
+                        });
+                        setSlotErrors({});
+                      }}
+                    >
+                      Ca chiều (13:30 – 17:00)
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Tên khung giờ tham quan *
+                    Tên / Mô tả khung giờ đón tiếp
                   </label>
                   <input
                     type="text"
                     value={editingSlot.slotName || ''}
-                    placeholder="Buổi sáng: 08:00 - 11:30"
+                    placeholder={`Ví dụ: Mở cửa đón khách cả ngày (${editingSlot.openTime || '08:00'} - ${editingSlot.closeTime || '17:00'})`}
                     onChange={(e) => {
                       setEditingSlot({ ...editingSlot, slotName: e.target.value });
                       if (slotErrors.slotName) setSlotErrors({ ...slotErrors, slotName: undefined });
@@ -1820,21 +1969,19 @@ export const AdminTicketsPage: React.FC = () => {
                       fontSize: 13
                     }}
                   />
-                  {slotErrors.slotName && (
-                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
-                      {slotErrors.slotName}
-                    </span>
-                  )}
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', marginTop: 3 }}>
+                    Để trống sẽ tự động đặt tên theo giờ mở - đóng cửa ({editingSlot.openTime || '08:00'} - {editingSlot.closeTime || '17:00'}).
+                  </span>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Sức chứa tối đa trong ca (người) *
+                    Sức chứa tối đa trong ngày/ca (người) *
                   </label>
                   <input
                     type="number"
                     min="1"
-                    value={editingSlot.maxCapacity || 300}
+                    value={editingSlot.maxCapacity || 500}
                     onChange={(e) => {
                       setEditingSlot({ ...editingSlot, maxCapacity: Number(e.target.value) });
                       if (slotErrors.maxCapacity) setSlotErrors({ ...slotErrors, maxCapacity: undefined });
@@ -1856,14 +2003,14 @@ export const AdminTicketsPage: React.FC = () => {
                   )}
                 </div>
 
-                <div style={{ marginTop: 4 }}>
+                <div style={{ marginTop: 2 }}>
                   <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
                     <input
                       type="checkbox"
                       checked={editingSlot.isActive !== false}
                       onChange={(e) => setEditingSlot({ ...editingSlot, isActive: e.target.checked })}
                     />
-                    <span>Khung giờ đang áp dụng</span>
+                    <span>Đang mở cửa đón khách (Bật để khách có thể mua vé)</span>
                   </label>
                 </div>
               </div>
@@ -1877,7 +2024,7 @@ export const AdminTicketsPage: React.FC = () => {
                   Hủy bỏ
                 </button>
                 <button type="submit" className="btn btn-primary btn-sm">
-                  Lưu khung giờ
+                  Lưu thiết lập
                 </button>
               </div>
             </form>
