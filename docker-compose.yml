@@ -82,6 +82,8 @@ services:
       - rabbitmq
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -90,6 +92,12 @@ services:
       - REDIS_URI=redis://redis:6379
       - RABBITMQ_URI=amqp://museum_admin:change-me-rabbitmq@rabbitmq:5672
       - PUBLIC_API_URL=${PUBLIC_API_URL:-http://museumhcm.duckdns.org}
+      - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID:-f1fc37c9-1be6-4ddf-a282-d0e731299f5a}
+      - PAYOS_API_KEY=${PAYOS_API_KEY:-853e52fc-22e0-47f7-90b9-fd0cef9531f3}
+      - PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY:-b2255e1900afd1b7f7ab82902cdd23b4e515912372e526e9ca5607be6720804c}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_EMBEDDING_MODEL=${GEMINI_EMBEDDING_MODEL:-text-embedding-004}
       - CLOUDINARY_URL=cloudinary://525596288476341:zLtV43liy-USXPkPDMmscuXum0k@djkif9ubs
       - CLOUDINARY_CLOUD_NAME=djkif9ubs
       - CLOUDINARY_API_KEY=525596288476341
