@@ -306,7 +306,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       });
       // Cập nhật state phòng tại chỗ
       aiDrawerRoom.aiKnowledgePrompt = updated.aiKnowledgePrompt;
+      if (onRoomUpdated) onRoomUpdated(updated);
       showToast('Đã lưu tư liệu lịch sử cho gian phòng thành công', 'success');
+      handleCloseAiDrawer();
     } catch (err: any) {
       showToast('Lỗi khi lưu tư liệu: ' + err.message, 'error');
     } finally {
@@ -370,7 +372,9 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       aiDrawerRoom.aiVoiceEnabled = true;
       aiDrawerRoom.aiVoiceLang = aiVoiceLang;
       aiDrawerRoom.translations = updated.translations;
+      if (onRoomUpdated) onRoomUpdated(updated);
       showToast(`Đã lưu lời thuyết minh và đồng bộ Voice AI tiếng Việt cho gian phòng "${aiDrawerRoom.name}"`, 'success');
+      handleCloseAiDrawer();
     } catch (err: any) {
       showToast('Lỗi lưu lời thuyết minh: ' + err.message, 'error');
     } finally {
