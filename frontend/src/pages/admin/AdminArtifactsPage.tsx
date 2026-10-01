@@ -560,6 +560,25 @@ export const AdminArtifactsPage: React.FC = () => {
     }
   };
 
+  // Helper chuẩn hóa translations từ Mongoose/Postgres (hỗ trợ Map, Object và chuỗi JSONB)
+  const parseSafeTranslations = (raw: any): Record<string, any> => {
+    if (!raw) return {};
+    if (typeof raw === 'string') {
+      try {
+        const p = JSON.parse(raw);
+        if (p && typeof p === 'object' && !Array.isArray(p)) return p;
+      } catch {}
+      return {};
+    }
+    if (raw instanceof Map) {
+      return Object.fromEntries(raw);
+    }
+    if (typeof raw === 'object' && !Array.isArray(raw)) {
+      return { ...raw };
+    }
+    return {};
+  };
+
   // === QUẢN TRỊ THUYẾT MINH & VOICE AI ĐA NGÔN NGỮ ===
   const handleOpenVoiceModal = (artifact: Artifact) => {
     const targetId = artifact.id || (artifact as any)._id;
@@ -568,23 +587,12 @@ export const AdminArtifactsPage: React.FC = () => {
     const initialLang = 'vi';
     setSelectedVoiceLang(initialLang);
 
-    // Khởi tạo bộ nhớ tạm workingVoiceTranslations từ translations hiện có (hỗ trợ cả JSON string)
-    const initialWorking: Record<string, any> = {};
-    if (artifact.translations) {
-      if (typeof artifact.translations === 'string') {
-        try {
-          const parsed = JSON.parse(artifact.translations);
-          Object.assign(initialWorking, parsed);
-        } catch {}
-      } else if (typeof artifact.translations === 'object') {
-        Object.entries(artifact.translations).forEach(([code, val]) => {
-          initialWorking[code] = { ...(val as any) };
-        });
-      }
-    }
+    // Khởi tạo bộ nhớ tạm workingVoiceTranslations từ translations hiện có
+    const existingTrans = parseSafeTranslations(artifact.translations);
+    const initialWorking: Record<string, any> = { ...existingTrans };
     setWorkingVoiceTranslations(initialWorking);
 
-    const trans = artifact.translations?.[initialLang];
+    const trans = initialWorking[initialLang] || existingTrans[initialLang];
     setVoiceName(trans?.name || artifact.name || '');
     setVoicePeriod(trans?.period || artifact.period || '');
     setVoiceScript(trans?.narrationScript || trans?.description || artifact.description || '');
@@ -602,39 +610,55 @@ export const AdminArtifactsPage: React.FC = () => {
     const currentScript = voiceScript.trim();
     const currentName = voiceName.trim();
     const currentPeriod = voicePeriod.trim();
+    const existingTrans = parseSafeTranslations(activeVoiceArtifact.translations);
+
     const updatedWorking = {
+      ...existingTrans,
       ...workingVoiceTranslations,
       [selectedVoiceLang]: {
+        ...(existingTrans[selectedVoiceLang] || {}),
         ...(workingVoiceTranslations[selectedVoiceLang] || {}),
-        name: currentName,
-        period: currentPeriod,
+        name: currentName || (selectedVoiceLang === 'vi' ? activeVoiceArtifact.name : undefined),
+        period: currentPeriod || (selectedVoiceLang === 'vi' ? activeVoiceArtifact.period : undefined),
         narrationScript: currentScript,
         description: currentScript,
-        audioNarrationUrl: previewAudioUrl || workingVoiceTranslations[selectedVoiceLang]?.audioNarrationUrl || ''
+        audioNarrationUrl: previewAudioUrl || workingVoiceTranslations[selectedVoiceLang]?.audioNarrationUrl || existingTrans[selectedVoiceLang]?.audioNarrationUrl || ''
       }
     };
     setWorkingVoiceTranslations(updatedWorking);
     setSelectedVoiceLang(langCode);
 
+    // Tự động lưu ngầm dữ liệu tab hiện tại nếu có văn bản
+    if (currentScript) {
+      const targetId = activeVoiceArtifact.id || (activeVoiceArtifact as any)._id;
+      if (targetId) {
+        api.updateArtifact(targetId, { translations: updatedWorking })
+          .then((updated) => {
+            setActiveVoiceArtifact(updated);
+            setArtifacts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+          })
+          .catch((err) => console.warn('[Auto-sync switch lang warning]:', err));
+      }
+    }
+
     // Nạp dữ liệu của tab ngôn ngữ mới
-    const workingData = updatedWorking[langCode];
-    const trans = activeVoiceArtifact.translations?.[langCode];
+    const targetData = updatedWorking[langCode] || existingTrans[langCode];
 
     if (langCode === 'vi') {
-      const vName = workingData?.name ?? trans?.name ?? activeVoiceArtifact.name ?? '';
-      const vPeriod = workingData?.period ?? trans?.period ?? activeVoiceArtifact.period ?? '';
-      const vScript = workingData?.narrationScript ?? trans?.narrationScript ?? trans?.description ?? activeVoiceArtifact.description ?? '';
-      const vAudio = workingData?.audioNarrationUrl ?? trans?.audioNarrationUrl ?? activeVoiceArtifact.audioNarrationUrl ?? null;
+      const vName = targetData?.name ?? activeVoiceArtifact.name ?? '';
+      const vPeriod = targetData?.period ?? activeVoiceArtifact.period ?? '';
+      const vScript = targetData?.narrationScript ?? targetData?.description ?? activeVoiceArtifact.description ?? '';
+      const vAudio = targetData?.audioNarrationUrl ?? activeVoiceArtifact.audioNarrationUrl ?? null;
 
       setVoiceName(vName);
       setVoicePeriod(vPeriod);
       setVoiceScript(vScript);
       setPreviewAudioUrl(vAudio ? (vAudio.startsWith('http') ? vAudio : `${API_ROOT}${vAudio}`) : null);
     } else {
-      const tName = workingData?.name ?? trans?.name ?? '';
-      const tPeriod = workingData?.period ?? trans?.period ?? '';
-      const tScript = workingData?.narrationScript ?? trans?.narrationScript ?? trans?.description ?? '';
-      const tAudio = workingData?.audioNarrationUrl ?? trans?.audioNarrationUrl ?? null;
+      const tName = targetData?.name ?? '';
+      const tPeriod = targetData?.period ?? '';
+      const tScript = targetData?.narrationScript ?? targetData?.description ?? '';
+      const tAudio = targetData?.audioNarrationUrl ?? null;
 
       // Tuyệt đối không hiển thị audio của tiếng Việt cho các ngôn ngữ khác nếu chưa tạo voice riêng
       const viAudio = activeVoiceArtifact.audioNarrationUrl || '';
@@ -853,12 +877,12 @@ export const AdminArtifactsPage: React.FC = () => {
 
       // Đồng bộ ngầm an toàn vào CSDL nếu có thể
       try {
-        const existingTranslations = activeVoiceArtifact.translations || {};
+        const existingTrans = parseSafeTranslations(activeVoiceArtifact.translations);
         const updatedTranslations = {
-          ...existingTranslations,
+          ...existingTrans,
           ...workingVoiceTranslations,
           [selectedVoiceLang]: {
-            ...(existingTranslations[selectedVoiceLang] || {}),
+            ...(existingTrans[selectedVoiceLang] || {}),
             ...(workingVoiceTranslations[selectedVoiceLang] || {}),
             ...currentLangPayload
           }
@@ -882,7 +906,7 @@ export const AdminArtifactsPage: React.FC = () => {
         console.warn('[Auto-sync voice warning]:', saveErr);
       }
 
-      showToast(`Đã tạo giọng đọc Voice AI (${selectedVoiceLang.toUpperCase()}) thành công! Bạn có thể nghe thử hoặc bấm "Lưu thuyết minh".`, 'success');
+      showToast(`Đã tạo giọng đọc và lưu Voice AI (${selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tạo giọng đọc Voice AI', 'error');
     } finally {
@@ -890,26 +914,71 @@ export const AdminArtifactsPage: React.FC = () => {
     }
   };
 
+  // Đóng modal thuyết minh và tự động lưu ngầm dữ liệu chưa lưu nếu có
+  const handleCloseVoiceModal = () => {
+    if (activeVoiceArtifact && voiceScript.trim()) {
+      const currentScript = voiceScript.trim();
+      const currentName = voiceName.trim() || activeVoiceArtifact.name;
+      const currentPeriod = voicePeriod.trim() || activeVoiceArtifact.period;
+      const currentAudio = previewAudioUrl || workingVoiceTranslations[selectedVoiceLang]?.audioNarrationUrl || '';
+
+      const existingTrans = parseSafeTranslations(activeVoiceArtifact.translations);
+      const mergedTranslations = {
+        ...existingTrans,
+        ...workingVoiceTranslations,
+        [selectedVoiceLang]: {
+          ...(existingTrans[selectedVoiceLang] || {}),
+          ...(workingVoiceTranslations[selectedVoiceLang] || {}),
+          name: currentName,
+          period: currentPeriod,
+          narrationScript: currentScript,
+          description: currentScript,
+          audioNarrationUrl: currentAudio
+        }
+      };
+
+      const patchPayload: Partial<Artifact> = {
+        translations: mergedTranslations
+      };
+      if (selectedVoiceLang === 'vi' && currentAudio) {
+        patchPayload.audioNarrationUrl = currentAudio;
+      }
+
+      const targetId = activeVoiceArtifact.id || (activeVoiceArtifact as any)._id;
+      if (targetId) {
+        api.updateArtifact(targetId, patchPayload)
+          .then((updated) => {
+            setArtifacts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+          })
+          .catch((err) => console.warn('[Auto-sync close voice modal warning]:', err));
+      }
+    }
+
+    setIsVoiceModalOpen(false);
+  };
+
   const handleSaveVoiceNarration = async () => {
     if (!activeVoiceArtifact) return;
 
     try {
       setIsSavingVoice(true);
-      const existingTranslations = activeVoiceArtifact.translations || {};
+      const existingTrans = parseSafeTranslations(activeVoiceArtifact.translations);
+
+      const currentAudio = previewAudioUrl || workingVoiceTranslations[selectedVoiceLang]?.audioNarrationUrl || existingTrans[selectedVoiceLang]?.audioNarrationUrl || '';
 
       const currentLangPayload = {
         name: voiceName.trim() || activeVoiceArtifact.name,
         period: voicePeriod.trim() || activeVoiceArtifact.period,
         narrationScript: voiceScript.trim(),
         description: voiceScript.trim(),
-        audioNarrationUrl: previewAudioUrl || workingVoiceTranslations[selectedVoiceLang]?.audioNarrationUrl || existingTranslations[selectedVoiceLang]?.audioNarrationUrl || ''
+        audioNarrationUrl: currentAudio
       };
 
       const mergedTranslations = {
-        ...existingTranslations,
+        ...existingTrans,
         ...workingVoiceTranslations,
         [selectedVoiceLang]: {
-          ...(existingTranslations[selectedVoiceLang] || {}),
+          ...(existingTrans[selectedVoiceLang] || {}),
           ...(workingVoiceTranslations[selectedVoiceLang] || {}),
           ...currentLangPayload
         }
@@ -919,17 +988,20 @@ export const AdminArtifactsPage: React.FC = () => {
         translations: mergedTranslations
       };
 
-      if ((selectedVoiceLang === 'vi' || !activeVoiceArtifact.audioNarrationUrl) && previewAudioUrl) {
-        patchPayload.audioNarrationUrl = previewAudioUrl;
+      if ((selectedVoiceLang === 'vi' || !activeVoiceArtifact.audioNarrationUrl) && currentAudio) {
+        patchPayload.audioNarrationUrl = currentAudio;
       }
 
-      const updated = await api.updateArtifact(activeVoiceArtifact.id, patchPayload);
+      const targetId = activeVoiceArtifact.id || (activeVoiceArtifact as any)._id;
+      const updated = await api.updateArtifact(targetId, patchPayload);
 
       // Cập nhật state cục bộ
       setActiveVoiceArtifact(updated);
+      setWorkingVoiceTranslations(mergedTranslations);
       setArtifacts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
 
       showToast(`Đã lưu thuyết minh và đồng bộ Voice AI (${selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
+      setIsVoiceModalOpen(false);
     } catch (err: any) {
       showToast(err.message || 'Lỗi lưu thuyết minh', 'error');
     } finally {
@@ -2596,11 +2668,20 @@ export const AdminArtifactsPage: React.FC = () => {
         <div
           className="modal-backdrop"
           style={{ zIndex: 1250 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsVoiceModalOpen(false);
-          }}
         >
-          <div className="modal-card" style={{ maxWidth: 660, width: '100%' }}>
+          <div
+            className="modal-card"
+            style={{
+              maxWidth: 680,
+              width: 'min(680px, 95vw)',
+              maxHeight: 'min(92vh, 800px)',
+              display: 'flex',
+              flexDirection: 'column',
+              margin: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2630,7 +2711,7 @@ export const AdminArtifactsPage: React.FC = () => {
               <button
                 type="button"
                 className="modal-close-btn"
-                onClick={() => setIsVoiceModalOpen(false)}
+                onClick={handleCloseVoiceModal}
                 aria-label="Đóng"
               >
                 <X size={18} />
@@ -2718,7 +2799,7 @@ export const AdminArtifactsPage: React.FC = () => {
               </div>
 
               {/* Tên và Niên đại dịch */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, fontSize: '12.5px' }}>
                     Tên hiện vật ({selectedVoiceLang.toUpperCase()})
@@ -2869,7 +2950,7 @@ export const AdminArtifactsPage: React.FC = () => {
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => setIsVoiceModalOpen(false)}
+                onClick={handleCloseVoiceModal}
               >
                 Đóng
               </button>
