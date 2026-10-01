@@ -2714,18 +2714,7 @@ export const AdminArtifactsPage: React.FC = () => {
                     Lời đọc thuyết minh ({selectedVoiceLang.toUpperCase()})
                   </label>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {selectedVoiceLang === 'vi' ? (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={handleLoadPresetKnowledge}
-                        style={{ fontSize: '11.5px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 5 }}
-                        title="Nạp lời đọc gợi ý tiếng Việt"
-                      >
-                        <BookOpen size={12} />
-                        <span>Gợi ý mẫu</span>
-                      </button>
-                    ) : (
+                    {selectedVoiceLang !== 'vi' && (
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
