@@ -186,7 +186,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
       setPaymentTimeRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(countdownInterval);
-          showToast('Đơn hàng đã hết hạn thanh toán (15 phút). Vui lòng đặt lại vé.', 'warning');
+          showToast('Giao dịch đặt vé đã hết hạn thanh toán (15 phút). Vui lòng đặt lại vé.', 'warning');
           setActivePaymentModal(null);
           return 0;
         }
@@ -205,7 +205,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
         } else if (orderInfo && orderInfo.status === 'expired') {
           clearInterval(countdownInterval);
           if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
-          showToast('Đơn hàng đã hết hạn thanh toán.', 'warning');
+          showToast('Giao dịch đặt vé đã hết hạn thanh toán.', 'warning');
           setActivePaymentModal(null);
         }
       } catch {}
@@ -845,7 +845,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm('Đóng cửa sổ thanh toán? Đơn hàng vẫn được lưu và chờ thanh toán trong 15 phút.')) {
+                    if (window.confirm('Đóng cửa sổ thanh toán? Giao dịch đặt vé vẫn được lưu và chờ thanh toán trong 15 phút.')) {
                       setActivePaymentModal(null);
                     }
                   }}

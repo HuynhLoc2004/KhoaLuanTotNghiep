@@ -166,6 +166,26 @@ export const AdminTicketsPage: React.FC = () => {
   const [slotErrors, setSlotErrors] = useState<{ slotName?: string; maxCapacity?: string; timeRange?: string }>({});
   const [deleteSlotTarget, setDeleteSlotTarget] = useState<TicketTimeSlotItem | null>(null);
 
+  // Phân trang Tab 2: Bảng giá loại vé & Khung giờ
+  const [typePage, setTypePage] = useState(1);
+  const [typePageSize, setTypePageSize] = useState(6);
+  const [slotPage, setSlotPage] = useState(1);
+  const [slotPageSize, setSlotPageSize] = useState(6);
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(ticketTypes.length / typePageSize));
+    if (typePage > maxPage) {
+      setTypePage(maxPage);
+    }
+  }, [ticketTypes.length, typePageSize]);
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(timeSlots.length / slotPageSize));
+    if (slotPage > maxPage) {
+      setSlotPage(maxPage);
+    }
+  }, [timeSlots.length, slotPageSize]);
+
   const fetchPricingData = async () => {
     try {
       setIsLoadingPricing(true);
@@ -372,7 +392,7 @@ export const AdminTicketsPage: React.FC = () => {
         }
       }
     } catch (err: any) {
-      showToast(err.message || 'Không thể tải lịch sử đơn hàng', 'error');
+      showToast(err.message || 'Không thể tải lịch sử đặt vé', 'error');
     } finally {
       setIsLoadingOrders(false);
     }
@@ -532,10 +552,10 @@ export const AdminTicketsPage: React.FC = () => {
               margin: 0
             }}
           >
-            Quản lý vé & Đơn hàng
+            Quản lý vé tham quan
           </h1>
           <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, margin: 0 }}>
-            Soát vé tham quan, quản lý giá vé và theo dõi lịch sử thanh toán
+            Soát vé tham quan, quản lý giá vé, thời gian mở cửa và theo dõi giao dịch đặt vé trực tuyến
           </p>
         </div>
 
@@ -614,7 +634,7 @@ export const AdminTicketsPage: React.FC = () => {
             transition: 'all 0.15s ease'
           }}
         >
-          Lịch sử đơn hàng
+          Lịch sử đặt vé
         </button>
       </div>
 
@@ -992,7 +1012,9 @@ export const AdminTicketsPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    ticketTypes.map((t) => (
+                    ticketTypes
+                      .slice((typePage - 1) * typePageSize, typePage * typePageSize)
+                      .map((t) => (
                       <tr key={t.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: 'var(--text-main)', fontSize: 12.5 }}>
                           {t.code}
@@ -1054,6 +1076,24 @@ export const AdminTicketsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Phân trang loại vé chuẩn dashboard [6, 9, 12, 18, 24] */}
+            {ticketTypes.length > 0 && (
+              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 12 }}>
+                <Pagination
+                  currentPage={typePage}
+                  totalItems={ticketTypes.length}
+                  pageSize={typePageSize}
+                  onPageChange={setTypePage}
+                  onPageSizeChange={(newSize) => {
+                    setTypePageSize(newSize);
+                    setTypePage(1);
+                  }}
+                  pageSizeOptions={[6, 9, 12, 18, 24]}
+                  itemLabel="loại vé"
+                />
+              </div>
+            )}
           </div>
 
           {/* PHẦN 2: CẤU HÌNH THỜI GIAN MỞ CỬA & KHUNG GIỜ THAM QUAN */}
@@ -1123,7 +1163,9 @@ export const AdminTicketsPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    timeSlots.map((s) => (
+                    timeSlots
+                      .slice((slotPage - 1) * slotPageSize, slotPage * slotPageSize)
+                      .map((s) => (
                       <tr key={s.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-main)' }}>
                           <div>{s.slotName}</div>
@@ -1199,16 +1241,34 @@ export const AdminTicketsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Phân trang khung giờ chuẩn dashboard [6, 9, 12, 18, 24] */}
+            {timeSlots.length > 0 && (
+              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 12 }}>
+                <Pagination
+                  currentPage={slotPage}
+                  totalItems={timeSlots.length}
+                  pageSize={slotPageSize}
+                  onPageChange={setSlotPage}
+                  onPageSizeChange={(newSize) => {
+                    setSlotPageSize(newSize);
+                    setSlotPage(1);
+                  }}
+                  pageSizeOptions={[6, 9, 12, 18, 24]}
+                  itemLabel="khung giờ"
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* ========================================================
-          NỘI DUNG TAB 3: LỊCH SỬ ĐƠN HÀNG
+          NỘI DUNG TAB 3: LỊCH SỬ ĐẶT VÉ
           ======================================================== */}
       {subTab === 'orders' && (
         <>
-          {/* KPI ĐƠN HÀNG */}
+          {/* KPI LỊCH SỬ ĐẶT VÉ */}
           <div
             style={{
               background: 'var(--bg-card)',
@@ -1221,7 +1281,7 @@ export const AdminTicketsPage: React.FC = () => {
           >
             <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Tổng đơn đặt vé
+                Tổng lượt đặt vé
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
                 {orderStats.totalOrders}
@@ -1257,7 +1317,7 @@ export const AdminTicketsPage: React.FC = () => {
 
             <div style={{ padding: '14px 20px' }}>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Doanh thu thanh toán
+                Tổng tiền vé thu được
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
                 {formatVND(orderStats.totalRevenue)}
@@ -1265,7 +1325,7 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* BỘ LỌC ĐƠN HÀNG */}
+          {/* BỘ LỌC GIAO DỊCH */}
           <div
             style={{
               background: 'var(--bg-card)',
@@ -1294,7 +1354,7 @@ export const AdminTicketsPage: React.FC = () => {
                 />
                 <input
                   type="text"
-                  placeholder="Tìm theo mã đơn, email, người mua, SĐT..."
+                  placeholder="Tìm theo mã giao dịch, email, người đặt vé, SĐT..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
                   style={{
@@ -1348,7 +1408,7 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* BẢNG ĐƠN HÀNG */}
+          {/* BẢNG GIAO DỊCH ĐẶT VÉ */}
           <div
             style={{
               background: 'var(--bg-card)',
@@ -1362,12 +1422,12 @@ export const AdminTicketsPage: React.FC = () => {
               <table style={{ minWidth: 780, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '10px 16px', width: '14%' }}>Mã đơn</th>
-                    <th style={{ padding: '10px 16px', width: '22%' }}>Khách hàng</th>
-                    <th style={{ padding: '10px 16px', width: '26%' }}>Chi tiết vé</th>
-                    <th style={{ padding: '10px 16px', width: '14%', textAlign: 'right' }}>Tổng thanh toán</th>
+                    <th style={{ padding: '10px 16px', width: '14%' }}>Mã giao dịch</th>
+                    <th style={{ padding: '10px 16px', width: '22%' }}>Người đặt vé</th>
+                    <th style={{ padding: '10px 16px', width: '26%' }}>Loại vé & Số lượng</th>
+                    <th style={{ padding: '10px 16px', width: '14%', textAlign: 'right' }}>Tiền vé</th>
                     <th style={{ padding: '10px 16px', width: '12%' }}>Trạng thái</th>
-                    <th style={{ padding: '10px 16px', width: '12%' }}>Thời gian tạo</th>
+                    <th style={{ padding: '10px 16px', width: '12%' }}>Thời gian đặt</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1375,13 +1435,13 @@ export const AdminTicketsPage: React.FC = () => {
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
                         <RefreshCw size={18} className="spin" style={{ margin: '0 auto 8px', display: 'block' }} />
-                        <span>Đang tải đơn hàng...</span>
+                        <span>Đang tải giao dịch đặt vé...</span>
                       </td>
                     </tr>
                   ) : orders.length === 0 ? (
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
-                        Không có đơn hàng nào phù hợp với bộ lọc.
+                        Không có giao dịch đặt vé nào phù hợp với bộ lọc.
                       </td>
                     </tr>
                   ) : (
@@ -1418,7 +1478,7 @@ export const AdminTicketsPage: React.FC = () => {
                           <div style={{ color: 'var(--text-main)' }}>{formatDateTime(o.createdAt)}</div>
                           {o.paidAt && (
                             <div style={{ color: '#22C55E', fontSize: 11 }}>
-                              Đã trả: {formatDateTime(o.paidAt)}
+                              Đã thanh toán: {formatDateTime(o.paidAt)}
                             </div>
                           )}
                         </td>
@@ -1442,7 +1502,7 @@ export const AdminTicketsPage: React.FC = () => {
                     fetchOrders(1, newSize);
                   }}
                   pageSizeOptions={[6, 9, 12, 18, 24]}
-                  itemLabel="đơn hàng"
+                  itemLabel="giao dịch"
                 />
               </div>
             )}
