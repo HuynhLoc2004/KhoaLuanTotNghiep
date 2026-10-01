@@ -5,8 +5,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
   RotateCw,
-  RotateCcw,
-  RefreshCw,
   Play,
   Pause,
   Maximize2,
@@ -722,33 +720,6 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     });
   };
 
-  // 4b. Đổi hướng đứng của hiện vật (Xoay 90° quanh trục X nếu cần căn lại góc đứng)
-  const handleRotateModelAxis = () => {
-    if (!modelObjectRef.current) return;
-    const root = modelObjectRef.current;
-    root.rotation.x += Math.PI / 2;
-    root.updateMatrixWorld(true);
-
-    const box = new THREE.Box3().setFromObject(root);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
-    // Căn lại trọng tâm hiện vật vào bục trưng bày
-    root.position.x -= center.x;
-    root.position.z -= center.z;
-    root.position.y = PLINTH_HEIGHT - box.min.y + 0.001;
-  };
-
-  // 5. Căn lại góc nhìn ban đầu
-  const handleResetCamera = () => {
-    if (!cameraRef.current || !controlsRef.current) return;
-    cameraRef.current.position.set(0, 1.45, 4.0);
-    controlsRef.current.target.set(0, 1.05, 0);
-    if (turntableGroupRef.current) {
-      turntableGroupRef.current.rotation.y = 0;
-    }
-    controlsRef.current.update();
-  };
 
   // 6. Toàn màn hình (Fullscreen)
   const toggleFullscreen = () => {
@@ -1301,57 +1272,6 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             <Layers size={15} />
           </button>
 
-          {/* Nút 4: Căn lại góc nhìn chuẩn */}
-          <button
-            type="button"
-            className="turntable-btn-icon"
-            onClick={handleResetCamera}
-            title="Căn lại góc nhìn ban đầu"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: 'rgba(20, 24, 33, 0.75)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              backdropFilter: 'blur(8px)',
-              transition: 'all 0.15s ease',
-              flexShrink: 0
-            }}
-          >
-            <RotateCcw size={15} />
-          </button>
-
-          {/* Nút: Đổi hướng đứng hiện vật (Xoay 90° trục đứng) */}
-          {modelUrl && (
-            <button
-              type="button"
-              className="turntable-btn-icon"
-              onClick={handleRotateModelAxis}
-              title="Đổi hướng đứng hiện vật (Xoay lật 90°)"
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 8,
-                background: 'rgba(20, 24, 33, 0.75)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#34d399',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                backdropFilter: 'blur(8px)',
-                transition: 'all 0.15s ease',
-                flexShrink: 0
-              }}
-            >
-              <RefreshCw size={15} />
-            </button>
-          )}
 
           {/* Nút 5: Toàn màn hình */}
           <button
