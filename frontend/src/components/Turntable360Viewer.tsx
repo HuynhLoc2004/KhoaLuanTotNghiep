@@ -34,6 +34,8 @@ interface Turntable360ViewerProps {
   isGenerating3D?: boolean;
   height?: number | string;
   autoRotateSpeed?: number;
+  hideControls?: boolean;
+  onClick?: () => void;
 }
 
 const PLINTH_RADIUS = 1.25;
@@ -50,7 +52,9 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   onGenerate3DClick,
   isGenerating3D = false,
   height = 520,
-  autoRotateSpeed = 1.2
+  autoRotateSpeed = 1.2,
+  hideControls = false,
+  onClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -830,10 +834,37 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  // Xử lý phân biệt kéo xoay 3D vs bấm click chuyển trang
+  const isDraggingRef = useRef(false);
+  const pointerStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isDraggingRef.current = false;
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const dx = Math.abs(e.clientX - pointerStartRef.current.x);
+    const dy = Math.abs(e.clientY - pointerStartRef.current.y);
+    if (dx > 6 || dy > 6) {
+      isDraggingRef.current = true;
+    }
+  };
+
+  const handleContainerClick = () => {
+    if (isDraggingRef.current) return;
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <div
       ref={containerRef}
       className="turntable-360-container"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onClick={handleContainerClick}
       style={{
         position: 'relative',
         width: '100%',
@@ -842,7 +873,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         overflow: 'hidden',
         background: '#0c0e14',
         border: isFullscreen ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.5)'
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.5)',
+        cursor: onClick ? 'pointer' : 'default'
       }}
     >
       {/* Three.js Canvas */}
@@ -1016,8 +1048,9 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
       )}
 
       {/* Thanh Topbar: Thông tin hiện vật & Toolbar điều khiển (Responsive Flex chống đè) */}
-      <div
-        className="turntable-top-bar"
+      {!hideControls && (
+        <div
+          className="turntable-top-bar"
         style={{
           position: 'absolute',
           top: 10,
@@ -1346,9 +1379,10 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* Thanh Phát Audio Thuyết Minh */}
-      {fullAudioUrl && (
+      {!hideControls && fullAudioUrl && (
         <div
           className="turntable-audio-bar"
           style={{
@@ -1468,7 +1502,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
       )}
 
       {/* Chỉ dẫn tương tác bảo tàng */}
-      {!fullAudioUrl && (
+      {!hideControls && !fullAudioUrl && (
         <div
           style={{
             position: 'absolute',

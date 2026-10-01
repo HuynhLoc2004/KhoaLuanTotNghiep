@@ -69,6 +69,14 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     : t('artifacts.defaultTitle', 'Cổ vật di sản tiêu biểu');
   const artifact3DCount = artifacts.filter((a) => !!a.model3dUrl).length;
 
+  const handleArtifactClick = () => {
+    if (activeArtifact?.id && onSelectArtifactDetail) {
+      onSelectArtifactDetail(activeArtifact.id);
+    } else {
+      onViewAllArtifacts();
+    }
+  };
+
   return (
     <section id="artifacts" className="client-zigzag-section client-section-alt">
       <div className="client-container">
@@ -77,13 +85,14 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
           {/* CỘT MEDIA: MÔ HÌNH 3D / ẢNH HIỆN VẬT LỊCH SỬ CHUẨN MỰC */}
           <div
             className="client-zigzag-card-media dark-vitrine clickable"
-            onClick={onViewAllArtifacts}
+            onClick={handleArtifactClick}
             role="button"
             tabIndex={0}
-            title={t('artifacts.clickToEnter', 'Bấm để xem toàn bộ kho hiện vật')}
+            title={t('artifacts.clickToEnter', 'Bấm để xem chi tiết hiện vật')}
+            style={{ cursor: 'pointer' }}
           >
             {activeArtifact?.model3dUrl ? (
-              <div style={{ width: '100%', height: 340 }}>
+              <div style={{ width: '100%', height: 340, cursor: 'pointer' }}>
                 <Turntable360Viewer
                   modelUrl={
                     activeArtifact.model3dUrl.startsWith('http')
@@ -98,6 +107,8 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                   }
                   artifactName={currentTitle}
                   height={340}
+                  hideControls={true}
+                  onClick={handleArtifactClick}
                 />
               </div>
             ) : currentThumb ? (
