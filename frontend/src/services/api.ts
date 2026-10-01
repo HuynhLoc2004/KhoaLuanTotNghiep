@@ -201,10 +201,10 @@ export const api = {
   async generateTtsAudio(payload: { text: string; langCode: string; roomCode?: string }): Promise<{ audioUrl: string; duration: number }> {
     const res = await fetch(`${API_BASE}/languages/generate-tts`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(true),
       body: JSON.stringify(payload)
     });
-    const json = await res.json();
+    const json = await safeJson(res, 'Lỗi sinh file âm thanh Voice AI');
     if (!json.success) throw new Error(json.message || 'Lỗi sinh file âm thanh Voice AI');
     return json;
   },

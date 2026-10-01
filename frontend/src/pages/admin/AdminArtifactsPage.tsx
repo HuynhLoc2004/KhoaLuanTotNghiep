@@ -804,47 +804,55 @@ export const AdminArtifactsPage: React.FC = () => {
 
       setPreviewAudioUrl(fullUrl);
 
-      // Cập nhật workingVoiceTranslations
+      // Cập nhật bộ nhớ làm việc workingVoiceTranslations
+      const currentLangPayload = {
+        name: voiceName.trim() || activeVoiceArtifact.name,
+        period: voicePeriod.trim() || activeVoiceArtifact.period,
+        narrationScript: voiceScript.trim(),
+        description: voiceScript.trim(),
+        audioNarrationUrl: res.audioUrl
+      };
+
       setWorkingVoiceTranslations((prev) => ({
         ...prev,
         [selectedVoiceLang]: {
           ...(prev[selectedVoiceLang] || {}),
-          name: voiceName.trim() || activeVoiceArtifact.name,
-          period: voicePeriod.trim() || activeVoiceArtifact.period,
-          narrationScript: voiceScript.trim(),
-          description: voiceScript.trim(),
-          audioNarrationUrl: res.audioUrl
+          ...currentLangPayload
         }
       }));
 
-      // Tự động lưu và cập nhật ngay vào cơ sở dữ liệu để đồng bộ tức thì
-      const existingTranslations = activeVoiceArtifact.translations || {};
-      const updatedTranslations = {
-        ...existingTranslations,
-        ...workingVoiceTranslations,
-        [selectedVoiceLang]: {
-          ...(existingTranslations[selectedVoiceLang] || {}),
-          name: voiceName.trim() || activeVoiceArtifact.name,
-          period: voicePeriod.trim() || activeVoiceArtifact.period,
-          narrationScript: voiceScript.trim(),
-          description: voiceScript.trim(),
-          audioNarrationUrl: res.audioUrl
+      // Đồng bộ ngầm an toàn vào CSDL nếu có thể
+      try {
+        const existingTranslations = activeVoiceArtifact.translations || {};
+        const updatedTranslations = {
+          ...existingTranslations,
+          ...workingVoiceTranslations,
+          [selectedVoiceLang]: {
+            ...(existingTranslations[selectedVoiceLang] || {}),
+            ...(workingVoiceTranslations[selectedVoiceLang] || {}),
+            ...currentLangPayload
+          }
+        };
+
+        const patchPayload: Partial<Artifact> = {
+          translations: updatedTranslations
+        };
+
+        if (selectedVoiceLang === 'vi') {
+          patchPayload.audioNarrationUrl = res.audioUrl;
         }
-      };
 
-      const patchPayload: Partial<Artifact> = {
-        translations: updatedTranslations
-      };
-
-      if (selectedVoiceLang === 'vi' || !activeVoiceArtifact.audioNarrationUrl) {
-        patchPayload.audioNarrationUrl = res.audioUrl;
+        const targetId = activeVoiceArtifact.id || (activeVoiceArtifact as any)._id;
+        if (targetId) {
+          const updated = await api.updateArtifact(targetId, patchPayload);
+          setActiveVoiceArtifact(updated);
+          setArtifacts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+        }
+      } catch (saveErr) {
+        console.warn('[Auto-sync voice warning]:', saveErr);
       }
 
-      const updated = await api.updateArtifact(activeVoiceArtifact.id, patchPayload);
-      setActiveVoiceArtifact(updated);
-      setArtifacts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-
-      showToast(`Đã xuất bản và đồng bộ giọng đọc Voice AI (${selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
+      showToast(`Đã tạo giọng đọc Voice AI (${selectedVoiceLang.toUpperCase()}) thành công! Bạn có thể nghe thử hoặc bấm "Lưu thuyết minh".`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tạo giọng đọc Voice AI', 'error');
     } finally {

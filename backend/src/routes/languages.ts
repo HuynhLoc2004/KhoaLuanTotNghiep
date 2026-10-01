@@ -821,8 +821,8 @@ languagesRouter.post('/generate-tts', async (req: Request, res: Response) => {
     const filename = `voice_${safeRoomCode}_${cleanLang}_${timestamp}.mp3`;
     const filePath = path.join(audioDir, filename);
 
-    // Tách kịch bản thành các đoạn nhỏ dưới 180 ký tự theo dấu câu để đọc trọn vẹn văn bản
-    const splitTextIntoChunks = (str: string, maxLen = 170): string[] => {
+    // Tách kịch bản thành các đoạn nhỏ dưới 140 ký tự theo dấu câu để Google TTS đọc mượt mà không bị ngắt
+    const splitTextIntoChunks = (str: string, maxLen = 140): string[] => {
       const sentences = str.match(/[^.!?\n]+[.!?\n]+/g) || [str];
       const chunks: string[] = [];
       let currentChunk = '';
@@ -857,26 +857,44 @@ languagesRouter.post('/generate-tts', async (req: Request, res: Response) => {
       return chunks.length > 0 ? chunks : [str.substring(0, maxLen)];
     };
 
-    const textChunks = splitTextIntoChunks(text);
+    const textChunks = splitTextIntoChunks(text, 140);
     const audioBuffers: Buffer[] = [];
+
+    // Hàm gọi TTS với cơ chế tự động chuyển đổi endpoint dự phòng và timeout an toàn
+    const fetchTtsChunk = async (chunkText: string): Promise<Buffer | null> => {
+      const endpoints = [
+        `https://translate.google.com/translate_tts?ie=UTF-8&tl=${googleLang}&client=tw-ob&q=${encodeURIComponent(chunkText)}`,
+        `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${googleLang}&client=gtx&q=${encodeURIComponent(chunkText)}`,
+        `https://translate.google.com.vn/translate_tts?ie=UTF-8&tl=${googleLang}&client=tw-ob&q=${encodeURIComponent(chunkText)}`
+      ];
+
+      for (const ttsUrl of endpoints) {
+        try {
+          const fetchAudio = await fetch(ttsUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+              'Referer': 'https://translate.google.com/'
+            },
+            signal: AbortSignal.timeout(7000)
+          });
+          if (fetchAudio.ok) {
+            const arrayBuf = await fetchAudio.arrayBuffer();
+            if (arrayBuf.byteLength > 100) {
+              return Buffer.from(arrayBuf);
+            }
+          }
+        } catch (e: any) {
+          console.warn(`[Google TTS endpoint fallback (${googleLang})]:`, e.message);
+        }
+      }
+      return null;
+    };
 
     for (const chunk of textChunks) {
       if (!chunk.trim()) continue;
-      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${googleLang}&client=tw-ob&q=${encodeURIComponent(chunk)}`;
-      try {
-        const fetchAudio = await fetch(ttsUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          }
-        });
-        if (fetchAudio.ok) {
-          const arrayBuf = await fetchAudio.arrayBuffer();
-          if (arrayBuf.byteLength > 100) {
-            audioBuffers.push(Buffer.from(arrayBuf));
-          }
-        }
-      } catch (e: any) {
-        console.warn(`[Google TTS chunk fetch error (${googleLang})]:`, e.message);
+      const buf = await fetchTtsChunk(chunk.trim());
+      if (buf) {
+        audioBuffers.push(buf);
       }
     }
 
@@ -884,7 +902,7 @@ languagesRouter.post('/generate-tts', async (req: Request, res: Response) => {
       const combinedBuffer = Buffer.concat(audioBuffers);
       fs.writeFileSync(filePath, combinedBuffer);
     } else {
-      throw new Error(`Không thể kết nối đến dịch vụ tổng hợp giọng nói cho ngôn ngữ [${cleanLang.toUpperCase()}]`);
+      throw new Error(`Không thể kết nối đến dịch vụ tổng hợp giọng nói cho ngôn ngữ [${cleanLang.toUpperCase()}]. Vui lòng thử lại sau giây lát.`);
     }
 
     const publicUrl = `/uploads/audio/${filename}`;
