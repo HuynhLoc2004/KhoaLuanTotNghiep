@@ -225,6 +225,10 @@ export async function pgUpsertArtifact(artifact: any) {
       }
     }
 
+    // Kiểm tra xem đã có artifact với code này hoặc id này trong Postgres chưa để tránh duplicate key trên artifacts_code_key
+    const existingCheck = await pgPool.query('SELECT id FROM artifacts WHERE code = $1 OR id = $2 LIMIT 1', [artifact.code, id]);
+    const targetId = existingCheck.rows.length > 0 ? existingCheck.rows[0].id : id;
+
     await pgPool.query(`
       INSERT INTO artifacts (
         id, code, name, room_id, room_code, topic_id, category, period, origin,
@@ -260,7 +264,7 @@ export async function pgUpsertArtifact(artifact: any) {
         mongo_id = COALESCE(EXCLUDED.mongo_id, artifacts.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
     `, [
-      id,
+      targetId,
       artifact.code,
       artifact.name || '',
       validRoomId,

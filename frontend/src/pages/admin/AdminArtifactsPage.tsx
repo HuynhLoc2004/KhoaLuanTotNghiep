@@ -568,12 +568,19 @@ export const AdminArtifactsPage: React.FC = () => {
     const initialLang = 'vi';
     setSelectedVoiceLang(initialLang);
 
-    // Khởi tạo bộ nhớ tạm workingVoiceTranslations từ translations hiện có
+    // Khởi tạo bộ nhớ tạm workingVoiceTranslations từ translations hiện có (hỗ trợ cả JSON string)
     const initialWorking: Record<string, any> = {};
     if (artifact.translations) {
-      Object.entries(artifact.translations).forEach(([code, val]) => {
-        initialWorking[code] = { ...(val as any) };
-      });
+      if (typeof artifact.translations === 'string') {
+        try {
+          const parsed = JSON.parse(artifact.translations);
+          Object.assign(initialWorking, parsed);
+        } catch {}
+      } else if (typeof artifact.translations === 'object') {
+        Object.entries(artifact.translations).forEach(([code, val]) => {
+          initialWorking[code] = { ...(val as any) };
+        });
+      }
     }
     setWorkingVoiceTranslations(initialWorking);
 
@@ -732,19 +739,42 @@ export const AdminArtifactsPage: React.FC = () => {
       // Reset preview audio vì văn bản mới dịch chưa được tạo Voice AI
       setPreviewAudioUrl(null);
 
-      setWorkingVoiceTranslations((prev) => ({
-        ...prev,
-        [selectedVoiceLang]: {
-          ...(prev[selectedVoiceLang] || {}),
-          name: translatedName,
-          period: translatedPeriod,
-          narrationScript: translatedScript,
-          description: translatedScript,
-          audioNarrationUrl: '' // Reset vì nội dung mới dịch chưa tạo voice
-        }
-      }));
+      const currentLangPayload = {
+        name: translatedName,
+        period: translatedPeriod,
+        narrationScript: translatedScript,
+        description: translatedScript,
+        audioNarrationUrl: '' // Reset vì nội dung mới dịch chưa tạo voice
+      };
 
-      showToast(`Đã tự động dịch từ ${sourceName} sang ${targetName} thành công! Hãy bấm "Tạo giọng đọc (Voice AI)" để sinh giọng đọc.`, 'success');
+      const updatedWorking = {
+        ...workingVoiceTranslations,
+        [selectedVoiceLang]: {
+          ...(workingVoiceTranslations[selectedVoiceLang] || {}),
+          ...currentLangPayload
+        }
+      };
+
+      setWorkingVoiceTranslations(updatedWorking);
+
+      // Tự động lưu bản dịch vào CSDL để không bị mất khi thoát modal
+      try {
+        const existingTranslations = activeVoiceArtifact.translations || {};
+        const mergedTranslations = {
+          ...existingTranslations,
+          ...updatedWorking
+        };
+        const targetId = activeVoiceArtifact.id || (activeVoiceArtifact as any)._id;
+        if (targetId) {
+          const updated = await api.updateArtifact(targetId, { translations: mergedTranslations });
+          setActiveVoiceArtifact(updated);
+          setArtifacts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+        }
+      } catch (saveErr) {
+        console.warn('[Auto-sync translate warning]:', saveErr);
+      }
+
+      showToast(`Đã tự động dịch từ ${sourceName} sang ${targetName} và lưu vào hệ thống! Hãy bấm "Tạo giọng đọc (Voice AI)" để sinh giọng đọc.`, 'success');
     } catch (err: any) {
       showToast('Lỗi khi dịch thuật: ' + (err.message || 'Không thể dịch'), 'error');
     } finally {

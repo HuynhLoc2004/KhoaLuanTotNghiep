@@ -292,8 +292,25 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
     setAiDrawerRoom(room);
     setSelectedVoiceLang('vi');
 
-    // Khởi tạo map bản dịch từ room.translations
-    const existingTrans: Record<string, any> = room.translations ? JSON.parse(JSON.stringify(room.translations)) : {};
+    // Khởi tạo map bản dịch từ room.translations hỗ trợ chuỗi JSON, Map và Object
+    let existingTrans: Record<string, any> = {};
+    if (typeof room.translations === 'string') {
+      try {
+        existingTrans = JSON.parse(room.translations);
+      } catch {
+        existingTrans = {};
+      }
+    } else if (room.translations instanceof Map) {
+      existingTrans = Object.fromEntries(room.translations);
+    } else if (room.translations && typeof (room.translations as any).entries === 'function') {
+      try {
+        existingTrans = Object.fromEntries((room.translations as any).entries());
+      } catch {
+        existingTrans = { ...room.translations };
+      }
+    } else if (room.translations && typeof room.translations === 'object') {
+      existingTrans = JSON.parse(JSON.stringify(room.translations));
+    }
 
     // Chuẩn bị sẵn tiếng Việt nếu chưa có trong map
     if (!existingTrans.vi) {
@@ -317,11 +334,14 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       }
     }
 
-    // Làm sạch triệt để: Nếu ngôn ngữ phụ không có text hoặc mang nhầm audio của tiếng Việt thì xóa audio rác
+    // Bảo tồn triệt để mọi bản dịch đã có, chỉ loại bỏ audio rác nếu trùng hệt audio tiếng Việt
     const viAudio = (existingTrans.vi.audioUrl || (room as any).audioUrl || '').trim();
     for (const [code, val] of Object.entries(existingTrans)) {
       if (code !== 'vi' && val) {
-        if (!val.narrationScript?.trim() || (viAudio && val.audioUrl?.trim() === viAudio)) {
+        if (!val.narrationScript?.trim() && val.description?.trim()) {
+          val.narrationScript = val.description.trim();
+        }
+        if (viAudio && val.audioUrl?.trim() === viAudio) {
           val.audioUrl = '';
         }
       }
@@ -339,6 +359,28 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   };
 
   const handleCloseAiDrawer = () => {
+    // Nếu người dùng có nội dung chưa lưu trong ô nhập hiện tại, tự động đồng bộ ngầm trước khi đóng
+    if (aiDrawerRoom && aiScript.trim()) {
+      const currentScript = aiScript.trim();
+      const currentAudio = previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || '';
+      const updated = {
+        ...(aiDrawerRoom.translations || {}),
+        ...workingTranslations,
+        [selectedVoiceLang]: {
+          ...(workingTranslations[selectedVoiceLang] || aiDrawerRoom.translations?.[selectedVoiceLang] || {}),
+          name: workingTranslations[selectedVoiceLang]?.name || (selectedVoiceLang === 'vi' ? aiDrawerRoom.name : undefined),
+          period: workingTranslations[selectedVoiceLang]?.period || (selectedVoiceLang === 'vi' ? aiDrawerRoom.period : undefined),
+          description: workingTranslations[selectedVoiceLang]?.description || (selectedVoiceLang === 'vi' ? aiDrawerRoom.description : undefined),
+          aiKnowledgePrompt: aiKnowledgePrompt.trim(),
+          narrationScript: currentScript,
+          audioUrl: currentAudio
+        }
+      };
+      api.updateRoom(aiDrawerRoom.id, { translations: updated }).then(updatedRoom => {
+        if (onRoomUpdated) onRoomUpdated(updatedRoom);
+      }).catch(err => console.warn('[Auto-sync close warning]:', err));
+    }
+
     setAiDrawerRoom(null);
     setPreviewAudioUrl(null);
     setWorkingTranslations({});
@@ -380,18 +422,20 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const handleSwitchDrawerLanguage = (targetLangCode: string) => {
     if (!aiDrawerRoom) return;
 
-    // Lưu nội dung ngôn ngữ hiện tại vào workingTranslations (nếu text rỗng thì không giữ audio rác)
+    // Lưu nội dung ngôn ngữ hiện tại vào workingTranslations
     const currentScript = aiScript.trim();
+    const currentKnowledge = aiKnowledgePrompt.trim();
     const updated = {
+      ...(aiDrawerRoom.translations || {}),
       ...workingTranslations,
       [selectedVoiceLang]: {
-        ...(workingTranslations[selectedVoiceLang] || {}),
+        ...(workingTranslations[selectedVoiceLang] || aiDrawerRoom.translations?.[selectedVoiceLang] || {}),
         name: workingTranslations[selectedVoiceLang]?.name || (selectedVoiceLang === 'vi' ? aiDrawerRoom.name : undefined),
         period: workingTranslations[selectedVoiceLang]?.period || (selectedVoiceLang === 'vi' ? aiDrawerRoom.period : undefined),
         description: workingTranslations[selectedVoiceLang]?.description || (selectedVoiceLang === 'vi' ? aiDrawerRoom.description : undefined),
-        aiKnowledgePrompt: aiKnowledgePrompt.trim(),
+        aiKnowledgePrompt: currentKnowledge,
         narrationScript: currentScript,
-        audioUrl: currentScript ? (previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || '') : ''
+        audioUrl: currentScript ? (previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || '') : (workingTranslations[selectedVoiceLang]?.audioUrl || '')
       }
     };
     setWorkingTranslations(updated);
@@ -407,14 +451,14 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       setPreviewAudioUrl(viScript.trim() ? (targetData?.audioUrl || (aiDrawerRoom as any).audioUrl || null) : null);
       setAiVoiceLang(aiDrawerRoom.aiVoiceLang || 'vi-south');
     } else {
-      const targetScript = targetData?.narrationScript || '';
+      const targetScript = targetData?.narrationScript || targetData?.description || '';
       setAiKnowledgePrompt(targetData?.aiKnowledgePrompt || '');
       setAiScript(targetScript);
 
       // Tuyệt đối không lấy audio của tiếng Việt hoặc khi chưa có text!
-      const viAudio = ((aiDrawerRoom as any).audioUrl || '').trim();
+      const viAudio = ((aiDrawerRoom as any).audioUrl || updated.vi?.audioUrl || '').trim();
       const rawAudio = targetData?.audioUrl || null;
-      const validAudio = (targetScript.trim() && rawAudio && rawAudio.trim() !== viAudio) ? rawAudio : null;
+      const validAudio = (rawAudio && rawAudio.trim() !== viAudio) ? rawAudio : null;
       setPreviewAudioUrl(validAudio);
       setAiVoiceLang(targetLangCode === 'en' ? 'en-us' : targetLangCode === 'fr' ? 'fr-fr' : targetLangCode);
     }
@@ -454,10 +498,11 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       // Reset audio vì văn bản mới dịch chưa thu âm voice
       setPreviewAudioUrl(null);
 
-      setWorkingTranslations(prev => ({
-        ...prev,
+      const updatedTrans = {
+        ...(aiDrawerRoom.translations || {}),
+        ...workingTranslations,
         [selectedVoiceLang]: {
-          ...(prev[selectedVoiceLang] || {}),
+          ...(workingTranslations[selectedVoiceLang] || aiDrawerRoom.translations?.[selectedVoiceLang] || {}),
           name: draft.name || aiDrawerRoom.name,
           period: draft.period || aiDrawerRoom.period,
           description: draft.description || '',
@@ -465,9 +510,23 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           narrationScript: translatedScript,
           audioUrl: '' // Reset audioUrl vì nội dung văn bản mới dịch chưa tạo voice
         }
-      }));
+      };
 
-      showToast(`Đã tự động dịch từ ${sourceName} sang ${targetName} thành công! Bây giờ bạn hãy bấm "Tạo giọng đọc & Nghe thử" để sinh Voice AI.`, 'success');
+      setWorkingTranslations(updatedTrans);
+
+      // TỰ ĐỘNG LƯU NGAY VÀO SERVER ĐỂ KHÔNG BỊ MẤT NẾU ĐÓNG MODAL
+      try {
+        const patchPayload: any = {
+          translations: updatedTrans
+        };
+        const updatedRoom = await api.updateRoom(aiDrawerRoom.id, patchPayload);
+        setAiDrawerRoom(updatedRoom);
+        if (onRoomUpdated) onRoomUpdated(updatedRoom);
+      } catch (autoSaveErr) {
+        console.warn('Lỗi tự động lưu bản dịch:', autoSaveErr);
+      }
+
+      showToast(`Đã tự động dịch từ ${sourceName} sang ${targetName} và lưu vào hệ thống! Bây giờ bạn hãy bấm "Tạo giọng đọc & Nghe thử" để sinh Voice AI.`, 'success');
     } catch (err: any) {
       showToast('Lỗi khi dịch thuật: ' + err.message, 'error');
     } finally {
@@ -636,17 +695,47 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
         : `${API_BASE.replace('/api', '')}${res.audioUrl}`;
       setPreviewAudioUrl(resolvedUrl);
 
-      setWorkingTranslations(prev => ({
-        ...prev,
-        [selectedVoiceLang]: {
-          ...(prev[selectedVoiceLang] || {}),
-          audioUrl: resolvedUrl,
-          narrationScript: aiScript.trim()
+      const currentLangData = {
+        ...(workingTranslations[selectedVoiceLang] || aiDrawerRoom?.translations?.[selectedVoiceLang] || {}),
+        name: workingTranslations[selectedVoiceLang]?.name || (selectedVoiceLang === 'vi' ? aiDrawerRoom?.name : undefined),
+        period: workingTranslations[selectedVoiceLang]?.period || (selectedVoiceLang === 'vi' ? aiDrawerRoom?.period : undefined),
+        description: workingTranslations[selectedVoiceLang]?.description || (selectedVoiceLang === 'vi' ? aiDrawerRoom?.description : undefined),
+        aiKnowledgePrompt: aiKnowledgePrompt.trim(),
+        narrationScript: aiScript.trim(),
+        audioUrl: resolvedUrl
+      };
+
+      const updatedTranslations = {
+        ...(aiDrawerRoom?.translations || {}),
+        ...workingTranslations,
+        [selectedVoiceLang]: currentLangData
+      };
+
+      setWorkingTranslations(updatedTranslations);
+
+      // TỰ ĐỘNG LƯU NGAY LẬP TỨC VÀO CSDL ĐỂ DÙ THOÁT MODAL CŨNG KHÔNG BAO GIỜ BỊ MẤT
+      if (aiDrawerRoom) {
+        try {
+          const patchPayload: any = {
+            translations: updatedTranslations
+          };
+          if (selectedVoiceLang === 'vi') {
+            patchPayload.aiKnowledgePrompt = aiKnowledgePrompt.trim();
+            patchPayload.aiScript = aiScript.trim();
+            patchPayload.aiVoiceEnabled = true;
+            patchPayload.aiVoiceLang = aiVoiceLang;
+            patchPayload.audioUrl = resolvedUrl;
+          }
+          const updated = await api.updateRoom(aiDrawerRoom.id, patchPayload);
+          setAiDrawerRoom(updated);
+          if (onRoomUpdated) onRoomUpdated(updated);
+        } catch (autoSaveErr) {
+          console.warn('[Auto-save TTS Warning]:', autoSaveErr);
         }
-      }));
+      }
 
       const langObj = languages.find(l => l.code === selectedVoiceLang);
-      showToast(`Đã xuất bản Voice AI thuyết minh ${langObj?.nativeName || selectedVoiceLang.toUpperCase()} thành công!`, 'success');
+      showToast(`Đã xuất bản và lưu vĩnh viễn Voice AI (${langObj?.nativeName || selectedVoiceLang.toUpperCase()}) thành công!`, 'success');
     } catch (err: any) {
       showToast('Lỗi khi tạo Voice AI: ' + err.message, 'error');
     } finally {
@@ -661,25 +750,22 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       setIsSavingAi(true);
 
       const hasScript = Boolean(aiScript.trim());
-      let currentAudio = '';
+      let currentAudio = previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || '';
 
-      if (hasScript) {
-        currentAudio = previewAudioUrl || workingTranslations[selectedVoiceLang]?.audioUrl || '';
+      if (hasScript && !currentAudio) {
         // Tự động sinh Voice AI nếu chưa có file âm thanh mà người dùng đã nhập lời đọc thuyết minh
-        if (!currentAudio) {
-          try {
-            const ttsRes = await api.generateTtsAudio({
-              text: aiScript.trim(),
-              langCode: selectedVoiceLang,
-              roomCode: aiDrawerRoom.code
-            });
-            currentAudio = ttsRes.audioUrl.startsWith('http')
-              ? ttsRes.audioUrl
-              : `${API_BASE.replace('/api', '')}${ttsRes.audioUrl}`;
-            setPreviewAudioUrl(currentAudio);
-          } catch (e: any) {
-            console.warn('Lỗi tự động sinh Voice AI khi lưu:', e.message);
-          }
+        try {
+          const ttsRes = await api.generateTtsAudio({
+            text: aiScript.trim(),
+            langCode: selectedVoiceLang,
+            roomCode: aiDrawerRoom.code
+          });
+          currentAudio = ttsRes.audioUrl.startsWith('http')
+            ? ttsRes.audioUrl
+            : `${API_BASE.replace('/api', '')}${ttsRes.audioUrl}`;
+          setPreviewAudioUrl(currentAudio);
+        } catch (e: any) {
+          console.warn('Lỗi tự động sinh Voice AI khi lưu:', e.message);
         }
       }
 
@@ -693,7 +779,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           description: workingTranslations[selectedVoiceLang]?.description || (selectedVoiceLang === 'vi' ? aiDrawerRoom.description : undefined),
           aiKnowledgePrompt: aiKnowledgePrompt.trim(),
           narrationScript: aiScript.trim(),
-          audioUrl: hasScript ? currentAudio : '' // Nếu không có text thì audioUrl phải rỗng!
+          audioUrl: currentAudio
         }
       };
 
@@ -706,19 +792,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
         payload.aiScript = aiScript.trim();
         payload.aiVoiceEnabled = Boolean(hasScript && currentAudio);
         payload.aiVoiceLang = aiVoiceLang;
-        payload.audioUrl = hasScript ? currentAudio : '';
+        payload.audioUrl = currentAudio;
       }
 
       const updated = await api.updateRoom(aiDrawerRoom.id, payload);
 
-      aiDrawerRoom.translations = updated.translations;
-      if (selectedVoiceLang === 'vi') {
-        aiDrawerRoom.aiKnowledgePrompt = updated.aiKnowledgePrompt;
-        aiDrawerRoom.aiScript = updated.aiScript;
-        aiDrawerRoom.aiVoiceEnabled = updated.aiVoiceEnabled;
-        aiDrawerRoom.aiVoiceLang = aiVoiceLang;
-        (aiDrawerRoom as any).audioUrl = updated.audioUrl || '';
-      }
+      setAiDrawerRoom(updated);
+      setWorkingTranslations(finalTranslations);
       if (onRoomUpdated) onRoomUpdated(updated);
 
       const langObj = languages.find(l => l.code === selectedVoiceLang);
