@@ -3983,7 +3983,8 @@
 
 .client-zigzag-card.horizontal-split .client-zigzag-card-media:has(.client-media-placeholder)::after,
 .client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-media:has(.client-media-placeholder)::after,
-.client-zigzag-card-media.has-placeholder::after {
+.client-zigzag-card-media.has-placeholder::after,
+.client-zigzag-card-media.has-360-viewer::after {
   display: none !important;
 }
 

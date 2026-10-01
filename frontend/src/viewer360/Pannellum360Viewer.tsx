@@ -35,6 +35,8 @@ interface Pannellum360ViewerProps {
   initialYaw?: number;
   initialHfov?: number;
   focusCoords?: { pitch: number; yaw: number; timestamp?: number } | null;
+  hideControls?: boolean;
+  autoRotateSpeed?: number;
 }
 
 export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
@@ -51,6 +53,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   initialYaw = 0,
   initialHfov = 100,
   focusCoords,
+  hideControls = false,
+  autoRotateSpeed = 0,
 }) => {
   const { branding } = useSystemBranding();
   const effectiveTitle = title || (branding ? `Toàn cảnh 360° ${branding.museumName}` : 'Toàn cảnh 360°');
@@ -191,6 +195,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         type: 'equirectangular',
         panorama: effectivePanoramaUrl,
         autoLoad: true,
+        autoRotate: autoRotateSpeed || 0,
         showControls: false,
         compass: false,
         hfov: initialHfov || 100, // Góc nhìn chuẩn rộng thoáng đãng 100°, triệt tiêu hoàn toàn hiệu ứng ống hút (tunnel) và làm phẳng không gian
@@ -209,6 +214,9 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       viewer.on('load', () => {
         setIsLoadingPanorama(false);
         setViewerError(null);
+        if (autoRotateSpeed) {
+          setIsAutoRotating(true);
+        }
         if (autoStartLittlePlanet && hasIntroducedRef.current !== panoramaUrl) {
           hasIntroducedRef.current = panoramaUrl;
           runLittlePlanetIntro();
@@ -761,83 +769,85 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       )}
 
       {/* Bottom Floating Control Bar */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 20,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 20,
-          pointerEvents: 'auto'
-        }}
-      >
-        <div className="glass-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px' }}>
-          {/* Ghim Hotspot Toggle (Studio) */}
-          {onTogglePinMode && (
-            <button
-              className={`glass-btn ${isPinMode ? 'active' : ''}`}
-              title={isPinMode ? 'Tắt chế độ ghim điểm' : 'Bật chế độ Ghim Điểm Liên Kết (Click để gắn)'}
-              onClick={onTogglePinMode}
-              style={isPinMode ? { background: '#DC2626', color: '#FFF' } : undefined}
-            >
-              <i className="fa-solid fa-location-dot"></i>
-            </button>
-          )}
+      {!hideControls && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 20,
+            pointerEvents: 'auto'
+          }}
+        >
+          <div className="glass-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px' }}>
+            {/* Ghim Hotspot Toggle (Studio) */}
+            {onTogglePinMode && (
+              <button
+                className={`glass-btn ${isPinMode ? 'active' : ''}`}
+                title={isPinMode ? 'Tắt chế độ ghim điểm' : 'Bật chế độ Ghim Điểm Liên Kết (Click để gắn)'}
+                onClick={onTogglePinMode}
+                style={isPinMode ? { background: '#DC2626', color: '#FFF' } : undefined}
+              >
+                <i className="fa-solid fa-location-dot"></i>
+              </button>
+            )}
 
-          {/* Lưu góc nhìn mặc định (Studio) */}
-          {onCaptureInitialView && (
+            {/* Lưu góc nhìn mặc định (Studio) */}
+            {onCaptureInitialView && (
+              <button
+                className="glass-btn"
+                title="Lưu góc nhìn hiện tại làm góc mở màn khi vào phòng"
+                onClick={handleCaptureView}
+              >
+                <i className="fa-solid fa-camera"></i>
+              </button>
+            )}
+
+            {/* Home / Reset view */}
             <button
               className="glass-btn"
-              title="Lưu góc nhìn hiện tại làm góc mở màn khi vào phòng"
-              onClick={handleCaptureView}
+              title="Góc nhìn chính diện (Góc siêu rộng 100°)"
+              onClick={handleResetHome}
             >
-              <i className="fa-solid fa-camera"></i>
+              <i className="fa-solid fa-compass"></i>
             </button>
-          )}
 
-          {/* Home / Reset view */}
-          <button
-            className="glass-btn"
-            title="Góc nhìn chính diện (Góc siêu rộng 100°)"
-            onClick={handleResetHome}
-          >
-            <i className="fa-solid fa-compass"></i>
-          </button>
+            {/* Little Planet Toggle */}
+            <button
+              className={`glass-btn ${isLittlePlanet ? 'active' : ''}`}
+              title="Hiệu ứng Quả cầu hành tinh tí hon (Little Planet)"
+              onClick={handleTogglePlanet}
+            >
+              <i className="fa-solid fa-globe"></i>
+            </button>
 
-          {/* Little Planet Toggle */}
-          <button
-            className={`glass-btn ${isLittlePlanet ? 'active' : ''}`}
-            title="Hiệu ứng Quả cầu hành tinh tí hon (Little Planet)"
-            onClick={handleTogglePlanet}
-          >
-            <i className="fa-solid fa-globe"></i>
-          </button>
+            {/* Auto Rotate Toggle */}
+            <button
+              className={`glass-btn ${isAutoRotating ? 'active' : ''}`}
+              title="Tự động xoay quanh phòng"
+              onClick={handleToggleAutoRotate}
+            >
+              <i className="fa-solid fa-arrows-rotate"></i>
+            </button>
 
-          {/* Auto Rotate Toggle */}
-          <button
-            className={`glass-btn ${isAutoRotating ? 'active' : ''}`}
-            title="Tự động xoay quanh phòng"
-            onClick={handleToggleAutoRotate}
-          >
-            <i className="fa-solid fa-arrows-rotate"></i>
-          </button>
+            {/* Zoom In */}
+            <button className="glass-btn" title="Phóng to" onClick={handleZoomIn}>
+              <i className="fa-solid fa-plus"></i>
+            </button>
 
-          {/* Zoom In */}
-          <button className="glass-btn" title="Phóng to" onClick={handleZoomIn}>
-            <i className="fa-solid fa-plus"></i>
-          </button>
+            {/* Zoom Out */}
+            <button className="glass-btn" title="Thu nhỏ" onClick={handleZoomOut}>
+              <i className="fa-solid fa-minus"></i>
+            </button>
 
-          {/* Zoom Out */}
-          <button className="glass-btn" title="Thu nhỏ" onClick={handleZoomOut}>
-            <i className="fa-solid fa-minus"></i>
-          </button>
-
-          {/* Fullscreen */}
-          <button className="glass-btn" title="Toàn màn hình" onClick={handleToggleFullscreen}>
-            <i className="fa-solid fa-expand"></i>
-          </button>
+            {/* Fullscreen */}
+            <button className="glass-btn" title="Toàn màn hình" onClick={handleToggleFullscreen}>
+              <i className="fa-solid fa-expand"></i>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
