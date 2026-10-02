@@ -568,7 +568,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   </div>
                   <div className="guide-meta-texts">
                     <div className="guide-title-row">
-                      <span className="guide-label">Thuyết minh Di sản AI</span>
+                      <span className="guide-label">Giới thiệu hiện vật</span>
                       <span className="guide-badge-ai">Voice AI</span>
                     </div>
                     <div className="guide-lang-sub">
@@ -631,12 +631,12 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   {isPlayingAudio ? (
                     <>
                       <Pause size={17} />
-                      <span>Tạm dừng thuyết minh</span>
+                      <span>Tạm dừng nghe</span>
                     </>
                   ) : (
                     <>
                       <Play size={17} />
-                      <span>Nghe thuyết minh di sản</span>
+                      <span>Nghe giới thiệu hiện vật</span>
                     </>
                   )}
                 </button>
@@ -782,8 +782,8 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             </button>
             <div className="qr-card-header">
               <QrCode size={28} className="gold-icon" />
-              <h3>Mã QR Quét Xem Cổ Vật</h3>
-              <p>Quét mã bằng camera điện thoại để mở trực tiếp mô hình 3D và nghe thuyết minh</p>
+              <h3>Mã QR Khám Phá Cổ Vật</h3>
+              <p>Quét mã bằng camera điện thoại để chiêm ngưỡng mô hình 3D và nghe giới thiệu hiện vật</p>
             </div>
 
             <div className="qr-image-wrapper">

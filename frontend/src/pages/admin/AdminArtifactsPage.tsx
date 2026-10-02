@@ -2581,10 +2581,10 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
 
                 <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A110B', marginBottom: 3 }}>
-                  Quét mã để chiêm ngưỡng mô hình 3D 360° & nghe thuyết minh
+                  Quét mã để chiêm ngưỡng mô hình 3D 360° & nghe giới thiệu hiện vật
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#8C7769', letterSpacing: '0.2px' }}>
-                  Scan to explore 360° 3D artifact & audio tour
+                  Scan to explore 360° 3D artifact & audio guide
                 </div>
               </div>
 

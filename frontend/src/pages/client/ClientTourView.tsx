@@ -135,7 +135,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
       // TUYỆT ĐỐI KHÔNG DÙNG GIỌNG BROWSER NÓI BẬY BẠ! Chỉ phát file giọng thật do Ban quản trị tạo
       setIsPlayingVoice(false);
       const langUpper = (currentLang || 'vi').toUpperCase();
-      setVoiceToast(`Gian phòng chưa có bản thu âm thuyết minh cho ngôn ngữ [${langUpper}]. Ban quản lý đang cập nhật.`);
+      setVoiceToast(`Gian phòng chưa có bản thu âm giới thiệu cho ngôn ngữ [${langUpper}]. Ban quản lý đang cập nhật.`);
       setTimeout(() => setVoiceToast(null), 3500);
       return;
     }
@@ -151,7 +151,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
     };
     audio.onerror = () => {
       setIsPlayingVoice(false);
-      setVoiceToast('Không thể tải tệp âm thanh thuyết minh từ máy chủ.');
+      setVoiceToast('Không thể tải tệp âm thanh giới thiệu từ máy chủ.');
       setTimeout(() => setVoiceToast(null), 3500);
     };
     audio.ontimeupdate = () => {
@@ -323,13 +323,13 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         {/* CỤM NÚT ĐIỀU HƯỚNG BÊN PHẢI: THUYẾT MINH AI + BỘ CHỌN PHÒNG TÙY BIẾN + INFO */}
         <div className="client-tour-actions" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
 
-          {/* 1. NÚT THUYẾT MINH VOICE AI & CHUYỂN ĐỔI NGÔN NGỮ ĐỒNG BỘ */}
+          {/* 1. NÚT NGHE GIỚI THIỆU VOICE AI & CHUYỂN ĐỔI NGÔN NGỮ ĐỒNG BỘ */}
           <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(15, 18, 24, 0.88)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(212, 168, 106, 0.3)', borderRadius: 30, padding: '3px 4px', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
-            {/* Nút Play/Pause Audio Thuyết minh */}
+            {/* Nút Play/Pause Audio Giới thiệu */}
             <button
               type="button"
               onClick={toggleVoicePlayback}
-              title={isPlayingVoice ? 'Tạm dừng thuyết minh' : 'Bật thuyết minh âm thanh đa ngữ'}
+              title={isPlayingVoice ? 'Tạm dừng nghe giới thiệu' : 'Bật giọng đọc giới thiệu gian phòng'}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -354,12 +354,12 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                     <span style={{ width: 2, height: 12, background: '#F59E0B', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out 0.2s' }} />
                     <span style={{ width: 2, height: 6, background: '#F59E0B', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out 0.4s' }} />
                   </span>
-                  <span>{t('tour.voicePlaying', 'Thuyết minh')}</span>
+                  <span>{t('tour.voicePlaying', 'Đang giới thiệu...')}</span>
                 </>
               ) : (
                 <>
                   <Volume2 size={14} style={{ color: '#D4A86A' }} />
-                  <span>{t('tour.voiceAi', 'Thuyết minh')}</span>
+                  <span>{t('tour.voiceAi', 'Nghe giới thiệu')}</span>
                 </>
               )}
             </button>
@@ -372,7 +372,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsLangDropdownOpen((prev) => !prev)}
-                title="Chuyển đổi ngôn ngữ thuyết minh"
+                title="Chọn ngôn ngữ giọng đọc"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -414,7 +414,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   }}
                 >
                   <div style={{ fontSize: '10px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 2 }}>
-                    Ngôn ngữ thuyết minh
+                    Ngôn ngữ giọng đọc
                   </div>
                   {activeLanguages.map((lang) => {
                     const isSelected = lang.code === currentLang;
@@ -799,11 +799,11 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               </p>
             </div>
 
-            {/* Khung bài thuyết minh */}
+            {/* Khung bài giới thiệu */}
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 12, padding: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#D4A86A', textTransform: 'uppercase' }}>
-                  Nội dung thuyết minh ({currentLang.toUpperCase()})
+                  Nội dung giới thiệu ({currentLang.toUpperCase()})
                 </span>
                 <button
                   type="button"
@@ -822,7 +822,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   }}
                 >
                   {isPlayingVoice ? <Pause size={12} /> : <Play size={12} />}
-                  <span>{isPlayingVoice ? 'Tạm dừng' : 'Nghe đọc'}</span>
+                  <span>{isPlayingVoice ? 'Tạm dừng' : 'Nghe giới thiệu'}</span>
                 </button>
               </div>
               <p style={{ fontSize: '13px', lineHeight: 1.65, color: '#D1D5DB', margin: 0, whiteSpace: 'pre-line' }}>
