@@ -31,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'studio': return t('nav.studio', 'Biên tập Hotspot 360°');
       case 'poc_stitching': return t('nav.pocStitching', 'Tạo Ảnh Toàn Cảnh 360°');
       case 'artifacts': return t('nav.artifacts', 'Quản lý Trang Cổ vật & Bảo vật 3D');
+      case 'showcase': return t('nav.showcasePage', 'Cấu hình Trưng bày Trang chủ');
       case 'homepage_cms': return t('nav.homepageCms', 'Quản lý Trang chủ & Giao diện');
       case 'guide': return t('nav.guidePage', 'Quản lý Trang Cẩm nang & Sơ đồ');
       case 'languages': return t('nav.languages', 'Quản trị Ngôn ngữ & Voice AI');

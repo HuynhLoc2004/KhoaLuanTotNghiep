@@ -21,7 +21,11 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
   const { t, localize } = useClientTranslation();
 
   // Ưu tiên: phòng được Admin chỉ định trong branding -> hoặc phòng đầu tiên có trong CSDL thực tế
-  const featuredRoom = (branding.roomsFeaturedId && rooms.find((r) => r.id === branding.roomsFeaturedId)) || rooms[0];
+  const featuredRoom = (branding.roomsFeaturedId && rooms.find((r) =>
+    r.id === branding.roomsFeaturedId ||
+    (r as any)._id === branding.roomsFeaturedId ||
+    (r as any).code === branding.roomsFeaturedId
+  )) || rooms[0];
 
   // Ưu tiên ảnh:
   // 1. Ảnh tùy chỉnh do Admin cấu hình trong CMS (branding.roomsShowcaseImageUrl)

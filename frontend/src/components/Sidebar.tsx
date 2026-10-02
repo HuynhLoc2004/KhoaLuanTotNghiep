@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate, ChevronDown, Layers, Users, Ticket } from 'lucide-react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate, ChevronDown, Layers, Users, Ticket, SlidersHorizontal } from 'lucide-react';
 import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 import { useClientTranslation } from '../context/ClientTranslationContext';
@@ -176,7 +176,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* 1.2 Quản lý Gian phòng 360° */}
+        {/* 1.2 Cấu hình Trưng bày Trang chủ */}
+        <button
+          className={`nav-item ${currentTab === 'showcase' ? 'active' : ''}`}
+          onClick={() => handleItemClick('showcase')}
+          title="Cấu hình gian phòng 360° và cổ vật 3D được hiển thị cố định trên Trang chủ"
+        >
+          <SlidersHorizontal size={16} />
+          <span className="nav-item-text">{t('nav.showcasePage', 'Trưng bày Trang chủ')}</span>
+        </button>
+
+        {/* 1.3 Quản lý Gian phòng 360° */}
         <button
           className={`nav-item ${currentTab === 'rooms' || currentTab === 'studio' ? 'active' : ''}`}
           onClick={() => handleItemClick('rooms')}

@@ -78,7 +78,7 @@ export interface TopicItem {
   updatedAt?: string;
 }
 
-export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'homepage_cms' | 'guide' | 'languages' | 'users' | 'tickets' | 'analytics' | 'settings';
+export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'showcase' | 'homepage_cms' | 'guide' | 'languages' | 'users' | 'tickets' | 'analytics' | 'settings';
 
 export interface AdminTicketItem {
   id: string;
@@ -381,6 +381,8 @@ export interface SystemBranding {
   artifactsTitle?: string;
   artifactsDesc?: string;
   artifactsCtaText?: string;
+  artifactsFeaturedId?: string;
+  artifactsShowcaseImageUrl?: string;
   // Guide & Floor Plan Section
   guideTag?: string;
   guideTitle?: string;

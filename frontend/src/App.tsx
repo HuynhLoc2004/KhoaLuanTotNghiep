@@ -23,6 +23,7 @@ import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminHomepageCMSPage } from './pages/admin/AdminHomepageCMSPage';
+import { AdminShowcasePage } from './pages/admin/AdminShowcasePage';
 import { AdminGuideCMSPage } from './pages/admin/AdminGuideCMSPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminTicketsPage } from './pages/admin/AdminTicketsPage';
@@ -1022,6 +1023,8 @@ const AppContent: React.FC = () => {
           />
         ) : currentTab === 'artifacts' ? (
           <AdminArtifactsPage />
+        ) : currentTab === 'showcase' ? (
+          <AdminShowcasePage onNavigateTab={(tab) => setCurrentTab(tab as any)} />
         ) : currentTab === 'homepage_cms' ? (
           <AdminHomepageCMSPage
             activeSection={homepageSection}

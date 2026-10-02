@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/Toast';
-import { SystemBranding, HeaderMenuItem, HeaderSubMenuItem, MuseumRoom } from '../../types';
+import { SystemBranding, HeaderMenuItem, HeaderSubMenuItem, MuseumRoom, Artifact } from '../../types';
 import { useSystemBranding, DEFAULT_HEADER_MENU } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import {
@@ -82,19 +82,25 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingHeroBanner, setUploadingHeroBanner] = useState(false);
   const [uploadingIntroImage, setUploadingIntroImage] = useState(false);
-  // Quản lý gian phòng 360 thực tế từ cơ sở dữ liệu
+  // Quản lý gian phòng 360 & cổ vật 3D thực tế từ cơ sở dữ liệu
   const [availableRooms, setAvailableRooms] = useState<MuseumRoom[]>([]);
   const [uploadingRoomsShowcase, setUploadingRoomsShowcase] = useState(false);
+  const [availableArtifacts, setAvailableArtifacts] = useState<Artifact[]>([]);
+  const [uploadingArtifactsShowcase, setUploadingArtifactsShowcase] = useState(false);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const heroBannerInputRef = useRef<HTMLInputElement>(null);
   const introImageInputRef = useRef<HTMLInputElement>(null);
   const roomsShowcaseInputRef = useRef<HTMLInputElement>(null);
+  const artifactsShowcaseInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.getRooms()
       .then((data) => setAvailableRooms(data || []))
       .catch((err) => console.warn('[AdminHomepageCMS] Lỗi tải danh sách phòng:', err));
+    api.getArtifacts()
+      .then((data) => setAvailableArtifacts(data || []))
+      .catch((err) => console.warn('[AdminHomepageCMS] Lỗi tải danh sách hiện vật:', err));
   }, []);
 
   // Chỉ nạp branding vào form khi tải lần đầu hoặc khi không có thay đổi chưa lưu (isDirty=false)
@@ -1896,6 +1902,135 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 placeholder="VD: Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác..."
                 style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1', padding: '16px', background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Box size={16} />
+                <span>Cài đặt cổ vật đại diện & hình ảnh hiển thị</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Chọn cổ vật đại diện hiển thị ở Trang Chủ:
+                  </label>
+                  <select
+                    value={form.artifactsFeaturedId || ''}
+                    onChange={(e) => handleChange('artifactsFeaturedId', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 8,
+                      color: 'var(--text-main)',
+                      fontSize: 13
+                    }}
+                  >
+                    <option value="">-- Mặc định (Tự động lấy cổ vật 3D mới nhất) --</option>
+                    {availableArtifacts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.code ? `[${a.code}] ` : ''}{a.name} {a.model3dUrl ? '(Có 3D)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                    {availableArtifacts.length > 0
+                      ? `Hiện có ${availableArtifacts.length} cổ vật sẵn sàng hiển thị.`
+                      : 'Hệ thống hiện chưa có cổ vật nào.'}
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
+                    Ảnh bìa đại diện riêng (Không bắt buộc):
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="text"
+                      value={form.artifactsShowcaseImageUrl || ''}
+                      onChange={(e) => handleChange('artifactsShowcaseImageUrl', e.target.value)}
+                      placeholder="Dán link ảnh hoặc bấm nút Tải ảnh bên cạnh"
+                      style={{ flex: 1, padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => artifactsShowcaseInputRef.current?.click()}
+                      disabled={uploadingArtifactsShowcase}
+                      style={{
+                        padding: '8px 14px',
+                        background: 'rgba(212, 175, 55, 0.15)',
+                        border: '1px solid rgba(212, 175, 55, 0.35)',
+                        color: 'var(--gold)',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: uploadingArtifactsShowcase ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}
+                    >
+                      <Upload size={13} />
+                      <span>{uploadingArtifactsShowcase ? 'Đang tải...' : 'Tải ảnh'}</span>
+                    </button>
+                    <input
+                      type="file"
+                      ref={artifactsShowcaseInputRef}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          setUploadingArtifactsShowcase(true);
+                          const res = await api.uploadBrandingImage(file);
+                          handleChange('artifactsShowcaseImageUrl', res.url);
+                          showToast('Đã tải ảnh đại diện cổ vật thành công!', 'success');
+                        } catch (err: any) {
+                          showToast(err.message || 'Lỗi khi tải ảnh', 'error');
+                        } finally {
+                          setUploadingArtifactsShowcase(false);
+                          if (artifactsShowcaseInputRef.current) artifactsShowcaseInputRef.current.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                    Nếu không chọn ảnh riêng, hệ thống sẽ tự động dùng hình ảnh/3D của cổ vật được chọn.
+                  </span>
+                </div>
+              </div>
+
+              {form.artifactsShowcaseImageUrl && (
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img
+                    src={form.artifactsShowcaseImageUrl}
+                    alt="Artifacts Showcase Preview"
+                    style={{ height: 60, width: 60, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border-color)', background: '#000' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleChange('artifactsShowcaseImageUrl', '')}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#EF4444',
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Trash2 size={12} />
+                    <span>Xóa ảnh riêng</span>
+                  </button>
+                </div>
+              )}
             </div>
             {renderSectionNavFooter(5, 'Phần 6: Cổ vật 3D')}
           </div>

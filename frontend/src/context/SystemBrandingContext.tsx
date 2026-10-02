@@ -86,6 +86,8 @@ export const DEFAULT_BRANDING_STATE: SystemBranding = {
   artifactsTitle: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản',
   artifactsDesc: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.',
   artifactsCtaText: 'Khám phá toàn bộ kho hiện vật',
+  artifactsFeaturedId: '',
+  artifactsShowcaseImageUrl: '',
   guideTag: 'Kế Hoạch & Sơ Đồ',
   guideTitle: 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa',
   guideDesc: 'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.',

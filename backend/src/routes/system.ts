@@ -441,6 +441,8 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       artifactsTitle: req.body.artifactsTitle !== undefined ? String(req.body.artifactsTitle).trim() : current.artifactsTitle,
       artifactsDesc: req.body.artifactsDesc !== undefined ? String(req.body.artifactsDesc).trim() : current.artifactsDesc,
       artifactsCtaText: req.body.artifactsCtaText !== undefined ? String(req.body.artifactsCtaText).trim() : current.artifactsCtaText,
+      artifactsFeaturedId: req.body.artifactsFeaturedId !== undefined ? String(req.body.artifactsFeaturedId).trim() : current.artifactsFeaturedId,
+      artifactsShowcaseImageUrl: req.body.artifactsShowcaseImageUrl !== undefined ? String(req.body.artifactsShowcaseImageUrl).trim() : current.artifactsShowcaseImageUrl,
       // Guide & Floor Plan Section
       guideTag: req.body.guideTag !== undefined ? String(req.body.guideTag).trim() : current.guideTag,
       guideTitle: req.body.guideTitle !== undefined ? String(req.body.guideTitle).trim() : current.guideTitle,

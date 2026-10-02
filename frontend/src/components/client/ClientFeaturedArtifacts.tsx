@@ -39,7 +39,20 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     });
   }, [artifacts]);
 
-  const activeArtifact = sortedArtifacts[0];
+  // Ưu tiên: Cổ vật do Quản trị viên chỉ định trong Cấu hình Trưng bày -> nếu chưa chỉ định thì lấy hiện vật 3D mới nhất
+  const activeArtifact = React.useMemo(() => {
+    if (branding.artifactsFeaturedId?.trim()) {
+      const targetId = branding.artifactsFeaturedId.trim();
+      const matched = artifacts.find(
+        (a) =>
+          a.id === targetId ||
+          (a as any)._id === targetId ||
+          (a as any).code === targetId
+      );
+      if (matched) return matched;
+    }
+    return sortedArtifacts[0];
+  }, [artifacts, branding.artifactsFeaturedId, sortedArtifacts]);
 
   const getFullThumb = (art?: Artifact) => {
     if (!art) return '';
@@ -50,7 +63,11 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
       : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
   };
 
-  const currentThumb = getFullThumb(activeArtifact);
+  const customShowcase = branding.artifactsShowcaseImageUrl?.trim();
+  const rawThumb = getFullThumb(activeArtifact);
+  const currentThumb = customShowcase
+    ? (customShowcase.startsWith('http') ? customShowcase : `${API_ROOT}${customShowcase.startsWith('/') ? '' : '/'}${customShowcase}`)
+    : rawThumb;
   const currentTitle = activeArtifact
     ? localize(activeArtifact, 'name', activeArtifact.name)
     : t('artifacts.defaultTitle', 'Cổ vật di sản tiêu biểu');
