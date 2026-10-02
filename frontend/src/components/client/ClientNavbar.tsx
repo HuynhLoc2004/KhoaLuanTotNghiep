@@ -498,7 +498,13 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
 
     {/* Mobile Drawer Menu - Độc lập, không làm phình to hoặc biến dạng góc của Navbar */}
     {isMobileMenuOpen && (
-      <div className="client-mobile-drawer">
+      <>
+        <div
+          className="client-mobile-backdrop"
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-label="Đóng menu"
+        />
+        <div className="client-mobile-drawer">
           {/* Thông tin người dùng nếu đã đăng nhập */}
           {user && (
             <div className="client-mobile-user-card">
@@ -722,7 +728,8 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             </button>
           )}
         </div>
-      )}
+      </>
+    )}
     </>
   );
 };
