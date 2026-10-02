@@ -242,9 +242,21 @@ ticketsRouter.post('/checkout', async (req: Request, res: Response) => {
     }
 
     // 5. URL trả về sau khi người dùng thanh toán hoặc hủy trên PayOS
-    const origin = req.headers.origin || req.headers.referer || 'http://localhost:5173';
-    const cleanOrigin = origin.replace(/\/$/, '');
-    const returnUrl = `${cleanOrigin}/profile?payment=success&orderCode=${orderCode}`;
+    const host = req.headers['x-forwarded-host'] || req.headers.host || '103.178.233.206';
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    let baseOrigin = req.headers.origin;
+    if (!baseOrigin && req.headers.referer) {
+      try {
+        baseOrigin = new URL(String(req.headers.referer)).origin;
+      } catch {}
+    }
+    if (!baseOrigin) {
+      baseOrigin = `${proto}://${host}`;
+    }
+    const cleanOrigin = String(baseOrigin).replace(/\/$/, '');
+    const returnUrl = userId
+      ? `${cleanOrigin}/profile?payment=success&orderCode=${orderCode}`
+      : `${cleanOrigin}/booking?payment=success&orderCode=${orderCode}`;
     const cancelUrl = `${cleanOrigin}/booking?payment=cancel&orderCode=${orderCode}`;
 
     // 6. Gọi PayOS tạo Payment Link (VietQR)

@@ -163,6 +163,13 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
         items
       });
 
+      // Nếu PayOS trả về checkoutUrl, lập tức chuyển hướng tới trang thanh toán PayOS
+      if (res && res.checkoutUrl) {
+        showToast('Đang chuyển hướng tới cổng thanh toán PayOS...', 'info');
+        window.location.href = res.checkoutUrl;
+        return;
+      }
+
       if (res && res.orderCode) {
         setActivePaymentModal(res);
         setPaymentTimeRemaining(900); // 15 phút
@@ -216,6 +223,25 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
       if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
     };
   }, [activePaymentModal, paymentSuccess]);
+
+  // Lắng nghe callback chuyển hướng từ cổng thanh toán PayOS
+  useEffect(() => {
+    try {
+      const queryParams = new URLSearchParams(window.location.search);
+      const payment = queryParams.get('payment');
+      const status = queryParams.get('status');
+      const orderCode = queryParams.get('orderCode');
+      const cancel = queryParams.get('cancel');
+
+      if (payment === 'success' || status === 'PAID') {
+        showToast(`Thanh toán đơn hàng #${orderCode || ''} thành công! Vé tham quan đã được phát hành qua email.`, 'success');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (payment === 'cancel' || cancel === 'true' || status === 'CANCELLED') {
+        showToast(`Giao dịch đơn hàng #${orderCode || ''} đã bị huỷ. Quý khách có thể chọn lại vé bất cứ lúc nào.`, 'warning');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch {}
+  }, []);
 
   const formatVND = (num: number = 0) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
@@ -949,9 +975,15 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                       }}
                     >
                       <img
-                        src={activePaymentModal.qrCode}
+                        src={
+                          activePaymentModal.accountNumber && (activePaymentModal.bin || activePaymentModal.accountNumber)
+                            ? `https://api.vietqr.io/image/${activePaymentModal.bin || '970422'}-${activePaymentModal.accountNumber}-compact2.png?amount=${activePaymentModal.totalAmount}&addInfo=${encodeURIComponent('DATVE ' + activePaymentModal.orderCode)}&accountName=${encodeURIComponent(activePaymentModal.accountName || '')}`
+                            : (activePaymentModal.qrCode?.startsWith('http')
+                                ? activePaymentModal.qrCode
+                                : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(activePaymentModal.qrCode || activePaymentModal.checkoutUrl || '')}`)
+                        }
                         alt="PayOS VietQR"
-                        style={{ width: 180, height: 180, display: 'block' }}
+                        style={{ width: 180, height: 180, display: 'block', objectFit: 'contain' }}
                       />
                     </div>
 

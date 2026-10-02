@@ -93,6 +93,27 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
     loadData();
   }, [isAuthenticated]);
 
+  // Lắng nghe callback redirect từ cổng thanh toán PayOS
+  useEffect(() => {
+    try {
+      const queryParams = new URLSearchParams(window.location.search);
+      const payment = queryParams.get('payment');
+      const status = queryParams.get('status');
+      const orderCode = queryParams.get('orderCode');
+      const cancel = queryParams.get('cancel');
+
+      if (payment === 'success' || status === 'PAID') {
+        setActiveTab('tickets');
+        showToast(`Thanh toán đơn hàng #${orderCode || ''} thành công! Vé tham quan đã được kích hoạt trong hồ sơ của bạn.`, 'success');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        loadData();
+      } else if (payment === 'cancel' || cancel === 'true' || status === 'CANCELLED') {
+        showToast(`Giao dịch thanh toán #${orderCode || ''} đã bị huỷ. Quý khách có thể mua lại vé bất cứ lúc nào.`, 'warning');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch {}
+  }, []);
+
   // Cập nhật thông tin cơ bản
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
