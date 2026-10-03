@@ -1375,11 +1375,14 @@ export const AdminArtifactsPage: React.FC = () => {
               const transCount = art.translations ? Object.keys(art.translations).length : 0;
 
               return (
-                <div key={art.id} className="room-card">
-                  {/* Khung ảnh thumbnail chuẩn mực 135px */}
-                  <div className="room-thumbnail-wrapper">
+                <div key={art.id} className="room-card artifact-admin-card">
+                  {/* Khung ảnh thumbnail chuẩn mực không bị cắt đầu/chân hiện vật */}
+                  <div className="room-thumbnail-wrapper artifact-thumbnail-wrapper">
                     {fullImgUrl ? (
-                      <img src={fullImgUrl} alt={art.name} className="room-thumbnail" />
+                      <>
+                        <img src={fullImgUrl} alt="" className="artifact-blur-backdrop" aria-hidden="true" />
+                        <img src={fullImgUrl} alt={art.name} className="room-thumbnail artifact-thumbnail" />
+                      </>
                     ) : (
                       <div
                         style={{

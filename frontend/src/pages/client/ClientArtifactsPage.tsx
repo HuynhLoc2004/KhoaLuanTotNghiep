@@ -240,15 +240,18 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
 
                   const artId = String(art.id || (art as any)._id || '');
                   return (
-                    <div key={artId || title} className="client-gallery-card is-revealed">
+                    <div key={artId || title} className="client-gallery-card client-artifact-card is-revealed">
                       <div
-                        className={`client-gallery-media clickable ${!thumb ? 'has-placeholder' : ''}`}
+                        className={`client-gallery-media client-artifact-media clickable ${!thumb ? 'has-placeholder' : ''}`}
                         onClick={() => onSelectArtifactDetail(artId)}
                         role="button"
                         tabIndex={0}
                       >
                         {thumb ? (
-                          <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                          <>
+                            <img src={thumb} alt="" className="client-artifact-blur-bg" aria-hidden="true" />
+                            <img src={thumb} alt={title} className="client-gallery-img client-artifact-img" loading="lazy" />
+                          </>
                         ) : (
                           <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
                             <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>

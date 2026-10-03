@@ -914,6 +914,43 @@
   transform: scale(1.03);
 }
 
+/* Khung hiển thị ảnh cổ vật chuẩn mực không bị cắt đầu/chân */
+.artifact-thumbnail-wrapper {
+  height: 165px !important;
+  background: radial-gradient(circle at center, #261c14 0%, #0e0906 100%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.artifact-blur-backdrop {
+  position: absolute;
+  inset: -12px;
+  width: calc(100% + 24px);
+  height: calc(100% + 24px);
+  object-fit: cover;
+  filter: blur(18px) brightness(0.35) saturate(1.2);
+  opacity: 0.65;
+  pointer-events: none;
+  transform: scale(1.1);
+}
+
+.artifact-thumbnail {
+  position: relative;
+  z-index: 1;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  padding: 8px 12px;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.75));
+  transition: transform 0.35s ease, filter 0.35s ease;
+}
+
+.artifact-admin-card:hover .artifact-thumbnail {
+  transform: scale(1.05);
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.85));
+}
+
 .room-badge-code {
   position: absolute;
   top: 8px;
