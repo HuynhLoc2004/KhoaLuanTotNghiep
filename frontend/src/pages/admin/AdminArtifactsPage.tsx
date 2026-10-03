@@ -512,11 +512,29 @@ export const AdminArtifactsPage: React.FC = () => {
     try {
       setIsolatingArtId(targetId);
       showToast(`Đang dùng AI tách sạch phông nền, loại bỏ tủ kính cho "${art.name}"...`, 'info');
-      await api.isolateArtifactImage(targetImg, targetId);
+      const res = await api.isolateArtifactImage(targetImg, targetId);
+      
+      // Cập nhật ngay lập tức giao diện tại client mà không cần chờ fetch
+      if (res && res.url) {
+        setArtifacts((prev) =>
+          prev.map((item) => {
+            const itemId = String(item.id || (item as any)._id);
+            if (itemId === targetId) {
+              const newImages = item.images && item.images.length > 0
+                ? [res.url, ...item.images.slice(1)]
+                : [res.url];
+              return { ...item, thumbnailUrl: res.url, images: newImages };
+            }
+            return item;
+          })
+        );
+      }
+
       showToast(`Đã bóc tách phông nền thành công cho "${art.name}"!`, 'success');
       fetchArtifacts();
       window.dispatchEvent(new CustomEvent('museum:artifacts_updated'));
     } catch (err: any) {
+      console.error('[Quick Isolate Error]:', err);
       showToast(err.message || 'Lỗi bóc tách nền hiện vật', 'error');
     } finally {
       setIsolatingArtId(null);
