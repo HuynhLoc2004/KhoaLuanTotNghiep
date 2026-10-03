@@ -1861,9 +1861,6 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
       {aiDrawerRoom && (
         <div
           className="modal-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseAiDrawer();
-          }}
         >
           <div
             className="modal-card"

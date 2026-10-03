@@ -98,13 +98,20 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
     }
   };
 
+  const handleClose = () => {
+    if (loading || uploading) return;
+    if (name.trim() !== (room.name || '').trim() || description.trim() !== (room.description || '').trim()) {
+      if (!window.confirm('Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn đóng và hủy bỏ?')) {
+        return;
+      }
+    }
+    onClose();
+  };
+
   return (
     <div
       className="modal-backdrop"
       style={{ zIndex: 1100 }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !loading && !uploading) onClose();
-      }}
     >
       <div
         className="modal-card"
@@ -122,7 +129,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
           <button
             type="button"
             className="modal-close-btn"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={loading || uploading}
             aria-label="Đóng"
           >
@@ -356,7 +363,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={loading}
             >
               <span>Hủy</span>

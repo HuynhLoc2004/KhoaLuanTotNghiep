@@ -98,13 +98,20 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
     }
   };
 
+  const handleClose = () => {
+    if (loading) return;
+    if (name.trim() || description.trim()) {
+      if (!window.confirm('Bạn có thông tin gian phòng chưa lưu. Bạn có chắc chắn muốn đóng và hủy bỏ?')) {
+        return;
+      }
+    }
+    onClose();
+  };
+
   return (
     <div
       className="modal-backdrop"
       style={{ zIndex: 1200 }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !loading) onClose();
-      }}
     >
       <div
         className="modal-card"
@@ -124,7 +131,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
           <button
             type="button"
             className="modal-close-btn"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={loading}
             aria-label={t('common.close', 'Đóng')}
           >
@@ -316,7 +323,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
           </div>
 
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
+            <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
               {t('common.cancel', 'Hủy bỏ')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading || uploading}>

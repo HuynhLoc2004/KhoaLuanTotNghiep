@@ -273,6 +273,11 @@ export const AdminArtifactsPage: React.FC = () => {
   const handleCreateNew = () => {
     setAutoGenerate3D(true);
     setEditFormErrors({});
+    // Nếu trước đó đang nhập dở hồ sơ hiện vật mới và chưa lưu, giữ nguyên dữ liệu tránh mất công nhập lại
+    if (editingArtifact && !editingArtifact.id && (editingArtifact.name?.trim() || editingArtifact.description?.trim())) {
+      setIsEditModalOpen(true);
+      return;
+    }
     setEditingArtifact({
       code: `HV-${100 + Math.floor(Math.random() * 900)}`,
       name: '',
@@ -289,6 +294,23 @@ export const AdminArtifactsPage: React.FC = () => {
       status: 'active'
     });
     setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    if (isSaving) return;
+    const hasData = Boolean(
+      (editingArtifact?.name && editingArtifact.name.trim()) ||
+      (editingArtifact?.description && editingArtifact.description.trim()) ||
+      (editingArtifact?.dimensions && editingArtifact.dimensions.trim()) ||
+      (editingArtifact?.images && editingArtifact.images.length > 0)
+    );
+
+    if (hasData) {
+      if (!window.confirm('Bạn có nội dung thông tin hiện vật chưa lưu. Bạn có chắc chắn muốn đóng và hủy bỏ?')) {
+        return;
+      }
+    }
+    setIsEditModalOpen(false);
   };
 
   const handleEdit = (artifact: Artifact) => {
@@ -379,6 +401,7 @@ export const AdminArtifactsPage: React.FC = () => {
       }
 
       setIsEditModalOpen(false);
+      setEditingArtifact(null);
       fetchArtifacts();
       window.dispatchEvent(new CustomEvent('museum:artifacts_updated'));
     } catch (err: any) {
@@ -1768,9 +1791,6 @@ export const AdminArtifactsPage: React.FC = () => {
         <div
           className="modal-backdrop"
           style={{ zIndex: 1200 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsEditModalOpen(false);
-          }}
         >
           <div
             className="modal-card"
@@ -1781,6 +1801,7 @@ export const AdminArtifactsPage: React.FC = () => {
               display: 'flex',
               flexDirection: 'column'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
               <h2 className="modal-title" style={{ fontSize: '16px', margin: 0 }}>
@@ -1789,7 +1810,8 @@ export const AdminArtifactsPage: React.FC = () => {
               <button
                 type="button"
                 className="modal-close-btn"
-                onClick={() => setIsEditModalOpen(false)}
+                onClick={handleCloseEditModal}
+                disabled={isSaving}
                 aria-label="Đóng"
               >
                 <X size={18} />
@@ -2108,7 +2130,7 @@ export const AdminArtifactsPage: React.FC = () => {
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => setIsEditModalOpen(false)}
+                  onClick={handleCloseEditModal}
                   disabled={isSaving}
                 >
                   Hủy bỏ
