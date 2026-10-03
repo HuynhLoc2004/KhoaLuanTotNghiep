@@ -567,7 +567,35 @@ artifactsRouter.post('/isolate-image', async (req: Request, res: Response) => {
     }
 
     if (!localImagePath || !fs.existsSync(localImagePath)) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy file ảnh gốc trên máy chủ' });
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        try {
+          const resp = await fetch(imageUrl);
+          if (resp.ok) {
+            const tempDownloadPath = path.join(ARTIFACTS_UPLOAD_DIR, `temp_iso_${Date.now()}_${filename || 'img.jpg'}`);
+            const arrayBuffer = await resp.arrayBuffer();
+            fs.writeFileSync(tempDownloadPath, Buffer.from(arrayBuffer));
+            localImagePath = tempDownloadPath;
+          }
+        } catch (fetchErr) {
+          console.error('[isolate-image] Failed to download remote image:', fetchErr);
+        }
+      } else if (imageUrl.startsWith('data:image/')) {
+        try {
+          const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const buffer = Buffer.from(matches[2], 'base64');
+            const tempDownloadPath = path.join(ARTIFACTS_UPLOAD_DIR, `temp_b64_${Date.now()}.png`);
+            fs.writeFileSync(tempDownloadPath, buffer);
+            localImagePath = tempDownloadPath;
+          }
+        } catch (b64Err) {
+          console.error('[isolate-image] Failed to decode base64 image:', b64Err);
+        }
+      }
+    }
+
+    if (!localImagePath || !fs.existsSync(localImagePath)) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy file ảnh gốc trên máy chủ (hoặc không thể tải ảnh từ URL)' });
     }
 
     const outFilename = `isolated_${Date.now()}_${path.basename(localImagePath, path.extname(localImagePath))}.png`;

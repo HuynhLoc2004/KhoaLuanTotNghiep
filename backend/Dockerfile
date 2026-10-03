@@ -30,9 +30,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Cài đặt thư viện Python (OpenCV Headless, NumPy, Pillow) không lưu cache
 COPY stitching_worker/requirements.txt ./stitching_worker/
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r stitching_worker/requirements.txt
+RUN python3 -c "import rembg; rembg.new_session('u2netp')"
 
 # Cài đặt CHỈ Production Node Dependencies (bỏ qua TypeScript, types, tsx...)
 COPY backend/package*.json ./backend/
