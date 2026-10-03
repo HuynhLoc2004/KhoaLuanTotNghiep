@@ -1163,40 +1163,6 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             <span>{viewMode === '360' ? 'Xoay 360°' : '2.5D Parallax'}</span>
           </button>
 
-          {/* Nút Phủ ảnh phẳng 2D */}
-          {fullImageUrl && (
-            <button
-              type="button"
-              className="turntable-btn-text"
-              onClick={toggleTextureMode}
-              title={
-                textureMode === 'vertex'
-                  ? 'Bấm để phủ ảnh phẳng 2D lên mặt trước hiện vật'
-                  : 'Bấm để quay về màu sắc đa giác 3D gốc'
-              }
-              style={{
-                height: 34,
-                padding: '0 10px',
-                borderRadius: 8,
-                background: textureMode === 'photo' ? 'rgba(212, 168, 106, 0.28)' : 'rgba(20, 24, 33, 0.75)',
-                border: textureMode === 'photo' ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.15)',
-                color: textureMode === 'photo' ? '#d4a86a' : '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                backdropFilter: 'blur(8px)',
-                transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Camera size={14} />
-              <span>{textureMode === 'vertex' ? 'Phủ ảnh phẳng 2D' : 'Màu gốc 3D'}</span>
-            </button>
-          )}
-
           {/* Nút 1: Tự động xoay */}
           <button
             type="button"
