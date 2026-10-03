@@ -248,10 +248,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                         tabIndex={0}
                       >
                         {thumb ? (
-                          <>
-                            <img src={thumb} alt="" className="client-artifact-blur-bg" aria-hidden="true" />
-                            <img src={thumb} alt={title} className="client-gallery-img client-artifact-img" loading="lazy" />
-                          </>
+                          <img src={thumb} alt={title} className="client-gallery-img client-artifact-img" loading="lazy" />
                         ) : (
                           <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
                             <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>

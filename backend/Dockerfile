@@ -52,6 +52,7 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV PYTHON_PATH=python3
 ENV STITCHER_SCRIPT=/app/stitching_worker/stitcher.py
 ENV ARTIFACT_3D_SCRIPT=/app/stitching_worker/artifact_3d_generator.py
+ENV REMOVE_BG_SCRIPT=/app/stitching_worker/remove_bg.py
 
 EXPOSE 3000
 

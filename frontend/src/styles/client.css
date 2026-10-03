@@ -5314,25 +5314,16 @@
   filter: brightness(1.04);
 }
 
-/* Khung hiển thị ảnh cổ vật Client: Giữ trọn 100% tỷ lệ gốc, không cắt đầu/chân */
+/* Khung hiển thị ảnh cổ vật Client: Giữ trọn 100% tỷ lệ gốc, focus trực diện hiện vật không cắt đầu/chân */
 .client-artifact-media {
+  position: relative;
   height: 250px !important;
-  background: radial-gradient(circle at center, #181d2a 0%, #080b12 100%) !important;
+  background: radial-gradient(circle at 50% 45%, #1e2536 0%, #0c101a 60%, #06080d 100%) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-}
-
-.client-artifact-blur-bg {
-  position: absolute;
-  inset: -15px;
-  width: calc(100% + 30px);
-  height: calc(100% + 30px);
-  object-fit: cover;
-  filter: blur(20px) brightness(0.32) saturate(1.2);
-  opacity: 0.65;
-  pointer-events: none;
-  transform: scale(1.15);
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .client-artifact-img {
@@ -5342,13 +5333,13 @@
   height: 100% !important;
   object-fit: contain !important;
   padding: 10px 14px;
-  filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.85));
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.9));
   transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s ease;
 }
 
 .client-artifact-card:hover .client-artifact-img {
-  transform: scale(1.06);
-  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.95)) brightness(1.04);
+  transform: scale(1.07);
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.98)) drop-shadow(0 0 16px rgba(212, 175, 55, 0.25)) brightness(1.04);
 }
 
 .client-gallery-hotspot-pill {

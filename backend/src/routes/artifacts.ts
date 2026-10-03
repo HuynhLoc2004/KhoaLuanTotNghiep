@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { spawn } from 'child_process';
 import { ArtifactModel } from '../models/Artifact.js';
 import { RoomModel } from '../models/Room.js';
 import { generateQRCodeBuffer, generateQRCodeDataURL } from '../services/qr.js';
@@ -526,6 +527,109 @@ artifactsRouter.post('/upload-image', uploadImage.single('file'), async (req: Re
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Lỗi tải ảnh hiện vật' });
+  }
+});
+
+/**
+ * POST /api/artifacts/isolate-image
+ * Sử dụng AI Rembg để bóc tách phông nền, loại bỏ tủ kính, tường và chi tiết thừa xung quanh hiện vật
+ */
+artifactsRouter.post('/isolate-image', async (req: Request, res: Response) => {
+  try {
+    const { imageUrl, artifactId } = req.body;
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      return res.status(400).json({ success: false, message: 'Thiếu đường dẫn hình ảnh cần tách nền' });
+    }
+
+    let pathname = imageUrl;
+    try {
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        pathname = new URL(imageUrl).pathname;
+      }
+    } catch (_) {}
+    const cleanRel = pathname.replace(/^\/?uploads\//, '').replace(/^\//, '');
+    const filename = path.basename(cleanRel);
+    const candidates = [
+      path.join(process.cwd(), 'public', 'uploads', cleanRel),
+      path.join(process.cwd(), 'backend', 'public', 'uploads', cleanRel),
+      path.join(ARTIFACTS_UPLOAD_DIR, filename),
+      path.join(process.cwd(), 'public', 'uploads', filename),
+      path.join(process.cwd(), 'backend', 'public', 'uploads', filename),
+      path.join(process.cwd(), 'public', cleanRel),
+      path.join(process.cwd(), 'backend', 'public', cleanRel)
+    ];
+    let localImagePath = '';
+    for (const cand of candidates) {
+      if (fs.existsSync(cand)) {
+        localImagePath = cand;
+        break;
+      }
+    }
+
+    if (!localImagePath || !fs.existsSync(localImagePath)) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy file ảnh gốc trên máy chủ' });
+    }
+
+    const outFilename = `isolated_${Date.now()}_${path.basename(localImagePath, path.extname(localImagePath))}.png`;
+    const outPath = path.join(ARTIFACTS_UPLOAD_DIR, outFilename);
+    const scriptCandidates = [
+      process.env.REMOVE_BG_SCRIPT,
+      path.join(process.cwd(), 'stitching_worker', 'remove_bg.py'),
+      path.join(process.cwd(), '..', 'stitching_worker', 'remove_bg.py'),
+      '/app/stitching_worker/remove_bg.py'
+    ].filter(Boolean) as string[];
+    const scriptPath = scriptCandidates.find(p => fs.existsSync(p)) || path.join(process.cwd(), 'stitching_worker', 'remove_bg.py');
+    const pythonBin = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
+
+    await new Promise<void>((resolve, reject) => {
+      const py = spawn(pythonBin, [scriptPath, localImagePath, outPath]);
+      let errData = '';
+      py.stderr.on('data', (d) => { errData += d.toString(); });
+      py.on('close', (code) => {
+        if (code === 0 && fs.existsSync(outPath)) {
+          resolve();
+        } else {
+          reject(new Error(errData || `Python script exited with code ${code}`));
+        }
+      });
+    });
+
+    const newUrl = `/uploads/artifacts/${outFilename}`;
+
+    if (artifactId) {
+      const query = mongoose.isValidObjectId(artifactId)
+        ? { $or: [{ _id: artifactId }, { id: artifactId }, { code: artifactId }] }
+        : { $or: [{ id: artifactId }, { code: artifactId }] };
+      const art = await ArtifactModel.findOne(query);
+      if (art) {
+        art.thumbnailUrl = newUrl;
+        if (art.images && art.images.length > 0) {
+          art.images[0] = newUrl;
+        } else {
+          art.images = [newUrl];
+        }
+        await art.save();
+        await pgUpsertArtifact(art.toObject());
+        await Promise.all([
+          cacheDelPattern('artifacts:*'),
+          cacheDel(`artifacts:item:${art.id}`),
+          cacheDel(`artifacts:item:${art.code}`)
+        ]);
+        broadcastRealtimeEvent('artifacts_updated', { action: 'update', artifactId: art.id });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã bóc tách phông nền và căn chỉnh tập trung vào hiện vật thành công!',
+      data: {
+        url: newUrl,
+        originalUrl: imageUrl
+      }
+    });
+  } catch (err: any) {
+    console.error('[Isolate Image Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi bóc tách nền hiện vật: ' + (err.message || 'Không xác định') });
   }
 });
 

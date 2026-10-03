@@ -539,6 +539,17 @@ export const api = {
     return json.data;
   },
 
+  async isolateArtifactImage(imageUrl: string, artifactId?: string): Promise<{ url: string; originalUrl: string }> {
+    const res = await fetch(`${API_BASE}/artifacts/isolate-image`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({ imageUrl, artifactId })
+    });
+    const json = await safeJson(res, 'Lỗi kết nối khi bóc tách nền hiện vật');
+    if (!json.success) throw new Error(json.message || 'Lỗi bóc tách nền hiện vật');
+    return json.data;
+  },
+
   async uploadArtifactModel(file: File): Promise<{ url: string; filename: string }> {
     const formData = new FormData();
     formData.append('file', file);

@@ -69,6 +69,8 @@ export const AdminArtifactsPage: React.FC = () => {
   const [editFormErrors, setEditFormErrors] = useState<{ code?: string; name?: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isIsolatingImage, setIsIsolatingImage] = useState(false);
+  const [isolatingArtId, setIsolatingArtId] = useState<string | null>(null);
 
   const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
   const [activeViewerArtifact, setActiveViewerArtifact] = useState<Artifact | null>(null);
@@ -468,6 +470,56 @@ export const AdminArtifactsPage: React.FC = () => {
       showToast(err.message || 'Lỗi tải ảnh hiện vật', 'error');
     } finally {
       setIsUploadingImage(false);
+    }
+  };
+
+  const handleIsolateFrontImage = async () => {
+    const frontImg = editingArtifact?.images?.[0] || editingArtifact?.thumbnailUrl;
+    if (!frontImg) {
+      showToast('Chưa có ảnh mặt trước để tách nền', 'warning');
+      return;
+    }
+    try {
+      setIsIsolatingImage(true);
+      showToast('Đang dùng AI Rembg bóc tách phông nền, tủ kính và tường bảo tàng...', 'info');
+      const res = await api.isolateArtifactImage(frontImg, editingArtifact?.id);
+      setEditingArtifact((prev) => {
+        if (!prev) return prev;
+        const currentImgs = [...(prev.images || [])];
+        if (currentImgs.length === 0) currentImgs.push(res.url);
+        else currentImgs[0] = res.url;
+        return {
+          ...prev,
+          images: currentImgs,
+          thumbnailUrl: res.url
+        };
+      });
+      showToast('Đã tách phông nền thành công! Ảnh hiện vật đã được làm sạch và tập trung.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi bóc tách nền hiện vật', 'error');
+    } finally {
+      setIsIsolatingImage(false);
+    }
+  };
+
+  const handleQuickIsolate = async (art: Artifact) => {
+    const targetImg = art.thumbnailUrl || (art.images && art.images.length > 0 ? art.images[0] : null);
+    if (!targetImg) {
+      showToast('Hiện vật chưa có ảnh để tách nền', 'warning');
+      return;
+    }
+    const targetId = String(art.id || (art as any)._id);
+    try {
+      setIsolatingArtId(targetId);
+      showToast(`Đang dùng AI tách sạch phông nền, loại bỏ tủ kính cho "${art.name}"...`, 'info');
+      await api.isolateArtifactImage(targetImg, targetId);
+      showToast(`Đã bóc tách phông nền thành công cho "${art.name}"!`, 'success');
+      fetchArtifacts();
+      window.dispatchEvent(new CustomEvent('museum:artifacts_updated'));
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi bóc tách nền hiện vật', 'error');
+    } finally {
+      setIsolatingArtId(null);
     }
   };
 
@@ -1379,10 +1431,7 @@ export const AdminArtifactsPage: React.FC = () => {
                   {/* Khung ảnh thumbnail chuẩn mực không bị cắt đầu/chân hiện vật */}
                   <div className="room-thumbnail-wrapper artifact-thumbnail-wrapper">
                     {fullImgUrl ? (
-                      <>
-                        <img src={fullImgUrl} alt="" className="artifact-blur-backdrop" aria-hidden="true" />
-                        <img src={fullImgUrl} alt={art.name} className="room-thumbnail artifact-thumbnail" />
-                      </>
+                      <img src={fullImgUrl} alt={art.name} className="room-thumbnail artifact-thumbnail" />
                     ) : (
                       <div
                         style={{
@@ -1557,6 +1606,21 @@ export const AdminArtifactsPage: React.FC = () => {
 
                       {/* Hàng 2: Nút công cụ phụ */}
                       <div className="room-card-actions-row">
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm room-card-btn-action-tool"
+                          title="Tách phông nền AI: Loại bỏ tủ kính/tường để hiện vật nổi bật"
+                          onClick={() => handleQuickIsolate(art)}
+                          disabled={isolatingArtId === String(art.id || (art as any)._id)}
+                        >
+                          {isolatingArtId === String(art.id || (art as any)._id) ? (
+                            <Loader2 size={12} className="spin" />
+                          ) : (
+                            <Sparkles size={12} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                          )}
+                          <span className="room-card-btn-label">Tách nền</span>
+                        </button>
+
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm room-card-btn-action"
@@ -1975,27 +2039,40 @@ export const AdminArtifactsPage: React.FC = () => {
                       </div>
 
                       {editingArtifact.images && editingArtifact.images[0] ? (
-                        <div style={{ position: 'relative', height: 110, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border-color)', background: '#111' }}>
-                          <img
-                            src={editingArtifact.images[0].startsWith('http') ? editingArtifact.images[0] : `${API_ROOT}${editingArtifact.images[0]}`}
-                            alt="Mặt trước"
-                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                          />
+                        <div>
+                          <div style={{ position: 'relative', height: 110, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border-color)', background: '#111' }}>
+                            <img
+                              src={editingArtifact.images[0].startsWith('http') ? editingArtifact.images[0] : `${API_ROOT}${editingArtifact.images[0]}`}
+                              alt="Mặt trước"
+                              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...(editingArtifact.images || [])];
+                                next.splice(0, 1);
+                                setEditingArtifact({ ...editingArtifact, images: next, thumbnailUrl: next[0] || '' });
+                              }}
+                              style={{
+                                position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)',
+                                color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                              }}
+                              title="Xóa ảnh mặt trước"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => {
-                              const next = [...(editingArtifact.images || [])];
-                              next.splice(0, 1);
-                              setEditingArtifact({ ...editingArtifact, images: next, thumbnailUrl: next[0] || '' });
-                            }}
-                            style={{
-                              position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)',
-                              color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
-                            }}
-                            title="Xóa ảnh mặt trước"
+                            className="btn btn-secondary btn-xs"
+                            onClick={handleIsolateFrontImage}
+                            disabled={isIsolatingImage}
+                            style={{ width: '100%', marginTop: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: '11px', padding: '4px 8px' }}
+                            title="Tách phông nền AI: Loại bỏ tủ kính, tường và chi tiết thừa để chỉ tập trung vào hiện vật"
                           >
-                            <X size={12} />
+                            {isIsolatingImage ? <Loader2 size={12} className="spin" /> : <Sparkles size={12} style={{ color: 'var(--accent-gold)' }} />}
+                            <span>{isIsolatingImage ? 'Đang bóc tách nền...' : '✨ Tách phông nền AI (Focus hiện vật)'}</span>
                           </button>
                         </div>
                       ) : (
