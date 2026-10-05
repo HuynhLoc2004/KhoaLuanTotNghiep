@@ -210,12 +210,11 @@ export function ensureCompleteMuseumTopology(map: IFloorPlanMap | any): {
     [18, 1, 'Xuống Phòng 1 (Thời Tiền Sử)'],
     [18, 17, 'Xuống Phòng 17 (Dân tộc phía Nam)'],
     // Cổng 1, Cổng 2, Sảnh, Sân Vườn:
-    ['node_cong_1', 1, 'Vào Phòng 1 (Cổng chính Nguyễn Bỉnh Khiêm)'],
+    ['node_cong_1', 'node_sanh', 'Vào thẳng Sảnh Bát Giác (Khu vực đón tiếp)'],
     ['node_cong_2', 6, 'Vào Phòng 6 (Cổng phụ Thảo Cầm Viên)'],
-    ['node_sanh', 1, 'Sang Phòng 1'],
-    ['node_sanh', 17, 'Sang Phòng 17'],
+    ['node_sanh', 1, 'Sang Phòng 1 (Thời Tiền Sử)'],
+    ['node_sanh', 17, 'Sang Phòng 17 (Dân tộc phía Nam)'],
     ['node_sanh', 18, 'Lên Phòng 18 (Phật giáo Châu Á)'],
-    ['node_sanh', 'node_cong_1', 'Lối ra Cổng 1'],
     ['node_san_vuon', 6, 'Vào Phòng 6 (Văn hóa Champa)'],
     ['node_san_vuon', 9, 'Vào Phòng 9 (Thời Lê - Mạc)'],
     ['node_san_vuon', 18, 'Xuống Phòng 18 (Phật giáo Châu Á)']

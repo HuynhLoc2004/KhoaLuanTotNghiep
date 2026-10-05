@@ -254,11 +254,11 @@ class FloorPlanTopologyAnalyzer:
             (18, 1, "Xuống Phòng 1"),
             (18, 17, "Xuống Phòng 17"),
             # Cổng 1, Cổng 2, Sảnh, Sân vườn
-            (101, 1, "Vào Phòng 1"),
+            (101, 103, "Vào thẳng Sảnh Bát Giác"),
             (102, 6, "Vào Phòng 6"),
-            (103, 1, "Vào Phòng 1"),
-            (103, 17, "Sang Phòng 17"),
-            (103, 18, "Lên Phòng 18"),
+            (103, 1, "Sang Phòng 1 (Thời Tiền Sử)"),
+            (103, 17, "Sang Phòng 17 (Dân tộc phía Nam)"),
+            (103, 18, "Lên Phòng 18 (Phật giáo Châu Á)"),
             (104, 6, "Sang Phòng 6"),
             (104, 9, "Sang Phòng 9"),
             (104, 18, "Xuống Phòng 18")
