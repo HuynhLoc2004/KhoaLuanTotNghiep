@@ -68,6 +68,220 @@ const COMPASS_REVERSE_MAP: Record<CompassDirection, CompassDirection> = {
   southeast: 'northwest'
 };
 
+export const STANDARD_MUSEUM_HUBS: IFloorPlanNode[] = [
+  {
+    id: 'node_cong_1',
+    code: 'CONG-1',
+    name: 'Cổng 1 (Nguyễn Bỉnh Khiêm)',
+    period: 'Cổng chính vào bảo tàng',
+    category: 'Cổng ra vào',
+    x: 46.0,
+    y: 87.0,
+    width: 8.0,
+    height: 6.0,
+    isEntrance: true,
+    colorTag: '#3B82F6'
+  },
+  {
+    id: 'node_cong_2',
+    code: 'CONG-2',
+    name: 'Cổng 2 (Thảo Cầm Viên)',
+    period: 'Cổng phụ Tây Bắc',
+    category: 'Cổng ra vào',
+    x: 9.0,
+    y: 28.0,
+    width: 12.0,
+    height: 8.0,
+    isEntrance: true,
+    colorTag: '#3B82F6'
+  },
+  {
+    id: 'node_sanh',
+    code: 'SANH',
+    name: 'Sảnh Bát Giác',
+    period: 'Khu vực đón tiếp & Phân luồng',
+    category: 'Sảnh trung tâm',
+    x: 45.0,
+    y: 62.0,
+    width: 10.0,
+    height: 9.0,
+    isEntrance: false,
+    colorTag: '#D4A86A'
+  },
+  {
+    id: 'node_san_vuon',
+    code: 'SAN-VUON',
+    name: 'Sân vườn nội viện',
+    period: 'Khuôn viên xanh & Hồ rối nước',
+    category: 'Khuôn viên ngoài trời',
+    x: 42.0,
+    y: 21.0,
+    width: 29.0,
+    height: 18.0,
+    isEntrance: false,
+    colorTag: '#10B981'
+  }
+];
+
+/**
+ * Đảm bảo sơ đồ bảo tàng luôn có đầy đủ 4 điểm trung tâm/cổng ra vào
+ * và các liên kết thông phòng thực tế giữa 18 phòng và các cổng/sảnh/sân vườn.
+ */
+export function ensureCompleteMuseumTopology(map: IFloorPlanMap | any): {
+  nodes: IFloorPlanNode[];
+  edges: IFloorPlanEdge[];
+} {
+  if (!map) return { nodes: [], edges: [] };
+
+  const nodes: IFloorPlanNode[] = Array.isArray(map.nodes) ? [...map.nodes] : [];
+  const edges: IFloorPlanEdge[] = Array.isArray(map.edges) ? [...map.edges] : [];
+
+  // 1. Bổ sung các hub đặc biệt nếu chưa có
+  STANDARD_MUSEUM_HUBS.forEach((hub) => {
+    const existing = nodes.find(
+      (n) =>
+        n.id === hub.id ||
+        n.code?.toUpperCase() === hub.code.toUpperCase() ||
+        n.id.toLowerCase().replace(/[-_]/g, '') === hub.id.toLowerCase().replace(/[-_]/g, '')
+    );
+    if (!existing) {
+      nodes.push(hub);
+    }
+  });
+
+  // Helper tìm node theo mã phòng hoặc thứ tự
+  const findNode = (key: string | number): IFloorPlanNode | undefined => {
+    if (typeof key === 'string') {
+      const match = nodes.find(
+        (n) =>
+          n.id === key ||
+          n.code?.toUpperCase() === key.toUpperCase() ||
+          n.id.toLowerCase().replace(/[-_]/g, '') === key.toLowerCase().replace(/[-_]/g, '')
+      );
+      if (match) return match;
+    }
+    const num = typeof key === 'number' ? key : parseInt(key, 10);
+    if (!isNaN(num)) {
+      const pad = String(num).padStart(2, '0');
+      const byCodeOrId = nodes.find(
+        (n) =>
+          n.code === `P-${pad}` ||
+          n.code === `P-${num}` ||
+          n.id === `node_p_${pad}` ||
+          n.id === `node_p_${num}` ||
+          n.id === `node_${pad}` ||
+          n.id === `node_${num}`
+      );
+      if (byCodeOrId) return byCodeOrId;
+      if (num >= 1 && num <= 18 && nodes[num - 1]) {
+        return nodes[num - 1];
+      }
+    }
+    return undefined;
+  };
+
+  // 2. Mạng lưới các đường thông phòng kiến trúc
+  const standardLinks: [string | number, string | number, string][] = [
+    // Vòng quanh các gian trưng bày:
+    [1, 2, 'Sang Phòng 2 (Thời dựng nước)'],
+    [2, 3, 'Lên Phòng 3 (Thời Ngô - Đinh - Tiền Lê)'],
+    [3, 4, 'Lên Phòng 4 (Thời Lý)'],
+    [4, 5, 'Sang Phòng 5 (Thời Trần - Hồ)'],
+    [5, 6, 'Lên Phòng 6 (Văn hóa Champa)'],
+    [6, 7, 'Lên Phòng 7 (Văn hóa Óc Eo)'],
+    [7, 8, 'Sang Phòng 8 (Điêu khắc đá Campuchia)'],
+    [8, 9, 'Xuống Phòng 9 (Thời Lê - Mạc, Trịnh - Nguyễn)'],
+    [9, 10, 'Xuống Phòng 10 (Thời Tây Sơn)'],
+    [10, 11, 'Sang Phòng 11 (Súng Thần công)'],
+    [10, 12, 'Xuống Phòng 12 (Thời Nguyễn)'],
+    [12, 13, 'Sang Phòng 13 (Sưu tập Dương Hà)'],
+    [13, 14, 'Xuống Phòng 14 (Thương mại hàng hải)'],
+    [14, 15, 'Vào Phòng 15 (Cổ vật tàu đắm)'],
+    [14, 16, 'Xuống Phòng 16 (Sưu tập Vương Hồng Sển)'],
+    [16, 17, 'Sang Phòng 17 (Dân tộc phía Nam)'],
+    [17, 1, 'Lối sang Phòng 1'],
+    // Gian trung tâm (Phòng 18 - Phật giáo Châu Á):
+    [5, 18, 'Vào Phòng 18 (Phật giáo Châu Á)'],
+    [18, 12, 'Sang Phòng 12 (Thời Nguyễn)'],
+    [18, 1, 'Xuống Phòng 1 (Thời Tiền Sử)'],
+    [18, 17, 'Xuống Phòng 17 (Dân tộc phía Nam)'],
+    // Cổng 1, Cổng 2, Sảnh, Sân Vườn:
+    ['node_cong_1', 1, 'Vào Phòng 1 (Cổng chính Nguyễn Bỉnh Khiêm)'],
+    ['node_cong_2', 6, 'Vào Phòng 6 (Cổng phụ Thảo Cầm Viên)'],
+    ['node_sanh', 1, 'Sang Phòng 1'],
+    ['node_sanh', 17, 'Sang Phòng 17'],
+    ['node_sanh', 18, 'Lên Phòng 18 (Phật giáo Châu Á)'],
+    ['node_sanh', 'node_cong_1', 'Lối ra Cổng 1'],
+    ['node_san_vuon', 6, 'Vào Phòng 6 (Văn hóa Champa)'],
+    ['node_san_vuon', 9, 'Vào Phòng 9 (Thời Lê - Mạc)'],
+    ['node_san_vuon', 18, 'Xuống Phòng 18 (Phật giáo Châu Á)']
+  ];
+
+  const existingPairs = new Set<string>();
+  edges.forEach((e) => existingPairs.add(`${e.fromNodeId}->${e.toNodeId}`));
+
+  standardLinks.forEach(([fromKey, toKey, label], idx) => {
+    const fromN = findNode(fromKey);
+    const toN = findNode(toKey);
+    if (!fromN || !toN) return;
+
+    const pairKey = `${fromN.id}->${toN.id}`;
+    if (!existingPairs.has(pairKey)) {
+      existingPairs.add(pairKey);
+      const computed = calculateDynamicDirection(fromN, toN);
+      const dist = Math.round(
+        Math.hypot(
+          (toN.x + (toN.width || 14) / 2) - (fromN.x + (fromN.width || 14) / 2),
+          (toN.y + (toN.height || 7.5) / 2) - (fromN.y + (fromN.height || 7.5) / 2)
+        )
+      );
+
+      edges.push({
+        id: `edge_auto_${fromN.id}_${toN.id}_${idx}`,
+        fromNodeId: fromN.id,
+        toNodeId: toN.id,
+        direction: computed.direction,
+        compassDirection: computed.compassDirection,
+        doorX: Math.round((fromN.x + toN.x) / 2),
+        doorY: Math.round((fromN.y + toN.y) / 2),
+        label,
+        distance: dist > 0 ? dist : 15,
+        targetRoomName: toN.name
+      });
+    }
+
+    const revPairKey = `${toN.id}->${fromN.id}`;
+    if (!existingPairs.has(revPairKey)) {
+      existingPairs.add(revPairKey);
+      const revComputed = calculateDynamicDirection(toN, fromN);
+      const dist = Math.round(
+        Math.hypot(
+          (fromN.x + (fromN.width || 14) / 2) - (toN.x + (toN.width || 14) / 2),
+          (fromN.y + (fromN.height || 7.5) / 2) - (toN.y + (toN.height || 7.5) / 2)
+        )
+      );
+
+      edges.push({
+        id: `rev_edge_auto_${toN.id}_${fromN.id}_${idx}`,
+        fromNodeId: toN.id,
+        toNodeId: fromN.id,
+        direction: revComputed.direction,
+        compassDirection: revComputed.compassDirection,
+        doorX: Math.round((fromN.x + toN.x) / 2),
+        doorY: Math.round((fromN.y + toN.y) / 2),
+        label: `Lối sang ${fromN.name}`,
+        distance: dist > 0 ? dist : 15,
+        targetRoomName: fromN.name,
+        isReturn: true
+      });
+    }
+  });
+
+  map.nodes = nodes;
+  map.edges = edges;
+  return { nodes, edges };
+}
+
 /**
  * Xây dựng danh sách kề toàn diện cho bản đồ
  */
@@ -75,7 +289,6 @@ function buildAdjacencyList(nodes: IFloorPlanNode[], edges: IFloorPlanEdge[]): M
   const adj = new Map<string, InternalEdge[]>();
   nodes.forEach((n) => adj.set(n.id, []));
 
-  // Thêm các cạnh có sẵn và tự động bổ sung cạnh ngược nếu chưa có
   const existingPairs = new Set<string>();
 
   edges.forEach((e) => {
@@ -142,18 +355,21 @@ export function resolveNodeId(nodes: IFloorPlanNode[], inputId: string): string 
 }
 
 /**
- * Thuật toán Dijkstra tìm đường ngắn nhất trên đồ thị liên kết sơ đồ mặt bằng
+ * Thuật toán Dijkstra tìm đường ngắn nhất tối ưu hình học trên sơ đồ mặt bằng
  */
 export function findShortestPath(
   map: IFloorPlanMap,
   startNodeIdRaw: string,
   endNodeIdRaw: string
 ): { pathNodeIds: string[]; pathEdgeIds: string[]; rawSteps: InternalEdge[]; totalDistance: number } | null {
-  const nodes = map.nodes || [];
-  const edges = map.edges || [];
+  // Chuẩn hóa và bổ sung toàn diện sơ đồ và các điểm kết nối
+  const { nodes, edges } = ensureCompleteMuseumTopology(map);
   const startNodeId = resolveNodeId(nodes, startNodeIdRaw) || startNodeIdRaw;
   const endNodeId = resolveNodeId(nodes, endNodeIdRaw) || endNodeIdRaw;
   const adj = buildAdjacencyList(nodes, edges);
+
+  const nodeMap = new Map<string, IFloorPlanNode>();
+  nodes.forEach((n) => nodeMap.set(n.id, n));
 
   if (!adj.has(startNodeId) || !adj.has(endNodeId)) {
     return null;
@@ -180,7 +396,7 @@ export function findShortestPath(
   });
   distances.set(startNodeId, 0);
 
-  // Simple Priority Queue
+  // Priority Queue: ưu tiên quãng đường hình học thực tế ngắn nhất
   const queue: { id: string; dist: number }[] = [{ id: startNodeId, dist: 0 }];
 
   while (queue.length > 0) {
@@ -195,13 +411,28 @@ export function findShortestPath(
     for (const edge of neighbors) {
       if (visited.has(edge.toNodeId)) continue;
 
-      const weight = edge.distance > 0 ? edge.distance : 10;
+      // Trọng số cạnh = Khoảng cách hình học Euclid thực tế giữa 2 phòng + 3m chi phí qua cửa
+      const currNode = nodeMap.get(currId);
+      const nextNode = nodeMap.get(edge.toNodeId);
+      let stepDistance = edge.distance > 0 ? edge.distance : 15;
+
+      if (currNode && nextNode) {
+        const cx1 = currNode.x + (currNode.width || 14) / 2;
+        const cy1 = currNode.y + (currNode.height || 7.5) / 2;
+        const cx2 = nextNode.x + (nextNode.width || 14) / 2;
+        const cy2 = nextNode.y + (nextNode.height || 7.5) / 2;
+        const geoDist = Math.hypot(cx2 - cx1, cy2 - cy1);
+        stepDistance = Math.max(8, Math.round(geoDist));
+      }
+
+      // 3m hop penalty để hạn chế đi vòng qua nhiều phòng không cần thiết
+      const weight = stepDistance + 3;
       const newDist = currDist + weight;
 
       if (newDist < (distances.get(edge.toNodeId) ?? Infinity)) {
         distances.set(edge.toNodeId, newDist);
         previous.set(edge.toNodeId, currId);
-        prevEdge.set(edge.toNodeId, edge);
+        prevEdge.set(edge.toNodeId, { ...edge, distance: stepDistance });
         queue.push({ id: edge.toNodeId, dist: newDist });
       }
     }
@@ -231,11 +462,27 @@ export function findShortestPath(
   pathEdgeIds.reverse();
   rawSteps.reverse();
 
+  // Tính tổng quãng đường vật lý mét thực tế
+  let totalDistanceMeters = 0;
+  for (let i = 0; i < pathNodeIds.length - 1; i++) {
+    const n1 = nodeMap.get(pathNodeIds[i]);
+    const n2 = nodeMap.get(pathNodeIds[i + 1]);
+    if (n1 && n2) {
+      const cx1 = n1.x + (n1.width || 14) / 2;
+      const cy1 = n1.y + (n1.height || 7.5) / 2;
+      const cx2 = n2.x + (n2.width || 14) / 2;
+      const cy2 = n2.y + (n2.height || 7.5) / 2;
+      totalDistanceMeters += Math.max(8, Math.round(Math.hypot(cx2 - cx1, cy2 - cy1)));
+    } else {
+      totalDistanceMeters += 15;
+    }
+  }
+
   return {
     pathNodeIds,
     pathEdgeIds,
     rawSteps,
-    totalDistance: Math.round((distances.get(endNodeId) || 0) * 10) / 10
+    totalDistance: Math.round(totalDistanceMeters)
   };
 }
 

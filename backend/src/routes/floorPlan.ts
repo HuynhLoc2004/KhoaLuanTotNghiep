@@ -22,7 +22,8 @@ import {
   findShortestPath,
   buildLocalizedInstructions,
   generateNavTtsAudio,
-  resolveNodeId
+  resolveNodeId,
+  ensureCompleteMuseumTopology
 } from '../services/floorPlanNavigator.js';
 
 export const floorPlanRouter = Router();
@@ -89,6 +90,18 @@ floorPlanRouter.get('/', async (req: Request, res: Response) => {
     let floorPlan = await FloorPlanMapModel.findOne({ active: true }).sort({ updatedAt: -1 }).lean();
     if (!floorPlan) {
       floorPlan = await FloorPlanMapModel.findOne().sort({ updatedAt: -1, createdAt: -1 }).lean();
+    }
+
+    if (floorPlan) {
+      const origNodeCount = floorPlan.nodes?.length || 0;
+      ensureCompleteMuseumTopology(floorPlan);
+      // Tự động nâng cấp CSDL nếu bản đồ trước đó thiếu 4 điểm Cổng/Sảnh/Sân vườn
+      if (origNodeCount < 22 && (floorPlan as any)._id) {
+        FloorPlanMapModel.updateOne(
+          { _id: (floorPlan as any)._id },
+          { nodes: floorPlan.nodes, edges: floorPlan.edges }
+        ).catch((uErr) => console.warn('[FloorPlanRoute] Nâng cấp topology vào DB:', uErr.message));
+      }
     }
 
     // Nếu CSDL không có bản đồ nào (hoặc đã bị xóa), trả về null, tuyệt đối KHÔNG tự sinh mock rác
@@ -560,6 +573,9 @@ floorPlanRouter.post('/navigate', async (req: Request, res: Response) => {
         message: 'Không tìm thấy sơ đồ mặt bằng hợp lệ để dẫn đường'
       });
     }
+
+    // Đảm bảo đầy đủ 4 điểm trung tâm (Cổng 1, Cổng 2, Sảnh, Sân vườn) và các liên kết thông phòng
+    ensureCompleteMuseumTopology(map);
 
     const resolvedStartId = resolveNodeId(map.nodes, startNodeId) || startNodeId;
     const resolvedEndId = resolveNodeId(map.nodes, endNodeId) || endNodeId;

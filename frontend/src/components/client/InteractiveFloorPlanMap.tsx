@@ -383,6 +383,20 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     return (floorPlan.edges || []).filter((e) => e.fromNodeId === activeNode.id);
   }, [floorPlan.edges, activeNode]);
 
+  // Danh sách các phòng trưng bày lịch sử (loại trừ các hub cổng và sân vườn)
+  const exhibitionRooms = useMemo(() => {
+    return (floorPlan.nodes || []).filter(
+      (n) =>
+        !n.isEntrance &&
+        !n.id.startsWith('node_cong') &&
+        n.id !== 'node_sanh' &&
+        n.id !== 'node_san_vuon' &&
+        n.code !== 'SANH' &&
+        n.code !== 'SAN-VUON' &&
+        !n.code?.startsWith('CONG-')
+    );
+  }, [floorPlan.nodes]);
+
   // Tab: 'details' or 'navigator'
   const [sideTab, setSideTab] = useState<'details' | 'navigator'>('details');
 
@@ -1034,7 +1048,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               color: isLight ? '#64748B' : '#94A3B8'
             }}
           >
-            <span>{ui.roomsCount(floorPlan.nodes.length)}</span>
+            <span>{ui.roomsCount(exhibitionRooms.length || 18)}</span>
             <span>•</span>
             <span>{ui.doorsCount(floorPlan.edges.length)}</span>
           </div>
@@ -1877,7 +1891,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       <option value="node_san_vuon">{ui.courtyard}</option>
                     </optgroup>
                     <optgroup label={ui.exhibitionRooms}>
-                      {(floorPlan.nodes || []).map((n, idx) => (
+                      {exhibitionRooms.map((n, idx) => (
                         <option key={n.id} value={n.id}>
                           {n.code || `P-${idx + 1}`} - {n.name}
                         </option>
@@ -1904,7 +1918,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       <option value="node_san_vuon">{ui.courtyard}</option>
                     </optgroup>
                     <optgroup label={ui.exhibitionRooms}>
-                      {(floorPlan.nodes || []).map((n, idx) => (
+                      {exhibitionRooms.map((n, idx) => (
                         <option key={n.id} value={n.id}>
                           {n.code || `P-${idx + 1}`} - {n.name}
                         </option>
