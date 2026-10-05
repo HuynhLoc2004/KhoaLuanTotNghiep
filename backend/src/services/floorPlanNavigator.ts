@@ -1,7 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { IFloorPlanMap, IFloorPlanNode, IFloorPlanEdge, SpatialDirection, CompassDirection } from '../models/FloorPlanMap.js';
+
+const execFileAsync = promisify(execFile);
 
 export interface INavigationStep {
   stepNumber: number;
@@ -529,6 +533,137 @@ export function calculateDynamicDirection(
   }
 }
 
+export function calculateRelativeTurn(
+  prevNode: IFloorPlanNode | null,
+  currNode: IFloorPlanNode,
+  nextNode: IFloorPlanNode
+): {
+  action: 'straight' | 'slight_right' | 'right' | 'sharp_right' | 'slight_left' | 'left' | 'sharp_left' | 'uturn';
+  direction: SpatialDirection;
+  compassDirection: CompassDirection;
+  phraseVi: string;
+} {
+  const c2x = currNode.x + (currNode.width || 14) / 2;
+  const c2y = currNode.y + (currNode.height || 7.5) / 2;
+  const c3x = nextNode.x + (nextNode.width || 14) / 2;
+  const c3y = nextNode.y + (nextNode.height || 7.5) / 2;
+
+  const dx2 = c3x - c2x;
+  const dy2 = c3y - c2y;
+  const heading2 = (Math.atan2(dy2, dx2) * 180) / Math.PI;
+
+  const degMap = (heading2 + 360) % 360;
+  let mapDir: SpatialDirection = 'front';
+  let compDir: CompassDirection = 'north';
+
+  if (degMap >= 337.5 || degMap < 22.5) {
+    mapDir = 'right';
+    compDir = 'east';
+  } else if (degMap >= 22.5 && degMap < 67.5) {
+    mapDir = 'southeast';
+    compDir = 'southeast';
+  } else if (degMap >= 67.5 && degMap < 112.5) {
+    mapDir = 'down';
+    compDir = 'south';
+  } else if (degMap >= 112.5 && degMap < 157.5) {
+    mapDir = 'southwest';
+    compDir = 'southwest';
+  } else if (degMap >= 157.5 && degMap < 202.5) {
+    mapDir = 'left';
+    compDir = 'west';
+  } else if (degMap >= 202.5 && degMap < 247.5) {
+    mapDir = 'northwest';
+    compDir = 'northwest';
+  } else if (degMap >= 247.5 && degMap < 292.5) {
+    mapDir = 'up';
+    compDir = 'north';
+  } else {
+    mapDir = 'northeast';
+    compDir = 'northeast';
+  }
+
+  if (!prevNode) {
+    if (mapDir === 'up') {
+      return { action: 'straight', direction: mapDir, compassDirection: compDir, phraseVi: 'đi thẳng về phía trước sang' };
+    } else if (mapDir === 'right') {
+      return { action: 'right', direction: mapDir, compassDirection: compDir, phraseVi: 'rẽ phải sang' };
+    } else if (mapDir === 'left') {
+      return { action: 'left', direction: mapDir, compassDirection: compDir, phraseVi: 'rẽ trái sang' };
+    } else if (mapDir === 'down') {
+      return { action: 'straight', direction: mapDir, compassDirection: compDir, phraseVi: 'đi xuống phía dưới sang' };
+    } else if (mapDir.includes('right')) {
+      return { action: 'slight_right', direction: mapDir, compassDirection: compDir, phraseVi: 'chếch sang bên phải sang' };
+    } else {
+      return { action: 'slight_left', direction: mapDir, compassDirection: compDir, phraseVi: 'chếch sang bên trái sang' };
+    }
+  }
+
+  const c1x = prevNode.x + (prevNode.width || 14) / 2;
+  const c1y = prevNode.y + (prevNode.height || 7.5) / 2;
+  const dx1 = c2x - c1x;
+  const dy1 = c2y - c1y;
+  const heading1 = (Math.atan2(dy1, dx1) * 180) / Math.PI;
+
+  const delta = ((heading2 - heading1 + 180) % 360 + 360) % 360 - 180;
+
+  if (Math.abs(delta) <= 35) {
+    return { action: 'straight', direction: mapDir, compassDirection: compDir, phraseVi: 'tiếp tục đi thẳng sang' };
+  } else if (delta > 35 && delta <= 65) {
+    return { action: 'slight_right', direction: mapDir, compassDirection: compDir, phraseVi: 'chếch sang bên phải sang' };
+  } else if (delta > 65 && delta <= 125) {
+    return { action: 'right', direction: mapDir, compassDirection: compDir, phraseVi: 'rẽ phải sang' };
+  } else if (delta > 125 && delta <= 165) {
+    return { action: 'sharp_right', direction: mapDir, compassDirection: compDir, phraseVi: 'cua gắt sang bên phải sang' };
+  } else if (delta >= -65 && delta < -35) {
+    return { action: 'slight_left', direction: mapDir, compassDirection: compDir, phraseVi: 'chếch sang bên trái sang' };
+  } else if (delta >= -125 && delta < -65) {
+    return { action: 'left', direction: mapDir, compassDirection: compDir, phraseVi: 'rẽ trái sang' };
+  } else if (delta >= -165 && delta < -125) {
+    return { action: 'sharp_left', direction: mapDir, compassDirection: compDir, phraseVi: 'cua gắt sang bên trái sang' };
+  } else {
+    return { action: 'uturn', direction: mapDir, compassDirection: compDir, phraseVi: 'quay ngược đầu lại sang' };
+  }
+}
+
+/**
+ * Gọi mô-đun Python AI Navigation Worker thực thi trực tiếp
+ */
+export async function runPythonFloorPlanNavigator(
+  startId: string,
+  endId: string,
+  lang: string = 'vi'
+): Promise<any | null> {
+  const candidatePaths = [
+    path.join(process.cwd(), 'stitching_worker', 'floorplan_topology_analyzer.py'),
+    path.join(process.cwd(), '..', 'stitching_worker', 'floorplan_topology_analyzer.py'),
+    path.resolve(process.cwd(), '..', 'stitching_worker', 'floorplan_topology_analyzer.py')
+  ];
+  const pyScript = candidatePaths.find((p) => fs.existsSync(p));
+  if (!pyScript) return null;
+
+  try {
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const { stdout } = await execFileAsync(pythonCmd, [
+      pyScript,
+      '--start',
+      startId,
+      '--end',
+      endId,
+      '--lang',
+      lang,
+      '--json'
+    ], { timeout: 10000, maxBuffer: 5 * 1024 * 1024 });
+
+    const data = JSON.parse(stdout);
+    if (data && data.pathNodeIds && data.pathNodeIds.length > 0) {
+      return data;
+    }
+  } catch (err: any) {
+    console.warn('[FloorPlanNavigator] Python worker exception:', err.message);
+  }
+  return null;
+}
+
 /**
  * Sinh chỉ dẫn từng bước ngắn gọn, chuẩn ngữ pháp đa ngôn ngữ ăn khớp 100% với hình học bản đồ
  */
@@ -544,105 +679,47 @@ export function buildLocalizedInstructions(
 
   const cleanLang = (lang || 'vi').toLowerCase();
   const steps: INavigationStep[] = [];
-
-  const dirPhrasesVi: Record<string, string> = {
-    left: 'rẽ trái sang',
-    right: 'rẽ phải sang',
-    up: 'đi thẳng về phía trước sang',
-    down: 'đi xuống phía dưới sang',
-    front: 'đi thẳng về phía trước sang',
-    back: 'quay trở lại',
-    northeast: 'chếch lên bên phải sang',
-    northwest: 'chếch lên bên trái sang',
-    southeast: 'chếch xuống bên phải sang',
-    southwest: 'chếch xuống bên trái sang',
-    center: 'đi vào khu trung tâm'
-  };
-
-  const dirPhrasesEn: Record<string, string> = {
-    left: 'turn left into',
-    right: 'turn right into',
-    up: 'proceed straight ahead to',
-    down: 'head down to',
-    front: 'proceed straight ahead to',
-    back: 'turn back to',
-    northeast: 'head northeast to',
-    northwest: 'head northwest to',
-    southeast: 'head southeast to',
-    southwest: 'head southwest to',
-    center: 'enter the central area of'
-  };
-
-  const dirPhrasesFr: Record<string, string> = {
-    left: 'tournez à gauche vers',
-    right: 'tournez à droite vers',
-    up: 'avancez tout droit vers',
-    down: 'descendez vers',
-    front: 'avancez tout droit vers',
-    back: 'faites demi-tour vers',
-    northeast: 'dirigez-vous vers le nord-est vers',
-    northwest: 'dirigez-vous vers le nord-ouest vers',
-    southeast: 'dirigez-vous vers le sud-est vers',
-    southwest: 'dirigez-vous vers le sud-ouest vers',
-    center: 'entrez dans la zone centrale de'
-  };
-
-  const dirPhrasesZh: Record<string, string> = {
-    left: '左转前往',
-    right: '右转前往',
-    up: '向前直行前往',
-    down: '向下前往',
-    front: '向前直行前往',
-    back: '原路返回',
-    northeast: '向右上方前往',
-    northwest: '向左上方前往',
-    southeast: '向右下方前往',
-    southwest: '向左下方前往',
-    center: '进入中心区域'
-  };
-
-  const dirPhrasesJa: Record<string, string> = {
-    left: '左に曲がり、',
-    right: '右に曲がり、',
-    up: 'まっすぐ前へ進み、',
-    down: '手前方向へ進み、',
-    front: 'まっすぐ前へ進み、',
-    back: '引き返し、',
-    northeast: '右斜め上へ進み、',
-    northwest: '左斜め上へ進み、',
-    southeast: '右斜め下へ進み、',
-    southwest: '左斜め下へ進み、',
-    center: '中央エリアへ進み、'
-  };
+  const actionDetails: { action: string; phrase: string }[] = [];
 
   for (let i = 0; i < rawSteps.length; i++) {
     const edge = rawSteps[i];
     const fromNode = nodeMap.get(edge.fromNodeId);
     const toNode = nodeMap.get(edge.toNodeId);
+    const prevNode = i > 0 ? nodeMap.get(rawSteps[i - 1].fromNodeId) || null : null;
+
     const fromName = fromNode ? fromNode.name : edge.fromNodeId;
     const toName = toNode ? toNode.name : edge.toNodeId;
 
-    // Tính toán hướng hình học thực địa nếu 2 node có tọa độ
-    const computed = (fromNode && toNode) ? calculateDynamicDirection(fromNode, toNode) : null;
-    const effectiveDir = computed?.direction || edge.direction || 'front';
-    const effectiveComp = computed?.compassDirection || edge.compassDirection || 'north';
+    let action = 'straight';
+    let effectiveDir: SpatialDirection = edge.direction || 'front';
+    let effectiveComp: CompassDirection = edge.compassDirection || 'north';
+    let phraseVi = 'đi sang';
+
+    if (fromNode && toNode) {
+      const turn = calculateRelativeTurn(prevNode, fromNode, toNode);
+      action = turn.action;
+      effectiveDir = turn.direction;
+      effectiveComp = turn.compassDirection;
+      phraseVi = turn.phraseVi;
+    }
+
+    actionDetails.push({ action, phrase: phraseVi });
 
     let instruction = '';
     if (cleanLang === 'en') {
-      const act = dirPhrasesEn[effectiveDir] || 'proceed to';
-      instruction = `Step ${i + 1}: From ${fromName}, ${act} ${toName}.`;
-    } else if (cleanLang === 'fr') {
-      const act = dirPhrasesFr[effectiveDir] || 'dirigez-vous vers';
-      instruction = `Étape ${i + 1}: Depuis ${fromName}, ${act} ${toName}.`;
-    } else if (cleanLang === 'zh') {
-      const act = dirPhrasesZh[effectiveDir] || '前往';
-      instruction = `第${i + 1}步：从${fromName}出发，${act}${toName}。`;
-    } else if (cleanLang === 'ja') {
-      const act = dirPhrasesJa[effectiveDir] || '';
-      instruction = `ステップ ${i + 1}：${fromName}から${act}${toName}へ進みます。`;
+      const actEnMap: Record<string, string> = {
+        straight: 'proceed straight to',
+        right: 'turn right into',
+        left: 'turn left into',
+        slight_right: 'bear right towards',
+        slight_left: 'bear left towards',
+        sharp_right: 'sharp right into',
+        sharp_left: 'sharp left into',
+        uturn: 'turn around towards'
+      };
+      instruction = `Step ${i + 1}: From ${fromName}, ${actEnMap[action] || 'proceed to'} ${toName}.`;
     } else {
-      const act = dirPhrasesVi[effectiveDir] || 'đi sang';
-      instruction = `Bước ${i + 1}: Từ ${fromName}, bạn ${act} ${toName}.`;
+      instruction = `Bước ${i + 1}: Từ ${fromName}, bạn ${phraseVi} ${toName}.`;
     }
 
     steps.push({
@@ -660,46 +737,51 @@ export function buildLocalizedInstructions(
     });
   }
 
-  // Tạo câu thuyết minh tóm tắt chuẩn mực cho Voice AI
+  // Tóm tắt thuyết minh Voice AI: mô tả đầy đủ mọi bước chuyển hướng, không bao giờ dùng "sau đó đi tiếp để đến..."
   let summary = '';
-  if (steps.length === 0) {
-    summary = cleanLang === 'en'
-      ? 'You are already at your desired destination.'
-      : 'Quý khách đã ở đúng vị trí cần đến.';
+  const n = steps.length;
+
+  if (n === 0) {
+    summary = cleanLang === 'en' ? 'You are already at your destination.' : 'Quý khách đã ở đúng vị trí cần đến.';
   } else if (cleanLang === 'en') {
-    if (steps.length === 1) {
-      summary = `From ${startNode.name}, please ${dirPhrasesEn[steps[0].direction] || 'proceed to'} ${endNode.name}.`;
-    } else if (steps.length === 2) {
-      summary = `From ${startNode.name}, please ${dirPhrasesEn[steps[0].direction] || 'proceed to'} ${steps[0].toNodeName}, then ${dirPhrasesEn[steps[1].direction] || 'continue to'} ${endNode.name}.`;
+    if (n === 1) {
+      summary = `From ${startNode.name}, please proceed to ${endNode.name}.`;
+    } else if (n === 2) {
+      summary = `From ${startNode.name}, please go to ${steps[0].toNodeName}, then head to ${endNode.name}.`;
     } else {
-      summary = `From ${startNode.name}, please ${dirPhrasesEn[steps[0].direction] || 'proceed to'} ${steps[0].toNodeName}, continue through ${steps[1].toNodeName}, and follow the path to reach ${endNode.name}.`;
-    }
-  } else if (cleanLang === 'fr') {
-    if (steps.length === 1) {
-      summary = `Depuis ${startNode.name}, ${dirPhrasesFr[steps[0].direction] || 'dirigez-vous vers'} ${endNode.name}.`;
-    } else {
-      summary = `Depuis ${startNode.name}, ${dirPhrasesFr[steps[0].direction] || 'suivez le parcours vers'} ${steps[0].toNodeName} pour rejoindre ${endNode.name}.`;
-    }
-  } else if (cleanLang === 'zh') {
-    if (steps.length === 1) {
-      summary = `从${startNode.name}出发，${dirPhrasesZh[steps[0].direction] || '前往'}${endNode.name}。`;
-    } else {
-      summary = `从${startNode.name}出发，经${steps[0].toNodeName}，即可到达${endNode.name}。`;
-    }
-  } else if (cleanLang === 'ja') {
-    if (steps.length === 1) {
-      summary = `${startNode.name}から${dirPhrasesJa[steps[0].direction] || ''}${endNode.name}へお進みください。`;
-    } else {
-      summary = `${startNode.name}から${steps[0].toNodeName}を経て${endNode.name}へお進みください。`;
+      const parts = steps.map((s) => `${s.toNodeName}`);
+      summary = `From ${startNode.name}, head through ${parts.slice(0, -1).join(', ')}, and enter ${endNode.name} to arrive.`;
     }
   } else {
-    // Tiếng Việt chuẩn mực, hoàn toàn khớp với hình học thực tế
-    if (steps.length === 1) {
-      summary = `Từ ${startNode.name}, bạn ${dirPhrasesVi[steps[0].direction] || 'đi sang'} ${endNode.name}.`;
-    } else if (steps.length === 2) {
-      summary = `Từ ${startNode.name}, bạn ${dirPhrasesVi[steps[0].direction] || 'đi sang'} ${steps[0].toNodeName}, sau đó ${dirPhrasesVi[steps[1].direction] || 'đi tiếp sang'} ${endNode.name} là đến nơi.`;
+    // Tiếng Việt chuẩn mực di sản
+    if (n === 1) {
+      summary = `Từ ${startNode.name}, bạn ${actionDetails[0].phrase} ${endNode.name} là đến nơi.`;
+    } else if (n === 2) {
+      summary = `Từ ${startNode.name}, bạn ${actionDetails[0].phrase} ${steps[0].toNodeName}, sau đó ${actionDetails[1].phrase} ${endNode.name} là đến nơi.`;
+    } else if (n === 3) {
+      summary = `Từ ${startNode.name}, bạn ${actionDetails[0].phrase} ${steps[0].toNodeName}, tiếp tục ${actionDetails[1].phrase} ${steps[1].toNodeName}, rồi ${actionDetails[2].phrase} ${endNode.name} là đến nơi.`;
     } else {
-      summary = `Từ ${startNode.name}, bạn ${dirPhrasesVi[steps[0].direction] || 'đi sang'} ${steps[0].toNodeName}, tiếp tục đi qua ${steps[1].toNodeName}, sau đó đi tiếp để đến ${endNode.name}.`;
+      const clauses: string[] = [];
+      let idx = 0;
+      while (idx < n) {
+        const curr = actionDetails[idx];
+        if (curr.action === 'straight' && idx + 1 < n && actionDetails[idx + 1].action === 'straight') {
+          clauses.push(`đi thẳng qua ${steps[idx].toNodeName} và ${steps[idx + 1].toNodeName}`);
+          idx += 2;
+        } else {
+          clauses.push(`${curr.phrase} ${steps[idx].toNodeName}`);
+          idx += 1;
+        }
+      }
+
+      if (clauses.length >= 3) {
+        const p1 = clauses[0];
+        const pMid = clauses.slice(1, -1).join(', ');
+        const pLast = clauses[clauses.length - 1];
+        summary = `Từ ${startNode.name}, bạn ${p1}, sau đó ${pMid}, rồi ${pLast} là đến nơi.`;
+      } else {
+        summary = `Từ ${startNode.name}, bạn ` + clauses.join(', sau đó ') + ' là đến nơi.';
+      }
     }
   }
 

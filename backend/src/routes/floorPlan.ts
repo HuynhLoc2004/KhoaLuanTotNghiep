@@ -23,7 +23,8 @@ import {
   buildLocalizedInstructions,
   generateNavTtsAudio,
   resolveNodeId,
-  ensureCompleteMuseumTopology
+  ensureCompleteMuseumTopology,
+  runPythonFloorPlanNavigator
 } from '../services/floorPlanNavigator.js';
 
 export const floorPlanRouter = Router();
@@ -596,24 +597,41 @@ floorPlanRouter.post('/navigate', async (req: Request, res: Response) => {
       });
     }
 
-    // 2. Tìm lộ trình ngắn nhất bằng thuật toán Dijkstra
-    const pathResult = findShortestPath(map as any, resolvedStartId, resolvedEndId);
+    // 2. Ưu tiên 1: Chạy mô-đun AI Navigation bằng Python Worker
+    let pathResult: any = null;
+    let steps: any[] = [];
+    let summary: string = '';
 
-    if (!pathResult) {
-      return res.status(404).json({
-        success: false,
-        message: `Không tìm thấy lối đi liên kết giữa "${startNode.name}" và "${endNode.name}".`
-      });
+    const pyNav = await runPythonFloorPlanNavigator(resolvedStartId, resolvedEndId, lang);
+    if (pyNav && pyNav.steps && pyNav.steps.length > 0) {
+      pathResult = {
+        pathNodeIds: pyNav.pathNodeIds,
+        pathEdgeIds: pyNav.pathEdgeIds,
+        totalDistance: pyNav.totalDistance,
+        estimatedMinutes: pyNav.estimatedMinutes
+      };
+      steps = pyNav.steps;
+      summary = pyNav.voiceNarration;
+    } else {
+      // Ưu tiên 2: Dự phòng bằng TypeScript Topological Dijkstra Engine
+      const tsPathResult = findShortestPath(map as any, resolvedStartId, resolvedEndId);
+      if (!tsPathResult) {
+        return res.status(404).json({
+          success: false,
+          message: `Không tìm thấy lối đi liên kết giữa "${startNode.name}" và "${endNode.name}".`
+        });
+      }
+      pathResult = tsPathResult;
+      const localized = buildLocalizedInstructions(
+        startNode,
+        endNode,
+        tsPathResult.rawSteps,
+        map.nodes,
+        lang
+      );
+      steps = localized.steps;
+      summary = localized.summary;
     }
-
-    // 3. Xây dựng chỉ dẫn từng bước chuẩn ngữ pháp theo ngôn ngữ client
-    const { steps, summary } = buildLocalizedInstructions(
-      startNode,
-      endNode,
-      pathResult.rawSteps,
-      map.nodes,
-      lang
-    );
 
     // 4. Sinh file âm thanh thuyết minh chỉ đường Voice AI
     let audioUrl = '';

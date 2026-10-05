@@ -32,16 +32,18 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 
+def get_node_center(n: Dict[str, Any]) -> Tuple[float, float]:
+    cx = n.get("x", 0.0) + n.get("width", n.get("w", 14.0)) / 2.0
+    cy = n.get("y", 0.0) + n.get("height", n.get("h", 7.5)) / 2.0
+    return (cx, cy)
+
+
 def compute_vector_direction(n_from: Dict[str, Any], n_to: Dict[str, Any]) -> Tuple[str, str, str]:
     """
-    Tính phương vị 8 hướng chuẩn xác dựa trên vector tọa độ hình học (dx, dy):
-    - dx > 0: Sang phải; dx < 0: Sang trái
-    - dy > 0: Xuống dưới; dy < 0: Lên trên
+    Tính phương vị 8 hướng trên sơ đồ 2D dựa trên vector tọa độ hình học (dx, dy):
     """
-    c_from_x = n_from.get("x", 0) + n_from.get("width", n_from.get("w", 14.0)) / 2.0
-    c_from_y = n_from.get("y", 0) + n_from.get("height", n_from.get("h", 7.5)) / 2.0
-    c_to_x = n_to.get("x", 0) + n_to.get("width", n_to.get("w", 14.0)) / 2.0
-    c_to_y = n_to.get("y", 0) + n_to.get("height", n_to.get("h", 7.5)) / 2.0
+    c_from_x, c_from_y = get_node_center(n_from)
+    c_to_x, c_to_y = get_node_center(n_to)
 
     dx = c_to_x - c_from_x
     dy = c_to_y - c_from_y
@@ -63,6 +65,90 @@ def compute_vector_direction(n_from: Dict[str, Any], n_to: Dict[str, Any]) -> Tu
         return ("up", "north", "đi thẳng về phía trước sang")
     else:
         return ("northeast", "northeast", "chếch lên bên phải sang")
+
+
+def compute_relative_turn(
+    prev_node: Optional[Dict[str, Any]],
+    curr_node: Dict[str, Any],
+    next_node: Dict[str, Any]
+) -> Tuple[str, str, str, str]:
+    """
+    Tính hướng rẽ tương đối theo góc nhìn thực tế của người đi bộ:
+    - Bước 1: Dựa theo hướng nhìn ban đầu trên bản đồ
+    - Các bước tiếp theo: So sánh góc vector bước trước và bước sau
+    Trả về: (action_code, map_direction, compass_direction, phrase_vi)
+    """
+    c2x, c2y = get_node_center(curr_node)
+    c3x, c3y = get_node_center(next_node)
+    dx2 = c3x - c2x
+    dy2 = c3y - c2y
+    heading2 = math.degrees(math.atan2(dy2, dx2))
+
+    deg_map = (heading2 + 360) % 360
+    if 337.5 <= deg_map or deg_map < 22.5:
+        map_dir = "right"
+        comp_dir = "east"
+    elif 22.5 <= deg_map < 67.5:
+        map_dir = "southeast"
+        comp_dir = "southeast"
+    elif 67.5 <= deg_map < 112.5:
+        map_dir = "down"
+        comp_dir = "south"
+    elif 112.5 <= deg_map < 157.5:
+        map_dir = "southwest"
+        comp_dir = "southwest"
+    elif 157.5 <= deg_map < 202.5:
+        map_dir = "left"
+        comp_dir = "west"
+    elif 202.5 <= deg_map < 247.5:
+        map_dir = "northwest"
+        comp_dir = "northwest"
+    elif 247.5 <= deg_map < 292.5:
+        map_dir = "up"
+        comp_dir = "north"
+    else:
+        map_dir = "northeast"
+        comp_dir = "northeast"
+
+    # Bước xuất phát ban đầu:
+    if prev_node is None:
+        if map_dir in ("up", "north"):
+            return ("straight", map_dir, comp_dir, "đi thẳng về phía trước sang")
+        elif map_dir in ("right", "east"):
+            return ("right", map_dir, comp_dir, "rẽ phải sang")
+        elif map_dir in ("left", "west"):
+            return ("left", map_dir, comp_dir, "rẽ trái sang")
+        elif map_dir in ("down", "south"):
+            return ("straight", map_dir, comp_dir, "đi xuống phía dưới sang")
+        elif "right" in map_dir:
+            return ("slight_right", map_dir, comp_dir, "chếch sang bên phải sang")
+        else:
+            return ("slight_left", map_dir, comp_dir, "chếch sang bên trái sang")
+
+    # Các bước chuyển tiếp sau:
+    c1x, c1y = get_node_center(prev_node)
+    dx1 = c2x - c1x
+    dy1 = c2y - c1y
+    heading1 = math.degrees(math.atan2(dy1, dx1))
+
+    delta = (heading2 - heading1 + 180) % 360 - 180
+
+    if abs(delta) <= 35:
+        return ("straight", map_dir, comp_dir, "tiếp tục đi thẳng sang")
+    elif 35 < delta <= 65:
+        return ("slight_right", map_dir, comp_dir, "chếch sang bên phải sang")
+    elif 65 < delta <= 125:
+        return ("right", map_dir, comp_dir, "rẽ phải sang")
+    elif 125 < delta <= 165:
+        return ("sharp_right", map_dir, comp_dir, "cua gắt sang bên phải sang")
+    elif -65 <= delta < -35:
+        return ("slight_left", map_dir, comp_dir, "chếch sang bên trái sang")
+    elif -125 <= delta < -65:
+        return ("left", map_dir, comp_dir, "rẽ trái sang")
+    elif -165 <= delta < -125:
+        return ("sharp_left", map_dir, comp_dir, "cua gắt sang bên trái sang")
+    else:
+        return ("uturn", map_dir, comp_dir, "quay ngược đầu lại sang")
 
 
 class FloorPlanTopologyAnalyzer:
@@ -296,29 +382,33 @@ class FloorPlanTopologyAnalyzer:
 
         node_map = {n["id"]: n for n in self.nodes}
         steps = []
-
         for i in range(len(path_node_ids) - 1):
             f_id = path_node_ids[i]
             t_id = path_node_ids[i + 1]
-            e = next((edge for edge in self.graph.get(f_id, []) if edge["toNodeId"] == t_id), None)
+            prev_id = path_node_ids[i - 1] if i > 0 else None
+
             from_node = node_map.get(f_id)
             to_node = node_map.get(t_id)
+            prev_node = node_map.get(prev_id) if prev_id else None
 
-            # Tính lại hướng chuẩn vector giữa 2 node
-            if from_node and to_node:
-                fwd_dir, fwd_comp, _ = compute_vector_direction(from_node, to_node)
-            else:
-                fwd_dir = e["direction"] if e else "front"
-                fwd_comp = e["compassDirection"] if e else "north"
+            e = next((edge for edge in self.graph.get(f_id, []) if edge["toNodeId"] == t_id), None)
+
+            action, map_dir, comp_dir, phrase_vi = compute_relative_turn(prev_node, from_node, to_node)
+
+            from_name = from_node["name"] if from_node else f_id
+            to_name = to_node["name"] if to_node else t_id
 
             steps.append({
                 "stepNumber": i + 1,
                 "fromNodeId": f_id,
-                "fromNodeName": from_node["name"] if from_node else f_id,
+                "fromNodeName": from_name,
                 "toNodeId": t_id,
-                "toNodeName": to_node["name"] if to_node else t_id,
-                "direction": fwd_dir,
-                "compassDirection": fwd_comp,
+                "toNodeName": to_name,
+                "action": action,
+                "direction": map_dir,
+                "compassDirection": comp_dir,
+                "phrase": phrase_vi,
+                "instruction": f"Bước {i + 1}: Từ {from_name}, bạn {phrase_vi} {to_name}.",
                 "doorX": e["doorX"] if e else 50,
                 "doorY": e["doorY"] if e else 50,
                 "distance": e.get("distance", 10.0) if e else 10.0
@@ -336,73 +426,89 @@ class FloorPlanTopologyAnalyzer:
 
     def generate_voice_narration(self, path_result: Dict[str, Any], lang: str = "vi") -> str:
         """
-        Sinh câu thuyết minh chỉ đường Voice AI ngắn gọn, tự nhiên, chuẩn ngữ pháp di sản.
+        Sinh câu thuyết minh chỉ đường Voice AI ngắn gọn, tự nhiên, nêu rõ ràng từng hướng rẽ (trái, phải, đi thẳng).
+        Tuyệt đối không dùng cụm từ mơ hồ 'sau đó đi tiếp để đến...'.
         """
         if not path_result or not path_result.get("steps"):
-            return "Bạn đã ở đúng vị trí cần đến."
+            return "Bạn đã ở đúng vị trí cần đến." if lang == "vi" else "You are already at your destination."
 
         steps = path_result["steps"]
         start_name = path_result["startNode"]["name"]
         end_name = path_result["endNode"]["name"]
-
-        dir_map_vi = {
-            "left": "rẽ trái sang",
-            "right": "rẽ phải sang",
-            "up": "đi thẳng về phía trước sang",
-            "down": "đi xuống phía dưới sang",
-            "front": "đi thẳng về phía trước sang",
-            "back": "quay trở lại",
-            "northeast": "chếch lên bên phải sang",
-            "northwest": "chếch lên bên trái sang",
-            "southeast": "chếch xuống bên phải sang",
-            "southwest": "chếch xuống bên trái sang"
-        }
-
-        dir_map_en = {
-            "left": "turn left into",
-            "right": "turn right into",
-            "up": "proceed straight ahead to",
-            "down": "head down to",
-            "front": "proceed straight ahead to",
-            "back": "turn back to",
-            "northeast": "head northeast to",
-            "northwest": "head northwest to",
-            "southeast": "head southeast to",
-            "southwest": "head southwest to"
-        }
+        n = len(steps)
 
         if lang == "en":
-            phrases = []
-            for s in steps:
-                act = dir_map_en.get(s["direction"], "proceed to")
-                phrases.append(f"{act} {s['toNodeName']}")
-            if len(phrases) == 1:
-                return f"From {start_name}, please {phrases[0]}."
-            elif len(phrases) == 2:
-                return f"From {start_name}, please {phrases[0]}, then {phrases[1]}."
+            action_map_en = {
+                "straight": "proceed straight ahead to",
+                "right": "turn right into",
+                "left": "turn left into",
+                "slight_right": "bear right towards",
+                "slight_left": "bear left towards",
+                "sharp_right": "make a sharp right into",
+                "sharp_left": "make a sharp left into",
+                "uturn": "turn back towards"
+            }
+            if n == 1:
+                act = action_map_en.get(steps[0]["action"], "head to")
+                return f"From {start_name}, please {act} {end_name}."
+            elif n == 2:
+                act1 = action_map_en.get(steps[0]["action"], "head to")
+                act2 = action_map_en.get(steps[1]["action"], "turn into")
+                return f"From {start_name}, please {act1} {steps[0]['toNodeName']}, then {act2} {end_name}."
             else:
-                return f"From {start_name}, please {phrases[0]}, continue through {steps[1]['toNodeName']}, and {phrases[-1]} to reach your destination."
+                parts = []
+                for s in steps:
+                    act = action_map_en.get(s["action"], "head to")
+                    parts.append(f"{act} {s['toNodeName']}")
+                if len(parts) <= 3:
+                    return f"From {start_name}, please " + ", then ".join(parts) + " to reach your destination."
+                else:
+                    return f"From {start_name}, please {parts[0]}, {parts[1]}, then " + ", then ".join(parts[2:]) + "."
 
         elif lang == "fr":
-            return f"Depuis {start_name}, suivez les indications fléchées pour rejoindre {end_name}."
+            return f"Depuis {start_name}, suivez le parcours fléché pour rejoindre {end_name}."
 
         elif lang == "zh":
-            return f"从{start_name}出发，按路线指引即可到达{end_name}。"
+            if n == 1:
+                return f"从{start_name}出发，前往{end_name}。"
+            else:
+                return f"从{start_name}出发，按路线指引依次经过{steps[0]['toNodeName']}即可到达{end_name}。"
 
         elif lang == "ja":
-            return f"{start_name}から案内ルートに沿って進むと、{end_name}に到着します。"
-
-        else:  # Tiếng Việt chuẩn mực
-            phrases = []
-            for s in steps:
-                act = dir_map_vi.get(s["direction"], "đi sang")
-                phrases.append(f"{act} {s['toNodeName']}")
-            if len(phrases) == 1:
-                return f"Từ {start_name}, bạn {phrases[0]}."
-            elif len(phrases) == 2:
-                return f"Từ {start_name}, bạn {phrases[0]}, sau đó {phrases[1]} là đến nơi."
+            if n == 1:
+                return f"{start_name}から{end_name}へお進みください。"
             else:
-                return f"Từ {start_name}, bạn {phrases[0]}, tiếp tục đi qua {steps[1]['toNodeName']}, sau đó {phrases[-1]} để đến đích."
+                return f"{start_name}から{steps[0]['toNodeName']}を経て{end_name}へお進みください。"
+
+        else:
+            # Tiếng Việt chuẩn mực di sản: Mô tả rõ ràng mọi hướng rẽ (rẽ trái, rẽ phải, đi thẳng)
+            if n == 1:
+                return f"Từ {start_name}, bạn {steps[0]['phrase']} {end_name} là đến nơi."
+            elif n == 2:
+                return f"Từ {start_name}, bạn {steps[0]['phrase']} {steps[0]['toNodeName']}, sau đó {steps[1]['phrase']} {end_name} là đến nơi."
+            elif n == 3:
+                return f"Từ {start_name}, bạn {steps[0]['phrase']} {steps[0]['toNodeName']}, tiếp tục {steps[1]['phrase']} {steps[1]['toNodeName']}, rồi {steps[2]['phrase']} {end_name} là đến nơi."
+            else:
+                # Tuyến nhiều chặng: gộp các bước đi thẳng liên tiếp nếu có để câu văn ngắn gọn, dễ nghe
+                clauses = []
+                idx = 0
+                while idx < n:
+                    curr_step = steps[idx]
+                    # Nếu có 2 bước đi thẳng liên tiếp:
+                    if curr_step["action"] == "straight" and (idx + 1 < n) and steps[idx + 1]["action"] == "straight":
+                        clauses.append(f"đi thẳng qua {curr_step['toNodeName']} và {steps[idx + 1]['toNodeName']}")
+                        idx += 2
+                    else:
+                        clauses.append(f"{curr_step['phrase']} {curr_step['toNodeName']}")
+                        idx += 1
+
+                if len(clauses) >= 3:
+                    p1 = clauses[0]
+                    p_mid = ", ".join(clauses[1:-1])
+                    p_last = clauses[-1]
+                    return f"Từ {start_name}, bạn {p1}, sau đó {p_mid}, rồi {p_last} là đến nơi."
+                else:
+                    return f"Từ {start_name}, bạn " + ", sau đó ".join(clauses) + " là đến nơi."
 
 
 def main():
