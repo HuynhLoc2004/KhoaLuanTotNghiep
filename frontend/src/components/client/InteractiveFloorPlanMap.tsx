@@ -526,26 +526,26 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   const getDirectionBadge = (dir: FloorPlanEdge['direction']) => {
     switch (dir) {
       case 'left':
-        return { label: langKey === 'en' ? 'Left' : 'Trái', icon: <ArrowLeft size={13} /> };
+        return { label: langKey === 'en' ? 'Turn left' : 'Rẽ trái', icon: <ArrowLeft size={13} /> };
       case 'right':
-        return { label: langKey === 'en' ? 'Right' : 'Phải', icon: <ArrowRight size={13} /> };
+        return { label: langKey === 'en' ? 'Turn right' : 'Rẽ phải', icon: <ArrowRight size={13} /> };
       case 'front':
       case 'up':
-        return { label: langKey === 'en' ? 'Ahead' : 'Trước', icon: <ArrowUp size={13} /> };
+        return { label: langKey === 'en' ? 'Go straight' : 'Đi thẳng', icon: <ArrowUp size={13} /> };
       case 'down':
-        return { label: langKey === 'en' ? 'Back/South' : 'Dưới', icon: <ArrowDown size={13} /> };
+        return { label: langKey === 'en' ? 'Go down' : 'Đi xuống', icon: <ArrowDown size={13} /> };
       case 'southwest':
-        return { label: langKey === 'en' ? 'Southwest' : 'Tây Nam', icon: <ArrowDownLeft size={13} /> };
+        return { label: langKey === 'en' ? 'Down-left' : 'Xuống trái', icon: <ArrowDownLeft size={13} /> };
       case 'southeast':
-        return { label: langKey === 'en' ? 'Southeast' : 'Đông Nam', icon: <ArrowDownRight size={13} /> };
+        return { label: langKey === 'en' ? 'Down-right' : 'Xuống phải', icon: <ArrowDownRight size={13} /> };
       case 'northwest':
-        return { label: langKey === 'en' ? 'Northwest' : 'Tây Bắc', icon: <ArrowUpLeft size={13} /> };
+        return { label: langKey === 'en' ? 'Up-left' : 'Lên trái', icon: <ArrowUpLeft size={13} /> };
       case 'northeast':
-        return { label: langKey === 'en' ? 'Northeast' : 'Đông Bắc', icon: <ArrowUpRight size={13} /> };
+        return { label: langKey === 'en' ? 'Up-right' : 'Lên phải', icon: <ArrowUpRight size={13} /> };
       case 'back':
-        return { label: langKey === 'en' ? 'Return' : 'Quay lại', icon: <RotateCcw size={13} /> };
+        return { label: langKey === 'en' ? 'Turn back' : 'Quay lại', icon: <RotateCcw size={13} /> };
       default:
-        return { label: langKey === 'en' ? 'Passage' : 'Lối đi', icon: <Navigation size={13} /> };
+        return { label: langKey === 'en' ? 'Passage' : 'Lối sang', icon: <Navigation size={13} /> };
     }
   };
 

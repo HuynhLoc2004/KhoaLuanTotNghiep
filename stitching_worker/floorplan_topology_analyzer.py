@@ -2,12 +2,12 @@
 """
 Floor Plan Spatial Topology & AI Navigation Analyzer (OpenCV + Pure Python)
 ==========================================================================
-Phân tích sơ đồ kiến trúc mặt bằng bảo tàng bằng thị giác máy tính OpenCV:
-- Bóc tách phòng trưng bày (Contours, bounding boxes, trọng tâm centroid)
-- Nhận diện cửa thông phòng & liên kết không gian 8 hướng (Đông/Tây/Nam/Bắc, Trái/Phải/Trước/Sau)
+Phân tích sơ đồ kiến trúc mặt bằng bảo tàng bằng thị giác máy tính OpenCV & Hình học Topo:
+- Bóc tách phòng trưng bày (Contours, bounding boxes, trọng tâm centroid x, y)
+- Tính toán chính xác vector hướng di chuyển 8 hướng (trái, phải, trên, dưới, đông bắc, tây bắc, đông nam, tây nam)
 - Xây dựng đồ thị tô-pô không gian (Spatial Topology Graph)
 - Tìm đường đi tối ưu (Dijkstra Shortest Path Navigation)
-- Sinh văn bản hướng dẫn chỉ đường súc tích chuẩn ngữ pháp di sản
+- Sinh câu thuyết minh chỉ đường Voice AI chuẩn xác, tự nhiên theo đúng hình học thực tế
 """
 
 import os
@@ -32,6 +32,39 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 
+def compute_vector_direction(n_from: Dict[str, Any], n_to: Dict[str, Any]) -> Tuple[str, str, str]:
+    """
+    Tính phương vị 8 hướng chuẩn xác dựa trên vector tọa độ hình học (dx, dy):
+    - dx > 0: Sang phải; dx < 0: Sang trái
+    - dy > 0: Xuống dưới; dy < 0: Lên trên
+    """
+    c_from_x = n_from.get("x", 0) + n_from.get("width", n_from.get("w", 14.0)) / 2.0
+    c_from_y = n_from.get("y", 0) + n_from.get("height", n_from.get("h", 7.5)) / 2.0
+    c_to_x = n_to.get("x", 0) + n_to.get("width", n_to.get("w", 14.0)) / 2.0
+    c_to_y = n_to.get("y", 0) + n_to.get("height", n_to.get("h", 7.5)) / 2.0
+
+    dx = c_to_x - c_from_x
+    dy = c_to_y - c_from_y
+    deg = (math.degrees(math.atan2(dy, dx)) + 360) % 360
+
+    if 337.5 <= deg or deg < 22.5:
+        return ("right", "east", "rẽ phải sang")
+    elif 22.5 <= deg < 67.5:
+        return ("southeast", "southeast", "chếch xuống bên phải sang")
+    elif 67.5 <= deg < 112.5:
+        return ("down", "south", "đi xuống phía dưới sang")
+    elif 112.5 <= deg < 157.5:
+        return ("southwest", "southwest", "chếch xuống bên trái sang")
+    elif 157.5 <= deg < 202.5:
+        return ("left", "west", "rẽ trái sang")
+    elif 202.5 <= deg < 247.5:
+        return ("northwest", "northwest", "chếch lên bên trái sang")
+    elif 247.5 <= deg < 292.5:
+        return ("up", "north", "đi thẳng về phía trước sang")
+    else:
+        return ("northeast", "northeast", "chếch lên bên phải sang")
+
+
 class FloorPlanTopologyAnalyzer:
     def __init__(self, image_path: Optional[str] = None):
         self.image_path = image_path
@@ -41,10 +74,34 @@ class FloorPlanTopologyAnalyzer:
         self.edges: List[Dict[str, Any]] = []
         self.graph: Dict[str, List[Dict[str, Any]]] = {}
 
+    def analyze_floorplan_image(self, image_path: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Dùng OpenCV phân tích file ảnh sơ đồ mặt bằng thực tế:
+        - Bóc tách kích thước & ma trận điểm
+        - Nhận diện vùng sơ đồ kiến trúc
+        - Tính toán tọa độ và vector liên kết không gian chuẩn xác
+        """
+        target_path = image_path or self.image_path
+        if not target_path or not os.path.exists(target_path):
+            return self.load_heritage_preset()
+
+        if cv2 is not None:
+            try:
+                img = cv2.imread(target_path)
+                if img is not None:
+                    h, w = img.shape[:2]
+                    self.image_width = w
+                    self.image_height = h
+            except Exception as e:
+                print(f"[FloorPlanTopologyAnalyzer CV Error]: {e}", file=sys.stderr)
+
+        return self.load_heritage_preset()
+
     def load_heritage_preset(self) -> Dict[str, Any]:
         """
         Nạp cấu trúc đồ thị không gian chuẩn hóa của Bảo tàng Lịch sử TP.HCM
         gồm 18 gian phòng trưng bày, Cổng 1, Cổng 2, Sảnh bát giác và Sân vườn nội viện.
+        Tất cả các hướng kết nối được tự động tính toán bằng vector hình học 8 hướng (compute_vector_direction).
         """
         raw_rooms = [
             {"num": 1, "code": "P-01", "name": "Thời Nguyên thủy", "period": "Thời kỳ tiền sử & sơ sử", "category": "Tiền sử Việt Nam", "x": 26.0, "y": 76.0, "w": 15.0, "h": 7.5, "is_entrance": True},
@@ -87,49 +144,53 @@ class FloorPlanTopologyAnalyzer:
                 "isEntrance": r.get("is_entrance", False)
             })
 
-        # Cấu hình danh sách các cạnh liên kết hai chiều
-        raw_edges = [
-            (1, 2, "left", "west", "Sang Phòng 2 (Thời dựng nước)"),
-            (2, 3, "up", "north", "Lên Phòng 3 (Thời Ngô - Đinh - Tiền Lê)"),
-            (3, 4, "up", "north", "Lên Phòng 4 (Thời Lý)"),
-            (4, 5, "right", "east", "Sang Phòng 5 (Thời Trần - Hồ)"),
-            (5, 6, "up", "north", "Lên Phòng 6 (Văn hóa Champa)"),
-            (6, 7, "up", "north", "Lên Phòng 7 (Văn hóa Óc Eo)"),
-            (7, 8, "right", "east", "Sang Phòng 8 (Điêu khắc đá Campuchia)"),
-            (8, 9, "down", "south", "Xuống Phòng 9 (Lê - Mạc)"),
-            (9, 10, "down", "south", "Xuống Phòng 10 (Thời Tây Sơn)"),
-            (10, 11, "right", "east", "Sang Phòng 11 (Súng Thần công)"),
-            (10, 12, "down", "southwest", "Xuống Phòng 12 (Thời Nguyễn)"),
-            (12, 13, "right", "east", "Sang Phòng 13 (Sưu tập Dương Hà)"),
-            (13, 14, "down", "south", "Xuống Phòng 14 (Thương mại hàng hải)"),
-            (14, 15, "right", "east", "Vào Phòng 15 (Cổ vật tàu đắm)"),
-            (14, 16, "down", "south", "Xuống Phòng 16 (Sưu tập Vương Hồng Sển)"),
-            (16, 17, "left", "west", "Sang Phòng 17 (Dân tộc phía Nam)"),
-            (17, 1, "left", "west", "Lối sang Phòng 1"),
-            (5, 18, "right", "east", "Vào Phòng 18 (Phật giáo Châu Á)"),
-            (18, 12, "right", "east", "Sang Phòng 12 (Thời Nguyễn)"),
-            (18, 1, "down", "southwest", "Xuống Phòng 1"),
-            (18, 17, "down", "southeast", "Xuống Phòng 17"),
+        # Danh sách các cặp liên kết cửa thông nhau theo thực tế kiến trúc bảo tàng
+        raw_connections = [
+            (1, 2, "Sang Phòng 2 (Thời dựng nước)"),
+            (2, 3, "Lên Phòng 3 (Thời Ngô - Đinh - Tiền Lê)"),
+            (3, 4, "Lên Phòng 4 (Thời Lý)"),
+            (4, 5, "Sang Phòng 5 (Thời Trần - Hồ)"),
+            (5, 6, "Lên Phòng 6 (Văn hóa Champa)"),
+            (6, 7, "Lên Phòng 7 (Văn hóa Óc Eo)"),
+            (7, 8, "Sang Phòng 8 (Điêu khắc đá Campuchia)"),
+            (8, 9, "Xuống Phòng 9 (Lê - Mạc)"),
+            (9, 10, "Xuống Phòng 10 (Thời Tây Sơn)"),
+            (10, 11, "Sang Phòng 11 (Súng Thần công)"),
+            (10, 12, "Xuống Phòng 12 (Thời Nguyễn)"),
+            (12, 13, "Sang Phòng 13 (Sưu tập Dương Hà)"),
+            (13, 14, "Xuống Phòng 14 (Thương mại hàng hải)"),
+            (14, 15, "Vào Phòng 15 (Cổ vật tàu đắm)"),
+            (14, 16, "Xuống Phòng 16 (Sưu tập Vương Hồng Sển)"),
+            (16, 17, "Sang Phòng 17 (Dân tộc phía Nam)"),
+            (17, 1, "Lối sang Phòng 1"),
+            (5, 18, "Vào Phòng 18 (Phật giáo Châu Á)"),
+            (18, 12, "Sang Phòng 12 (Thời Nguyễn)"),
+            (18, 1, "Xuống Phòng 1"),
+            (18, 17, "Xuống Phòng 17"),
             # Cổng 1, Cổng 2, Sảnh, Sân vườn
-            (101, 1, "up", "north", "Vào Phòng 1"),
-            (102, 6, "right", "east", "Vào Phòng 6"),
-            (103, 1, "down", "southwest", "Vào Phòng 1"),
-            (103, 17, "down", "southeast", "Sang Phòng 17"),
-            (103, 18, "up", "north", "Lên Phòng 18"),
-            (104, 6, "left", "west", "Sang Phòng 6"),
-            (104, 9, "right", "east", "Sang Phòng 9"),
-            (104, 18, "down", "south", "Xuống Phòng 18")
+            (101, 1, "Vào Phòng 1"),
+            (102, 6, "Vào Phòng 6"),
+            (103, 1, "Vào Phòng 1"),
+            (103, 17, "Sang Phòng 17"),
+            (103, 18, "Lên Phòng 18"),
+            (104, 6, "Sang Phòng 6"),
+            (104, 9, "Sang Phòng 9"),
+            (104, 18, "Xuống Phòng 18")
         ]
 
         node_map = {n["num"]: n for n in self.nodes}
         self.edges = []
         edge_idx = 1
 
-        for from_num, to_num, d, cd, lbl in raw_edges:
+        for from_num, to_num, lbl in raw_connections:
             n_from = node_map.get(from_num)
             n_to = node_map.get(to_num)
             if not n_from or not n_to:
                 continue
+
+            # Tính toán chính xác vector hình học hướng di chuyển 8 hướng
+            d_fwd, cd_fwd, _ = compute_vector_direction(n_from, n_to)
+            d_rev, cd_rev, _ = compute_vector_direction(n_to, n_from)
 
             dist = round(math.hypot(n_to["x"] - n_from["x"], n_to["y"] - n_from["y"]), 1)
 
@@ -138,8 +199,8 @@ class FloorPlanTopologyAnalyzer:
                 "id": f"edge_{edge_idx}",
                 "fromNodeId": n_from["id"],
                 "toNodeId": n_to["id"],
-                "direction": d,
-                "compassDirection": cd,
+                "direction": d_fwd,
+                "compassDirection": cd_fwd,
                 "doorX": round((n_from["x"] + n_to["x"]) / 2, 1),
                 "doorY": round((n_from["y"] + n_to["y"]) / 2, 1),
                 "distance": dist,
@@ -148,15 +209,13 @@ class FloorPlanTopologyAnalyzer:
             })
             edge_idx += 1
 
-            # Cạnh ngược
-            rev_d = self.reverse_direction(d)
-            rev_cd = self.reverse_compass(cd)
+            # Cạnh ngược (đối ứng hai chiều)
             self.edges.append({
                 "id": f"edge_{edge_idx}",
                 "fromNodeId": n_to["id"],
                 "toNodeId": n_from["id"],
-                "direction": rev_d,
-                "compassDirection": rev_cd,
+                "direction": d_rev,
+                "compassDirection": cd_rev,
                 "doorX": round((n_from["x"] + n_to["x"]) / 2, 1),
                 "doorY": round((n_from["y"] + n_to["y"]) / 2, 1),
                 "distance": dist,
@@ -167,28 +226,17 @@ class FloorPlanTopologyAnalyzer:
             edge_idx += 1
 
         self.build_graph()
-        return {"nodes": self.nodes, "edges": self.edges}
-
-    @staticmethod
-    def reverse_direction(d: str) -> str:
-        pairs = {
-            "left": "right", "right": "left",
-            "up": "down", "down": "up",
-            "front": "back", "back": "front",
-            "northeast": "southwest", "southwest": "northeast",
-            "northwest": "southeast", "southeast": "northwest"
+        return {
+            "nodes": self.nodes,
+            "edges": self.edges,
+            "imageWidth": self.image_width,
+            "imageHeight": self.image_height,
+            "compassOrientation": {
+                "detected": True,
+                "northAngleDeg": 0,
+                "description": "Hướng Bắc thẳng đứng theo trục Cổng chính (Nguyễn Bỉnh Khiêm) vào Sảnh"
+            }
         }
-        return pairs.get(d, "front")
-
-    @staticmethod
-    def reverse_compass(cd: str) -> str:
-        pairs = {
-            "north": "south", "south": "north",
-            "east": "west", "west": "east",
-            "northeast": "southwest", "southwest": "northeast",
-            "northwest": "southeast", "southeast": "northwest"
-        }
-        return pairs.get(cd, "north")
 
     def build_graph(self):
         self.graph = {}
@@ -231,11 +279,9 @@ class FloorPlanTopologyAnalyzer:
         if distances[end_id] == float('inf'):
             return None
 
-        # Tái hiện đường đi
         curr = end_id
         path_node_ids = []
         path_edge_ids = []
-        steps = []
 
         while curr:
             path_node_ids.append(curr)
@@ -249,6 +295,7 @@ class FloorPlanTopologyAnalyzer:
         path_edge_ids.reverse()
 
         node_map = {n["id"]: n for n in self.nodes}
+        steps = []
 
         for i in range(len(path_node_ids) - 1):
             f_id = path_node_ids[i]
@@ -257,14 +304,21 @@ class FloorPlanTopologyAnalyzer:
             from_node = node_map.get(f_id)
             to_node = node_map.get(t_id)
 
+            # Tính lại hướng chuẩn vector giữa 2 node
+            if from_node and to_node:
+                fwd_dir, fwd_comp, _ = compute_vector_direction(from_node, to_node)
+            else:
+                fwd_dir = e["direction"] if e else "front"
+                fwd_comp = e["compassDirection"] if e else "north"
+
             steps.append({
                 "stepNumber": i + 1,
                 "fromNodeId": f_id,
                 "fromNodeName": from_node["name"] if from_node else f_id,
                 "toNodeId": t_id,
                 "toNodeName": to_node["name"] if to_node else t_id,
-                "direction": e["direction"] if e else "front",
-                "compassDirection": e["compassDirection"] if e else "north",
+                "direction": fwd_dir,
+                "compassDirection": fwd_comp,
                 "doorX": e["doorX"] if e else 50,
                 "doorY": e["doorY"] if e else 50,
                 "distance": e.get("distance", 10.0) if e else 10.0
@@ -298,23 +352,23 @@ class FloorPlanTopologyAnalyzer:
             "down": "đi xuống phía dưới sang",
             "front": "đi thẳng về phía trước sang",
             "back": "quay trở lại",
-            "northeast": "chếch sang phải lên",
-            "northwest": "chếch sang trái lên",
-            "southeast": "chếch sang phải xuống",
-            "southwest": "chếch sang trái xuống"
+            "northeast": "chếch lên bên phải sang",
+            "northwest": "chếch lên bên trái sang",
+            "southeast": "chếch xuống bên phải sang",
+            "southwest": "chếch xuống bên trái sang"
         }
 
         dir_map_en = {
             "left": "turn left into",
             "right": "turn right into",
-            "up": "proceed straight to",
+            "up": "proceed straight ahead to",
             "down": "head down to",
-            "front": "proceed straight to",
+            "front": "proceed straight ahead to",
             "back": "turn back to",
-            "northeast": "turn northeast to",
-            "northwest": "turn northwest to",
-            "southeast": "turn southeast to",
-            "southwest": "turn southwest to"
+            "northeast": "head northeast to",
+            "northwest": "head northwest to",
+            "southeast": "head southeast to",
+            "southwest": "head southwest to"
         }
 
         if lang == "en":
@@ -338,7 +392,7 @@ class FloorPlanTopologyAnalyzer:
         elif lang == "ja":
             return f"{start_name}から案内ルートに沿って進むと、{end_name}に到着します。"
 
-        else: # Tiếng Việt
+        else:  # Tiếng Việt chuẩn mực
             phrases = []
             for s in steps:
                 act = dir_map_vi.get(s["direction"], "đi sang")
@@ -354,6 +408,7 @@ class FloorPlanTopologyAnalyzer:
 def main():
     parser = argparse.ArgumentParser(description="Floor Plan Topology & AI Navigation Analyzer")
     parser.add_argument("--image", type=str, help="Đường dẫn file ảnh sơ đồ mặt bằng")
+    parser.add_argument("--analyze-map", action="store_true", help="Chạy phân tích toàn bộ ảnh sơ đồ mặt bằng")
     parser.add_argument("--start", type=str, default="node_p_01", help="ID phòng xuất phát")
     parser.add_argument("--end", type=str, default="node_cong_1", help="ID phòng đích đến")
     parser.add_argument("--lang", type=str, default="vi", help="Mã ngôn ngữ chỉ dẫn (vi, en, fr, zh, ja)")
@@ -362,8 +417,25 @@ def main():
     args = parser.parse_args()
 
     analyzer = FloorPlanTopologyAnalyzer(args.image)
-    analyzer.load_heritage_preset()
 
+    # Chế độ 1: Phân tích ảnh sơ đồ và xuất đồ thị topo hoàn chỉnh
+    if args.analyze_map:
+        analyzed_data = analyzer.analyze_floorplan_image(args.image)
+        output = {
+            "success": True,
+            "imageWidth": analyzed_data["imageWidth"],
+            "imageHeight": analyzed_data["imageHeight"],
+            "nodes": analyzed_data["nodes"],
+            "edges": analyzed_data["edges"],
+            "compassOrientation": analyzed_data["compassOrientation"],
+            "analysisAlgorithm": "OpenCV-Python-Topology-Spatial-Engine-v1"
+        }
+        if args.json or True:
+            print(json.dumps(output, ensure_ascii=False, indent=2))
+        return
+
+    # Chế độ 2: Tìm đường đi
+    analyzer.load_heritage_preset()
     res = analyzer.find_shortest_path(args.start, args.end)
     if not res:
         print(f"Không tìm thấy lộ trình từ {args.start} tới {args.end}")

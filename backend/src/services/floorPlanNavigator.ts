@@ -240,7 +240,50 @@ export function findShortestPath(
 }
 
 /**
- * Sinh chỉ dẫn từng bước ngắn gọn, chuẩn ngữ pháp đa ngôn ngữ
+ * Tính phương vị hình học 8 hướng chính xác từ vị trí phòng xuất phát sang phòng đích
+ */
+export function calculateDynamicDirection(
+  fromNode: IFloorPlanNode,
+  toNode: IFloorPlanNode
+): {
+  direction: 'left' | 'right' | 'up' | 'down' | 'northeast' | 'northwest' | 'southeast' | 'southwest';
+  compassDirection: 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest';
+} {
+  const fromW = fromNode.width && fromNode.width > 0 ? fromNode.width : 14;
+  const fromH = fromNode.height && fromNode.height > 0 ? fromNode.height : 7.5;
+  const toW = toNode.width && toNode.width > 0 ? toNode.width : 14;
+  const toH = toNode.height && toNode.height > 0 ? toNode.height : 7.5;
+
+  const cx1 = fromNode.x + fromW / 2;
+  const cy1 = fromNode.y + fromH / 2;
+  const cx2 = toNode.x + toW / 2;
+  const cy2 = toNode.y + toH / 2;
+
+  const dx = cx2 - cx1;
+  const dy = cy2 - cy1;
+  const deg = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+
+  if (deg >= 337.5 || deg < 22.5) {
+    return { direction: 'right', compassDirection: 'east' };
+  } else if (deg >= 22.5 && deg < 67.5) {
+    return { direction: 'southeast', compassDirection: 'southeast' };
+  } else if (deg >= 67.5 && deg < 112.5) {
+    return { direction: 'down', compassDirection: 'south' };
+  } else if (deg >= 112.5 && deg < 157.5) {
+    return { direction: 'southwest', compassDirection: 'southwest' };
+  } else if (deg >= 157.5 && deg < 202.5) {
+    return { direction: 'left', compassDirection: 'west' };
+  } else if (deg >= 202.5 && deg < 247.5) {
+    return { direction: 'northwest', compassDirection: 'northwest' };
+  } else if (deg >= 247.5 && deg < 292.5) {
+    return { direction: 'up', compassDirection: 'north' };
+  } else {
+    return { direction: 'northeast', compassDirection: 'northeast' };
+  }
+}
+
+/**
+ * Sinh chỉ dẫn từng bước ngắn gọn, chuẩn ngữ pháp đa ngôn ngữ ăn khớp 100% với hình học bản đồ
  */
 export function buildLocalizedInstructions(
   startNode: IFloorPlanNode,
@@ -261,26 +304,68 @@ export function buildLocalizedInstructions(
     up: 'đi thẳng về phía trước sang',
     down: 'đi xuống phía dưới sang',
     front: 'đi thẳng về phía trước sang',
-    back: 'quay lại',
-    northeast: 'chếch sang phải lên',
-    northwest: 'chếch sang trái lên',
-    southeast: 'chếch sang phải xuống',
-    southwest: 'chếch sang trái xuống',
+    back: 'quay trở lại',
+    northeast: 'chếch lên bên phải sang',
+    northwest: 'chếch lên bên trái sang',
+    southeast: 'chếch xuống bên phải sang',
+    southwest: 'chếch xuống bên trái sang',
     center: 'đi vào khu trung tâm'
   };
 
   const dirPhrasesEn: Record<string, string> = {
     left: 'turn left into',
     right: 'turn right into',
-    up: 'proceed straight to',
-    down: 'head south to',
-    front: 'proceed straight to',
+    up: 'proceed straight ahead to',
+    down: 'head down to',
+    front: 'proceed straight ahead to',
     back: 'turn back to',
-    northeast: 'turn northeast towards',
-    northwest: 'turn northwest towards',
-    southeast: 'turn southeast towards',
-    southwest: 'turn southwest towards',
+    northeast: 'head northeast to',
+    northwest: 'head northwest to',
+    southeast: 'head southeast to',
+    southwest: 'head southwest to',
     center: 'enter the central area of'
+  };
+
+  const dirPhrasesFr: Record<string, string> = {
+    left: 'tournez à gauche vers',
+    right: 'tournez à droite vers',
+    up: 'avancez tout droit vers',
+    down: 'descendez vers',
+    front: 'avancez tout droit vers',
+    back: 'faites demi-tour vers',
+    northeast: 'dirigez-vous vers le nord-est vers',
+    northwest: 'dirigez-vous vers le nord-ouest vers',
+    southeast: 'dirigez-vous vers le sud-est vers',
+    southwest: 'dirigez-vous vers le sud-ouest vers',
+    center: 'entrez dans la zone centrale de'
+  };
+
+  const dirPhrasesZh: Record<string, string> = {
+    left: '左转前往',
+    right: '右转前往',
+    up: '向前直行前往',
+    down: '向下前往',
+    front: '向前直行前往',
+    back: '原路返回',
+    northeast: '向右上方前往',
+    northwest: '向左上方前往',
+    southeast: '向右下方前往',
+    southwest: '向左下方前往',
+    center: '进入中心区域'
+  };
+
+  const dirPhrasesJa: Record<string, string> = {
+    left: '左に曲がり、',
+    right: '右に曲がり、',
+    up: 'まっすぐ前へ進み、',
+    down: '手前方向へ進み、',
+    front: 'まっすぐ前へ進み、',
+    back: '引き返し、',
+    northeast: '右斜め上へ進み、',
+    northwest: '左斜め上へ進み、',
+    southeast: '右斜め下へ進み、',
+    southwest: '左斜め下へ進み、',
+    center: '中央エリアへ進み、'
   };
 
   for (let i = 0; i < rawSteps.length; i++) {
@@ -290,18 +375,26 @@ export function buildLocalizedInstructions(
     const fromName = fromNode ? fromNode.name : edge.fromNodeId;
     const toName = toNode ? toNode.name : edge.toNodeId;
 
+    // Tính toán hướng hình học thực địa nếu 2 node có tọa độ
+    const computed = (fromNode && toNode) ? calculateDynamicDirection(fromNode, toNode) : null;
+    const effectiveDir = computed?.direction || edge.direction || 'front';
+    const effectiveComp = computed?.compassDirection || edge.compassDirection || 'north';
+
     let instruction = '';
     if (cleanLang === 'en') {
-      const act = dirPhrasesEn[edge.direction] || 'proceed to';
+      const act = dirPhrasesEn[effectiveDir] || 'proceed to';
       instruction = `Step ${i + 1}: From ${fromName}, ${act} ${toName}.`;
     } else if (cleanLang === 'fr') {
-      instruction = `Étape ${i + 1}: Depuis ${fromName}, dirigez-vous vers ${toName}.`;
+      const act = dirPhrasesFr[effectiveDir] || 'dirigez-vous vers';
+      instruction = `Étape ${i + 1}: Depuis ${fromName}, ${act} ${toName}.`;
     } else if (cleanLang === 'zh') {
-      instruction = `第${i + 1}步：从${fromName}出发，前往${toName}。`;
+      const act = dirPhrasesZh[effectiveDir] || '前往';
+      instruction = `第${i + 1}步：从${fromName}出发，${act}${toName}。`;
     } else if (cleanLang === 'ja') {
-      instruction = `ステップ ${i + 1}：${fromName}から${toName}へ進みます。`;
+      const act = dirPhrasesJa[effectiveDir] || '';
+      instruction = `ステップ ${i + 1}：${fromName}から${act}${toName}へ進みます。`;
     } else {
-      const act = dirPhrasesVi[edge.direction] || 'đi sang';
+      const act = dirPhrasesVi[effectiveDir] || 'đi sang';
       instruction = `Bước ${i + 1}: Từ ${fromName}, bạn ${act} ${toName}.`;
     }
 
@@ -311,8 +404,8 @@ export function buildLocalizedInstructions(
       fromNodeName: fromName,
       toNodeId: edge.toNodeId,
       toNodeName: toName,
-      direction: edge.direction,
-      compassDirection: edge.compassDirection,
+      direction: effectiveDir,
+      compassDirection: effectiveComp,
       doorX: edge.doorX,
       doorY: edge.doorY,
       distance: edge.distance,
@@ -330,24 +423,36 @@ export function buildLocalizedInstructions(
     if (steps.length === 1) {
       summary = `From ${startNode.name}, please ${dirPhrasesEn[steps[0].direction] || 'proceed to'} ${endNode.name}.`;
     } else if (steps.length === 2) {
-      summary = `From ${startNode.name}, ${dirPhrasesEn[steps[0].direction] || 'proceed to'} ${steps[0].toNodeName}, then ${dirPhrasesEn[steps[1].direction] || 'continue to'} ${endNode.name}.`;
+      summary = `From ${startNode.name}, please ${dirPhrasesEn[steps[0].direction] || 'proceed to'} ${steps[0].toNodeName}, then ${dirPhrasesEn[steps[1].direction] || 'continue to'} ${endNode.name}.`;
     } else {
-      summary = `From ${startNode.name}, ${dirPhrasesEn[steps[0].direction] || 'proceed to'} ${steps[0].toNodeName}, pass through ${steps[1].toNodeName}, then continue to ${endNode.name}.`;
+      summary = `From ${startNode.name}, please ${dirPhrasesEn[steps[0].direction] || 'proceed to'} ${steps[0].toNodeName}, continue through ${steps[1].toNodeName}, and follow the path to reach ${endNode.name}.`;
     }
   } else if (cleanLang === 'fr') {
-    summary = `Depuis ${startNode.name}, suivez l'itinéraire fléché pour rejoindre ${endNode.name}.`;
+    if (steps.length === 1) {
+      summary = `Depuis ${startNode.name}, ${dirPhrasesFr[steps[0].direction] || 'dirigez-vous vers'} ${endNode.name}.`;
+    } else {
+      summary = `Depuis ${startNode.name}, ${dirPhrasesFr[steps[0].direction] || 'suivez le parcours vers'} ${steps[0].toNodeName} pour rejoindre ${endNode.name}.`;
+    }
   } else if (cleanLang === 'zh') {
-    summary = `从${startNode.name}出发，按指示路线即可到达${endNode.name}。`;
+    if (steps.length === 1) {
+      summary = `从${startNode.name}出发，${dirPhrasesZh[steps[0].direction] || '前往'}${endNode.name}。`;
+    } else {
+      summary = `从${startNode.name}出发，经${steps[0].toNodeName}，即可到达${endNode.name}。`;
+    }
   } else if (cleanLang === 'ja') {
-    summary = `${startNode.name}から案内ルートに従い、${endNode.name}へお進みください。`;
+    if (steps.length === 1) {
+      summary = `${startNode.name}から${dirPhrasesJa[steps[0].direction] || ''}${endNode.name}へお進みください。`;
+    } else {
+      summary = `${startNode.name}から${steps[0].toNodeName}を経て${endNode.name}へお進みください。`;
+    }
   } else {
-    // Tiếng Việt chuẩn mực, súc tích
+    // Tiếng Việt chuẩn mực, hoàn toàn khớp với hình học thực tế
     if (steps.length === 1) {
       summary = `Từ ${startNode.name}, bạn ${dirPhrasesVi[steps[0].direction] || 'đi sang'} ${endNode.name}.`;
     } else if (steps.length === 2) {
       summary = `Từ ${startNode.name}, bạn ${dirPhrasesVi[steps[0].direction] || 'đi sang'} ${steps[0].toNodeName}, sau đó ${dirPhrasesVi[steps[1].direction] || 'đi tiếp sang'} ${endNode.name} là đến nơi.`;
     } else {
-      summary = `Từ ${startNode.name}, bạn ${dirPhrasesVi[steps[0].direction] || 'đi sang'} ${steps[0].toNodeName}, đi qua ${steps[1].toNodeName}, sau đó tiếp tục đi để đến ${endNode.name}.`;
+      summary = `Từ ${startNode.name}, bạn ${dirPhrasesVi[steps[0].direction] || 'đi sang'} ${steps[0].toNodeName}, tiếp tục đi qua ${steps[1].toNodeName}, sau đó đi tiếp để đến ${endNode.name}.`;
     }
   }
 
