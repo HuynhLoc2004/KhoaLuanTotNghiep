@@ -313,7 +313,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   const ui = UI_STRINGS[langKey] || UI_STRINGS.vi;
 
   const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string>(
-    externalSelectedNodeId || floorPlan.nodes?.[0]?.id || ''
+    externalSelectedNodeId || ''
   );
   const selectedNodeId = externalSelectedNodeId || internalSelectedNodeId;
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -363,19 +363,16 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     setIsPanning(false);
   };
 
-  // Sync selected node
+  // Sync selected node only when parent explicitly passes externalSelectedNodeId
   useEffect(() => {
-    if (externalSelectedNodeId) {
+    if (externalSelectedNodeId !== undefined) {
       setInternalSelectedNodeId(externalSelectedNodeId);
-    } else if (floorPlan.nodes?.length) {
-      if (!floorPlan.nodes.some((n) => n.id === internalSelectedNodeId)) {
-        setInternalSelectedNodeId(floorPlan.nodes[0].id);
-      }
     }
-  }, [floorPlan.nodes, externalSelectedNodeId]);
+  }, [externalSelectedNodeId]);
 
   const activeNode = useMemo(() => {
-    return floorPlan.nodes?.find((n) => n.id === selectedNodeId) || floorPlan.nodes?.[0];
+    if (!selectedNodeId) return null;
+    return floorPlan.nodes?.find((n) => n.id === selectedNodeId) || null;
   }, [floorPlan.nodes, selectedNodeId]);
 
   // Lọc bỏ các cạnh xuyên sảnh phi thực tế giữa Phòng 1, Phòng 17, Phòng 18 (phải đi qua Sảnh Bát Giác)
@@ -1954,9 +1951,55 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     </div>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '36px 0', color: isLight ? '#64748B' : '#94A3B8' }}>
-                    <Info size={20} style={{ margin: '0 auto 6px auto', opacity: 0.6 }} />
-                    <div style={{ fontSize: 12.5 }}>Chọn một gian phòng trên sơ đồ để xem thông tin</div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '44px 16px',
+                      textAlign: 'center',
+                      height: '100%'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 10,
+                        background: isLight ? 'rgba(212, 168, 106, 0.12)' : 'rgba(212, 168, 106, 0.14)',
+                        border: '1px solid rgba(212, 168, 106, 0.28)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#D4A86A',
+                        marginBottom: 12
+                      }}
+                    >
+                      <Building size={20} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: isLight ? '#0F172A' : '#FFFFFF',
+                        marginBottom: 6
+                      }}
+                    >
+                      {langKey === 'en' ? 'Select a room on the map' : 'Chọn gian phòng trên sơ đồ'}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: isLight ? '#64748B' : '#94A3B8',
+                        maxWidth: 240,
+                        lineHeight: 1.55
+                      }}
+                    >
+                      {langKey === 'en'
+                        ? 'Click any room or gate on the map to view exhibit details, connected doors, and directions.'
+                        : 'Nhấp vào một gian phòng hoặc cổng trên sơ đồ để xem thông tin hiện vật, lối thông phòng và lộ trình chỉ đường.'}
+                    </div>
                   </div>
                 )}
               </div>
