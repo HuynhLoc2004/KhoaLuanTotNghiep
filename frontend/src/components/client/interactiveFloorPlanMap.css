@@ -1,21 +1,21 @@
 /* ==============================================================================
-   INTERACTIVE FLOOR PLAN MAP - RESPONSIVE & MOBILE-OPTIMIZED STYLESHEET
-   100% Mobile-Friendly, Touch-Ready, Adaptive 8-Direction Navigation
+   INTERACTIVE FLOOR PLAN MAP - HERITAGE MUSEUM STYLING
+   Clean, Prestigious Architectural 2D Map & Visitor Route Navigation
    ============================================================================== */
 
 .ifp-container {
   width: 100%;
   box-sizing: border-box;
   position: relative;
-  border-radius: 14px;
-  padding: 18px;
+  border-radius: 12px;
+  padding: 16px;
   transition: all 0.2s ease;
 }
 
 @media (max-width: 640px) {
   .ifp-container {
     padding: 12px 10px;
-    border-radius: 12px;
+    border-radius: 10px;
   }
 }
 
@@ -49,10 +49,7 @@
   }
 }
 
-/* Responsive Layout Grid:
-   - Desktop (> 960px): 2 cột (Map rộng 1.65fr, Details 1fr)
-   - Mobile & Tablet (<= 960px): 1 CỘT DUY NHẤT (Map chiếm 100% bề ngang, Panel chi tiết nằm bên dưới)
-*/
+/* Responsive Layout Grid */
 .ifp-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr);
@@ -76,7 +73,7 @@
   width: 100%;
   aspect-ratio: 16 / 11;
   min-height: 380px;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   box-sizing: border-box;
   touch-action: none;
@@ -93,7 +90,7 @@
 @media (max-width: 480px) {
   .ifp-canvas-card {
     min-height: 250px;
-    aspect-ratio: 4 / 3; /* Tỉ lệ 4:3 trên điện thoại dọc tạo không gian hiển thị rộng rãi, không bị nén */
+    aspect-ratio: 4 / 3;
   }
 }
 
@@ -107,20 +104,20 @@
 
 /* Details Panel */
 .ifp-details-card {
-  border-radius: 10px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
   box-sizing: border-box;
 }
 
 @media (max-width: 960px) {
   .ifp-details-card {
-    padding: 14px 12px;
-    gap: 12px;
+    padding: 12px 10px;
+    gap: 10px;
   }
 }
 
@@ -132,38 +129,37 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 20, 31, 0.85);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  padding: 3px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 3px;
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .ifp-ctrl-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
   color: #E2E8F0;
-  border-radius: 5px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
 }
 
-.ifp-ctrl-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
+.ifp-ctrl-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
   color: #FFFFFF;
 }
 
-.ifp-ctrl-btn:active {
-  transform: scale(0.92);
+.ifp-ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* North Compass Badge */
@@ -174,14 +170,14 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(15, 20, 31, 0.8);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(212, 168, 106, 0.3);
+  border: 1px solid rgba(212, 168, 106, 0.25);
   color: #D4A86A;
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 3px 8px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   z-index: 5;
   pointer-events: none;
 }
@@ -192,40 +188,16 @@
   }
 }
 
-/* Animations for Heritage Pin Hotspots & Overlay */
-@keyframes ifp-pulse-ring {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.9;
-  }
-  100% {
-    transform: scale(2.2);
-    opacity: 0;
-  }
-}
-
-.ifp-pin-hover {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
-}
-
-.ifp-pin-hover:hover {
-  transform: scale(1.2);
-}
-
-/* ==============================================================================
-   NAVIGATION ASSISTANT & VOICE AI STYLES
-   ============================================================================== */
-
 /* Tab switchers in Details Card */
 .ifp-tabs-bar {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
   padding: 3px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .ifp-tab-btn {
@@ -234,10 +206,10 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 10px;
+  padding: 6px 10px;
   font-size: 11.5px;
-  font-weight: 600;
-  border-radius: 6px;
+  font-weight: 500;
+  border-radius: 4px;
   border: none;
   background: transparent;
   color: #94A3B8;
@@ -247,14 +219,15 @@
 }
 
 .ifp-tab-btn:hover {
-  color: #F1F5F9;
+  color: #E2E8F0;
   background: rgba(255, 255, 255, 0.04);
 }
 
 .ifp-tab-btn.active {
-  background: rgba(212, 168, 106, 0.16);
+  background: rgba(212, 168, 106, 0.14);
   color: #D4A86A;
-  border: 1px solid rgba(212, 168, 106, 0.3);
+  font-weight: 600;
+  border: 1px solid rgba(212, 168, 106, 0.28);
 }
 
 /* Navigator Select Boxes */
@@ -266,18 +239,16 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #CBD5E1;
-  margin-bottom: 5px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  margin-bottom: 4px;
 }
 
 .ifp-nav-select {
   width: 100%;
-  padding: 8px 10px;
-  background: #111622;
+  padding: 7px 9px;
+  background: #0E131E;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   color: #F1F5F9;
@@ -303,7 +274,7 @@
   padding: 3px 8px;
   font-size: 11px;
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 4px;
   color: #94A3B8;
@@ -312,7 +283,7 @@
 }
 
 .ifp-nav-chip:hover {
-  background: rgba(212, 168, 106, 0.12);
+  background: rgba(212, 168, 106, 0.1);
   border-color: rgba(212, 168, 106, 0.3);
   color: #D4A86A;
 }
@@ -323,22 +294,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 7px;
+  padding: 8px 12px;
   background: #D4A86A;
-  color: #0F131D;
+  color: #0B0E14;
   border: none;
   border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .ifp-nav-submit-btn:hover:not(:disabled) {
-  background: #E5BE82;
-  transform: translateY(-1px);
+  background: #DFB77D;
 }
 
 .ifp-nav-submit-btn:disabled {
@@ -346,69 +316,70 @@
   cursor: not-allowed;
 }
 
-/* Voice AI Audio Player Card */
+/* Route Summary Single Row */
+.ifp-nav-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #94A3B8;
+}
+
+.ifp-nav-sum-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ifp-sum-val {
+  color: #D4A86A;
+  font-weight: 600;
+}
+
+.ifp-sum-divider {
+  color: rgba(255, 255, 255, 0.15);
+}
+
+/* Audio Player Card (Heritage Style) */
 .ifp-voice-card {
-  background: rgba(212, 168, 106, 0.06);
-  border: 1px solid rgba(212, 168, 106, 0.22);
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-top: 10px;
+  background: rgba(212, 168, 106, 0.05);
+  border: 1px solid rgba(212, 168, 106, 0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 8px;
 }
 
 .ifp-voice-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .ifp-voice-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   color: #D4A86A;
 }
 
-/* Animated sound wave bars */
-.ifp-voice-wave {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 14px;
-}
-
-.ifp-voice-wave-bar {
-  width: 2.5px;
-  background: #D4A86A;
-  border-radius: 2px;
-  animation: ifp-wave 1s ease-in-out infinite alternate;
-}
-
-.ifp-voice-wave-bar:nth-child(1) { height: 4px; animation-delay: 0.1s; }
-.ifp-voice-wave-bar:nth-child(2) { height: 12px; animation-delay: 0.3s; }
-.ifp-voice-wave-bar:nth-child(3) { height: 7px; animation-delay: 0.2s; }
-.ifp-voice-wave-bar:nth-child(4) { height: 14px; animation-delay: 0.4s; }
-.ifp-voice-wave-bar:nth-child(5) { height: 6px; animation-delay: 0.15s; }
-
-@keyframes ifp-wave {
-  0% { transform: scaleY(0.3); }
-  100% { transform: scaleY(1); }
-}
-
-/* Spoken narration text */
 .ifp-voice-text {
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.45;
-  color: #E2E8F0;
-  font-style: italic;
-  margin-bottom: 8px;
+  color: #CBD5E1;
+  margin: 0 0 6px 0;
   padding-left: 6px;
-  border-left: 2px solid #D4A86A;
+  border-left: 2px solid rgba(212, 168, 106, 0.5);
 }
 
-/* Audio control buttons */
 .ifp-voice-actions {
   display: flex;
   align-items: center;
@@ -418,70 +389,63 @@
 .ifp-voice-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #F1F5F9;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #E2E8F0;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
 }
 
 .ifp-voice-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .ifp-voice-btn.active {
   background: #D4A86A;
-  color: #0F131D;
+  color: #0B0E14;
   border-color: #D4A86A;
+  font-weight: 600;
 }
 
 /* Step-by-step route card */
 .ifp-step-row {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 6px;
-  font-size: 11.5px;
+  gap: 7px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  font-size: 11px;
   color: #CBD5E1;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
+  transition: background 0.12s ease;
+}
+
+.ifp-step-row:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .ifp-step-badge {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
-  background: rgba(212, 168, 106, 0.2);
+  background: rgba(212, 168, 106, 0.15);
   color: #D4A86A;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 9.5px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* SVG Route Animation */
-@keyframes ifp-dash {
-  to {
-    stroke-dashoffset: -20;
-  }
-}
-
+/* SVG Route line */
 .ifp-svg-nav-path {
-  stroke-dasharray: 2.5, 1.5;
-  animation: ifp-dash 1.2s linear infinite;
+  stroke-dasharray: 2, 1.2;
 }
-
-.ifp-svg-pulse-node {
-  animation: ifp-pulse-ring 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-  transform-origin: center;
-}
-
