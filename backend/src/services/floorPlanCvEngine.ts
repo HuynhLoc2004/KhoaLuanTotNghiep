@@ -819,7 +819,13 @@ const HERITAGE_MUSEUM_HCM_ROOMS: IHeritageRoomPreset[] = [
   { num: 8, code: 'P-08', name: 'Điêu khắc đá Campuchia', period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ', category: 'Nghệ thuật Châu Á', x: 74.0, y: 7.0, width: 12.0, height: 10.0 },
   { num: 9, code: 'P-09', name: 'Thời Lê - Mạc, Trịnh - Nguyễn', period: 'Thế kỷ XV - XVIII: Thời kỳ Hậu Lê và phân tranh', category: 'Thời kỳ Hậu Lê', x: 74.0, y: 21.0, width: 12.0, height: 9.5 },
   { num: 10, code: 'P-10', name: 'Thời Tây Sơn', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn', category: 'Triều đại Tây Sơn', x: 74.0, y: 34.0, width: 12.0, height: 9.5 },
-  { num: 11, code: 'P-11', name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ', category: 'Vũ khí di sản', x: 90.0, y: 34.0, width: 7.5, height: 9.5 }
+  { num: 11, code: 'P-11', name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ', category: 'Vũ khí di sản', x: 90.0, y: 34.0, width: 7.5, height: 9.5 },
+
+  // --- CÁC ĐIỂM TIỆN ÍCH, CỔNG RA VÀO & KHÔNG GIAN ĐẶC BIỆT ---
+  { num: 101, code: 'CONG-1', name: 'Cổng 1 (Lối vào & Ra chính)', period: 'Cổng chính Nguyễn Bỉnh Khiêm', category: 'Cổng ra vào', x: 46.0, y: 87.0, width: 8.0, height: 6.0, isEntrance: true },
+  { num: 102, code: 'CONG-2', name: 'Cổng 2 (Lối ra phụ & Thảo Cầm Viên)', period: 'Cổng phụ Tây Bắc', category: 'Cổng ra vào', x: 9.0, y: 28.0, width: 12.0, height: 8.0, isEntrance: true },
+  { num: 103, code: 'SANH', name: 'Sảnh Bát Giác (Khu vực đón tiếp)', period: 'Trung tâm phân luồng', category: 'Sảnh trung tâm', x: 45.0, y: 62.0, width: 10.0, height: 9.0, isEntrance: false },
+  { num: 104, code: 'SAN-VUON', name: 'Sân vườn nội viện', period: 'Khuôn viên xanh & Hồ rối nước', category: 'Khuôn viên ngoài trời', x: 42.0, y: 21.0, width: 29.0, height: 18.0, isEntrance: false }
 ];
 
 const HERITAGE_MUSEUM_HCM_EDGES_CONFIG: { from: number; to: number; dir: ICvDetectedEdge['direction']; compDir: ICvDetectedEdge['compassDirection']; label: string }[] = [
@@ -886,7 +892,31 @@ const HERITAGE_MUSEUM_HCM_EDGES_CONFIG: { from: number; to: number; dir: ICvDete
   { from: 1, to: 18, dir: 'up', compDir: 'northeast', label: 'Lối lên Phòng 18 (Phật giáo Châu Á)' },
 
   { from: 18, to: 17, dir: 'down', compDir: 'southeast', label: 'Xuống cánh Đông Nam: Phòng 17' },
-  { from: 17, to: 18, dir: 'up', compDir: 'northwest', label: 'Lối lên Phòng 18 (Phật giáo Châu Á)' }
+  { from: 17, to: 18, dir: 'up', compDir: 'northwest', label: 'Lối lên Phòng 18 (Phật giáo Châu Á)' },
+
+  // LIÊN KẾT CỔNG 1 (Lối vào chính):
+  { from: 101, to: 1, dir: 'up', compDir: 'north', label: 'Vào Phòng 1 (Thời Nguyên thủy)' },
+  { from: 1, to: 101, dir: 'down', compDir: 'south', label: 'Lối ra Cổng 1 (Cổng chính)' },
+
+  // LIÊN KẾT CỔNG 2 (Cổng phụ Tây Bắc):
+  { from: 102, to: 6, dir: 'right', compDir: 'east', label: 'Vào Phòng 6 (Văn hóa Champa)' },
+  { from: 6, to: 102, dir: 'left', compDir: 'west', label: 'Lối ra Cổng 2 (Cổng phụ)' },
+
+  // LIÊN KẾT SẢNH BÁT GIÁC (Khu trung tâm):
+  { from: 103, to: 1, dir: 'down', compDir: 'southwest', label: 'Lối sang Phòng 1 (Thời Nguyên thủy)' },
+  { from: 1, to: 103, dir: 'up', compDir: 'northeast', label: 'Vào Sảnh Bát Giác' },
+  { from: 103, to: 17, dir: 'down', compDir: 'southeast', label: 'Lối sang Phòng 17 (Dân tộc phía Nam)' },
+  { from: 17, to: 103, dir: 'up', compDir: 'northwest', label: 'Vào Sảnh Bát Giác' },
+  { from: 103, to: 18, dir: 'up', compDir: 'north', label: 'Lên Phòng 18 (Tượng Phật giáo Châu Á)' },
+  { from: 18, to: 103, dir: 'down', compDir: 'south', label: 'Xuống Sảnh Bát Giác' },
+
+  // LIÊN KẾT SÂN VƯỜN NỘI VIỆN:
+  { from: 104, to: 6, dir: 'left', compDir: 'west', label: 'Vào Phòng 6 (Văn hóa Champa)' },
+  { from: 6, to: 104, dir: 'right', compDir: 'east', label: 'Ra Sân vườn nội viện' },
+  { from: 104, to: 9, dir: 'right', compDir: 'east', label: 'Vào Phòng 9 (Lê - Mạc)' },
+  { from: 9, to: 104, dir: 'left', compDir: 'west', label: 'Ra Sân vườn nội viện' },
+  { from: 104, to: 18, dir: 'down', compDir: 'south', label: 'Xuống Phòng 18 (Phật giáo Châu Á)' },
+  { from: 18, to: 104, dir: 'up', compDir: 'north', label: 'Lên Sân vườn nội viện' }
 ];
 
 async function isHeritageMuseumPosterPattern(imageInput: string | Buffer): Promise<boolean> {

@@ -239,6 +239,42 @@ export async function initPostgresTables(): Promise<boolean> {
         CREATE INDEX IF NOT EXISTS idx_fp_edges_plan_id ON floor_plan_edges(floor_plan_id);
       `);
 
+      // 11b. Bảng Cấu hình Trợ lý Dẫn đường Bản đồ (Floor Plan Nav Settings)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS floor_plan_nav_settings (
+          id VARCHAR(64) PRIMARY KEY,
+          floor_plan_id VARCHAR(64) NOT NULL REFERENCES floor_plans(id) ON DELETE CASCADE,
+          voice_enabled BOOLEAN DEFAULT true,
+          auto_play_voice BOOLEAN DEFAULT false,
+          speech_speed FLOAT DEFAULT 1.0,
+          tts_provider VARCHAR(32) DEFAULT 'google',
+          welcome_message JSONB DEFAULT '{"vi":"Xin chào, tôi là trợ lý dẫn đường bản đồ. Hãy chọn vị trí bạn đang đứng và điểm bạn muốn đến.","en":"Hello, I am your museum map navigator. Please select your current location and desired destination."}',
+          custom_rules JSONB DEFAULT '[]',
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_fp_nav_settings_plan_id ON floor_plan_nav_settings(floor_plan_id);
+      `);
+
+      // 11c. Bảng Lịch sử Tìm đường & Dẫn đường thực tế (Floor Plan Navigation Logs)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS floor_plan_nav_logs (
+          id VARCHAR(64) PRIMARY KEY,
+          floor_plan_id VARCHAR(64) NOT NULL REFERENCES floor_plans(id) ON DELETE CASCADE,
+          start_node_id VARCHAR(64) NOT NULL,
+          start_node_name VARCHAR(256),
+          end_node_id VARCHAR(64) NOT NULL,
+          end_node_name VARCHAR(256),
+          lang VARCHAR(16) DEFAULT 'vi',
+          path_node_ids JSONB NOT NULL,
+          step_count INT DEFAULT 0,
+          total_distance FLOAT DEFAULT 0,
+          instruction_text TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_fp_nav_logs_plan_id ON floor_plan_nav_logs(floor_plan_id);
+        CREATE INDEX IF NOT EXISTS idx_fp_nav_logs_created_at ON floor_plan_nav_logs(created_at);
+      `);
+
       // 12. Bảng Ngôn ngữ hỗ trợ (Languages)
       await client.query(`
         CREATE TABLE IF NOT EXISTS languages (

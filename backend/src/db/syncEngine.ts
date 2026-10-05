@@ -444,6 +444,82 @@ export async function pgDeleteFloorPlan(id: string) {
   }
 }
 
+export async function pgUpsertNavSettings(settings: any) {
+  try {
+    await pgPool.query(`
+      INSERT INTO floor_plan_nav_settings (
+        id, floor_plan_id, voice_enabled, auto_play_voice, speech_speed, tts_provider, welcome_message, custom_rules, updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET
+        floor_plan_id = EXCLUDED.floor_plan_id,
+        voice_enabled = EXCLUDED.voice_enabled,
+        auto_play_voice = EXCLUDED.auto_play_voice,
+        speech_speed = EXCLUDED.speech_speed,
+        tts_provider = EXCLUDED.tts_provider,
+        welcome_message = EXCLUDED.welcome_message,
+        custom_rules = EXCLUDED.custom_rules,
+        updated_at = CURRENT_TIMESTAMP;
+    `, [
+      settings.id,
+      settings.floorPlanId,
+      settings.voiceEnabled ?? true,
+      settings.autoPlayVoice ?? false,
+      settings.speechSpeed ?? 1.0,
+      settings.ttsProvider || 'google',
+      JSON.stringify(settings.welcomeMessage || {}),
+      JSON.stringify(settings.customRules || [])
+    ]);
+  } catch (err: any) {
+    console.warn('[SyncEngine] Lỗi đồng bộ NavSettings sang PostgreSQL:', err.message);
+  }
+}
+
+export async function pgSaveNavLog(log: any) {
+  try {
+    await pgPool.query(`
+      INSERT INTO floor_plan_nav_logs (
+        id, floor_plan_id, start_node_id, start_node_name, end_node_id, end_node_name,
+        lang, path_node_ids, step_count, total_distance, instruction_text, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP);
+    `, [
+      log.id,
+      log.floorPlanId,
+      log.startNodeId,
+      log.startNodeName || '',
+      log.endNodeId,
+      log.endNodeName || '',
+      log.lang || 'vi',
+      JSON.stringify(log.pathNodeIds || []),
+      log.stepCount || 0,
+      log.totalDistance || 0,
+      log.instructionText || ''
+    ]);
+  } catch (err: any) {
+    console.warn('[SyncEngine] Lỗi lưu NavLog sang PostgreSQL:', err.message);
+  }
+}
+
+export async function pgGetNavLogs(floorPlanId?: string, limit: number = 20) {
+  try {
+    let query = 'SELECT * FROM floor_plan_nav_logs';
+    const params: any[] = [];
+    if (floorPlanId) {
+      query += ' WHERE floor_plan_id = $1';
+      params.push(floorPlanId);
+    }
+    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+
+    const res = await pgPool.query(query, params);
+    return res.rows;
+  } catch (err: any) {
+    console.warn('[SyncEngine] Lỗi đọc NavLogs từ PostgreSQL:', err.message);
+    return [];
+  }
+}
+
 export async function pgUpsertLanguage(lang: any) {
   try {
     await pgPool.query(`

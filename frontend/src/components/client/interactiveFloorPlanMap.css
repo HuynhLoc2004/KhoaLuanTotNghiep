@@ -212,3 +212,276 @@
   transform: scale(1.2);
 }
 
+/* ==============================================================================
+   NAVIGATION ASSISTANT & VOICE AI STYLES
+   ============================================================================== */
+
+/* Tab switchers in Details Card */
+.ifp-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 12px;
+}
+
+.ifp-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.ifp-tab-btn:hover {
+  color: #F1F5F9;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ifp-tab-btn.active {
+  background: rgba(212, 168, 106, 0.16);
+  color: #D4A86A;
+  border: 1px solid rgba(212, 168, 106, 0.3);
+}
+
+/* Navigator Select Boxes */
+.ifp-nav-field {
+  margin-bottom: 10px;
+}
+
+.ifp-nav-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #CBD5E1;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ifp-nav-select {
+  width: 100%;
+  padding: 8px 10px;
+  background: #111622;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #F1F5F9;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.ifp-nav-select:focus {
+  border-color: #D4A86A;
+}
+
+/* Quick destination shortcut chips */
+.ifp-nav-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.ifp-nav-chip {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.ifp-nav-chip:hover {
+  background: rgba(212, 168, 106, 0.12);
+  border-color: rgba(212, 168, 106, 0.3);
+  color: #D4A86A;
+}
+
+/* Action submit button */
+.ifp-nav-submit-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #D4A86A;
+  color: #0F131D;
+  border: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 8px;
+}
+
+.ifp-nav-submit-btn:hover:not(:disabled) {
+  background: #E5BE82;
+  transform: translateY(-1px);
+}
+
+.ifp-nav-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Voice AI Audio Player Card */
+.ifp-voice-card {
+  background: rgba(212, 168, 106, 0.06);
+  border: 1px solid rgba(212, 168, 106, 0.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+.ifp-voice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.ifp-voice-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #D4A86A;
+}
+
+/* Animated sound wave bars */
+.ifp-voice-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.ifp-voice-wave-bar {
+  width: 2.5px;
+  background: #D4A86A;
+  border-radius: 2px;
+  animation: ifp-wave 1s ease-in-out infinite alternate;
+}
+
+.ifp-voice-wave-bar:nth-child(1) { height: 4px; animation-delay: 0.1s; }
+.ifp-voice-wave-bar:nth-child(2) { height: 12px; animation-delay: 0.3s; }
+.ifp-voice-wave-bar:nth-child(3) { height: 7px; animation-delay: 0.2s; }
+.ifp-voice-wave-bar:nth-child(4) { height: 14px; animation-delay: 0.4s; }
+.ifp-voice-wave-bar:nth-child(5) { height: 6px; animation-delay: 0.15s; }
+
+@keyframes ifp-wave {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+
+/* Spoken narration text */
+.ifp-voice-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #E2E8F0;
+  font-style: italic;
+  margin-bottom: 8px;
+  padding-left: 6px;
+  border-left: 2px solid #D4A86A;
+}
+
+/* Audio control buttons */
+.ifp-voice-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ifp-voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #F1F5F9;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ifp-voice-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ifp-voice-btn.active {
+  background: #D4A86A;
+  color: #0F131D;
+  border-color: #D4A86A;
+}
+
+/* Step-by-step route card */
+.ifp-step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #CBD5E1;
+  margin-bottom: 5px;
+}
+
+.ifp-step-badge {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(212, 168, 106, 0.2);
+  color: #D4A86A;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* SVG Route Animation */
+@keyframes ifp-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.ifp-svg-nav-path {
+  stroke-dasharray: 2.5, 1.5;
+  animation: ifp-dash 1.2s linear infinite;
+}
+
+.ifp-svg-pulse-node {
+  animation: ifp-pulse-ring 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  transform-origin: center;
+}
+

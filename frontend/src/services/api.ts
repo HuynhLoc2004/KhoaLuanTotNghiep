@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload, TicketTypeItem, TicketTimeSlotItem, TicketCatalogData, TicketCheckoutPayload, TicketCheckoutResponse, AdminOrderItem, AdminOrdersResponse } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload, TicketTypeItem, TicketTimeSlotItem, TicketCatalogData, TicketCheckoutPayload, TicketCheckoutResponse, AdminOrderItem, AdminOrdersResponse, NavigationResult, FloorPlanNavSettings, FloorPlanNavLog } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -753,6 +753,59 @@ export const api = {
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.message || 'Lỗi lưu liên kết sơ đồ');
+    return json.data;
+  },
+
+  // === TRỢ LÝ BẢN ĐỒ & DẪN ĐƯỜNG VOICE AI (FLOOR PLAN NAVIGATION ASSISTANT) ===
+  async navigateFloorPlan(payload: {
+    floorPlanId?: string;
+    startNodeId: string;
+    endNodeId: string;
+    lang?: string;
+  }): Promise<NavigationResult> {
+    const res = await fetch(`${API_BASE}/floor-plan/navigate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tìm đường dẫn');
+    return json.data;
+  },
+
+  async getFloorPlanNavSettings(floorPlanId?: string): Promise<FloorPlanNavSettings> {
+    const query = floorPlanId ? `?floorPlanId=${encodeURIComponent(floorPlanId)}` : '';
+    const res = await fetch(`${API_BASE}/floor-plan/nav-settings${query}`, {
+      cache: 'no-store'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải cấu hình trợ lý dẫn đường');
+    return json.data;
+  },
+
+  async updateFloorPlanNavSettings(payload: Partial<FloorPlanNavSettings>): Promise<FloorPlanNavSettings> {
+    const res = await fetch(`${API_BASE}/floor-plan/nav-settings`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(true), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi cập nhật cấu hình trợ lý');
+    return json.data;
+  },
+
+  async getFloorPlanNavLogs(floorPlanId?: string, limit: number = 30): Promise<FloorPlanNavLog[]> {
+    const query = new URLSearchParams();
+    if (floorPlanId) query.append('floorPlanId', floorPlanId);
+    query.append('limit', limit.toString());
+    query.append('_t', Date.now().toString());
+
+    const res = await fetch(`${API_BASE}/floor-plan/nav-logs?${query.toString()}`, {
+      headers: getAuthHeaders(true),
+      cache: 'no-store'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải lịch sử dẫn đường');
     return json.data;
   },
 

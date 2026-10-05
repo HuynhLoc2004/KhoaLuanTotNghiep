@@ -520,6 +520,61 @@ export interface FloorPlanMap {
   active: boolean;
 }
 
+export interface NavigationStep {
+  stepNumber: number;
+  fromNodeId: string;
+  fromNodeName: string;
+  toNodeId: string;
+  toNodeName: string;
+  direction: FloorPlanEdge['direction'];
+  compassDirection: FloorPlanEdge['compassDirection'];
+  doorX: number;
+  doorY: number;
+  distance: number;
+  instruction: string;
+}
+
+export interface NavigationResult {
+  startNode: FloorPlanNode;
+  endNode: FloorPlanNode;
+  pathNodeIds: string[];
+  pathEdgeIds: string[];
+  steps: NavigationStep[];
+  totalDistance: number;
+  estimatedMinutes: number;
+  instructionSummary: string;
+  audioUrl?: string;
+  lang: string;
+}
+
+export interface FloorPlanNavSettings {
+  id: string;
+  floorPlanId: string;
+  voiceEnabled: boolean;
+  autoPlayVoice: boolean;
+  speechSpeed: number;
+  ttsProvider: string;
+  welcomeMessage: Record<string, string>;
+  customRules?: any[];
+  updatedAt?: string;
+}
+
+export interface FloorPlanNavLog {
+  id: string;
+  floorPlanId: string;
+  startNodeId: string;
+  startNodeName: string;
+  endNodeId: string;
+  endNodeName: string;
+  lang: string;
+  pathNodeIds: string[];
+  stepCount: number;
+  totalDistance: number;
+  instructionText: string;
+  createdAt: string;
+}
+
+
 export interface AISettings {
   id: string;
   isActive: boolean;

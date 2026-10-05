@@ -152,3 +152,68 @@ FloorPlanMapSchema.index({ active: 1 });
 export const FloorPlanMapModel = mongoose.model<IFloorPlanMap>('FloorPlanMap', FloorPlanMapSchema);
 export const FloorPlanMap = FloorPlanMapModel;
 
+export interface IFloorPlanNavSetting extends Document {
+  id: string;
+  floorPlanId: string;
+  voiceEnabled: boolean;
+  autoPlayVoice: boolean;
+  speechSpeed: number;
+  ttsProvider: string;
+  welcomeMessage: Record<string, string>;
+  customRules?: any[];
+  updatedAt: Date;
+}
+
+const FloorPlanNavSettingSchema = new Schema<IFloorPlanNavSetting>({
+  id: { type: String, required: true, unique: true },
+  floorPlanId: { type: String, required: true },
+  voiceEnabled: { type: Boolean, default: true },
+  autoPlayVoice: { type: Boolean, default: false },
+  speechSpeed: { type: Number, default: 1.0 },
+  ttsProvider: { type: String, default: 'google' },
+  welcomeMessage: {
+    type: Map,
+    of: String,
+    default: {
+      vi: 'Xin chào, tôi là trợ lý dẫn đường bản đồ. Hãy chọn vị trí bạn đang đứng và điểm bạn muốn đến.',
+      en: 'Hello, I am your museum map navigator. Please select your current location and desired destination.'
+    }
+  },
+  customRules: { type: [Schema.Types.Mixed], default: [] }
+}, { timestamps: true });
+
+FloorPlanNavSettingSchema.index({ floorPlanId: 1 });
+export const FloorPlanNavSettingModel = mongoose.model<IFloorPlanNavSetting>('FloorPlanNavSetting', FloorPlanNavSettingSchema);
+
+export interface IFloorPlanNavLog extends Document {
+  id: string;
+  floorPlanId: string;
+  startNodeId: string;
+  startNodeName: string;
+  endNodeId: string;
+  endNodeName: string;
+  lang: string;
+  pathNodeIds: string[];
+  stepCount: number;
+  totalDistance: number;
+  instructionText: string;
+  createdAt: Date;
+}
+
+const FloorPlanNavLogSchema = new Schema<IFloorPlanNavLog>({
+  id: { type: String, required: true, unique: true },
+  floorPlanId: { type: String, required: true },
+  startNodeId: { type: String, required: true },
+  startNodeName: { type: String, default: '' },
+  endNodeId: { type: String, required: true },
+  endNodeName: { type: String, default: '' },
+  lang: { type: String, default: 'vi' },
+  pathNodeIds: { type: [String], default: [] },
+  stepCount: { type: Number, default: 0 },
+  totalDistance: { type: Number, default: 0 },
+  instructionText: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+FloorPlanNavLogSchema.index({ floorPlanId: 1, createdAt: -1 });
+export const FloorPlanNavLogModel = mongoose.model<IFloorPlanNavLog>('FloorPlanNavLog', FloorPlanNavLogSchema);

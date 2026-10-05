@@ -3,14 +3,27 @@ import mongoose from 'mongoose';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { FloorPlanMapModel } from '../models/FloorPlanMap.js';
+import { FloorPlanMapModel, FloorPlanNavSettingModel, FloorPlanNavLogModel } from '../models/FloorPlanMap.js';
 import { RoomModel } from '../models/Room.js';
 import { analyzeFloorPlanImage } from '../services/floorPlanAnalyzer.js';
 import { uploadToCloudinary } from '../services/cloudinary.js';
 import { getSystemBrandingConfig } from '../models/SystemBranding.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 import { pgPool, logAudit } from '../db/postgres.js';
-import { pgUpsertFloorPlan, pgDeleteFloorPlan, syncFloorPlanNodesToRooms } from '../db/syncEngine.js';
+import {
+  pgUpsertFloorPlan,
+  pgDeleteFloorPlan,
+  syncFloorPlanNodesToRooms,
+  pgUpsertNavSettings,
+  pgSaveNavLog,
+  pgGetNavLogs
+} from '../db/syncEngine.js';
+import {
+  findShortestPath,
+  buildLocalizedInstructions,
+  generateNavTtsAudio,
+  resolveNodeId
+} from '../services/floorPlanNavigator.js';
 
 export const floorPlanRouter = Router();
 
@@ -513,3 +526,246 @@ floorPlanRouter.put('/:id/batch-mapping', async (req: Request, res: Response) =>
     res.status(500).json({ success: false, message: 'Lỗi khi lưu liên kết không gian: ' + (err.message || '') });
   }
 });
+
+/**
+ * POST /api/floor-plan/navigate
+ * Trợ lý Dẫn đường Thông minh: Tính toán lộ trình ngắn nhất, sinh chỉ dẫn đa ngôn ngữ và tạo Voice AI
+ */
+floorPlanRouter.post('/navigate', async (req: Request, res: Response) => {
+  try {
+    const { floorPlanId, startNodeId, endNodeId, lang = 'vi' } = req.body;
+
+    if (!startNodeId || !endNodeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp điểm xuất phát (startNodeId) và điểm đến (endNodeId)'
+      });
+    }
+
+    // 1. Tìm bản đồ chỉ định hoặc bản đồ đang kích hoạt
+    let map = null;
+    if (floorPlanId) {
+      map = await FloorPlanMapModel.findOne({ id: floorPlanId }).lean();
+    }
+    if (!map) {
+      map = await FloorPlanMapModel.findOne({ active: true }).lean();
+    }
+    if (!map) {
+      map = await FloorPlanMapModel.findOne().sort({ updatedAt: -1 }).lean();
+    }
+
+    if (!map || !map.nodes || map.nodes.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy sơ đồ mặt bằng hợp lệ để dẫn đường'
+      });
+    }
+
+    const resolvedStartId = resolveNodeId(map.nodes, startNodeId) || startNodeId;
+    const resolvedEndId = resolveNodeId(map.nodes, endNodeId) || endNodeId;
+
+    const startNode = map.nodes.find((n) => n.id === resolvedStartId);
+    const endNode = map.nodes.find((n) => n.id === resolvedEndId);
+
+    if (!startNode) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy điểm xuất phát [${startNodeId}] trên sơ đồ`
+      });
+    }
+    if (!endNode) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy điểm đến [${endNodeId}] trên sơ đồ`
+      });
+    }
+
+    // 2. Tìm lộ trình ngắn nhất bằng thuật toán Dijkstra
+    const pathResult = findShortestPath(map as any, resolvedStartId, resolvedEndId);
+
+    if (!pathResult) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy lối đi liên kết giữa "${startNode.name}" và "${endNode.name}".`
+      });
+    }
+
+    // 3. Xây dựng chỉ dẫn từng bước chuẩn ngữ pháp theo ngôn ngữ client
+    const { steps, summary } = buildLocalizedInstructions(
+      startNode,
+      endNode,
+      pathResult.rawSteps,
+      map.nodes,
+      lang
+    );
+
+    // 4. Sinh file âm thanh thuyết minh chỉ đường Voice AI
+    let audioUrl = '';
+    try {
+      audioUrl = await generateNavTtsAudio(summary, lang);
+    } catch (ttsErr: any) {
+      console.warn('[FloorPlanRoute Navigate TTS Warning]:', ttsErr.message);
+    }
+
+    // 5. Lưu vết nhật ký tìm đường vào PostgreSQL & MongoDB (Dữ liệu thật 100%)
+    const navLogData = {
+      id: `nav_log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      floorPlanId: map.id,
+      startNodeId: startNode.id,
+      startNodeName: startNode.name,
+      endNodeId: endNode.id,
+      endNodeName: endNode.name,
+      lang,
+      pathNodeIds: pathResult.pathNodeIds,
+      stepCount: steps.length,
+      totalDistance: pathResult.totalDistance,
+      instructionText: summary,
+      createdAt: new Date()
+    };
+
+    try {
+      await pgSaveNavLog(navLogData);
+      await FloorPlanNavLogModel.create(navLogData);
+    } catch (logErr: any) {
+      console.warn('[FloorPlanRoute Navigate Log Warning]:', logErr.message);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        startNode,
+        endNode,
+        pathNodeIds: pathResult.pathNodeIds,
+        pathEdgeIds: pathResult.pathEdgeIds,
+        steps,
+        totalDistance: pathResult.totalDistance,
+        estimatedMinutes: Math.max(1, Math.round(pathResult.totalDistance / 20)),
+        instructionSummary: summary,
+        audioUrl,
+        lang
+      }
+    });
+  } catch (error: any) {
+    console.error('[FloorPlanRoute Navigate Error]:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi trong quá trình tính toán dẫn đường: ' + (error.message || '')
+    });
+  }
+});
+
+/**
+ * GET /api/floor-plan/nav-settings
+ * Lấy cấu hình Trợ lý Dẫn đường Bản đồ
+ */
+floorPlanRouter.get('/nav-settings', async (req: Request, res: Response) => {
+  try {
+    const floorPlanId = (req.query.floorPlanId as string) || 'floor_plan_main';
+
+    let settings = await FloorPlanNavSettingModel.findOne({ floorPlanId }).lean();
+    if (!settings) {
+      // Fallback mặc định
+      settings = {
+        id: `nav_setting_${floorPlanId}`,
+        floorPlanId,
+        voiceEnabled: true,
+        autoPlayVoice: false,
+        speechSpeed: 1.0,
+        ttsProvider: 'google',
+        welcomeMessage: {
+          vi: 'Xin chào, tôi là trợ lý dẫn đường bản đồ. Hãy chọn vị trí bạn đang đứng và điểm bạn muốn đến.',
+          en: 'Hello, I am your museum map navigator. Please select your current location and desired destination.',
+          fr: 'Bonjour, je suis votre guide cartographique. Choisissez votre position et votre destination.',
+          zh: '您好，我是展厅地图导航助手。请选择您当前所在的位置和想要前往的目的地。',
+          ja: 'こんにちは、館内マップナビゲーターです。現在地と目的地を選択してください。'
+        },
+        customRules: []
+      } as any;
+    }
+
+    res.json({
+      success: true,
+      data: settings
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute GET Nav Settings Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi tải cấu hình trợ lý: ' + (err.message || '') });
+  }
+});
+
+/**
+ * PUT /api/floor-plan/nav-settings
+ * Cập nhật cấu hình Trợ lý Dẫn đường Bản đồ (Admin CMS)
+ */
+floorPlanRouter.put('/nav-settings', async (req: Request, res: Response) => {
+  try {
+    const {
+      floorPlanId = 'floor_plan_main',
+      voiceEnabled = true,
+      autoPlayVoice = false,
+      speechSpeed = 1.0,
+      ttsProvider = 'google',
+      welcomeMessage = {},
+      customRules = []
+    } = req.body;
+
+    const settingId = `nav_setting_${floorPlanId}`;
+    const updatePayload = {
+      id: settingId,
+      floorPlanId,
+      voiceEnabled,
+      autoPlayVoice,
+      speechSpeed,
+      ttsProvider,
+      welcomeMessage,
+      customRules,
+      updatedAt: new Date()
+    };
+
+    const saved = await FloorPlanNavSettingModel.findOneAndUpdate(
+      { floorPlanId },
+      updatePayload,
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
+
+    // Đồng bộ sang PostgreSQL
+    await pgUpsertNavSettings(saved.toObject ? saved.toObject() : saved);
+    await logAudit('UPDATE_FLOOR_PLAN_NAV_SETTINGS', 'floor_plan', { details: { floorPlanId, voiceEnabled } });
+
+    res.json({
+      success: true,
+      message: 'Cập nhật cấu hình Trợ lý Dẫn đường thành công',
+      data: saved
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute PUT Nav Settings Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật cấu hình: ' + (err.message || '') });
+  }
+});
+
+/**
+ * GET /api/floor-plan/nav-logs
+ * Lấy lịch sử tìm đường thật để Admin thống kê luồng tham quan
+ */
+floorPlanRouter.get('/nav-logs', async (req: Request, res: Response) => {
+  try {
+    const floorPlanId = req.query.floorPlanId as string | undefined;
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 30));
+
+    // Ưu tiên đọc từ PostgreSQL primary
+    let logs = await pgGetNavLogs(floorPlanId, limit);
+    if (!logs || logs.length === 0) {
+      const q = floorPlanId ? { floorPlanId } : {};
+      logs = await FloorPlanNavLogModel.find(q).sort({ createdAt: -1 }).limit(limit).lean();
+    }
+
+    res.json({
+      success: true,
+      data: logs
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute Nav Logs Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi tải lịch sử tìm đường: ' + (err.message || '') });
+  }
+});
+
