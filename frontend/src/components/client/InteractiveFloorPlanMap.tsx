@@ -465,6 +465,11 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
         voices.find((v) => v.lang.toLowerCase().includes(langKey));
       if (matched) {
         utter.voice = matched;
+      } else if (langKey === 'vi') {
+        // Tránh tình trạng trình duyệt dùng giọng English mặc định phát âm sai từ tiếng Việt
+        console.warn('[SpeechSynthesis] Thiết bị chưa cài gói giọng đọc tiếng Việt');
+        setIsPlayingAudio(false);
+        return;
       }
     }
 
@@ -512,6 +517,9 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     const sId = startId || navStartNodeId;
     const eId = endId || navEndNodeId;
     if (!sId || !eId) return;
+
+    if (startId) setNavStartNodeId(startId);
+    if (endId) setNavEndNodeId(endId);
 
     try {
       setNavLoading(true);
@@ -2015,7 +2023,13 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                   <select
                     className="ifp-nav-select"
                     value={navStartNodeId}
-                    onChange={(e) => setNavStartNodeId(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNavStartNodeId(val);
+                      if (navResult) {
+                        handleRunNavigation(val, navEndNodeId);
+                      }
+                    }}
                   >
                     <optgroup label={ui.commonAreas}>
                       <option value="node_cong_1">{ui.gate1} (Nguyễn Bỉnh Khiêm)</option>
@@ -2042,7 +2056,13 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                   <select
                     className="ifp-nav-select"
                     value={navEndNodeId}
-                    onChange={(e) => setNavEndNodeId(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNavEndNodeId(val);
+                      if (navResult) {
+                        handleRunNavigation(navStartNodeId, val);
+                      }
+                    }}
                   >
                     <optgroup label={ui.commonAreas}>
                       <option value="node_cong_1">{ui.gate1} (Nguyễn Bỉnh Khiêm)</option>
@@ -2108,7 +2128,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 <button
                   type="button"
                   className="ifp-nav-submit-btn"
-                  onClick={() => handleRunNavigation()}
+                  onClick={() => handleRunNavigation(navStartNodeId, navEndNodeId)}
                   disabled={navLoading}
                 >
                   {navLoading ? (

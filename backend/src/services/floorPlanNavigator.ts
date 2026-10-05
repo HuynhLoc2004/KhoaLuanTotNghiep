@@ -805,17 +805,57 @@ export function buildLocalizedInstructions(
 }
 
 /**
+ * Chia một văn bản dài thành các đoạn nhỏ dưới 140 ký tự (theo dấu chấm, dấu phẩy hoặc khoảng trắng)
+ * để đảm bảo Google Translate TTS không bao giờ bị lỗi 400 Bad Request
+ */
+function splitTextIntoTtsChunks(text: string, maxLen: number = 140): string[] {
+  const clean = text.trim();
+  if (clean.length <= maxLen) return [clean];
+
+  const parts = clean.split(/([.,;!?]+|\s+sau đó\s+|\s+rồi\s+)/i);
+  const chunks: string[] = [];
+  let current = '';
+
+  for (const part of parts) {
+    if (!part) continue;
+    if ((current + part).length <= maxLen) {
+      current += part;
+    } else {
+      if (current.trim()) chunks.push(current.trim());
+      if (part.length <= maxLen) {
+        current = part;
+      } else {
+        const words = part.split(/\s+/);
+        for (const w of words) {
+          if ((current + ' ' + w).length <= maxLen) {
+            current += (current ? ' ' : '') + w;
+          } else {
+            if (current.trim()) chunks.push(current.trim());
+            current = w;
+          }
+        }
+      }
+    }
+  }
+  if (current.trim()) {
+    chunks.push(current.trim());
+  }
+
+  return chunks.length > 0 ? chunks : [clean.slice(0, maxLen)];
+}
+
+/**
  * Sinh file âm thanh Voice AI cho câu chỉ dẫn dẫn đường qua Google TTS Stream
  */
 export async function generateNavTtsAudio(text: string, lang: string = 'vi'): Promise<string> {
   try {
     const cleanLang = (lang || 'vi').toLowerCase();
     const langMap: Record<string, string> = {
-      vi: 'vi-VN',
-      en: 'en-US',
-      fr: 'fr-FR',
+      vi: 'vi',
+      en: 'en',
+      fr: 'fr',
       zh: 'zh-CN',
-      ja: 'ja-JP'
+      ja: 'ja'
     };
     const googleLang = langMap[cleanLang] || cleanLang;
 
@@ -834,32 +874,51 @@ export async function generateNavTtsAudio(text: string, lang: string = 'vi'): Pr
       return publicUrl;
     }
 
-    const endpoints = [
-      `https://translate.google.com/translate_tts?ie=UTF-8&tl=${googleLang}&client=tw-ob&q=${encodeURIComponent(text)}`,
-      `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${googleLang}&client=gtx&q=${encodeURIComponent(text)}`,
-      `https://translate.google.com.vn/translate_tts?ie=UTF-8&tl=${googleLang}&client=tw-ob&q=${encodeURIComponent(text)}`
-    ];
+    // Google Translate TTS giới hạn mỗi request dưới 150 ký tự, do đó chia nhỏ và ghép buffer MP3 lại
+    const chunks = splitTextIntoTtsChunks(text, 140);
+    const chunkBuffers: Buffer[] = [];
 
-    for (const ttsUrl of endpoints) {
-      try {
-        const fetchAudio = await fetch(ttsUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Referer': 'https://translate.google.com/'
-          },
-          signal: AbortSignal.timeout(5000)
-        });
-        if (fetchAudio.ok) {
-          const arrayBuf = await fetchAudio.arrayBuffer();
-          if (arrayBuf.byteLength > 100) {
-            fs.writeFileSync(filePath, Buffer.from(arrayBuf));
-            return publicUrl;
+    for (const chunk of chunks) {
+      if (!chunk.trim()) continue;
+      const endpoints = [
+        `https://translate.google.com/translate_tts?ie=UTF-8&tl=${googleLang}&client=tw-ob&q=${encodeURIComponent(chunk)}`,
+        `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=${googleLang}&client=gtx&q=${encodeURIComponent(chunk)}`,
+        `https://translate.google.com.vn/translate_tts?ie=UTF-8&tl=${googleLang}&client=tw-ob&q=${encodeURIComponent(chunk)}`
+      ];
+
+      let chunkOk = false;
+      for (const ttsUrl of endpoints) {
+        try {
+          const fetchAudio = await fetch(ttsUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+              'Referer': 'https://translate.google.com/'
+            },
+            signal: AbortSignal.timeout(6000)
+          });
+          if (fetchAudio.ok) {
+            const arrayBuf = await fetchAudio.arrayBuffer();
+            if (arrayBuf.byteLength > 100) {
+              chunkBuffers.push(Buffer.from(arrayBuf));
+              chunkOk = true;
+              break;
+            }
           }
+        } catch (err: any) {
+          // Thử endpoint tiếp theo
         }
-      } catch (err: any) {
-        console.warn(`[NavVoiceTTS fallback (${googleLang})]:`, err.message);
+      }
+      if (!chunkOk) {
+        console.warn(`[NavVoiceTTS Warning] Không tải được chunk: "${chunk.slice(0, 30)}..."`);
       }
     }
+
+    if (chunkBuffers.length > 0) {
+      const merged = Buffer.concat(chunkBuffers);
+      fs.writeFileSync(filePath, merged);
+      return publicUrl;
+    }
+
     return '';
   } catch (err: any) {
     console.warn('[NavVoiceTTS Error]:', err.message);
