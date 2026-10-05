@@ -378,10 +378,31 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     return floorPlan.nodes?.find((n) => n.id === selectedNodeId) || floorPlan.nodes?.[0];
   }, [floorPlan.nodes, selectedNodeId]);
 
+  // Lọc bỏ các cạnh xuyên sảnh phi thực tế giữa Phòng 1, Phòng 17, Phòng 18 (phải đi qua Sảnh Bát Giác)
+  const sanitizedEdges = useMemo(() => {
+    const raw = floorPlan.edges || [];
+    return raw.filter((e) => {
+      const f = (e.fromNodeId || '').toLowerCase();
+      const t = (e.toNodeId || '').toLowerCase();
+      const isP1 = f.includes('p_01') || f.includes('p-01') || f.endsWith('_1') || f === '1';
+      const isP17 = f.includes('p_17') || f.includes('p-17') || f.endsWith('_17') || f === '17';
+      const isP18 = f.includes('p_18') || f.includes('p-18') || f.endsWith('_18') || f === '18';
+
+      const targetIsP1 = t.includes('p_01') || t.includes('p-01') || t.endsWith('_1') || t === '1';
+      const targetIsP17 = t.includes('p_17') || t.includes('p-17') || t.endsWith('_17') || t === '17';
+      const targetIsP18 = t.includes('p_18') || t.includes('p-18') || t.endsWith('_18') || t === '18';
+
+      if ((isP1 && targetIsP17) || (isP17 && targetIsP1)) return false;
+      if ((isP1 && targetIsP18) || (isP18 && targetIsP1)) return false;
+      if ((isP17 && targetIsP18) || (isP18 && targetIsP1)) return false;
+      return true;
+    });
+  }, [floorPlan.edges]);
+
   const connectedEdges = useMemo(() => {
     if (!activeNode) return [];
-    return (floorPlan.edges || []).filter((e) => e.fromNodeId === activeNode.id);
-  }, [floorPlan.edges, activeNode]);
+    return sanitizedEdges.filter((e) => e.fromNodeId === activeNode.id);
+  }, [sanitizedEdges, activeNode]);
 
   // Danh sách các phòng trưng bày lịch sử (loại trừ các hub cổng và sân vườn)
   const exhibitionRooms = useMemo(() => {
@@ -547,15 +568,15 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
       case 'up':
         return { label: langKey === 'en' ? 'Go straight' : 'Đi thẳng', icon: <ArrowUp size={13} /> };
       case 'down':
-        return { label: langKey === 'en' ? 'Go down' : 'Đi xuống', icon: <ArrowDown size={13} /> };
+        return { label: langKey === 'en' ? 'Towards back' : 'Phía sau', icon: <ArrowDown size={13} /> };
       case 'southwest':
-        return { label: langKey === 'en' ? 'Down-left' : 'Xuống trái', icon: <ArrowDownLeft size={13} /> };
+        return { label: langKey === 'en' ? 'Slight left' : 'Chếch bên trái', icon: <ArrowDownLeft size={13} /> };
       case 'southeast':
-        return { label: langKey === 'en' ? 'Down-right' : 'Xuống phải', icon: <ArrowDownRight size={13} /> };
+        return { label: langKey === 'en' ? 'Slight right' : 'Chếch bên phải', icon: <ArrowDownRight size={13} /> };
       case 'northwest':
-        return { label: langKey === 'en' ? 'Up-left' : 'Lên trái', icon: <ArrowUpLeft size={13} /> };
+        return { label: langKey === 'en' ? 'Forward left' : 'Chếch lên trái', icon: <ArrowUpLeft size={13} /> };
       case 'northeast':
-        return { label: langKey === 'en' ? 'Up-right' : 'Lên phải', icon: <ArrowUpRight size={13} /> };
+        return { label: langKey === 'en' ? 'Forward right' : 'Chếch lên phải', icon: <ArrowUpRight size={13} /> };
       case 'back':
         return { label: langKey === 'en' ? 'Turn back' : 'Quay lại', icon: <RotateCcw size={13} /> };
       default:
@@ -855,7 +876,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
             </g>
 
             {/* EDGES */}
-            {floorPlan.edges.map((edge) => {
+            {sanitizedEdges.map((edge) => {
               const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
               const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
               if (!nodeFrom || !nodeTo || edge.isReturn) return null;
@@ -1050,7 +1071,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
           >
             <span>{ui.roomsCount(exhibitionRooms.length || 18)}</span>
             <span>•</span>
-            <span>{ui.doorsCount(floorPlan.edges.length)}</span>
+            <span>{ui.doorsCount(sanitizedEdges.length)}</span>
           </div>
         </div>
       </div>
@@ -1311,7 +1332,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               })()}
 
               {/* 5. CÁC ĐƯỜNG KẾT NỐI (EDGES) */}
-              {floorPlan.edges.map((edge) => {
+              {sanitizedEdges.map((edge) => {
                 const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
                 const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
                 if (!nodeFrom || !nodeTo) return null;
@@ -1665,70 +1686,71 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
 
             {sideTab === 'details' ? (
               /* TAB 1: THÔNG TIN GIAN PHÒNG */
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {activeNode ? (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                      <span
-                        style={{
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          background: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(212, 168, 106, 0.12)',
-                          color: isLight ? '#334155' : '#D4A86A',
-                          fontSize: 10.5,
-                          fontWeight: 600
-                        }}
-                      >
-                        {activeNode.code}
-                      </span>
-                      <span style={{ fontSize: 11.5, color: isLight ? '#64748B' : '#94A3B8' }}>
-                        {activeNode.category || 'Gian Trưng Bày'}
-                      </span>
+                    {/* Tag gian phòng & Vị trí hiện tại */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span
+                          style={{
+                            padding: '2px 7px',
+                            borderRadius: 5,
+                            background: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(212, 168, 106, 0.14)',
+                            border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(212, 168, 106, 0.3)'}`,
+                            color: isLight ? '#334155' : '#D4A86A',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: '0.3px'
+                          }}
+                        >
+                          {activeNode.code}
+                        </span>
+                        <span style={{ fontSize: 11.5, color: isLight ? '#64748B' : '#94A3B8' }}>
+                          {activeNode.category || 'Gian Trưng Bày'}
+                        </span>
+                      </div>
+
+                      {navStartNodeId === activeNode.id && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '2px 7px',
+                            borderRadius: 12,
+                            background: 'rgba(34, 197, 94, 0.12)',
+                            border: '1px solid rgba(34, 197, 94, 0.3)',
+                            color: '#4ADE80',
+                            fontSize: 10.5,
+                            fontWeight: 600
+                          }}
+                        >
+                          <MapPin size={10} />
+                          Vị trí của bạn
+                        </span>
+                      )}
                     </div>
 
                     <h3
                       style={{
-                        fontSize: 15,
-                        fontWeight: 600,
+                        fontSize: 16,
+                        fontWeight: 700,
                         color: isLight ? '#0F172A' : '#FFFFFF',
-                        margin: '0 0 3px 0',
-                        lineHeight: 1.35
+                        margin: '0 0 4px 0',
+                        lineHeight: 1.3
                       }}
                     >
                       {activeNode.name}
                     </h3>
 
-                    <div style={{ fontSize: 12, color: isLight ? '#64748B' : '#94A3B8', marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: isLight ? '#64748B' : '#94A3B8', marginBottom: 14 }}>
                       {activeNode.period || 'Hiện vật trưng bày lịch sử'}
                     </div>
 
-                    {/* Phím tắt chỉ đường nhanh */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setNavStartNodeId(activeNode.id);
-                          setSideTab('navigator');
-                        }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 4,
-                          padding: '6px 8px',
-                          borderRadius: 5,
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          color: '#CBD5E1',
-                          fontSize: 11,
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <MapPin size={11} />
-                        <span>{ui.iAmHere}</span>
-                      </button>
+                    {/* Khối hành động tương tác */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                      {/* Nút hành động chính: Chỉ đường đến gian này */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1737,50 +1759,126 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                           handleRunNavigation(navStartNodeId, activeNode.id);
                         }}
                         style={{
+                          width: '100%',
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: 4,
-                          padding: '6px 8px',
-                          borderRadius: 5,
-                          border: '1px solid rgba(212, 168, 106, 0.3)',
-                          background: 'rgba(212, 168, 106, 0.1)',
-                          color: '#D4A86A',
-                          fontSize: 11,
+                          gap: 6,
+                          padding: '9px 12px',
+                          borderRadius: 6,
+                          background: 'linear-gradient(135deg, #D4A86A 0%, #B88746 100%)',
+                          color: '#0B0F19',
+                          fontSize: 12.5,
                           fontWeight: 600,
+                          boxShadow: '0 2px 8px rgba(212, 168, 106, 0.25)',
+                          border: 'none',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <Navigation size={11} />
+                        <Navigation size={13} />
                         <span>{ui.guideMeHere}</span>
                       </button>
+
+                      {/* Hàng nút phụ: Khám phá 360° & Đặt vị trí xuất phát */}
+                      <div style={{ display: 'grid', gridTemplateColumns: activeNode?.roomId && onSelectRoom360 ? '1fr 1fr' : '1fr', gap: 6 }}>
+                        {activeNode?.roomId && onSelectRoom360 && (
+                          <button
+                            type="button"
+                            onClick={() => onSelectRoom360(activeNode.roomId!)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              padding: '7px 8px',
+                              borderRadius: 6,
+                              background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'}`,
+                              color: isLight ? '#1E293B' : '#E2E8F0',
+                              fontSize: 11.5,
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <Eye size={12} style={{ color: '#D4A86A' }} />
+                            <span>{ui.enter360}</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNavStartNodeId(activeNode.id);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            padding: '7px 8px',
+                            borderRadius: 6,
+                            background: navStartNodeId === activeNode.id
+                              ? (isLight ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.15)')
+                              : (isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)'),
+                            border: `1px solid ${
+                              navStartNodeId === activeNode.id
+                                ? 'rgba(34, 197, 94, 0.4)'
+                                : isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'
+                            }`,
+                            color: navStartNodeId === activeNode.id ? '#22C55E' : (isLight ? '#475569' : '#94A3B8'),
+                            fontSize: 11.5,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <MapPin size={11} />
+                          <span>{navStartNodeId === activeNode.id ? 'Đang là điểm xuất phát' : ui.iAmHere}</span>
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Lối đi sang các phòng kế tiếp */}
+                    {/* Lối đi sang các phòng kế tiếp (thông phòng trực tiếp) */}
                     <div
                       style={{
                         borderTop: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)'}`,
-                        paddingTop: 10
+                        paddingTop: 12
                       }}
                     >
                       <div
                         style={{
-                          fontSize: 11,
+                          fontSize: 11.5,
                           fontWeight: 600,
                           color: isLight ? '#475569' : '#CBD5E1',
-                          marginBottom: 6
+                          marginBottom: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
                         }}
                       >
-                        {ui.nextRooms} ({connectedEdges.length}):
+                        <span>{ui.nextRooms}</span>
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            padding: '1px 6px',
+                            borderRadius: 10,
+                            background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.06)',
+                            color: isLight ? '#64748B' : '#94A3B8'
+                          }}
+                        >
+                          {connectedEdges.length} cửa
+                        </span>
                       </div>
 
                       {connectedEdges.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 180, overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {connectedEdges.map((edge) => {
                             const targetNode = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
                             const badge = getDirectionBadge(edge.direction);
                             const targetName = targetNode ? targetNode.name : edge.targetRoomName || 'Gian kế tiếp';
+                            const targetCode = targetNode?.code || '';
 
                             return (
                               <div
@@ -1793,40 +1891,63 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
-                                  padding: '6px 8px',
-                                  background: isLight ? '#FFFFFF' : 'rgba(255, 255, 255, 0.02)',
-                                  border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)'}`,
-                                  borderRadius: 5,
+                                  padding: '8px 10px',
+                                  background: isLight ? '#FFFFFF' : 'rgba(255, 255, 255, 0.03)',
+                                  border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'}`,
+                                  borderRadius: 6,
                                   cursor: 'pointer',
                                   transition: 'all 0.15s ease'
                                 }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.4)';
+                                  e.currentTarget.style.background = isLight ? 'rgba(212, 168, 106, 0.06)' : 'rgba(212, 168, 106, 0.08)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.borderColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)';
+                                  e.currentTarget.style.background = isLight ? '#FFFFFF' : 'rgba(255, 255, 255, 0.03)';
+                                }}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                                  <span style={{ color: '#D4A86A', display: 'flex', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                  <div
+                                    style={{
+                                      width: 26,
+                                      height: 26,
+                                      borderRadius: 5,
+                                      background: isLight ? 'rgba(212, 168, 106, 0.12)' : 'rgba(212, 168, 106, 0.15)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: '#D4A86A',
+                                      flexShrink: 0
+                                    }}
+                                  >
                                     {badge.icon}
-                                  </span>
-                                  <div>
-                                    <div style={{ fontSize: 9.5, color: isLight ? '#64748B' : '#94A3B8' }}>
+                                  </div>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontSize: 10, color: '#D4A86A', fontWeight: 500 }}>
                                       {badge.label}
                                     </div>
                                     <div
                                       style={{
-                                        fontSize: 11.5,
-                                        fontWeight: 500,
-                                        color: isLight ? '#1E293B' : '#F1F5F9'
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: isLight ? '#1E293B' : '#F1F5F9',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
                                       }}
                                     >
-                                      {targetName}
+                                      {targetCode ? `${targetCode} - ${targetName}` : targetName}
                                     </div>
                                   </div>
                                 </div>
-                                <ArrowRight size={12} style={{ color: isLight ? '#94A3B8' : '#64748B', flexShrink: 0 }} />
+                                <ArrowRight size={13} style={{ color: isLight ? '#94A3B8' : '#64748B', flexShrink: 0, marginLeft: 6 }} />
                               </div>
                             );
                           })}
                         </div>
                       ) : (
-                        <div style={{ fontSize: 11.5, color: isLight ? '#64748B' : '#94A3B8' }}>
+                        <div style={{ fontSize: 11.5, color: isLight ? '#64748B' : '#94A3B8', padding: '6px 0' }}>
                           {ui.receptionOrCorridor}
                         </div>
                       )}
@@ -1838,37 +1959,6 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     <div style={{ fontSize: 12.5 }}>Chọn một gian phòng trên sơ đồ để xem thông tin</div>
                   </div>
                 )}
-
-                {/* Nút Khám Phá Tour 360° */}
-                <div style={{ marginTop: 10 }}>
-                  {activeNode?.roomId && onSelectRoom360 && (
-                    <button
-                      type="button"
-                      onClick={() => onSelectRoom360(activeNode.roomId!)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6,
-                        padding: '8px 12px',
-                        background: '#D4A86A',
-                        color: '#0B0E14',
-                        border: 'none',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'background 0.15s ease'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = '#DFB77D'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = '#D4A86A'; }}
-                    >
-                      <Eye size={13} />
-                      <span>{ui.enter360}</span>
-                    </button>
-                  )}
-                </div>
               </div>
             ) : (
               /* TAB 2: CHỈ ĐƯỜNG THAM QUAN */

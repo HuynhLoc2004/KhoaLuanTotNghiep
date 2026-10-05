@@ -248,11 +248,8 @@ class FloorPlanTopologyAnalyzer:
             (14, 15, "Vào Phòng 15 (Cổ vật tàu đắm)"),
             (14, 16, "Xuống Phòng 16 (Sưu tập Vương Hồng Sển)"),
             (16, 17, "Sang Phòng 17 (Dân tộc phía Nam)"),
-            (17, 1, "Lối sang Phòng 1"),
             (5, 18, "Vào Phòng 18 (Phật giáo Châu Á)"),
             (18, 12, "Sang Phòng 12 (Thời Nguyễn)"),
-            (18, 1, "Xuống Phòng 1"),
-            (18, 17, "Xuống Phòng 17"),
             # Cổng 1, Cổng 2, Sảnh, Sân vườn
             (101, 103, "Vào thẳng Sảnh Bát Giác"),
             (102, 6, "Vào Phòng 6"),

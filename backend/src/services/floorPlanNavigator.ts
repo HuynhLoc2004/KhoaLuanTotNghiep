@@ -138,7 +138,27 @@ export function ensureCompleteMuseumTopology(map: IFloorPlanMap | any): {
   if (!map) return { nodes: [], edges: [] };
 
   const nodes: IFloorPlanNode[] = Array.isArray(map.nodes) ? [...map.nodes] : [];
-  const edges: IFloorPlanEdge[] = Array.isArray(map.edges) ? [...map.edges] : [];
+  let edges: IFloorPlanEdge[] = Array.isArray(map.edges) ? [...map.edges] : [];
+
+  // Lọc bỏ các liên kết xuyên sảnh phi thực tế giữa Phòng 1, Phòng 17 và Phòng 18 (phải đi qua Sảnh Bát Giác)
+  const isInvalidShortcut = (fromId: string, toId: string) => {
+    const f = (fromId || '').toLowerCase();
+    const t = (toId || '').toLowerCase();
+    const isP1 = f.includes('p_01') || f.includes('p-01') || f.endsWith('_1') || f === '1';
+    const isP17 = f.includes('p_17') || f.includes('p-17') || f.endsWith('_17') || f === '17';
+    const isP18 = f.includes('p_18') || f.includes('p-18') || f.endsWith('_18') || f === '18';
+
+    const targetIsP1 = t.includes('p_01') || t.includes('p-01') || t.endsWith('_1') || t === '1';
+    const targetIsP17 = t.includes('p_17') || t.includes('p-17') || t.endsWith('_17') || t === '17';
+    const targetIsP18 = t.includes('p_18') || t.includes('p-18') || t.endsWith('_18') || t === '18';
+
+    if ((isP1 && targetIsP17) || (isP17 && targetIsP1)) return true;
+    if ((isP1 && targetIsP18) || (isP18 && targetIsP1)) return true;
+    if ((isP17 && targetIsP18) || (isP18 && targetIsP17)) return true;
+    return false;
+  };
+
+  edges = edges.filter((e) => !isInvalidShortcut(e.fromNodeId, e.toNodeId));
 
   // 1. Bổ sung các hub đặc biệt nếu chưa có
   STANDARD_MUSEUM_HUBS.forEach((hub) => {
@@ -203,12 +223,9 @@ export function ensureCompleteMuseumTopology(map: IFloorPlanMap | any): {
     [14, 15, 'Vào Phòng 15 (Cổ vật tàu đắm)'],
     [14, 16, 'Xuống Phòng 16 (Sưu tập Vương Hồng Sển)'],
     [16, 17, 'Sang Phòng 17 (Dân tộc phía Nam)'],
-    [17, 1, 'Lối sang Phòng 1'],
     // Gian trung tâm (Phòng 18 - Phật giáo Châu Á):
     [5, 18, 'Vào Phòng 18 (Phật giáo Châu Á)'],
     [18, 12, 'Sang Phòng 12 (Thời Nguyễn)'],
-    [18, 1, 'Xuống Phòng 1 (Thời Tiền Sử)'],
-    [18, 17, 'Xuống Phòng 17 (Dân tộc phía Nam)'],
     // Cổng 1, Cổng 2, Sảnh, Sân Vườn:
     ['node_cong_1', 'node_sanh', 'Vào thẳng Sảnh Bát Giác (Khu vực đón tiếp)'],
     ['node_cong_2', 6, 'Vào Phòng 6 (Cổng phụ Thảo Cầm Viên)'],
