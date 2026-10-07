@@ -47,7 +47,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!email.trim()) {
-      showToast('Vui lòng nhập địa chỉ Email quản trị viên', 'warning');
+      showToast('Vui lòng nhập địa chỉ email công vụ', 'warning');
       return;
     }
 
@@ -63,7 +63,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
       if (res.success) {
         setOtpSent(true);
         setCooldown(res.cooldownSeconds || 60);
-        showToast(res.message || 'Mã xác thực đã được gửi đến email quản trị viên', 'success');
+        showToast(res.message || 'Mã xác thực đã được gửi đến hộp thư của bạn', 'success');
         setOtpDigits(['', '', '', '', '', '']);
         setTimeout(() => inputRefs.current[0]?.focus(), 150);
       } else if (res.retryAfter) {
@@ -73,7 +73,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
         showToast(res.message || 'Không thể gửi mã xác thực', 'error');
       }
     } catch (err: any) {
-      showToast(err.message || 'Lỗi gửi mã OTP', 'error');
+      showToast(err.message || 'Không thể gửi mã xác thực, vui lòng thử lại', 'error');
     } finally {
       setIsSendingOtp(false);
     }
@@ -134,7 +134,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
       if (index < 5) {
         inputRefs.current[index + 1]?.focus();
       } else {
-        // Đã nhập đến ô cuối cùng (ô thứ 6) -> Tự động kích hoạt đăng nhập
+        // Đã nhập đến ô thứ 6 -> Tự động kích hoạt đăng nhập
         const fullCode = newDigits.join('');
         if (fullCode.length === 6) {
           handleVerifyOtp(undefined, fullCode);
@@ -177,85 +177,52 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
         {/* Header danh tính bảo tàng */}
         <div className="login-card-header">
           {branding.logoUrl ? (
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+            <div className="login-logo-container">
               <img
                 src={branding.logoUrl}
-                alt={branding.shortName}
-                style={{
-                  maxHeight: 70,
-                  maxWidth: 200,
-                  objectFit: 'contain',
-                  display: 'block'
-                }}
+                alt={branding.shortName || branding.museumName}
+                className="login-museum-logo-img"
               />
             </div>
           ) : (
-            <div
-              className="login-museum-icon-box"
-              style={{
-                background: 'linear-gradient(135deg, var(--primary) 0%, #5a1a0c 100%)',
-                border: '1px solid var(--accent-gold)'
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: 'serif',
-                  fontWeight: 800,
-                  fontSize: 18,
-                  color: '#FFF8F0',
-                  letterSpacing: '0.05em'
-                }}
-              >
+            <div className="login-museum-icon-box">
+              <span className="login-museum-icon-text">
                 {branding.emblemText || 'BT'}
               </span>
             </div>
           )}
-          <h1 className="login-museum-title">{branding.museumName?.toUpperCase() || 'BẢO TÀNG'}</h1>
-          <p className="login-sub-title">Cổng Đăng Nhập Quản Trị Hệ Thống</p>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              marginTop: 8,
-              padding: '4px 12px',
-              borderRadius: 20,
-              background: 'rgba(212, 175, 55, 0.1)',
-              border: '1px solid rgba(212, 175, 55, 0.25)',
-              color: 'var(--accent-gold)',
-              fontSize: 11.5,
-              fontWeight: 600
-            }}
-          >
+          <h1 className="login-museum-title">{branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}</h1>
+          <p className="login-sub-title">Cổng Quản Trị Hệ Thống</p>
+          <div className="login-badge">
             <ShieldCheck size={13} />
-            <span>Xác thực Không Mật Khẩu (Passwordless OTP)</span>
+            <span>Khu vực Cán bộ Quản lý</span>
           </div>
         </div>
 
         {/* Thân biểu mẫu */}
         <div className="login-card-body">
           {!otpSent ? (
-            /* Bước 1: Nhập email quản trị viên */
+            /* Bước 1: Nhập email công vụ */
             <form onSubmit={handleSendOtp} className="login-form">
               <div className="form-group">
                 <label htmlFor="login-email" className="login-label">
-                  Email quản trị viên được cấp quyền
+                  Email công vụ
                 </label>
                 <div className="login-input-group">
-                  <Mail size={15} className="input-icon" />
+                  <Mail size={16} className="input-icon" />
                   <input
                     id="login-email"
                     type="email"
                     className="login-input"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@... (Email quản trị viên)"
+                    placeholder="quanly@baotanglichsu.vn"
                     required
                     autoFocus
                   />
                 </div>
-                <span className="login-input-hint" style={{ lineHeight: 1.5 }}>
-                  Chỉ các email quản trị viên được cấu hình trong hệ thống mới nhận được mã OTP xác thực bảo mật 6 chữ số.
+                <span className="login-input-hint">
+                  Mã xác thực an toàn (OTP) sẽ được gửi đến hộp thư của bạn để đăng nhập.
                 </span>
               </div>
 
@@ -266,18 +233,18 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
               >
                 {isSendingOtp ? (
                   <>
-                    <Loader2 size={15} className="spin" />
+                    <Loader2 size={16} className="spin" />
                     <span>Đang gửi mã...</span>
                   </>
                 ) : cooldown > 0 ? (
                   <>
-                    <RefreshCw size={14} />
-                    <span>Gửi lại sau ({cooldown}s)</span>
+                    <RefreshCw size={15} />
+                    <span>Gửi lại sau {cooldown}s</span>
                   </>
                 ) : (
                   <>
-                    <span>Gửi mã xác thực OTP</span>
-                    <ArrowRight size={15} />
+                    <span>Tiếp tục</span>
+                    <ArrowRight size={16} />
                   </>
                 )}
               </button>
@@ -294,7 +261,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
                   className="otp-change-email-btn"
                   onClick={() => setOtpSent(false)}
                 >
-                  Thay đổi
+                  Đổi email
                 </button>
               </div>
 
@@ -330,13 +297,13 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
               >
                 {isVerifyingOtp ? (
                   <>
-                    <Loader2 size={15} className="spin" />
+                    <Loader2 size={16} className="spin" />
                     <span>Đang xác nhận...</span>
                   </>
                 ) : (
                   <>
                     <Lock size={15} />
-                    <span>Xác nhận và Đăng nhập Quản trị</span>
+                    <span>Đăng nhập</span>
                   </>
                 )}
               </button>
@@ -348,11 +315,11 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
                   onClick={() => handleSendOtp()}
                   disabled={isSendingOtp || cooldown > 0}
                 >
-                  <RefreshCw size={12} className={isSendingOtp ? 'spin' : ''} />
+                  <RefreshCw size={13} className={isSendingOtp ? 'spin' : ''} />
                   <span>
                     {cooldown > 0
                       ? `Gửi lại mã sau (${cooldown}s)`
-                      : 'Không nhận được mã? Gửi lại mã'}
+                      : 'Chưa nhận được mã? Gửi lại'}
                   </span>
                 </button>
               </div>
@@ -360,29 +327,21 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
           )}
         </div>
 
-        {/* Footer tối giản, chuẩn mực */}
-        <div className="login-card-footer" style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+        {/* Footer trang nhã */}
+        <div className="login-card-footer">
           {onBackToHome && (
             <button
               type="button"
               onClick={onBackToHome}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--accent-gold)',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5
-              }}
+              className="login-back-btn"
             >
               <ArrowLeft size={13} />
-              <span>Quay về Cổng thông tin Khách tham quan</span>
+              <span>Quay lại trang tham quan</span>
             </button>
           )}
-          <span>{branding.museumName} &copy; 2026</span>
+          <span className="login-copyright">
+            {branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'} &copy; 2026
+          </span>
         </div>
       </div>
     </div>

@@ -4392,109 +4392,191 @@
   margin: 0;
 }
 
-/* Wrapper toàn màn hình: Tự nhiên, hỗ trợ dark/light mượt mà */
+/* ==========================================================================
+   Admin Login Page - Di Sản Gỗ Cổ & Sơn Son Thếp Vàng (Heritage Indochine)
+   ========================================================================== */
+
+/* Wrapper toàn màn hình: Không gian trầm ấm, giàu chiều sâu văn hóa */
 .admin-login-wrapper {
   min-height: 100vh;
   width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--bg-page);
-  padding: 20px;
+  padding: 24px;
   font-family: var(--font-family);
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse 75% 55% at 50% 30%, rgba(197, 160, 89, 0.12) 0%, rgba(36, 26, 21, 0.82) 48%, #120e0c 100%), #120e0c;
 }
 
-/* Thẻ đăng nhập trung tâm: Thanh lịch, chuẩn mực, viền sắc nét */
+[data-theme="light"] .admin-login-wrapper {
+  background: radial-gradient(ellipse 75% 55% at 50% 30%, rgba(212, 168, 106, 0.18) 0%, rgba(246, 240, 230, 0.95) 50%, #ECE3D4 100%), #F9F6F0;
+}
+
+/* Ánh sáng hắt không gian ambient */
+.admin-login-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -140px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 620px;
+  height: 420px;
+  background: radial-gradient(ellipse, rgba(212, 168, 106, 0.14) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.admin-login-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 520px;
+  height: 320px;
+  background: radial-gradient(ellipse, rgba(158, 45, 27, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Thẻ đăng nhập trung tâm: Tráp gỗ sơn son thếp vàng, viền đồng tinh xảo */
 .admin-login-card {
   width: 100%;
-  max-width: 420px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  max-width: 430px;
+  background: rgba(30, 23, 19, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(212, 168, 106, 0.28);
+  border-radius: 16px;
+  box-shadow: 
+    0 24px 60px -15px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 45px -10px rgba(180, 125, 40, 0.12);
   overflow: hidden;
   position: relative;
-  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+  animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] .admin-login-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(212, 168, 106, 0.35);
+  box-shadow: 
+    0 20px 48px -12px rgba(74, 52, 40, 0.14),
+    0 0 0 1px rgba(212, 168, 106, 0.2);
+}
+
+/* Đường chỉ viền mạ vàng trang nhã trên nóc thẻ */
+.admin-login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #D4A86A, transparent);
+  z-index: 2;
 }
 
 /* Header Thẻ */
 .login-card-header {
-  padding: 28px 24px 20px 24px;
+  padding: 30px 28px 20px 28px;
   text-align: center;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-card-header);
+  border-bottom: 1px solid rgba(212, 168, 106, 0.15);
+  background: linear-gradient(180deg, rgba(212, 168, 106, 0.05) 0%, transparent 100%);
+}
+
+[data-theme="light"] .login-card-header {
+  border-bottom-color: rgba(212, 168, 106, 0.22);
+  background: linear-gradient(180deg, rgba(212, 168, 106, 0.08) 0%, transparent 100%);
+}
+
+.login-logo-container {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: center;
+}
+
+.login-museum-logo-img {
+  max-height: 64px;
+  max-width: 190px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
 .login-museum-icon-box {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   margin: 0 auto 12px auto;
-  border-radius: 50%;
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #8C2D19 0%, #5E180B 100%);
+  border: 1.5px solid #D4A86A;
+  box-shadow: 0 4px 14px rgba(140, 45, 25, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.login-museum-icon {
-  color: var(--primary);
+.login-museum-icon-text {
+  font-family: var(--font-family);
+  font-weight: 800;
+  font-size: 16px;
+  color: #FFF9F2;
+  letter-spacing: 0.05em;
 }
 
 .login-museum-title {
-  font-size: 14.5px;
+  font-size: 15.5px;
   font-weight: 700;
-  color: var(--heading-color);
-  margin: 0 0 4px 0;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  color: #FAF5EE;
+  margin: 0 0 5px 0;
+  letter-spacing: 0.25px;
+  line-height: 1.4;
+}
+
+[data-theme="light"] .login-museum-title {
+  color: #2A1B14;
 }
 
 .login-sub-title {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-/* Tabs chuyển đổi phương thức đăng nhập */
-.login-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-card-header);
-}
-
-.login-tab-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 14px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
   font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s ease;
-  font-family: var(--font-family);
+  color: #BAADA0;
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
-.login-tab-btn:hover {
-  color: var(--heading-color);
-  background-color: var(--bg-subtle);
+[data-theme="light"] .login-sub-title {
+  color: #6E5F54;
 }
 
-.login-tab-btn.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-  background-color: var(--bg-surface);
+.login-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  background: rgba(212, 168, 106, 0.08);
+  border: 1px solid rgba(212, 168, 106, 0.24);
+  color: #D4A86A;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
-/* Thân form */
+[data-theme="light"] .login-badge {
+  background: rgba(180, 125, 40, 0.08);
+  border-color: rgba(180, 125, 40, 0.25);
+  color: #8C5E18;
+}
+
+/* Thân biểu mẫu */
 .login-card-body {
-  padding: 24px;
+  padding: 24px 28px;
 }
 
 .login-form {
@@ -4504,11 +4586,16 @@
 }
 
 .login-label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--heading-color);
-  margin-bottom: 6px;
+  color: #EDE5DF;
+  margin-bottom: 7px;
   display: block;
+  letter-spacing: 0.2px;
+}
+
+[data-theme="light"] .login-label {
+  color: #2A1B14;
 }
 
 .login-input-group {
@@ -4520,65 +4607,103 @@
 .login-input-group .input-icon {
   position: absolute;
   left: 14px;
-  color: var(--text-muted);
+  color: #A39385;
   pointer-events: none;
+}
+
+[data-theme="light"] .login-input-group .input-icon {
+  color: #8A7B70;
 }
 
 .login-input {
   width: 100%;
-  padding: 10px 14px 10px 38px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  color: var(--text-main);
+  padding: 11px 14px 11px 42px;
+  background-color: rgba(18, 14, 12, 0.75);
+  border: 1px solid rgba(212, 168, 106, 0.26);
+  border-radius: 8px;
+  color: #FAF5EE;
   font-size: 13.5px;
   font-family: var(--font-family);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: all 0.2s ease;
+}
+
+[data-theme="light"] .login-input {
+  background-color: #FAF7F2;
+  border-color: rgba(212, 168, 106, 0.35);
+  color: #2A1B14;
+}
+
+.login-input::placeholder {
+  color: #7A6F65;
+}
+
+[data-theme="light"] .login-input::placeholder {
+  color: #9E8E80;
 }
 
 .login-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(140, 45, 25, 0.15);
+  border-color: #D4A86A;
+  background-color: rgba(24, 18, 15, 0.95);
+  box-shadow: 0 0 0 3px rgba(212, 168, 106, 0.16);
+}
+
+[data-theme="light"] .login-input:focus {
+  border-color: #B47D28;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(180, 125, 40, 0.16);
 }
 
 .login-input-hint {
   display: block;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  margin-top: 6px;
-  line-height: 1.4;
+  font-size: 12px;
+  color: #9C8E82;
+  margin-top: 7px;
+  line-height: 1.5;
 }
 
-/* Nút bấm Submit chuẩn mực: Màu Đỏ Sơn Son Di Sản (var(--primary)) */
+[data-theme="light"] .login-input-hint {
+  color: #7E7065;
+}
+
+/* Nút bấm Submit: Màu Đỏ Sơn Son Di Sản Truyền Thống (Imperial Lacquer Vermilion) */
 .login-submit-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 16px;
-  background-color: var(--primary);
-  color: #FFFFFF;
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-sm);
+  padding: 11.5px 18px;
+  background: linear-gradient(135deg, #9E2D1B 0%, #7A1F10 100%);
+  color: #FFF9F2;
+  border: 1px solid rgba(212, 168, 106, 0.35);
+  border-radius: 8px;
   font-size: 13.5px;
   font-weight: 600;
   font-family: var(--font-family);
+  letter-spacing: 0.3px;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  transition: background-color 0.15s, transform 0.1s;
-  margin-top: 4px;
+  box-shadow: 0 4px 16px rgba(158, 45, 27, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 6px;
 }
 
 .login-submit-btn:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-  border-color: var(--primary-hover);
+  background: linear-gradient(135deg, #B23522 0%, #8D2515 100%);
+  box-shadow: 0 6px 22px rgba(178, 53, 34, 0.45);
+  border-color: rgba(212, 168, 106, 0.5);
+  transform: translateY(-1px);
+}
+
+.login-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .login-submit-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Khối thông tin gửi mã */
@@ -4587,40 +4712,65 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-color);
+  background: rgba(212, 168, 106, 0.08);
+  border: 1px solid rgba(212, 168, 106, 0.24);
   padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
+}
+
+[data-theme="light"] .otp-info-box {
+  background: rgba(180, 125, 40, 0.08);
+  border-color: rgba(180, 125, 40, 0.22);
 }
 
 .otp-info-text {
   font-size: 12.5px;
-  color: var(--text-main);
+  color: #EDE5DF;
   min-width: 0;
   flex: 1;
 }
 
+[data-theme="light"] .otp-info-text {
+  color: #2A1B14;
+}
+
 .otp-info-text strong {
-  color: var(--heading-color);
+  color: #D4A86A;
+  font-weight: 600;
   word-break: break-all;
 }
 
+[data-theme="light"] .otp-info-text strong {
+  color: #8C5E18;
+}
+
 .otp-change-email-btn {
-  background: none;
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid rgba(212, 168, 106, 0.3);
+  color: #D4A86A;
+  border-radius: 6px;
+  padding: 3px 9px;
   font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
+}
+
+[data-theme="light"] .otp-change-email-btn {
+  border-color: rgba(180, 125, 40, 0.35);
+  color: #8C5E18;
 }
 
 .otp-change-email-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+  background: rgba(212, 168, 106, 0.14);
+  border-color: #D4A86A;
+  color: #FAF5EE;
+}
+
+[data-theme="light"] .otp-change-email-btn:hover {
+  background: rgba(180, 125, 40, 0.12);
+  color: #2A1B14;
 }
 
 /* 6 ô nhập chữ số OTP */
@@ -4628,32 +4778,50 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .otp-digit-input {
-  width: 46px;
-  height: 50px;
+  width: 48px;
+  height: 52px;
   text-align: center;
   font-size: 22px;
   font-weight: 700;
-  font-family: 'Courier New', monospace;
-  background-color: var(--bg-surface);
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  color: var(--heading-color);
+  font-family: var(--font-family);
+  background-color: rgba(18, 14, 12, 0.75);
+  border: 1.5px solid rgba(212, 168, 106, 0.28);
+  border-radius: 8px;
+  color: #FAF5EE;
   outline: none;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
+}
+
+[data-theme="light"] .otp-digit-input {
+  background-color: #FAF7F2;
+  border-color: rgba(212, 168, 106, 0.35);
+  color: #2A1B14;
 }
 
 .otp-digit-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(140, 45, 25, 0.15);
+  border-color: #D4A86A;
+  background-color: rgba(26, 20, 17, 0.95);
+  box-shadow: 0 0 0 3px rgba(212, 168, 106, 0.18);
+}
+
+[data-theme="light"] .otp-digit-input:focus {
+  border-color: #B47D28;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(180, 125, 40, 0.18);
 }
 
 .otp-digit-input.filled {
-  border-color: var(--border-dark);
-  background-color: var(--bg-subtle);
+  border-color: rgba(212, 168, 106, 0.5);
+  background-color: rgba(32, 24, 20, 0.95);
+}
+
+[data-theme="light"] .otp-digit-input.filled {
+  border-color: #B47D28;
+  background-color: #FFFFFF;
 }
 
 /* Hàng gửi lại mã */
@@ -4661,7 +4829,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .btn-link-resend {
@@ -4670,55 +4838,111 @@
   gap: 6px;
   background: none;
   border: none;
-  color: var(--primary);
+  color: #D4A86A;
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, color 0.15s;
   padding: 4px 8px;
+  border-radius: 4px;
+}
+
+[data-theme="light"] .btn-link-resend {
+  color: #8C5E18;
 }
 
 .btn-link-resend:hover:not(:disabled) {
+  color: #E6BF85;
   text-decoration: underline;
 }
 
-.btn-link-resend:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  color: var(--text-muted);
+[data-theme="light"] .btn-link-resend:hover:not(:disabled) {
+  color: #5E3D0A;
 }
 
-/* Footer thẻ: Chuẩn mực, đơn giản */
+.btn-link-resend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #8C7E72;
+}
+
+/* Footer thẻ: Chuẩn mực, trang nhã */
 .login-card-footer {
-  padding: 14px 24px;
-  background-color: var(--bg-card-header);
-  border-top: 1px solid var(--border-color);
+  padding: 16px 28px 20px 28px;
+  background: rgba(22, 17, 14, 0.5);
+  border-top: 1px solid rgba(212, 168, 106, 0.12);
   text-align: center;
-  font-size: 12px;
-  color: var(--text-light);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+[data-theme="light"] .login-card-footer {
+  background: rgba(245, 239, 230, 0.5);
+  border-top-color: rgba(212, 168, 106, 0.2);
+}
+
+.login-back-btn {
+  background: transparent;
+  border: none;
+  color: #D4A86A;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+[data-theme="light"] .login-back-btn {
+  color: #8C5E18;
+}
+
+.login-back-btn:hover {
+  color: #E6BF85;
+  background: rgba(212, 168, 106, 0.1);
+}
+
+[data-theme="light"] .login-back-btn:hover {
+  color: #5E3D0A;
+  background: rgba(180, 125, 40, 0.1);
+}
+
+.login-copyright {
+  font-size: 11.5px;
+  color: #8C7E72;
+  letter-spacing: 0.2px;
+}
+
+[data-theme="light"] .login-copyright {
+  color: #8A7B70;
 }
 
 /* Responsive Mobile cho màn hình nhỏ */
 @media (max-width: 480px) {
   .admin-login-wrapper {
-    padding: 12px;
+    padding: 14px;
   }
 
   .admin-login-card {
     max-width: 100%;
-    border-radius: var(--radius-md);
+    border-radius: 14px;
   }
 
   .login-card-header {
-    padding: 22px 16px 16px 16px;
+    padding: 24px 18px 16px 18px;
   }
 
   .login-card-body {
-    padding: 18px 16px;
+    padding: 18px 18px;
   }
 
   .otp-digit-input {
-    width: 38px;
+    width: 40px;
     height: 46px;
     font-size: 19px;
   }
