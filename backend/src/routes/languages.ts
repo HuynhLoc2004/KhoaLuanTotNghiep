@@ -218,7 +218,75 @@ const BASE_UI_BUNDLE: Record<string, string> = {
   'common.loading': 'Đang tải dữ liệu không gian bảo tàng...',
   'common.refresh': 'Làm mới',
   'common.emptyData': 'Chưa có dữ liệu phù hợp',
-  'common.thesisFooter': 'Đề tài Tốt nghiệp 2026 • Hệ thống Tour 360 Không gian Di sản'
+  'common.thesisFooter': 'Đề tài Tốt nghiệp 2026 • Hệ thống Tour 360 Không gian Di sản',
+
+  // Artifact & 3D Viewer Details
+  'artifact.backToRooms': 'Không gian trưng bày',
+  'artifact.loading': 'Đang tải không gian di sản 3D...',
+  'artifact.notFound': 'Không tìm thấy cổ vật',
+  'artifact.notFoundDesc': 'Hiện vật không tồn tại hoặc đã được chuyển vào kho lưu trữ bảo quản.',
+  'artifact.retry': 'Thử tải lại',
+  'artifact.backToTour': 'Quay lại tham quan gian phòng',
+  'artifact.model3dCreating': 'Hiện vật đang được số hóa tạo lập mô hình 3D',
+  'artifact.narrationGuide': 'Giới thiệu hiện vật',
+  'artifact.playingAudio': 'Đang phát giọng đọc Voice AI',
+  'artifact.pauseAudio': 'Tạm dừng nghe',
+  'artifact.playAudio': 'Nghe giới thiệu hiện vật',
+  'artifact.language': 'Ngôn ngữ',
+  'artifact.specsTitle': 'Thông số di sản & Hồ sơ khoa học',
+  'artifact.identifier': 'Mã định danh',
+  'artifact.chronology': 'Niên đại lịch sử',
+  'artifact.originDiscovery': 'Nguồn gốc phát hiện',
+  'artifact.measurements': 'Kích thước đo đạc',
+  'artifact.meshResolution': 'Độ phân giải lưới 3D',
+  'artifact.vertices': 'đỉnh (Vertices)',
+  'artifact.geometricStructure': 'Cấu trúc hình học',
+  'artifact.manifoldHousing': 'Vỏ kín đa diện Manifold',
+  'artifact.significanceTitle': 'Giá trị lịch sử & Ý nghĩa văn hóa',
+  'artifact.archivedImages': 'Hình ảnh lưu trữ tư liệu',
+  'artifact.emptyStory': 'Đang cập nhật câu chuyện lịch sử cho cổ vật này...',
+  'artifact.copyLinkSuccess': 'Đã sao chép liên kết hiện vật vào bộ nhớ tạm',
+  'artifact.shareQr': 'Chia sẻ hoặc quét mã QR',
+
+  // 3D Turntable Viewer Controls
+  'turntable.3dSpace': 'Không gian 3D 360°',
+  'turntable.parallax': '2.5D Parallax',
+  'turntable.rotate360': 'Xoay 360°',
+  'turntable.faces': 'mặt lưới',
+  'turntable.autoRotate': 'Tự xoay 360°',
+  'turntable.pauseRotate': 'Tạm dừng xoay',
+  'turntable.resumeRotate': 'Tiếp tục tự xoay 360°',
+  'turntable.changeLighting': 'Đổi ánh sáng',
+  'turntable.warmLighting': 'Ánh sáng bảo tàng ấm',
+  'turntable.daylight': 'Ánh sáng ban ngày',
+  'turntable.wireframeOn': 'Xem cấu trúc lưới đa giác 3D',
+  'turntable.wireframeOff': 'Tắt lưới đa giác',
+  'turntable.fullscreen': 'Toàn màn hình',
+  'turntable.exitFullscreen': 'Thoát toàn màn hình',
+  'turntable.touchHint360': 'Chạm & xoay tự do 360° • Cuộn / chụm để phóng to',
+  'turntable.touchHintParallax': 'Rê chuột hoặc chạm để nghiêng ngắm nổi khối 3D Parallax • Bấm nút trên thanh công cụ để mở khóa xoay 360°',
+
+  // Artifacts Page
+  'artifacts.pageTitle': 'Cổ vật 3D',
+  'artifacts.pageHeading': 'Cổ vật & Hiện vật di sản',
+  'artifacts.pageLead': 'Khám phá các hiện vật lịch sử và cổ vật được số hóa 3D.',
+  'artifacts.searchPlaceholder': 'Tìm kiếm cổ vật, chất liệu, niên đại...',
+  'artifacts.only3D': 'Có mô hình 3D xoay',
+  'artifacts.notFound': 'Không tìm thấy cổ vật phù hợp với điều kiện tìm kiếm.',
+  'artifacts.view3D': 'Xem mô hình 3D',
+
+  // Intro Section
+  'intro.tag': 'Lịch Sử & Kiến Trúc Bảo Tàng',
+  'intro.headline': 'Gần Một Thế Kỷ Gìn Giữ & Tôn Vinh Di Sản Dân Tộc',
+  'intro.desc1': 'Tọa lạc giữa khuôn viên Thảo Cầm Viên xanh mát từ năm 1929, Bảo tàng Lịch sử TP. Hồ Chí Minh là công trình kiến trúc Đông Dương tráng lệ.',
+
+  // Guide & Footer
+  'guide.pageTitle': 'Cẩm nang tham quan',
+  'guide.pageHeading': 'Cẩm Nang & Sơ Đồ Tham Quan',
+  'footer.explore': 'Khám Phá Di Sản',
+  'footer.guide': 'Kế Hoạch Tham Quan',
+  'footer.contact': 'Liên Hệ Trực Tiếp',
+  'footer.scrollToTop': 'Về đầu trang'
 };
 
 /**
@@ -808,6 +876,20 @@ languagesRouter.post('/generate-tts', async (req: Request, res: Response) => {
     else if (cleanLang.startsWith('ko')) googleLang = 'ko';
     else if (cleanLang.startsWith('de')) googleLang = 'de';
     else if (cleanLang.startsWith('es')) googleLang = 'es';
+    else if (cleanLang.startsWith('ru')) googleLang = 'ru';
+    else if (cleanLang.startsWith('it')) googleLang = 'it';
+    else if (cleanLang.startsWith('id')) googleLang = 'id';
+    else if (cleanLang.startsWith('ms')) googleLang = 'ms';
+    else if (cleanLang.startsWith('pt')) googleLang = 'pt';
+    else if (cleanLang.startsWith('ar')) googleLang = 'ar';
+    else if (cleanLang.startsWith('hi')) googleLang = 'hi';
+    else if (cleanLang.startsWith('nl')) googleLang = 'nl';
+    else if (cleanLang.startsWith('pl')) googleLang = 'pl';
+    else if (cleanLang.startsWith('sv')) googleLang = 'sv';
+    else if (cleanLang.startsWith('tr')) googleLang = 'tr';
+    else if (cleanLang.startsWith('el')) googleLang = 'el';
+    else if (cleanLang.startsWith('km')) googleLang = 'km';
+    else if (cleanLang.startsWith('lo')) googleLang = 'lo';
     else googleLang = cleanLang.substring(0, 2);
 
     // Đảm bảo thư mục lưu trữ tĩnh /public/uploads/audio tồn tại

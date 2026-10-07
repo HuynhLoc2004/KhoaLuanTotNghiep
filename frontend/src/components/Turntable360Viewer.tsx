@@ -19,6 +19,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { API_ROOT } from '../services/api';
+import { useClientTranslation } from '../context/ClientTranslationContext';
 
 interface Turntable360ViewerProps {
   modelUrl?: string;
@@ -54,6 +55,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   hideControls = false,
   onClick
 }) => {
+  const { t, currentLang } = useClientTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -239,16 +241,19 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     return list;
   }, [audioNarrationUrl, translations]);
 
-  // Ngôn ngữ âm thanh đang chọn (ưu tiên 'vi', 'default', hoặc mục đầu tiên có voice)
+  // Ngôn ngữ âm thanh đang chọn (ưu tiên theo currentLang của du khách, hoặc mục đầu tiên có voice)
   const [activeAudioLang, setActiveAudioLang] = useState<string>('default');
 
   useEffect(() => {
     if (availableAudioLangs.length > 0) {
+      const matchLang = availableAudioLangs.find((x) => x.code === currentLang);
       const hasVi = availableAudioLangs.find((x) => x.code === 'vi');
       const hasDefault = availableAudioLangs.find((x) => x.code === 'default');
-      setActiveAudioLang(hasVi ? 'vi' : hasDefault ? 'default' : availableAudioLangs[0].code);
+      setActiveAudioLang(
+        matchLang ? matchLang.code : (currentLang === 'vi' && hasVi ? 'vi' : hasDefault ? 'default' : availableAudioLangs[0].code)
+      );
     }
-  }, [availableAudioLangs]);
+  }, [availableAudioLangs, currentLang]);
 
   const currentAudioItem = availableAudioLangs.find((x) => x.code === activeAudioLang) || availableAudioLangs[0] || null;
   const rawAudioUrl = currentAudioItem?.url || audioNarrationUrl || null;
@@ -1082,7 +1087,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
               }}
             >
               {viewMode === 'parallax' ? <Sparkles size={12} /> : <Box size={12} />}
-              {viewMode === 'parallax' ? '2.5D Parallax' : 'Không gian 3D 360°'}
+              {viewMode === 'parallax' ? t('turntable.parallax', '2.5D Parallax') : t('turntable.3dSpace', 'Không gian 3D 360°')}
             </span>
             {modelStats && (
               <span
@@ -1097,7 +1102,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                   whiteSpace: 'nowrap'
                 }}
               >
-                {modelStats.faces.toLocaleString()} mặt lưới
+                <span data-no-auto-translate="true">{modelStats.faces.toLocaleString()}</span>{' '}
+                <span>{t('turntable.faces', 'mặt lưới')}</span>
               </span>
             )}
           </div>
@@ -1179,7 +1185,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             }}
           >
             <Sparkles size={14} />
-            <span>{viewMode === '360' ? 'Xoay 360°' : '2.5D Parallax'}</span>
+            <span>{viewMode === '360' ? t('turntable.rotate360', 'Xoay 360°') : t('turntable.parallax', '2.5D Parallax')}</span>
           </button>
 
           {/* Nút 1: Tự động xoay */}
@@ -1187,7 +1193,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             type="button"
             className="turntable-btn-icon"
             onClick={() => setIsAutoRotating((prev) => !prev)}
-            title={isAutoRotating ? 'Tạm dừng xoay' : 'Tiếp tục tự xoay 360°'}
+            title={isAutoRotating ? t('turntable.pauseRotate', 'Tạm dừng xoay') : t('turntable.autoRotate', 'Tự xoay 360°')}
             style={{
               width: 34,
               height: 34,
@@ -1212,7 +1218,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             type="button"
             className="turntable-btn-icon"
             onClick={toggleLighting}
-            title={`Đổi ánh sáng: ${lightingPreset === 'museum' ? 'Ánh sáng bảo tàng ấm (Bật)' : 'Ánh sáng ban ngày (Bật)'}`}
+            title={`${t('turntable.changeLighting', 'Đổi ánh sáng')}: ${lightingPreset === 'museum' ? t('turntable.warmLighting', 'Ánh sáng bảo tàng ấm') : t('turntable.daylight', 'Ánh sáng ban ngày')}`}
             style={{
               width: 34,
               height: 34,
@@ -1237,7 +1243,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             type="button"
             className="turntable-btn-icon"
             onClick={toggleWireframe}
-            title={wireframeMode ? 'Tắt lưới đa giác' : 'Xem cấu trúc lưới đa giác 3D'}
+            title={wireframeMode ? t('turntable.wireframeOff', 'Tắt lưới đa giác') : t('turntable.wireframeOn', 'Xem cấu trúc lưới đa giác 3D')}
             style={{
               width: 34,
               height: 34,
@@ -1263,7 +1269,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             type="button"
             className="turntable-btn-icon"
             onClick={toggleFullscreen}
-            title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Xem toàn màn hình'}
+            title={isFullscreen ? t('turntable.exitFullscreen', 'Thoát toàn màn hình') : t('turntable.fullscreen', 'Toàn màn hình')}
             style={{
               width: 34,
               height: 34,
@@ -1432,8 +1438,8 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             }}
           >
             {viewMode === 'parallax'
-              ? 'Rê chuột hoặc chạm để nghiêng ngắm nổi khối 3D Parallax • Bấm nút trên thanh công cụ để mở khóa xoay 360°'
-              : 'Chạm & xoay tự do 360° • Cuộn / chụm để phóng to'}
+              ? t('turntable.touchHintParallax', 'Rê chuột hoặc chạm để nghiêng ngắm nổi khối 3D Parallax • Bấm nút trên thanh công cụ để mở khóa xoay 360°')
+              : t('turntable.touchHint360', 'Chạm & xoay tự do 360° • Cuộn / chụm để phóng to')}
           </span>
         </div>
       )}

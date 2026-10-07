@@ -77,12 +77,12 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
   const clean = raw.trim();
   if (!clean) return null;
 
-  const tLang = targetLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
+  const tLang = targetLang.toLowerCase();
 
   // 1. Khớp chính xác hoặc không phân biệt chữ hoa/thường 100% trong từ điển cụm từ
   const itemExact = getPhraseItem(clean);
   if (itemExact) {
-    const trans = (itemExact as any)[targetLang] || itemExact[tLang] || itemExact.en || null;
+    const trans = (itemExact as any)[tLang] || (tLang === 'en' ? itemExact.en : null);
     const valid = isValidTranslation(trans, clean, targetLang);
     if (valid) return valid;
   }
@@ -92,7 +92,7 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
     const withoutDot = clean.slice(0, -1).trim();
     const itemNoDot = getPhraseItem(withoutDot);
     if (itemNoDot) {
-      const trans = (itemNoDot as any)[targetLang] || itemNoDot[tLang] || itemNoDot.en;
+      const trans = (itemNoDot as any)[tLang] || (tLang === 'en' ? itemNoDot.en : null);
       const valid = isValidTranslation(trans, withoutDot, targetLang);
       if (valid) return `${valid}.`;
     }
@@ -103,7 +103,7 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
     const core = clean.slice(0, -1).trim();
     const itemColon = getPhraseItem(core);
     if (itemColon) {
-      const trans = (itemColon as any)[targetLang] || itemColon[tLang] || itemColon.en;
+      const trans = (itemColon as any)[tLang] || (tLang === 'en' ? itemColon.en : null);
       const valid = isValidTranslation(trans, core, targetLang);
       if (valid) return `${valid}:`;
     }
@@ -114,7 +114,7 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
     const core = clean.replace(/\.{3}$|…$/, '').trim();
     const itemEllipsis = getPhraseItem(core);
     if (itemEllipsis) {
-      const trans = (itemEllipsis as any)[targetLang] || itemEllipsis[tLang] || itemEllipsis.en;
+      const trans = (itemEllipsis as any)[tLang] || (tLang === 'en' ? itemEllipsis.en : null);
       const valid = isValidTranslation(trans, core, targetLang);
       if (valid) return `${valid}...`;
     }
@@ -125,7 +125,7 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
     const core = clean.slice(1, -1).trim();
     const itemParen = getPhraseItem(core);
     if (itemParen) {
-      const trans = (itemParen as any)[targetLang] || itemParen[tLang] || itemParen.en;
+      const trans = (itemParen as any)[tLang] || (tLang === 'en' ? itemParen.en : null);
       const valid = isValidTranslation(trans, core, targetLang);
       if (valid) return `(${valid})`;
     }
@@ -138,7 +138,7 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
     const core = bulletMatch[2].trim();
     const itemBullet = getPhraseItem(core);
     if (itemBullet) {
-      const trans = (itemBullet as any)[targetLang] || itemBullet[tLang] || itemBullet.en;
+      const trans = (itemBullet as any)[tLang] || (tLang === 'en' ? itemBullet.en : null);
       const valid = isValidTranslation(trans, core, targetLang);
       if (valid) return `${prefix}${valid}`;
     }
@@ -606,7 +606,7 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           // Không return sớm ở đây để tiếp tục quét phục hồi toàn bộ Text Nodes bên dưới
         }
 
-        const targetLang = currentLang.toLowerCase() as 'en' | 'fr' | 'zh' | 'ja';
+        const targetLang = currentLang.toLowerCase();
 
         if (currentLang !== 'vi') {
           // 1. Quét dịch placeholder của các ô nhập liệu input / textarea
@@ -1008,7 +1008,14 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     }
 
     // 6. Fallback sang tiếng Anh trong dictionary tĩnh nếu có
-    if (BUILTIN_DICTIONARIES.en && BUILTIN_DICTIONARIES.en[key]) {
+    if (currentLang === 'en' && BUILTIN_DICTIONARIES.en && BUILTIN_DICTIONARIES.en[key]) {
+      return cleanTranslationResult(BUILTIN_DICTIONARIES.en[key], key, currentLang);
+    }
+    if (BUILTIN_DICTIONARIES.en && BUILTIN_DICTIONARIES.en[key] && !autoTranslations[key]) {
+      // Đưa vào hàng đợi dịch máy sang ngôn ngữ đích hiện tại nếu chưa có
+      if (BUILTIN_DICTIONARIES.vi && BUILTIN_DICTIONARIES.vi[key]) {
+        enqueueForTranslation(BUILTIN_DICTIONARIES.vi[key]);
+      }
       return cleanTranslationResult(BUILTIN_DICTIONARIES.en[key], key, currentLang);
     }
     return DICTIONARY_VI[key] || fallback || key;

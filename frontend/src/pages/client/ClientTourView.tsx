@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MuseumRoom, Hotspot, LanguageItem } from '../../types';
 import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
-import { API_ROOT } from '../../services/api';
+import { api, API_ROOT } from '../../services/api';
 import {
   ArrowLeft,
   Compass,
@@ -85,8 +85,9 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
       audioUrl = langData.audioUrl || currentRoom.audioUrl || (currentRoom as any).audio_url || '';
       scriptText = langData.narrationScript || currentRoom.aiScript || currentRoom.description || '';
     } else {
-      audioUrl = langData.audioUrl || (currentRoom as any).audioUrl || (currentRoom as any).audio_url || '';
-      scriptText = langData.narrationScript || langData.description || currentRoom.description || '';
+      // TUYỆT ĐỐI KHÔNG FALLBACK VỀ AUDIO TIẾNG VIỆT KHI KHÁCH ĐANG XEM NGOẠI NGỮ
+      audioUrl = langData.audioUrl || '';
+      scriptText = langData.narrationScript || langData.description || '';
     }
 
     let resolvedAudio = '';
@@ -122,17 +123,48 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
     };
   }, [currentRoom.id, currentLang, currentRoom.translations, currentRoom.audioUrl]);
 
-  // Xử lý bật / tắt thuyết minh Voice AI (CHỈ PHÁT FILE ÂM THANH THẬT ĐƯỢC ADMIN TẠO)
+  // Xử lý bật / tắt thuyết minh Voice AI
   const toggleVoicePlayback = () => {
     if (isPlayingVoice) {
       stopAudio();
       return;
     }
 
-    const { audioUrl } = getNarrationData();
+    const { audioUrl, scriptText } = getNarrationData();
 
     if (!audioUrl) {
-      // TUYỆT ĐỐI KHÔNG DÙNG GIỌNG BROWSER NÓI BẬY BẠ! Chỉ phát file giọng thật do Ban quản trị tạo
+      // Nếu là ngoại ngữ mà có kịch bản văn bản: tự động kết nối Voice AI đúng ngôn ngữ đó
+      if (currentLang !== 'vi' && scriptText) {
+        const langUpper = (currentLang || 'en').toUpperCase();
+        setVoiceToast(`Đang kết nối Voice AI phát âm ngôn ngữ [${langUpper}]...`);
+        api.generateTtsAudio({ text: scriptText.slice(0, 450), langCode: currentLang, roomCode: currentRoom.code })
+          .then((res: { audioUrl: string; duration?: number }) => {
+            const finalUrl = res.audioUrl.startsWith('http') ? res.audioUrl : `${API_ROOT}${res.audioUrl.startsWith('/') ? '' : '/'}${res.audioUrl}`;
+            const audio = new Audio(finalUrl);
+            audioRef.current = audio;
+            audio.onplay = () => setIsPlayingVoice(true);
+            audio.onended = () => {
+              setIsPlayingVoice(false);
+              setVoiceProgress(0);
+            };
+            audio.onerror = () => {
+              setIsPlayingVoice(false);
+            };
+            audio.ontimeupdate = () => {
+              if (audio.duration > 0) {
+                setVoiceProgress((audio.currentTime / audio.duration) * 100);
+              }
+            };
+            audio.play().catch(() => setIsPlayingVoice(false));
+          })
+          .catch(() => {
+            setIsPlayingVoice(false);
+            setVoiceToast(`Gian phòng chưa có bản thu âm giới thiệu cho ngôn ngữ [${langUpper}]. Ban quản lý đang cập nhật.`);
+            setTimeout(() => setVoiceToast(null), 3500);
+          });
+        return;
+      }
+
       setIsPlayingVoice(false);
       const langUpper = (currentLang || 'vi').toUpperCase();
       setVoiceToast(`Gian phòng chưa có bản thu âm giới thiệu cho ngôn ngữ [${langUpper}]. Ban quản lý đang cập nhật.`);
