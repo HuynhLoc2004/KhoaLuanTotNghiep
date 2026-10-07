@@ -292,7 +292,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     if (!canvasRef.current || !containerRef.current) return;
 
     const width = containerRef.current.clientWidth || 800;
-    const heightNum = typeof height === 'number' ? height : 520;
+    const heightNum = typeof height === 'number' ? height : (containerRef.current.clientHeight || 520);
 
     // SCENE: Không gian tối trầm sang trọng của phòng trưng bày bảo tàng (#0b0d13)
     const scene = new THREE.Scene();
@@ -329,8 +329,10 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.enablePan = false; // Khóa pan để hiện vật luôn định tâm mâm xoay, không bị kéo văng mất khỏi khung hình
     controls.maxDistance = 8.5;
-    controls.minDistance = 1.5;
+    controls.minDistance = 2.45; // Khoảng cách zoom tối đa để đỉnh hiện vật chạm tới sát đỉnh khung hình, không bị vượt quá khung gây mất vật
+    controls.minPolarAngle = 0.15; // Ngăn góc nhìn lật ngược qua cực đỉnh
     if (viewModeRef.current === 'parallax') {
       controls.minAzimuthAngle = -Math.PI * 0.20;
       controls.maxAzimuthAngle = Math.PI * 0.20;
@@ -643,6 +645,21 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
 
         setModelStats({ vertices: totalVertices, faces: Math.round(totalFaces) });
         turntableGroupRef.current?.add(root);
+
+        // Hiệu chỉnh OrbitControls sao cho đỉnh hiện vật chạm tới sát đỉnh khung hình ở mức zoom tối đa (không bao giờ vượt quá khung làm mất vật)
+        if (controlsRef.current && cameraRef.current) {
+          const modelHalfHeight = Math.max(0.6, (rootBox.max.y - rootBox.min.y) / 2);
+          const modelCenterY = (rootBox.min.y + rootBox.max.y) / 2;
+          controlsRef.current.target.set(0, modelCenterY, 0);
+
+          const vFovRad = THREE.MathUtils.degToRad(cameraRef.current.fov / 2);
+          const minSafeDist = (modelHalfHeight / Math.tan(vFovRad)) * 1.05;
+          controlsRef.current.minDistance = Math.max(2.2, minSafeDist);
+          controlsRef.current.maxDistance = 8.5;
+          controlsRef.current.enablePan = false;
+          controlsRef.current.update();
+        }
+
         setIsLoadingModel(false);
       },
       undefined,
@@ -832,7 +849,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   return (
     <div
       ref={containerRef}
-      className="turntable-360-container"
+      className={`turntable-360-container ${isFullscreen ? 'is-fullscreen' : ''}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onClick={handleContainerClick}
@@ -1085,6 +1102,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             )}
           </div>
           <h3
+            className="turntable-artifact-name"
             style={{
               margin: '3px 0 0 0',
               fontSize: '1rem',
@@ -1100,6 +1118,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
           </h3>
           {artifactPeriod && (
             <p
+              className="turntable-artifact-period"
               style={{
                 margin: 0,
                 fontSize: '0.74rem',

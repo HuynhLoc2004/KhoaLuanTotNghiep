@@ -286,6 +286,15 @@
   display: none;
 }
 
+.turntable-header-info {
+  background: rgba(12, 14, 20, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .artifact-info-sidebar {
   padding: 32px 36px 60px 36px;
   overflow-y: auto;
@@ -801,14 +810,26 @@
     gap: 6px !important;
   }
   .turntable-header-info {
-    max-width: 45% !important;
+    max-width: calc(100% - 150px) !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  /* Ẩn tiêu đề và niên đại trong khung 3D trên màn hình mobile vì đã có tiêu đề lớn ngay bên dưới,
+     triệt tiêu hoàn toàn lỗi mô hình 3D bị đè lên chữ khi người dùng phóng to */
+  .turntable-header-info h3,
+  .turntable-header-info p,
+  .turntable-artifact-name,
+  .turntable-artifact-period {
+    display: none !important;
   }
   .turntable-stats-badge {
     display: none !important;
   }
   .turntable-toolbar {
     gap: 4px !important;
-    max-width: 55% !important;
+    max-width: 145px !important;
     flex-wrap: wrap !important;
     justify-content: flex-end !important;
   }
@@ -820,10 +841,14 @@
     min-width: 30px !important;
     padding: 0 !important;
   }
+  .turntable-toolbar button.turntable-btn-text span {
+    display: none !important;
+  }
   .turntable-toolbar button.turntable-btn-text {
-    width: auto !important;
-    padding: 0 8px !important;
-    font-size: 0.68rem !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    padding: 0 !important;
+    justify-content: center !important;
   }
   .turntable-audio-bar {
     left: 8px !important;
@@ -831,6 +856,23 @@
     bottom: 8px !important;
     padding: 6px 10px !important;
   }
+}
+
+/* Khi mở chế độ Toàn màn hình trên mobile thì hiển thị lại tên hiện vật gọn gàng với chip bảo vệ */
+.turntable-360-container.is-fullscreen .turntable-header-info h3,
+.turntable-360-container.is-fullscreen .turntable-artifact-name {
+  display: block !important;
+  font-size: 0.82rem !important;
+  max-width: 170px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  background: rgba(12, 14, 20, 0.75) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 @media (max-width: 480px) {
@@ -856,8 +898,8 @@
   }
   .turntable-header-info {
     max-width: calc(100% - 150px) !important;
-    left: 10px !important;
-    top: 10px !important;
+    left: 8px !important;
+    top: 8px !important;
   }
 }
 
