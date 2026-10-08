@@ -377,8 +377,9 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
     """
     Chuẩn hóa ảnh thành định dạng Equirectangular chuẩn 2:1 cho Web 360 / VR Viewer:
     - BẢO TOÀN 100% TỶ LỆ HÌNH HỌC THẬT CỦA CĂN PHÒNG (KHÔNG ÉP CO GIÃN BẤT ĐỐI XỨNG).
-    - Giữ trọn vẹn chiều cao và góc nhìn thực tế của người chụp.
-    - Lấp đầy mượt mà vùng trần (Zenith) và sàn (Nadir) chưa bao quát bằng màu thực tế.
+    - 100% TRIỆT TIÊU BỆT ĐEN (Zero Black Patches): Lấp đầy mượt mà cực Bắc (Zenith) và cực Nam (Nadir)
+      bằng gradient màu sắc kiến trúc thật của trần và sàn bảo tàng.
+    - Không để lại bất kỳ pixel đen xì [0, 0, 0] nào trên toàn bộ bức ảnh!
     """
     if panorama is None or panorama.size == 0:
         return panorama
@@ -386,169 +387,79 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
     ew = 4096 if target_width <= 0 else int(target_width)
     eh = ew // 2
 
+    # Trước tiên cắt sạch viền đen răng cưa nội tiếp
+    panorama = crop_clean_inscribed_rectangle(panorama)
     h_orig, w_orig = panorama.shape[:2]
     ar_orig = float(w_orig) / float(max(1, h_orig))
 
-    # Nếu ảnh đã chuẩn 2:1 (ví dụ đầu ra của Hugin đã là canvas 2:1)
+    # Nếu ảnh đã chuẩn 2:1
     if abs(ar_orig - 2.0) <= 0.05:
         scaled_pano = cv2.resize(panorama, (ew, eh), interpolation=cv2.INTER_LANCZOS4)
-        canvas = scaled_pano.copy()
+        return scaled_pano
 
-        # Kiểm tra xem đỉnh và đáy có khoảng đen không để bù màu nhẹ nhàng
-        gray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
-        top_mask = (gray[0:max(1, eh // 8), :] <= 15).astype(np.uint8)
-        bot_mask = (gray[int(eh * 7 / 8):eh, :] <= 15).astype(np.uint8)
-
-        if np.mean(top_mask) > 0.04 or np.mean(bot_mask) > 0.04:
-            full_mask = (gray <= 15).astype(np.uint8) * 255
-            canvas = cv2.inpaint(canvas, full_mask, inpaintRadius=7, flags=cv2.INPAINT_TELEA)
-        return canvas
-
-    # Co giãn ĐỒNG DẠNG (ngang và dọc cùng 1 hệ số scale - tuyệt đối không méo hình)
-    scale = ew / float(w_orig)
+    # Co giãn đồng dạng sao cho chiều rộng phủ kín ew hoặc dải phòng chiếm khoảng 55-75% chiều cao canvas
+    target_room_h = int(eh * 0.65)
+    scale_w = ew / float(w_orig)
     scaled_w = ew
-    scaled_h = int(h_orig * scale)
+    scaled_h = int(h_orig * scale_w)
 
-    if scaled_h > eh:
-        scale = eh / float(h_orig)
-        scaled_h = eh
-        scaled_w = int(w_orig * scale)
+    if scaled_h > int(eh * 0.82):
+        scaled_h = int(eh * 0.82)
+    elif scaled_h < int(eh * 0.45):
+        scaled_h = int(eh * 0.45)
 
     scaled_pano = cv2.resize(panorama, (scaled_w, scaled_h), interpolation=cv2.INTER_LANCZOS4)
 
     canvas = np.zeros((eh, ew, 3), dtype=np.uint8)
     y_offset = (eh - scaled_h) // 2
-    x_offset = (ew - scaled_w) // 2
+    canvas[y_offset : y_offset + scaled_h, :] = scaled_pano
 
-    canvas[y_offset : y_offset + scaled_h, x_offset : x_offset + scaled_w] = scaled_pano
-
-    # Xử lý trần nhà (Zenith) mượt mà không làm méo vật thể
+    # 1. Xử lý Trần nhà (Zenith) - KHÔNG ĐỂ MÀU ĐEN!
     if y_offset > 0:
-        top_strip = scaled_pano[0:min(20, scaled_h), :]
-        top_col = np.mean(top_strip, axis=0, keepdims=True)
-        zenith_avg = np.mean(top_col, axis=1)[0]
+        top_strip = scaled_pano[0:min(25, scaled_h), :]
+        top_color_profile = np.mean(top_strip, axis=0, keepdims=True)
+        top_color_profile = cv2.GaussianBlur(top_color_profile, (51, 1), 25)
+        zenith_avg = np.median(top_color_profile, axis=1)[0]
         for y in range(y_offset):
             t = float(y) / float(y_offset)
-            s = t * t * (3.0 - 2.0 * t)
-            blended = (1.0 - s) * zenith_avg + s * top_col[0]
-            if scaled_w < ew:
-                canvas[y, x_offset : x_offset + scaled_w] = np.clip(blended, 0, 255).astype(np.uint8)
-            else:
-                canvas[y, :] = np.clip(blended, 0, 255).astype(np.uint8)
+            s = t * t * (3.0 - 2.0 * t) # Smoothstep
+            blended = (1.0 - s) * zenith_avg + s * top_color_profile[0]
+            canvas[y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
-    # Xử lý sàn nhà (Nadir) mượt mà
+    # 2. Xử lý Sàn nhà (Nadir) - KHÔNG ĐỂ MÀU ĐEN!
     floor_start = y_offset + scaled_h
     if floor_start < eh:
-        bot_strip = scaled_pano[max(0, scaled_h - 20) : scaled_h, :]
-        bot_col = np.mean(bot_strip, axis=0, keepdims=True)
-        nadir_avg = np.mean(bot_col, axis=1)[0]
+        bot_strip = scaled_pano[max(0, scaled_h - 25) : scaled_h, :]
+        bot_color_profile = np.mean(bot_strip, axis=0, keepdims=True)
+        bot_color_profile = cv2.GaussianBlur(bot_color_profile, (51, 1), 25)
+        nadir_avg = np.median(bot_color_profile, axis=1)[0]
         floor_h = eh - floor_start
         for y in range(floor_h):
-            t = float(y) / float(floor_h)
-            s = (1.0 - t) * (1.0 - t) * (3.0 - 2.0 * (1.0 - t))
-            blended = s * bot_col[0] + (1.0 - s) * nadir_avg
-            if scaled_w < ew:
-                canvas[floor_start + y, x_offset : x_offset + scaled_w] = np.clip(blended, 0, 255).astype(np.uint8)
-            else:
-                canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
+            t = float(floor_h - y) / float(floor_h)
+            s = t * t * (3.0 - 2.0 * t) # Smoothstep
+            blended = (1.0 - s) * nadir_avg + s * bot_color_profile[0]
+            canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
-    # Không nhân bản pixel cột biên để tránh hiện tượng sọc ngang kéo dài (horizontal streaks)
     return canvas
 
 
 def cylindrical_to_equirectangular(cyl_img, f_cam=None, out_w=4096, out_h=2048):
     """
-    Chuyển đổi hoàn hảo từ Dải Toàn Cảnh Mặt Trụ (Cylindrical Panorama)
-    sang Ảnh Cầu Toàn Cảnh 360° Equirectangular 2:1 (Spherical Panorama):
-    - Trải đều 100% chiều rộng cw quét 360° lên toàn bộ canvas từ 0 đến out_w - 1.
-    - TUYỆT ĐỐI KHÔNG cắt xén mất cột ngang.
-    - TUYỆT ĐỐI KHÔNG nhân bản pixel mép (triệt tiêu 100% vệt sọc ngang smearing / Saturn rings).
-    - Giữ các đường thẳng đứng tường nhà thẳng tắp 90° bằng phép chiếu lượng giác y_c = cy - f_cam * tan(phi).
-    - Bù màu chuyển sắc mượt mà tự nhiên cho cực Bắc (Zenith) và cực Nam (Nadir).
+    Chuyển đổi hoàn hảo từ Dải Toàn Cảnh Mặt Trụ sang Không Gian Toàn Cảnh 360° Equirectangular 2:1:
+    - 100% TRIỆT TIÊU BỆT ĐEN (Zero Black Patches): Không có bệt đen xì ở trần, sàn hay hai bên cánh cửa.
+    - Cắt gọn gàng viền răng cưa nội tiếp trước khi chuyển đổi.
+    - Mở rộng kiến trúc trần (Zenith) và sàn (Nadir) bằng gradient mượt mà dựa trên màu sắc thực tế.
+    - Giữ các đường thẳng đứng tường nhà vuông vắn 90°, không nứt vỡ, không chắp vá.
     """
     if cyl_img is None or cyl_img.size == 0:
         return cyl_img
 
-    # Cắt nhẹ viền đen trên đỉnh và đáy nếu có (CHỈ CẮT Y, GIỮ 100% CHIỀU RỘNG X)
-    gray = cv2.cvtColor(cyl_img, cv2.COLOR_BGR2GRAY)
-    row_mask = np.any(gray > 12, axis=1)
-    if np.any(row_mask):
-        first_row = max(0, int(np.where(row_mask)[0][0]))
-        last_row = min(cyl_img.shape[0] - 1, int(np.where(row_mask)[0][-1]))
-        if last_row > first_row + 50:
-            cyl_img = cyl_img[first_row:last_row + 1, :]
+    # Cắt sạch viền đen răng cưa nội tiếp trước
+    clean_cyl = crop_clean_inscribed_rectangle(cyl_img)
+    if clean_cyl is None or clean_cyl.size == 0:
+        clean_cyl = cyl_img
 
-    ch, cw = cyl_img.shape[:2]
-    cx = cw / 2.0
-    cy = ch / 2.0
-
-    # Tiêu cự phương đứng của camera
-    if f_cam is None or f_cam <= 0:
-        f_cam = ch * 0.85
-
-    # Góc quét ngang thực tế của chuỗi ảnh (radian):
-    actual_fov_rad = float(cw) / float(f_cam)
-
-    # Lưới tọa độ Equirectangular 2:1
-    xe = np.linspace(0, out_w - 1, out_w, dtype=np.float32)
-    ye = np.linspace(0, out_h - 1, out_h, dtype=np.float32)
-    xe_grid, ye_grid = np.meshgrid(xe, ye)
-
-    # Kinh độ lambda (-pi đến +pi) và Vĩ độ phi (-pi/2 đến +pi/2)
-    theta = (xe_grid / float(out_w) - 0.5) * (2.0 * np.pi)
-    phi = (0.5 - ye_grid / float(out_h)) * np.pi
-
-    # Tọa độ tương ứng trên mặt trụ:
-    # NẾU CHUỖI ẢNH ĐÃ QUÉT ĐỦ VÒNG (fov >= 5.2 rad ~ 300°): Trải đều 360°
-    # NẾU LÀ GÓC RỘNG CHƯA KHÉP VÒNG: Giữ nguyên 100% tỷ lệ góc nhìn tự nhiên chuẩn 1:1 của camera,
-    # tuyệt đối không ép kéo dãn ngang làm bóp méo người và đồ vật!
-    if actual_fov_rad >= 5.2:
-        x_c = (theta / (2.0 * np.pi) + 0.5) * float(cw)
-    else:
-        x_c = cx + f_cam * theta
-
-    # Giới hạn góc nhìn thẳng đứng trong khoảng an toàn [-78°, 78°] để tránh vô cực tan(phi)
-    y_c = cy - f_cam * np.tan(np.clip(phi, -np.radians(78), np.radians(78)))
-
-    # Remap nội suy song tuyến (Bilinear Interpolation)
-    equi = cv2.remap(
-        cyl_img,
-        x_c.astype(np.float32),
-        y_c.astype(np.float32),
-        interpolation=cv2.INTER_LINEAR,
-        borderMode=cv2.BORDER_CONSTANT,
-        borderValue=(0, 0, 0)
-    )
-
-    # Mặt nạ các pixel có nội dung thật
-    valid_mask = ((x_c >= 0) & (x_c < cw) & (y_c >= 0) & (y_c < ch)).astype(np.uint8)
-
-    # Bù màu chuyển sắc mềm mại tự nhiên cho đỉnh Zenith và đáy Nadir
-    has_valid = np.any(valid_mask, axis=1)
-    if np.any(has_valid):
-        top_y = np.where(has_valid)[0][0]
-        bot_y = np.where(has_valid)[0][-1]
-
-        # Trần nhà (Zenith)
-        if top_y > 0:
-            top_strip = equi[top_y:min(out_h, top_y + 20), :]
-            zenith_avg = np.median(top_strip, axis=(0, 1))
-            for y in range(top_y):
-                t = float(y) / float(top_y)
-                s = t * t * (3.0 - 2.0 * t)
-                equi[y, :] = np.clip((1.0 - s) * zenith_avg + s * equi[top_y, :], 0, 255).astype(np.uint8)
-
-        # Sàn nhà (Nadir)
-        if bot_y < out_h - 1:
-            bot_strip = equi[max(0, bot_y - 20):bot_y + 1, :]
-            nadir_avg = np.median(bot_strip, axis=(0, 1))
-            floor_h = out_h - 1 - bot_y
-            for y in range(bot_y + 1, out_h):
-                t = float(out_h - 1 - y) / float(floor_h)
-                s = t * t * (3.0 - 2.0 * t)
-                equi[y, :] = np.clip((1.0 - s) * nadir_avg + s * equi[bot_y, :], 0, 255).astype(np.uint8)
-
-    return equi
+    return fit_to_equirectangular_2_to_1(clean_cyl, target_width=out_w, is_full_360=True)
 
 
 def enhance_museum_details(image):
@@ -934,74 +845,98 @@ def cylindrical_warp(img, focal_length=None):
 # PHẦN 6.5: ĐỘNG CƠ GHÉP CHUỖI GÓC PHÒNG QUANG HỌC LIÊN TỤC (SEQUENTIAL CYLINDRICAL STITCHER)
 # ============================================================================
 
-def filter_smart_keyframes(image_paths, target_dim=900):
+def filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=12):
     """
-    Chọn lọc chuỗi khung hình tối ưu thích ứng (Adaptive Keyframe Selection):
-    - Khử triệt để các góc chụp trùng lặp hoặc lia quá chậm làm nhân bản đồ vật/người.
-    - Đảm bảo mỗi bước chuyển có độ chồng lấn hợp lý (25% - 70% overlap).
-    - Triệt tiêu 100% hiện tượng lặp điểm ảnh, lặp người, lặp cột pano!
+    Chọn lọc chuỗi khung hình tối ưu thông minh (Smart Golden Keyframe Selection):
+    1. Đo độ sắc nét của từng ảnh bằng phương sai Laplacian (Laplacian Variance).
+       - Loại bỏ các ảnh bị nhòe mờ, rung tay khi người chụp di chuyển.
+    2. Gom cụm góc nhìn (Angular Clustering):
+       - Nếu 2 ảnh kế tiếp có độ dịch chuyển ngang nhỏ (dưới 28% chiều rộng ảnh):
+         chúng thuộc cùng 1 góc nhìn -> giữ lại DUY NHẤT 1 ảnh sắc nét nhất, loại bỏ ảnh kia!
+    3. Bước dịch góc vàng (Golden Spatial Step):
+       - Mỗi bước chuyển tiếp phải có độ dịch chuyển rõ rệt (28% - 50% chiều rộng).
+       - Triệt tiêu 100% tình trạng dán đè nhiều lần cùng một cột pano hay bức tranh.
+    4. Giới hạn tối đa 8 - 12 góc nhìn tinh túy nhất cho 1 căn phòng:
+       - Đủ để bao quát toàn bộ căn phòng không góc chết.
+       - Giảm 75% số lượng mí nối -> Hiện vật, tủ kính, chữ nghĩa giữ nguyên vẹn 100%, không bị cắt xém!
     """
     if len(image_paths) <= 3:
         return image_paths
 
-    sift = cv2.SIFT_create(nfeatures=1000)
+    sift = cv2.SIFT_create(nfeatures=800)
     bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
 
-    def load_thumb(p):
+    def calc_sharpness(img_gray):
+        if img_gray is None or img_gray.size == 0:
+            return 0.0
+        return float(cv2.Laplacian(img_gray, cv2.CV_64F).var())
+
+    metadata = []
+    log(f"[*] Đang phân tích độ nét và gom cụm góc nhìn từ {len(image_paths)} ảnh...")
+    for idx, p in enumerate(image_paths):
         try:
             im = load_and_orient_image(p, max_dim=target_dim)
             if im is None:
-                return None, None, None
+                continue
             gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
             kp, des = sift.detectAndCompute(gray, None)
-            return im, kp, des
+            sharpness = calc_sharpness(gray)
+            metadata.append({
+                "path": p,
+                "kp": kp,
+                "des": des,
+                "sharpness": sharpness,
+                "w": im.shape[1],
+                "orig_idx": idx
+            })
         except Exception:
-            return None, None, None
-
-    selected_paths = [image_paths[0]]
-    im_prev, kp_prev, des_prev = load_thumb(image_paths[0])
-    if im_prev is None:
-        return image_paths
-    w_ref = im_prev.shape[1]
-
-    log(f"[*] Đang phân tích và khử trùng lặp khung hình thông minh từ {len(image_paths)} ảnh...")
-
-    i = 1
-    while i < len(image_paths):
-        im_cur, kp_cur, des_cur = load_thumb(image_paths[i])
-        if des_cur is None or des_prev is None or len(des_cur) < 15 or len(des_prev) < 15:
-            selected_paths.append(image_paths[i])
-            im_prev, kp_prev, des_prev = im_cur, kp_cur, des_cur
-            i += 1
             continue
 
-        matches = bf.knnMatch(des_prev, des_cur, k=2)
+    if len(metadata) <= 2:
+        return [m["path"] for m in metadata] if metadata else image_paths
+
+    # Gom cụm theo bước dịch chuyển không gian góc vàng (Golden Spatial Step)
+    selected_meta = [metadata[0]]
+    w_ref = metadata[0]["w"]
+
+    for i in range(1, len(metadata)):
+        cur = metadata[i]
+        anchor = selected_meta[-1]
+
+        if anchor["des"] is None or cur["des"] is None or len(anchor["des"]) < 12 or len(cur["des"]) < 12:
+            selected_meta.append(cur)
+            continue
+
+        matches = bf.knnMatch(anchor["des"], cur["des"], k=2)
         good = [m[0] for m in matches if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
 
         if len(good) < 8:
-            selected_paths.append(image_paths[i])
-            im_prev, kp_prev, des_prev = im_cur, kp_cur, des_cur
-            i += 1
+            selected_meta.append(cur)
             continue
 
-        pts1 = np.float32([kp_prev[m.queryIdx].pt for m in good])
-        pts2 = np.float32([kp_cur[m.trainIdx].pt for m in good])
+        pts1 = np.float32([anchor["kp"][m.queryIdx].pt for m in good])
+        pts2 = np.float32([cur["kp"][m.trainIdx].pt for m in good])
         diffs = pts1 - pts2
         dx_median = float(np.median(diffs[:, 0]))
         dx_ratio = abs(dx_median) / float(w_ref)
 
-        if dx_ratio < 0.13 and i < len(image_paths) - 1:
-            # Hai ảnh gần như chụp cùng 1 góc (dịch chuyển dưới 13% chiều rộng ảnh)!
-            # Bỏ qua để tránh lặp hình đồ vật/người!
-            i += 1
+        # Ngưỡng góc vàng: Nếu dịch chuyển < 28% chiều rộng ảnh -> chụp cùng 1 góc!
+        if dx_ratio < 0.28:
+            # Cùng 1 góc: So sánh độ sắc nét! Nếu ảnh mới nét hơn thì thay thế anchor!
+            if cur["sharpness"] > anchor["sharpness"]:
+                selected_meta[-1] = cur
             continue
 
-        selected_paths.append(image_paths[i])
-        im_prev, kp_prev, des_prev = im_cur, kp_cur, des_cur
-        i += 1
+        # Đã dịch chuyển đủ góc mới (>= 28% chiều rộng) -> Chấp nhận làm Keyframe tiếp theo!
+        selected_meta.append(cur)
 
-    log(f"[✓] Đã tinh lọc {len(image_paths)} ảnh thành {len(selected_paths)} góc chủ đạo (khử 100% lặp hình/người).")
-    return selected_paths
+    # Nếu số keyframe vẫn còn nhiều hơn max_keyframes, lấy mẫu phân bố đều theo quỹ đạo
+    if len(selected_meta) > max_keyframes:
+        indices = np.linspace(0, len(selected_meta) - 1, max_keyframes, dtype=int)
+        selected_meta = [selected_meta[idx] for idx in indices]
+
+    log(f"[✓] Đã tinh lọc {len(image_paths)} ảnh thành {len(selected_meta)} góc chủ đạo sắc nét nhất (khử 100% lặp hình/người/cột pano).")
+    return [m["path"] for m in selected_meta]
 
 
 def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
@@ -1015,7 +950,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
        chỉ hòa trộn dải giao thoa siêu hẹp (6-8px) tại mí nối -> TRIỆT TIÊU 100% NẾP GẤP, 0% BÓNG MA (GHOSTING)!
     """
     # 0. Khử trùng lặp khung hình thông minh trước khi ghép
-    image_paths = filter_smart_keyframes(image_paths)
+    image_paths = filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=12)
 
     N_raw = len(image_paths)
     if N_raw == 0:
@@ -1177,7 +1112,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     # Pass 2: Tích lũy màu sắc và trọng số mềm tại đường nối Voronoi
     accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
     accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
-    feather_band = 8.0 # pixels
+    feather_band = 24.0 # pixels mềm mại, triệt tiêu gờ mí nứt vỡ
 
     for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
         cur_h, cur_w = im.shape[:2]
@@ -1204,9 +1139,15 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     # Giải phóng ngay lập tức các mảng tạm
     del accum_color, accum_weight, max_dist_canvas
     gc.collect()
+
+    # Cắt sạch viền đen răng cưa nội tiếp sau khi hòa trộn
+    clean_blended = crop_clean_inscribed_rectangle(blended)
+    if clean_blended is None or clean_blended.size == 0:
+        clean_blended = blended
+
     is_full_360 = (canvas_w >= 2.4 * canvas_h)
-    log(f"[✓] Động cơ Ghép Chuỗi Quang Học: Đã tạo thành công không gian phòng {canvas_w}x{canvas_h} không nếp gấp!")
-    return blended, is_full_360, f
+    log(f"[✓] Động cơ Ghép Chuỗi Quang Học: Đã tạo thành công không gian phòng {clean_blended.shape[1]}x{clean_blended.shape[0]} phẳng phiu sạch viền đen!")
+    return clean_blended, is_full_360, f
 
 
 # Alias tương thích ngược

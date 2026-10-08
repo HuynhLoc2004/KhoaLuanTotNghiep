@@ -34,6 +34,8 @@ interface Pannellum360ViewerProps {
   initialPitch?: number;
   initialYaw?: number;
   initialHfov?: number;
+  minPitch?: number;
+  maxPitch?: number;
   focusCoords?: { pitch: number; yaw: number; timestamp?: number } | null;
   hideControls?: boolean;
   autoRotateSpeed?: number;
@@ -51,7 +53,9 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   onCaptureInitialView,
   initialPitch = 0,
   initialYaw = 0,
-  initialHfov = 100,
+  initialHfov = 95,
+  minPitch = -42,
+  maxPitch = 42,
   focusCoords,
   hideControls = false,
   autoRotateSpeed = 0,
@@ -203,8 +207,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         maxHfov: 130, // Cho phép zoom rộng thoải mái để bao quát toàn phòng
         pitch: initialPitch || 0,
         yaw: initialYaw || 0,
-        minPitch: -85, // Cho phép nhìn toàn cảnh từ sàn nhà lên trần nhà mà không bị chặn cụt
-        maxPitch: 85,  // Góc ngước cao tự nhiên chiêm ngưỡng trần nhà
+        minPitch: minPitch !== undefined ? minPitch : -42, // Giới hạn góc nhìn tự nhiên phẳng phiu
+        maxPitch: maxPitch !== undefined ? maxPitch : 42,  // Khóa góc nhìn vừa tầm mắt bảo tàng, không bẻ cong cực cầu
         friction: 0.15,
         hotSpots: formattedHotSpots,
       });

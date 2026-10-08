@@ -1336,7 +1336,9 @@ export const PocStitchingPage: React.FC = () => {
                               title={stitchResult.filename}
                               autoStartLittlePlanet={false}
                               initialPitch={0}
-                              initialHfov={95}
+                              initialHfov={92}
+                              minPitch={-38}
+                              maxPitch={38}
                             />
                           </div>
 
