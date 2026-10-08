@@ -111,8 +111,8 @@ export const PocStitchingPage: React.FC = () => {
   const [activeViewUrl, setActiveViewUrl] = useState<string | null>(null);
   // Hiệu ứng mờ dần (Fade transition) khi chuyển góc nhìn
   const [isViewFading, setIsViewFading] = useState(false);
-  // Chế độ trình xem: Mặc định là Không Gian Đa Góc Nhìn (spatial) để giữ góc nhìn vuông vắn nguyên bản, không méo hình
-  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('spatial');
+  // Chế độ trình xem: Mặc định là Quả Cầu 360 độ (pano360) để kéo chuột xoay ngắm không gian toàn cảnh
+  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('pano360');
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
   const [batchFiles, setBatchFiles] = useState<File[]>([]);
   const [batchPreviews, setBatchPreviews] = useState<string[]>([]);
@@ -694,7 +694,7 @@ export const PocStitchingPage: React.FC = () => {
     setCurrentStep(1);
 
     const formData = new FormData();
-    formData.append('mode', 'fast'); // Luôn ưu tiên Sharp Engine siêu nhẹ cho VPS
+    formData.append('mode', 'pano360');
 
     let targetFrames = framesToStitch;
     if (framesToStitch.length > 120) {
@@ -757,9 +757,7 @@ export const PocStitchingPage: React.FC = () => {
       };
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
-      if (resData.views && resData.views.length > 1) {
-        setViewerMode('spatial');
-      }
+      setViewerMode('pano360');
       fetchHistory();
       showToast('Đã tạo không gian căn phòng thành công!', 'success');
 

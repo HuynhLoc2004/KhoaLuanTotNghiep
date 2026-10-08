@@ -518,14 +518,9 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   const outFilename = `stitched_room_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
 
-  // 1. NẾU LÀ CHÙM ẢNH CÁC GÓC PHÒNG (>= 2 ảnh) HOẶC req.body.mode !== 'force_python_360':
-  // Kích hoạt ngay Tạo Gian Phòng Đa Góc Nhìn (Spatial Multi-View Room):
-  // 100% giữ nguyên góc nhìn gốc của từng tấm ảnh vuông/chữ nhật của camera.
-  // 0% lặp hình, 0% chắp vá bể góc nhìn, 0% méo mó!
-  // Xử lý tức thì trong 0.5s trên VPS.
-  if (imagePaths.length >= 2 && req.body.mode !== 'force_python_360') {
+  // Nếu người dùng chọn rõ ràng chế độ spatial
+  if (req.body.mode === 'spatial') {
     const primaryIdx = req.body.primaryIndex ? parseInt(String(req.body.primaryIndex), 10) : 0;
-    console.log(`[Stitch API] Kích hoạt Tạo Gian Phòng Đa Góc Nhìn từ ${imagePaths.length} ảnh nguyên bản (Góc chính: ${primaryIdx})...`);
     return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
   }
 

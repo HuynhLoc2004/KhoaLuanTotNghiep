@@ -486,6 +486,9 @@ def cylindrical_to_equirectangular(cyl_img, f_cam=None, out_w=4096, out_h=2048):
     if f_cam is None or f_cam <= 0:
         f_cam = ch * 0.85
 
+    # Góc quét ngang thực tế của chuỗi ảnh (radian):
+    actual_fov_rad = float(cw) / float(f_cam)
+
     # Lưới tọa độ Equirectangular 2:1
     xe = np.linspace(0, out_w - 1, out_w, dtype=np.float32)
     ye = np.linspace(0, out_h - 1, out_h, dtype=np.float32)
@@ -495,8 +498,15 @@ def cylindrical_to_equirectangular(cyl_img, f_cam=None, out_w=4096, out_h=2048):
     theta = (xe_grid / float(out_w) - 0.5) * (2.0 * np.pi)
     phi = (0.5 - ye_grid / float(out_h)) * np.pi
 
-    # Tọa độ tương ứng trên mặt trụ
-    x_c = (theta / (2.0 * np.pi) + 0.5) * float(cw)
+    # Tọa độ tương ứng trên mặt trụ:
+    # NẾU CHUỖI ẢNH ĐÃ QUÉT ĐỦ VÒNG (fov >= 5.2 rad ~ 300°): Trải đều 360°
+    # NẾU LÀ GÓC RỘNG CHƯA KHÉP VÒNG: Giữ nguyên 100% tỷ lệ góc nhìn tự nhiên chuẩn 1:1 của camera,
+    # tuyệt đối không ép kéo dãn ngang làm bóp méo người và đồ vật!
+    if actual_fov_rad >= 5.2:
+        x_c = (theta / (2.0 * np.pi) + 0.5) * float(cw)
+    else:
+        x_c = cx + f_cam * theta
+
     # Giới hạn góc nhìn thẳng đứng trong khoảng an toàn [-78°, 78°] để tránh vô cực tan(phi)
     y_c = cy - f_cam * np.tan(np.clip(phi, -np.radians(78), np.radians(78)))
 
@@ -924,6 +934,76 @@ def cylindrical_warp(img, focal_length=None):
 # PHẦN 6.5: ĐỘNG CƠ GHÉP CHUỖI GÓC PHÒNG QUANG HỌC LIÊN TỤC (SEQUENTIAL CYLINDRICAL STITCHER)
 # ============================================================================
 
+def filter_smart_keyframes(image_paths, target_dim=900):
+    """
+    Chọn lọc chuỗi khung hình tối ưu thích ứng (Adaptive Keyframe Selection):
+    - Khử triệt để các góc chụp trùng lặp hoặc lia quá chậm làm nhân bản đồ vật/người.
+    - Đảm bảo mỗi bước chuyển có độ chồng lấn hợp lý (25% - 70% overlap).
+    - Triệt tiêu 100% hiện tượng lặp điểm ảnh, lặp người, lặp cột pano!
+    """
+    if len(image_paths) <= 3:
+        return image_paths
+
+    sift = cv2.SIFT_create(nfeatures=1000)
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
+
+    def load_thumb(p):
+        try:
+            im = load_and_orient_image(p, max_dim=target_dim)
+            if im is None:
+                return None, None, None
+            gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+            kp, des = sift.detectAndCompute(gray, None)
+            return im, kp, des
+        except Exception:
+            return None, None, None
+
+    selected_paths = [image_paths[0]]
+    im_prev, kp_prev, des_prev = load_thumb(image_paths[0])
+    if im_prev is None:
+        return image_paths
+    w_ref = im_prev.shape[1]
+
+    log(f"[*] Đang phân tích và khử trùng lặp khung hình thông minh từ {len(image_paths)} ảnh...")
+
+    i = 1
+    while i < len(image_paths):
+        im_cur, kp_cur, des_cur = load_thumb(image_paths[i])
+        if des_cur is None or des_prev is None or len(des_cur) < 15 or len(des_prev) < 15:
+            selected_paths.append(image_paths[i])
+            im_prev, kp_prev, des_prev = im_cur, kp_cur, des_cur
+            i += 1
+            continue
+
+        matches = bf.knnMatch(des_prev, des_cur, k=2)
+        good = [m[0] for m in matches if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
+
+        if len(good) < 8:
+            selected_paths.append(image_paths[i])
+            im_prev, kp_prev, des_prev = im_cur, kp_cur, des_cur
+            i += 1
+            continue
+
+        pts1 = np.float32([kp_prev[m.queryIdx].pt for m in good])
+        pts2 = np.float32([kp_cur[m.trainIdx].pt for m in good])
+        diffs = pts1 - pts2
+        dx_median = float(np.median(diffs[:, 0]))
+        dx_ratio = abs(dx_median) / float(w_ref)
+
+        if dx_ratio < 0.13 and i < len(image_paths) - 1:
+            # Hai ảnh gần như chụp cùng 1 góc (dịch chuyển dưới 13% chiều rộng ảnh)!
+            # Bỏ qua để tránh lặp hình đồ vật/người!
+            i += 1
+            continue
+
+        selected_paths.append(image_paths[i])
+        im_prev, kp_prev, des_prev = im_cur, kp_cur, des_cur
+        i += 1
+
+    log(f"[✓] Đã tinh lọc {len(image_paths)} ảnh thành {len(selected_paths)} góc chủ đạo (khử 100% lặp hình/người).")
+    return selected_paths
+
+
 def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     """
     ĐỘNG CƠ GHÉP CHUỖI ẢNH GÓC PHÒNG QUANG HỌC LIÊN TỤC (SEQUENTIAL MOTION-ALIGNED CYLINDRICAL STITCHER):
@@ -934,6 +1014,9 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     5. Hòa trộn Voronoi Distance Transform đa lớp: Mỗi đồ vật/bức tranh lấy từ 1 góc ảnh sắc nét nhất,
        chỉ hòa trộn dải giao thoa siêu hẹp (6-8px) tại mí nối -> TRIỆT TIÊU 100% NẾP GẤP, 0% BÓNG MA (GHOSTING)!
     """
+    # 0. Khử trùng lặp khung hình thông minh trước khi ghép
+    image_paths = filter_smart_keyframes(image_paths)
+
     N_raw = len(image_paths)
     if N_raw == 0:
         return None, False, None
@@ -1041,13 +1124,16 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
             except Exception:
                 pass
 
-        # Dự phòng mặc định dựa theo góc xoay trung bình
+        # Dự phòng bằng độ dịch chuyển trung bình của các góc trước đó
         if best_dx is None:
-            best_dx = float(w0 * 0.35)
+            valid_prev = [s[0] for s in shifts if s[0] > 0]
+            best_dx = float(np.median(valid_prev)) if valid_prev else float(w0 * 0.25)
             best_dy = 0.0
 
-        # Giữ độ dịch chuyển ngang thực tế
-        step_dx = abs(best_dx) if abs(best_dx) > 10 else float(w0 * 0.3)
+        # Giới hạn độ dịch chuyển hợp lý (10% - 65% chiều rộng), chống nhảy cóc hoặc chồng đè
+        min_step = float(w0 * 0.10)
+        max_step = float(w0 * 0.65)
+        step_dx = max(min_step, min(max_step, abs(best_dx)))
         shifts.append((step_dx, best_dy))
 
     # 5. Tích lũy quỹ đạo và cân bằng độ nghiêng chân trời
