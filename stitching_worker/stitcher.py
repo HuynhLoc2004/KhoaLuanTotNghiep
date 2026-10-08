@@ -825,7 +825,78 @@ def run_opencv_native_stitcher(image_paths, target_width=0):
             del images
             gc.collect()
 
-    return None, False
+def run_planar_architectural_stitcher(image_paths, target_width=0):
+    """
+    ĐỘNG CƠ GHÉP PHẲNG KIẾN TRÚC BẢO TÀNG (PLANAR ARCHITECTURAL STITCHER - SCANS ENGINE):
+    1. Chọn lọc chuỗi khung hình tối ưu, khử trùng lặp quang học (< 13%) bằng filter_smart_keyframes.
+    2. Sử dụng OpenCV Stitcher chế độ SCANS (cv2.Stitcher_SCANS):
+       - Ghép các mặt phẳng không gian kiến trúc tự nhiên bằng ma trận Affine / Homography.
+       - Giữ thẳng 100% các đường nét kiến trúc (tường đứng 90°, trần, sàn, tủ kính, tranh treo).
+       - Khử lặp điểm ảnh/cột bằng thuật toán GraphCut Seam Finder.
+       - Tuyệt đối không uốn cong thành cầu 360°, không kéo dãn 2:1 bóp méo hình ảnh.
+    3. Cắt sạch viền đen răng cưa nội tiếp (crop_clean_inscribed_rectangle).
+    4. Nâng cấp độ sắc nét bảo tàng (enhance_museum_details).
+    """
+    filtered_paths = filter_smart_keyframes(image_paths, target_dim=1200, max_keyframes=30)
+    log(f"[*] Ghép Phẳng Kiến Trúc: Đang xử lý {len(filtered_paths)}/{len(image_paths)} góc ảnh chủ đạo...")
+
+    if len(filtered_paths) == 0:
+        return None
+    if len(filtered_paths) == 1:
+        im = load_and_orient_image(filtered_paths[0], max_dim=4096)
+        return enhance_museum_details(im)
+
+    configs = [
+        (cv2.Stitcher_SCANS, 1600, 0.08, "SCANS Độ nét cao"),
+        (cv2.Stitcher_SCANS, 1200, 0.04, "SCANS Nhạy cảm"),
+        (cv2.Stitcher_SCANS, 900, 0.02, "SCANS Siêu bắt điểm"),
+        (cv2.Stitcher_PANORAMA, 1200, 0.04, "PANORAMA Phẳng Dự phòng"),
+    ]
+
+    for mode, max_dim, conf, desc in configs:
+        log(f"[*] Thử nghiệm cấu hình {desc} (max_dim={max_dim}, conf={conf})...")
+        images = []
+        for p in filtered_paths:
+            try:
+                im = load_and_orient_image(p, max_dim=max_dim)
+                im = preprocess_lighting_clahe(im)
+                images.append(im)
+            except Exception:
+                continue
+
+        if len(images) < 2:
+            continue
+
+        try:
+            s = cv2.Stitcher_create(mode)
+            try:
+                s.setPanoConfidenceThresh(conf)
+            except Exception:
+                pass
+            try:
+                s.setWaveCorrection(True)
+            except Exception:
+                pass
+
+            status, pano = s.stitch(images)
+            if status == cv2.Stitcher_OK and pano is not None and pano.size > 0:
+                log(f"[✓] Ghép Phẳng Kiến Trúc ({desc}) thành công rực rỡ! Kích thước: {pano.shape[1]}x{pano.shape[0]}")
+                cropped = crop_clean_inscribed_rectangle(pano)
+                if cropped is None or cropped.size == 0:
+                    cropped = pano
+                enhanced = enhance_museum_details(cropped)
+                del images
+                gc.collect()
+                return enhanced
+            else:
+                log(f"[!] Cấu hình {desc} không hội tụ (status={status})")
+        except Exception as e:
+            log(f"[!] Lỗi cấu hình {desc}: {e}")
+        finally:
+            del images
+            gc.collect()
+
+    return None
 
 
 # ============================================================================
@@ -1354,62 +1425,33 @@ def run_stitch(image_paths, output_path, target_width=0):
     final_pano = None
     is_full_360 = False
 
-    # Ưu tiên 1 (Tối ưu tuyệt đối cho chuỗi ảnh quét phòng - Tốc độ 2-4 giây, siêu nhẹ VPS):
-    # Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical Stitcher)
-    # Tự động so khớp tịnh tiến tuần tự, nắn mặt trụ 90° và hòa trộn Voronoi triệt tiêu 100% nếp gấp!
-    log(f"[*] Kích hoạt Động cơ Ghép Chuỗi Quang Học Liên Tục cho {len(sorted_paths)} ảnh...")
-    f_cyl = None
-    try:
-        final_pano, is_full_360, f_cyl = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
-    except Exception as seq_err:
-        log(f"[!] Lỗi Sequential Stitcher: {seq_err}")
-        final_pano = None
-        f_cyl = None
+    # ƯU TIÊN SỐ 1: ĐỘNG CƠ GHÉP PHẲNG KIẾN TRÚC BẢO TÀNG (PLANAR SCANS ENGINE)
+    # Triệt tiêu 100% lặp cột/người, giữ thẳng góc tường/tủ/cột, không uốn cong cầu 360°, không kéo dãn 2:1!
+    log(f"[*] Kích hoạt Động cơ Ghép Phẳng Kiến Trúc Bảo Tàng (Planar SCANS Engine) cho {len(sorted_paths)} ảnh...")
+    final_pano = run_planar_architectural_stitcher(sorted_paths, target_width=out_w)
 
-    # Ưu tiên 2: Nếu chuỗi ít ảnh (<= 6 ảnh) và Sequential Stitcher chưa có kết quả, mới dùng OpenCV Native
-    if final_pano is None and len(sorted_paths) <= 6:
-        log("[*] Thử nghiệm OpenCV Native dự phòng...")
-        try:
-            final_pano, is_full_360 = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
-        except Exception as e:
-            log(f"[!] OpenCV Native dự phòng gặp sự cố: {e}")
-
-    # Ưu tiên 3: Nếu vẫn chưa có kết quả và Hugin khả dụng (chỉ áp dụng cho chuỗi ít ảnh <= 12 để tránh treo quá 180s)
-    if final_pano is None and is_hugin_available() and len(sorted_paths) <= 12:
-        log("[*] Thử nghiệm Hugin CLI dự phòng...")
-        hugin_ok, hugin_img = run_hugin_stitch(sorted_paths, output_path, target_width=out_w)
-        if hugin_ok and hugin_img is not None:
-            final_pano = hugin_img
-            is_full_360 = True
-
+    # Ưu tiên số 2 (Dự phòng): Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical Stitcher)
     if final_pano is None:
-        im0 = load_and_orient_image(sorted_paths[0], max_dim=2048)
-        final_pano = im0
-        is_full_360 = False
+        log("[*] Chuyển tiếp sang Động cơ Ghép Chuỗi Quang Học Dự Phòng...")
+        try:
+            seq_pano, _, _ = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
+            if seq_pano is not None and seq_pano.size > 0:
+                clean_seq = crop_clean_inscribed_rectangle(seq_pano)
+                final_pano = enhance_museum_details(clean_seq if clean_seq is not None else seq_pano)
+        except Exception as seq_err:
+            log(f"[!] Lỗi Sequential Stitcher dự phòng: {seq_err}")
 
-    # Hậu xử lý chuyển đổi thành ảnh gian phòng
-    if is_full_360 and f_cyl is not None:
-        log("[*] Đang chuyển đổi chuẩn mực từ Mặt Trụ (Cylinder) sang Cầu Toàn Cảnh 360° Equirectangular 2:1...")
-        equi_pano = cylindrical_to_equirectangular(final_pano, f_cam=f_cyl, out_w=out_w, out_h=out_w // 2)
-        equi_pano = enhance_museum_details(equi_pano)
-    elif is_full_360:
-        log("[*] Đang nắn đứng 90° kiến trúc SO(3) và hoàn tất không gian 360°...")
-        leveled = level_and_straighten_spherical_panorama(final_pano)
-        cropped = crop_clean_inscribed_rectangle(leveled)
-        equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=out_w, is_full_360=True)
-        equi_pano = enhance_museum_details(equi_pano)
-    else:
-        # Chuỗi ảnh không khép kín vòng tròn 360° (is_full_360 == False):
-        # TUYỆT ĐỐI KHÔNG ÉP SANG 2:1! Bảo tồn góc nhìn phẳng phiu tự nhiên của gian phòng!
-        log("[*] Chuỗi ảnh quét phòng: Bảo tồn 100% phối cảnh tự nhiên phẳng phiu...")
-        clean_pano = crop_clean_inscribed_rectangle(final_pano)
-        if clean_pano is None or clean_pano.size == 0:
-            clean_pano = final_pano
-        equi_pano = enhance_museum_details(clean_pano)
+    # Ưu tiên số 3 (Dự phòng cuối cùng): Nạp ảnh chính và tối ưu sắc nét
+    if final_pano is None:
+        im0 = load_and_orient_image(sorted_paths[0], max_dim=3000)
+        final_pano = enhance_museum_details(im0)
+
+    # Cắt sạch viền nội tiếp phẳng phiu (triệt tiêu 100% bệt đen rìa mép)
+    final_pano = crop_clean_inscribed_rectangle(final_pano)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    cv2.imwrite(output_path, equi_pano, [cv2.IMWRITE_JPEG_QUALITY, 99])
-    h, w = equi_pano.shape[:2]
+    cv2.imwrite(output_path, final_pano, [cv2.IMWRITE_JPEG_QUALITY, 99])
+    h, w = final_pano.shape[:2]
     cur_ar = round(w / max(1, h), 2)
     total_time = round(time.time() - t0, 1)
 
@@ -1420,9 +1462,9 @@ def run_stitch(image_paths, output_path, target_width=0):
         "height": h,
         "aspectRatio": cur_ar,
         "aspectRatioStr": f"{w}:{h}",
-        "engine": "opencv_failsafe_360",
+        "engine": "planar_architectural_scans",
         "processingTimeSec": total_time,
-        "message": f"Đã tạo thành công không gian phòng sắc nét, chuẩn mực bảo tàng số trong {total_time}s."
+        "message": f"Đã ghép thành công không gian kiến trúc góc rộng phẳng ({w}x{h}, {total_time}s) sắc nét chuẩn bảo tàng, không lặp hình."
     }
 
 

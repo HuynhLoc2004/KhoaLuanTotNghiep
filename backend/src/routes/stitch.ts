@@ -217,6 +217,17 @@ async function finalizePanoramaAndRespond(
   }
 
   // 3. Tự động lưu vào MongoDB (Chỉ lưu ĐÚNG 1 CARD DUY NHẤT cho căn phòng)
+  const roomViews: RoomSceneView[] = (views && views.length > 0) ? views : [
+    {
+      id: `view-master-${Date.now()}`,
+      index: 1,
+      title: 'Không gian góc rộng toàn cảnh',
+      url: finalPanoramaUrl,
+      filename: outFilename,
+      isPrimary: true
+    }
+  ];
+
   let panoDoc: any = null;
   try {
     const stats = fs.existsSync(outputPath) ? fs.statSync(outputPath) : null;
@@ -225,7 +236,7 @@ async function finalizePanoramaAndRespond(
       {
         id: `pano-${Date.now()}`,
         filename: outFilename,
-        title: `Gian phòng bảo tàng đa góc nhìn (${views?.length || imagePathsCount} góc) - ${new Date().toLocaleDateString('vi-VN')}`,
+        title: `Không gian bảo tàng góc rộng (${imagePathsCount} góc ảnh) - ${new Date().toLocaleDateString('vi-VN')}`,
         panoramaUrl: finalPanoramaUrl,
         thumbnailUrl: finalPanoramaUrl,
         localUrl: `${baseUrl}/uploads/${outFilename}`,
@@ -239,10 +250,10 @@ async function finalizePanoramaAndRespond(
         status: 'ready',
         metadata: {
           engine: engineName,
-          roomType: views && views.length > 1 ? 'multi_view' : 'single',
-          viewsCount: views ? views.length : 1,
-          views: views || [],
-          hfov: 360,
+          roomType: roomViews.length > 1 ? 'multi_view' : 'single',
+          viewsCount: roomViews.length,
+          views: roomViews,
+          hfov: 180,
           enhancedAt: new Date()
         }
       },
@@ -265,8 +276,8 @@ async function finalizePanoramaAndRespond(
       height,
       aspectRatio: (width && height) ? Number((width / height).toFixed(2)) : 1.77,
       inputFramesCount: imagePathsCount,
-      views: views || [],
-      message: customMessage || `Đã tạo thành công không gian phòng từ ${imagePathsCount} góc ảnh chi tiết.`
+      views: roomViews,
+      message: customMessage || `Đã ghép thành công không gian phòng từ ${imagePathsCount} góc ảnh chi tiết.`
     }
   });
 }
@@ -518,9 +529,8 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   const outFilename = `stitched_room_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
 
-  // Nếu có 1 ảnh góc phòng HOẶC chế độ spatial:
-  // Tự động bảo tồn 100% góc nhìn phòng sắc nét bằng Native Sharp Engine (siêu nhẹ, không méo hình, không nếp gấp, không lặp điểm ảnh)
-  if (imagePaths.length === 1 || req.body.mode === 'spatial') {
+  // Nếu chỉ có 1 ảnh duy nhất: Lưu ảnh phòng sắc nét bằng Sharp (< 1s)
+  if (imagePaths.length === 1) {
     const primaryIdx = req.body.primaryIndex ? parseInt(String(req.body.primaryIndex), 10) : 0;
     return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
   }
@@ -587,11 +597,11 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
           res,
           outputPath,
           outFilename,
-          parsedResult.width || 4096,
-          parsedResult.height || 2048,
+          parsedResult.width || 2560,
+          parsedResult.height || 1440,
           imagePaths.length,
-          'Sequential Feature-Aligned Cylindrical 360 Engine',
-          `Đã tạo thành công không gian 360° căn phòng thực thụ từ ${imagePaths.length} góc ảnh chi tiết.`
+          'Planar Architectural Stitching Engine',
+          `Đã ghép thành công không gian kiến trúc phẳng từ ${imagePaths.length} ảnh sắc nét chuẩn bảo tàng, không lặp hình.`
         );
       } else {
         console.error('[Stitch API] Python Worker thất bại. Stdout:', stdoutData, 'Stderr:', stderrData);
