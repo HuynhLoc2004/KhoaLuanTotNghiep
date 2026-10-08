@@ -428,22 +428,18 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
         scaled_pano = cv2.resize(panorama, (ew, eh), interpolation=cv2.INTER_LANCZOS4)
         return circular_seam_blend(scaled_pano, seam_width=45)
 
-    # Co giãn đồng dạng sao cho chiều rộng phủ kín ew hoặc dải phòng chiếm khoảng 55-75% chiều cao canvas
-    scale_w = ew / float(w_orig)
-    scaled_w = ew
-    scaled_h = int(h_orig * scale_w)
-
-    if scaled_h > int(eh * 0.82):
-        scaled_h = int(eh * 0.82)
-    elif scaled_h < int(eh * 0.45):
-        scaled_h = int(eh * 0.45)
+    # Co giãn đồng dạng ĐẲNG HƯỚNG (Isotropic Scaling) - TUYỆT ĐỐI KHÔNG BÓP MÉO TỈ LỆ ẢNH
+    scale = min(float(ew) / float(w_orig), float(eh) / float(h_orig))
+    scaled_w = max(1, int(w_orig * scale))
+    scaled_h = max(1, int(h_orig * scale))
 
     scaled_pano = cv2.resize(panorama, (scaled_w, scaled_h), interpolation=cv2.INTER_LANCZOS4)
     scaled_pano = circular_seam_blend(scaled_pano, seam_width=45)
 
     canvas = np.zeros((eh, ew, 3), dtype=np.uint8)
+    x_offset = (ew - scaled_w) // 2
     y_offset = (eh - scaled_h) // 2
-    canvas[y_offset : y_offset + scaled_h, :] = scaled_pano
+    canvas[y_offset : y_offset + scaled_h, x_offset : x_offset + scaled_w] = scaled_pano
 
     # 1. Xử lý Trần nhà (Zenith) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG!
     if y_offset > 0:
@@ -453,7 +449,7 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
             t = float(y) / float(y_offset)
             s = t * t * (3.0 - 2.0 * t) # Smoothstep
             blended = (1.0 - s) * zenith_avg + s * scaled_pano[0, :]
-            canvas[y, :] = np.clip(blended, 0, 255).astype(np.uint8)
+            canvas[y, x_offset : x_offset + scaled_w] = np.clip(blended, 0, 255).astype(np.uint8)
 
     # 2. Xử lý Sàn nhà (Nadir) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG!
     floor_start = y_offset + scaled_h
@@ -465,7 +461,7 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
             t = float(floor_h - y) / float(floor_h)
             s = t * t * (3.0 - 2.0 * t) # Smoothstep
             blended = (1.0 - s) * nadir_avg + s * scaled_pano[-1, :]
-            canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
+            canvas[floor_start + y, x_offset : x_offset + scaled_w] = np.clip(blended, 0, 255).astype(np.uint8)
 
     return circular_seam_blend(canvas, seam_width=45)
 
@@ -938,8 +934,9 @@ def filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=36):
         dx_median = float(np.median(diffs[:, 0]))
         dx_ratio = abs(dx_median) / float(w_ref)
 
-        # Chỉ loại bỏ khi gần như đứng yên cùng 1 góc (< 4% dịch chuyển)
-        if dx_ratio < 0.04:
+        # Khử trùng lặp khung hình thông minh: Nếu 2 ảnh chụp cùng 1 góc (< 13% dịch chuyển quang học)
+        # thì chỉ giữ lại 1 khung hình sắc nét nhất, loại bỏ triệt để hiện tượng lặp cột / người 3 lần!
+        if dx_ratio < 0.13:
             if cur["sharpness"] > anchor["sharpness"]:
                 selected_meta[-1] = cur
             continue
@@ -1083,7 +1080,8 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
             best_dx = float(np.median(valid_prev)) if valid_prev else float(w0 * 0.25)
             best_dy = 0.0
 
-        min_step = float(w0 * 0.10)
+        # Không cưỡng ép bước dịch chuyển giả tạo lớn nếu camera di chuyển chậm hoặc đứng yên
+        min_step = float(w0 * 0.02)
         max_step = float(w0 * 0.65)
         step_dx = max(min_step, min(max_step, abs(best_dx)))
         shifts.append((step_dx, best_dy))
@@ -1315,30 +1313,36 @@ def run_stitch(image_paths, output_path, target_width=0):
         if not os.path.exists(p):
             return {"success": False, "error": "ERR_FILE_NOT_FOUND", "detail": f"Không tìm thấy file: {p}"}
 
-        log("[*] Nhận diện 1 ảnh đầu vào. Đang nắn đứng và chuyển đổi sang không gian 360° Equirectangular 2:1...")
+        log("[*] Nhận diện 1 ảnh đầu vào. Đang tối ưu hóa độ nét và bảo tồn góc nhìn nguyên bản 100%...")
         try:
             img = load_and_orient_image(p, max_dim=8192)
-            img = preprocess_lighting_clahe(img)
             h, w = img.shape[:2]
             ar = float(w) / float(max(1, h))
-            is_full = (ar >= 1.85)
 
-            leveled = level_and_straighten_spherical_panorama(img)
-            cropped = crop_clean_inscribed_rectangle(leveled)
-            equi = fit_to_equirectangular_2_to_1(cropped, target_width=out_w, is_full_360=is_full)
-            equi = enhance_museum_details(equi)
+            if ar >= 1.85:
+                # Ảnh gốc vốn là toàn cảnh 360 / panorama (tỉ lệ >= 1.85:1)
+                img = preprocess_lighting_clahe(img)
+                leveled = level_and_straighten_spherical_panorama(img)
+                cropped = crop_clean_inscribed_rectangle(leveled)
+                res_img = fit_to_equirectangular_2_to_1(cropped, target_width=out_w, is_full_360=True)
+                res_img = enhance_museum_details(res_img)
+            else:
+                # ẢNH CHỤP CAMERA GÓC THỰC TẾ (VUÔNG 1:1, CHỮ NHẬT 4:3, 16:9):
+                # TUYỆT ĐỐI BẢO TỒN 100% TỈ LỆ GỐC, KHÔNG ÉP SANG 2:1, KHÔNG BÓP MÉO, KHÔNG ĐẮP VIỀN MỜ!
+                res_img = enhance_museum_details(img)
 
             os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-            cv2.imwrite(output_path, equi, [cv2.IMWRITE_JPEG_QUALITY, 99])
-            h, w = equi.shape[:2]
+            cv2.imwrite(output_path, res_img, [cv2.IMWRITE_JPEG_QUALITY, 99])
+            fin_h, fin_w = res_img.shape[:2]
+            fin_ar = round(fin_w / max(1, fin_h), 2)
             return {
                 "success": True,
                 "outputPath": output_path,
-                "width": w,
-                "height": h,
-                "aspectRatio": 2.0,
-                "aspectRatioStr": "2:1",
-                "message": "Đã tạo thành công không gian 360° Equirectangular 2:1 chuẩn bảo tàng số."
+                "width": fin_w,
+                "height": fin_h,
+                "aspectRatio": fin_ar,
+                "aspectRatioStr": f"{fin_w}:{fin_h}",
+                "message": "Đã bảo tồn góc nhìn phòng nguyên bản 100% sắc nét, chuẩn bảo tàng số."
             }
         except Exception as e:
             return {"success": False, "error": "ERR_SINGLE_PANO", "detail": str(e)}
@@ -1383,24 +1387,30 @@ def run_stitch(image_paths, output_path, target_width=0):
         final_pano = im0
         is_full_360 = False
 
-    # Hậu xử lý chuyển đổi thành ảnh cầu 360° Equirectangular 2:1
-    if f_cyl is not None:
-        # Chuỗi ảnh đã được nắn mặt trụ quang học, cân bằng chân trời và ghép nối Voronoi hoàn chỉnh.
-        # Chuyển đổi trực tiếp chuẩn xác sang Equirectangular 2:1, bảo toàn 100% tất cả các góc ảnh (không xén cột, không sọc ngang mép).
+    # Hậu xử lý chuyển đổi thành ảnh gian phòng
+    if is_full_360 and f_cyl is not None:
         log("[*] Đang chuyển đổi chuẩn mực từ Mặt Trụ (Cylinder) sang Cầu Toàn Cảnh 360° Equirectangular 2:1...")
         equi_pano = cylindrical_to_equirectangular(final_pano, f_cam=f_cyl, out_w=out_w, out_h=out_w // 2)
         equi_pano = enhance_museum_details(equi_pano)
-    else:
-        # Fallback cho trường hợp 1 ảnh hoặc OpenCV Native fallback
-        log("[*] Đang tự động nắn đứng 90° kiến trúc SO(3) và cắt xén nội tiếp phẳng lì...")
+    elif is_full_360:
+        log("[*] Đang nắn đứng 90° kiến trúc SO(3) và hoàn tất không gian 360°...")
         leveled = level_and_straighten_spherical_panorama(final_pano)
         cropped = crop_clean_inscribed_rectangle(leveled)
-        equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=out_w, is_full_360=is_full_360)
+        equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=out_w, is_full_360=True)
         equi_pano = enhance_museum_details(equi_pano)
+    else:
+        # Chuỗi ảnh không khép kín vòng tròn 360° (is_full_360 == False):
+        # TUYỆT ĐỐI KHÔNG ÉP SANG 2:1! Bảo tồn góc nhìn phẳng phiu tự nhiên của gian phòng!
+        log("[*] Chuỗi ảnh quét phòng: Bảo tồn 100% phối cảnh tự nhiên phẳng phiu...")
+        clean_pano = crop_clean_inscribed_rectangle(final_pano)
+        if clean_pano is None or clean_pano.size == 0:
+            clean_pano = final_pano
+        equi_pano = enhance_museum_details(clean_pano)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     cv2.imwrite(output_path, equi_pano, [cv2.IMWRITE_JPEG_QUALITY, 99])
     h, w = equi_pano.shape[:2]
+    cur_ar = round(w / max(1, h), 2)
     total_time = round(time.time() - t0, 1)
 
     return {
@@ -1408,11 +1418,11 @@ def run_stitch(image_paths, output_path, target_width=0):
         "outputPath": output_path,
         "width": w,
         "height": h,
-        "aspectRatio": 2.0,
-        "aspectRatioStr": "2:1",
+        "aspectRatio": cur_ar,
+        "aspectRatioStr": f"{w}:{h}",
         "engine": "opencv_failsafe_360",
         "processingTimeSec": total_time,
-        "message": f"Đã tạo thành công không gian toàn cảnh 360° Equirectangular 2:1 phẳng phiu chuẩn bảo tàng số trong {total_time}s."
+        "message": f"Đã tạo thành công không gian phòng sắc nét, chuẩn mực bảo tàng số trong {total_time}s."
     }
 
 

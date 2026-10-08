@@ -111,8 +111,8 @@ export const PocStitchingPage: React.FC = () => {
   const [activeViewUrl, setActiveViewUrl] = useState<string | null>(null);
   // Hiệu ứng mờ dần (Fade transition) khi chuyển góc nhìn
   const [isViewFading, setIsViewFading] = useState(false);
-  // Chế độ trình xem: Mặc định là Quả Cầu 360 độ (pano360) để kéo chuột xoay ngắm không gian toàn cảnh
-  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('pano360');
+  // Chế độ trình xem: Mặc định là Không Gian Đa Góc (spatial) để bảo tồn 100% góc nhìn gốc sắc nét, không méo hình
+  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('spatial');
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
   const [batchFiles, setBatchFiles] = useState<File[]>([]);
   const [batchPreviews, setBatchPreviews] = useState<string[]>([]);
@@ -639,7 +639,7 @@ export const PocStitchingPage: React.FC = () => {
       showToast('Đang tạo không gian phòng từ góc ảnh này...', 'info');
 
       const formData = new FormData();
-      formData.append('mode', 'fast');
+      formData.append('mode', 'spatial');
 
       if (frame.serverPath) {
         formData.append('serverPaths', JSON.stringify([frame.serverPath]));
@@ -662,6 +662,8 @@ export const PocStitchingPage: React.FC = () => {
         panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
       };
       setStitchResult(resData);
+      setActiveViewUrl(resData.panoramaUrl);
+      setViewerMode('spatial');
       fetchHistory();
       showToast('Đã tạo không gian thành công! Vui lòng đặt tên và lưu gian phòng.', 'success');
       setShowCreateRoomModal(true);
@@ -694,7 +696,7 @@ export const PocStitchingPage: React.FC = () => {
     setCurrentStep(1);
 
     const formData = new FormData();
-    formData.append('mode', 'pano360');
+    formData.append('mode', 'spatial');
 
     let targetFrames = framesToStitch;
     if (framesToStitch.length > 120) {
@@ -757,7 +759,7 @@ export const PocStitchingPage: React.FC = () => {
       };
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
-      setViewerMode('pano360');
+      setViewerMode('spatial');
       fetchHistory();
       showToast('Đã tạo không gian căn phòng thành công!', 'success');
 
@@ -1117,12 +1119,12 @@ export const PocStitchingPage: React.FC = () => {
                       >
                         <Sparkles size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: 1 }} />
                         <span>
-                          <strong>Động Cơ Ghép Không Gian 360° Quang Học:</strong> Hệ thống sẽ tự động nắn mặt trụ và ghép nối các góc ảnh xoay quanh phòng thành một <strong>KHÔNG GIAN QUẢ CẦU 360° HOÀN CHỈNH</strong>. Người xem có thể kéo chuột xoay 360° ngắm toàn cảnh căn phòng, triệt tiêu nếp gấp và không còn bóng ma!
+                          <strong>Không Gian Bảo Tàng Tự Nhiên:</strong> Bảo tồn 100% góc nhìn sắc nét nguyên bản của camera (1:1, 4:3, 16:9), triệt tiêu hoàn toàn méo mó, không cố vá bể hình, không lặp điểm ảnh và hỗ trợ tham quan xoay chuyển góc linh hoạt!
                         </span>
                       </div>
                     )}
 
-                    {/* Nút tạo không gian căn phòng 360 */}
+                    {/* Nút tạo không gian căn phòng */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
                       <button
                         type="button"
@@ -1134,15 +1136,15 @@ export const PocStitchingPage: React.FC = () => {
                         {isProcessing ? (
                           <>
                             <Loader2 size={16} className="spin" />
-                            <span>Đang ghép không gian 360° từ {totalFrames} ảnh...</span>
+                            <span>Đang tối ưu không gian căn phòng từ {totalFrames} ảnh...</span>
                           </>
                         ) : (
                           <>
                             <Sparkles size={16} />
                             <span>
                               {totalFrames === 1
-                                ? 'Tạo không gian 360° từ 1 ảnh này'
-                                : `Tạo không gian 360° căn phòng (${totalFrames} góc ảnh)`}
+                                ? 'Tạo không gian phòng từ ảnh này'
+                                : `Tạo không gian căn phòng (${totalFrames} góc ảnh)`}
                             </span>
                           </>
                         )}

@@ -518,8 +518,9 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   const outFilename = `stitched_room_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
 
-  // Nếu người dùng chọn rõ ràng chế độ spatial
-  if (req.body.mode === 'spatial') {
+  // Nếu có 1 ảnh góc phòng HOẶC chế độ spatial:
+  // Tự động bảo tồn 100% góc nhìn phòng sắc nét bằng Native Sharp Engine (siêu nhẹ, không méo hình, không nếp gấp, không lặp điểm ảnh)
+  if (imagePaths.length === 1 || req.body.mode === 'spatial') {
     const primaryIdx = req.body.primaryIndex ? parseInt(String(req.body.primaryIndex), 10) : 0;
     return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
   }
