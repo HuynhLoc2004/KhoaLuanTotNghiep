@@ -538,7 +538,7 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   // 1. Luôn ưu tiên thực thi Động cơ Ghép Chuyên dụng Python OpenCV / Cylindrical Warping
   // Tự động phân tích đặc trưng quang học, chống méo góc, chống trùng lặp vật thể
   let isHandled = false;
-  const timeoutMs = 30000; // 30 giây an toàn cho VPS xử lý kỹ lưỡng
+  const timeoutMs = 60000; // 60 giây an toàn cho chùm ảnh lớn
 
   const targetWidth = req.body.width ? String(req.body.width) : '0';
   const args = [
@@ -562,14 +562,17 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   const timer = setTimeout(() => {
     if (!isHandled) {
       isHandled = true;
-      console.warn('[Stitch API] Quá thời gian ghép 30s trên VPS, chuyển sang Sharp Engine dự phòng...');
+      console.warn('[Stitch API] Quá thời gian ghép 60s trên VPS, chuyển sang Sharp Engine dự phòng...');
       try { pyProcess.kill('SIGKILL'); } catch (_) {}
-      executeSharpEngine('Dự phòng sau 30s');
+      executeSharpEngine('Dự phòng sau 60s');
     }
   }, timeoutMs);
 
   pyProcess.stdout.on('data', (d: any) => { stdoutData += d.toString(); });
-  pyProcess.stderr.on('data', (d: any) => { stderrData += d.toString(); });
+  pyProcess.stderr.on('data', (d: any) => {
+    stderrData += d.toString();
+    console.log(`[Python Stitcher]: ${d.toString().trim()}`);
+  });
 
   pyProcess.on('close', async () => {
     clearTimeout(timer);

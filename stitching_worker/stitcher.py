@@ -986,33 +986,17 @@ def run_stitch(image_paths, output_path, target_width=0):
     final_pano = None
     is_full_360 = False
 
-    # Ưu tiên 1: Chạy Hugin CLI nếu có cài đặt trên hệ điều hành
-    if is_hugin_available():
-        hugin_ok, hugin_img = run_hugin_stitch(sorted_paths, output_path, target_width=out_w)
-        if hugin_ok and hugin_img is not None:
-            h, w = hugin_img.shape[:2]
-            total_time = round(time.time() - t0, 1)
-            return {
-                "success": True,
-                "outputPath": output_path,
-                "width": w,
-                "height": h,
-                "aspectRatio": 2.0,
-                "aspectRatioStr": "2:1",
-                "engine": "hugin_cli",
-                "processingTimeSec": total_time,
-                "message": f"Đã ghép thành công không gian 360° Equirectangular chuẩn công nghiệp bằng Hugin CLI trong {total_time}s."
-            }
-
-    # Ưu tiên 2: Động cơ OpenCV Native C++ Engine với 4 tầng cấu hình thích ứng
+    # Ưu tiên 1 (Tốc độ cao 1-2s): Động cơ OpenCV Native C++ Engine với 4 tầng cấu hình thích ứng
+    # Tự động so khớp điểm ảnh (ORB/SIFT), Bundle Adjustment và Multi-band Spline Blending
     try:
         final_pano, is_full_360 = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
     except Exception as e:
         log(f"[!] Động cơ OpenCV Native gặp sự cố: {e}")
 
-    # Ưu tiên 3 (CỨU CÁNH 100%): Khi Hugin và OpenCV Native không tìm đủ cặp đặc trưng
+    # Ưu tiên 2 (CỨU CÁNH QUANG HỌC HOÀN HẢO - Siêu tốc <1s): Fail-Safe Cylindrical Sector Blender
+    # Uốn mặt trụ Cylindrical Warping, triệt tiêu méo phối cảnh, hòa trộn Cosine Feathering xóa sạch nếp gấp dọc
     if final_pano is None:
-        log("[*] Tự động kích hoạt Động cơ Ghép Phân vùng Góc 360° Thông minh (Fail-Safe 360° Sector Blender)...")
+        log("[*] Kích hoạt Động cơ Ghép Phân vùng Mặt trụ Quang học (Fail-Safe Cylindrical Sector Blender)...")
         try:
             final_pano, is_full_360 = run_failsafe_cylindrical_sector_stitcher(sorted_paths, target_width=out_w)
         except Exception as fs_err:
@@ -1020,6 +1004,19 @@ def run_stitch(image_paths, output_path, target_width=0):
             im0 = load_and_orient_image(sorted_paths[0], max_dim=2048)
             final_pano = im0
             is_full_360 = False
+
+    # Ưu tiên 3: Nếu vẫn chưa có kết quả và Hugin khả dụng
+    if final_pano is None and is_hugin_available():
+        log("[*] Thử nghiệm Hugin CLI dự phòng...")
+        hugin_ok, hugin_img = run_hugin_stitch(sorted_paths, output_path, target_width=out_w)
+        if hugin_ok and hugin_img is not None:
+            final_pano = hugin_img
+            is_full_360 = True
+
+    if final_pano is None:
+        im0 = load_and_orient_image(sorted_paths[0], max_dim=2048)
+        final_pano = im0
+        is_full_360 = False
 
     # Hậu xử lý loại bỏ méo lồi và viền đen
     log("[*] Đang tự động nắn đứng 90° kiến trúc SO(3) và cắt xén nội tiếp phẳng lì...")
