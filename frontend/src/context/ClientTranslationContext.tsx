@@ -777,7 +777,7 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
             DYNAMIC_REVERSE_MAP[trans.toLowerCase().trim()] = origText;
             node.textContent = text.replace(trimmed, trans);
             return;
-          } else if (!trans && VIETNAMESE_REGEX.test(origText) && origText.length >= 2) {
+          } else if (!trans && origText.length >= 2 && !/^\d+$/.test(origText)) {
             (node as any).__i18nOrigVI = origText;
             node.parentElement?.setAttribute('data-i18n-orig-vi', origText);
             enqueueForTranslation(origText);
@@ -972,53 +972,71 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       return DICTIONARY_VI[key] || fallback || key;
     }
 
-    // 1. ƯU TIÊN 1: Tra cứu từ điển tĩnh đã nạp (BUILTIN_DICTIONARIES)
+    const memoizeAndReturn = (result: string, origKey: string) => {
+      const cleaned = cleanTranslationResult(result, origKey, currentLang);
+      if (cleaned && origKey && cleaned !== origKey) {
+        DYNAMIC_REVERSE_MAP[cleaned.toLowerCase().trim()] = origKey;
+      }
+      return cleaned;
+    };
+
+    // 1. ƯU TIÊN 1: Tra cứu từ điển tĩnh đã nạp (BUILTIN_DICTIONARIES) của currentLang
     const currentDict = dictionaries[currentLang] || BUILTIN_DICTIONARIES[currentLang];
     if (currentDict && currentDict[key]) {
-      return cleanTranslationResult(currentDict[key], key, currentLang);
+      return memoizeAndReturn(currentDict[key], DICTIONARY_VI[key] || fallback || key);
     }
 
     // 2. ƯU TIÊN 2: Tra cứu UNIVERSAL_PHRASE_MAP theo key
     const transByKey = lookupUniversalPhrase(key, currentLang);
     if (transByKey) {
-      return cleanTranslationResult(transByKey, key, currentLang);
+      return memoizeAndReturn(transByKey, key);
     }
 
     // 3. ƯU TIÊN 3: Tra cứu UNIVERSAL_PHRASE_MAP theo fallback text
     if (fallback) {
       const transByFallback = lookupUniversalPhrase(fallback, currentLang);
       if (transByFallback) {
-        return cleanTranslationResult(transByFallback, fallback, currentLang);
+        return memoizeAndReturn(transByFallback, fallback);
+      }
+    }
+
+    // 3b. ƯU TIÊN 3b: Nếu key nằm trong DICTIONARY_VI thì tra UNIVERSAL_PHRASE_MAP theo giá trị tiếng Việt đó
+    const viFromDict = DICTIONARY_VI[key];
+    if (viFromDict) {
+      const transByViVal = lookupUniversalPhrase(viFromDict, currentLang);
+      if (transByViVal) {
+        return memoizeAndReturn(transByViVal, viFromDict);
       }
     }
 
     // 4. ƯU TIÊN 4: Kiểm tra cache NMT động trong RAM/localStorage (đã làm sạch)
     if (autoTranslations[key]) {
-      return cleanTranslationResult(autoTranslations[key], key, currentLang);
+      return memoizeAndReturn(autoTranslations[key], key);
     }
     if (fallback && autoTranslations[fallback]) {
-      return cleanTranslationResult(autoTranslations[fallback], fallback, currentLang);
+      return memoizeAndReturn(autoTranslations[fallback], fallback);
+    }
+    if (viFromDict && autoTranslations[viFromDict]) {
+      return memoizeAndReturn(autoTranslations[viFromDict], viFromDict);
     }
 
-    // 5. Nếu chưa có, tự động đưa vào hàng đợi dịch máy siêu tốc
+    // 5. Nếu chưa có, tự động đưa vào hàng đợi dịch máy siêu tốc sang currentLang
     if (fallback && VIETNAMESE_REGEX.test(fallback)) {
       enqueueForTranslation(fallback);
+    } else if (viFromDict && VIETNAMESE_REGEX.test(viFromDict)) {
+      enqueueForTranslation(viFromDict);
     } else if (VIETNAMESE_REGEX.test(key)) {
       enqueueForTranslation(key);
     }
 
-    // 6. Fallback sang tiếng Anh trong dictionary tĩnh nếu có
-    if (currentLang === 'en' && BUILTIN_DICTIONARIES.en && BUILTIN_DICTIONARIES.en[key]) {
-      return cleanTranslationResult(BUILTIN_DICTIONARIES.en[key], key, currentLang);
-    }
-    if (BUILTIN_DICTIONARIES.en && BUILTIN_DICTIONARIES.en[key] && !autoTranslations[key]) {
-      // Đưa vào hàng đợi dịch máy sang ngôn ngữ đích hiện tại nếu chưa có
-      if (BUILTIN_DICTIONARIES.vi && BUILTIN_DICTIONARIES.vi[key]) {
-        enqueueForTranslation(BUILTIN_DICTIONARIES.vi[key]);
+    // 6. CHỈ fallback sang tiếng Anh NẾU NGÔN NGỮ ĐANG CHỌN LÀ TIẾNG ANH ('en')
+    if (currentLang === 'en') {
+      if (BUILTIN_DICTIONARIES.en && BUILTIN_DICTIONARIES.en[key]) {
+        return memoizeAndReturn(BUILTIN_DICTIONARIES.en[key], key);
       }
-      return cleanTranslationResult(BUILTIN_DICTIONARIES.en[key], key, currentLang);
     }
-    return DICTIONARY_VI[key] || fallback || key;
+
+    return fallback || DICTIONARY_VI[key] || key;
   }, [currentLang, dictionaries, autoTranslations, enqueueForTranslation]);
 
   // Bản địa hóa nội dung động từ Database (Phòng, Hiện vật, Điểm neo)

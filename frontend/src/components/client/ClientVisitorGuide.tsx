@@ -212,7 +212,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                   className="client-zigzag-btn-primary"
                   onClick={onViewAllGuide}
                 >
-                  {branding.guideCtaText || t('guide.btnViewAll', 'Xem cẩm nang & sơ đồ tham quan')}
+                  {t(branding.guideCtaText || 'guide.btnViewAll', branding.guideCtaText || 'Xem cẩm nang & sơ đồ tham quan')}
                 </button>
               </div>
             )}

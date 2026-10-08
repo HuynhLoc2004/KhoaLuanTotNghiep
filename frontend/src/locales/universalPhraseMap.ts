@@ -6937,4 +6937,125 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     zh: '🏛️ Nạp nhanh thông tin chuẩn (Bảo tàng Lịch sử TP.HCM',
     ja: '🏛️ Nạp nhanh thông tin chuẩn (Bảo tàng Lịch sử TP.HCM'
   },
+  'Không Gian Thực Tế Ảo': {
+    en: 'Virtual Reality Space',
+    fr: 'Espace de Réalité Virtuelle',
+    zh: '虚拟现实空间',
+    ja: 'バーチャルリアリティ空間'
+  },
+  'Không gian thực tế ảo': {
+    en: 'Virtual Reality Space',
+    fr: 'Espace de Réalité Virtuelle',
+    zh: '虚拟现实空间',
+    ja: 'バーチャルリアリティ空間'
+  },
+  'Hệ Thống Gian Phòng Tour 360°': {
+    en: '360° Virtual Tour Galleries',
+    fr: 'Galeries de Visite Virtuelle 360°',
+    zh: '360°全景展厅导览系统',
+    ja: '360°バーチャル展示室ツアー'
+  },
+  'Hệ thống gian phòng Tour 360°': {
+    en: '360° Virtual Tour Galleries',
+    fr: 'Galeries de Visite Virtuelle 360°',
+    zh: '360°全景展厅导览系统',
+    ja: '360°バーチャル展示室ツアー'
+  },
+  'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.': {
+    en: 'Explore panoramic exhibition spaces through ultra-sharp 360° imagery. Visitors can seamlessly navigate across rooms, interact with artifact annotations, and listen to historical audio narration.',
+    fr: 'Explorez les galeries patrimoniales à travers des panoramas 360° haute définition. Les visiteurs peuvent naviguer de salle en salle, interagir avec les points d’information et écouter les descriptions historiques.',
+    zh: '通过高精度360°全景图探索展厅空间。访客可在各展厅间自由穿梭，与文物注释交互并聆听历史语音解说。',
+    ja: '高精細な360°パノラマ写真で展示空間を探索。部屋間をシームレスに移動し、文化財の解説ポイントと対話しながら歴史音声ガイドを聴取できます。'
+  },
+  'Khám phá tất cả gian phòng 360°': {
+    en: 'Explore All 360° Galleries',
+    fr: 'Explorer Toutes les Galeries 360°',
+    zh: '探索所有360°展厅',
+    ja: 'すべての360°展示室を探索'
+  },
+  'Bảo Vật Di Sản & Mô Hình 3D': {
+    en: 'Heritage Treasures & 3D Models',
+    fr: 'Trésors du Patrimoine & Modèles 3D',
+    zh: '文化瑰宝与3D数字化文物',
+    ja: '国宝級文化財＆3Dモデル'
+  },
+  'Bảo vật di sản & Mô hình 3D': {
+    en: 'Heritage Treasures & 3D Models',
+    fr: 'Trésors du Patrimoine & Modèles 3D',
+    zh: '文化瑰宝与3D数字化文物',
+    ja: '国宝級文化財＆3Dモデル'
+  },
+  'Kho Tàng Cổ Vật & Bảo Vật Di Sản': {
+    en: 'Artifact Treasures & Cultural Heritage',
+    fr: 'Trésor d’Antiquités & Patrimoine Culturel',
+    zh: '珍贵文物与国家瑰宝宝库',
+    ja: '古美術品と遺産の宝庫'
+  },
+  'Kho tàng cổ vật & Bảo vật di sản': {
+    en: 'Artifact Treasures & Cultural Heritage',
+    fr: 'Trésor d’Antiquités & Patrimoine Culturel',
+    zh: '珍贵文物与国家瑰宝宝库',
+    ja: '古美術品と遺産の宝庫'
+  },
+  'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.': {
+    en: 'Admire national treasures and precious historical artifacts reconstructed in sharp 3D, featuring interactive 360° turntable rotation and multilingual audio guides.',
+    fr: 'Admirez des trésors nationaux et objets historiques précieux modélisés en 3D haute fidélité, avec plateau tournant 360° et narrations multilingues.',
+    zh: '鉴赏高精度360°全景复原的国家瑰宝与历史文物，支持旋转交互与多语言语音讲解。',
+    ja: '鮮明な3Dで復元された国宝や貴重な歴史遺産を鑑賞。インタラクティブな360°回転や多言語音声解説に対応しています。'
+  },
+  'Khám phá toàn bộ kho hiện vật': {
+    en: 'Explore Full Artifact Repository',
+    fr: 'Explorer Tout le Dépôt des Objets',
+    zh: '浏览全部馆藏文物',
+    ja: 'すべての所蔵品を見る'
+  },
+  'Xem cẩm nang & sơ đồ tham quan': {
+    en: 'View Visitor Guide & Floor Plan',
+    fr: 'Consulter le Guide & le Plan de Visite',
+    zh: '查看参观指南与展区导览图',
+    ja: '見学案内とフロアマップを見る'
+  },
+  'Tất cả quyền được bảo lưu.': {
+    en: 'All rights reserved.',
+    fr: 'Tous droits réservés.',
+    zh: '保留所有权利。',
+    ja: '無断転載を禁じます。'
+  },
+  'Tất cả quyền được bảo lưu': {
+    en: 'All rights reserved',
+    fr: 'Tous droits réservés',
+    zh: '保留所有权利',
+    ja: '無断転載を禁じます'
+  },
+  'Bảo tàng Lịch sử Thành phố Hồ Chí Minh. Tất cả quyền được bảo lưu.': {
+    en: 'Museum of History in Ho Chi Minh City. All rights reserved.',
+    fr: "Musée d'Histoire de Hô Chi Minh-Ville. Tous droits réservés.",
+    zh: '胡志明市历史博物馆。保留所有权利。',
+    ja: 'ホーチミン市歴史博物館。無断転載を禁じます。'
+  },
+  'Bảo tàng Lịch sử TP. Hồ Chí Minh. Tất cả quyền được bảo lưu.': {
+    en: 'Museum of History in Ho Chi Minh City. All rights reserved.',
+    fr: "Musée d'Histoire de Hô Chi Minh-Ville. Tous droits réservés.",
+    zh: '胡志明市历史博物馆。保留所有权利。',
+    ja: 'ホーチミン市歴史博物館。無断転載を禁じます。'
+  },
+  'Bảo tồn và lan tỏa các giá trị di sản lịch sử văn hóa dân tộc thông qua trải nghiệm thực tế ảo 360° và số hóa hiện vật tương tác.': {
+    en: 'Preserving and disseminating national historical and cultural heritage through 360° virtual reality tours and interactive digitized artifacts.',
+    fr: 'Préserver et valoriser le patrimoine historique et culturel national par le biais de visites virtuelles 360° et de la numérisation interactive des objets.',
+    zh: '通过360°虚拟现实与互动数字化文物，保护并传承国家历史文化遗产价值。',
+    ja: '360°バーチャルリアリティと文化財のインタラクティブなデジタル化を通じ、民族の歴史と文化遺産を保存・継承します。'
+  },
+
+  'Bắt đầu Tour 360°': {
+    en: 'Start 360° Tour',
+    fr: 'Commencer la Visite 360°',
+    zh: '开始360°虚拟导览',
+    ja: '360°バーチャルツアー開始'
+  },
+  'Chiêm ngưỡng cổ vật 3D': {
+    en: 'Explore 3D Artifacts',
+    fr: 'Admirer les Objets 3D',
+    zh: '鉴赏3D文物珍品',
+    ja: '3D文化財を鑑賞'
+  }
 };

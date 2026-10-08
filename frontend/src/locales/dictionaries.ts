@@ -506,7 +506,8 @@ export const DICTIONARY_VI: LocaleDictionary = {
   'footer.phone': 'Điện thoại',
   'footer.email': 'Thư điện tử',
   'footer.scrollToTop': 'Về đầu trang',
-  'footer.top': 'Đầu trang'
+  'footer.top': 'Đầu trang',
+  'footer.allRightsReserved': 'Tất cả quyền được bảo lưu.'
 };
 
 export const DICTIONARY_EN: LocaleDictionary = {
@@ -1002,7 +1003,8 @@ export const DICTIONARY_EN: LocaleDictionary = {
   'footer.phone': 'Phone',
   'footer.email': 'Email',
   'footer.scrollToTop': 'Back to top',
-  'footer.top': 'Top'
+  'footer.top': 'Top',
+  'footer.allRightsReserved': 'All rights reserved.'
 };
 
 export const DICTIONARY_FR: LocaleDictionary = {
@@ -1489,7 +1491,8 @@ export const DICTIONARY_FR: LocaleDictionary = {
   'footer.phone': 'Téléphone',
   'footer.email': 'Courriel',
   'footer.scrollToTop': 'Retour en haut',
-  'footer.top': 'Haut'
+  'footer.top': 'Haut',
+  'footer.allRightsReserved': 'Tous droits réservés.'
 };
 
 export const DICTIONARY_ZH: LocaleDictionary = {
@@ -1930,7 +1933,8 @@ export const DICTIONARY_ZH: LocaleDictionary = {
   'footer.phone': '电话',
   'footer.email': '电子邮箱',
   'footer.scrollToTop': '回到顶部',
-  'footer.top': '顶部'
+  'footer.top': '顶部',
+  'footer.allRightsReserved': '保留所有权利。'
 };
 
 export const DICTIONARY_JA: LocaleDictionary = {
@@ -2396,7 +2400,8 @@ export const DICTIONARY_JA: LocaleDictionary = {
   'footer.phone': '電話番号',
   'footer.email': 'メールアドレス',
   'footer.scrollToTop': 'トップへ戻る',
-  'footer.top': 'トップ'
+  'footer.top': 'トップ',
+  'footer.allRightsReserved': '無断転載を禁じます。'
 };
 
 export const BUILTIN_DICTIONARIES: Record<string, LocaleDictionary> = {

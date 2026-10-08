@@ -49,13 +49,17 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
                 </div>
               )}
               <h3 className="client-footer-brand-title">
-                {branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}
+                {t(branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh', branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh')}
               </h3>
             </div>
 
             <p className="client-footer-brand-desc">
-              {branding.tagline ||
-                'Bảo tồn và lan tỏa các giá trị di sản lịch sử văn hóa dân tộc thông qua trải nghiệm thực tế ảo 360° và số hóa hiện vật tương tác.'}
+              {t(
+                branding.tagline ||
+                  'Bảo tồn và lan tỏa các giá trị di sản lịch sử văn hóa dân tộc thông qua trải nghiệm thực tế ảo 360° và số hóa hiện vật tương tác.',
+                branding.tagline ||
+                  'Bảo tồn và lan tỏa các giá trị di sản lịch sử văn hóa dân tộc thông qua trải nghiệm thực tế ảo 360° và số hóa hiện vật tương tác.'
+              )}
             </p>
           </div>
 
@@ -210,7 +214,7 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
         {/* Thanh chân trang & Nút cuộn lên đầu */}
         <div className="client-footer-bottom">
           <div className="client-footer-copyright">
-            &copy; {new Date().getFullYear()} {branding.footerCopyrightText ? branding.footerCopyrightText : `${branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}. Tất cả quyền được bảo lưu.`}
+            &copy; {new Date().getFullYear()} {branding.footerCopyrightText ? t(branding.footerCopyrightText, branding.footerCopyrightText) : `${t(branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh', branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh')}. ${t('footer.allRightsReserved', 'Tất cả quyền được bảo lưu.')}`}
           </div>
 
           <button

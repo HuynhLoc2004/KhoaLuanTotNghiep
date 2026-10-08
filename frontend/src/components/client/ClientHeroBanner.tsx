@@ -49,32 +49,38 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
   const effectiveVideoUrl = (videoUrl || branding.heroVideoUrl || '').trim();
   const hasValidVideo = Boolean(effectiveVideoUrl && effectiveVideoUrl.length > 5);
 
-  // Trợ thủ typography: Không bao giờ để rớt chữ đơn lẻ "Minh" hay xé lẻ "TP. Hồ Chí Minh"
+  // Trợ thủ typography: Không bao giờ để rớt chữ đơn lẻ "Minh" hay xé lẻ tên thành phố
   const formatHeroTitle = (titleText: string) => {
-    const targetPrimary = 'TP. Hồ Chí Minh';
-    if (titleText.includes(targetPrimary)) {
-      const parts = titleText.split(targetPrimary);
-      return (
-        <>
-          {parts[0]}
-          <span style={{ whiteSpace: 'nowrap', display: 'inline-block' }}>{targetPrimary}</span>
-          {parts.slice(1).join(targetPrimary)}
-        </>
-      );
-    }
-    const targetAlt = 'Hồ Chí Minh';
-    if (titleText.includes(targetAlt)) {
-      const parts = titleText.split(targetAlt);
-      return (
-        <>
-          {parts[0]}
-          <span style={{ whiteSpace: 'nowrap', display: 'inline-block' }}>{targetAlt}</span>
-          {parts.slice(1).join(targetAlt)}
-        </>
-      );
+    const targets = ['TP. Hồ Chí Minh', 'Hồ Chí Minh', 'Hô Chi Minh-Ville', 'Ho Chi Minh City'];
+    for (const target of targets) {
+      if (titleText.includes(target)) {
+        const parts = titleText.split(target);
+        return (
+          <>
+            {parts[0]}
+            <span style={{ whiteSpace: 'nowrap', display: 'inline-block' }}>{target}</span>
+            {parts.slice(1).join(target)}
+          </>
+        );
+      }
     }
     return titleText;
   };
+
+  const rawHeroTitle = branding.heroTitle?.trim() || branding.museumName?.trim() || 'Bảo tàng Lịch sử TP. Hồ Chí Minh';
+  const localizedHeroTitle = t(rawHeroTitle, rawHeroTitle);
+
+  const rawHeroLead =
+    branding.heroTagline?.trim() ||
+    branding.tagline?.trim() ||
+    'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.';
+  const localizedHeroLead = t(rawHeroLead, rawHeroLead);
+
+  const rawCta1 = branding.heroCta1Text?.trim() || 'Bắt Đầu Tour 360°';
+  const localizedCta1 = t(rawCta1, rawCta1);
+
+  const rawCta2 = branding.heroCta2Text?.trim() || 'Chiêm Ngưỡng Cổ Vật 3D';
+  const localizedCta2 = t(rawCta2, rawCta2);
 
   return (
     <section id="hero" className="client-hero">
@@ -122,19 +128,12 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
             {t('hero.tag', 'Bảo Tàng Số • Di Sản Văn Hóa & Không Gian Tương Tác')}
           </span>
 
-          <h1 className="client-hero-headline" data-no-auto-translate="true">
-            {formatHeroTitle(
-              branding.heroTitle?.trim() || branding.museumName?.trim() || t('hero.title', 'Bảo tàng Lịch sử TP. Hồ Chí Minh')
-            )}
+          <h1 className="client-hero-headline">
+            {formatHeroTitle(localizedHeroTitle)}
           </h1>
 
-          <p className="client-hero-lead" data-no-auto-translate="true">
-            {branding.heroTagline?.trim() ||
-              branding.tagline?.trim() ||
-              t(
-                'hero.subtitle',
-                'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.'
-              )}
+          <p className="client-hero-lead">
+            {localizedHeroLead}
           </p>
 
           {/* Các nút hành động CTA */}
@@ -143,9 +142,8 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               type="button"
               className="client-btn-primary"
               onClick={onExploreTourClick}
-              data-no-auto-translate="true"
             >
-              <span>{branding.heroCta1Text?.trim() || t('hero.btnTour', 'Bắt Đầu Tour 360°')}</span>
+              <span>{localizedCta1}</span>
               <ArrowRight size={16} />
             </button>
 
@@ -153,9 +151,8 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
               type="button"
               className="client-btn-secondary"
               onClick={onExploreArtifactsClick}
-              data-no-auto-translate="true"
             >
-              <span>{branding.heroCta2Text?.trim() || t('hero.btnArtifacts', 'Chiêm Ngưỡng Cổ Vật 3D')}</span>
+              <span>{localizedCta2}</span>
             </button>
           </div>
 

@@ -181,19 +181,19 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
           {/* CỘT NỘI DUNG: ĐẠI DIỆN CHO PHÂN HỆ GIAN PHÒNG 360 */}
           <div className="client-zigzag-card-body">
             <span className="client-zigzag-tag">
-              {branding.roomsTag || t('rooms.tag', 'Không Gian Thực Tế Ảo')}
+              {t(branding.roomsTag || 'rooms.tag', branding.roomsTag || 'Không Gian Thực Tế Ảo')}
             </span>
 
             <h2 className="client-zigzag-title">
-              {branding.roomsTitle || t('rooms.headline', 'Hệ Thống Gian Phòng Tour 360°')}
+              {t(branding.roomsTitle || 'rooms.headline', branding.roomsTitle || 'Hệ Thống Gian Phòng Tour 360°')}
             </h2>
 
             <p className="client-zigzag-desc">
-              {branding.roomsDesc ||
-                t(
-                  'rooms.sub',
+              {t(
+                branding.roomsDesc || 'rooms.sub',
+                branding.roomsDesc ||
                   'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.'
-                )}
+              )}
             </p>
 
             {/* DÒNG THÔNG SỐ TINH TẾ */}
@@ -224,7 +224,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
                 className="client-zigzag-btn-primary"
                 onClick={onViewAllRooms}
               >
-                {branding.roomsCtaText || t('rooms.btnViewAll', 'Khám phá tất cả gian phòng 360°')}
+                {t(branding.roomsCtaText || 'rooms.btnViewAll', branding.roomsCtaText || 'Khám phá tất cả gian phòng 360°')}
               </button>
             </div>
           </div>
