@@ -228,10 +228,8 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
       .replace(/Tượng Phật Gỗ Cổ Óc Eo/i, 'Tượng Phật gỗ cổ Óc Eo (Bảo vật Quốc gia)');
   };
 
-  const rawTitle = localize(currentRoom, 'name', currentRoom.name);
-  const title = sanitizeMuseumText(rawTitle);
-  const rawPeriod = localize(currentRoom, 'period', currentRoom.period || currentRoom.category || 'Gian phòng di sản');
-  const period = sanitizeMuseumText(rawPeriod);
+  const title = localize(currentRoom, 'name', currentRoom.name);
+  const period = localize(currentRoom, 'period', currentRoom.period || currentRoom.category || 'Gian phòng di sản');
   const description = localize(currentRoom, 'description', currentRoom.description || '');
 
   // Định dạng hotspots chuẩn cho trình chiếu Pannellum 360° đồng bộ với Admin Studio
@@ -239,7 +237,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
     pitch: h.pitch,
     yaw: h.yaw,
     type: (h.type === 'navigation' ? 'scene' : 'info') as 'scene' | 'info',
-    text: sanitizeMuseumText(h.title),
+    text: localize(h, 'title', h.title),
     roomId: h.targetRoomId,
     onClick: () => handleHotspotClick(h)
   }));
@@ -806,7 +804,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <BookOpen size={17} style={{ color: '#D4A86A' }} />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: '#F3F4F6' }}>Tư Liệu Gian Phòng</span>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#F3F4F6' }}>{t('tour.roomDocs', 'Tư Liệu Gian Phòng')}</span>
             </div>
             <button
               type="button"
@@ -835,7 +833,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 12, padding: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#D4A86A', textTransform: 'uppercase' }}>
-                  Nội dung giới thiệu ({currentLang.toUpperCase()})
+                  {t('tour.introContent', 'Nội dung giới thiệu')} ({currentLang.toUpperCase()})
                 </span>
                 <button
                   type="button"
@@ -854,19 +852,19 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   }}
                 >
                   {isPlayingVoice ? <Pause size={12} /> : <Play size={12} />}
-                  <span>{isPlayingVoice ? 'Tạm dừng' : 'Nghe giới thiệu'}</span>
+                  <span>{isPlayingVoice ? t('tour.pauseAudio', 'Tạm dừng') : t('tour.playAudio', 'Nghe giới thiệu')}</span>
                 </button>
               </div>
               <p style={{ fontSize: '13px', lineHeight: 1.65, color: '#D1D5DB', margin: 0, whiteSpace: 'pre-line' }}>
-                {getNarrationData().scriptText || description || 'Chưa có thông tin giới thiệu chi tiết cho gian phòng này.'}
+                {getNarrationData().scriptText || description || t('tour.noIntro', 'Chưa có thông tin giới thiệu chi tiết cho gian phòng này.')}
               </p>
             </div>
 
             {/* Thống kê điểm Hotspot có trong phòng */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-              <span style={{ fontSize: '12.5px', color: '#9CA3AF' }}>Điểm chú thích tương tác</span>
+              <span style={{ fontSize: '12.5px', color: '#9CA3AF' }}>{t('tour.interactiveHotspots', 'Điểm chú thích tương tác')}</span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#D4A86A' }}>
-                {currentRoom.hotspots?.length || 0} điểm
+                {currentRoom.hotspots?.length || 0} {t('tour.hotspotsUnit', 'điểm')}
               </span>
             </div>
           </div>

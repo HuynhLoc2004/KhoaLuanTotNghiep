@@ -685,11 +685,11 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
               </div>
               <div className="spec-item">
                 <span className="spec-label">{t('artifact.chronology', 'Niên đại lịch sử')}</span>
-                <span className="spec-val">{displayPeriod || artifact.period || 'Chưa cập nhật'}</span>
+                <span className="spec-val">{displayPeriod || (artifact.period ? t(artifact.period, artifact.period) : t('common.updating', 'Chưa cập nhật'))}</span>
               </div>
               <div className="spec-item">
                 <span className="spec-label">{t('artifact.originDiscovery', 'Nguồn gốc phát hiện')}</span>
-                <span className="spec-val">{artifact.origin || 'Bảo tàng Lịch sử TP.HCM'}</span>
+                <span className="spec-val">{artifact.origin ? t(artifact.origin, artifact.origin) : t('nav.museumTitle', 'Bảo tàng Lịch sử TP.HCM')}</span>
               </div>
               {artifact.dimensions && (
                 <div className="spec-item">

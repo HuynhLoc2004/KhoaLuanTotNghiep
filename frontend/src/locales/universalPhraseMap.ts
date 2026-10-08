@@ -13,6 +13,12 @@ export interface UniversalPhraseItem {
   fr?: string;
   zh?: string;
   ja?: string;
+  ko?: string;
+  de?: string;
+  es?: string;
+  ru?: string;
+  th?: string;
+  it?: string;
 }
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
@@ -7057,5 +7063,196 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     fr: 'Admirer les Objets 3D',
     zh: '鉴赏3D文物珍品',
     ja: '3D文化財を鑑賞'
+  }
+,
+  "Sảnh Chính": {
+      "en": "Main Hall",
+      "fr": "Hall Principal",
+      "zh": "主接待大厅",
+      "ja": "メインホール",
+      "ko": "메인 홀",
+      "de": "Haupthalle",
+      "es": "Vestíbulo Principal",
+      "ru": "Главный зал"
+  },
+  "Phòng Thời Tiền Sử": {
+      "en": "Prehistory Gallery",
+      "fr": "Galerie de la Préhistoire",
+      "zh": "史前时代展厅",
+      "ja": "先史時代展示室",
+      "ko": "선사시대 전시실",
+      "de": "Urgeschichtliche Galerie",
+      "es": "Galería de la Prehistoria",
+      "ru": "Зал доисторической эпохи"
+  },
+  "Phòng Văn hóa Óc Eo – Phù Nam": {
+      "en": "Oc Eo – Funan Culture Gallery",
+      "fr": "Galerie de la Culture d'Oc Eo – Fou-nan",
+      "zh": "奥高 – 扶南文化展厅",
+      "ja": "オケオ・扶南文化展示室",
+      "ko": "옥에오 – 푸난 문화 전시실",
+      "de": "Óc Eo – Funan Kulturgalerie",
+      "es": "Galería de la Cultura Oc Eo – Funan",
+      "ru": "Зал культуры Ок Эо – Фунань"
+  },
+  "Kiến trúc Đông Dương (1929)": {
+      "en": "Indochinese Architecture (1929)",
+      "fr": "Architecture Indochinoise (1929)",
+      "zh": "印度支那建筑 (1929)",
+      "ja": "インドシナ建築（1929年）",
+      "ko": "인도차이나 건축 (1929)",
+      "de": "Indochinesische Architektur (1929)",
+      "es": "Arquitectura Indochina (1929)",
+      "ru": "Индокитайская архитектура (1929)"
+  },
+  "Thời đại Đồ đá & Đồ đồng": {
+      "en": "Stone Age & Bronze Age",
+      "fr": "Âge de la Pierre & Âge du Bronze",
+      "zh": "石器与青铜时代",
+      "ja": "石器時代および青銅器時代",
+      "ko": "석기 및 청동기 시대",
+      "de": "Steinzeit & Bronzezeit",
+      "es": "Edad de Piedra y Edad del Bronce",
+      "ru": "Каменный и бронзовый века"
+  },
+  "Thế kỷ I – VII SCN": {
+      "en": "1st – 7th Century AD",
+      "fr": "Ier – VIIe Siècle apr. J.-C.",
+      "zh": "公元1 – 7世纪",
+      "ja": "西暦1〜7世紀",
+      "ko": "서기 1 – 7세기",
+      "de": "1. – 7. Jh. n. Chr.",
+      "es": "Siglos I – VII d.C.",
+      "ru": "I – VII вв. н.э."
+  },
+  "Văn bia kỷ niệm khánh thành (1929)": {
+      "en": "Inauguration Commemorative Stele (1929)",
+      "fr": "Stèle Commémorative d'Inauguration (1929)",
+      "zh": "落成纪念石碑 (1929)",
+      "ja": "落成記念石碑（1929年）",
+      "ko": "개관 기념 비석 (1929)",
+      "de": "Gedenkstele zur Einweihung (1929)",
+      "es": "Estela Conmemorativa de Inauguración (1929)",
+      "ru": "Мемориальная стела открытия (1929)"
+  },
+  "Tượng Phật gỗ cổ Óc Eo (Bảo vật Quốc gia)": {
+      "en": "Ancient Oc Eo Wooden Buddha Statue (National Treasure)",
+      "fr": "Statue Ancienne de Bouddha en Bois d'Oc Eo (Trésor National)",
+      "zh": "奥高古代木雕佛像 (国家宝藏)",
+      "ja": "オケオ古木造仏像（国宝）",
+      "ko": "옥에오 고대 목조 불상 (베트남 국보)",
+      "de": "Antike Óc Eo Holz-Buddhastatue (Nationaler Schatz)",
+      "es": "Antigua Estatua de Buda de Madera Oc Eo (Tesoro Nacional)",
+      "ru": "Древняя деревянная статуя Будды Ок Эо (Национальное сокровище)"
+  },
+  "Tượng Phật Gỗ Cổ Óc Eo": {
+      "en": "Ancient Oc Eo Wooden Buddha Statue",
+      "fr": "Statue Ancienne de Bouddha en Bois d'Oc Eo",
+      "zh": "奥高古代木雕佛像",
+      "ja": "オケオ古木造仏像",
+      "ko": "옥에오 고대 목조 불상",
+      "de": "Antike Óc Eo Holz-Buddhastatue",
+      "es": "Antigua Estatua de Buda de Madera Oc Eo",
+      "ru": "Древняя деревянная статуя Будды Ок Эо"
+  },
+  "Chưa có ảnh": {
+      "en": "No image yet",
+      "fr": "Pas encore d'image",
+      "zh": "暂无图片",
+      "ja": "画像未登録",
+      "ko": "이미지 미등록",
+      "de": "Noch kein Bild",
+      "es": "Sin imagen aún",
+      "ru": "Изображение отсутствует"
+  },
+  "Mô hình 3D": {
+      "en": "3D Model",
+      "fr": "Modèle 3D",
+      "zh": "3D 模型",
+      "ja": "3Dモデル",
+      "ko": "3D 모델",
+      "de": "3D-Modell",
+      "es": "Modelo 3D",
+      "ru": "3D Модель"
+  },
+  "Cổ vật di sản": {
+      "en": "Heritage Artifacts",
+      "fr": "Objets du Patrimoine",
+      "zh": "遗产古物",
+      "ja": "歴史遺産文化財",
+      "ko": "유산 유물",
+      "de": "Kulturerbe-Artefakte",
+      "es": "Artefactos del Patrimonio",
+      "ru": "Исторические артефакты"
+  },
+  "Khách Việt Nam & Quốc tế": {
+      "en": "Domestic & International Visitors",
+      "fr": "Visiteurs Nationaux & Internationaux",
+      "zh": "国内与国际游客",
+      "ja": "国内および外国人来館者",
+      "ko": "국내 및 해외 방문객",
+      "de": "Inländische & Internationale Besucher",
+      "es": "Visitantes Nacionales e Internacionales",
+      "ru": "Внутренние и иностранные посетители"
+  },
+  "Xuất trình thẻ HSSV còn hạn": {
+      "en": "Present valid student ID card",
+      "fr": "Sur présentation d'une carte d'étudiant en cours de validité",
+      "zh": "出示有效学生证件",
+      "ja": "有効な学生証の提示が必要です",
+      "ko": "유효한 학생증 제시 시",
+      "de": "Gegen Vorlage eines gültigen Studentenausweises",
+      "es": "Presentar tarjeta de estudiante válida",
+      "ru": "При предъявлении действующего студенческого билета"
+  },
+  "Người khuyết tật, diện chính sách": {
+      "en": "Persons with disabilities, policy beneficiaries",
+      "fr": "Personnes en situation de handicap, bénéficiaires de politiques sociales",
+      "zh": "残障人士及优抚政策对象",
+      "ja": "障がい者、各種優待対象者",
+      "ko": "장애인 및 복지 대상자",
+      "de": "Menschen mit Behinderungen, Förderberechtigte",
+      "es": "Personas con discapacidad, beneficiarios de políticas sociales",
+      "ru": "Инвалиды и льготные категории"
+  },
+  "Tư Liệu Gian Phòng": {
+      "en": "Gallery Documentation",
+      "fr": "Documentation de la Salle",
+      "zh": "展厅文献资料",
+      "ja": "展示室の資料",
+      "ko": "전시실 기록 자료",
+      "de": "Raum-Dokumentation",
+      "es": "Documentación de la Sala",
+      "ru": "Материалы зала"
+  },
+  "Nội dung giới thiệu": {
+      "en": "Introduction Overview",
+      "fr": "Présentation Générale",
+      "zh": "内容介绍",
+      "ja": "紹介概要",
+      "ko": "소개 내용",
+      "de": "Einführungsinhalt",
+      "es": "Contenido de Introducción",
+      "ru": "Описание"
+  },
+  "Điểm chú thích tương tác": {
+      "en": "Interactive annotations",
+      "fr": "Points d'annotation interactifs",
+      "zh": "互动解说点",
+      "ja": "インタラクティブ注釈ポイント",
+      "ko": "대화형 해설 포인트",
+      "de": "Interaktive Anmerkungspunkte",
+      "es": "Puntos de anotación interactivos",
+      "ru": "Интерактивные точки аннотации"
+  },
+  "Chưa có thông tin giới thiệu chi tiết cho gian phòng này.": {
+      "en": "Detailed introduction for this gallery is being prepared.",
+      "fr": "La présentation détaillée de cette salle est en cours de préparation.",
+      "zh": "本展厅详细介绍正在整理更新中。",
+      "ja": "この展示室の詳細な解説情報は現在準備中です。",
+      "ko": "이 전시실에 대한 상세 소개 정보가 준비 중입니다.",
+      "de": "Detaillierte Informationen zu diesem Raum werden derzeit vorbereitet.",
+      "es": "La información detallada para esta sala está en preparación.",
+      "ru": "Подробная информация для этого зала готовится."
   }
 };

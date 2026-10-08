@@ -203,7 +203,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                   className={`client-subpage-filter-btn ${selectedCategory === c ? 'active' : ''}`}
                   onClick={() => setSelectedCategory(c)}
                 >
-                  <span>{c}</span>
+                  <span>{t(c, c)}</span>
                 </button>
               ))}
             </div>
@@ -254,24 +254,24 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                             <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
                               <Box size={22} strokeWidth={1.5} />
                             </div>
-                            <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>Chưa có ảnh</span>
+                            <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>{t('artifacts.noImage', 'Chưa có ảnh')}</span>
                           </div>
                         )}
                         {has3D ? (
                           <div className="client-zigzag-badge-float" style={{ borderColor: 'rgba(212, 175, 55, 0.7)' }}>
                             <RotateCw size={12} style={{ display: 'inline', marginRight: 4 }} />
-                            <span>Mô hình 3D</span>
+                            <span>{t('artifacts.model3D', 'Mô hình 3D')}</span>
                           </div>
                         ) : (
                           <div className="client-zigzag-badge-float">
-                            <span>{thumb ? 'Hiện vật số hóa' : 'Đang cập nhật'}</span>
+                            <span>{thumb ? t('artifacts.digitized', 'Hiện vật số hóa') : t('artifacts.updating', 'Đang cập nhật')}</span>
                           </div>
                         )}
                       </div>
 
                       <div className="client-gallery-body">
                         <div className="client-gallery-tags-row">
-                          <span className="client-gallery-meta">{category}</span>
+                          <span className="client-gallery-meta">{t(category, category)}</span>
                           {period && <span className="client-gallery-period">{period}</span>}
                         </div>
 

@@ -347,7 +347,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                           }}
                         >
                           <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 6 }}>
-                            {p}
+                            {t(p, p)}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                             <span style={{ fontSize: '11px', opacity: 0.7 }}>({countInPeriod})</span>
@@ -407,8 +407,8 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
             <>
               <div className="client-subpage-grid">
                 {paginatedRooms.map((room, index) => {
-                  const title = sanitizeMuseumText(localize(room, 'name', room.name));
-                  const period = sanitizeMuseumText(localize(room, 'period', (room as any).period || room.category || ''));
+                  const title = localize(room, 'name', room.name);
+                  const period = localize(room, 'period', (room as any).period || room.category || '');
                   const desc = localize(room, 'description', room.description || '');
                   const hotspotCount = room.hotspots ? room.hotspots.length : 0;
                   const thumb = getRoomThumb(room);

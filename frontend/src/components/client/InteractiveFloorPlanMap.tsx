@@ -308,9 +308,21 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   onNodeSelect,
   previewMode = false
 }) => {
-  const { currentLang } = useClientTranslation();
+  const { currentLang, t } = useClientTranslation();
   const langKey = (currentLang || 'vi').toLowerCase();
-  const ui = UI_STRINGS[langKey] || UI_STRINGS.vi;
+  const ui = useMemo(() => {
+    if (UI_STRINGS[langKey]) return UI_STRINGS[langKey];
+    const viUi = UI_STRINGS.vi;
+    const dynamicUi: any = {};
+    for (const [k, v] of Object.entries(viUi)) {
+      if (typeof v === 'string') {
+        dynamicUi[k] = t(v, v);
+      } else {
+        dynamicUi[k] = v;
+      }
+    }
+    return dynamicUi;
+  }, [langKey, t]);
 
   const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string>(
     externalSelectedNodeId || ''
@@ -566,26 +578,26 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   const getDirectionBadge = (dir: FloorPlanEdge['direction']) => {
     switch (dir) {
       case 'left':
-        return { label: langKey === 'en' ? 'Turn left' : 'Rẽ trái', icon: <ArrowLeft size={13} /> };
+        return { label: t('nav.turnLeft', 'Rẽ trái'), icon: <ArrowLeft size={13} /> };
       case 'right':
-        return { label: langKey === 'en' ? 'Turn right' : 'Rẽ phải', icon: <ArrowRight size={13} /> };
+        return { label: t('nav.turnRight', 'Rẽ phải'), icon: <ArrowRight size={13} /> };
       case 'front':
       case 'up':
-        return { label: langKey === 'en' ? 'Go straight' : 'Đi thẳng', icon: <ArrowUp size={13} /> };
+        return { label: t('nav.goStraight', 'Đi thẳng'), icon: <ArrowUp size={13} /> };
       case 'down':
-        return { label: langKey === 'en' ? 'Towards back' : 'Phía sau', icon: <ArrowDown size={13} /> };
+        return { label: t('nav.towardsBack', 'Phía sau'), icon: <ArrowDown size={13} /> };
       case 'southwest':
-        return { label: langKey === 'en' ? 'Slight left' : 'Chếch bên trái', icon: <ArrowDownLeft size={13} /> };
+        return { label: t('nav.slightLeft', 'Chếch bên trái'), icon: <ArrowDownLeft size={13} /> };
       case 'southeast':
-        return { label: langKey === 'en' ? 'Slight right' : 'Chếch bên phải', icon: <ArrowDownRight size={13} /> };
+        return { label: t('nav.slightRight', 'Chếch bên phải'), icon: <ArrowDownRight size={13} /> };
       case 'northwest':
-        return { label: langKey === 'en' ? 'Forward left' : 'Chếch lên trái', icon: <ArrowUpLeft size={13} /> };
+        return { label: t('nav.forwardLeft', 'Chếch lên trái'), icon: <ArrowUpLeft size={13} /> };
       case 'northeast':
-        return { label: langKey === 'en' ? 'Forward right' : 'Chếch lên phải', icon: <ArrowUpRight size={13} /> };
+        return { label: t('nav.forwardRight', 'Chếch lên phải'), icon: <ArrowUpRight size={13} /> };
       case 'back':
-        return { label: langKey === 'en' ? 'Turn back' : 'Quay lại', icon: <RotateCcw size={13} /> };
+        return { label: t('nav.turnBack', 'Quay lại'), icon: <RotateCcw size={13} /> };
       default:
-        return { label: langKey === 'en' ? 'Passage' : 'Lối sang', icon: <Navigation size={13} /> };
+        return { label: t('nav.passage', 'Lối sang'), icon: <Navigation size={13} /> };
     }
   };
 

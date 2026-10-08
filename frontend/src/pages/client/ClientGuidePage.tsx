@@ -135,13 +135,14 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
             </div>
 
             <h1 className="client-subpage-title" style={{ fontSize: 'clamp(2rem, 3.2vw, 2.75rem)', letterSpacing: '-0.02em', margin: '14px 0 10px 0' }}>
-              {branding.guideTitle || t('guide.pageHeading', 'Cẩm Nang & Sơ Đồ Tham Quan')}
+              {t(branding.guideTitle || 'guide.pageHeading', branding.guideTitle || 'Cẩm Nang & Sơ Đồ Tham Quan')}
             </h1>
 
             <p className="client-subpage-lead" style={{ margin: '0 auto', fontSize: '1.02rem', lineHeight: 1.7, color: 'var(--c-text-secondary)', maxWidth: 680 }}>
-              {branding.guideDesc || t(
-                'guide.pageLead',
-                'Thông tin chính thức về thời gian mở cửa, biểu phí vé, hướng dẫn di chuyển và sơ đồ liên kết các gian trưng bày tại Bảo tàng Lịch sử TP. Hồ Chí Minh.'
+              {t(
+                branding.guideDesc || 'guide.pageLead',
+                branding.guideDesc ||
+                  'Thông tin chính thức về thời gian mở cửa, biểu phí vé, hướng dẫn di chuyển và sơ đồ liên kết các gian trưng bày tại Bảo tàng Lịch sử TP. Hồ Chí Minh.'
               )}
             </p>
           </div>
@@ -201,7 +202,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   }}
                 >
                   <div style={{ fontSize: 13, color: '#C5A059', marginBottom: 6 }}>
-                    Đang nạp sơ đồ mặt bằng từ máy chủ...
+                    {t('guide.loadingMap', 'Đang nạp sơ đồ mặt bằng từ máy chủ...')}
                   </div>
                 </div>
               ) : serverMapUrl ? (

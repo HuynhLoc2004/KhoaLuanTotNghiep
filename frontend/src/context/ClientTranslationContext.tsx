@@ -911,6 +911,13 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
     }
   }, [dictionaries]);
 
+  // Tự động tải gói từ điển động khi mở web với ngôn ngữ chưa có trong builtin
+  useEffect(() => {
+    if (currentLang !== 'vi' && !BUILTIN_DICTIONARIES[currentLang]) {
+      ensureLanguageBundle(currentLang);
+    }
+  }, [currentLang, ensureLanguageBundle]);
+
   // Hàm chuyển đổi ngôn ngữ hiển thị siêu tốc tức thì
   const changeLanguage = async (langCode: string) => {
     const clean = langCode.toLowerCase().trim();
@@ -1066,17 +1073,21 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       if (presetTrans && typeof presetTrans === 'string' && presetTrans.trim()) {
         return presetTrans;
       }
-      // Fallback sang tiếng Anh của preset nếu ngôn ngữ hiện tại chưa có
-      const presetEn = ROOM_PRESET_TRANSLATIONS[codeClean]?.en?.[field as 'name' | 'period' | 'description'];
-      if (presetEn && typeof presetEn === 'string' && presetEn.trim()) {
-        return presetEn;
+      // Fallback sang tiếng Anh của preset CHỈ NẾU currentLang === 'en'
+      if (currentLang === 'en') {
+        const presetEn = ROOM_PRESET_TRANSLATIONS[codeClean]?.en?.[field as 'name' | 'period' | 'description'];
+        if (presetEn && typeof presetEn === 'string' && presetEn.trim()) {
+          return presetEn;
+        }
       }
     }
 
-    // 3. Fallback sang tiếng Anh nếu có trong translations
-    const enVal = transObj?.en?.[field];
-    if (enVal && typeof enVal === 'string' && enVal.trim()) {
-      return enVal;
+    // 3. Fallback sang tiếng Anh nếu có trong translations CHỈ NẾU currentLang === 'en'
+    if (currentLang === 'en') {
+      const enVal = transObj?.en?.[field];
+      if (enVal && typeof enVal === 'string' && enVal.trim()) {
+        return enVal;
+      }
     }
 
     // 4. Tra cứu cụm từ trong autoTranslations hoặc UNIVERSAL_PHRASE_MAP theo nội dung gốc của trường

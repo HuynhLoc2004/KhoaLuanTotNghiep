@@ -310,21 +310,11 @@ languagesRouter.get('/bundle/:code', async (req: Request, res: Response) => {
     const translatedBundle: Record<string, string> = {};
     const entries = Object.entries(BASE_UI_BUNDLE);
 
-    // Dịch theo lô nhỏ để tối ưu tốc độ và không gây nghẽn
-    for (let i = 0; i < entries.length; i += 6) {
-      const batch = entries.slice(i, i + 6);
-      await Promise.all(
-        batch.map(async ([key, viText]) => {
-          let trans = await fetchSingleChunkNMT(viText, cleanCode);
-          // Hậu xử lý bằng Heritage Glossary
-          for (const [vTerm, tDict] of Object.entries(HERITAGE_GLOSSARY)) {
-            if (tDict[cleanCode] && trans.includes(vTerm)) {
-              trans = trans.replace(new RegExp(vTerm, 'g'), tDict[cleanCode]);
-            }
-          }
-          translatedBundle[key] = trans || viText;
-        })
-      );
+    // Dịch toàn bộ gói từ điển bằng translateMultipleTexts kết hợp AI và Redis Cache
+    const viTexts = entries.map(([, viText]) => viText);
+    const translatedMap = await translateMultipleTexts(viTexts, cleanCode);
+    for (const [key, viText] of entries) {
+      translatedBundle[key] = translatedMap[viText] || viText;
     }
 
     // Cache trong 7 ngày
@@ -374,7 +364,7 @@ CRITICAL RULES:
           contents: [{ parts: [{ text: `${systemInstruction}\n\nTexts to translate (JSON array):\n${JSON.stringify(texts)}` }] }],
           generationConfig: { responseMimeType: 'application/json' }
         }),
-        signal: AbortSignal.timeout(2000)
+        signal: AbortSignal.timeout(10000)
       });
 
       if (geminiRes.ok) {
@@ -390,25 +380,31 @@ CRITICAL RULES:
         }
       }
     } catch {
-      // Fallback sang Google Translate song song
+      // Fallback sang Google Translate theo micro-batch an toàn
     }
   }
 
-  // 2. Với các cụm từ chưa được dịch, dùng Google Translate song song toàn bộ siêu tốc (0ms nghẽn)
+  // 2. Với các cụm từ chưa được dịch, dùng Google Translate theo micro-batch 5 cụm từ để tránh nghẽn HTTP 429
   const remaining = texts.filter((t) => !result[t]);
   if (remaining.length > 0) {
-    await Promise.all(
-      remaining.map(async (text) => {
-        try {
-          const tr = await fetchSingleChunkNMT(text, cleanLang);
-          if (tr && tr !== text) {
-            result[text] = cleanUpNMTOutput(tr, text, cleanLang);
+    for (let i = 0; i < remaining.length; i += 5) {
+      const chunk = remaining.slice(i, i + 5);
+      await Promise.all(
+        chunk.map(async (text) => {
+          try {
+            const tr = await fetchSingleChunkNMT(text, cleanLang);
+            if (tr && tr !== text) {
+              result[text] = cleanUpNMTOutput(tr, text, cleanLang);
+            }
+          } catch {
+            // Ignore
           }
-        } catch {
-          // Ignore
-        }
-      })
-    );
+        })
+      );
+      if (i + 5 < remaining.length) {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      }
+    }
   }
 
   // 3. Áp dụng Heritage Glossary cho toàn bộ kết quả
