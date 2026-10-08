@@ -9,6 +9,7 @@ import { SystemBranding, DEFAULT_BRANDING, DEFAULT_HEADER_MENU } from '../models
 import { User } from '../models/User.js';
 import { Role } from '../models/Role.js';
 import { Ticket } from '../models/Ticket.js';
+import { AuditLogModel } from '../models/AuditLog.js';
 import { cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
@@ -820,6 +821,53 @@ export async function pgDeleteTicket(id: string) {
   }
 }
 
+/**
+ * Đồng bộ toàn diện bảng Nhật ký kiểm toán (Audit Logs) giữa PostgreSQL và MongoDB
+ */
+export async function syncAuditLogs() {
+  try {
+    const pgLogs = await pgPool.query('SELECT * FROM audit_logs ORDER BY id ASC;');
+    if (pgLogs.rows.length === 0) return;
+
+    console.log(`[SyncEngine] Đang kiểm tra và đồng bộ ${pgLogs.rows.length} Audit Logs từ PostgreSQL sang MongoDB...`);
+    let syncedCount = 0;
+
+    for (const row of pgLogs.rows) {
+      const pgId = parseInt(row.id, 10);
+      const existsInMongo = await AuditLogModel.exists({ pgId });
+
+      if (!existsInMongo) {
+        let details = row.details;
+        if (typeof details === 'string') {
+          try {
+            details = JSON.parse(details);
+          } catch {
+            details = {};
+          }
+        }
+
+        await AuditLogModel.create({
+          userId: row.user_id || 'system',
+          username: row.username || 'System Admin',
+          action: row.action,
+          resource: row.resource,
+          details: details || {},
+          ipAddress: row.ip_address || '127.0.0.1',
+          pgId,
+          createdAt: row.created_at || new Date()
+        });
+        syncedCount++;
+      }
+    }
+
+    if (syncedCount > 0) {
+      console.log(`[SyncEngine] Đã đồng bộ thành công ${syncedCount} Audit Logs mới từ PostgreSQL vào MongoDB (collection audit_logs)!`);
+    }
+  } catch (err: any) {
+    console.warn('[SyncEngine Warning] Lỗi đồng bộ Audit Logs sang MongoDB:', err.message);
+  }
+}
+
 // ==========================================
 // 2. KHỞI CHẠY ĐỒNG BỘ TOÀN DIỆN KHI SERVER STARTUP
 // ==========================================
@@ -1416,6 +1464,9 @@ export async function runStartupDataSync() {
     } catch (crossKeyErr: any) {
       console.warn('[SyncEngine Warning] Cảnh báo liên kết khoá chéo mongo_id:', crossKeyErr.message);
     }
+
+    // 9. Đồng bộ dữ liệu Nhật ký kiểm toán (Audit Logs) sang MongoDB
+    await syncAuditLogs();
 
     console.log('[SyncEngine] Hoàn tất đồng bộ dữ liệu PostgreSQL (Primary CSDL quan hệ) & MongoDB (Mirror NoSQL)!');
   } catch (err: any) {

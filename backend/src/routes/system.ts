@@ -16,7 +16,8 @@ import {
 import { broadcastRealtimeEvent, handleRealtimeStream } from '../services/realtimeSync.js';
 import { getPgStatus, logAudit } from '../db/postgres.js';
 import { getRabbitMQStatus } from '../services/rabbitmq.js';
-import { pgUpsertBranding } from '../db/syncEngine.js';
+import { pgUpsertBranding, syncAuditLogs } from '../db/syncEngine.js';
+import { AuditLogModel } from '../models/AuditLog.js';
 
 export const systemRouter = Router();
 
@@ -506,6 +507,73 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
     res.status(500).json({
       success: false,
       message: 'Lỗi cập nhật cấu hình nhận diện',
+      error: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/system/audit-logs
+ * Lấy danh sách nhật ký kiểm toán từ MongoDB (hỗ trợ phân trang và lọc theo action, resource, username)
+ */
+systemRouter.get('/audit-logs', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter: any = {};
+    if (req.query.action) {
+      filter.action = req.query.action;
+    }
+    if (req.query.resource) {
+      filter.resource = req.query.resource;
+    }
+    if (req.query.username) {
+      filter.username = { $regex: req.query.username as string, $options: 'i' };
+    }
+
+    const [logs, total] = await Promise.all([
+      AuditLogModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      AuditLogModel.countDocuments(filter)
+    ]);
+
+    res.json({
+      success: true,
+      logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi truy xuất danh sách nhật ký kiểm toán từ MongoDB',
+      error: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/system/audit-logs/sync
+ * Kích hoạt đồng bộ tức thời nhật ký kiểm toán từ PostgreSQL sang MongoDB
+ */
+systemRouter.post('/audit-logs/sync', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    await syncAuditLogs();
+    const count = await AuditLogModel.countDocuments();
+    res.json({
+      success: true,
+      message: `Đã đồng bộ toàn bộ nhật ký kiểm toán thành công! Hiện có ${count} bản ghi trong MongoDB.`,
+      totalInMongo: count
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi đồng bộ nhật ký kiểm toán',
       error: err.message
     });
   }

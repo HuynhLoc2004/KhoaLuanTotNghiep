@@ -1,6 +1,7 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
+import { AuditLogModel } from '../models/AuditLog.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
 dotenv.config();
@@ -574,29 +575,49 @@ export async function initPostgresTables(): Promise<boolean> {
 }
 
 /**
- * Trợ thủ ghi nhật ký kiểm toán vào PostgreSQL
+ * Trợ thủ ghi nhật ký kiểm toán vào cả MongoDB (Lưu trữ tập trung) & PostgreSQL (Quan hệ)
  */
 export async function logAudit(
   action: string,
   resource: string,
   options: { userId?: string; username?: string; details?: any; ipAddress?: string } = {}
 ) {
+  const userId = options.userId || 'system';
+  const username = options.username || 'System Admin';
+  const details = options.details || {};
+  const ipAddress = options.ipAddress || '127.0.0.1';
+
+  // 1. Luôn lưu vào MongoDB (Collection audit_logs)
+  try {
+    await AuditLogModel.create({
+      userId,
+      username,
+      action,
+      resource,
+      details,
+      ipAddress
+    });
+  } catch (mongoErr: any) {
+    console.warn('[Audit Log MongoDB Warning]:', mongoErr.message);
+  }
+
+  // 2. Đồng thời ghi vào PostgreSQL nếu đang kết nối
   if (!isPgConnected) return;
   try {
     await pgPool.query(
       `INSERT INTO audit_logs (user_id, username, action, resource, details, ip_address)
        VALUES ($1, $2, $3, $4, $5, $6);`,
       [
-        options.userId || 'system',
-        options.username || 'System Admin',
+        userId,
+        username,
         action,
         resource,
-        JSON.stringify(options.details || {}),
-        options.ipAddress || '127.0.0.1'
+        JSON.stringify(details),
+        ipAddress
       ]
     );
   } catch (err: any) {
-    console.warn('[Audit Log Warning]:', err.message);
+    console.warn('[Audit Log PostgreSQL Warning]:', err.message);
   }
 }
 
