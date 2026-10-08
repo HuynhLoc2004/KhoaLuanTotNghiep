@@ -865,7 +865,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     raw_images = []
     for p in image_paths:
         try:
-            im = load_and_orient_image(p, max_dim=1600)
+            im = load_and_orient_image(p, max_dim=1200)
             im = preprocess_lighting_clahe(im)
             raw_images.append(im)
         except Exception as e:
@@ -1097,24 +1097,23 @@ def run_stitch(image_paths, output_path, target_width=0):
     final_pano = None
     is_full_360 = False
 
-    # Ưu tiên 1 (Tốc độ cao 1-2s): Động cơ OpenCV Native C++ Engine với 4 tầng cấu hình thích ứng
-    # Tự động so khớp điểm ảnh (ORB/SIFT), Bundle Adjustment và Multi-band Spline Blending
+    # Ưu tiên 1 (Tối ưu tuyệt đối cho chuỗi ảnh quét phòng - Tốc độ 2-4 giây, siêu nhẹ VPS):
+    # Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical Stitcher)
+    # Tự động so khớp tịnh tiến tuần tự, nắn mặt trụ 90° và hòa trộn Voronoi triệt tiêu 100% nếp gấp!
+    log(f"[*] Kích hoạt Động cơ Ghép Chuỗi Quang Học Liên Tục cho {len(sorted_paths)} ảnh...")
     try:
-        final_pano, is_full_360 = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
-    except Exception as e:
-        log(f"[!] Động cơ OpenCV Native gặp sự cố: {e}")
+        final_pano, is_full_360 = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
+    except Exception as seq_err:
+        log(f"[!] Lỗi Sequential Stitcher: {seq_err}")
+        final_pano = None
 
-    # Ưu tiên 2 (CỨU CÁNH QUANG HỌC HOÀN HẢO - Siêu tốc <1s): Fail-Safe Cylindrical Sector Blender
-    # Uốn mặt trụ Cylindrical Warping, triệt tiêu méo phối cảnh, hòa trộn Cosine Feathering xóa sạch nếp gấp dọc
-    if final_pano is None:
-        log("[*] Kích hoạt Động cơ Ghép Phân vùng Mặt trụ Quang học (Fail-Safe Cylindrical Sector Blender)...")
+    # Ưu tiên 2: Nếu chuỗi ít ảnh (<= 6 ảnh) và Sequential Stitcher chưa có kết quả, mới dùng OpenCV Native
+    if final_pano is None and len(sorted_paths) <= 6:
+        log("[*] Thử nghiệm OpenCV Native dự phòng...")
         try:
-            final_pano, is_full_360 = run_failsafe_cylindrical_sector_stitcher(sorted_paths, target_width=out_w)
-        except Exception as fs_err:
-            log(f"[!] Lỗi Fail-safe Blender: {fs_err}")
-            im0 = load_and_orient_image(sorted_paths[0], max_dim=2048)
-            final_pano = im0
-            is_full_360 = False
+            final_pano, is_full_360 = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
+        except Exception as e:
+            log(f"[!] OpenCV Native dự phòng gặp sự cố: {e}")
 
     # Ưu tiên 3: Nếu vẫn chưa có kết quả và Hugin khả dụng
     if final_pano is None and is_hugin_available():
