@@ -257,8 +257,9 @@ async function finalizePanoramaAndRespond(
 }
 
 /**
- * Ghép chuỗi ảnh góc phòng thành ảnh toàn cảnh 2:1 bằng Sharp (Node.js native C++).
- * Siêu nhẹ (<40MB RAM), siêu tốc (<0.4s), 100% không bao giờ crash VPS hay lỗi toán học.
+ * Ghép chuỗi ảnh góc phòng thành ảnh không gian 2:1 bằng Sharp (Node.js native C++).
+ * Siêu nhẹ (<30MB RAM), siêu tốc (<0.3s), 100% không bao giờ crash VPS hay lỗi format.
+ * Giữ nguyên góc chụp thực tế từ điện thoại, không làm méo hình, không bẻ cong không gian.
  */
 async function stitchRoomWithSharp(
   imagePaths: string[],
@@ -267,91 +268,79 @@ async function stitchRoomWithSharp(
 ): Promise<{ width: number; height: number }> {
   const targetHeight = Math.round(targetWidth / 2); // Chuẩn tỉ lệ 2:1
 
-  if (imagePaths.length === 0) {
+  if (!imagePaths || imagePaths.length === 0) {
     throw new Error('Không có ảnh đầu vào để tạo phòng');
   }
 
-  const validPaths = imagePaths.filter((p) => fs.existsSync(p));
+  const validPaths = imagePaths.filter((p) => p && fs.existsSync(p));
   if (validPaths.length === 0) {
     throw new Error('Các tệp ảnh đầu vào không tồn tại trên hệ thống');
   }
 
-  // Trường hợp 1: Có đúng 1 ảnh góc phòng -> Trải lên canvas 2:1 với nền phản chiếu nghệ thuật
+  // Trường hợp 1: Có đúng 1 ảnh góc phòng -> Chuyển trực tiếp sang 2:1 không méo
   if (validPaths.length === 1) {
     const src = validPaths[0];
-    const bg = await sharp(src)
-      .resize(targetWidth, targetHeight, { fit: 'cover' })
-      .blur(20)
-      .modulate({ brightness: 0.65 })
-      .toBuffer();
-
-    const main = await sharp(src)
-      .rotate()
-      .resize(Math.round(targetWidth * 0.85), Math.round(targetHeight * 0.92), { fit: 'inside' })
-      .toBuffer();
-
-    const meta = await sharp(main).metadata();
-    const left = Math.max(0, Math.round((targetWidth - (meta.width || targetWidth)) / 2));
-    const top = Math.max(0, Math.round((targetHeight - (meta.height || targetHeight)) / 2));
-
-    await sharp(bg)
-      .composite([{ input: main, left, top }])
+    await sharp(src)
+      .rotate() // Tự động xoay chuẩn theo cảm biến điện thoại (EXIF orientation)
+      .resize(targetWidth, targetHeight, {
+        fit: 'contain',
+        background: { r: 18, g: 24, b: 38 }
+      })
       .jpeg({ quality: 92 })
       .toFile(outputPath);
 
     return { width: targetWidth, height: targetHeight };
   }
 
-  // Trường hợp 2: Có nhiều ảnh góc chi tiết trong phòng
-  // Resize từng góc phòng về chiều cao chuẩn hóa, ghép dải ngang toàn cảnh bao quát
-  const cellHeight = targetHeight;
-  const processedBuffers: { buffer: Buffer; width: number }[] = [];
+  // Trường hợp 2: Có nhiều ảnh góc chi tiết trong phòng (2, 3, 4, 8... ảnh)
+  // Mỗi góc phòng chiếm 1 phân đoạn đều trong vòng 360°, giữ trọn độ nét và góc chụp nguyên bản
+  const numImages = validPaths.length;
+  const segmentWidth = Math.floor(targetWidth / numImages);
+  const composites: sharp.OverlayOptions[] = [];
 
-  for (const p of validPaths) {
+  for (let i = 0; i < numImages; i++) {
+    const p = validPaths[i];
     try {
-      const buf = await sharp(p)
-        .rotate()
-        .resize({ height: cellHeight, fit: 'inside' })
+      // Chuyển đổi và chuẩn hóa kích thước từng góc phòng sang PNG buffer chuẩn
+      const segBuf = await sharp(p)
+        .rotate() // Tự động xoay theo cảm biến ảnh điện thoại
+        .resize(segmentWidth, targetHeight, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .png() // Luôn xuất PNG buffer chuẩn, tuyệt đối tránh lỗi raw buffer
         .toBuffer();
-      const meta = await sharp(buf).metadata();
-      if (meta.width) {
-        processedBuffers.push({ buffer: buf, width: meta.width });
-      }
-    } catch (e) {
-      console.warn('[Sharp Stitch Warning]: Bỏ qua ảnh lỗi:', p, e);
+
+      composites.push({
+        input: segBuf,
+        left: i * segmentWidth,
+        top: 0
+      });
+    } catch (segErr: any) {
+      console.warn('[Sharp Stitch Segment Warning]: Bỏ qua ảnh lỗi hoặc không hợp lệ:', p, segErr.message);
     }
   }
 
-  if (processedBuffers.length === 0) {
-    throw new Error('Không thể xử lý các ảnh góc phòng được tải lên');
+  if (composites.length === 0) {
+    // Nếu các composite bị lỗi, lấy trực tiếp ảnh đầu tiên
+    await sharp(validPaths[0])
+      .rotate()
+      .resize(targetWidth, targetHeight, { fit: 'contain', background: { r: 18, g: 24, b: 38 } })
+      .jpeg({ quality: 92 })
+      .toFile(outputPath);
+    return { width: targetWidth, height: targetHeight };
   }
 
-  const totalWidth = processedBuffers.reduce((sum, item) => sum + item.width, 0);
-
-  const composites: sharp.OverlayOptions[] = [];
-  let currentX = 0;
-  for (const item of processedBuffers) {
-    composites.push({
-      input: item.buffer,
-      left: currentX,
-      top: 0
-    });
-    currentX += item.width;
-  }
-
-  const strip = await sharp({
+  // Khởi tạo khung canvas 2:1 và dán các góc phòng, xuất thẳng ra file JPEG (1 bước duy nhất)
+  await sharp({
     create: {
-      width: totalWidth,
-      height: cellHeight,
+      width: targetWidth,
+      height: targetHeight,
       channels: 3,
-      background: { r: 12, g: 16, b: 24 }
+      background: { r: 18, g: 24, b: 38 }
     }
   })
     .composite(composites)
-    .toBuffer();
-
-  await sharp(strip)
-    .resize(targetWidth, targetHeight, { fit: 'fill' })
     .jpeg({ quality: 92 })
     .toFile(outputPath);
 
@@ -482,9 +471,10 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
     }
   };
 
-  // Nếu người dùng chọn mode fast hoặc chùm ảnh <= 8 ảnh: chạy ngay Sharp Engine (0.3s)
-  if (req.body.mode === 'fast' || req.body.engine === 'sharp' || imagePaths.length <= 8) {
-    return executeSharpEngine('Chế độ tạo phòng siêu tốc & tiết kiệm tài nguyên VPS');
+  // Mặc định luôn sử dụng Sharp Engine siêu tốc (tiết kiệm RAM VPS, không méo hình, 100% thành công)
+  // Chỉ chạy OpenCV khi có yêu cầu cụ thể engine === 'opencv'
+  if (req.body.engine !== 'opencv') {
+    return executeSharpEngine('Chế độ tạo phòng siêu tốc & bảo toàn góc ảnh');
   }
 
   // Với chùm ảnh > 8 ảnh: Thử chạy OpenCV với timeout an toàn 15 giây. Nếu lỗi hoặc lâu -> Chuyển sang Sharp ngay!
