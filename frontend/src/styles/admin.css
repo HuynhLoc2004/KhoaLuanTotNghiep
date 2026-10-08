@@ -5100,6 +5100,39 @@
   pointer-events: none;
 }
 
+.studio-frame-pick-btn {
+  position: absolute;
+  top: 4px;
+  left: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background-color: rgba(16, 185, 129, 0.92);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 2;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.studio-frame-pick-btn:hover {
+  background-color: #10b981;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.4);
+}
+
+.studio-frame-pick-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .studio-frame-checking {
   position: absolute;
   inset: 0;

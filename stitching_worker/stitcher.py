@@ -825,7 +825,15 @@ def run_failsafe_cylindrical_sector_stitcher(image_paths, target_width=4096):
     out_w = 4096 if target_width <= 0 else int(target_width)
     out_h = out_w // 2
 
-    log(f"[*] Fail-safe 360 Blender: Bắt đầu hòa trộn dải phân vùng cho {N} góc ảnh...")
+    # Khử trùng lặp ảnh: Giới hạn tối đa 4 góc ảnh đại diện đặc trưng (Đông, Tây, Nam, Bắc)
+    # Tuyệt đối không băm nhỏ ảnh thành 15 dải mỏng 130px gây lặp lại tủ lạnh/cửa như barcode!
+    if N > 4:
+        log(f"[*] Tự động khử trùng lặp: Giảm từ {N} ảnh xuống 4 góc phòng chủ đạo bao quát nhất.")
+        indices = [int(round(k * ((N - 1) / 3.0))) for k in range(4)]
+        image_paths = [image_paths[i] for i in indices]
+        N = len(image_paths)
+
+    log(f"[*] Fail-safe 360 Blender: Bắt đầu hòa trộn dải phân vùng cho {N} góc ảnh quang học rộng...")
 
     band_h = int(out_h * 0.78)
     band_w = out_w
@@ -864,7 +872,7 @@ def run_failsafe_cylindrical_sector_stitcher(image_paths, target_width=4096):
     safe_weights = np.maximum(weight_canvas, 1e-5)
     blended_band = (accum_canvas / safe_weights[:, :, None]).clip(0, 255).astype(np.uint8)
 
-    log(f"[✓] Fail-safe 360 Blender: Đã khép vòng hoàn tất {N} ảnh góc thành không gian 360° mượt mà.")
+    log(f"[✓] Fail-safe 360 Blender: Đã hòa trộn hoàn tất {N} góc phòng thành không gian toàn cảnh mượt mà.")
     return blended_band, True
 
 

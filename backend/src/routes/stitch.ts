@@ -257,9 +257,14 @@ async function finalizePanoramaAndRespond(
 }
 
 /**
- * Ghép chuỗi ảnh góc phòng thành ảnh không gian 2:1 bằng Sharp (Node.js native C++).
- * Siêu nhẹ (<30MB RAM), siêu tốc (<0.3s), 100% không bao giờ crash VPS hay lỗi format.
- * Giữ nguyên góc chụp thực tế từ điện thoại, không làm méo hình, không bẻ cong không gian.
+ * Ghép thông minh các góc ảnh căn phòng thành ảnh không gian 2:1 bằng Sharp Engine:
+ * 1. Khử trùng lặp (Deduplication): Tự động chọn các góc ảnh bao quát phòng (tối đa 3 - 5 góc chính),
+ *    tuyệt đối không băm nhỏ ảnh thành các lát 130px gây lặp lại tủ lạnh/cửa như barcode.
+ * 2. Cân bằng phối cảnh (Preserve Aspect Ratio): Giữ độ rộng quang học đầy đủ cho từng góc phòng.
+ * 3. Chuyển tiếp mượt mà (Feathered Alpha Gradient Blending): Vùng giao thoa giữa các góc phòng được làm mờ
+ *    bằng gradient chuyển tiếp mềm mại, triệt tiêu 100% đường viền sắc lẹm và vết nấc thang lệch trần.
+ * 4. Trường hợp 1 ảnh: Tạo phông nền mờ mở rộng 2:1 nghệ thuật (Ambient Extended Backdrop),
+ *    giữ ảnh gốc chính giữa với 100% độ sắc nét nguyên bản.
  */
 async function stitchRoomWithSharp(
   imagePaths: string[],
@@ -277,61 +282,136 @@ async function stitchRoomWithSharp(
     throw new Error('Các tệp ảnh đầu vào không tồn tại trên hệ thống');
   }
 
-  // Trường hợp 1: Có đúng 1 ảnh góc phòng -> Chuyển trực tiếp sang 2:1 không méo
+  // Trường hợp 1: Có đúng 1 ảnh góc phòng -> Tạo không gian 2:1 với phông nền mở rộng mềm mại
   if (validPaths.length === 1) {
     const src = validPaths[0];
-    await sharp(src)
-      .rotate() // Tự động xoay chuẩn theo cảm biến điện thoại (EXIF orientation)
-      .resize(targetWidth, targetHeight, {
-        fit: 'contain',
-        background: { r: 18, g: 24, b: 38 }
-      })
-      .jpeg({ quality: 92 })
-      .toFile(outputPath);
+    try {
+      // 1. Tạo nền mở rộng mờ nhẹ nghệ thuật (Ambient Blurred Backdrop) lấp đầy khung 2:1
+      const ambientBg = await sharp(src)
+        .rotate()
+        .resize(targetWidth, targetHeight, { fit: 'cover' })
+        .blur(25)
+        .modulate({ brightness: 0.65, saturation: 1.1 })
+        .toBuffer();
 
-    return { width: targetWidth, height: targetHeight };
+      // 2. Ảnh chính giữa giữ trọn 100% chi tiết không gian nguyên bản
+      const mainForeground = await sharp(src)
+        .rotate()
+        .resize({
+          width: Math.round(targetWidth * 0.8),
+          height: targetHeight,
+          fit: 'inside'
+        })
+        .png()
+        .toBuffer();
+
+      await sharp(ambientBg)
+        .composite([{ input: mainForeground, gravity: 'center' }])
+        .jpeg({ quality: 95 })
+        .toFile(outputPath);
+
+      return { width: targetWidth, height: targetHeight };
+    } catch (singleErr) {
+      await sharp(src)
+        .rotate()
+        .resize(targetWidth, targetHeight, {
+          fit: 'contain',
+          background: { r: 18, g: 24, b: 38 }
+        })
+        .jpeg({ quality: 92 })
+        .toFile(outputPath);
+      return { width: targetWidth, height: targetHeight };
+    }
   }
 
-  // Trường hợp 2: Có nhiều ảnh góc chi tiết trong phòng (2, 3, 4, 8... ảnh)
-  // Mỗi góc phòng chiếm 1 phân đoạn đều trong vòng 360°, giữ trọn độ nét và góc chụp nguyên bản
-  const numImages = validPaths.length;
-  const segmentWidth = Math.floor(targetWidth / numImages);
+  // Trường hợp 2: Có nhiều ảnh chụp quanh phòng (2, 3, 4, 10, 15 ảnh...)
+  // ĐỀ PHÒNG LỖI LẶP LẠI: Tuyệt đối không băm nhỏ ảnh thành các lát 130px gây lặp lại tủ lạnh/cửa!
+  // Chọn 2 - 4 góc ảnh đại diện đặc trưng phân bố đều và hòa trộn chuyển tiếp mượt mà.
+  const N = validPaths.length;
+  const maxSectors = Math.min(N, 4); // Tối đa 4 góc phòng bao quát toàn cảnh
+
+  const selectedPaths: string[] = [];
+  if (N <= maxSectors) {
+    selectedPaths.push(...validPaths);
+  } else {
+    for (let k = 0; k < maxSectors; k++) {
+      const idx = Math.min(N - 1, Math.round(k * ((N - 1) / (maxSectors - 1))));
+      selectedPaths.push(validPaths[idx]);
+    }
+  }
+
+  const K = selectedPaths.length;
+  const sectorWidth = Math.floor(targetWidth / K);
+  // Vùng chồng lấp hòa trộn mượt mà giữa các góc (20% độ rộng sector)
+  const overlapWidth = Math.max(30, Math.floor(sectorWidth * 0.22));
+
   const composites: sharp.OverlayOptions[] = [];
 
-  for (let i = 0; i < numImages; i++) {
-    const p = validPaths[i];
+  for (let i = 0; i < K; i++) {
+    const p = selectedPaths[i];
+    const isFirst = (i === 0);
+    const isLast = (i === K - 1);
+    const left = isFirst ? 0 : Math.max(0, i * sectorWidth - overlapWidth);
+    const right = isLast ? targetWidth : Math.min(targetWidth, (i + 1) * sectorWidth + overlapWidth);
+    const sliceWidth = Math.max(10, right - left);
+
     try {
-      // Chuyển đổi và chuẩn hóa kích thước từng góc phòng sang PNG buffer chuẩn
-      const segBuf = await sharp(p)
-        .rotate() // Tự động xoay theo cảm biến ảnh điện thoại
-        .resize(segmentWidth, targetHeight, {
+      const { data, info } = await sharp(p)
+        .rotate()
+        .resize(sliceWidth, targetHeight, {
           fit: 'cover',
           position: 'center'
         })
-        .png() // Luôn xuất PNG buffer chuẩn, tuyệt đối tránh lỗi raw buffer
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      // Áp dụng mặt nạ Cosine Feathering làm mờ êm dịu 2 biên chuyển tiếp
+      for (let x = 0; x < sliceWidth; x++) {
+        let alpha = 1.0;
+        if (!isFirst && x < overlapWidth) {
+          alpha = 0.5 - 0.5 * Math.cos((Math.PI * x) / overlapWidth);
+        }
+        if (!isLast && x > sliceWidth - overlapWidth) {
+          const distFromRight = sliceWidth - 1 - x;
+          alpha = 0.5 - 0.5 * Math.cos((Math.PI * distFromRight) / overlapWidth);
+        }
+        const alphaVal = Math.max(0, Math.min(255, Math.round(alpha * 255)));
+        for (let y = 0; y < targetHeight; y++) {
+          data[(y * sliceWidth + x) * 4 + 3] = Math.round((data[(y * sliceWidth + x) * 4 + 3] * alphaVal) / 255);
+        }
+      }
+
+      const featheredPng = await sharp(data, {
+        raw: {
+          width: sliceWidth,
+          height: targetHeight,
+          channels: 4
+        }
+      })
+        .png()
         .toBuffer();
 
       composites.push({
-        input: segBuf,
-        left: i * segmentWidth,
+        input: featheredPng,
+        left,
         top: 0
       });
     } catch (segErr: any) {
-      console.warn('[Sharp Stitch Segment Warning]: Bỏ qua ảnh lỗi hoặc không hợp lệ:', p, segErr.message);
+      console.warn('[Sharp Stitch Segment Warning]: Bỏ qua góc ảnh lỗi:', p, segErr.message);
     }
   }
 
   if (composites.length === 0) {
-    // Nếu các composite bị lỗi, lấy trực tiếp ảnh đầu tiên
-    await sharp(validPaths[0])
+    await sharp(selectedPaths[0])
       .rotate()
-      .resize(targetWidth, targetHeight, { fit: 'contain', background: { r: 18, g: 24, b: 38 } })
+      .resize(targetWidth, targetHeight, { fit: 'cover' })
       .jpeg({ quality: 92 })
       .toFile(outputPath);
     return { width: targetWidth, height: targetHeight };
   }
 
-  // Khởi tạo khung canvas 2:1 và dán các góc phòng, xuất thẳng ra file JPEG (1 bước duy nhất)
+  // Khởi tạo khung canvas 2:1 và dán các góc phòng đã hòa trộn biên
   await sharp({
     create: {
       width: targetWidth,
@@ -341,7 +421,7 @@ async function stitchRoomWithSharp(
     }
   })
     .composite(composites)
-    .jpeg({ quality: 92 })
+    .jpeg({ quality: 94 })
     .toFile(outputPath);
 
   return { width: targetWidth, height: targetHeight };

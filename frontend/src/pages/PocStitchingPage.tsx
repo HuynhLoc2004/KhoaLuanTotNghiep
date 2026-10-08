@@ -530,6 +530,57 @@ export const PocStitchingPage: React.FC = () => {
     setErrorMsg(null);
   };
 
+  // Trạng thái đang tạo phòng từ 1 ảnh đơn lẻ
+  const [singleCreatingId, setSingleCreatingId] = useState<string | null>(null);
+
+  // Tạo căn phòng trực tiếp từ 1 góc ảnh đã chọn (100% giữ nguyên góc chụp, không méo hình, không lặp lại)
+  const handleCreateRoomFromSingleFrame = async (frame: VerifiedFrame) => {
+    try {
+      setSingleCreatingId(frame.id);
+      setIsProcessing(true);
+      setErrorMsg(null);
+      showToast('Đang tạo không gian phòng từ góc ảnh này...', 'info');
+
+      const formData = new FormData();
+      formData.append('mode', 'fast');
+
+      if (frame.serverPath) {
+        formData.append('serverPaths', JSON.stringify([frame.serverPath]));
+      } else {
+        formData.append('images', frame.file, `single_${frame.file.name}`);
+      }
+
+      const res = await fetch(`${API_BASE}/stitch`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || 'Không thể tạo không gian phòng từ ảnh này.');
+      }
+
+      const resData = {
+        ...json.data,
+        panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
+      };
+      setStitchResult(resData);
+      fetchHistory();
+      showToast('Đã tạo không gian thành công! Vui lòng đặt tên và lưu gian phòng.', 'success');
+      setShowCreateRoomModal(true);
+
+      setTimeout(() => {
+        viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    } catch (err: any) {
+      console.error('[Single Frame Room Error]:', err);
+      showToast(err.message || 'Lỗi khi tạo phòng từ ảnh này', 'error');
+    } finally {
+      setSingleCreatingId(null);
+      setIsProcessing(false);
+    }
+  };
+
   // 3. THỰC THI TẠO KHÔNG GIAN CĂN PHÒNG (NATIVE SHARP ENGINE TIẾT KIỆM VPS)
   const handleExecuteStitch = async (autoOpenRoomModal: boolean | unknown = false) => {
     const shouldOpenRoom = autoOpenRoomModal === true;
@@ -844,6 +895,23 @@ export const PocStitchingPage: React.FC = () => {
                             >
                               <img src={frame.previewUrl} alt={`Góc nhìn ${idx + 1}`} />
                               <span className="studio-frame-index">{idx + 1}</span>
+
+                              {/* Nút bấm trực tiếp tạo phòng từ góc ảnh này (không méo hình, không lặp lại) */}
+                              <button
+                                type="button"
+                                onClick={() => handleCreateRoomFromSingleFrame(frame)}
+                                disabled={isProcessing}
+                                className="studio-frame-pick-btn"
+                                title="Tạo ngay gian phòng bảo tàng từ góc ảnh này (giữ nguyên độ nét, không méo hình)"
+                              >
+                                {singleCreatingId === frame.id ? (
+                                  <Loader2 size={11} className="spin" />
+                                ) : (
+                                  <Sparkles size={11} />
+                                )}
+                                <span>Tạo phòng</span>
+                              </button>
+
                               {frame.isVerifying && (
                                 <span className="studio-frame-checking">
                                   <Loader2 size={13} className="spin" />
@@ -924,6 +992,29 @@ export const PocStitchingPage: React.FC = () => {
                       </div>
                     )}
 
+                    {/* Gợi ý tính năng thông minh khi có ảnh */}
+                    {totalFrames > 0 && (
+                      <div
+                        style={{
+                          padding: '8px 10px',
+                          background: 'rgba(212, 168, 106, 0.08)',
+                          border: '1px solid rgba(212, 168, 106, 0.22)',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '11px',
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 6,
+                          lineHeight: '1.4'
+                        }}
+                      >
+                        <Sparkles size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: 1 }} />
+                        <span>
+                          <strong>Mẹo thông minh:</strong> Bấm nút xanh <em>"Tạo phòng"</em> trên góc ảnh bất kỳ bên trên để lấy ảnh chuẩn nét không méo mó, hoặc bấm nút dưới để hệ thống tự động lọc ảnh trùng và hòa trộn chuyển tiếp các góc.
+                        </span>
+                      </div>
+                    )}
+
                     {/* Nút tạo không gian căn phòng và tạo gian phòng bảo tàng */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
                       <button
@@ -936,7 +1027,7 @@ export const PocStitchingPage: React.FC = () => {
                         {isProcessing ? (
                           <>
                             <Loader2 size={16} className="spin" />
-                            <span>Đang tạo không gian căn phòng...</span>
+                            <span>Đang hòa trộn & tạo căn phòng...</span>
                           </>
                         ) : (
                           <>
@@ -944,7 +1035,7 @@ export const PocStitchingPage: React.FC = () => {
                             <span>
                               {totalFrames === 1
                                 ? 'Tạo không gian phòng từ 1 ảnh này'
-                                : `Tạo không gian phòng từ ${totalFrames} góc ảnh`}
+                                : `Tạo không gian phòng thông minh (${totalFrames} góc ảnh)`}
                             </span>
                           </>
                         )}
