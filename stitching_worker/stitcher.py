@@ -452,11 +452,93 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
             else:
                 canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
-    if x_offset > 0:
-        canvas[:, 0:x_offset] = canvas[:, x_offset:x_offset+1]
-        canvas[:, x_offset+scaled_w:ew] = canvas[:, x_offset+scaled_w-1:x_offset+scaled_w]
-
+    # Không nhân bản pixel cột biên để tránh hiện tượng sọc ngang kéo dài (horizontal streaks)
     return canvas
+
+
+def cylindrical_to_equirectangular(cyl_img, f_cam=None, out_w=4096, out_h=2048):
+    """
+    Chuyển đổi hoàn hảo từ Dải Toàn Cảnh Mặt Trụ (Cylindrical Panorama)
+    sang Ảnh Cầu Toàn Cảnh 360° Equirectangular 2:1 (Spherical Panorama):
+    - Trải đều 100% chiều rộng cw quét 360° lên toàn bộ canvas từ 0 đến out_w - 1.
+    - TUYỆT ĐỐI KHÔNG cắt xén mất cột ngang.
+    - TUYỆT ĐỐI KHÔNG nhân bản pixel mép (triệt tiêu 100% vệt sọc ngang smearing / Saturn rings).
+    - Giữ các đường thẳng đứng tường nhà thẳng tắp 90° bằng phép chiếu lượng giác y_c = cy - f_cam * tan(phi).
+    - Bù màu chuyển sắc mượt mà tự nhiên cho cực Bắc (Zenith) và cực Nam (Nadir).
+    """
+    if cyl_img is None or cyl_img.size == 0:
+        return cyl_img
+
+    # Cắt nhẹ viền đen trên đỉnh và đáy nếu có (CHỈ CẮT Y, GIỮ 100% CHIỀU RỘNG X)
+    gray = cv2.cvtColor(cyl_img, cv2.COLOR_BGR2GRAY)
+    row_mask = np.any(gray > 12, axis=1)
+    if np.any(row_mask):
+        first_row = max(0, int(np.where(row_mask)[0][0]))
+        last_row = min(cyl_img.shape[0] - 1, int(np.where(row_mask)[0][-1]))
+        if last_row > first_row + 50:
+            cyl_img = cyl_img[first_row:last_row + 1, :]
+
+    ch, cw = cyl_img.shape[:2]
+    cx = cw / 2.0
+    cy = ch / 2.0
+
+    # Tiêu cự phương đứng của camera
+    if f_cam is None or f_cam <= 0:
+        f_cam = ch * 0.85
+
+    # Lưới tọa độ Equirectangular 2:1
+    xe = np.linspace(0, out_w - 1, out_w, dtype=np.float32)
+    ye = np.linspace(0, out_h - 1, out_h, dtype=np.float32)
+    xe_grid, ye_grid = np.meshgrid(xe, ye)
+
+    # Kinh độ lambda (-pi đến +pi) và Vĩ độ phi (-pi/2 đến +pi/2)
+    theta = (xe_grid / float(out_w) - 0.5) * (2.0 * np.pi)
+    phi = (0.5 - ye_grid / float(out_h)) * np.pi
+
+    # Tọa độ tương ứng trên mặt trụ
+    x_c = (theta / (2.0 * np.pi) + 0.5) * float(cw)
+    # Giới hạn góc nhìn thẳng đứng trong khoảng an toàn [-78°, 78°] để tránh vô cực tan(phi)
+    y_c = cy - f_cam * np.tan(np.clip(phi, -np.radians(78), np.radians(78)))
+
+    # Remap nội suy song tuyến (Bilinear Interpolation)
+    equi = cv2.remap(
+        cyl_img,
+        x_c.astype(np.float32),
+        y_c.astype(np.float32),
+        interpolation=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(0, 0, 0)
+    )
+
+    # Mặt nạ các pixel có nội dung thật
+    valid_mask = ((x_c >= 0) & (x_c < cw) & (y_c >= 0) & (y_c < ch)).astype(np.uint8)
+
+    # Bù màu chuyển sắc mềm mại tự nhiên cho đỉnh Zenith và đáy Nadir
+    has_valid = np.any(valid_mask, axis=1)
+    if np.any(has_valid):
+        top_y = np.where(has_valid)[0][0]
+        bot_y = np.where(has_valid)[0][-1]
+
+        # Trần nhà (Zenith)
+        if top_y > 0:
+            top_strip = equi[top_y:min(out_h, top_y + 20), :]
+            zenith_avg = np.median(top_strip, axis=(0, 1))
+            for y in range(top_y):
+                t = float(y) / float(top_y)
+                s = t * t * (3.0 - 2.0 * t)
+                equi[y, :] = np.clip((1.0 - s) * zenith_avg + s * equi[top_y, :], 0, 255).astype(np.uint8)
+
+        # Sàn nhà (Nadir)
+        if bot_y < out_h - 1:
+            bot_strip = equi[max(0, bot_y - 20):bot_y + 1, :]
+            nadir_avg = np.median(bot_strip, axis=(0, 1))
+            floor_h = out_h - 1 - bot_y
+            for y in range(bot_y + 1, out_h):
+                t = float(out_h - 1 - y) / float(floor_h)
+                s = t * t * (3.0 - 2.0 * t)
+                equi[y, :] = np.clip((1.0 - s) * nadir_avg + s * equi[bot_y, :], 0, 255).astype(np.uint8)
+
+    return equi
 
 
 def enhance_museum_details(image):
@@ -854,7 +936,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     """
     N_raw = len(image_paths)
     if N_raw == 0:
-        return None, False
+        return None, False, None
 
     out_w = 4096 if target_width <= 0 else int(target_width)
     out_h = out_w // 2
@@ -872,9 +954,9 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
             log(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}")
 
     if len(raw_images) < 1:
-        return None, False
+        return None, False, None
     if len(raw_images) == 1:
-        return raw_images[0], False
+        return raw_images[0], False, None
 
     # 2. Khử các ảnh chụp đứng yên trùng lặp tuyệt đối (MSE < 6.0)
     filtered = [raw_images[0]]
@@ -1038,7 +1120,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     gc.collect()
     is_full_360 = (canvas_w >= 2.4 * canvas_h)
     log(f"[✓] Động cơ Ghép Chuỗi Quang Học: Đã tạo thành công không gian phòng {canvas_w}x{canvas_h} không nếp gấp!")
-    return blended, is_full_360
+    return blended, is_full_360, f
 
 
 # Alias tương thích ngược
@@ -1110,11 +1192,13 @@ def run_stitch(image_paths, output_path, target_width=0):
     # Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical Stitcher)
     # Tự động so khớp tịnh tiến tuần tự, nắn mặt trụ 90° và hòa trộn Voronoi triệt tiêu 100% nếp gấp!
     log(f"[*] Kích hoạt Động cơ Ghép Chuỗi Quang Học Liên Tục cho {len(sorted_paths)} ảnh...")
+    f_cyl = None
     try:
-        final_pano, is_full_360 = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
+        final_pano, is_full_360, f_cyl = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
     except Exception as seq_err:
         log(f"[!] Lỗi Sequential Stitcher: {seq_err}")
         final_pano = None
+        f_cyl = None
 
     # Ưu tiên 2: Nếu chuỗi ít ảnh (<= 6 ảnh) và Sequential Stitcher chưa có kết quả, mới dùng OpenCV Native
     if final_pano is None and len(sorted_paths) <= 6:
@@ -1137,12 +1221,20 @@ def run_stitch(image_paths, output_path, target_width=0):
         final_pano = im0
         is_full_360 = False
 
-    # Hậu xử lý loại bỏ méo lồi và viền đen
-    log("[*] Đang tự động nắn đứng 90° kiến trúc SO(3) và cắt xén nội tiếp phẳng lì...")
-    leveled = level_and_straighten_spherical_panorama(final_pano)
-    cropped = crop_clean_inscribed_rectangle(leveled)
-    equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=out_w, is_full_360=is_full_360)
-    equi_pano = enhance_museum_details(equi_pano)
+    # Hậu xử lý chuyển đổi thành ảnh cầu 360° Equirectangular 2:1
+    if f_cyl is not None:
+        # Chuỗi ảnh đã được nắn mặt trụ quang học, cân bằng chân trời và ghép nối Voronoi hoàn chỉnh.
+        # Chuyển đổi trực tiếp chuẩn xác sang Equirectangular 2:1, bảo toàn 100% tất cả các góc ảnh (không xén cột, không sọc ngang mép).
+        log("[*] Đang chuyển đổi chuẩn mực từ Mặt Trụ (Cylinder) sang Cầu Toàn Cảnh 360° Equirectangular 2:1...")
+        equi_pano = cylindrical_to_equirectangular(final_pano, f_cam=f_cyl, out_w=out_w, out_h=out_w // 2)
+        equi_pano = enhance_museum_details(equi_pano)
+    else:
+        # Fallback cho trường hợp 1 ảnh hoặc OpenCV Native fallback
+        log("[*] Đang tự động nắn đứng 90° kiến trúc SO(3) và cắt xén nội tiếp phẳng lì...")
+        leveled = level_and_straighten_spherical_panorama(final_pano)
+        cropped = crop_clean_inscribed_rectangle(leveled)
+        equi_pano = fit_to_equirectangular_2_to_1(cropped, target_width=out_w, is_full_360=is_full_360)
+        equi_pano = enhance_museum_details(equi_pano)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     cv2.imwrite(output_path, equi_pano, [cv2.IMWRITE_JPEG_QUALITY, 99])
