@@ -373,11 +373,42 @@ def crop_clean_inscribed_rectangle(image, black_thresh=15):
 # PHẦN 4: CHUẨN HÓA KHUNG HÌNH EQUIRECTANGULAR 2:1 (KHÔNG DÙNG HÌNH LỒI)
 # ============================================================================
 
+def circular_seam_blend(img, seam_width=45):
+    """
+    Hòa trộn biên tuần hoàn 360° đối xứng (Symmetric Circular Seam Blending):
+    - Đảm bảo điểm ảnh tại cột x = 0 và cột x = W-1 có sai số màu sắc = 0.0!
+    - Hòa trộn đối xứng mềm mại hai bên mép nối qua hàm smoothstep.
+    - Triệt tiêu hoàn toàn hiện tượng nứt mí, khe hở đen, hoặc bị tách đôi hình ảnh!
+    """
+    if img is None or img.size == 0 or img.shape[1] < seam_width * 3:
+        return img
+
+    h, w = img.shape[:2]
+    sw = min(seam_width, w // 8)
+
+    t = np.linspace(0.5, 0.0, sw, dtype=np.float32)[None, :, None]
+    s = t * t * (3.0 - 2.0 * t) # Smoothstep fade từ 0.5 xuống 0.0
+
+    res = img.copy().astype(np.float32)
+    left_part = res[:, :sw].copy()
+    right_part = res[:, -sw:].copy()
+
+    for i in range(sw):
+        alpha = s[0, i, 0]
+        r_col = right_part[:, sw - 1 - i].copy()
+        l_col = left_part[:, i].copy()
+        # Chuyển sắc đối xứng tại mí nối 0 / 360
+        res[:, w - 1 - i] = (1.0 - alpha) * r_col + alpha * l_col
+        res[:, i] = (1.0 - alpha) * l_col + alpha * r_col
+
+    return np.clip(res, 0, 255).astype(np.uint8)
+
+
 def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True):
     """
     Chuẩn hóa ảnh thành định dạng Equirectangular chuẩn 2:1 cho Web 360 / VR Viewer:
     - BẢO TOÀN 100% TỶ LỆ HÌNH HỌC THẬT CỦA CĂN PHÒNG (KHÔNG ÉP CO GIÃN BẤT ĐỐI XỨNG).
-    - 100% TRIỆT TIÊU BỆT ĐEN (Zero Black Patches): Lấp đầy mượt mà cực Bắc (Zenith) và cực Nam (Nadir)
+    - 100% TRIỆT TIÊU BỆT ĐEN & VỆT CỘT SÁNG: Lấp đầy mượt mà cực Bắc (Zenith) và cực Nam (Nadir)
       bằng gradient màu sắc kiến trúc thật của trần và sàn bảo tàng.
     - Không để lại bất kỳ pixel đen xì [0, 0, 0] nào trên toàn bộ bức ảnh!
     """
@@ -395,10 +426,9 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
     # Nếu ảnh đã chuẩn 2:1
     if abs(ar_orig - 2.0) <= 0.05:
         scaled_pano = cv2.resize(panorama, (ew, eh), interpolation=cv2.INTER_LANCZOS4)
-        return scaled_pano
+        return circular_seam_blend(scaled_pano, seam_width=45)
 
     # Co giãn đồng dạng sao cho chiều rộng phủ kín ew hoặc dải phòng chiếm khoảng 55-75% chiều cao canvas
-    target_room_h = int(eh * 0.65)
     scale_w = ew / float(w_orig)
     scaled_w = ew
     scaled_h = int(h_orig * scale_w)
@@ -409,38 +439,35 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
         scaled_h = int(eh * 0.45)
 
     scaled_pano = cv2.resize(panorama, (scaled_w, scaled_h), interpolation=cv2.INTER_LANCZOS4)
+    scaled_pano = circular_seam_blend(scaled_pano, seam_width=45)
 
     canvas = np.zeros((eh, ew, 3), dtype=np.uint8)
     y_offset = (eh - scaled_h) // 2
     canvas[y_offset : y_offset + scaled_h, :] = scaled_pano
 
-    # 1. Xử lý Trần nhà (Zenith) - KHÔNG ĐỂ MÀU ĐEN!
+    # 1. Xử lý Trần nhà (Zenith) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG!
     if y_offset > 0:
         top_strip = scaled_pano[0:min(25, scaled_h), :]
-        top_color_profile = np.mean(top_strip, axis=0, keepdims=True)
-        top_color_profile = cv2.GaussianBlur(top_color_profile, (51, 1), 25)
-        zenith_avg = np.median(top_color_profile, axis=1)[0]
+        zenith_avg = np.median(top_strip, axis=(0, 1)) # màu trần trung bình dịu nhẹ
         for y in range(y_offset):
             t = float(y) / float(y_offset)
             s = t * t * (3.0 - 2.0 * t) # Smoothstep
-            blended = (1.0 - s) * zenith_avg + s * top_color_profile[0]
+            blended = (1.0 - s) * zenith_avg + s * scaled_pano[0, :]
             canvas[y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
-    # 2. Xử lý Sàn nhà (Nadir) - KHÔNG ĐỂ MÀU ĐEN!
+    # 2. Xử lý Sàn nhà (Nadir) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG!
     floor_start = y_offset + scaled_h
     if floor_start < eh:
         bot_strip = scaled_pano[max(0, scaled_h - 25) : scaled_h, :]
-        bot_color_profile = np.mean(bot_strip, axis=0, keepdims=True)
-        bot_color_profile = cv2.GaussianBlur(bot_color_profile, (51, 1), 25)
-        nadir_avg = np.median(bot_color_profile, axis=1)[0]
+        nadir_avg = np.median(bot_strip, axis=(0, 1)) # màu sàn trung bình
         floor_h = eh - floor_start
         for y in range(floor_h):
             t = float(floor_h - y) / float(floor_h)
             s = t * t * (3.0 - 2.0 * t) # Smoothstep
-            blended = (1.0 - s) * nadir_avg + s * bot_color_profile[0]
+            blended = (1.0 - s) * nadir_avg + s * scaled_pano[-1, :]
             canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
-    return canvas
+    return circular_seam_blend(canvas, seam_width=45)
 
 
 def cylindrical_to_equirectangular(cyl_img, f_cam=None, out_w=4096, out_h=2048):
@@ -845,20 +872,12 @@ def cylindrical_warp(img, focal_length=None):
 # PHẦN 6.5: ĐỘNG CƠ GHÉP CHUỖI GÓC PHÒNG QUANG HỌC LIÊN TỤC (SEQUENTIAL CYLINDRICAL STITCHER)
 # ============================================================================
 
-def filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=12):
+def filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=36):
     """
     Chọn lọc chuỗi khung hình tối ưu thông minh (Smart Golden Keyframe Selection):
     1. Đo độ sắc nét của từng ảnh bằng phương sai Laplacian (Laplacian Variance).
-       - Loại bỏ các ảnh bị nhòe mờ, rung tay khi người chụp di chuyển.
-    2. Gom cụm góc nhìn (Angular Clustering):
-       - Nếu 2 ảnh kế tiếp có độ dịch chuyển ngang nhỏ (dưới 28% chiều rộng ảnh):
-         chúng thuộc cùng 1 góc nhìn -> giữ lại DUY NHẤT 1 ảnh sắc nét nhất, loại bỏ ảnh kia!
-    3. Bước dịch góc vàng (Golden Spatial Step):
-       - Mỗi bước chuyển tiếp phải có độ dịch chuyển rõ rệt (28% - 50% chiều rộng).
-       - Triệt tiêu 100% tình trạng dán đè nhiều lần cùng một cột pano hay bức tranh.
-    4. Giới hạn tối đa 8 - 12 góc nhìn tinh túy nhất cho 1 căn phòng:
-       - Đủ để bao quát toàn bộ căn phòng không góc chết.
-       - Giảm 75% số lượng mí nối -> Hiện vật, tủ kính, chữ nghĩa giữ nguyên vẹn 100%, không bị cắt xém!
+       - Giữ lại khung hình sắc nét nhất khi người chụp đứng yên chụp nhiều lần cùng một góc.
+    2. Bảo toàn trọn vẹn tất cả các góc chụp quét quanh phòng mà không cắt xén nhầm.
     """
     if len(image_paths) <= 3:
         return image_paths
@@ -872,7 +891,7 @@ def filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=12):
         return float(cv2.Laplacian(img_gray, cv2.CV_64F).var())
 
     metadata = []
-    log(f"[*] Đang phân tích độ nét và gom cụm góc nhìn từ {len(image_paths)} ảnh...")
+    log(f"[*] Đang phân tích độ nét và góc nhìn từ {len(image_paths)} ảnh...")
     for idx, p in enumerate(image_paths):
         try:
             im = load_and_orient_image(p, max_dim=target_dim)
@@ -895,7 +914,6 @@ def filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=12):
     if len(metadata) <= 2:
         return [m["path"] for m in metadata] if metadata else image_paths
 
-    # Gom cụm theo bước dịch chuyển không gian góc vàng (Golden Spatial Step)
     selected_meta = [metadata[0]]
     w_ref = metadata[0]["w"]
 
@@ -920,37 +938,37 @@ def filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=12):
         dx_median = float(np.median(diffs[:, 0]))
         dx_ratio = abs(dx_median) / float(w_ref)
 
-        # Ngưỡng góc vàng: Nếu dịch chuyển < 28% chiều rộng ảnh -> chụp cùng 1 góc!
-        if dx_ratio < 0.28:
-            # Cùng 1 góc: So sánh độ sắc nét! Nếu ảnh mới nét hơn thì thay thế anchor!
+        # Chỉ loại bỏ khi gần như đứng yên cùng 1 góc (< 4% dịch chuyển)
+        if dx_ratio < 0.04:
             if cur["sharpness"] > anchor["sharpness"]:
                 selected_meta[-1] = cur
             continue
 
-        # Đã dịch chuyển đủ góc mới (>= 28% chiều rộng) -> Chấp nhận làm Keyframe tiếp theo!
         selected_meta.append(cur)
 
-    # Nếu số keyframe vẫn còn nhiều hơn max_keyframes, lấy mẫu phân bố đều theo quỹ đạo
     if len(selected_meta) > max_keyframes:
         indices = np.linspace(0, len(selected_meta) - 1, max_keyframes, dtype=int)
         selected_meta = [selected_meta[idx] for idx in indices]
 
-    log(f"[✓] Đã tinh lọc {len(image_paths)} ảnh thành {len(selected_meta)} góc chủ đạo sắc nét nhất (khử 100% lặp hình/người/cột pano).")
+    log(f"[✓] Đã tiếp nhận {len(selected_meta)} góc ảnh sắc nét đại diện cho căn phòng.")
     return [m["path"] for m in selected_meta]
 
 
 def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     """
     ĐỘNG CƠ GHÉP CHUỖI ẢNH GÓC PHÒNG QUANG HỌC LIÊN TỤC (SEQUENTIAL MOTION-ALIGNED CYLINDRICAL STITCHER):
-    1. Tiếp nhận trọn vẹn tất cả N ảnh chụp xoay quanh phòng (kể cả 20, 50 hay 100 ảnh).
+    1. Tiếp nhận trọn vẹn tất cả N ảnh chụp xoay quanh phòng.
     2. Chiếu mặt trụ quang học Cylindrical Warping nắn đứng 90° các góc tường, triệt tiêu méo phối cảnh.
-    3. Định vị tịnh tiến tuần tự từng cặp ảnh liền kề (i, i+1) bằng RootSIFT + RANSAC translation / phase correlation.
-    4. Khép kín vòng tuần hoàn 360°, cân bằng độ nghiêng chân trời (vertical slope leveling).
-    5. Hòa trộn Voronoi Distance Transform đa lớp: Mỗi đồ vật/bức tranh lấy từ 1 góc ảnh sắc nét nhất,
-       chỉ hòa trộn dải giao thoa siêu hẹp (6-8px) tại mí nối -> TRIỆT TIÊU 100% NẾP GẤP, 0% BÓNG MA (GHOSTING)!
+    3. Định vị tịnh tiến tuần tự từng cặp ảnh liền kề (i, i+1) bằng RootSIFT + RANSAC.
+    4. TỰ ĐỘNG KHÉP VÒNG 360° (Automatic Loop Closure):
+       - So khớp ảnh cuối với ảnh đầu tiên để nhận diện vòng tuần hoàn 360°.
+       - Tự động cắt bỏ các góc ảnh chụp trùng lặp sau khi đã khép vòng (KHÔNG BAO GIỜ NHÂN ĐÔI CỬA HAY VẬT THỂ).
+       - Cân bằng độ trôi dạt chân trời (Vertical Slope Leveling) quanh chu vi 360°.
+    5. Hòa trộn Voronoi Mặt Trụ Tuần Hoàn (Periodic Cylinder Distance Transform):
+       - Dán và hòa trộn mềm theo modulo W_360 tại mí nối 0°/360° -> Mép trái và mép phải nối liền 100% không tì vết!
     """
-    # 0. Khử trùng lặp khung hình thông minh trước khi ghép
-    image_paths = filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=12)
+    # 0. Khử trùng lặp khung hình khi đứng yên trước khi ghép
+    image_paths = filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=36)
 
     N_raw = len(image_paths)
     if N_raw == 0:
@@ -976,7 +994,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     if len(raw_images) == 1:
         return raw_images[0], False, None
 
-    # 2. Khử các ảnh chụp đứng yên trùng lặp tuyệt đối (MSE < 6.0)
+    # 2. Khử các ảnh chụp đứng yên trùng lặp tuyệt đối (MSE < 5.0)
     filtered = [raw_images[0]]
     for idx in range(1, len(raw_images)):
         prev = filtered[-1]
@@ -1013,6 +1031,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
 
     # 4. Định vị tịnh tiến liên tục giữa từng cặp ảnh liền kề (Pairwise Sequential Alignment)
     sift = cv2.SIFT_create(nfeatures=2500)
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
     shifts = []
 
     for i in range(N - 1):
@@ -1025,7 +1044,6 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
         best_cnt = 0
 
         if des1 is not None and des2 is not None and len(des1) >= 8 and len(des2) >= 8:
-            bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
             matches = bf.knnMatch(des1, des2, k=2)
             good = [m[0] for m in matches if len(m) == 2 and m[0].distance < 0.78 * m[1].distance]
             if len(good) >= 6:
@@ -1065,89 +1083,206 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
             best_dx = float(np.median(valid_prev)) if valid_prev else float(w0 * 0.25)
             best_dy = 0.0
 
-        # Giới hạn độ dịch chuyển hợp lý (10% - 65% chiều rộng), chống nhảy cóc hoặc chồng đè
         min_step = float(w0 * 0.10)
         max_step = float(w0 * 0.65)
         step_dx = max(min_step, min(max_step, abs(best_dx)))
         shifts.append((step_dx, best_dy))
 
-    # 5. Tích lũy quỹ đạo và cân bằng độ nghiêng chân trời
+    # 5. Tích lũy tọa độ ban đầu
     positions = [(0.0, 0.0)]
     for dx, dy in shifts:
         prev_x, prev_y = positions[-1]
         positions.append((prev_x + dx, prev_y + dy))
 
-    # Cân bằng chân trời (Linear Slope Leveling)
-    if N > 1:
-        total_y_drift = positions[-1][1] - positions[0][1]
-        positions = [(p[0], p[1] - (total_y_drift * float(idx) / float(N - 1))) for idx, p in enumerate(positions)]
+    # 5.1 TỰ ĐỘNG NHẬN DIỆN KHÉP VÒNG 360° (AUTOMATIC 360° LOOP CLOSURE)
+    g0 = cv2.cvtColor(warped_imgs[0], cv2.COLOR_BGR2GRAY)
+    kp0, des0 = sift.detectAndCompute(g0, None)
 
-    xs = [p[0] for p in positions]
-    ys = [p[1] for p in positions]
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
+    best_loop_k = None
+    best_loop_inliers = 0
+    loop_dx = 0.0
+    loop_dy = 0.0
 
-    max_h = max(im.shape[0] for im in warped_imgs)
-    max_w = max(im.shape[1] for im in warped_imgs)
-    canvas_w = int(max_x - min_x + max_w + 30)
-    canvas_h = int(max_y - min_y + max_h + 30)
+    if des0 is not None and len(des0) >= 12:
+        check_start = N - 1
+        check_end = max(2, N - 9)
+        for k in range(check_start, check_end, -1):
+            gk = cv2.cvtColor(warped_imgs[k], cv2.COLOR_BGR2GRAY)
+            kpk, desk = sift.detectAndCompute(gk, None)
+            if desk is None or len(desk) < 12:
+                continue
+            matches = bf.knnMatch(desk, des0, k=2)
+            good = [m[0] for m in matches if len(m) == 2 and m[0].distance < 0.78 * m[1].distance]
+            if len(good) >= 10:
+                ptsk = np.float32([kpk[m.queryIdx].pt for m in good])
+                pts0 = np.float32([kp0[m.trainIdx].pt for m in good])
+                diffs = ptsk - pts0
+                n_diff = len(diffs)
+                cur_inls = 0
+                c_dx, c_dy = 0.0, 0.0
+                for _ in range(min(150, n_diff * 4)):
+                    rand_idx = np.random.randint(0, n_diff)
+                    tdx, tdy = diffs[rand_idx]
+                    err = np.hypot(diffs[:, 0] - tdx, diffs[:, 1] - tdy)
+                    inls = err < 15.0
+                    cnt = int(np.sum(inls))
+                    if cnt > cur_inls:
+                        cur_inls = cnt
+                        c_dx = float(np.mean(diffs[inls, 0]))
+                        c_dy = float(np.mean(diffs[inls, 1]))
 
-    # 6. Hòa trộn Voronoi Distance Transform Tuyệt Đối Tiết Kiệm RAM (Incremental Compositing)
-    # Không tạo 53 mảng canvas khổng lồ (tránh tràn 2GB RAM trên VPS), xử lý trực tiếp trên 1 canvas duy nhất
-    log(f"[*] Đang hòa trộn Voronoi Distance Transform tối ưu RAM cho canvas {canvas_w}x{canvas_h}...")
+                if cur_inls >= 10 and cur_inls > best_loop_inliers:
+                    best_loop_inliers = cur_inls
+                    best_loop_k = k
+                    loop_dx = c_dx
+                    loop_dy = c_dy
 
-    # Pass 1: Tìm khoảng cách cực đại max_dist_canvas cục bộ
-    max_dist_canvas = np.zeros((canvas_h, canvas_w), dtype=np.float32)
-    for i, m in enumerate(warped_masks):
-        cur_h, cur_w = m.shape[:2]
-        px = max(0, int(positions[i][0] - min_x + 10))
-        py = max(0, int(positions[i][1] - min_y + 10))
-        end_y = min(canvas_h, py + cur_h)
-        end_x = min(canvas_w, px + cur_w)
-        use_h = end_y - py
-        use_w = end_x - px
-        dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
-        max_dist_canvas[py:end_y, px:end_x] = np.maximum(max_dist_canvas[py:end_y, px:end_x], dist_local[:use_h, :use_w])
+    is_full_360 = False
+    if best_loop_k is not None:
+        w_360 = float(positions[best_loop_k][0] + loop_dx)
+        if w_360 > 1.8 * float(h0):
+            is_full_360 = True
+            total_y_drift = float(positions[best_loop_k][1] + loop_dy - positions[0][1])
+            log(f"[✓] Khép Vòng 360° tự động thành công tại góc {best_loop_k}! (inliers={best_loop_inliers}, Chu vi={w_360:.1f}px, độ trôi={total_y_drift:.1f}px)")
 
-    # Pass 2: Tích lũy màu sắc và trọng số mềm tại đường nối Voronoi
-    accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
-    accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
-    feather_band = 24.0 # pixels mềm mại, triệt tiêu gờ mí nứt vỡ
+            # Phân bổ trôi dạt chân trời đều quanh chu vi 360°
+            positions = [(p[0], p[1] - (total_y_drift * (p[0] / max(1.0, w_360)))) for p in positions]
 
-    for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
-        cur_h, cur_w = im.shape[:2]
-        px = max(0, int(positions[i][0] - min_x + 10))
-        py = max(0, int(positions[i][1] - min_y + 10))
-        end_y = min(canvas_h, py + cur_h)
-        end_x = min(canvas_w, px + cur_w)
-        use_h = end_y - py
-        use_w = end_x - px
+            # Giữ lại các ảnh tới best_loop_k, cắt bỏ mọi ảnh trùng lặp sau đó
+            warped_imgs = warped_imgs[:best_loop_k + 1]
+            warped_masks = warped_masks[:best_loop_k + 1]
+            positions = positions[:best_loop_k + 1]
+            N = len(warped_imgs)
 
-        dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
-        dist_crop = dist_local[:use_h, :use_w]
-        local_max = max_dist_canvas[py:end_y, px:end_x]
+    # 6. HÒA TRỘN VORONOI CANVAS
+    if is_full_360:
+        # Xử lý trên Canvas Mặt Trụ Tuần Hoàn (Periodic Cylinder)
+        canvas_w = int(round(w_360))
+        min_y = min(p[1] for p in positions)
+        max_y = max(p[1] for p in positions)
+        max_h = max(im.shape[0] for im in warped_imgs)
+        canvas_h = int(max_y - min_y + max_h + 30)
 
-        w_crop = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_band)
-        w_crop[dist_crop <= 0] = 0.0
+        log(f"[*] Hòa trộn Mặt Trụ Tuần Hoàn 360° (Periodic Cylinder): {canvas_w}x{canvas_h}...")
 
-        accum_color[py:end_y, px:end_x] += im[:use_h, :use_w].astype(np.float32) * w_crop[:, :, None]
-        accum_weight[py:end_y, px:end_x] += w_crop
+        def get_periodic_slices(cw, ch, px, py, pw, ph):
+            for offset_mult in [0, 1, -1]:
+                eff_px = px + offset_mult * cw
+                eff_py = py
+                sx = max(0, eff_px)
+                sy = max(0, eff_py)
+                ex = min(cw, eff_px + pw)
+                ey = min(ch, eff_py + ph)
+                if ex > sx and ey > sy:
+                    src_x = sx - eff_px
+                    src_y = sy - eff_py
+                    yield sx, sy, ex, ey, src_x, src_y, (ex - sx), (ey - sy)
 
-    safe_weight = np.maximum(accum_weight[:, :, None], 1e-5)
-    blended = (accum_color / safe_weight).clip(0, 255).astype(np.uint8)
+        # Pass 1: Max distance transform
+        max_dist_canvas = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+        for i, m in enumerate(warped_masks):
+            cur_h, cur_w = m.shape[:2]
+            px = int(round(positions[i][0]))
+            py = int(round(positions[i][1] - min_y + 15))
+            dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
+            for sx, sy, ex, ey, src_x, src_y, uw, uh in get_periodic_slices(canvas_w, canvas_h, px, py, cur_w, cur_h):
+                max_dist_canvas[sy:ey, sx:ex] = np.maximum(
+                    max_dist_canvas[sy:ey, sx:ex], dist_local[src_y:src_y+uh, src_x:src_x+uw]
+                )
 
-    # Giải phóng ngay lập tức các mảng tạm
-    del accum_color, accum_weight, max_dist_canvas
-    gc.collect()
+        # Pass 2: Accumulate color & weight
+        accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
+        accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+        feather_band = 24.0
 
-    # Cắt sạch viền đen răng cưa nội tiếp sau khi hòa trộn
-    clean_blended = crop_clean_inscribed_rectangle(blended)
-    if clean_blended is None or clean_blended.size == 0:
-        clean_blended = blended
+        for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
+            cur_h, cur_w = im.shape[:2]
+            px = int(round(positions[i][0]))
+            py = int(round(positions[i][1] - min_y + 15))
+            dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
+            for sx, sy, ex, ey, src_x, src_y, uw, uh in get_periodic_slices(canvas_w, canvas_h, px, py, cur_w, cur_h):
+                dist_crop = dist_local[src_y:src_y+uh, src_x:src_x+uw]
+                local_max = max_dist_canvas[sy:ey, sx:ex]
+                w_crop = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_band)
+                w_crop[dist_crop <= 0] = 0.0
+                accum_color[sy:ey, sx:ex] += im[src_y:src_y+uh, src_x:src_x+uw].astype(np.float32) * w_crop[:, :, None]
+                accum_weight[sy:ey, sx:ex] += w_crop
 
-    is_full_360 = (canvas_w >= 2.4 * canvas_h)
-    log(f"[✓] Động cơ Ghép Chuỗi Quang Học: Đã tạo thành công không gian phòng {clean_blended.shape[1]}x{clean_blended.shape[0]} phẳng phiu sạch viền đen!")
-    return clean_blended, is_full_360, f
+        safe_weight = np.maximum(accum_weight[:, :, None], 1e-5)
+        blended = (accum_color / safe_weight).clip(0, 255).astype(np.uint8)
+        del accum_color, accum_weight, max_dist_canvas
+        gc.collect()
+
+        clean_blended = crop_clean_inscribed_rectangle(blended)
+        if clean_blended is None or clean_blended.size == 0:
+            clean_blended = blended
+        clean_blended = circular_seam_blend(clean_blended, seam_width=45)
+        log(f"[✓] Động cơ Ghép Chuỗi Quang Học 360°: Không gian phòng hoàn chỉnh {clean_blended.shape[1]}x{clean_blended.shape[0]} hòa quyện 100% không trùng lặp!")
+        return clean_blended, True, f
+
+    else:
+        # Trường hợp góc quét thẳng không khép kín vòng tròn (Linear Corridor/Wall)
+        if N > 1:
+            total_y_drift = positions[-1][1] - positions[0][1]
+            positions = [(p[0], p[1] - (total_y_drift * float(idx) / float(N - 1))) for idx, p in enumerate(positions)]
+
+        xs = [p[0] for p in positions]
+        ys = [p[1] for p in positions]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        max_h = max(im.shape[0] for im in warped_imgs)
+        max_w = max(im.shape[1] for im in warped_imgs)
+        canvas_w = int(max_x - min_x + max_w + 30)
+        canvas_h = int(max_y - min_y + max_h + 30)
+
+        log(f"[*] Hòa trộn Tuyến Tính Tiết Kiệm RAM: {canvas_w}x{canvas_h}...")
+
+        max_dist_canvas = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+        for i, m in enumerate(warped_masks):
+            cur_h, cur_w = m.shape[:2]
+            px = max(0, int(positions[i][0] - min_x + 10))
+            py = max(0, int(positions[i][1] - min_y + 10))
+            end_y = min(canvas_h, py + cur_h)
+            end_x = min(canvas_w, px + cur_w)
+            use_h = end_y - py
+            use_w = end_x - px
+            dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
+            max_dist_canvas[py:end_y, px:end_x] = np.maximum(max_dist_canvas[py:end_y, px:end_x], dist_local[:use_h, :use_w])
+
+        accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
+        accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+        feather_band = 24.0
+
+        for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
+            cur_h, cur_w = im.shape[:2]
+            px = max(0, int(positions[i][0] - min_x + 10))
+            py = max(0, int(positions[i][1] - min_y + 10))
+            end_y = min(canvas_h, py + cur_h)
+            end_x = min(canvas_w, px + cur_w)
+            use_h = end_y - py
+            use_w = end_x - px
+
+            dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
+            dist_crop = dist_local[:use_h, :use_w]
+            local_max = max_dist_canvas[py:end_y, px:end_x]
+
+            w_crop = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_band)
+            w_crop[dist_crop <= 0] = 0.0
+
+            accum_color[py:end_y, px:end_x] += im[:use_h, :use_w].astype(np.float32) * w_crop[:, :, None]
+            accum_weight[py:end_y, px:end_x] += w_crop
+
+        safe_weight = np.maximum(accum_weight[:, :, None], 1e-5)
+        blended = (accum_color / safe_weight).clip(0, 255).astype(np.uint8)
+        del accum_color, accum_weight, max_dist_canvas
+        gc.collect()
+
+        clean_blended = crop_clean_inscribed_rectangle(blended)
+        if clean_blended is None or clean_blended.size == 0:
+            clean_blended = blended
+
+        log(f"[✓] Đã tạo thành công không gian phòng {clean_blended.shape[1]}x{clean_blended.shape[0]} phẳng phiu sạch viền đen!")
+        return clean_blended, False, f
 
 
 # Alias tương thích ngược
