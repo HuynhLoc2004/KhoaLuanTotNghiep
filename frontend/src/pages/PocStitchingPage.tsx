@@ -38,9 +38,16 @@ const FRAME_RECOMMENDED_MIN = 12;
 const FRAME_RECOMMENDED_MAX = 36;
 
 interface StitchedHistoryItem {
+  id?: string;
   filename: string;
+  title?: string;
   url: string;
+  thumbnailUrl?: string;
   size: number;
+  width?: number;
+  height?: number;
+  inputFramesCount?: number;
+  views?: RoomSceneView[];
   createdAt: string;
 }
 
@@ -100,6 +107,8 @@ export const PocStitchingPage: React.FC = () => {
   const [primaryFrameId, setPrimaryFrameId] = useState<string | null>(null);
   // Góc nhìn đang hiển thị trên Viewer
   const [activeViewUrl, setActiveViewUrl] = useState<string | null>(null);
+  // Hiệu ứng mờ dần (Fade transition) khi chuyển góc nhìn
+  const [isViewFading, setIsViewFading] = useState(false);
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
   const [batchFiles, setBatchFiles] = useState<File[]>([]);
   const [batchPreviews, setBatchPreviews] = useState<string[]>([]);
@@ -115,6 +124,37 @@ export const PocStitchingPage: React.FC = () => {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
+
+  // Chuyển góc nhìn mượt mà (Fade effect)
+  const handleSwitchView = (url: string) => {
+    if (!url || url === (activeViewUrl || stitchResult?.panoramaUrl)) return;
+    setIsViewFading(true);
+    setTimeout(() => {
+      setActiveViewUrl(url);
+      setTimeout(() => {
+        setIsViewFading(false);
+      }, 180);
+    }, 200);
+  };
+
+  const currentViewIndex = React.useMemo(() => {
+    if (!stitchResult?.views || stitchResult.views.length === 0) return 0;
+    const currentUrl = activeViewUrl || stitchResult.panoramaUrl;
+    const idx = stitchResult.views.findIndex((v) => v.url === currentUrl);
+    return idx >= 0 ? idx : 0;
+  }, [stitchResult, activeViewUrl]);
+
+  const handlePrevView = () => {
+    if (!stitchResult?.views || stitchResult.views.length <= 1) return;
+    const prevIdx = (currentViewIndex - 1 + stitchResult.views.length) % stitchResult.views.length;
+    handleSwitchView(stitchResult.views[prevIdx].url);
+  };
+
+  const handleNextView = () => {
+    if (!stitchResult?.views || stitchResult.views.length <= 1) return;
+    const nextIdx = (currentViewIndex + 1) % stitchResult.views.length;
+    handleSwitchView(stitchResult.views[nextIdx].url);
+  };
 
   // Custom Heritage Confirm Modal
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -193,14 +233,21 @@ export const PocStitchingPage: React.FC = () => {
 
   const handleSelectHistoryPano = (item: StitchedHistoryItem) => {
     const normalizedUrl = normalizePanoUrl(item.url);
+    const normalizedViews = (item.views || []).map((v) => ({
+      ...v,
+      url: normalizePanoUrl(v.url)
+    }));
     setStitchResult({
+      id: item.id,
       panoramaUrl: normalizedUrl,
       filename: item.filename,
-      width: 4096,
-      height: 2048,
+      width: item.width || 2048,
+      height: item.height || 1024,
       aspectRatio: '2:1',
-      message: `Đang xem không gian lưu trữ: ${item.filename}`
+      views: normalizedViews,
+      message: `Đang xem gian phòng: ${item.title || item.filename}`
     });
+    setActiveViewUrl(normalizedUrl);
     setTimeout(() => {
       viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
@@ -1062,7 +1109,7 @@ export const PocStitchingPage: React.FC = () => {
                       >
                         <Sparkles size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: 1 }} />
                         <span>
-                          <strong>Mẹo thông minh:</strong> Bấm nút xanh <em>"Tạo phòng"</em> trên góc ảnh bất kỳ bên trên để lấy ảnh chuẩn nét không méo mó, hoặc bấm nút dưới để hệ thống tự động lọc ảnh trùng và hòa trộn chuyển tiếp các góc.
+                          <strong>Chuẩn Tour Bảo Tàng Thực Thụ (Cách 2):</strong> Toàn bộ các góc chụp sẽ được lưu thành <strong>ĐÚNG 1 GIAN PHÒNG DUY NHẤT</strong> trong thư viện. Người xem mở ra có thể chuyển nhanh giữa các góc nhìn mượt mà (Fade), 100% giữ nguyên độ nét gốc của tủ kính và hiện vật, không nếp gấp, không méo mó!
                         </span>
                       </div>
                     )}
@@ -1079,7 +1126,7 @@ export const PocStitchingPage: React.FC = () => {
                         {isProcessing ? (
                           <>
                             <Loader2 size={16} className="spin" />
-                            <span>Đang hòa trộn & tạo căn phòng...</span>
+                            <span>Đang tạo gian phòng đa góc nhìn...</span>
                           </>
                         ) : (
                           <>
@@ -1087,7 +1134,7 @@ export const PocStitchingPage: React.FC = () => {
                             <span>
                               {totalFrames === 1
                                 ? 'Tạo không gian phòng từ 1 ảnh này'
-                                : `Tạo không gian phòng toàn cảnh (${totalFrames} góc ảnh)`}
+                                : `Tạo gian phòng đa góc nhìn (${totalFrames} góc ảnh)`}
                             </span>
                           </>
                         )}
@@ -1233,63 +1280,130 @@ export const PocStitchingPage: React.FC = () => {
 
                     {stitchResult ? (
                       <>
-                        <Pannellum360Viewer
-                          panoramaUrl={activeViewUrl || stitchResult.panoramaUrl}
-                          title={stitchResult.filename}
-                          autoStartLittlePlanet={false}
-                          initialPitch={0}
-                          initialHfov={95}
-                        />
+                        <div
+                          style={{
+                            position: 'relative',
+                            width: '100%',
+                            height: '100%',
+                            opacity: isViewFading ? 0 : 1,
+                            transition: 'opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+                            pointerEvents: isViewFading ? 'none' : 'auto'
+                          }}
+                        >
+                          <Pannellum360Viewer
+                            key={activeViewUrl || stitchResult.panoramaUrl}
+                            panoramaUrl={activeViewUrl || stitchResult.panoramaUrl}
+                            title={stitchResult.filename}
+                            autoStartLittlePlanet={false}
+                            initialPitch={0}
+                            initialHfov={95}
+                          />
+                        </div>
 
-                        {/* Thanh chuyển đổi Multi-view các góc nhìn trong phòng */}
+                        {/* Màn đen mờ khi chuyển góc nhìn mượt mà (Fade effect) */}
+                        {isViewFading && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              backgroundColor: '#0a0d14',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 10,
+                              zIndex: 10,
+                              color: 'var(--accent-gold, #d4a86a)'
+                            }}
+                          >
+                            <Loader2 size={32} className="spin" />
+                            <span style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.3px' }}>
+                              Đang chuyển góc nhìn mượt mà...
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Thanh chuyển đổi Multi-view các góc nhìn trong phòng (Chuẩn Tour Bảo Tàng Thực Thụ) */}
                         {stitchResult.views && stitchResult.views.length > 1 && (
                           <div
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 8,
-                              padding: '10px 14px',
-                              background: 'rgba(15, 20, 28, 0.96)',
-                              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                              overflowX: 'auto',
-                              scrollbarWidth: 'thin'
+                              justifyContent: 'space-between',
+                              gap: 10,
+                              padding: '10px 16px',
+                              background: 'rgba(15, 20, 28, 0.98)',
+                              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                              flexWrap: 'wrap'
                             }}
                           >
-                            <span
-                              style={{
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                color: 'var(--accent-gold, #d4a86a)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                whiteSpace: 'nowrap'
-                              }}
-                            >
-                              <Sparkles size={14} />
-                              Chuyển góc nhìn ({stitchResult.views.length}):
-                            </span>
-                            {stitchResult.views.map((v, i) => {
-                              const isActive = (activeViewUrl || stitchResult.panoramaUrl) === v.url;
-                              return (
-                                <button
-                                  key={v.id || i}
-                                  type="button"
-                                  onClick={() => setActiveViewUrl(v.url)}
-                                  className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-                                  style={{
-                                    fontSize: '11.5px',
-                                    padding: '5px 12px',
-                                    whiteSpace: 'nowrap',
-                                    borderRadius: '6px',
-                                    fontWeight: isActive ? 600 : 400
-                                  }}
-                                >
-                                  {v.isPrimary ? '⭐ ' : ''}
-                                  {v.title || `Góc ${i + 1}`}
-                                </button>
-                              );
-                            })}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', scrollbarWidth: 'thin', flex: 1 }}>
+                              <span
+                                style={{
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  color: 'var(--accent-gold, #d4a86a)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                <Sparkles size={14} />
+                                Các góc trong phòng ({stitchResult.views.length}):
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={handlePrevView}
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap', borderRadius: '6px' }}
+                                title="Chuyển sang góc trước đó"
+                              >
+                                ‹ Góc trước
+                              </button>
+
+                              {stitchResult.views.map((v, i) => {
+                                const isActive = (activeViewUrl || stitchResult.panoramaUrl) === v.url;
+                                return (
+                                  <button
+                                    key={v.id || i}
+                                    type="button"
+                                    onClick={() => handleSwitchView(v.url)}
+                                    className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                                    style={{
+                                      fontSize: '11.5px',
+                                      padding: '5px 13px',
+                                      whiteSpace: 'nowrap',
+                                      borderRadius: '6px',
+                                      fontWeight: isActive ? 600 : 400,
+                                      boxShadow: isActive ? '0 0 10px rgba(212, 168, 106, 0.4)' : undefined,
+                                      border: isActive ? '1px solid var(--accent-gold, #d4a86a)' : undefined
+                                    }}
+                                  >
+                                    {v.isPrimary ? '⭐ ' : ''}
+                                    {v.title || `Góc ${i + 1}`}
+                                  </button>
+                                );
+                              })}
+
+                              <button
+                                type="button"
+                                onClick={handleNextView}
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap', borderRadius: '6px' }}
+                                title="Chuyển sang góc tiếp theo"
+                              >
+                                Góc sau ›
+                              </button>
+                            </div>
+
+                            <div style={{ fontSize: '11.5px', color: 'rgba(255, 255, 255, 0.6)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>Góc đang xem:</span>
+                              <strong style={{ color: 'var(--accent-gold, #d4a86a)' }}>
+                                {stitchResult.views[currentViewIndex]?.title || `Góc ${currentViewIndex + 1}`}
+                              </strong>
+                            </div>
                           </div>
                         )}
                       </>
@@ -1414,8 +1528,19 @@ export const PocStitchingPage: React.FC = () => {
                                 (e.target as HTMLElement).style.display = 'none';
                               }}
                             />
-                            <div className="studio-history-badge">
-                              4K Equirectangular 360°
+                            <div
+                              className="studio-history-badge"
+                              style={{
+                                background: item.views && item.views.length > 1
+                                  ? 'linear-gradient(135deg, rgba(212, 168, 106, 0.95), rgba(184, 134, 11, 0.95))'
+                                  : undefined,
+                                color: item.views && item.views.length > 1 ? '#000' : '#fff',
+                                fontWeight: item.views && item.views.length > 1 ? 700 : 500
+                              }}
+                            >
+                              {item.views && item.views.length > 1
+                                ? `🏛️ Gian phòng (${item.views.length} góc nhìn)`
+                                : '4K Equirectangular 360°'}
                             </div>
                             <div className="studio-history-overlay-hint">
                               <Eye size={13} />
@@ -1427,6 +1552,12 @@ export const PocStitchingPage: React.FC = () => {
                             <div className="studio-history-name" title={item.filename}>
                               {item.filename}
                             </div>
+                            {item.views && item.views.length > 1 && (
+                              <div style={{ fontSize: '11px', color: 'var(--accent-gold, #d4a86a)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, fontWeight: 500 }}>
+                                <Sparkles size={11} />
+                                <span>Tour đa góc nhìn ({item.views.length} góc sắc nét nguyên bản)</span>
+                              </div>
+                            )}
 
                             <div className="studio-history-meta">
                               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
