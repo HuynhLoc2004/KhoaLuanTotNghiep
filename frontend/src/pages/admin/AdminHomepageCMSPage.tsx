@@ -451,7 +451,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <ArrowLeft size={14} />
-            <span>Phần trước: {prevSec.shortLabel}</span>
+            <span>{t('cms.prevSection', 'Phần trước')}: {t(prevSec.id, prevSec.shortLabel)}</span>
           </button>
         ) : <div />}
 
@@ -463,7 +463,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
         >
           <Save size={15} />
-          <span>{isSaving ? 'Đang lưu...' : `Lưu thay đổi ${sectionName}`}</span>
+          <span>{isSaving ? t('common.saving', 'Đang lưu...') : `${t('cms.saveChanges', 'Lưu thay đổi')} ${t(sectionName, sectionName)}`}</span>
         </button>
 
         {nextSec ? (
@@ -473,7 +473,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             onClick={() => selectSection(nextSec.id)}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>Phần tiếp theo: {nextSec.shortLabel}</span>
+            <span>{t('cms.nextSection', 'Phần tiếp theo')}: {t(nextSec.id, nextSec.shortLabel)}</span>
             <ArrowRight size={14} />
           </button>
         ) : <div />}
@@ -521,7 +521,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
           >
             <Globe size={15} />
-            <span>Xem Trang chủ Khách</span>
+            <span>{t('cms.viewVisitorHome', 'Xem Trang chủ Khách')}</span>
             <ExternalLink size={13} style={{ opacity: 0.6 }} />
           </a>
 
@@ -2298,14 +2298,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 }}
               />
               <span style={{ fontSize: 12.5, color: '#f59e0b', fontWeight: 600 }}>
-                Có thay đổi chưa lưu
+                {t('cms.unsavedChanges', 'Có thay đổi chưa lưu')}
               </span>
             </>
           ) : (
             <>
               <CheckCircle2 size={16} style={{ color: 'var(--success, #22c55e)' }} />
               <span style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 500 }}>
-                Đã đồng bộ 100% với trang khách
+                {t('cms.syncedWithClient', 'Đã đồng bộ 100% với trang khách')}
               </span>
             </>
           )}
@@ -2324,7 +2324,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               disabled={isSaving}
               style={{ fontSize: 12 }}
             >
-              Hủy thay đổi
+              {t('cms.cancelChanges', 'Hủy thay đổi')}
             </button>
           )}
           <button
@@ -2335,7 +2335,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
           >
             <Save size={15} />
-            <span>{isSaving ? 'Đang lưu...' : (isDirty ? 'Lưu tất cả thay đổi ngay' : 'Lưu tất cả thay đổi')}</span>
+            <span>{isSaving ? t('common.saving', 'Đang lưu...') : (isDirty ? t('cms.saveAllChangesNow', 'Lưu tất cả thay đổi ngay') : t('cms.saveAllChanges', 'Lưu tất cả thay đổi'))}</span>
           </button>
         </div>
       </div>

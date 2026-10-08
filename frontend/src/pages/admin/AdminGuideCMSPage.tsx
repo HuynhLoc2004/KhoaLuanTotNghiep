@@ -547,7 +547,7 @@ export const AdminGuideCMSPage: React.FC = () => {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <Globe size={14} />
-            <span>Xem trang khách</span>
+            <span>{t('cms.viewVisitorPage', 'Xem trang khách')}</span>
             <ExternalLink size={12} style={{ opacity: 0.6 }} />
           </a>
 

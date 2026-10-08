@@ -35,6 +35,7 @@ import {
   NavigationResult
 } from '../../types';
 import { useToast } from '../../components/Toast';
+import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { InteractiveFloorPlanMap } from '../../components/client/InteractiveFloorPlanMap';
 
 interface AdminFloorPlanMappingPageProps {
@@ -54,6 +55,7 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
   onBackToGuide
 }) => {
   const { showToast } = useToast();
+  const { t } = useClientTranslation();
 
   // Tab chính: 'mapping' (Gán phòng) hoặc 'navigator' (Trợ lý Voice AI & Logs)
   const [mainTab, setMainTab] = useState<'mapping' | 'navigator'>('mapping');
@@ -421,7 +423,7 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
             style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}
           >
             <Eye size={13} />
-            <span>Xem trang khách</span>
+            <span>{t('cms.viewVisitorPage', 'Xem trang khách')}</span>
             <ExternalLink size={11} style={{ opacity: 0.6 }} />
           </a>
 

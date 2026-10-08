@@ -21,13 +21,27 @@ const BUNDLE_STORAGE_PREFIX = 'museum_i18n_bundle_';
 const DYNAMIC_I18N_STORAGE_PREFIX = 'museum_dynamic_i18n_v2_';
 const VIETNAMESE_REGEX = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/i;
 
-// Loại bỏ triệt để hậu tố mã nguồn 'vi' do Google dict-chrome-ex ghép nhầm
+// Loại bỏ triệt để hậu tố mã nguồn 'vi' và khắc phục các sai lệch từ vựng du lịch/nhà nghỉ của Google Translate
 export function cleanTranslationResult(str: string, orig: string, targetLang: string): string {
   if (!str) return str;
   let s = str.trim();
   if (s.endsWith('vi') && s.length > 4 && !orig.toLowerCase().endsWith('vi')) {
     s = s.slice(0, -2).trim();
   }
+
+  // Khắc phục triệt để lỗi Google Translate dịch sai thuật ngữ bảo tàng sang tiếng Pháp
+  if (targetLang.toLowerCase() === 'fr') {
+    // Sửa lỗi "Voir la maison d'hôtes" (Xem nhà khách / homestay) -> "Voir le portail visiteur"
+    s = s.replace(/maison d'h[oô]tes/gi, 'portail visiteur');
+    s = s.replace(/page invit[ée]/gi, 'portail visiteur');
+    s = s.replace(/vitrine de la maison/gi, "vitrine de la page d'accueil");
+    s = s.replace(/manuels et diagrammes/gi, 'guide & plan du musée');
+    s = s.replace(/bloc manuel/gi, 'guide de visite');
+    // Khắc phục lỗi lặp từ của bản dịch nối ghép: "Partie suivante : Partie suivante :"
+    s = s.replace(/Partie suivante\s*:\s*Partie suivante\s*:/gi, 'Section suivante :');
+    s = s.replace(/Partie pr[ée]c[ée]dente\s*:\s*Partie pr[ée]c[ée]dente\s*:/gi, 'Section précédente :');
+  }
+
   return s;
 }
 

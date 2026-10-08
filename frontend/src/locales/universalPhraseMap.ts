@@ -22,6 +22,187 @@ export interface UniversalPhraseItem {
 }
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
+  // --- ĐỒNG BỘ CHUẨN XÁC NỘI DUNG ADMIN & CLIENT (TRÁNH LỖI DỊCH MÁY GOOGLE) ---
+  'Xem Trang chủ Khách': {
+    en: 'View Visitor Homepage',
+    fr: "Voir la page d'accueil des visiteurs",
+    zh: '查看游客端首页',
+    ja: '来館者向けホームページを見る'
+  },
+  'Xem trang khách': {
+    en: 'View Visitor Page',
+    fr: 'Voir le portail visiteur',
+    zh: '查看游客端页面',
+    ja: '来館者ページを見る'
+  },
+  'Xem Tour Khách': {
+    en: 'View Visitor Tour',
+    fr: 'Voir la visite publique',
+    zh: '查看游客端导览',
+    ja: '来館者ツアーを見る'
+  },
+  'Trang khách': {
+    en: 'Visitor Portal',
+    fr: 'Portail des visiteurs',
+    zh: '游客端',
+    ja: '来館者ページ'
+  },
+  'Trang chủ Khách': {
+    en: 'Visitor Homepage',
+    fr: "Page d'accueil des visiteurs",
+    zh: '游客端首页',
+    ja: '来館者向けホームページ'
+  },
+  'Đã đồng bộ 100% với trang khách': {
+    en: '100% synchronized with visitor portal',
+    fr: '100% synchronisé avec le portail visiteur',
+    zh: '已与游客端实时同步 100%',
+    ja: '来館者ページと100%同期済み'
+  },
+  'Có thay đổi chưa lưu': {
+    en: 'Unsaved changes',
+    fr: 'Modifications non enregistrées',
+    zh: '有未保存的更改',
+    ja: '未保存の変更があります'
+  },
+  'Trưng bày Trang chủ': {
+    en: 'Homepage Showcase',
+    fr: "Vitrine de la page d'accueil",
+    zh: '首页精选展区',
+    ja: 'ホームページ注目展示'
+  },
+  'Cẩm nang & Sơ đồ': {
+    en: 'Visitor Guide & Map',
+    fr: 'Guide & Plan du musée',
+    zh: '参观指南与平面图',
+    ja: '見学案内と平面図'
+  },
+  'Quản lý Trang chủ & Giao diện': {
+    en: 'Homepage & Interface Management',
+    fr: "Gestion de la page d'accueil & de l'interface",
+    zh: '首页与界面管理',
+    ja: 'ホームページとインターフェース管理'
+  },
+  'Quản lý Người dùng & Khách': {
+    en: 'User & Visitor Management',
+    fr: 'Gestion des utilisateurs & visiteurs',
+    zh: '用户与访客管理',
+    ja: 'ユーザーと来館者管理'
+  },
+  'Quản lý Vé Tham Quan': {
+    en: 'Ticket Management',
+    fr: 'Gestion des billets',
+    zh: '门票管理',
+    ja: 'チケット管理'
+  },
+  'Tạo ảnh toàn cảnh 360°': {
+    en: 'Create 360° Panorama',
+    fr: 'Créer un panorama 360°',
+    zh: '创建360°全景图像',
+    ja: '360°パノラマ画像生成'
+  },
+  'Cổ vật & Bảo vật 3D': {
+    en: 'Antiquities & 3D Treasures',
+    fr: 'Antiquités & Trésors 3D',
+    zh: '文物与3D珍宝',
+    ja: '遺物・3D文化財'
+  },
+  'Gian phòng 360°': {
+    en: '360° Galleries',
+    fr: 'Galeries 360°',
+    zh: '360°全景展厅',
+    ja: '360°展示室'
+  },
+  'Gian phòng Trưng bày': {
+    en: 'Exhibition Galleries',
+    fr: "Galeries d'exposition",
+    zh: '展览展厅',
+    ja: '展示室'
+  },
+  '1. Nhận diện & Logo': {
+    en: '1. Brand & Logo',
+    fr: '1. Identité & Logo',
+    zh: '1. 品牌识别与标志',
+    ja: '1. ブランド＆ロゴ'
+  },
+  '2. Menu Header': {
+    en: '2. Header Menu',
+    fr: '2. Menu Header',
+    zh: '2. 顶部导航菜单',
+    ja: '2. ヘッダーメニュー'
+  },
+  '3. Banner Hero': {
+    en: '3. Hero Banner',
+    fr: '3. Bannière Hero',
+    zh: '3. 首页主横幅',
+    ja: '3. ヒーローバナー'
+  },
+  '4. Giới thiệu Không gian': {
+    en: '4. Space Introduction',
+    fr: "4. Présentation de l'espace",
+    zh: '4. 空间与建筑介绍',
+    ja: '4. 建築・空間紹介'
+  },
+  '5. Gian phòng 360°': {
+    en: '5. 360° Galleries',
+    fr: '5. Salles 360°',
+    zh: '5. 360°展厅',
+    ja: '5. 360°展示室'
+  },
+  '6. Cổ vật 3D': {
+    en: '6. 3D Artifacts',
+    fr: '6. Objets 3D',
+    zh: '6. 3D文物',
+    ja: '6. 3D遺物'
+  },
+  '7. Khối Cẩm nang': {
+    en: '7. Visitor Guide Block',
+    fr: '7. Bloc Guide de visite',
+    zh: '7. 参观指南模块',
+    ja: '7. 見学案内ブロック'
+  },
+  '8. Chân trang & Liên hệ': {
+    en: '8. Footer & Contact',
+    fr: '8. Pied de page & Contact',
+    zh: '8. 页脚与联系方式',
+    ja: '8. フッター＆連絡先'
+  },
+  'Phần tiếp theo': {
+    en: 'Next section',
+    fr: 'Section suivante',
+    zh: '下一部分',
+    ja: '次のセクション'
+  },
+  'Phần trước': {
+    en: 'Previous section',
+    fr: 'Section précédente',
+    zh: '上一部分',
+    ja: '前のセクション'
+  },
+  'Hủy thay đổi': {
+    en: 'Cancel changes',
+    fr: 'Annuler les modifications',
+    zh: '取消更改',
+    ja: '変更を破棄'
+  },
+  'Lưu tất cả thay đổi': {
+    en: 'Save all changes',
+    fr: 'Enregistrer toutes les modifications',
+    zh: '保存所有更改',
+    ja: 'すべての変更を保存'
+  },
+  'Lưu tất cả thay đổi ngay': {
+    en: 'Save all changes now',
+    fr: 'Enregistrer toutes les modifications',
+    zh: '立即保存所有更改',
+    ja: '今すぐすべての変更を保存'
+  },
+  'Đang lưu...': {
+    en: 'Saving...',
+    fr: 'Enregistrement...',
+    zh: '保存中...',
+    ja: '保存中...'
+  },
   // --- PHƯƠNG VỊ VÀ CHỈ DẪN 8 HƯỚNG MẶT BẰNG & TOUR 360 (DỊCH TỨC THÌ 0MS) ---
   'Bên phải (Đông)': {
     en: 'To the right (East)',
@@ -408,18 +589,6 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     fr: 'Introduction',
     zh: '简介',
     ja: 'ご紹介'
-  },
-  'Gian phòng 360°': {
-    en: '360° Rooms',
-    fr: 'Salles 360°',
-    zh: '360°展厅',
-    ja: '360°展示室'
-  },
-  'Cổ vật 3D': {
-    en: '3D Artifacts',
-    fr: 'Objets 3D',
-    zh: '3D文物',
-    ja: '3D文化財'
   },
   'Cổ vật & Hiện vật di sản': {
     en: 'Antiquities & Heritage Artifacts',
@@ -1026,12 +1195,6 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     fr: 'Galeries & Visite 360°',
     zh: '展厅与360°漫游',
     ja: '展示室＆360°ツアー'
-  },
-  'Tạo ảnh toàn cảnh 360°': {
-    en: 'Create 360° Panorama',
-    fr: 'Créer Panorama 360°',
-    zh: '创建360°全景',
-    ja: '360°パノラマ画像生成'
   },
   'Hiện vật & Cổ vật di sản': {
     en: 'Artifacts & Heritage Relics',
@@ -3516,12 +3679,6 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     fr: 'Télécharger la carte Standee',
     zh: '下载展架立牌',
     ja: 'スタンディ画像を保存'
-  },
-  'Xem Tour Khách': {
-    en: 'View Visitor Tour',
-    fr: 'Visite guidée',
-    zh: '参观导览',
-    ja: 'ビジターツアー'
   },
   'Xem chi tiết': {
     en: 'View Details',

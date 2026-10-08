@@ -109,6 +109,24 @@ const HERITAGE_GLOSSARY: Record<string, Record<string, string>> = {
     zh: '沙黄文化',
     ko: '사후인 문화',
     de: 'Sa-Huynh-Kultur'
+  },
+  'Xem Trang chủ Khách': {
+    en: 'View Visitor Homepage',
+    fr: "Voir la page d'accueil des visiteurs",
+    ja: '来館者向けホームページを見る',
+    zh: '查看游客端首页'
+  },
+  'Xem trang khách': {
+    en: 'View Visitor Page',
+    fr: 'Voir le portail visiteur',
+    ja: '来館者ページを見る',
+    zh: '查看游客端页面'
+  },
+  'Trang khách': {
+    en: 'Visitor Portal',
+    fr: 'Portail des visiteurs',
+    ja: '来館者ページ',
+    zh: '游客端'
   }
 };
 
@@ -164,7 +182,12 @@ const BASE_UI_BUNDLE: Record<string, string> = {
   'nav.rooms': 'Gian trưng bày & Tour 360',
   'nav.pocStitching': 'Tạo ảnh toàn cảnh 360°',
   'nav.artifacts': 'Hiện vật & Cổ vật di sản',
+  'nav.homepageCms': 'Trang chủ & Giao diện',
+  'nav.showcasePage': 'Trưng bày Trang chủ',
+  'nav.guidePage': 'Cẩm nang & Sơ đồ',
   'nav.languages': 'Quản trị Ngôn ngữ & Voice AI',
+  'nav.users': 'Người dùng & Khách',
+  'nav.tickets': 'Quản lý Vé Tham Quan',
   'nav.analytics': 'Báo cáo & Thống kê',
   'nav.settings': 'Cấu hình hệ thống',
   'nav.themeLight': 'Chuyển sang giao diện Sáng',
@@ -326,7 +349,7 @@ languagesRouter.get('/bundle/:code', async (req: Request, res: Response) => {
   }
 });
 
-// Helper làm sạch triệt để kết quả dịch, chặn mọi trường hợp dính mã ngôn ngữ nguồn 'vi'
+// Helper làm sạch triệt để kết quả dịch, chặn mọi trường hợp dính mã ngôn ngữ nguồn 'vi' và lệch nghĩa du lịch
 export function cleanUpNMTOutput(trans: string, original: string, targetLang: string): string {
   if (!trans) return '';
   let cleaned = trans.trim();
@@ -334,6 +357,17 @@ export function cleanUpNMTOutput(trans: string, original: string, targetLang: st
   if (cleaned.endsWith('vi') && cleaned.length > 4 && !original.toLowerCase().endsWith('vi')) {
     cleaned = cleaned.slice(0, -2).trim();
   }
+
+  if (targetLang.toLowerCase() === 'fr') {
+    cleaned = cleaned.replace(/maison d'h[oô]tes/gi, 'portail visiteur');
+    cleaned = cleaned.replace(/page invit[ée]/gi, 'portail visiteur');
+    cleaned = cleaned.replace(/vitrine de la maison/gi, "vitrine de la page d'accueil");
+    cleaned = cleaned.replace(/manuels et diagrammes/gi, 'guide & plan du musée');
+    cleaned = cleaned.replace(/bloc manuel/gi, 'guide de visite');
+    cleaned = cleaned.replace(/Partie suivante\s*:\s*Partie suivante\s*:/gi, 'Section suivante :');
+    cleaned = cleaned.replace(/Partie pr[ée]c[ée]dente\s*:\s*Partie pr[ée]c[ée]dente\s*:/gi, 'Section précédente :');
+  }
+
   return cleaned;
 }
 
