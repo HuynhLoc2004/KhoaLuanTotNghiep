@@ -895,7 +895,10 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
     if (fs.existsSync(UPLOAD_ROOT)) {
       const allFiles = await fs.promises.readdir(UPLOAD_ROOT);
       for (const f of allFiles) {
-        if (f.startsWith('stitched_360_') && (f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'))) {
+        if (
+          (f.startsWith('stitched_') || f.startsWith('pano_')) &&
+          (f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'))
+        ) {
           existingDiskFiles.push(f);
         }
       }
@@ -969,9 +972,18 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
 stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) => {
   try {
     const filename = Array.isArray(req.params.filename) ? req.params.filename[0] : String(req.params.filename || '');
-    if (!filename.startsWith('stitched_360_') || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-      return res.status(400).json({ success: false, message: 'Tên file không hợp lệ hoặc không có quyền xóa' });
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ success: false, message: 'Tên file không hợp lệ' });
     }
+
+    // Cho phép xóa tất cả ảnh stitched_* (stitched_360_, stitched_room_, stitched_video_360_) hoặc có trong CSDL
+    const isStitchedFile = filename.startsWith('stitched_') || filename.startsWith('pano_');
+    const dbDoc = await PanoramaModel.findOne({ filename });
+
+    if (!isStitchedFile && !dbDoc) {
+      return res.status(400).json({ success: false, message: 'Tệp không thuộc danh mục ảnh 360 hợp lệ' });
+    }
+
     const filePath = path.join(UPLOAD_ROOT, filename);
     if (fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
@@ -1000,9 +1012,17 @@ stitchRouter.post('/panoramas/batch-delete', async (req: Request, res: Response)
     let deletedCount = 0;
     const validNames: string[] = [];
 
+    const dbDocs = await PanoramaModel.find({ filename: { $in: filenames } }).select('filename').lean();
+    const dbFilenames = new Set(dbDocs.map((d: any) => d.filename));
+
     for (const filename of filenames) {
       const cleanName = String(filename || '');
-      if (cleanName.startsWith('stitched_360_') && !cleanName.includes('..') && !cleanName.includes('/') && !cleanName.includes('\\')) {
+      if (!cleanName || cleanName.includes('..') || cleanName.includes('/') || cleanName.includes('\\')) {
+        continue;
+      }
+
+      const isAllowed = cleanName.startsWith('stitched_') || cleanName.startsWith('pano_') || dbFilenames.has(cleanName);
+      if (isAllowed) {
         validNames.push(cleanName);
         const filePath = path.join(UPLOAD_ROOT, cleanName);
         if (fs.existsSync(filePath)) {
