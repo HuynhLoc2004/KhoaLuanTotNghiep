@@ -247,6 +247,34 @@ export const PocStitchingPage: React.FC = () => {
     });
   };
 
+  const handleCleanupOrphans = async () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Dọn dẹp thư viện không gian',
+      message: 'Hệ thống sẽ quét và dọn sạch các tệp rác, các góc chụp lẻ loi không sử dụng để giải phóng dung lượng và giúp thư viện gọn gàng. Bạn có muốn tiếp tục?',
+      type: 'warning',
+      confirmText: 'Dọn dẹp ngay',
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        try {
+          showToast('Đang quét và dọn sạch các tệp rác...', 'info');
+          const res = await fetch(`${API_BASE}/stitch/panoramas/cleanup-orphans`, {
+            method: 'POST'
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast(data.message || 'Đã dọn dẹp thư viện sạch sẽ', 'success');
+            fetchHistory(true);
+          } else {
+            showToast(data.message || 'Lỗi khi dọn dẹp', 'error');
+          }
+        } catch (err: any) {
+          showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
+        }
+      }
+    });
+  };
+
 
 
   // 1. CHỤP ẢNH TỪNG TẤM BẰNG CAMERA NATIVE ĐIỆN THOẠI & TỰ ĐỘNG THẨM ĐỊNH PYTHON
@@ -1311,17 +1339,30 @@ export const PocStitchingPage: React.FC = () => {
                   </h3>
                 </div>
 
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => fetchHistory(true)}
-                  disabled={loadingHistory}
-                  title={t('common.refresh', 'Làm mới')}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  <RotateCw size={13} className={loadingHistory ? 'spin' : ''} />
-                  <span>{loadingHistory ? t('common.loading', 'Đang đồng bộ...') : t('common.refresh', 'Làm mới')}</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleCleanupOrphans}
+                    title="Dọn dẹp các tệp ảnh thừa hoặc góc chụp rác"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)' }}
+                  >
+                    <Trash2 size={13} />
+                    <span>Dọn dẹp rác</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => fetchHistory(true)}
+                    disabled={loadingHistory}
+                    title={t('common.refresh', 'Làm mới')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <RotateCw size={13} className={loadingHistory ? 'spin' : ''} />
+                    <span>{loadingHistory ? t('common.loading', 'Đang đồng bộ...') : t('common.refresh', 'Làm mới')}</span>
+                  </button>
+                </div>
               </div>
 
               <div style={{ padding: '20px' }}>
