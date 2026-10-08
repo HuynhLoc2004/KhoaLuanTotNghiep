@@ -45,11 +45,6 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
 
-  // Dynamic on-the-fly translation cache (cho các ngôn ngữ chưa có bản dịch thủ công trong DB)
-  const [dynamicTranslations, setDynamicTranslations] = useState<
-    Record<string, { name: string; period: string; description: string }>
-  >({});
-  const [isTranslatingDraft, setIsTranslatingDraft] = useState(false);
 
   // Audio player state & Multi-voice selection
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -151,69 +146,63 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     ];
   }, [systemLanguages, activeLanguages]);
 
-  // Bản dịch hiện tại của hiện vật
-  const activeTranslation = React.useMemo(() => {
-    if (!artifact) return null;
-    if (currentLang === 'vi') return null;
-    return artifact.translations?.[currentLang] || dynamicTranslations[currentLang] || null;
-  }, [artifact, currentLang, dynamicTranslations]);
+  // Chọn ngôn ngữ hiển thị trang web (Page Language)
+  const handleSelectLanguage = React.useCallback(
+    (langCode: string) => {
+      if (audioRef) {
+        audioRef.pause();
+      }
+      setIsPlayingAudio(false);
+      setSelectedVoiceLang('auto');
+      changeLanguage(langCode as any).catch(console.error);
+    },
+    [audioRef, changeLanguage]
+  );
 
-  // Tự động dịch On-The-Fly nếu cổ vật chưa có bản dịch lưu sẵn trong DB cho ngôn ngữ đang chọn
+  // Danh sách các ngôn ngữ mà hiện vật này THỰC SỰ HỖ TRỢ (được dịch nội dung hoặc có bản thu âm trong DB)
+  const artifactSupportedLanguages = React.useMemo(() => {
+    if (!artifact) return [];
+    return displayLanguages.filter((lang) => {
+      // 1. Tiếng Việt là ngôn ngữ gốc luôn luôn được hỗ trợ
+      if (lang.code === 'vi') return true;
+
+      // 2. Các ngôn ngữ khác: Chỉ hỗ trợ nếu admin đã tạo bản dịch hoặc voice cho hiện vật này
+      const trans = artifact.translations?.[lang.code];
+      if (!trans) return false;
+
+      const hasText = Boolean(
+        (trans.name && trans.name.trim()) ||
+        (trans.description && trans.description.trim()) ||
+        (trans.narrationScript && trans.narrationScript.trim())
+      );
+      const hasVoice = Boolean(trans.audioNarrationUrl && trans.audioNarrationUrl.trim());
+
+      return hasText || hasVoice;
+    });
+  }, [artifact, displayLanguages]);
+
+  // Tự động chuyển về tiếng Việt nếu người dùng đang ở một ngôn ngữ mà hiện vật này KHÔNG hỗ trợ
   useEffect(() => {
-    if (!artifact || currentLang === 'vi') return;
-
-    // Đã có bản dịch hoàn chỉnh trong artifact.translations
-    const existing = artifact.translations?.[currentLang];
-    if (existing && existing.name && existing.description) {
-      return;
+    if (!artifact || artifactSupportedLanguages.length === 0) return;
+    const isSupported = artifactSupportedLanguages.some((l) => l.code === currentLang);
+    if (!isSupported) {
+      handleSelectLanguage('vi');
     }
+  }, [artifact, artifactSupportedLanguages, currentLang, handleSelectLanguage]);
 
-    // Đã có bản dịch trong cache động
-    if (dynamicTranslations[currentLang]?.name) {
-      return;
-    }
+  // Bản dịch hiện tại của hiện vật từ DB
+  const activeTranslation = React.useMemo(() => {
+    if (!artifact || currentLang === 'vi') return null;
+    return artifact.translations?.[currentLang] || null;
+  }, [artifact, currentLang]);
 
-    let isMounted = true;
-    setIsTranslatingDraft(true);
-
-    api.translateDraft({
-      targetLang: currentLang,
-      name: artifact.name,
-      period: artifact.period,
-      description: artifact.description,
-      narrationScript: (artifact as any).narrationScript || artifact.description
-    })
-      .then((draft) => {
-        if (!isMounted || !draft) return;
-        setDynamicTranslations((prev) => ({
-          ...prev,
-          [currentLang]: {
-            name: draft.name || artifact.name,
-            period: draft.period || artifact.period,
-            description: draft.description || draft.narrationScript || artifact.description
-          }
-        }));
-      })
-      .catch((err) => {
-        console.warn(`[PublicArtifactView] Translate draft for ${currentLang} failed:`, err);
-      })
-      .finally(() => {
-        if (isMounted) setIsTranslatingDraft(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [artifact, currentLang, dynamicTranslations]);
-
-  const displayName = activeTranslation?.name || (currentLang === 'vi' ? artifact?.name : dynamicTranslations[currentLang]?.name || artifact?.name || '');
-  const displayPeriod = activeTranslation?.period || (currentLang === 'vi' ? artifact?.period : dynamicTranslations[currentLang]?.period || artifact?.period || '');
+  const displayName = activeTranslation?.name || artifact?.name || '';
+  const displayPeriod = activeTranslation?.period || artifact?.period || '';
   const displayDescription =
     (activeTranslation as any)?.narrationScript ||
     activeTranslation?.description ||
-    (currentLang === 'vi'
-      ? artifact?.description || ''
-      : dynamicTranslations[currentLang]?.description || artifact?.description || '');
+    artifact?.description ||
+    '';
 
   // Định nghĩa cấu trúc lựa chọn giọng đọc Voice AI
   interface VoiceOption {
@@ -265,12 +254,15 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     return list;
   }, [artifact, displayLanguages]);
 
+  // Giọng đọc tương ứng với ngôn ngữ đang xem hiện tại
+  const currentLangVoice = React.useMemo(() => {
+    return availableVoices.find((v) => v.code === currentLang) || null;
+  }, [availableVoices, currentLang]);
+
   // Xác định giọng đọc đang được kích hoạt:
   // - Nếu người dùng bấm chọn một giọng đọc cụ thể trong Voice Player -> phát giọng đó
-  // - Nếu ở chế độ 'auto':
-  //   + Ưu tiên giọng đọc khớp với ngôn ngữ khách đang xem trang (nếu có)
-  //   + Nếu trang đang xem ngoại ngữ (ví dụ tiếng Pháp) mà hiện vật chưa có bản thu -> fallback về Tiếng Việt
-  //   + Tuyệt đối KHÔNG tự ý gọi API sinh Voice on-the-fly khi khách bấm nghe
+  // - Nếu ở chế độ 'auto': Chỉ kích hoạt nếu ngôn ngữ đang xem CÓ bản thu âm voice (currentLangVoice).
+  //   Nếu ngôn ngữ đang xem không có voice, activeVoice là null -> Không hiện Voice Player (không phát chéo tiếng khác).
   const activeVoice = React.useMemo<VoiceOption | null>(() => {
     if (availableVoices.length === 0) return null;
 
@@ -279,18 +271,8 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       if (found) return found;
     }
 
-    // Chế độ 'auto':
-    // 1. Nếu ngôn ngữ hiển thị hiện tại có sẵn bản thu âm
-    const matched = availableVoices.find((v) => v.code === currentLang);
-    if (matched) return matched;
-
-    // 2. Mặc định phát giọng đọc ngôn ngữ có hỗ trợ (ưu tiên Tiếng Việt 'vi')
-    const viVoice = availableVoices.find((v) => v.code === 'vi');
-    if (viVoice) return viVoice;
-
-    // 3. Fallback bản thu âm đầu tiên có sẵn
-    return availableVoices[0] || null;
-  }, [availableVoices, selectedVoiceLang, currentLang]);
+    return currentLangVoice;
+  }, [availableVoices, selectedVoiceLang, currentLangVoice]);
 
   const activeAudioUrl = activeVoice?.url || null;
 
@@ -362,17 +344,6 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     }
     setIsPlayingAudio(false);
     setSelectedVoiceLang(voiceCode);
-  };
-
-  // Chọn ngôn ngữ hiển thị trang web (Page Language)
-  const handleSelectLanguage = (langCode: string) => {
-    if (audioRef) {
-      audioRef.pause();
-    }
-    setIsPlayingAudio(false);
-    // Reset lựa chọn giọng đọc về 'auto' để tự động khớp với ngôn ngữ mới (hoặc fallback)
-    setSelectedVoiceLang('auto');
-    changeLanguage(langCode).catch(console.error);
   };
 
   const handleAudioSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -486,9 +457,9 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         </div>
 
         <div className="header-right">
-          {/* Language Switcher (Chọn ngôn ngữ hiển thị trang) */}
-          <div className="lang-selector-group">
-            {displayLanguages.map((lang) => {
+          {/* Language Switcher (Chọn ngôn ngữ hiển thị trang - Chỉ hiện ngôn ngữ hiện vật có hỗ trợ) */}
+          <div className="lang-selector-group" data-no-auto-translate="true">
+            {artifactSupportedLanguages.map((lang) => {
               const isCurrent = currentLang === lang.code;
 
               return (
@@ -596,9 +567,12 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           {/* Title & Name */}
           <h1 className="artifact-title">{displayName}</h1>
 
-          {/* AI Voice Narration Guide Player */}
-          {artifact && (
-            <div className={`voice-guide-player ${isPlayingAudio ? 'is-playing' : ''}`}>
+          {/* AI Voice Narration Guide Player: Chỉ hiển thị khi có bản thu âm voice được hỗ trợ */}
+          {activeVoice && activeAudioUrl && (
+            <div
+              className={`voice-guide-player ${isPlayingAudio ? 'is-playing' : ''}`}
+              data-no-auto-translate="true"
+            >
               <div className="player-top">
                 <div className="player-info" style={{ width: '100%' }}>
                   <div className={`guide-icon-pulse ${isPlayingAudio ? 'anim-pulse' : ''}`}>
@@ -613,28 +587,17 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                     <div className="guide-lang-sub" style={{ marginTop: 2 }}>
                       <span
                         className="lang-status-dot"
-                        style={{ backgroundColor: activeVoice ? '#10B981' : '#6b7280' }}
+                        style={{ backgroundColor: '#10B981' }}
                       />
-                      {activeVoice ? (
-                        <span>
-                          {t('artifact.voiceLanguage', 'Giọng đọc')}:{' '}
-                          <strong className="lang-highlight">
-                            {activeVoice.flag} {activeVoice.label}
-                          </strong>
-                          {activeVoice.code !== currentLang && (
-                            <span style={{ fontSize: '0.74rem', opacity: 0.8, marginLeft: 6 }}>
-                              ({t('artifact.fallbackVoiceNote', 'Mặc định do chưa có giọng')} {displayLanguages.find((l) => l.code === currentLang)?.nativeName || currentLang.toUpperCase()})
-                            </span>
-                          )}
-                        </span>
-                      ) : (
-                        <span style={{ opacity: 0.75 }}>
-                          {t('artifact.noVoiceRecorded', 'Hiện vật chưa có bản thu âm thuyết minh')}
-                        </span>
-                      )}
+                      <span>
+                        {t('artifact.voiceLanguage', 'Giọng đọc')}:{' '}
+                        <strong className="lang-highlight">
+                          {activeVoice.flag} {activeVoice.label}
+                        </strong>
+                      </span>
                     </div>
 
-                    {/* Bộ chọn giọng đọc độc lập (Không thay đổi ngôn ngữ trang web) */}
+                    {/* Bộ chọn giọng đọc độc lập nếu hiện vật có từ 2 bản thu âm trở lên */}
                     {availableVoices.length > 1 && (
                       <div
                         className="voice-picker-inline"
@@ -671,7 +634,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                                 color: isSelected ? '#f5d398' : 'rgba(255, 255, 255, 0.8)',
                                 transition: 'all 0.15s ease'
                               }}
-                              title={`Nghe giọng ${v.label} (Không đổi ngôn ngữ giao diện)`}
+                              title={`Nghe giọng ${v.label}`}
                             >
                               <span>{v.flag}</span>
                               <span>{v.label}</span>
@@ -683,51 +646,40 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   </div>
                 </div>
 
-                {activeAudioUrl && (
-                  <button
-                    type="button"
-                    className={`mute-btn ${isAudioMuted ? 'muted' : ''}`}
-                    onClick={toggleAudioMute}
-                    title={isAudioMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
-                  >
-                    {isAudioMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className={`mute-btn ${isAudioMuted ? 'muted' : ''}`}
+                  onClick={toggleAudioMute}
+                  title={isAudioMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+                >
+                  {isAudioMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                </button>
               </div>
 
               {/* Progress Bar & Slider */}
-              {activeAudioUrl && (
-                <div className="player-progress-row">
-                  <span className="player-time current">{formatTime(audioCurrentTime)}</span>
-                  <div className="slider-wrapper">
-                    <input
-                      type="range"
-                      min="0"
-                      max={audioDuration || 100}
-                      step="0.1"
-                      value={audioCurrentTime}
-                      onChange={handleAudioSeek}
-                      className="player-slider"
-                    />
-                  </div>
-                  <span className="player-time total">{formatTime(audioDuration)}</span>
+              <div className="player-progress-row">
+                <span className="player-time current">{formatTime(audioCurrentTime)}</span>
+                <div className="slider-wrapper">
+                  <input
+                    type="range"
+                    min="0"
+                    max={audioDuration || 100}
+                    step="0.1"
+                    value={audioCurrentTime}
+                    onChange={handleAudioSeek}
+                    className="player-slider"
+                  />
                 </div>
-              )}
+                <span className="player-time total">{formatTime(audioDuration)}</span>
+              </div>
 
               <div className="player-actions">
                 <button
                   type="button"
                   className={`btn-play-pause ${isPlayingAudio ? 'playing' : ''}`}
                   onClick={toggleAudio}
-                  disabled={!activeAudioUrl}
-                  style={!activeAudioUrl ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
                 >
-                  {!activeAudioUrl ? (
-                    <>
-                      <VolumeX size={17} />
-                      <span>{t('artifact.noVoiceRecorded', 'Hiện vật chưa có bản thu âm thuyết minh')}</span>
-                    </>
-                  ) : isPlayingAudio ? (
+                  {isPlayingAudio ? (
                     <>
                       <Pause size={17} />
                       <span>{t('artifact.pauseAudio', 'Tạm dừng nghe')}</span>
@@ -791,11 +743,6 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             <h3 className="section-heading">
               <Info size={15} />
               <span>{t('artifact.significanceTitle', 'Giá trị lịch sử & Ý nghĩa văn hóa')}</span>
-              {isTranslatingDraft && (
-                <span style={{ fontSize: '0.72rem', color: 'var(--accent-gold, #d4a86a)', marginLeft: 8 }}>
-                  (AI Translating...)
-                </span>
-              )}
             </h3>
             <div className="description-text">
               {displayDescription ? (
