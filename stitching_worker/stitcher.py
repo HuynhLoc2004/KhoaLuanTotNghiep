@@ -989,44 +989,53 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     canvas_w = int(max_x - min_x + max_w + 30)
     canvas_h = int(max_y - min_y + max_h + 30)
 
-    # 6. Hòa trộn Voronoi Distance Transform (Triệt tiêu 100% nếp gấp và bóng ma)
-    dist_layers = []
+    # 6. Hòa trộn Voronoi Distance Transform Tuyệt Đối Tiết Kiệm RAM (Incremental Compositing)
+    # Không tạo 53 mảng canvas khổng lồ (tránh tràn 2GB RAM trên VPS), xử lý trực tiếp trên 1 canvas duy nhất
+    log(f"[*] Đang hòa trộn Voronoi Distance Transform tối ưu RAM cho canvas {canvas_w}x{canvas_h}...")
+
+    # Pass 1: Tìm khoảng cách cực đại max_dist_canvas cục bộ
+    max_dist_canvas = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+    for i, m in enumerate(warped_masks):
+        cur_h, cur_w = m.shape[:2]
+        px = max(0, int(positions[i][0] - min_x + 10))
+        py = max(0, int(positions[i][1] - min_y + 10))
+        end_y = min(canvas_h, py + cur_h)
+        end_x = min(canvas_w, px + cur_w)
+        use_h = end_y - py
+        use_w = end_x - px
+        dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
+        max_dist_canvas[py:end_y, px:end_x] = np.maximum(max_dist_canvas[py:end_y, px:end_x], dist_local[:use_h, :use_w])
+
+    # Pass 2: Tích lũy màu sắc và trọng số mềm tại đường nối Voronoi
+    accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
+    accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+    feather_band = 8.0 # pixels
+
     for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
         cur_h, cur_w = im.shape[:2]
         px = max(0, int(positions[i][0] - min_x + 10))
         py = max(0, int(positions[i][1] - min_y + 10))
-        dist = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
-        layer = np.zeros((canvas_h, canvas_w), dtype=np.float32)
         end_y = min(canvas_h, py + cur_h)
         end_x = min(canvas_w, px + cur_w)
         use_h = end_y - py
         use_w = end_x - px
-        layer[py:end_y, px:end_x] = dist[:use_h, :use_w]
-        dist_layers.append(layer)
 
-    stacked_dist = np.stack(dist_layers, axis=0)
-    max_dist = np.max(stacked_dist, axis=0)
+        dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
+        dist_crop = dist_local[:use_h, :use_w]
+        local_max = max_dist_canvas[py:end_y, px:end_x]
 
-    feather_band = 8.0 # pixels
-    weights = np.maximum(0.0, 1.0 - (max_dist[None, :, :] - stacked_dist) / feather_band)
-    weights[stacked_dist <= 0] = 0.0
-    sum_w = np.sum(weights, axis=0, keepdims=True)
-    safe_sum = np.maximum(sum_w, 1e-5)
-    norm_weights = weights / safe_sum
+        w_crop = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_band)
+        w_crop[dist_crop <= 0] = 0.0
 
-    blended = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
-    for i, im in enumerate(warped_imgs):
-        cur_h, cur_w = im.shape[:2]
-        px = max(0, int(positions[i][0] - min_x + 10))
-        py = max(0, int(positions[i][1] - min_y + 10))
-        end_y = min(canvas_h, py + cur_h)
-        end_x = min(canvas_w, px + cur_w)
-        use_h = end_y - py
-        use_w = end_x - px
-        w_crop = norm_weights[i, py:end_y, px:end_x]
-        blended[py:end_y, px:end_x] += im[:use_h, :use_w].astype(np.float32) * w_crop[:, :, None]
+        accum_color[py:end_y, px:end_x] += im[:use_h, :use_w].astype(np.float32) * w_crop[:, :, None]
+        accum_weight[py:end_y, px:end_x] += w_crop
 
-    blended = np.clip(blended, 0, 255).astype(np.uint8)
+    safe_weight = np.maximum(accum_weight[:, :, None], 1e-5)
+    blended = (accum_color / safe_weight).clip(0, 255).astype(np.uint8)
+
+    # Giải phóng ngay lập tức các mảng tạm
+    del accum_color, accum_weight, max_dist_canvas
+    gc.collect()
     is_full_360 = (canvas_w >= 2.4 * canvas_h)
     log(f"[✓] Động cơ Ghép Chuỗi Quang Học: Đã tạo thành công không gian phòng {canvas_w}x{canvas_h} không nếp gấp!")
     return blended, is_full_360
@@ -1115,8 +1124,8 @@ def run_stitch(image_paths, output_path, target_width=0):
         except Exception as e:
             log(f"[!] OpenCV Native dự phòng gặp sự cố: {e}")
 
-    # Ưu tiên 3: Nếu vẫn chưa có kết quả và Hugin khả dụng
-    if final_pano is None and is_hugin_available():
+    # Ưu tiên 3: Nếu vẫn chưa có kết quả và Hugin khả dụng (chỉ áp dụng cho chuỗi ít ảnh <= 12 để tránh treo quá 180s)
+    if final_pano is None and is_hugin_available() and len(sorted_paths) <= 12:
         log("[*] Thử nghiệm Hugin CLI dự phòng...")
         hugin_ok, hugin_img = run_hugin_stitch(sorted_paths, output_path, target_width=out_w)
         if hugin_ok and hugin_img is not None:
