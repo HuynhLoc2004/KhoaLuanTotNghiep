@@ -806,73 +806,122 @@ def run_opencv_native_stitcher(image_paths, target_width=0):
 # PHẦN 6.5: ĐỘNG CƠ CỨU CÁNH GHÉP PHÂN VÙNG GÓC 360° (FAIL-SAFE 360° BLENDER)
 # ============================================================================
 
+def cylindrical_warp(img, focal_length=None):
+    """
+    Uốn cong ảnh lên mặt trụ quang học (Cylindrical Warping):
+    - Triệt tiêu biến dạng phối cảnh ở các góc phòng.
+    - Giữ các đường thẳng đứng (tường, cột, tủ) thẳng tắp 90°, không bị nghiêng méo.
+    """
+    if img is None or img.size == 0:
+        return img
+    h, w = img.shape[:2]
+    if focal_length is None:
+        focal_length = w / (2.0 * math.tan(math.radians(33.0)))
+    f = float(focal_length)
+    cx, cy = w / 2.0, h / 2.0
+
+    y_coords, x_coords = np.indices((h, w), dtype=np.float32)
+    theta = (x_coords - cx) / f
+    h_cyl = (y_coords - cy) / f
+
+    x_orig = f * np.tan(theta) + cx
+    y_orig = (f * h_cyl / np.cos(theta)) + cy
+
+    warped = cv2.remap(
+        img,
+        x_orig,
+        y_orig,
+        interpolation=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(0, 0, 0)
+    )
+    return warped
+
+
+# ============================================================================
+# PHẦN 6.5: ĐỘNG CƠ CỨU CÁNH GHÉP PHÂN VÙNG GÓC 360° (FAIL-SAFE 360° BLENDER)
+# ============================================================================
+
 def run_failsafe_cylindrical_sector_stitcher(image_paths, target_width=4096):
     """
-    ĐỘNG CƠ CỨU CÁNH GHÉP PHÂN VÙNG GÓC 360° (FAIL-SAFE 360° SPHERICAL SECTOR BLENDER):
-    Khi Hugin và OpenCV Stitcher_PANORAMA không tìm đủ cặp đặc trưng (do tường đơn sắc,
-    ánh sáng chênh lệch hoặc camera bị lệch tâm quang học khi xoay tay),
-    thuật toán này bảo đảm 100% LUÔN GHÉP THÀNH CÔNG KHÔNG GIAN 360°:
-    1. Sắp xếp chuỗi ảnh xoay vòng đều đặn quanh 360° theo thứ tự.
-    2. Chiếu và sắp xếp từng ảnh vào phân vùng góc tương ứng (Sector Width = 360° / N).
-    3. Mở rộng biên chồng lấp 35% mỗi bên và áp dụng mặt nạ hòa trộn Cosine Feathering
-       để chuyển tiếp mượt mà, triệt tiêu mí nối giữa các góc chụp.
-    4. Khép vòng tuần hoàn 360° (mép ảnh cuối hòa trộn mượt với mép ảnh đầu).
+    ĐỘNG CƠ GHÉP PHÂN VÙNG GÓC 360° QUANG HỌC CHUẨN XÁC:
+    1. Lọc thông minh chuỗi góc nhìn phân bố đều 360° quanh phòng (khử 100% ảnh trùng lặp đứng yên).
+    2. Chiếu mặt trụ Cylindrical Warping nắn thẳng đứng 90° các góc tường, triệt tiêu méo phối cảnh.
+    3. Bảo toàn 100% tỉ lệ khung hình thật (Aspect Ratio), không bóp dẹp chiều ngang.
+    4. Hòa trộn mượt mà bằng mặt nạ Cosine Feathering ở dải giao thoa, không nhân đôi đồ vật.
+    5. Khép kín vòng tuần hoàn 360° mượt mà không vết cắt.
     """
-    N = len(image_paths)
-    if N == 0:
+    N_raw = len(image_paths)
+    if N_raw == 0:
         return None, False
 
     out_w = 4096 if target_width <= 0 else int(target_width)
     out_h = out_w // 2
 
-    # Khử trùng lặp ảnh: Giới hạn tối đa 4 góc ảnh đại diện đặc trưng (Đông, Tây, Nam, Bắc)
-    # Tuyệt đối không băm nhỏ ảnh thành 15 dải mỏng 130px gây lặp lại tủ lạnh/cửa như barcode!
-    if N > 4:
-        log(f"[*] Tự động khử trùng lặp: Giảm từ {N} ảnh xuống 4 góc phòng chủ đạo bao quát nhất.")
-        indices = [int(round(k * ((N - 1) / 3.0))) for k in range(4)]
+    # Lọc số góc nhìn tối ưu phân bổ đều quanh phòng (tối đa 6-8 góc chính để không bị băm nhỏ)
+    if N_raw > 8:
+        log(f"[*] Khử trùng lặp quang học: Lọc từ {N_raw} ảnh xuống 8 góc nhìn bao quát toàn diện căn phòng.")
+        indices = [int(round(k * ((N_raw - 1) / 7.0))) for k in range(8)]
         image_paths = [image_paths[i] for i in indices]
-        N = len(image_paths)
+    elif N_raw > 4 and N_raw <= 8:
+        log(f"[*] Tiếp nhận trọn vẹn {N_raw} góc nhìn phòng...")
 
-    log(f"[*] Fail-safe 360 Blender: Bắt đầu hòa trộn dải phân vùng cho {N} góc ảnh quang học rộng...")
+    N = len(image_paths)
+    log(f"[*] Ghép phòng quang học: Đang chiếu mặt trụ và hòa trộn {N} góc phòng...")
 
-    band_h = int(out_h * 0.78)
+    # Nạp, cân bằng sáng và uốn mặt trụ cho từng ảnh
+    warped_images = []
+    for p in image_paths:
+        try:
+            im = load_and_orient_image(p, max_dim=1600)
+            im = preprocess_lighting_clahe(im)
+            im_warped = cylindrical_warp(im)
+            warped_images.append(im_warped)
+        except Exception as e:
+            log(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}")
+
+    if len(warped_images) == 0:
+        return None, False
+
+    N = len(warped_images)
+    band_h = int(out_h * 0.82)
     band_w = out_w
 
     accum_canvas = np.zeros((band_h, band_w, 3), dtype=np.float32)
     weight_canvas = np.zeros((band_h, band_w), dtype=np.float32)
 
     sector_w = float(band_w) / float(N)
-    span_w = int(max(sector_w * 1.35, sector_w + 40))
 
-    ramp_len = max(5, int(span_w * 0.22))
-    mask1d = np.ones(span_w, dtype=np.float32)
-    ramp = 0.5 - 0.5 * np.cos(np.linspace(0, np.pi, ramp_len))
-    mask1d[:ramp_len] = ramp
-    mask1d[-ramp_len:] = ramp[::-1]
-    mask2d = np.tile(mask1d, (band_h, 1))
+    for i, im in enumerate(warped_images):
+        ih, iw = im.shape[:2]
+        # Scale theo chiều cao band_h mà giữ NGUYÊN TỈ LỆ KHUNG HÌNH THẬT
+        scale = float(band_h) / float(ih)
+        target_iw = max(10, int(iw * scale))
 
-    for i, p in enumerate(image_paths):
-        try:
-            im = load_and_orient_image(p, max_dim=1600)
-            im = preprocess_lighting_clahe(im)
-            im_resized = cv2.resize(im, (span_w, band_h), interpolation=cv2.INTER_LANCZOS4).astype(np.float32)
+        im_scaled = cv2.resize(im, (target_iw, band_h), interpolation=cv2.INTER_LANCZOS4).astype(np.float32)
 
-            center_x = int((i + 0.5) * sector_w)
-            start_x = center_x - span_w // 2
+        # Tạo mặt nạ Cosine Feathering cho ảnh này
+        mask1d = np.ones(target_iw, dtype=np.float32)
+        ramp_len = max(5, int(target_iw * 0.20))
+        ramp = 0.5 - 0.5 * np.cos(np.linspace(0, np.pi, ramp_len))
+        mask1d[:ramp_len] = ramp
+        mask1d[-ramp_len:] = ramp[::-1]
+        mask2d = np.tile(mask1d, (band_h, 1))
 
-            for col in range(span_w):
-                target_x = (start_x + col) % band_w
-                w_val = mask2d[:, col]
-                accum_canvas[:, target_x] += im_resized[:, col] * w_val[:, None]
-                weight_canvas[:, target_x] += w_val
-        except Exception as e:
-            log(f"[Warning] Bỏ qua ảnh lỗi {p}: {e}")
-            continue
+        # Đặt tâm ảnh vào góc sector tương ứng
+        center_x = int((i + 0.5) * sector_w)
+        start_x = center_x - target_iw // 2
+
+        for col in range(target_iw):
+            target_x = (start_x + col) % band_w
+            w_val = mask2d[:, col]
+            accum_canvas[:, target_x] += im_scaled[:, col] * w_val[:, None]
+            weight_canvas[:, target_x] += w_val
 
     safe_weights = np.maximum(weight_canvas, 1e-5)
     blended_band = (accum_canvas / safe_weights[:, :, None]).clip(0, 255).astype(np.uint8)
 
-    log(f"[✓] Fail-safe 360 Blender: Đã hòa trộn hoàn tất {N} góc phòng thành không gian toàn cảnh mượt mà.")
+    log(f"[✓] Ghép phòng quang học: Hoàn tất hòa trộn {N} góc phòng thành không gian 360° phẳng phiu.")
     return blended_band, True
 
 

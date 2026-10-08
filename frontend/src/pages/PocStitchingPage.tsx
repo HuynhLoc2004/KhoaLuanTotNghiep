@@ -67,15 +67,26 @@ interface VerifiedFrame {
   evaluation?: FrameEvaluation;
 }
 
+interface RoomSceneView {
+  id: string;
+  index: number;
+  title: string;
+  url: string;
+  filename: string;
+  isPrimary: boolean;
+}
+
 interface StitchResult {
+  id?: string;
   panoramaUrl: string;
   cloudinaryUrl?: string;
   r2Url?: string;
   filename: string;
   width: number;
   height: number;
-  aspectRatio: string;
+  aspectRatio: string | number;
   message: string;
+  views?: RoomSceneView[];
 }
 
 export const PocStitchingPage: React.FC = () => {
@@ -85,6 +96,10 @@ export const PocStitchingPage: React.FC = () => {
 
   // Danh sách các khung hình chụp từ camera điện thoại đã/đang được thẩm định
   const [verifiedFrames, setVerifiedFrames] = useState<VerifiedFrame[]>([]);
+  // Góc chụp được chọn làm ảnh phòng chính (Hero View)
+  const [primaryFrameId, setPrimaryFrameId] = useState<string | null>(null);
+  // Góc nhìn đang hiển thị trên Viewer
+  const [activeViewUrl, setActiveViewUrl] = useState<string | null>(null);
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
   const [batchFiles, setBatchFiles] = useState<File[]>([]);
   const [batchPreviews, setBatchPreviews] = useState<string[]>([]);
@@ -608,6 +623,10 @@ export const PocStitchingPage: React.FC = () => {
       targetFrames = uniqueIndices.map((idx) => framesToStitch[idx]);
     }
 
+    // Gửi chỉ mục góc ảnh chính được người dùng chỉ định
+    const primaryIdx = primaryFrameId ? targetFrames.findIndex((f) => f.id === primaryFrameId) : 0;
+    formData.append('primaryIndex', String(primaryIdx >= 0 ? primaryIdx : 0));
+
     // Ưu tiên nạp các serverPath đã được server lưu sẵn từ bước thẩm định
     const serverPaths = targetFrames.map((f) => f.serverPath).filter(Boolean);
     if (serverPaths.length === targetFrames.length && serverPaths.length > 0) {
@@ -655,6 +674,7 @@ export const PocStitchingPage: React.FC = () => {
         panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
       };
       setStitchResult(resData);
+      setActiveViewUrl(resData.panoramaUrl);
       fetchHistory();
       showToast('Đã tạo không gian căn phòng thành công!', 'success');
 
@@ -887,30 +907,34 @@ export const PocStitchingPage: React.FC = () => {
                             ? 'Đang kiểm tra ảnh...'
                             : `Góc nhìn ${idx + 1} đạt chuẩn, sẵn sàng để tạo căn phòng.`;
                           return (
-                            <div
-                              key={frame.id}
-                              className={`studio-frame-cell is-${state}`}
-                              title={`Góc nhìn ${idx + 1}: ${frame.file?.name || 'Ảnh'}. ${statusText}`}
-                              style={{ position: 'relative' }}
-                            >
-                              <img src={frame.previewUrl} alt={`Góc nhìn ${idx + 1}`} />
-                              <span className="studio-frame-index">{idx + 1}</span>
-
-                              {/* Nút bấm trực tiếp tạo phòng từ góc ảnh này (không méo hình, không lặp lại) */}
-                              <button
-                                type="button"
-                                onClick={() => handleCreateRoomFromSingleFrame(frame)}
-                                disabled={isProcessing}
-                                className="studio-frame-pick-btn"
-                                title="Tạo ngay gian phòng bảo tàng từ góc ảnh này (giữ nguyên độ nét, không méo hình)"
+                              <div
+                                key={frame.id}
+                                className={`studio-frame-cell is-${state} ${primaryFrameId === frame.id ? 'is-primary-frame' : ''}`}
+                                title={`Góc nhìn ${idx + 1}: ${frame.file?.name || 'Ảnh'}. ${statusText}`}
+                                style={{
+                                  position: 'relative',
+                                  border: primaryFrameId === frame.id ? '2px solid var(--accent-gold, #d4a86a)' : undefined,
+                                  boxShadow: primaryFrameId === frame.id ? '0 0 10px rgba(212, 168, 106, 0.4)' : undefined
+                                }}
                               >
-                                {singleCreatingId === frame.id ? (
-                                  <Loader2 size={11} className="spin" />
-                                ) : (
+                                <img src={frame.previewUrl} alt={`Góc nhìn ${idx + 1}`} />
+                                <span className="studio-frame-index">{idx + 1}</span>
+
+                                {/* Nút đánh dấu làm Góc nhìn chính */}
+                                <button
+                                  type="button"
+                                  onClick={() => setPrimaryFrameId(frame.id)}
+                                  className="studio-frame-pick-btn"
+                                  style={{
+                                    backgroundColor: primaryFrameId === frame.id ? 'var(--accent-gold, #d4a86a)' : 'rgba(0,0,0,0.65)',
+                                    color: primaryFrameId === frame.id ? '#000' : '#fff',
+                                    fontWeight: primaryFrameId === frame.id ? 700 : 500
+                                  }}
+                                  title="Chọn làm góc chụp chính của căn phòng"
+                                >
                                   <Sparkles size={11} />
-                                )}
-                                <span>Tạo phòng</span>
-                              </button>
+                                  <span>{primaryFrameId === frame.id ? '⭐ Góc chính' : 'Đặt làm chính'}</span>
+                                </button>
 
                               {frame.isVerifying && (
                                 <span className="studio-frame-checking">
@@ -1035,7 +1059,7 @@ export const PocStitchingPage: React.FC = () => {
                             <span>
                               {totalFrames === 1
                                 ? 'Tạo không gian phòng từ 1 ảnh này'
-                                : `Tạo không gian phòng thông minh (${totalFrames} góc ảnh)`}
+                                : `Tạo không gian phòng toàn cảnh (${totalFrames} góc ảnh)`}
                             </span>
                           </>
                         )}
@@ -1180,13 +1204,67 @@ export const PocStitchingPage: React.FC = () => {
                     )}
 
                     {stitchResult ? (
-                      <Pannellum360Viewer
-                        panoramaUrl={stitchResult.panoramaUrl}
-                        title={stitchResult.filename}
-                        autoStartLittlePlanet={false}
-                        initialPitch={0}
-                        initialHfov={95}
-                      />
+                      <>
+                        <Pannellum360Viewer
+                          panoramaUrl={activeViewUrl || stitchResult.panoramaUrl}
+                          title={stitchResult.filename}
+                          autoStartLittlePlanet={false}
+                          initialPitch={0}
+                          initialHfov={95}
+                        />
+
+                        {/* Thanh chuyển đổi Multi-view các góc nhìn trong phòng */}
+                        {stitchResult.views && stitchResult.views.length > 1 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              padding: '10px 14px',
+                              background: 'rgba(15, 20, 28, 0.96)',
+                              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                              overflowX: 'auto',
+                              scrollbarWidth: 'thin'
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: 'var(--accent-gold, #d4a86a)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <Sparkles size={14} />
+                              Chuyển góc nhìn ({stitchResult.views.length}):
+                            </span>
+                            {stitchResult.views.map((v, i) => {
+                              const isActive = (activeViewUrl || stitchResult.panoramaUrl) === v.url;
+                              return (
+                                <button
+                                  key={v.id || i}
+                                  type="button"
+                                  onClick={() => setActiveViewUrl(v.url)}
+                                  className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                                  style={{
+                                    fontSize: '11.5px',
+                                    padding: '5px 12px',
+                                    whiteSpace: 'nowrap',
+                                    borderRadius: '6px',
+                                    fontWeight: isActive ? 600 : 400
+                                  }}
+                                >
+                                  {v.isPrimary ? '⭐ ' : ''}
+                                  {v.title || `Góc ${i + 1}`}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="studio-empty-viewer">
                         <div className="studio-empty-icon">
