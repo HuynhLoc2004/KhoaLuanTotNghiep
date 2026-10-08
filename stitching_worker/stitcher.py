@@ -822,7 +822,7 @@ def run_opencv_native_stitcher(image_paths, target_width=0):
         except Exception as err:
             log(f"[!] Lỗi khi chạy cấu hình {desc}: {err}")
         finally:
-            del images
+            images = None
             gc.collect()
 
 def run_planar_architectural_stitcher(image_paths, target_width=0):
@@ -847,10 +847,9 @@ def run_planar_architectural_stitcher(image_paths, target_width=0):
         return enhance_museum_details(im)
 
     configs = [
-        (cv2.Stitcher_SCANS, 1600, 0.08, "SCANS Độ nét cao"),
+        (cv2.Stitcher_PANORAMA, 1400, 0.05, "PANORAMA Kiến trúc Sắc nét"),
+        (cv2.Stitcher_PANORAMA, 1100, 0.02, "PANORAMA Siêu Bắt Điểm"),
         (cv2.Stitcher_SCANS, 1200, 0.04, "SCANS Nhạy cảm"),
-        (cv2.Stitcher_SCANS, 900, 0.02, "SCANS Siêu bắt điểm"),
-        (cv2.Stitcher_PANORAMA, 1200, 0.04, "PANORAMA Phẳng Dự phòng"),
     ]
 
     for mode, max_dim, conf, desc in configs:
@@ -885,15 +884,13 @@ def run_planar_architectural_stitcher(image_paths, target_width=0):
                 if cropped is None or cropped.size == 0:
                     cropped = pano
                 enhanced = enhance_museum_details(cropped)
-                del images
-                gc.collect()
                 return enhanced
             else:
                 log(f"[!] Cấu hình {desc} không hội tụ (status={status})")
         except Exception as e:
             log(f"[!] Lỗi cấu hình {desc}: {e}")
         finally:
-            del images
+            images = None
             gc.collect()
 
     return None
