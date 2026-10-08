@@ -233,7 +233,7 @@ async function finalizePanoramaAndRespond(
         r2Url: cloudR2Url || '',
         width,
         height,
-        aspectRatio: 2.0,
+        aspectRatio: (width && height) ? Number((width / height).toFixed(2)) : 1.77,
         sizeBytes: stats ? stats.size : 0,
         inputFramesCount: imagePathsCount,
         status: 'ready',
@@ -288,62 +288,38 @@ function extractJsonFromOutput(raw: string): any {
 }
 
 /**
- * Helper tạo ảnh không gian 2:1 cho 1 góc phòng:
- * Giữ nguyên 100% hình ảnh không gian của góc chụp (sắc nét nguyên bản, không crop, không méo),
- * kết hợp phông nền Ambient Backdrop mở rộng nghệ thuật cho Viewer 360.
+ * Helper tối ưu và lưu trữ ảnh góc phòng sắc nét nguyên bản 100%:
+ * Giữ nguyên 100% tỉ lệ khung hình (Aspect Ratio), tự động xoay chuẩn theo cảm biến điện thoại,
+ * KHÔNG cắt xén (no crop), KHÔNG bóp méo (no distortion), KHÔNG đắp viền mờ (no blur).
  */
-async function renderAmbientPanorama(srcPath: string, destPath: string, targetWidth = 2560) {
-  const targetHeight = Math.round(targetWidth / 2);
+async function optimizeRoomViewImage(srcPath: string, destPath: string, maxDim = 2560) {
   const meta = await sharp(srcPath).metadata();
   const srcW = meta.width || 1920;
   const srcH = meta.height || 1080;
-  const ratio = srcW / srcH;
 
-  // Nếu ảnh đã là dạng pano 2:1 sẵn (1.75 -> 2.25)
-  if (ratio >= 1.75 && ratio <= 2.25) {
-    await sharp(srcPath)
-      .rotate()
-      .resize(targetWidth, targetHeight, { fit: 'fill' })
-      .jpeg({ quality: 95, mozjpeg: true })
-      .toFile(destPath);
-    return { width: targetWidth, height: targetHeight };
+  let pipeline = sharp(srcPath).rotate();
+  if (Math.max(srcW, srcH) > maxDim) {
+    pipeline = pipeline.resize({
+      width: srcW >= srcH ? maxDim : undefined,
+      height: srcH > srcW ? maxDim : undefined,
+      fit: 'inside',
+      withoutEnlargement: true
+    });
   }
 
-  // Tạo nền mờ mở rộng 2:1 mượt mà lấp đầy không gian phòng
-  const ambientBg = await sharp(srcPath)
-    .rotate()
-    .resize(targetWidth, targetHeight, { fit: 'cover' })
-    .blur(25)
-    .modulate({ brightness: 0.65, saturation: 1.1 })
-    .toBuffer();
-
-  const mainForeground = await sharp(srcPath)
-    .rotate()
-    .resize({
-      width: Math.round(targetWidth * 0.9),
-      height: targetHeight,
-      fit: 'inside'
-    })
-    .png()
-    .toBuffer();
-
-  await sharp(ambientBg)
-    .composite([{ input: mainForeground, gravity: 'center' }])
-    .jpeg({ quality: 95, mozjpeg: true })
+  const info = await pipeline
+    .jpeg({ quality: 94, mozjpeg: true })
     .toFile(destPath);
 
-  return { width: targetWidth, height: targetHeight };
+  return { width: info.width || srcW, height: info.height || srcH };
 }
 
 /**
- * TẠO GIAN PHÒNG BẢO TÀNG ĐA GÓC NHÌN (MUSEUM MULTI-VIEW ROOM TOUR - CÁCH 2 CHUẨN MỰC):
- * 1. Không ép vá các ảnh vào nhau (100% không nếp gấp, 100% không méo mó, không sóng lượn).
- * 2. Góc chụp bao quát chính (primaryIndex) được render mở rộng ambient 2:1 mượt mà làm không gian phòng bao quát.
- * 3. Toàn bộ các góc chụp chi tiết còn lại được lưu giữ sắc nét 100% nguyên bản của camera,
- *    lưu file dạng scene_view_${timestamp}_${i + 1}.jpg (không bắt đầu bằng stitched_ để không làm rác thư viện).
- * 4. Lưu ĐÚNG 1 BẢN GHI (1 CARD DUY NHẤT) đại diện cho gian phòng đó trong MongoDB và Thư viện.
- * 5. Trên trình xem Viewer: Người xem mở ra góc chính và có thanh chuyển góc nhanh mượt mà [Góc Tủ Kính 1], [Góc Bức Họa],...
- * 6. Xử lý siêu tốc: chỉ 0.5s - 1s, cực nhẹ cho VPS, 100% ổn định tuyệt đối.
+ * TẠO GIAN PHÒNG BẢO TÀNG ĐA GÓC NHÌN (INTERACTIVE SPATIAL MUSEUM ROOM TOUR):
+ * 1. Lưu toàn bộ các góc chụp của gian phòng thành ĐÚNG 1 GIAN PHÒNG DUY NHẤT trong thư viện.
+ * 2. 100% bảo tồn ảnh chụp gốc sắc nét của camera, không nếp gấp, không méo mó, không viền mờ.
+ * 3. Hỗ trợ đầy đủ danh sách các góc nhìn (views) để người xem tham quan không gian phòng thực thụ.
+ * 4. Xử lý siêu tốc (< 1s), cực nhẹ cho VPS.
  */
 async function stitchMultiViewRoom(
   req: Request,
@@ -366,10 +342,8 @@ async function stitchMultiViewRoom(
   const primaryPath = validPaths[primaryIdx];
   const timestamp = Date.now();
 
-  // 1. Render góc chính của gian phòng vào outputPath (stitched_room_${timestamp}.jpg)
-  const targetWidth = 2560;
-  const targetHeight = 1280;
-  await renderAmbientPanorama(primaryPath, outputPath, targetWidth);
+  // 1. Lưu góc chính của gian phòng vào outputPath (stitched_room_${timestamp}.jpg) - SẮC NÉT NGUYÊN BẢN
+  const primaryMeta = await optimizeRoomViewImage(primaryPath, outputPath, 2560);
 
   // Đồng bộ ảnh chính lên Cloudflare R2 / Cloudinary
   let finalPanoramaUrl = `${baseUrl}/uploads/${outFilename}`;
@@ -389,7 +363,7 @@ async function stitchMultiViewRoom(
   if (cloudinaryUrl) finalPanoramaUrl = cloudinaryUrl;
   else if (cloudR2Url) finalPanoramaUrl = `${baseUrl}/api/stitch/proxy-image?url=${encodeURIComponent(cloudR2Url)}`;
 
-  // 2. Xử lý danh sách các góc nhìn chi tiết (views)
+  // 2. Xử lý danh sách toàn bộ các góc nhìn chi tiết trong gian phòng (views)
   const views: RoomSceneView[] = [];
 
   for (let i = 0; i < validPaths.length; i++) {
@@ -409,7 +383,7 @@ async function stitchMultiViewRoom(
       const sceneFilePath = path.join(UPLOAD_ROOT, sceneFilename);
 
       try {
-        await renderAmbientPanorama(srcP, sceneFilePath, targetWidth);
+        await optimizeRoomViewImage(srcP, sceneFilePath, 2560);
 
         let sceneUrl = `${baseUrl}/uploads/${sceneFilename}`;
 
@@ -432,17 +406,17 @@ async function stitchMultiViewRoom(
     }
   }
 
-  // 3. Phản hồi và lưu vào MongoDB (ĐÚNG 1 CARD DUY NHẤT)
+  // 3. Phản hồi và lưu vào MongoDB (ĐÚNG 1 GIAN PHÒNG DUY NHẤT)
   return await finalizePanoramaAndRespond(
     req,
     res,
     outputPath,
     outFilename,
-    targetWidth,
-    targetHeight,
+    primaryMeta.width || 2560,
+    primaryMeta.height || 1440,
     validPaths.length,
-    'Museum Multi-View Room Tour (Cách 2)',
-    `Đã tạo thành công gian phòng bảo tàng đa góc nhìn gồm ${views.length} góc chụp sắc nét nguyên bản.`,
+    'Interactive Spatial Museum Room (Không Gian Phòng Đa Góc Nhìn)',
+    `Đã tạo thành công không gian gian phòng bảo tàng gồm ${views.length} góc nhìn sắc nét nguyên bản.`,
     views
   );
 }
