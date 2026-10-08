@@ -20,6 +20,7 @@ const STORAGE_LANG_KEY = 'museum_client_lang';
 const BUNDLE_STORAGE_PREFIX = 'museum_i18n_bundle_';
 const DYNAMIC_I18N_STORAGE_PREFIX = 'museum_dynamic_i18n_v2_';
 const VIETNAMESE_REGEX = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/i;
+const ORIG_VI_MAP = new WeakMap<Node, string>();
 
 // Loại bỏ triệt để hậu tố mã nguồn 'vi' và khắc phục các sai lệch từ vựng du lịch/nhà nghỉ của Google Translate
 export function cleanTranslationResult(str: string, orig: string, targetLang: string): string {
@@ -562,10 +563,12 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
   const enqueueForTranslation = useCallback((text: string) => {
     if (!text || currentLang === 'vi') return;
     const clean = text.trim();
-    if (clean.length < 2 || clean.length > 500) return;
-    if (!VIETNAMESE_REGEX.test(clean)) return;
+    if (clean.length < 2 || clean.length > 4000) return;
     if (autoTranslations[clean]) return;
     if (pendingQueueRef.current.has(clean)) return;
+
+    // Bỏ qua nếu chỉ là số hoặc ký hiệu
+    if (/^[\d\s.,:;!?()\-+/*#@$%^&~`'"{}[\]<>]+$/.test(clean)) return;
 
     pendingQueueRef.current.add(clean);
 
@@ -723,60 +726,41 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
           const trimmed = text.trim();
           if (!trimmed) return;
 
-          // Xác định văn bản tiếng Việt gốc ban đầu
-          let origText = '';
-          if (VIETNAMESE_REGEX.test(trimmed)) {
-            // Đã là tiếng Việt -> ghi nhận là bản gốc tiếng Việt mới nhất
-            origText = trimmed;
-            (node as any).__i18nOrigVI = trimmed;
-            node.parentElement?.setAttribute('data-i18n-orig-vi', trimmed);
-          } else {
-            const origCandidate = (node as any).__i18nOrigVI || node.parentElement?.getAttribute('data-i18n-orig-vi');
-            if (origCandidate) {
-              origText = origCandidate;
+          // 1. Xác định văn bản tiếng Việt gốc (Chỉ lưu trên chính TextNode này, KHÔNG bao giờ lưu lên parent element)
+          let origText = (node as any).__i18nOrigVI || ORIG_VI_MAP.get(node);
+          if (!origText) {
+            if (VIETNAMESE_REGEX.test(trimmed)) {
+              origText = trimmed;
             } else {
-              // Node đang hiển thị ngoại ngữ -> tra ngược về tiếng Việt gốc qua cache
               const viFromReverse =
                 DYNAMIC_REVERSE_MAP[trimmed.toLowerCase()] ||
                 DYNAMIC_REVERSE_MAP[trimmed.replace(/vi$/i, '').trim().toLowerCase()] ||
                 REVERSE_LOOKUP_CACHE[trimmed.toLowerCase()] ||
                 REVERSE_LOOKUP_CACHE[trimmed.replace(/vi$/i, '').trim().toLowerCase()];
-              if (viFromReverse) {
-                origText = viFromReverse;
-                (node as any).__i18nOrigVI = viFromReverse;
-                node.parentElement?.setAttribute('data-i18n-orig-vi', viFromReverse);
-              } else {
-                origText = trimmed;
-              }
+              origText = viFromReverse || trimmed;
             }
+            (node as any).__i18nOrigVI = origText;
+            ORIG_VI_MAP.set(node, origText);
           }
 
           // NẾU ĐANG CHỌN TIẾNG VIỆT: Phục hồi lại văn bản tiếng Việt gốc 100%
           if (currentLang === 'vi') {
-            if (!VIETNAMESE_REGEX.test(trimmed)) {
-              const viCandidate =
-                origText ||
-                (node as any).__i18nOrigVI ||
-                node.parentElement?.getAttribute('data-i18n-orig-vi') ||
-                DYNAMIC_REVERSE_MAP[trimmed.toLowerCase()] ||
-                REVERSE_LOOKUP_CACHE[trimmed.toLowerCase()];
-              if (viCandidate && trimmed !== viCandidate) {
-                node.textContent = text.replace(trimmed, viCandidate);
-              }
+            if ((node as any).__i18nCurLang && (node as any).__i18nCurLang !== 'vi') {
+              const leading = text.match(/^\s*/)?.[0] || '';
+              const trailing = text.match(/\s*$/)?.[0] || '';
+              node.textContent = leading + origText + trailing;
+              (node as any).__i18nCurLang = 'vi';
+              delete (node as any).__i18nApplied;
             }
-            delete (node as any).__i18nOrigVI;
-            delete (node as any).__i18nCurLang;
-            delete (node as any).__i18nApplied;
-            node.parentElement?.removeAttribute('data-i18n-orig-vi');
             return;
           }
 
-          // Nếu node đã được dịch sang ngôn ngữ này rồi thì bỏ qua
+          // Nếu node đã được áp dụng đúng ngôn ngữ hiện tại và văn bản không đổi thì bỏ qua
           if ((node as any).__i18nCurLang === currentLang && (node as any).__i18nApplied === trimmed) {
             return;
           }
 
-          // 1. Khớp cụm từ trong UNIVERSAL_PHRASE_MAP trước tiên (0ms, chuẩn học thuật)
+          // 2. Khớp cụm từ trong UNIVERSAL_PHRASE_MAP trước tiên (0ms, chuẩn học thuật)
           let trans = lookupUniversalPhrase(origText, targetLang);
           if (!trans) {
             trans = autoTranslations[origText] ? cleanTranslationResult(autoTranslations[origText], origText, currentLang) : null;
@@ -786,14 +770,14 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
             trans = cleanTranslationResult(trans, origText, currentLang);
             (node as any).__i18nCurLang = currentLang;
             (node as any).__i18nApplied = trans;
-            (node as any).__i18nOrigVI = origText;
-            node.parentElement?.setAttribute('data-i18n-orig-vi', origText);
             DYNAMIC_REVERSE_MAP[trans.toLowerCase().trim()] = origText;
-            node.textContent = text.replace(trimmed, trans);
+
+            // Thay thế chính xác, bảo toàn khoảng trắng đầu/cuối của node mà không làm rách hay lặp chữ
+            const leading = text.match(/^\s*/)?.[0] || '';
+            const trailing = text.match(/\s*$/)?.[0] || '';
+            node.textContent = leading + trans + trailing;
             return;
           } else if (!trans && origText.length >= 2 && !/^\d+$/.test(origText)) {
-            (node as any).__i18nOrigVI = origText;
-            node.parentElement?.setAttribute('data-i18n-orig-vi', origText);
             enqueueForTranslation(origText);
           }
 

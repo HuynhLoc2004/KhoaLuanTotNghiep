@@ -39,7 +39,7 @@ export const GLOBAL_LANGUAGE_PRESETS: LanguagePreset[] = [
   { code: 'ru', name: 'Russian', nativeName: 'Русский', flagIcon: '🇷🇺', voiceName: 'ru-RU-Wavenet-C', gender: 'female', label: 'Nga' },
   { code: 'it', name: 'Italian', nativeName: 'Italiano', flagIcon: '🇮🇹', voiceName: 'it-IT-Neural2-A', gender: 'female', label: 'Ý' },
   { code: 'th', name: 'Thai', nativeName: 'ไทย', flagIcon: '🇹🇭', voiceName: 'th-TH-Standard-A', gender: 'female', label: 'Thái Lan' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', flagIcon: '🇩🇪', voiceName: 'de-DE-Neural2-F', gender: 'female', label: 'Đức' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', flagIcon: '🇩🇪', voiceName: 'de-DE-Neural2-F', gender: 'female', label: 'Nước Đức (Đức)' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', flagIcon: '🇰🇷', voiceName: 'ko-KR-Neural2-A', gender: 'female', label: 'Hàn Quốc' },
   { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', flagIcon: '🇮🇩', voiceName: 'id-ID-Standard-A', gender: 'female', label: 'Indonesia' },
   { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu', flagIcon: '🇲🇾', voiceName: 'ms-MY-Standard-A', gender: 'female', label: 'Malaysia' },
@@ -921,13 +921,14 @@ export const AdminLanguagePage: React.FC = () => {
                       className="form-control"
                       value={selectedPresetCode}
                       onChange={(e) => handleApplyPreset(e.target.value)}
+                      data-no-auto-translate="true"
                     >
                       <option value="">{t('langPage.presetPlaceholder', '-- Chọn mẫu để tự động điền (hoặc tự nhập thông tin bên dưới) --')}</option>
                       {GLOBAL_LANGUAGE_PRESETS.map((p) => {
                         const exists = languages.some((l) => l.code === p.code);
                         return (
                           <option key={p.code} value={p.code} disabled={exists}>
-                            {p.flagIcon} {p.label} ({p.nativeName} - {p.name}) {exists ? '— [' + (currentLang === 'vi' ? 'Đã có' : 'Active') + ']' : ''}
+                            {`${p.flagIcon} ${p.label} (${p.nativeName} - ${p.name})${exists ? ' — [' + (currentLang === 'vi' ? 'Đã có' : 'Active') + ']' : ''}`}
                           </option>
                         );
                       })}

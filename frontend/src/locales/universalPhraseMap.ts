@@ -7411,5 +7411,355 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
       "de": "Detaillierte Informationen zu diesem Raum werden derzeit vorbereitet.",
       "es": "La información detallada para esta sala está en preparación.",
       "ru": "Подробная информация для этого зала готовится."
+  },
+  "Lưu thành công": {
+    en: "Saved successfully",
+    fr: "Enregistré avec succès",
+    zh: "保存成功",
+    ja: "正常に保存されました",
+    ko: "성공적으로 저장되었습니다",
+    de: "Erfolgreich gespeichert",
+    es: "Guardado con éxito",
+    ru: "Успешно сохранено"
+  },
+  "Đã lưu thành công": {
+    en: "Saved successfully",
+    fr: "Enregistré avec succès",
+    zh: "已成功保存",
+    ja: "保存が完了しました",
+    ko: "성공적으로 저장되었습니다",
+    de: "Erfolgreich gespeichert",
+    es: "Guardado con éxito",
+    ru: "Успешно сохранено"
+  },
+  "Đã cập nhật thành công": {
+    en: "Updated successfully",
+    fr: "Mis à jour avec succès",
+    zh: "已成功更新",
+    ja: "更新が完了しました",
+    ko: "성공적으로 업데이트되었습니다",
+    de: "Erfolgreich aktualisiert",
+    es: "Actualizado con éxito",
+    ru: "Успешно обновлено"
+  },
+  "Tạo mới thành công": {
+    en: "Created successfully",
+    fr: "Créé avec succès",
+    zh: "创建成功",
+    ja: "正常に作成されました",
+    ko: "성공적으로 생성되었습니다",
+    de: "Erfolgreich erstellt",
+    es: "Creado con éxito",
+    ru: "Успешно создано"
+  },
+  "Đã tạo thành công": {
+    en: "Created successfully",
+    fr: "Créé avec succès",
+    zh: "已成功创建",
+    ja: "作成が完了しました",
+    ko: "성공적으로 생성되었습니다",
+    de: "Erfolgreich erstellt",
+    es: "Creado con éxito",
+    ru: "Успешно создано"
+  },
+  "Xóa thành công": {
+    en: "Deleted successfully",
+    fr: "Supprimé avec succès",
+    zh: "删除成功",
+    ja: "正常に削除されました",
+    ko: "성공적으로 삭제되었습니다",
+    de: "Erfolgreich gelöscht",
+    es: "Eliminado con éxito",
+    ru: "Успешно удалено"
+  },
+  "Thao tác thành công": {
+    en: "Operation successful",
+    fr: "Opération réussie",
+    zh: "操作成功",
+    ja: "操作が成功しました",
+    ko: "작업이 성공적으로 완료되었습니다",
+    de: "Vorgang erfolgreich",
+    es: "Operación exitosa",
+    ru: "Операция выполнена успешно"
+  },
+  "Có lỗi xảy ra": {
+    en: "An error occurred",
+    fr: "Une erreur est survenue",
+    zh: "发生错误",
+    ja: "エラーが発生しました",
+    ko: "오류가 발생했습니다",
+    de: "Ein Fehler ist aufgetreten",
+    es: "Ocurrió un error",
+    ru: "Произошла ошибка"
+  },
+  "Có lỗi xảy ra, vui lòng thử lại": {
+    en: "An error occurred, please try again",
+    fr: "Une erreur est survenue, veuillez réessayer",
+    zh: "发生错误，请重试",
+    ja: "エラーが発生しました。もう一度お試しください",
+    ko: "오류가 발생했습니다. 다시 시도해 주세요",
+    de: "Ein Fehler ist aufgetreten, bitte versuchen Sie es erneut",
+    es: "Ocurrió un error, por favor inténtelo de nuevo",
+    ru: "Произошла ошибка, пожалуйста, повторите попытку"
+  },
+  "Không thể tải dữ liệu": {
+    en: "Unable to load data",
+    fr: "Impossible de charger les données",
+    zh: "无法加载数据",
+    ja: "データを読み込めません",
+    ko: "데이터를 불러올 수 없습니다",
+    de: "Daten konnten nicht geladen werden",
+    es: "No se pudieron cargar los datos",
+    ru: "Не удалось загрузить данные"
+  },
+  "Đang tải dữ liệu...": {
+    en: "Loading data...",
+    fr: "Chargement des données...",
+    zh: "正在加载数据...",
+    ja: "データを読み込み中...",
+    ko: "데이터 로드 중...",
+    de: "Daten werden geladen...",
+    es: "Cargando datos...",
+    ru: "Загрузка данных..."
+  },
+  "Đang xử lý...": {
+    en: "Processing...",
+    fr: "Traitement en cours...",
+    zh: "正在处理...",
+    ja: "処理中...",
+    ko: "처리 중...",
+    de: "Wird verarbeitet...",
+    es: "Procesando...",
+    ru: "Обработка..."
+  },
+  "Đã sao chép vào bộ nhớ tạm": {
+    en: "Copied to clipboard",
+    fr: "Copié dans le presse-papiers",
+    zh: "已复制到剪贴板",
+    ja: "クリップボードにコピーしました",
+    ko: "클립보드에 복사되었습니다",
+    de: "In die Zwischenablage kopiert",
+    es: "Copiado al portapapeles",
+    ru: "Скопировано в буфер обмена"
+  },
+  "Đã sao chép liên kết": {
+    en: "Link copied",
+    fr: "Lien copié",
+    zh: "链接已复制",
+    ja: "リンクをコピーしました",
+    ko: "링크가 복사되었습니다",
+    de: "Link kopiert",
+    es: "Enlace copiado",
+    ru: "Ссылка скопирована"
+  },
+  "Vui lòng kiểm tra lại các trường thông tin chưa hợp lệ": {
+    en: "Please check invalid fields",
+    fr: "Veuillez vérifier les champs invalides",
+    zh: "请检查未填或无效的字段",
+    ja: "無効な入力項目を確認してください",
+    ko: "유효하지 않은 입력 항목을 확인해 주세요",
+    de: "Bitte überprüfen Sie die ungültigen Felder",
+    es: "Por favor revise los campos no válidos",
+    ru: "Пожалуйста, проверьте неверно заполненные поля"
+  },
+  "Họ và tên không được để trống": {
+    en: "Full name cannot be empty",
+    fr: "Le nom complet ne peut pas être vide",
+    zh: "姓名不能为空",
+    ja: "氏名は必須です",
+    ko: "성명은 필수 입력 항목입니다",
+    de: "Vollständiger Name darf nicht leer sein",
+    es: "El nombre completo no puede estar vacío",
+    ru: "ФИО не может быть пустым"
+  },
+  "Vui lòng nhập họ và tên hợp lệ": {
+    en: "Please enter a valid full name",
+    fr: "Veuillez saisir un nom complet valide",
+    zh: "请输入有效的姓名",
+    ja: "有効な氏名を入力してください",
+    ko: "유효한 성명을 입력해 주세요",
+    de: "Bitte geben Sie einen gültigen Namen ein",
+    es: "Por favor introduzca un nombre válido",
+    ru: "Пожалуйста, введите корректное ФИО"
+  },
+  "Vui lòng nhập số điện thoại hợp lệ": {
+    en: "Please enter a valid phone number",
+    fr: "Veuillez saisir un numéro de téléphone valide",
+    zh: "请输入有效的电话号码",
+    ja: "有効な電話番号を入力してください",
+    ko: "유효한 전화번호를 입력해 주세요",
+    de: "Bitte geben Sie eine gültige Telefonnummer ein",
+    es: "Por favor introduzca un número de teléfono válido",
+    ru: "Пожалуйста, введите корректный номер телефона"
+  },
+  "Vui lòng nhập địa chỉ email hợp lệ": {
+    en: "Please enter a valid email address",
+    fr: "Veuillez saisir une adresse e-mail valide",
+    zh: "请输入有效的电子邮件地址",
+    ja: "有効なメールアドレスを入力してください",
+    ko: "유효한 이메일 주소를 입력해 주세요",
+    de: "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+    es: "Por favor introduzca un correo electrónico válido",
+    ru: "Пожалуйста, введите корректный адрес электронной почты"
+  },
+  "Vui lòng chọn ít nhất 1 vé tham quan": {
+    en: "Please select at least 1 tour ticket",
+    fr: "Veuillez sélectionner au moins 1 billet de visite",
+    zh: "请至少选择 1 张参观门票",
+    ja: "入場チケットを少なくとも1枚選択してください",
+    ko: "관람 티켓을 최소 1장 이상 선택해 주세요",
+    de: "Bitte wählen Sie mindestens 1 Ticket aus",
+    es: "Por favor seleccione al menos 1 entrada",
+    ru: "Пожалуйста, выберите как минимум 1 билет"
+  },
+  "Thanh toán thành công": {
+    en: "Payment successful",
+    fr: "Paiement réussi",
+    zh: "支付成功",
+    ja: "決済が完了しました",
+    ko: "결제가 성공적으로 완료되었습니다",
+    de: "Zahlung erfolgreich",
+    es: "Pago exitoso",
+    ru: "Оплата прошла успешно"
+  },
+  "Giao dịch thanh toán đã bị huỷ": {
+    en: "Payment transaction cancelled",
+    fr: "Transaction de paiement annulée",
+    zh: "支付交易已取消",
+    ja: "決済処理がキャンセルされました",
+    ko: "결제 거래가 취소되었습니다",
+    de: "Zahlungstransaktion abgebrochen",
+    es: "Transacción de pago cancelada",
+    ru: "Транзакция оплаты отменена"
+  },
+  "Hủy vé thành công": {
+    en: "Ticket cancelled successfully",
+    fr: "Billet annulé avec succès",
+    zh: "门票已成功取消",
+    ja: "チケットのキャンセルが完了しました",
+    ko: "티켓이 성공적으로 취소되었습니다",
+    de: "Ticket erfolgreich storniert",
+    es: "Entrada cancelada con éxito",
+    ru: "Билет успешно аннулирован"
+  },
+  "Không thể hủy vé": {
+    en: "Unable to cancel ticket",
+    fr: "Impossible d'annuler le billet",
+    zh: "无法取消门票",
+    ja: "チケットをキャンセルできません",
+    ko: "티켓을 취소할 수 없습니다",
+    de: "Ticket konnte nicht storniert werden",
+    es: "No se puede cancelar la entrada",
+    ru: "Не удалось аннулировать билет"
+  },
+  "Bạn có chắc chắn muốn xóa không?": {
+    en: "Are you sure you want to delete this?",
+    fr: "Êtes-vous sûr de vouloir supprimer ceci ?",
+    zh: "您确定要删除此项吗？",
+    ja: "本当に削除しますか？",
+    ko: "정말 삭제하시겠습니까?",
+    de: "Sind Sie sicher, dass Sie dies löschen möchten?",
+    es: "¿Está seguro de que desea eliminar esto?",
+    ru: "Вы уверены, что хотите удалить это?"
+  },
+  "Hành động này không thể hoàn tác.": {
+    en: "This action cannot be undone.",
+    fr: "Cette action est irréversible.",
+    zh: "此操作无法撤消。",
+    ja: "この操作は元に戻せません。",
+    ko: "이 작업은 되돌릴 수 없습니다.",
+    de: "Diese Aktion kann nicht rückgängig gemacht werden.",
+    es: "Esta acción no se puede deshacer.",
+    ru: "Это действие нельзя отменить."
+  },
+  "Cập nhật tài khoản người dùng thành công": {
+    en: "User account updated successfully",
+    fr: "Compte utilisateur mis à jour avec succès",
+    zh: "用户账户更新成功",
+    ja: "ユーザーアカウントが正常に更新されました",
+    ko: "사용자 계정이 성공적으로 업데이트되었습니다",
+    de: "Benutzerkonto erfolgreich aktualisiert",
+    es: "Cuenta de usuario actualizada con éxito",
+    ru: "Учетная запись пользователя успешно обновлена"
+  },
+  "Tạo tài khoản người dùng thành công": {
+    en: "User account created successfully",
+    fr: "Compte utilisateur créé avec succès",
+    zh: "用户账户创建成功",
+    ja: "ユーザーアカウントが正常に作成されました",
+    ko: "사용자 계정이 성공적으로 생성되었습니다",
+    de: "Benutzerkonto erfolgreich erstellt",
+    es: "Cuenta de usuario creada con éxito",
+    ru: "Учетная запись пользователя успешно создана"
+  },
+  "Đã xóa tài khoản thành công": {
+    en: "Account deleted successfully",
+    fr: "Compte supprimé avec succès",
+    zh: "账户删除成功",
+    ja: "アカウントが正常に削除されました",
+    ko: "계정이 성공적으로 삭제되었습니다",
+    de: "Konto erfolgreich gelöscht",
+    es: "Cuenta eliminada con éxito",
+    ru: "Учетная запись успешно удалена"
+  },
+  "Không thể tải danh sách tài khoản": {
+    en: "Unable to load accounts list",
+    fr: "Impossible de charger la liste des comptes",
+    zh: "无法加载用户列表",
+    ja: "アカウント一覧を読み込めません",
+    ko: "계정 목록을 불러올 수 없습니다",
+    de: "Kontenliste konnte nicht geladen werden",
+    es: "No se pudo cargar la lista de cuentas",
+    ru: "Не удалось загрузить список аккаунтов"
+  },
+  "Đã lưu cấu hình thành công": {
+    en: "Configuration saved successfully",
+    fr: "Configuration enregistrée avec succès",
+    zh: "配置保存成功",
+    ja: "設定が正常に保存されました",
+    ko: "설정이 성공적으로 저장되었습니다",
+    de: "Konfiguration erfolgreich gespeichert",
+    es: "Configuración guardada con éxito",
+    ru: "Конфигурация успешно сохранена"
+  },
+  "Thành công": {
+    en: "Success",
+    fr: "Succès",
+    zh: "成功",
+    ja: "成功",
+    ko: "성공",
+    de: "Erfolg",
+    es: "Éxito",
+    ru: "Успех"
+  },
+  "Thất bại": {
+    en: "Failed",
+    fr: "Échec",
+    zh: "失败",
+    ja: "失敗",
+    ko: "실패",
+    de: "Fehlgeschlagen",
+    es: "Fallido",
+    ru: "Неудача"
+  },
+  "Cảnh báo": {
+    en: "Warning",
+    fr: "Avertissement",
+    zh: "警告",
+    ja: "警告",
+    ko: "경고",
+    de: "Warnung",
+    es: "Advertencia",
+    ru: "Предупреждение"
+  },
+  "Thông báo": {
+    en: "Notice",
+    fr: "Notification",
+    zh: "通知",
+    ja: "お知らせ",
+    ko: "알림",
+    de: "Hinweis",
+    es: "Aviso",
+    ru: "Уведомление"
   }
 };

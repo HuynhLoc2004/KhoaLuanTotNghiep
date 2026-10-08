@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { useClientTranslation } from '../context/ClientTranslationContext';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -20,6 +21,7 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const { t } = useClientTranslation();
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -69,8 +71,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               {toast.type === 'info' && <Info size={15} />}
             </div>
             <div className="toast-content-wrapper">
-              {toast.title && <div className="toast-title">{toast.title}</div>}
-              <div className="toast-message">{toast.message}</div>
+              {toast.title && <div className="toast-title">{t(toast.title, toast.title)}</div>}
+              <div className="toast-message">{t(toast.message, toast.message)}</div>
             </div>
             <button
               type="button"

@@ -5314,13 +5314,21 @@
   filter: brightness(1.04);
 }
 
-/* Khung hiển thị ảnh cổ vật Client: Phủ kín khung card sắc nét, không bị khoảng đen 2 bên */
+/* Khung hiển thị ảnh cổ vật Client: Bảo tồn trọn vẹn hiện vật (không cắt đầu/chân, tách nền hiển thị nổi khối 3D cao cấp) */
 .client-artifact-media {
   position: relative;
-  height: 270px !important;
-  background-color: #0c101a !important;
+  height: 290px !important;
+  background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.12) 0%, rgba(13, 18, 29, 0.95) 60%, #080c14 100%) !important;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.client-portal[data-client-theme="light"] .client-artifact-media {
+  background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.16) 0%, rgba(240, 235, 226, 0.95) 65%, #eae3d5 100%) !important;
+  border-bottom-color: rgba(184, 134, 11, 0.15);
 }
 
 .client-artifact-img {
@@ -5328,15 +5336,29 @@
   z-index: 1;
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
-  object-position: center 20% !important;
-  padding: 0 !important;
-  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  padding: 24px 20px 16px !important;
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.65));
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
 }
 
 .client-artifact-card:hover .client-artifact-img {
-  transform: scale(1.06);
+  transform: scale(1.05) translateY(-3px);
+  filter: drop-shadow(0 20px 36px rgba(0, 0, 0, 0.85)) brightness(1.04);
 }
+
+@media (max-width: 768px) {
+  .client-artifact-media {
+    height: 260px !important;
+  }
+  .client-artifact-img {
+    padding: 18px 16px 12px !important;
+  }
+}
+
 
 .client-gallery-hotspot-pill {
   position: absolute;

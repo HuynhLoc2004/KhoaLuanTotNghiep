@@ -914,13 +914,16 @@
   transform: scale(1.03);
 }
 
-/* Khung hiển thị ảnh cổ vật: Phủ kín khung card, không bị khoảng đen 2 bên */
+/* Khung hiển thị ảnh cổ vật: Chuẩn hóa bảo tồn toàn vẹn hiện vật (không cắt đầu/chân, tách nền hiển thị nổi khối 3D) */
 .artifact-thumbnail-wrapper {
   position: relative;
-  height: 195px !important;
-  background-color: #120d09 !important;
+  height: 205px !important;
+  background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.1) 0%, rgba(22, 16, 12, 0.95) 65%, #0d0a08 100%) !important;
   overflow: hidden;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.12);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.14);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .artifact-thumbnail {
@@ -928,14 +931,18 @@
   z-index: 1;
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
-  object-position: center 20% !important;
-  padding: 0 !important;
-  transition: transform 0.4s ease;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  padding: 16px 14px 12px !important;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.65));
+  transition: transform 0.4s ease, filter 0.3s ease;
 }
 
 .artifact-admin-card:hover .artifact-thumbnail {
-  transform: scale(1.06);
+  transform: scale(1.05) translateY(-2px);
+  filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.8)) brightness(1.03);
 }
 
 .room-badge-code {

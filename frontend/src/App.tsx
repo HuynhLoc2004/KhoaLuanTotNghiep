@@ -1068,17 +1068,17 @@ const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <SystemBrandingProvider>
-          <MaintenanceProvider>
-            <ClientTranslationProvider>
+      <ClientTranslationProvider>
+        <ToastProvider>
+          <SystemBrandingProvider>
+            <MaintenanceProvider>
               <AuthProvider>
                 <AppContent />
               </AuthProvider>
-            </ClientTranslationProvider>
-          </MaintenanceProvider>
-        </SystemBrandingProvider>
-      </ToastProvider>
+            </MaintenanceProvider>
+          </SystemBrandingProvider>
+        </ToastProvider>
+      </ClientTranslationProvider>
     </ThemeProvider>
   );
 };
