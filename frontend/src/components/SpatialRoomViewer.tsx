@@ -189,10 +189,27 @@ export const SpatialRoomViewer: React.FC<SpatialRoomViewerProps> = ({
         }}
         onMouseDown={handleMouseDown}
       >
+        {/* Background ambient mờ bao quát không gian căn phòng */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `url(${displayedUrl})`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            filter: 'blur(32px) brightness(0.35)',
+            transform: 'scale(1.1)',
+            opacity: 0.85,
+            pointerEvents: 'none'
+          }}
+        />
+
         <img
           src={displayedUrl}
           alt={currentViewTitle}
           style={{
+            position: 'relative',
+            zIndex: 1,
             maxWidth: '100%',
             maxHeight: '100%',
             width: 'auto',
@@ -201,7 +218,8 @@ export const SpatialRoomViewer: React.FC<SpatialRoomViewerProps> = ({
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transition: isDragging ? 'none' : 'transform 0.15s ease-out, opacity 0.2s ease-in-out',
             opacity: isTransitioning ? 0.15 : 1,
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)'
           }}
           draggable={false}
         />
@@ -389,27 +407,28 @@ export const SpatialRoomViewer: React.FC<SpatialRoomViewerProps> = ({
             onClick={handlePrev}
             style={{
               position: 'absolute',
-              left: 16,
+              left: 20,
               top: '50%',
               transform: 'translateY(-50%)',
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              backgroundColor: 'rgba(15, 20, 28, 0.85)',
-              border: '1px solid rgba(212, 168, 106, 0.4)',
+              padding: '10px 16px',
+              borderRadius: '24px',
+              backgroundColor: 'rgba(15, 20, 28, 0.88)',
+              border: '1px solid rgba(212, 168, 106, 0.45)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: 8,
               cursor: 'pointer',
               boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
               zIndex: 10,
+              backdropFilter: 'blur(10px)',
               transition: 'transform 0.15s, background-color 0.15s'
             }}
             title="Quay sang góc trước"
             aria-label="Góc trước"
           >
-            <ChevronLeft size={22} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+            <ChevronLeft size={20} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>Góc trước</span>
           </button>
 
           <button
@@ -417,27 +436,28 @@ export const SpatialRoomViewer: React.FC<SpatialRoomViewerProps> = ({
             onClick={handleNext}
             style={{
               position: 'absolute',
-              right: 16,
+              right: 20,
               top: '50%',
               transform: 'translateY(-50%)',
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              backgroundColor: 'rgba(15, 20, 28, 0.85)',
-              border: '1px solid rgba(212, 168, 106, 0.4)',
+              padding: '10px 16px',
+              borderRadius: '24px',
+              backgroundColor: 'rgba(15, 20, 28, 0.88)',
+              border: '1px solid rgba(212, 168, 106, 0.45)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: 8,
               cursor: 'pointer',
               boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
               zIndex: 10,
+              backdropFilter: 'blur(10px)',
               transition: 'transform 0.15s, background-color 0.15s'
             }}
             title="Quay sang góc tiếp theo"
             aria-label="Góc tiếp theo"
           >
-            <ChevronRight size={22} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>Góc sau</span>
+            <ChevronRight size={20} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
           </button>
         </>
       )}

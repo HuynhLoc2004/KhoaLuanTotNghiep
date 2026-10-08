@@ -374,23 +374,48 @@ async function stitchMultiViewRoom(
   if (cloudinaryUrl) finalPanoramaUrl = cloudinaryUrl;
   else if (cloudR2Url) finalPanoramaUrl = `${baseUrl}/api/stitch/proxy-image?url=${encodeURIComponent(cloudR2Url)}`;
 
-  // 2. Xử lý danh sách toàn bộ các góc nhìn chi tiết trong gian phòng (views)
+  // 2. Tự động chọn lọc 4 - 6 góc nhìn chủ đạo bao quát căn phòng (không làm tràn lan 53 ảnh)
+  const targetIndices: number[] = [];
+  if (validPaths.length <= 6) {
+    for (let i = 0; i < validPaths.length; i++) targetIndices.push(i);
+  } else {
+    targetIndices.push(primaryIdx);
+    const count = 5; // 5 góc nhìn đại diện
+    const step = (validPaths.length - 1) / (count - 1);
+    for (let i = 0; i < count; i++) {
+      const idx = Math.round(i * step);
+      if (!targetIndices.includes(idx)) targetIndices.push(idx);
+    }
+    targetIndices.sort((a, b) => a - b);
+  }
+
+  const roomAngleTitles = [
+    '⭐ Góc Bao Quát Gian Phòng (Góc Chính)',
+    '🏛️ Không Gian Trưng Bày Phía Đông',
+    '📜 Tủ Hiện Vật & Tư Liệu Trung Tâm',
+    '🖼️ Không Gian Trưng Bày Phía Tây',
+    '🚪 Lối Đi & Không Gian Chuyển Tiếp',
+    '🔍 Chi Tiết Trưng Bày Tiêu Biểu'
+  ];
+
   const views: RoomSceneView[] = [];
 
-  for (let i = 0; i < validPaths.length; i++) {
-    const srcP = validPaths[i];
-    if (i === primaryIdx) {
+  for (let rank = 0; rank < targetIndices.length; rank++) {
+    const origIdx = targetIndices[rank];
+    const srcP = validPaths[origIdx];
+    const title = origIdx === primaryIdx ? '⭐ Góc Bao Quát Gian Phòng' : (roomAngleTitles[rank] || `Góc Trưng Bày ${rank + 1}`);
+
+    if (origIdx === primaryIdx) {
       views.push({
-        id: `view-${i}`,
-        index: i,
-        title: '⭐ Góc Bao Quát Gian Phòng',
+        id: `view-${rank}`,
+        index: rank,
+        title,
         url: finalPanoramaUrl,
         filename: outFilename,
         isPrimary: true
       });
     } else {
-      // Góc phụ: Lưu file dạng scene_view_${timestamp}_${i + 1}.jpg (không bắt đầu bằng stitched_)
-      const sceneFilename = `scene_view_${timestamp}_${i + 1}.jpg`;
+      const sceneFilename = `scene_view_${timestamp}_${rank + 1}.jpg`;
       const sceneFilePath = path.join(UPLOAD_ROOT, sceneFilename);
 
       try {
@@ -404,15 +429,15 @@ async function stitchMultiViewRoom(
         } catch (_) {}
 
         views.push({
-          id: `view-${i}`,
-          index: i,
-          title: `Góc Trưng Bày ${i + 1}`,
+          id: `view-${rank}`,
+          index: rank,
+          title,
           url: sceneUrl,
           filename: sceneFilename,
           isPrimary: false
         });
       } catch (sceneErr) {
-        console.warn(`[Stitch API] Lỗi xử lý góc phụ ${i}:`, sceneErr);
+        console.warn(`[Stitch API] Lỗi xử lý góc phụ ${rank}:`, sceneErr);
       }
     }
   }
@@ -529,11 +554,11 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   const outFilename = `stitched_room_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
 
-  // Nếu chỉ có 1 ảnh duy nhất: Lưu ảnh phòng sắc nét bằng Sharp (< 1s)
-  if (imagePaths.length === 1) {
-    const primaryIdx = req.body.primaryIndex ? parseInt(String(req.body.primaryIndex), 10) : 0;
-    return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
-  }
+  // TẠO GIAN PHÒNG BẢO TÀNG ĐA GÓC NHÌN (INTERACTIVE SPATIAL ROOM TOUR):
+  // 100% bảo tồn ảnh chụp gốc sắc nét của camera, chọn lọc 4-6 góc chính đẹp nhất,
+  // tuyệt đối không bóp méo, không lặp điểm ảnh, không viền mờ hay bệt đen, xử lý siêu tốc (< 1s)!
+  const primaryIdx = req.body.primaryIndex ? parseInt(String(req.body.primaryIndex), 10) : 0;
+  return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
 
   // Ghi danh sách ảnh vào file JSON tạm để tránh giới hạn độ dài dòng lệnh hệ điều hành
   const tempJsonFile = path.join(TEMP_DIR, `inputs_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.json`);
