@@ -111,8 +111,8 @@ export const PocStitchingPage: React.FC = () => {
   const [activeViewUrl, setActiveViewUrl] = useState<string | null>(null);
   // Hiệu ứng mờ dần (Fade transition) khi chuyển góc nhìn
   const [isViewFading, setIsViewFading] = useState(false);
-  // Chế độ trình xem: Mặc định luôn là Quả Cầu 360 độ (pano360) để xoay chuột khám phá không gian
-  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('pano360');
+  // Chế độ trình xem: Mặc định là Không Gian Đa Góc Nhìn (spatial) để giữ góc nhìn vuông vắn nguyên bản, không méo hình
+  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('spatial');
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
   const [batchFiles, setBatchFiles] = useState<File[]>([]);
   const [batchPreviews, setBatchPreviews] = useState<string[]>([]);
@@ -252,6 +252,9 @@ export const PocStitchingPage: React.FC = () => {
       message: `Đang xem gian phòng: ${item.title || item.filename}`
     });
     setActiveViewUrl(normalizedUrl);
+    if (normalizedViews && normalizedViews.length > 1) {
+      setViewerMode('spatial');
+    }
     setTimeout(() => {
       viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
@@ -754,6 +757,9 @@ export const PocStitchingPage: React.FC = () => {
       };
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
+      if (resData.views && resData.views.length > 1) {
+        setViewerMode('spatial');
+      }
       fetchHistory();
       showToast('Đã tạo không gian căn phòng thành công!', 'success');
 
@@ -1213,30 +1219,28 @@ export const PocStitchingPage: React.FC = () => {
 
                     {stitchResult && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                        {/* Toggle giữa Quả Cầu 360 và Xem Chi Tiết Từng Góc */}
-                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.35)', borderRadius: 6, padding: 2, border: '1px solid rgba(255,255,255,0.1)' }}>
+                        {/* Toggle giữa Không Gian Đa Góc Nhìn và Quả Cầu 360 */}
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.45)', borderRadius: 6, padding: 3, border: '1px solid rgba(212,168,106,0.3)' }}>
+                          <button
+                            type="button"
+                            onClick={() => setViewerMode('spatial')}
+                            className={`btn btn-sm ${viewerMode === 'spatial' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ fontSize: '11.5px', padding: '5px 12px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 5, fontWeight: viewerMode === 'spatial' ? 600 : 400 }}
+                            title="Chế độ Gian Phòng Đa Góc Nhìn (Nét căng 100% nguyên bản, không nếp gấp, không lặp hình)"
+                          >
+                            <Compass size={14} />
+                            <span>🖼️ Không Gian Đa Góc {stitchResult.views && stitchResult.views.length > 1 ? `(${stitchResult.views.length})` : ''}</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => setViewerMode('pano360')}
                             className={`btn btn-sm ${viewerMode === 'pano360' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: '11px', padding: '4px 10px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 5 }}
-                            title="Chế độ Không gian Quả Cầu 360° (Kéo chuột/chạm tay xoay vòng 360° ngắm toàn cảnh)"
+                            style={{ fontSize: '11.5px', padding: '5px 12px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 5 }}
+                            title="Chế độ Không gian Quả Cầu 360°"
                           >
-                            <Globe size={13} />
-                            <span>🌐 Không Gian 360°</span>
+                            <Globe size={14} />
+                            <span>🌐 Quả Cầu 360°</span>
                           </button>
-                          {stitchResult.views && stitchResult.views.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setViewerMode('spatial')}
-                              className={`btn btn-sm ${viewerMode === 'spatial' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ fontSize: '11px', padding: '4px 10px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 5 }}
-                              title="Xem chi tiết ảnh góc chụp gốc độ phân giải cao"
-                            >
-                              <Compass size={13} />
-                              <span>Ảnh Chi Tiết</span>
-                            </button>
-                          )}
                         </div>
 
                         <button

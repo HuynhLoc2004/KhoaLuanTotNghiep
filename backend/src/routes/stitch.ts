@@ -263,7 +263,7 @@ async function finalizePanoramaAndRespond(
       filename: outFilename,
       width,
       height,
-      aspectRatio: 2.0,
+      aspectRatio: (width && height) ? Number((width / height).toFixed(2)) : 1.77,
       inputFramesCount: imagePathsCount,
       views: views || [],
       message: customMessage || `Đã tạo thành công không gian phòng từ ${imagePathsCount} góc ảnh chi tiết.`
@@ -517,6 +517,17 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
 
   const outFilename = `stitched_room_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
+
+  // 1. NẾU LÀ CHÙM ẢNH CÁC GÓC PHÒNG (>= 2 ảnh) HOẶC req.body.mode !== 'force_python_360':
+  // Kích hoạt ngay Tạo Gian Phòng Đa Góc Nhìn (Spatial Multi-View Room):
+  // 100% giữ nguyên góc nhìn gốc của từng tấm ảnh vuông/chữ nhật của camera.
+  // 0% lặp hình, 0% chắp vá bể góc nhìn, 0% méo mó!
+  // Xử lý tức thì trong 0.5s trên VPS.
+  if (imagePaths.length >= 2 && req.body.mode !== 'force_python_360') {
+    const primaryIdx = req.body.primaryIndex ? parseInt(String(req.body.primaryIndex), 10) : 0;
+    console.log(`[Stitch API] Kích hoạt Tạo Gian Phòng Đa Góc Nhìn từ ${imagePaths.length} ảnh nguyên bản (Góc chính: ${primaryIdx})...`);
+    return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
+  }
 
   // Ghi danh sách ảnh vào file JSON tạm để tránh giới hạn độ dài dòng lệnh hệ điều hành
   const tempJsonFile = path.join(TEMP_DIR, `inputs_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.json`);
