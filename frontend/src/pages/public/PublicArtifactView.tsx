@@ -51,14 +51,13 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   >({});
   const [isTranslatingDraft, setIsTranslatingDraft] = useState(false);
 
-  // Audio player state & Dynamic TTS
+  // Audio player state & Multi-voice selection
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
-  const [generatedAudios, setGeneratedAudios] = useState<Record<string, string>>({});
-  const [isGeneratingTts, setIsGeneratingTts] = useState(false);
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState<string>('auto');
 
   // Gallery lightbox
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -216,41 +215,96 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       ? artifact?.description || ''
       : dynamicTranslations[currentLang]?.description || artifact?.description || '');
 
-  // Xác định file âm thanh Voice AI:
-  // TUYỆT ĐỐI KHÔNG BAO GIỜ PHÁT TIẾNG VIỆT CHO KHÁCH ĐANG XEM NGÔN NGỮ NƯỚC NGOÀI!
-  const activeAudioUrl = React.useMemo(() => {
-    if (!artifact) return null;
+  // Định nghĩa cấu trúc lựa chọn giọng đọc Voice AI
+  interface VoiceOption {
+    code: string;
+    label: string;
+    flag: string;
+    url: string;
+  }
 
-    if (currentLang === 'vi') {
-      const viUrl = artifact.translations?.vi?.audioNarrationUrl || artifact.audioNarrationUrl || null;
-      if (!viUrl) return null;
-      return viUrl.startsWith('http') ? viUrl : `${API_ROOT}${viUrl.startsWith('/') ? '' : '/'}${viUrl}`;
+  // Tổng hợp tất cả các bản thu âm Voice AI hiện vật thực sự có sẵn (do Admin đã lưu)
+  const availableVoices = React.useMemo<VoiceOption[]>(() => {
+    if (!artifact) return [];
+    const list: VoiceOption[] = [];
+
+    // 1. Kiểm tra audio tiếng Việt
+    const viRaw = artifact.translations?.vi?.audioNarrationUrl || artifact.audioNarrationUrl;
+    if (viRaw && typeof viRaw === 'string' && viRaw.trim()) {
+      const u = viRaw.trim();
+      list.push({
+        code: 'vi',
+        label: 'Tiếng Việt',
+        flag: '🇻🇳',
+        url: u.startsWith('http') ? u : `${API_ROOT}${u.startsWith('/') ? '' : '/'}${u}`
+      });
     }
 
-    // 1. Kiểm tra audio lưu sẵn cho ngôn ngữ này trong translations
-    const langTrans = artifact.translations?.[currentLang];
-    if (langTrans?.audioNarrationUrl) {
-      const u = langTrans.audioNarrationUrl;
-      return u.startsWith('http') ? u : `${API_ROOT}${u.startsWith('/') ? '' : '/'}${u}`;
+    // 2. Kiểm tra các ngôn ngữ khác trong artifact.translations
+    if (artifact.translations && typeof artifact.translations === 'object') {
+      Object.entries(artifact.translations).forEach(([langCode, trans]: [string, any]) => {
+        if (
+          langCode !== 'vi' &&
+          trans &&
+          trans.audioNarrationUrl &&
+          typeof trans.audioNarrationUrl === 'string' &&
+          trans.audioNarrationUrl.trim()
+        ) {
+          const u = trans.audioNarrationUrl.trim();
+          const langMeta = displayLanguages.find((l) => l.code === langCode);
+          list.push({
+            code: langCode,
+            label: langMeta?.nativeName || langMeta?.name || langCode.toUpperCase(),
+            flag: langMeta?.flagIcon || '🌐',
+            url: u.startsWith('http') ? u : `${API_ROOT}${u.startsWith('/') ? '' : '/'}${u}`
+          });
+        }
+      });
     }
 
-    // 2. Kiểm tra audio đã được tạo động On-the-fly cho ngôn ngữ này
-    if (generatedAudios[currentLang]) {
-      const u = generatedAudios[currentLang];
-      return u.startsWith('http') ? u : `${API_ROOT}${u.startsWith('/') ? '' : '/'}${u}`;
+    return list;
+  }, [artifact, displayLanguages]);
+
+  // Xác định giọng đọc đang được kích hoạt:
+  // - Nếu người dùng bấm chọn một giọng đọc cụ thể trong Voice Player -> phát giọng đó
+  // - Nếu ở chế độ 'auto':
+  //   + Ưu tiên giọng đọc khớp với ngôn ngữ khách đang xem trang (nếu có)
+  //   + Nếu trang đang xem ngoại ngữ (ví dụ tiếng Pháp) mà hiện vật chưa có bản thu -> fallback về Tiếng Việt
+  //   + Tuyệt đối KHÔNG tự ý gọi API sinh Voice on-the-fly khi khách bấm nghe
+  const activeVoice = React.useMemo<VoiceOption | null>(() => {
+    if (availableVoices.length === 0) return null;
+
+    if (selectedVoiceLang !== 'auto') {
+      const found = availableVoices.find((v) => v.code === selectedVoiceLang);
+      if (found) return found;
     }
 
-    // KHÔNG fallback về tiếng Việt nếu ngôn ngữ đang xem khác 'vi'
-    return null;
-  }, [artifact, currentLang, generatedAudios]);
+    // Chế độ 'auto':
+    // 1. Nếu ngôn ngữ hiển thị hiện tại có sẵn bản thu âm
+    const matched = availableVoices.find((v) => v.code === currentLang);
+    if (matched) return matched;
 
-  // Quản lý audio element và tự động phát
+    // 2. Mặc định phát giọng đọc ngôn ngữ có hỗ trợ (ưu tiên Tiếng Việt 'vi')
+    const viVoice = availableVoices.find((v) => v.code === 'vi');
+    if (viVoice) return viVoice;
+
+    // 3. Fallback bản thu âm đầu tiên có sẵn
+    return availableVoices[0] || null;
+  }, [availableVoices, selectedVoiceLang, currentLang]);
+
+  const activeAudioUrl = activeVoice?.url || null;
+
+  // Quản lý audio element khi activeAudioUrl thay đổi
   useEffect(() => {
+    if (audioRef) {
+      audioRef.pause();
+    }
+    setIsPlayingAudio(false);
+    setAudioCurrentTime(0);
+
     if (!activeAudioUrl) {
-      if (audioRef) {
-        audioRef.pause();
-      }
-      setIsPlayingAudio(false);
+      setAudioRef(null);
+      setAudioDuration(0);
       return;
     }
 
@@ -259,7 +313,10 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 
     const onTimeUpdate = () => setAudioCurrentTime(audio.currentTime);
     const onLoadedMetadata = () => setAudioDuration(audio.duration);
-    const onEnded = () => setIsPlayingAudio(false);
+    const onEnded = () => {
+      setIsPlayingAudio(false);
+      setAudioCurrentTime(0);
+    };
     const onPlay = () => setIsPlayingAudio(true);
     const onPause = () => setIsPlayingAudio(false);
 
@@ -268,24 +325,6 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
-
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => setIsPlayingAudio(true))
-        .catch(() => {
-          setIsPlayingAudio(false);
-          const handleFirstTouch = () => {
-            audio.play().then(() => setIsPlayingAudio(true)).catch(() => {});
-            window.removeEventListener('click', handleFirstTouch);
-            window.removeEventListener('touchstart', handleFirstTouch);
-            window.removeEventListener('pointerdown', handleFirstTouch);
-          };
-          window.addEventListener('click', handleFirstTouch, { once: true });
-          window.addEventListener('touchstart', handleFirstTouch, { once: true });
-          window.addEventListener('pointerdown', handleFirstTouch, { once: true });
-        });
-    }
 
     return () => {
       audio.pause();
@@ -297,59 +336,42 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     };
   }, [activeAudioUrl]);
 
-  // Phát âm thanh hoặc tự động sinh TTS theo đúng ngôn ngữ đang xem
-  const toggleAudio = async () => {
-    if (isPlayingAudio && audioRef) {
+  // Bật / tạm dừng phát âm thanh
+  const toggleAudio = () => {
+    if (!activeAudioUrl || !audioRef) return;
+
+    if (isPlayingAudio) {
       audioRef.pause();
       setIsPlayingAudio(false);
       return;
     }
 
-    if (activeAudioUrl && audioRef) {
-      audioRef.play().then(() => setIsPlayingAudio(true)).catch(console.error);
-      return;
-    }
-
-    // Nếu chưa có file âm thanh cho ngôn ngữ này -> tự động gọi Voice AI Engine sinh ngay tức thì
-    if (currentLang !== 'vi' && displayDescription && !isGeneratingTts) {
-      setIsGeneratingTts(true);
-      try {
-        const textToSpeak = displayDescription.slice(0, 450);
-        const res = await api.generateTtsAudio({
-          text: textToSpeak,
-          langCode: currentLang,
-          roomCode: artifact?.code || 'artifact'
-        });
-
-        if (res && res.audioUrl) {
-          setGeneratedAudios((prev) => ({ ...prev, [currentLang]: res.audioUrl }));
-        }
-      } catch (err) {
-        console.warn('[PublicArtifactView] Live TTS failed, falling back to Web Speech API:', err);
-        // Fallback sang Web Speech API theo đúng ngôn ngữ hiện tại
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(displayDescription.slice(0, 300));
-          utterance.lang = currentLang;
-          utterance.onstart = () => setIsPlayingAudio(true);
-          utterance.onend = () => setIsPlayingAudio(false);
-          utterance.onerror = () => setIsPlayingAudio(false);
-          window.speechSynthesis.speak(utterance);
-        }
-      } finally {
-        setIsGeneratingTts(false);
-      }
-    }
+    audioRef
+      .play()
+      .then(() => setIsPlayingAudio(true))
+      .catch((err) => {
+        console.warn('[PublicArtifactView] audio play failed:', err);
+        setIsPlayingAudio(false);
+      });
   };
 
+  // Chọn giọng đọc riêng mà KHÔNG đổi ngôn ngữ toàn trang web
+  const handleSelectVoiceLang = (voiceCode: string) => {
+    if (audioRef) {
+      audioRef.pause();
+    }
+    setIsPlayingAudio(false);
+    setSelectedVoiceLang(voiceCode);
+  };
+
+  // Chọn ngôn ngữ hiển thị trang web (Page Language)
   const handleSelectLanguage = (langCode: string) => {
     if (audioRef) {
       audioRef.pause();
     }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
     setIsPlayingAudio(false);
+    // Reset lựa chọn giọng đọc về 'auto' để tự động khớp với ngôn ngữ mới (hoặc fallback)
+    setSelectedVoiceLang('auto');
     changeLanguage(langCode).catch(console.error);
   };
 
@@ -464,14 +486,10 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         </div>
 
         <div className="header-right">
-          {/* Language Switcher */}
+          {/* Language Switcher (Chọn ngôn ngữ hiển thị trang) */}
           <div className="lang-selector-group">
             {displayLanguages.map((lang) => {
               const isCurrent = currentLang === lang.code;
-              const hasVoice =
-                lang.code === 'vi'
-                  ? !!(artifact.audioNarrationUrl || artifact.translations?.vi?.audioNarrationUrl)
-                  : !!(artifact.translations?.[lang.code]?.audioNarrationUrl || generatedAudios[lang.code]);
 
               return (
                 <button
@@ -483,18 +501,6 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                 >
                   <span>{lang.flagIcon || lang.code.toUpperCase()}</span>
                   <span style={{ fontSize: '11px', fontWeight: 600 }}>{lang.code.toUpperCase()}</span>
-                  {hasVoice && (
-                    <span
-                      style={{
-                        width: 5,
-                        height: 5,
-                        borderRadius: '50%',
-                        backgroundColor: '#10B981',
-                        display: 'inline-block'
-                      }}
-                      title="Voice AI"
-                    />
-                  )}
                 </button>
               );
             })}
@@ -537,7 +543,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                 artifactName={displayName}
                 autoRotateSpeed={0.8}
                 audioNarrationUrl={undefined}
-                translations={artifact.translations}
+                translations={undefined}
                 autoPlayAudio={false}
                 height="100%"
               />
@@ -591,25 +597,89 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           <h1 className="artifact-title">{displayName}</h1>
 
           {/* AI Voice Narration Guide Player */}
-          {(activeAudioUrl || displayDescription) && (
+          {artifact && (
             <div className={`voice-guide-player ${isPlayingAudio ? 'is-playing' : ''}`}>
               <div className="player-top">
-                <div className="player-info">
+                <div className="player-info" style={{ width: '100%' }}>
                   <div className={`guide-icon-pulse ${isPlayingAudio ? 'anim-pulse' : ''}`}>
                     <Volume2 size={20} />
                   </div>
-                  <div className="guide-meta-texts">
+                  <div className="guide-meta-texts" style={{ flex: 1 }}>
                     <div className="guide-title-row">
                       <span className="guide-label">{t('artifact.narrationGuide', 'Giới thiệu hiện vật')}</span>
                       <span className="guide-badge-ai">Voice AI</span>
                     </div>
-                    <div className="guide-lang-sub">
-                      <span className="lang-status-dot" />
-                      {t('artifact.language', 'Ngôn ngữ')}:{' '}
-                      <strong className="lang-highlight">
-                        {displayLanguages.find((l) => l.code === currentLang)?.nativeName || currentLang.toUpperCase()}
-                      </strong>
+
+                    <div className="guide-lang-sub" style={{ marginTop: 2 }}>
+                      <span
+                        className="lang-status-dot"
+                        style={{ backgroundColor: activeVoice ? '#10B981' : '#6b7280' }}
+                      />
+                      {activeVoice ? (
+                        <span>
+                          {t('artifact.voiceLanguage', 'Giọng đọc')}:{' '}
+                          <strong className="lang-highlight">
+                            {activeVoice.flag} {activeVoice.label}
+                          </strong>
+                          {activeVoice.code !== currentLang && (
+                            <span style={{ fontSize: '0.74rem', opacity: 0.8, marginLeft: 6 }}>
+                              ({t('artifact.fallbackVoiceNote', 'Mặc định do chưa có giọng')} {displayLanguages.find((l) => l.code === currentLang)?.nativeName || currentLang.toUpperCase()})
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span style={{ opacity: 0.75 }}>
+                          {t('artifact.noVoiceRecorded', 'Hiện vật chưa có bản thu âm thuyết minh')}
+                        </span>
+                      )}
                     </div>
+
+                    {/* Bộ chọn giọng đọc độc lập (Không thay đổi ngôn ngữ trang web) */}
+                    {availableVoices.length > 1 && (
+                      <div
+                        className="voice-picker-inline"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          marginTop: 8,
+                          flexWrap: 'wrap'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.72rem', color: '#d4a86a', fontWeight: 600 }}>
+                          {t('artifact.chooseVoice', 'Chọn giọng đọc')}:
+                        </span>
+                        {availableVoices.map((v) => {
+                          const isSelected = activeVoice?.code === v.code;
+                          return (
+                            <button
+                              key={v.code}
+                              type="button"
+                              onClick={() => handleSelectVoiceLang(v.code)}
+                              className={`voice-pill-btn ${isSelected ? 'active' : ''}`}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontSize: '0.72rem',
+                                fontWeight: isSelected ? 700 : 500,
+                                cursor: 'pointer',
+                                border: isSelected ? '1px solid #d4a86a' : '1px solid rgba(255, 255, 255, 0.18)',
+                                background: isSelected ? 'rgba(212, 168, 106, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+                                color: isSelected ? '#f5d398' : 'rgba(255, 255, 255, 0.8)',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title={`Nghe giọng ${v.label} (Không đổi ngôn ngữ giao diện)`}
+                            >
+                              <span>{v.flag}</span>
+                              <span>{v.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -649,12 +719,13 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   type="button"
                   className={`btn-play-pause ${isPlayingAudio ? 'playing' : ''}`}
                   onClick={toggleAudio}
-                  disabled={isGeneratingTts}
+                  disabled={!activeAudioUrl}
+                  style={!activeAudioUrl ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
                 >
-                  {isGeneratingTts ? (
+                  {!activeAudioUrl ? (
                     <>
-                      <Loader2 size={17} className="anim-spin" />
-                      <span>Voice AI...</span>
+                      <VolumeX size={17} />
+                      <span>{t('artifact.noVoiceRecorded', 'Hiện vật chưa có bản thu âm thuyết minh')}</span>
                     </>
                   ) : isPlayingAudio ? (
                     <>
