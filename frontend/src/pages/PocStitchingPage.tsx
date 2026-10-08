@@ -111,8 +111,8 @@ export const PocStitchingPage: React.FC = () => {
   const [activeViewUrl, setActiveViewUrl] = useState<string | null>(null);
   // Hiệu ứng mờ dần (Fade transition) khi chuyển góc nhìn
   const [isViewFading, setIsViewFading] = useState(false);
-  // Chế độ trình xem: Không gian phòng đa góc nhìn (spatial) hoặc Cầu 360 độ (pano360)
-  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('spatial');
+  // Chế độ trình xem: Mặc định luôn là Quả Cầu 360 độ (pano360) để xoay chuột khám phá không gian
+  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('pano360');
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
   const [batchFiles, setBatchFiles] = useState<File[]>([]);
   const [batchPreviews, setBatchPreviews] = useState<string[]>([]);
@@ -1113,12 +1113,12 @@ export const PocStitchingPage: React.FC = () => {
                       >
                         <Sparkles size={13} style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: 1 }} />
                         <span>
-                          <strong>Chuẩn Tour Bảo Tàng Thực Thụ (Cách 2):</strong> Toàn bộ các góc chụp sẽ được lưu thành <strong>ĐÚNG 1 GIAN PHÒNG DUY NHẤT</strong> trong thư viện. Người xem mở ra có thể chuyển nhanh giữa các góc nhìn mượt mà (Fade), 100% giữ nguyên độ nét gốc của tủ kính và hiện vật, không nếp gấp, không méo mó!
+                          <strong>Động Cơ Ghép Không Gian 360° Quang Học:</strong> Hệ thống sẽ tự động nắn mặt trụ và ghép nối các góc ảnh xoay quanh phòng thành một <strong>KHÔNG GIAN QUẢ CẦU 360° HOÀN CHỈNH</strong>. Người xem có thể kéo chuột xoay 360° ngắm toàn cảnh căn phòng, triệt tiêu nếp gấp và không còn bóng ma!
                         </span>
                       </div>
                     )}
 
-                    {/* Nút tạo không gian căn phòng và tạo gian phòng bảo tàng */}
+                    {/* Nút tạo không gian căn phòng 360 */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
                       <button
                         type="button"
@@ -1130,15 +1130,15 @@ export const PocStitchingPage: React.FC = () => {
                         {isProcessing ? (
                           <>
                             <Loader2 size={16} className="spin" />
-                            <span>Đang tạo gian phòng đa góc nhìn...</span>
+                            <span>Đang ghép không gian 360° từ {totalFrames} ảnh...</span>
                           </>
                         ) : (
                           <>
                             <Sparkles size={16} />
                             <span>
                               {totalFrames === 1
-                                ? 'Tạo không gian phòng từ 1 ảnh này'
-                                : `Tạo gian phòng đa góc nhìn (${totalFrames} góc ảnh)`}
+                                ? 'Tạo không gian 360° từ 1 ảnh này'
+                                : `Tạo không gian 360° căn phòng (${totalFrames} góc ảnh)`}
                             </span>
                           </>
                         )}
@@ -1213,28 +1213,30 @@ export const PocStitchingPage: React.FC = () => {
 
                     {stitchResult && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                        {/* Toggle giữa Không Gian Phòng và Cầu 360 */}
+                        {/* Toggle giữa Quả Cầu 360 và Xem Chi Tiết Từng Góc */}
                         <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.35)', borderRadius: 6, padding: 2, border: '1px solid rgba(255,255,255,0.1)' }}>
-                          <button
-                            type="button"
-                            onClick={() => setViewerMode('spatial')}
-                            className={`btn btn-sm ${viewerMode === 'spatial' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: '11px', padding: '4px 9px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}
-                            title="Chế độ Không gian phòng đa góc nhìn (Nét căng nguyên bản, Pan & Zoom, Auto-Tour)"
-                          >
-                            <Compass size={12} />
-                            <span>Không Gian Phòng</span>
-                          </button>
                           <button
                             type="button"
                             onClick={() => setViewerMode('pano360')}
                             className={`btn btn-sm ${viewerMode === 'pano360' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: '11px', padding: '4px 9px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}
-                            title="Chế độ xem dạng quả cầu 360°"
+                            style={{ fontSize: '11px', padding: '4px 10px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 5 }}
+                            title="Chế độ Không gian Quả Cầu 360° (Kéo chuột/chạm tay xoay vòng 360° ngắm toàn cảnh)"
                           >
-                            <Globe size={12} />
-                            <span>Cầu 360°</span>
+                            <Globe size={13} />
+                            <span>🌐 Không Gian 360°</span>
                           </button>
+                          {stitchResult.views && stitchResult.views.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setViewerMode('spatial')}
+                              className={`btn btn-sm ${viewerMode === 'spatial' ? 'btn-primary' : 'btn-secondary'}`}
+                              style={{ fontSize: '11px', padding: '4px 10px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 5 }}
+                              title="Xem chi tiết ảnh góc chụp gốc độ phân giải cao"
+                            >
+                              <Compass size={13} />
+                              <span>Ảnh Chi Tiết</span>
+                            </button>
+                          )}
                         </div>
 
                         <button
@@ -1288,12 +1290,12 @@ export const PocStitchingPage: React.FC = () => {
                         <Loader2 size={40} className="spin" style={{ color: 'var(--accent-gold)' }} />
                         <div className="studio-overlay-stage">
                           {currentStep <= 1 && 'Đang chuẩn bị các góc ảnh của phòng...'}
-                          {currentStep === 2 && 'Đang chuẩn hóa kích thước và ánh sáng...'}
-                          {currentStep === 3 && 'Đang hoàn tất không gian gian phòng...'}
-                          {currentStep >= 4 && 'Đang lưu vào kho di sản...'}
+                          {currentStep === 2 && 'Đang nắn mặt trụ quang học và so khớp quỹ đạo xoay...'}
+                          {currentStep === 3 && 'Đang hòa trộn Voronoi và cân bằng chân trời...'}
+                          {currentStep >= 4 && 'Đang hoàn tất không gian quả cầu 360°...'}
                         </div>
                         <div className="studio-overlay-note">
-                          Quá trình xử lý diễn ra rất nhanh. Vui lòng không tắt hoặc tải lại trang.
+                          Động cơ đang xử lý để tạo không gian 360° hoàn chỉnh. Vui lòng không tắt hoặc tải lại trang.
                         </div>
                         <div className="studio-overlay-steps" aria-hidden="true">
                           {[1, 2, 3, 4].map((step) => (
@@ -1327,8 +1329,8 @@ export const PocStitchingPage: React.FC = () => {
                             }}
                           >
                             <Pannellum360Viewer
-                              key={activeViewUrl || stitchResult.panoramaUrl}
-                              panoramaUrl={activeViewUrl || stitchResult.panoramaUrl}
+                              key={stitchResult.panoramaUrl}
+                              panoramaUrl={stitchResult.panoramaUrl}
                               title={stitchResult.filename}
                               autoStartLittlePlanet={false}
                               initialPitch={0}

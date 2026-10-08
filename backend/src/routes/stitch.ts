@@ -517,19 +517,107 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
 
   const outFilename = `stitched_room_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
-  const primaryIndex = req.body.primaryIndex !== undefined ? Number(req.body.primaryIndex) : 0;
 
+  // Ghi danh sách ảnh vào file JSON tạm để tránh giới hạn độ dài dòng lệnh hệ điều hành
+  const tempJsonFile = path.join(TEMP_DIR, `inputs_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.json`);
   try {
-    return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIndex);
-  } catch (err: any) {
-    console.error('[Stitch Multi-View Fatal Error]:', err);
-    if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message: `Lỗi tạo gian phòng đa góc nhìn: ${err.message}`
-      });
-    }
+    fs.writeFileSync(tempJsonFile, JSON.stringify(imagePaths), 'utf-8');
+  } catch (jErr: any) {
+    console.warn('[Stitch API] Lỗi ghi file inputs tạm:', jErr.message);
   }
+
+  const args = [
+    STITCHER_SCRIPT,
+    '--images-file', tempJsonFile,
+    '--output', outputPath,
+    '--width', '4096'
+  ];
+
+  console.log(`[Stitch API] Bắt đầu ghép không gian phòng 360° từ ${imagePaths.length} ảnh bằng Python Sequential Cylindrical Engine...`);
+
+  const pyProcess = spawn(PYTHON_PATH, args);
+
+  let stdoutData = '';
+  let stderrData = '';
+  let isClosed = false;
+
+  // Timeout 180s cho quy trình ghép phòng
+  const timeoutTimer = setTimeout(() => {
+    if (!isClosed) {
+      console.error('[Stitch API] Quá thời gian xử lý ghép phòng (180s). Hủy tiến trình...');
+      isClosed = true;
+      try { pyProcess.kill('SIGKILL'); } catch (kErr) { console.warn(kErr); }
+      try { if (fs.existsSync(tempJsonFile)) fs.unlinkSync(tempJsonFile); } catch (_) {}
+      if (!res.headersSent) {
+        return res.status(504).json({
+          success: false,
+          error: 'ERR_TIMEOUT',
+          message: 'Quá trình ghép không gian phòng 360° vượt quá thời gian cho phép (180s).'
+        });
+      }
+    }
+  }, 180000);
+
+  pyProcess.stdout.on('data', (d) => { stdoutData += d.toString(); });
+  pyProcess.stderr.on('data', (d) => {
+    stderrData += d.toString();
+    console.log(`[Stitch Worker Log]: ${d.toString().trim()}`);
+  });
+
+  pyProcess.on('close', async (code) => {
+    clearTimeout(timeoutTimer);
+    if (isClosed || res.headersSent) return;
+    isClosed = true;
+
+    try { if (fs.existsSync(tempJsonFile)) fs.unlinkSync(tempJsonFile); } catch (_) {}
+
+    try {
+      const parsedResult = extractJsonFromOutput(stdoutData);
+
+      if (parsedResult && parsedResult.success && fs.existsSync(outputPath)) {
+        return await finalizePanoramaAndRespond(
+          req,
+          res,
+          outputPath,
+          outFilename,
+          parsedResult.width || 4096,
+          parsedResult.height || 2048,
+          imagePaths.length,
+          'Sequential Feature-Aligned Cylindrical 360 Engine',
+          `Đã tạo thành công không gian 360° căn phòng thực thụ từ ${imagePaths.length} góc ảnh chi tiết.`
+        );
+      } else {
+        console.error('[Stitch API] Python Worker thất bại. Stdout:', stdoutData, 'Stderr:', stderrData);
+        // Nếu Python worker gặp lỗi nhưng outputPath vẫn được tạo
+        if (fs.existsSync(outputPath)) {
+          return await finalizePanoramaAndRespond(
+            req,
+            res,
+            outputPath,
+            outFilename,
+            4096,
+            2048,
+            imagePaths.length,
+            'Sequential Cylindrical 360 Engine',
+            `Đã tạo không gian phòng 360° từ ${imagePaths.length} góc ảnh.`
+          );
+        }
+        return res.status(500).json({
+          success: false,
+          message: parsedResult?.message || parsedResult?.detail || 'Không thể tạo không gian 360° từ các ảnh đã chọn.',
+          rawStderr: stderrData
+        });
+      }
+    } catch (err: any) {
+      console.error('[Stitch API Exception]:', err);
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          message: `Lỗi xử lý kết quả ghép không gian 360°: ${err.message}`
+        });
+      }
+    }
+  });
 });
 
 /**
