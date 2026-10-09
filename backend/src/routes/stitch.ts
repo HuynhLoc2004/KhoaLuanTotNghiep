@@ -554,13 +554,14 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   const outFilename = `stitched_room_${Date.now()}.jpg`;
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
 
-  // TẠO GIAN PHÒNG BẢO TÀNG ĐA GÓC NHÌN (INTERACTIVE SPATIAL ROOM TOUR):
-  // 100% bảo tồn ảnh chụp gốc sắc nét của camera, chọn lọc 4-6 góc chính đẹp nhất,
-  // tuyệt đối không bóp méo, không lặp điểm ảnh, không viền mờ hay bệt đen, xử lý siêu tốc (< 1s)!
   const primaryIdx = req.body.primaryIndex ? parseInt(String(req.body.primaryIndex), 10) : 0;
-  return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
 
-  // Ghi danh sách ảnh vào file JSON tạm để tránh giới hạn độ dài dòng lệnh hệ điều hành
+  // Trường hợp 1: Chỉ có 1 ảnh -> Tối ưu sắc nét nguyên bản và trả về tức thì
+  if (imagePaths.length === 1) {
+    return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
+  }
+
+  // Trường hợp 2: Chùm 2+ ảnh -> Ghép thành không gian phòng bảo tàng chuẩn (Planar Architectural Scans)
   const tempJsonFile = path.join(TEMP_DIR, `inputs_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.json`);
   try {
     fs.writeFileSync(tempJsonFile, JSON.stringify(imagePaths), 'utf-8');
@@ -571,11 +572,10 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   const args = [
     STITCHER_SCRIPT,
     '--images-file', tempJsonFile,
-    '--output', outputPath,
-    '--width', '4096'
+    '--output', outputPath
   ];
 
-  console.log(`[Stitch API] Bắt đầu ghép không gian phòng 360° từ ${imagePaths.length} ảnh bằng Python Sequential Cylindrical Engine...`);
+  console.log(`[Stitch API] Bắt đầu ghép không gian phòng kiến trúc từ ${imagePaths.length} ảnh bằng Planar Architectural Engine...`);
 
   const pyProcess = spawn(PYTHON_PATH, args);
 
@@ -583,22 +583,19 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   let stderrData = '';
   let isClosed = false;
 
-  // Timeout 180s cho quy trình ghép phòng
+  // Timeout 60s cho quy trình ghép phòng
   const timeoutTimer = setTimeout(() => {
     if (!isClosed) {
-      console.error('[Stitch API] Quá thời gian xử lý ghép phòng (180s). Hủy tiến trình...');
+      console.error('[Stitch API] Quá thời gian xử lý ghép phòng (60s). Hủy tiến trình...');
       isClosed = true;
       try { pyProcess.kill('SIGKILL'); } catch (kErr) { console.warn(kErr); }
       try { if (fs.existsSync(tempJsonFile)) fs.unlinkSync(tempJsonFile); } catch (_) {}
       if (!res.headersSent) {
-        return res.status(504).json({
-          success: false,
-          error: 'ERR_TIMEOUT',
-          message: 'Quá trình ghép không gian phòng 360° vượt quá thời gian cho phép (180s).'
-        });
+        // Fallback an toàn sang multi-view nếu timeout
+        return stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
       }
     }
-  }, 180000);
+  }, 60000);
 
   pyProcess.stdout.on('data', (d) => { stdoutData += d.toString(); });
   pyProcess.stderr.on('data', (d) => {
@@ -617,6 +614,50 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
       const parsedResult = extractJsonFromOutput(stdoutData);
 
       if (parsedResult && parsedResult.success && fs.existsSync(outputPath)) {
+        const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
+        const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '103-170-233-206.sslip.io';
+        const baseUrl = process.env.PUBLIC_API_URL ? process.env.PUBLIC_API_URL.replace(/\/$/, '') : `${protocol}://${host}`;
+        const timestamp = Date.now();
+
+        // 1. Tạo danh sách các góc ảnh thành phần để người dùng vừa có không gian tổng thể vừa xem được chi tiết
+        const views: RoomSceneView[] = [
+          {
+            id: `view-master-${timestamp}`,
+            index: 0,
+            title: `⭐ Không Gian Phòng Tổng Thể (Ghép từ ${imagePaths.length} ảnh)`,
+            url: `${baseUrl}/uploads/${outFilename}`,
+            filename: outFilename,
+            isPrimary: true
+          }
+        ];
+
+        // Lấy tối đa 5 góc ảnh thành phần đại diện
+        const maxAngles = Math.min(5, imagePaths.length);
+        const step = (imagePaths.length - 1) / Math.max(1, maxAngles - 1);
+        const sampledIndices: number[] = [];
+        for (let i = 0; i < maxAngles; i++) {
+          const idx = Math.round(i * step);
+          if (!sampledIndices.includes(idx) && imagePaths[idx]) sampledIndices.push(idx);
+        }
+
+        for (let r = 0; r < sampledIndices.length; r++) {
+          const origIdx = sampledIndices[r];
+          const srcP = imagePaths[origIdx];
+          const sceneFilename = `scene_angle_${timestamp}_${r + 1}.jpg`;
+          const sceneFilePath = path.join(UPLOAD_ROOT, sceneFilename);
+          try {
+            await optimizeRoomViewImage(srcP, sceneFilePath, 2048);
+            views.push({
+              id: `view-angle-${r + 1}`,
+              index: r + 1,
+              title: `Góc chụp chi tiết ${r + 1}`,
+              url: `${baseUrl}/uploads/${sceneFilename}`,
+              filename: sceneFilename,
+              isPrimary: false
+            });
+          } catch (_) {}
+        }
+
         return await finalizePanoramaAndRespond(
           req,
           res,
@@ -626,37 +667,17 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
           parsedResult.height || 1440,
           imagePaths.length,
           'Planar Architectural Stitching Engine',
-          `Đã ghép thành công không gian kiến trúc phẳng từ ${imagePaths.length} ảnh sắc nét chuẩn bảo tàng, không lặp hình.`
+          parsedResult.message || `Đã ghép thành công không gian kiến trúc phòng từ ${imagePaths.length} ảnh sắc nét chuẩn bảo tàng, không lặp hình.`,
+          views
         );
       } else {
-        console.error('[Stitch API] Python Worker thất bại. Stdout:', stdoutData, 'Stderr:', stderrData);
-        // Nếu Python worker gặp lỗi nhưng outputPath vẫn được tạo
-        if (fs.existsSync(outputPath)) {
-          return await finalizePanoramaAndRespond(
-            req,
-            res,
-            outputPath,
-            outFilename,
-            4096,
-            2048,
-            imagePaths.length,
-            'Sequential Cylindrical 360 Engine',
-            `Đã tạo không gian phòng 360° từ ${imagePaths.length} góc ảnh.`
-          );
-        }
-        return res.status(500).json({
-          success: false,
-          message: parsedResult?.message || parsedResult?.detail || 'Không thể tạo không gian 360° từ các ảnh đã chọn.',
-          rawStderr: stderrData
-        });
+        console.warn('[Stitch API] Python Worker không hội tụ, kích hoạt cơ chế hiển thị góc phòng đa góc dự phòng...');
+        return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
       }
     } catch (err: any) {
       console.error('[Stitch API Exception]:', err);
       if (!res.headersSent) {
-        return res.status(500).json({
-          success: false,
-          message: `Lỗi xử lý kết quả ghép không gian 360°: ${err.message}`
-        });
+        return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
       }
     }
   });

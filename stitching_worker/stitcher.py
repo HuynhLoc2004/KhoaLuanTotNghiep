@@ -39,6 +39,7 @@ import tempfile
 import gc
 
 import cv2
+cv2.ocl.setUseOpenCL(False)
 import numpy as np
 from PIL import Image, ExifTags
 
@@ -825,17 +826,154 @@ def run_opencv_native_stitcher(image_paths, target_width=0):
             images = None
             gc.collect()
 
+def run_pairwise_planar_stitcher(image_paths, max_dim=1800):
+    """
+    ĐỘNG CƠ GHÉP PHẲNG TỪNG CẶP QUANG HỌC (INCREMENTAL PLANAR AFFINE COMPOSITOR):
+    - Đảm bảo 100% không lặp điểm ảnh, không nhân đôi cửa/cột/người.
+    - Giữ thẳng 100% các đường nét kiến trúc tự nhiên (tường đứng, trần sàn).
+    - Hòa trộn Voronoi bằng Distance Transform (mỗi pixel chỉ thuộc về 1 ảnh gần nhất).
+    - Cắt viền đen nội tiếp, giữ tỉ lệ góc nhìn phòng thực tế (vuông hoặc chữ nhật).
+    """
+    images = []
+    for p in image_paths:
+        try:
+            im = load_and_orient_image(p, max_dim=max_dim)
+            if im is not None and im.size > 0:
+                images.append(im)
+        except Exception:
+            continue
+
+    if len(images) == 0:
+        return None
+    if len(images) == 1:
+        return enhance_museum_details(images[0])
+
+    sift = cv2.SIFT_create(nfeatures=2500)
+    bf = cv2.BFMatcher(cv2.NORM_L2)
+    transforms = {0: np.eye(3, dtype=np.float32)}
+
+    feats = []
+    for im in images:
+        g = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        kp, des = sift.detectAndCompute(g, None)
+        feats.append((kp, des))
+
+    aligned_indices = [0]
+    unaligned = list(range(1, len(images)))
+
+    for _ in range(len(unaligned)):
+        best_cand, best_ref, best_M, best_inliers = None, None, None, 0
+        for cand_idx in unaligned:
+            kp_c, des_c = feats[cand_idx]
+            if des_c is None or len(des_c) < 15:
+                continue
+            for ref_idx in aligned_indices:
+                kp_r, des_r = feats[ref_idx]
+                if des_r is None or len(des_r) < 15:
+                    continue
+                matches = bf.knnMatch(des_c, des_r, k=2)
+                good = [m[0] for m in matches if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
+                if len(good) >= 12:
+                    pts_c = np.float32([kp_c[m.queryIdx].pt for m in good])
+                    pts_r = np.float32([kp_r[m.trainIdx].pt for m in good])
+                    M_aff, inls = cv2.estimateAffine2D(pts_c, pts_r, method=cv2.RANSAC, ransacReprojThreshold=4.5)
+                    if M_aff is not None:
+                        inl_cnt = int(np.sum(inls))
+                        s_x = np.hypot(M_aff[0, 0], M_aff[0, 1])
+                        s_y = np.hypot(M_aff[1, 0], M_aff[1, 1])
+                        if 0.72 < s_x < 1.38 and 0.72 < s_y < 1.38 and inl_cnt > best_inliers:
+                            best_inliers = inl_cnt
+                            best_cand = cand_idx
+                            best_ref = ref_idx
+                            H_c2r = np.eye(3, dtype=np.float32)
+                            H_c2r[:2, :] = M_aff
+                            best_M = transforms[ref_idx] @ H_c2r
+
+        if best_cand is not None and best_inliers >= 15:
+            transforms[best_cand] = best_M
+            aligned_indices.append(best_cand)
+            unaligned.remove(best_cand)
+        else:
+            break
+
+    if len(aligned_indices) < 2:
+        return enhance_museum_details(images[0])
+
+    log(f"[✓] Ghép Phẳng Từng Cặp: Đã căn chỉnh thành công {len(aligned_indices)}/{len(images)} góc ảnh phòng!")
+
+    corners = []
+    for idx in aligned_indices:
+        h, w = images[idx].shape[:2]
+        c = np.array([[0, 0, 1], [w, 0, 1], [w, h, 1], [0, h, 1]], dtype=np.float32).T
+        c_proj = transforms[idx] @ c
+        c_proj = c_proj[:2] / c_proj[2]
+        corners.append(c_proj)
+
+    all_corners = np.hstack(corners)
+    min_x = np.floor(np.min(all_corners[0])).astype(int)
+    max_x = np.ceil(np.max(all_corners[0])).astype(int)
+    min_y = np.floor(np.min(all_corners[1])).astype(int)
+    max_y = np.ceil(np.max(all_corners[1])).astype(int)
+
+    canvas_w = int(max_x - min_x)
+    canvas_h = int(max_y - min_y)
+
+    if max(canvas_w, canvas_h) > 6000:
+        scale_down = 6000.0 / float(max(canvas_w, canvas_h))
+        canvas_w = int(canvas_w * scale_down)
+        canvas_h = int(canvas_h * scale_down)
+        min_x = int(min_x * scale_down)
+        min_y = int(min_y * scale_down)
+        for idx in aligned_indices:
+            transforms[idx][:2, :] *= scale_down
+
+    T_shift = np.eye(3, dtype=np.float32)
+    T_shift[0, 2] = -min_x
+    T_shift[1, 2] = -min_y
+
+    warped_images = []
+    warped_dists = []
+
+    for idx in aligned_indices:
+        H_canvas = T_shift @ transforms[idx]
+        im = images[idx]
+        w_im = cv2.warpAffine(im, H_canvas[:2, :], (canvas_w, canvas_h), flags=cv2.INTER_LINEAR)
+        mask = (w_im.sum(axis=2) > 0).astype(np.uint8) * 255
+        dist = cv2.distanceTransform(mask, cv2.DIST_L2, 5)
+        warped_images.append(w_im)
+        warped_dists.append(dist)
+
+    max_dist = np.maximum.reduce(warped_dists)
+    accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
+    accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+    feather = 16.0
+
+    for w_im, dist in zip(warped_images, warped_dists):
+        weight = np.maximum(0.0, 1.0 - (max_dist - dist) / feather)
+        weight[dist <= 0] = 0.0
+        accum_color += w_im.astype(np.float32) * weight[:, :, None]
+        accum_weight += weight
+
+    safe_weight = np.maximum(accum_weight[:, :, None], 1e-5)
+    blended = (accum_color / safe_weight).clip(0, 255).astype(np.uint8)
+
+    cropped = crop_clean_inscribed_rectangle(blended)
+    final = enhance_museum_details(cropped if (cropped is not None and cropped.size > 0) else blended)
+    return final
+
+
 def run_planar_architectural_stitcher(image_paths, target_width=0):
     """
     ĐỘNG CƠ GHÉP PHẲNG KIẾN TRÚC BẢO TÀNG (PLANAR ARCHITECTURAL STITCHER - SCANS ENGINE):
     1. Chọn lọc chuỗi khung hình tối ưu, khử trùng lặp quang học (< 13%) bằng filter_smart_keyframes.
-    2. Sử dụng OpenCV Stitcher chế độ SCANS (cv2.Stitcher_SCANS):
-       - Ghép các mặt phẳng không gian kiến trúc tự nhiên bằng ma trận Affine / Homography.
+    2. Ưu tiên hàng đầu OpenCV Stitcher chế độ SCANS (cv2.Stitcher_SCANS):
+       - Ghép các mặt phẳng không gian kiến trúc tự nhiên bằng ma trận Affine.
        - Giữ thẳng 100% các đường nét kiến trúc (tường đứng 90°, trần, sàn, tủ kính, tranh treo).
        - Khử lặp điểm ảnh/cột bằng thuật toán GraphCut Seam Finder.
        - Tuyệt đối không uốn cong thành cầu 360°, không kéo dãn 2:1 bóp méo hình ảnh.
-    3. Cắt sạch viền đen răng cưa nội tiếp (crop_clean_inscribed_rectangle).
-    4. Nâng cấp độ sắc nét bảo tàng (enhance_museum_details).
+    3. Dự phòng bằng Động cơ Ghép Phẳng Từng Cặp (run_pairwise_planar_stitcher) với Voronoi Seam.
+    4. Cắt sạch viền đen răng cưa nội tiếp (crop_clean_inscribed_rectangle).
+    5. Nâng cấp độ sắc nét bảo tàng (enhance_museum_details).
     """
     filtered_paths = filter_smart_keyframes(image_paths, target_dim=1200, max_keyframes=30)
     log(f"[*] Ghép Phẳng Kiến Trúc: Đang xử lý {len(filtered_paths)}/{len(image_paths)} góc ảnh chủ đạo...")
@@ -847,9 +985,10 @@ def run_planar_architectural_stitcher(image_paths, target_width=0):
         return enhance_museum_details(im)
 
     configs = [
-        (cv2.Stitcher_PANORAMA, 1400, 0.05, "PANORAMA Kiến trúc Sắc nét"),
-        (cv2.Stitcher_PANORAMA, 1100, 0.02, "PANORAMA Siêu Bắt Điểm"),
-        (cv2.Stitcher_SCANS, 1200, 0.04, "SCANS Nhạy cảm"),
+        (cv2.Stitcher_PANORAMA, 1400, 0.05, "PANORAMA Kiến Trúc Sắc Nét"),
+        (cv2.Stitcher_PANORAMA, 1200, 0.03, "PANORAMA Kiến Trúc Nhạy Cảm"),
+        (cv2.Stitcher_PANORAMA, 1000, 0.015, "PANORAMA Kiến Trúc Siêu Bắt Điểm"),
+        (cv2.Stitcher_SCANS, 1200, 0.04, "SCANS Phẳng Kiến Trúc"),
     ]
 
     for mode, max_dim, conf, desc in configs:
@@ -892,6 +1031,14 @@ def run_planar_architectural_stitcher(image_paths, target_width=0):
         finally:
             images = None
             gc.collect()
+
+    log("[*] Chuyển tiếp sang Động cơ Ghép Phẳng Từng Cặp Voronoi (Pairwise Planar Compositor)...")
+    try:
+        pw_pano = run_pairwise_planar_stitcher(filtered_paths, max_dim=1600)
+        if pw_pano is not None and pw_pano.size > 0:
+            return pw_pano
+    except Exception as pw_err:
+        log(f"[!] Lỗi Pairwise Planar Compositor: {pw_err}")
 
     return None
 
@@ -1427,19 +1574,9 @@ def run_stitch(image_paths, output_path, target_width=0):
     log(f"[*] Kích hoạt Động cơ Ghép Phẳng Kiến Trúc Bảo Tàng (Planar SCANS Engine) cho {len(sorted_paths)} ảnh...")
     final_pano = run_planar_architectural_stitcher(sorted_paths, target_width=out_w)
 
-    # Ưu tiên số 2 (Dự phòng): Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical Stitcher)
+    # Ưu tiên số 2 (Dự phòng): Nạp ảnh chính và tối ưu sắc nét bảo tàng
     if final_pano is None:
-        log("[*] Chuyển tiếp sang Động cơ Ghép Chuỗi Quang Học Dự Phòng...")
-        try:
-            seq_pano, _, _ = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
-            if seq_pano is not None and seq_pano.size > 0:
-                clean_seq = crop_clean_inscribed_rectangle(seq_pano)
-                final_pano = enhance_museum_details(clean_seq if clean_seq is not None else seq_pano)
-        except Exception as seq_err:
-            log(f"[!] Lỗi Sequential Stitcher dự phòng: {seq_err}")
-
-    # Ưu tiên số 3 (Dự phòng cuối cùng): Nạp ảnh chính và tối ưu sắc nét
-    if final_pano is None:
+        log("[*] Nạp ảnh chính góc nhìn chuẩn bảo tàng...")
         im0 = load_and_orient_image(sorted_paths[0], max_dim=3000)
         final_pano = enhance_museum_details(im0)
 

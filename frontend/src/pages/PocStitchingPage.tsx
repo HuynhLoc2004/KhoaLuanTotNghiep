@@ -1219,28 +1219,10 @@ export const PocStitchingPage: React.FC = () => {
 
                     {stitchResult && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                        {/* Toggle giữa Không Gian Đa Góc Nhìn và Quả Cầu 360 */}
-                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.45)', borderRadius: 6, padding: 3, border: '1px solid rgba(212,168,106,0.3)' }}>
-                          <button
-                            type="button"
-                            onClick={() => setViewerMode('spatial')}
-                            className={`btn btn-sm ${viewerMode === 'spatial' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: '11.5px', padding: '5px 12px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 5, fontWeight: viewerMode === 'spatial' ? 600 : 400 }}
-                            title="Chế độ Gian Phòng Đa Góc Nhìn (Nét căng 100% nguyên bản, không nếp gấp, không lặp hình)"
-                          >
-                            <Compass size={14} />
-                            <span>🖼️ Không Gian Đa Góc {stitchResult.views && stitchResult.views.length > 1 ? `(${stitchResult.views.length})` : ''}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setViewerMode('pano360')}
-                            className={`btn btn-sm ${viewerMode === 'pano360' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: '11.5px', padding: '5px 12px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 5 }}
-                            title="Chế độ Không gian Quả Cầu 360°"
-                          >
-                            <Globe size={14} />
-                            <span>🌐 Quả Cầu 360°</span>
-                          </button>
+                        {/* Huy hiệu Chế độ Không Gian Phòng */}
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.45)', borderRadius: 6, padding: '4px 10px', border: '1px solid rgba(212,168,106,0.3)', gap: 6, color: 'var(--accent-gold, #d4a86a)', fontSize: '11.5px', fontWeight: 600 }}>
+                          <Compass size={14} />
+                          <span>🖼️ Không Gian Phòng {stitchResult.views && stitchResult.views.length > 1 ? `(${stitchResult.views.length} góc nhìn)` : ''}</span>
                         </div>
 
                         <button

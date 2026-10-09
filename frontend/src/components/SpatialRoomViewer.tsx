@@ -189,17 +189,12 @@ export const SpatialRoomViewer: React.FC<SpatialRoomViewerProps> = ({
         }}
         onMouseDown={handleMouseDown}
       >
-        {/* Background ambient mờ bao quát không gian căn phòng */}
+        {/* Background sang trọng chuẩn không gian bảo tàng số */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: `url(${displayedUrl})`,
-            backgroundPosition: 'center',
-            backgroundSize: 'cover',
-            filter: 'blur(32px) brightness(0.35)',
-            transform: 'scale(1.1)',
-            opacity: 0.85,
+            background: 'radial-gradient(circle at center, #161b26 0%, #080a0f 100%)',
             pointerEvents: 'none'
           }}
         />
@@ -215,11 +210,13 @@ export const SpatialRoomViewer: React.FC<SpatialRoomViewerProps> = ({
             width: 'auto',
             height: 'auto',
             objectFit: 'contain',
+            borderRadius: '6px',
+            border: '1px solid rgba(212, 168, 106, 0.25)',
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transition: isDragging ? 'none' : 'transform 0.15s ease-out, opacity 0.2s ease-in-out',
             opacity: isTransitioning ? 0.15 : 1,
             pointerEvents: 'none',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)'
+            boxShadow: '0 12px 40px rgba(0,0,0,0.75)'
           }}
           draggable={false}
         />
