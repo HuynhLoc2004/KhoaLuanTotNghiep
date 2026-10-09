@@ -223,10 +223,10 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
 
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>{t('rooms.panoramaLabel', 'Ảnh toàn cảnh 360° (Equirectangular 2:1)')} *</span>
+                <span>{t('rooms.panoramaLabel', 'Ảnh toàn cảnh 360° hoặc Video Tour')} *</span>
                 {panoramaUrl && (
                   <span style={{ fontSize: 11.5, color: 'var(--accent-gold)', fontWeight: 600 }}>
-                    {t('rooms.imageLoaded', 'Đã nạp ảnh')}
+                    {t('rooms.imageLoaded', 'Đã nạp tệp')}
                   </span>
                 )}
               </label>
@@ -262,7 +262,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                   className="form-control"
                   value={panoramaUrl}
                   onChange={(e) => setPanoramaUrl(e.target.value)}
-                  placeholder={t('rooms.panoramaUrlPlaceholder', 'Dán đường dẫn ảnh 360° (Cloudinary, Cloudflare R2, URL trực tiếp)...')}
+                  placeholder="Dán URL ảnh 360° hoặc video tour (.mp4, .webm) hoặc tải file bên phải..."
                   style={{ fontSize: 12.5, flex: 1 }}
                   required
                 />
@@ -280,7 +280,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                   }}
                 >
                   <Upload size={14} />
-                  <span>{uploading ? t('common.uploading', 'Đang tải...') : t('rooms.uploadImageBtn', 'Tải tệp ảnh')}</span>
+                  <span>{uploading ? t('common.uploading', 'Đang tải...') : 'Tải Ảnh / Video'}</span>
                   <input
                     type="file"
                     accept="image/*,video/*"
