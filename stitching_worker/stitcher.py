@@ -1130,10 +1130,35 @@ def filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=36):
         dx_ratio = abs(dx_median) / float(w_ref)
 
         # Khử trùng lặp khung hình thông minh: Nếu 2 ảnh chụp cùng 1 góc (< 13% dịch chuyển quang học)
-        # thì chỉ giữ lại 1 khung hình sắc nét nhất, loại bỏ triệt để hiện tượng lặp cột / người 3 lần!
+        # thì chỉ giữ lại 1 khung hình sắc nét nhất, loại bỏ triệt để hiện tượng lặp cột / sa bàn!
         if dx_ratio < 0.13:
             if cur["sharpness"] > anchor["sharpness"]:
                 selected_meta[-1] = cur
+            continue
+
+        # Kiểm tra trùng lặp nếu quay lia ngược lại góc cũ (Backtracking / Duplication Detection)
+        is_duplicate = False
+        for prev in reversed(selected_meta[-8:]):
+            if prev["des"] is None or cur["des"] is None:
+                continue
+            m_prev = bf.knnMatch(prev["des"], cur["des"], k=2)
+            g_prev = [m[0] for m in m_prev if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
+            if len(g_prev) >= 16:
+                p_p = np.float32([prev["kp"][x.queryIdx].pt for x in g_prev])
+                p_c = np.float32([cur["kp"][x.trainIdx].pt for x in g_prev])
+                M_chk, inls_chk = cv2.estimateAffinePartial2D(p_p, p_c, method=cv2.RANSAC, ransacReprojThreshold=10.0)
+                if inls_chk is not None and int(np.sum(inls_chk)) >= 14:
+                    chk_dx = abs(float(M_chk[0, 2]))
+                    if chk_dx < 0.16 * float(w_ref):
+                        is_duplicate = True
+                        if cur["sharpness"] > prev["sharpness"]:
+                            prev["sharpness"] = cur["sharpness"]
+                            prev["path"] = cur["path"]
+                            prev["kp"] = cur["kp"]
+                            prev["des"] = cur["des"]
+                        break
+
+        if is_duplicate:
             continue
 
         selected_meta.append(cur)
@@ -1795,19 +1820,23 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
     g0 = cv2.resize(cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY), (det_w, det_h))
     kp0, des0 = orb.detectAndCompute(g0, None)
 
-    # Incremental frame tracking (đo lũy kế góc xoay cum_dx thực tế)
+    # Incremental frame tracking (theo dõi vi sai liên tục giữa các frame liền kề)
     g_last, kp_last, des_last = g0, kp0, des0
 
-    # Keyframe tracking (chỉ chọn frame khi đã dịch chuyển đủ min_dx)
+    # Keyframe tracking đơn điệu (Strictly Monotonic Forward Keyframe Tracking)
     selected_raw = [frame0]
     frame_idx = 0
     step = max(1, int(fps / 15.0))  # Kiểm tra 15 lần mỗi giây
-    min_dx = det_w * 0.18           # ~18% chiều rộng ảnh (~82% overlap tối ưu)
-    max_kfs = 36 if target_count <= 0 else max(16, int(target_count))
-    cum_dx = 0.0
-    dx_since_last_kf = 0.0
-    frames_since_last_kf = 0
+    min_dx = det_w * 0.22           # ~22% chiều rộng ảnh (~78% overlap tối ưu)
+    max_kfs = 24 if target_count <= 0 else max(16, min(32, int(target_count)))
+    
+    forward_pos = 0.0
+    last_kf_pos = 0.0
     loop_closed = False
+    
+    # Ước lượng hướng xoay chủ đạo (mặc định quay phải inc_dx > 0)
+    panning_dir = 1.0
+    initial_dxs = []
 
     t0 = time.time()
     while True:
@@ -1821,13 +1850,9 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
         gc = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (det_w, det_h))
         kpc, desc = orb.detectAndCompute(gc, None)
         if desc is None:
-            frames_since_last_kf += 1
             continue
 
-        frames_since_last_kf += 1
-
-        # 1. Đo dịch chuyển vi sai liên tục (Frame-to-Frame Incremental Tracking)
-        # Giữa 2 frame cách nhau 66ms, độ chồng lấp luôn > 95% nên KHÔNG BAO GIỜ MẤT DẤU
+        # 1. Đo dịch chuyển vi sai liên tục giữa 2 frame gần nhau
         inc_dx = 0.0
         if des_last is not None and desc is not None:
             try:
@@ -1839,40 +1864,41 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
             except Exception:
                 pass
 
-        abs_inc = abs(inc_dx)
-        cum_dx += abs_inc
-        dx_since_last_kf += abs_inc
+        if len(initial_dxs) < 25 and abs(inc_dx) > 1.0:
+            initial_dxs.append(inc_dx)
+            if len(initial_dxs) == 25:
+                panning_dir = 1.0 if np.median(initial_dxs) >= 0 else -1.0
+
+        signed_dx = inc_dx * panning_dir
+        forward_pos += signed_dx
         g_last, kp_last, des_last = gc, kpc, desc
 
         # 2. Tự động phát hiện khép vòng 360° (Loop Closure với F0):
-        # Yêu cầu camera đã quay ít nhất chu vi ~2200px (tương đương ~320°+ thực tế)
-        # và thẩm định khắt khe bằng RANSAC Affine Inliers để không ngắt nhầm giữa các bức tường giống nhau
-        if cum_dx >= 2200.0 and len(selected_raw) >= 12 and des0 is not None and desc is not None:
+        # Yêu cầu camera đã quay đủ một vòng quét lớn và kiểm tra độ khớp RANSAC với frame đầu
+        if forward_pos >= 2000.0 and len(selected_raw) >= 12 and des0 is not None and desc is not None:
             try:
                 m0 = bf.knnMatch(des0, desc, k=2)
                 good0 = [m[0] for m in m0 if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
-                if len(good0) >= 18:
+                if len(good0) >= 14:
                     p0 = np.float32([kp0[x.queryIdx].pt for x in good0])
                     pc = np.float32([kpc[x.trainIdx].pt for x in good0])
                     M_lc, inls_lc = cv2.estimateAffinePartial2D(p0, pc, method=cv2.RANSAC, ransacReprojThreshold=15.0)
-                    if inls_lc is not None and int(np.sum(inls_lc)) >= 14:
+                    if inls_lc is not None and int(np.sum(inls_lc)) >= 12:
                         loop_closed = True
-                        log(f"[★] Nhận diện Khép vòng 360° chuẩn xác tại frame {frame_idx} (cum_dx={cum_dx:.0f}px, inliers={int(np.sum(inls_lc))})! Ngắt video ngay để chống quay lố.")
+                        log(f"[★] Nhận diện Khép vòng 360° chuẩn xác tại frame {frame_idx} (forward_pos={forward_pos:.0f}px, inliers={int(np.sum(inls_lc))})! Ngắt video ngay để chống quay lố.")
                         break
             except Exception as lc_err:
                 log(f"[Warning] Loop closure check error: {lc_err}")
 
-        # 3. Thu thập Keyframe: Khi đã dịch chuyển đủ góc HOẶC khi qua tường trơn (timeout)
-        # Đảm bảo 100% không gian video đều được ghi nhận trọn vẹn, không bỏ sót bất kỳ góc nào
-        if dx_since_last_kf >= min_dx or frames_since_last_kf >= 25:
+        # 3. Thu thập Keyframe: CHỈ khi góc quay thực sự tiến về phía trước vào không gian MỚI
+        # Bỏ qua hoàn toàn các frame khi đứng yên hoặc rung lắc / quay lùi lại (loại bỏ triệt để hiện tượng lặp cảnh!)
+        if forward_pos - last_kf_pos >= min_dx:
             selected_raw.append(frame)
-            dx_since_last_kf = 0.0
-            frames_since_last_kf = 0
+            last_kf_pos = forward_pos
 
     cap.release()
 
-    # Phân bố đều keyframes trên toàn bộ thời lượng video nếu thu được nhiều hơn max_kfs
-    # (Đảm bảo 100% không gian từ giây đầu đến giây cuối đều được trích xuất đầy đủ, không bị bỏ sót đuôi video)
+    # Phân bố đều keyframes trên toàn bộ chu vi quét nếu thu được nhiều hơn max_kfs
     if len(selected_raw) > max_kfs:
         indices = np.linspace(0, len(selected_raw) - 1, max_kfs, dtype=int)
         selected_raw = [selected_raw[idx] for idx in indices]
