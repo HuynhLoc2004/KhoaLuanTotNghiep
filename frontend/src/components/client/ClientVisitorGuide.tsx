@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Sparkles, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { api } from '../../services/api';
@@ -16,7 +16,6 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   const { t } = useClientTranslation();
 
   const [floorPlan, setFloorPlan] = useState<FloorPlanMap | null>(null);
-  const [viewMode, setViewMode] = useState<'simulation' | 'drawing'>('simulation');
 
   // Nạp sơ đồ mặt bằng đang active và lắng nghe đồng bộ thời gian thực
   useEffect(() => {
@@ -63,126 +62,75 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             {t(branding.guideTag || 'guide.tag', branding.guideTag || 'Kế Hoạch & Sơ Đồ')}
           </span>
           <h2 className="client-section-main-title">
-            {t(branding.guideTitle || 'guide.headline', branding.guideTitle || 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa')}
+            {t(branding.guideTitle || 'guide.headline', branding.guideTitle || 'Cẩm Nang Tham Quan & Sơ Đồ Thực Địa')}
           </h2>
           <p className="client-section-lead">
             {t(
               branding.guideDesc || 'guide.sub',
               branding.guideDesc ||
-                'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các gian trưng bày và tra cứu thông tin phục vụ hành trình tham quan.'
+                'Thông tin hướng dẫn đón tiếp khách tham quan và định vị các cánh trưng bày trong khuôn viên bảo tàng.'
             )}
           </p>
         </div>
 
-        {/* BỐ CỤC ĐÔI: CỘT THÔNG TIN THỰC TẾ & CỘT BẢN ĐỒ MẶT BẰNG */}
-        <div className="client-guide-layout-grid reveal-on-scroll">
-          {/* CỘT TRÁI: 3 THẺ HƯỚNG DẪN THỰC ĐỊA & NÚT CẨM NANG */}
-          <div className="client-guide-cards-col">
-            <div className="client-guide-info-tile">
-              <div className="client-guide-info-icon">
-                <MapPin size={18} style={{ color: '#D4A86A' }} />
-              </div>
-              <div className="client-guide-info-content">
-                <h4>{t('guide.locationTitle', 'Địa chỉ bảo tàng')}</h4>
-                <p>Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh.</p>
-                <span className="client-guide-info-sub">Khuôn viên Thảo Cầm Viên Sài Gòn</span>
-              </div>
+        {/* BỐ CỤC 2 CỘT CÂN ĐỐI: THÔNG BÁO THAM QUAN & SƠ ĐỒ MẶT BẰNG */}
+        <div className="client-guide-split-layout reveal-on-scroll">
+          {/* CỘT TRÁI: BẢNG THÔNG TIN ĐÓN TIẾP KHÁCH THAM QUAN */}
+          <div className="client-guide-notice-card">
+            <h3 className="client-guide-notice-heading">
+              {t('guide.visitorHeading', 'Thông tin đón tiếp khách tham quan')}
+            </h3>
+
+            <div className="client-guide-notice-row">
+              <span className="client-guide-notice-label">
+                {t('guide.locationLabel', 'Địa chỉ bảo tàng')}
+              </span>
+              <span className="client-guide-notice-value">
+                Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh (Khuôn viên Thảo Cầm Viên)
+              </span>
             </div>
 
-            <div className="client-guide-info-tile">
-              <div className="client-guide-info-icon">
-                <Sparkles size={18} style={{ color: '#D4A86A' }} />
-              </div>
-              <div className="client-guide-info-content">
-                <h4>{t('guide.hoursTitle', 'Thời gian mở cửa')}</h4>
-                <p>Sáng: 08:00 – 11:30 | Chiều: 13:00 – 17:00</p>
-                <span className="client-guide-info-sub">Đón khách từ Thứ Ba đến Chủ Nhật hàng tuần</span>
-              </div>
+            <div className="client-guide-notice-row">
+              <span className="client-guide-notice-label">
+                {t('guide.hoursLabel', 'Thời gian mở cửa')}
+              </span>
+              <span className="client-guide-notice-value">
+                Sáng: 08:00 – 11:30 | Chiều: 13:00 – 17:00 (Từ Thứ Ba đến Chủ Nhật hàng tuần)
+              </span>
             </div>
 
-            <div className="client-guide-info-tile">
-              <div className="client-guide-info-icon">
-                <ImageIcon size={18} style={{ color: '#D4A86A' }} />
-              </div>
-              <div className="client-guide-info-content">
-                <h4>{t('guide.amenitiesTitle', 'Dịch vụ tham quan')}</h4>
-                <p>Thuyết minh âm thanh số hóa, mã QR tại từng hiện vật & hỗ trợ gửi đồ.</p>
-                <span className="client-guide-info-sub">Sẵn sàng phục vụ khách tham quan trong nước & quốc tế</span>
-              </div>
+            <div className="client-guide-notice-row">
+              <span className="client-guide-notice-label">
+                {t('guide.amenitiesLabel', 'Dịch vụ & Tiện ích')}
+              </span>
+              <span className="client-guide-notice-value">
+                Thuyết minh Audio Guide đa ngôn ngữ, mã QR chú thích hiện vật & dịch vụ gửi đồ tại sảnh
+              </span>
             </div>
 
             {onViewAllGuide && (
-              <button
-                type="button"
-                className="client-guide-full-btn"
-                onClick={onViewAllGuide}
-              >
-                <span>{t(branding.guideCtaText || 'guide.btnViewAll', branding.guideCtaText || 'Xem cẩm nang & bảng giá vé đầy đủ')}</span>
-                <span aria-hidden="true">→</span>
-              </button>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="client-intro-btn"
+                  onClick={onViewAllGuide}
+                >
+                  {t(branding.guideCtaText || 'guide.btnViewAll', branding.guideCtaText || 'Xem cẩm nang tham quan & bảng giá vé đầy đủ →')}
+                </button>
+              </div>
             )}
           </div>
 
-          {/* CỘT PHẢI: KHUNG SƠ ĐỒ MẶT BẰNG TƯƠNG TÁC */}
+          {/* CỘT PHẢI: KHUNG HIỂN THỊ SƠ ĐỒ MẶT BẰNG */}
           <div
-            className="client-guide-map-col clickable"
+            className="client-guide-map-display"
             onClick={onViewAllGuide}
             role="button"
             tabIndex={0}
-            title={t('guide.clickToEnter', 'Bấm để xem cẩm nang & sơ đồ tham quan')}
+            title={t('guide.clickToEnter', 'Bấm để mở sơ đồ tham quan chi tiết')}
           >
-            {/* 1. THANH TIÊU ĐỀ NỔI PHÍA TRÊN CỘT BẢN ĐỒ */}
-            <div className="client-guide-map-topbar">
-              <div className="client-guide-map-badge">
-                {hasSimulationNodes ? (
-                  <>
-                    <span className="client-guide-pulse-dot" />
-                    <span>
-                      {t(
-                        'guide.simulatedMapBadge',
-                        `Sơ đồ số hóa • ${floorPlan?.nodes?.length || 0} gian phòng`
-                      )}
-                    </span>
-                  </>
-                ) : hasMapDrawing ? (
-                  <>
-                    <ImageIcon size={13} style={{ color: '#D4A86A' }} />
-                    <span>{t('guide.drawingBadge', 'Bản vẽ sơ đồ kiến trúc')}</span>
-                  </>
-                ) : (
-                  <span>{t('guide.noMapBadge', 'Chưa có sơ đồ')}</span>
-                )}
-              </div>
-
-              {/* NÚT CHUYỂN CHẾ ĐỘ XEM: MÔ PHỎNG SVG VS BẢN VẼ GỐC */}
-              {hasSimulationNodes && hasMapDrawing && (
-                <div
-                  className="client-guide-view-toggle"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    className={`client-guide-toggle-btn ${viewMode === 'simulation' ? 'active' : ''}`}
-                    onClick={() => setViewMode('simulation')}
-                    title="Xem sơ đồ số hóa mô phỏng phân tích từ thị giác máy tính"
-                  >
-                    <span>Mô phỏng</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`client-guide-toggle-btn ${viewMode === 'drawing' ? 'active' : ''}`}
-                    onClick={() => setViewMode('drawing')}
-                    title="Xem bản vẽ sơ đồ kiến trúc gốc"
-                  >
-                    <span>Bản vẽ</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 2. VÙNG KHUNG CANVAS HIỂN THỊ CHÍNH */}
-            <div className={`client-guide-map-canvas-frame ${!hasSimulationNodes && !hasMapDrawing ? 'has-placeholder' : ''}`}>
-              {hasSimulationNodes && viewMode === 'simulation' ? (
+            <div className="client-guide-map-viewport">
+              {hasSimulationNodes ? (
                 <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                   <InteractiveFloorPlanMap
                     floorPlan={floorPlan!}
@@ -191,49 +139,36 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                     onSelectRoom360={onSelectRoom360 || onViewAllGuide}
                   />
                 </div>
-              ) : hasMapDrawing && (viewMode === 'drawing' || !hasSimulationNodes) ? (
-                <div className="client-guide-drawing-frame">
+              ) : hasMapDrawing ? (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   <img
                     src={mapImageUrl}
-                    alt={floorPlan?.title || branding.guideMapTitle || branding.museumName || 'Sơ đồ mặt bằng'}
-                    className="client-guide-drawing-img"
+                    alt={floorPlan?.title || 'Sơ đồ mặt bằng'}
+                    style={{ maxWidth: '92%', maxHeight: '92%', objectFit: 'contain' }}
                     loading="lazy"
                   />
                 </div>
               ) : (
                 <div className="client-media-placeholder">
-                  <div className="client-media-placeholder-icon">
-                    <MapPin size={32} strokeWidth={1.5} />
-                  </div>
                   <span className="client-media-placeholder-title">
-                    {t('guide.noMapTitle', 'Chưa bổ sung sơ đồ tham quan')}
-                  </span>
-                  <span className="client-media-placeholder-desc">
-                    {t('guide.noMapDesc', 'Sơ đồ mặt bằng và cẩm nang sẽ hiển thị sau khi quản trị viên cập nhật tại mục Quản lý Trang Cẩm nang & Sơ đồ.')}
+                    {t('guide.noMapTitle', 'Đang cập nhật sơ đồ tham quan')}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* 3. THANH THÔNG TIN DƯỚI (BOTTOMBAR - KHÔNG DÙNG EMOJI) */}
-            {(hasSimulationNodes || hasMapDrawing) && (
-              <div className="client-guide-map-bottombar">
-                <span className="client-guide-map-title">
-                  {hasSimulationNodes
-                    ? (floorPlan?.title || 'Sơ đồ mặt bằng các gian trưng bày')
-                    : (floorPlan?.title || branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng')}
-                </span>
-                <span className="client-guide-map-action">
-                  <span>{t('guide.clickToExplore', 'Chạm để mở bản đồ chi tiết')}</span>
-                  <ExternalLink size={11} />
-                </span>
-              </div>
-            )}
+            <div className="client-guide-map-footer">
+              <span>
+                {floorPlan?.title || t('guide.mapFooterTitle', 'Sơ đồ mặt bằng các gian trưng bày bảo tàng')}
+              </span>
+              <span className="client-guide-map-link">
+                <span>{t('guide.openFullMap', 'Mở sơ đồ chi tiết')}</span>
+                <ExternalLink size={12} style={{ display: 'inline', marginLeft: 4 }} />
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
 };
-
-
