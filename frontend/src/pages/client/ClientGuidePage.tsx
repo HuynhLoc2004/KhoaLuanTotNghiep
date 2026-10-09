@@ -6,7 +6,7 @@ import { ClientNavbar } from '../../components/client/ClientNavbar';
 import { ClientFooter } from '../../components/client/ClientFooter';
 import { InteractiveFloorPlanMap } from '../../components/client/InteractiveFloorPlanMap';
 import { API_ROOT, api } from '../../services/api';
-import { FloorPlanMap } from '../../types';
+import { FloorPlanMap, MuseumRoom } from '../../types';
 
 interface ClientGuidePageProps {
   onNavigateHome: () => void;
@@ -56,21 +56,28 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
 
   // Dữ liệu Sơ đồ mặt bằng & Mạng Topo Không gian thực tế từ CSDL
   const [floorPlan, setFloorPlan] = useState<FloorPlanMap | null>(null);
+  const [allRooms, setAllRooms] = useState<MuseumRoom[]>([]);
   const [loadingFloorPlan, setLoadingFloorPlan] = useState<boolean>(true);
 
   useEffect(() => {
     let isMounted = true;
-    const fetchFloorPlan = () => {
-      api.getFloorPlan()
-        .then((data) => {
-          if (isMounted) {
-            setFloorPlan(data || null);
-          }
-        })
-        .catch((err) => {
+    const fetchFloorPlanAndRooms = () => {
+      Promise.all([
+        api.getFloorPlan().catch((err) => {
           console.warn('[ClientGuidePage] Không tải được sơ đồ mặt bằng:', err);
+          return null;
+        }),
+        api.getRooms().catch((err) => {
+          console.warn('[ClientGuidePage] Không tải được danh sách phòng 360°:', err);
+          return [];
+        })
+      ])
+        .then(([dataFp, dataRooms]) => {
           if (isMounted) {
-            setFloorPlan(null);
+            setFloorPlan(dataFp || null);
+            if (Array.isArray(dataRooms)) {
+              setAllRooms(dataRooms);
+            }
           }
         })
         .finally(() => {
@@ -78,19 +85,21 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
         });
     };
 
-    fetchFloorPlan();
+    fetchFloorPlanAndRooms();
 
-    const handleFloorPlanUpdated = () => {
-      fetchFloorPlan();
+    const handleDataUpdated = () => {
+      fetchFloorPlanAndRooms();
     };
 
-    window.addEventListener('museum:floor_plan_updated', handleFloorPlanUpdated);
-    window.addEventListener('museum:branding_updated', handleFloorPlanUpdated);
+    window.addEventListener('museum:floor_plan_updated', handleDataUpdated);
+    window.addEventListener('museum:branding_updated', handleDataUpdated);
+    window.addEventListener('museum:rooms_updated', handleDataUpdated);
 
     return () => {
       isMounted = false;
-      window.removeEventListener('museum:floor_plan_updated', handleFloorPlanUpdated);
-      window.removeEventListener('museum:branding_updated', handleFloorPlanUpdated);
+      window.removeEventListener('museum:floor_plan_updated', handleDataUpdated);
+      window.removeEventListener('museum:branding_updated', handleDataUpdated);
+      window.removeEventListener('museum:rooms_updated', handleDataUpdated);
     };
   }, []);
 
@@ -189,6 +198,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                   floorPlan={floorPlan}
                   onSelectRoom360={onSelectRoom360}
                   clientTheme={clientTheme}
+                  rooms={allRooms}
                 />
               ) : loadingFloorPlan ? (
                 <div
@@ -596,6 +606,7 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
                         if (onSelectRoom360) onSelectRoom360(roomId);
                       }}
                       clientTheme={clientTheme}
+                      rooms={allRooms}
                     />
                   </div>
                 ) : null}

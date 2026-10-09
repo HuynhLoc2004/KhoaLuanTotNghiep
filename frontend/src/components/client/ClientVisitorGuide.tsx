@@ -41,11 +41,13 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
 
     window.addEventListener('museum:floor_plan_updated', handleUpdate);
     window.addEventListener('museum:branding_updated', handleUpdate);
+    window.addEventListener('museum:rooms_updated', handleUpdate);
 
     return () => {
       isMounted = false;
       window.removeEventListener('museum:floor_plan_updated', handleUpdate);
       window.removeEventListener('museum:branding_updated', handleUpdate);
+      window.removeEventListener('museum:rooms_updated', handleUpdate);
     };
   }, []);
 

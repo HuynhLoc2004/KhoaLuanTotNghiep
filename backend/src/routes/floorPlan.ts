@@ -58,6 +58,62 @@ const upload = multer({
 });
 
 /**
+ * Tự động kiểm tra và dọn sạch các node trên sơ đồ trỏ vào gian phòng 360° đã bị xóa
+ */
+export async function sanitizeFloorPlanNodes(floorPlan: any): Promise<boolean> {
+  if (!floorPlan || !Array.isArray(floorPlan.nodes) || floorPlan.nodes.length === 0) return false;
+
+  try {
+    const activeRooms = await RoomModel.find({}, { id: 1, _id: 1, code: 1, panoramaUrl: 1, thumbnailUrl: 1 }).lean();
+    const validRoomMap = new Map<string, any>();
+    activeRooms.forEach((r: any) => {
+      if (r.id) validRoomMap.set(r.id, r);
+      if (r.code) validRoomMap.set(r.code, r);
+      if (r._id) validRoomMap.set(r._id.toString(), r);
+    });
+
+    let modified = false;
+    floorPlan.nodes.forEach((node: any) => {
+      if (node.roomId) {
+        const matchedRoom = validRoomMap.get(node.roomId);
+        if (!matchedRoom) {
+          // Gian phòng này đã bị xóa khỏi CSDL -> Gỡ bỏ ghim liên kết trên sơ đồ ngay
+          node.roomId = null;
+          node.roomCode = null;
+          node.panoramaUrl = '';
+          node.thumbnailUrl = '';
+          modified = true;
+        } else {
+          if (node.roomId !== matchedRoom.id) {
+            node.roomId = matchedRoom.id;
+            modified = true;
+          }
+          if (matchedRoom.panoramaUrl && node.panoramaUrl !== matchedRoom.panoramaUrl) {
+            node.panoramaUrl = matchedRoom.panoramaUrl;
+            node.thumbnailUrl = matchedRoom.thumbnailUrl || matchedRoom.panoramaUrl;
+            modified = true;
+          }
+        }
+      }
+    });
+
+    if (modified && floorPlan._id) {
+      await FloorPlanMapModel.updateOne(
+        { _id: floorPlan._id },
+        { nodes: floorPlan.nodes }
+      );
+      pgUpsertFloorPlan(floorPlan).catch((pgErr) =>
+        console.warn('[FloorPlan] Lỗi đồng bộ PostgreSQL sau khi dọn nodes mồ côi:', pgErr.message)
+      );
+    }
+    return modified;
+  } catch (err: any) {
+    console.warn('[FloorPlan] sanitizeFloorPlanNodes error:', err.message);
+    return false;
+  }
+}
+
+/**
  * GET /api/floor-plan
  * Lấy sơ đồ mặt bằng đang active trên Client (Đồng bộ 100% với CSDL MongoDB thực tế)
  */
@@ -103,6 +159,9 @@ floorPlanRouter.get('/', async (req: Request, res: Response) => {
           { nodes: floorPlan.nodes, edges: floorPlan.edges }
         ).catch((uErr) => console.warn('[FloorPlanRoute] Nâng cấp topology vào DB:', uErr.message));
       }
+
+      // Tự động kiểm tra & gỡ bỏ các node trỏ vào phòng 360° đã bị xóa
+      await sanitizeFloorPlanNodes(floorPlan);
     }
 
     // Nếu CSDL không có bản đồ nào (hoặc đã bị xóa), trả về null, tuyệt đối KHÔNG tự sinh mock rác
@@ -147,6 +206,10 @@ floorPlanRouter.get('/list', async (req: Request, res: Response) => {
       .skip(skip)
       .limit(limit)
       .lean();
+
+    for (const item of items) {
+      await sanitizeFloorPlanNodes(item);
+    }
 
     const activeMap = await FloorPlanMapModel.findOne({ active: true }).lean();
 

@@ -8,6 +8,9 @@ import { uploadToCloudinary } from '../services/cloudinary.js';
 import { uploadToR2 } from '../services/r2.js';
 import { cacheDel } from '../services/redis.js';
 import { PanoramaModel } from '../models/Panorama.js';
+import { RoomModel } from '../models/Room.js';
+import { FloorPlanMapModel } from '../models/FloorPlanMap.js';
+import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
 export const stitchRouter = Router();
 
@@ -1075,6 +1078,38 @@ stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) 
     // Xóa trong MongoDB
     await PanoramaModel.deleteOne({ filename });
 
+    // Dọn dẹp liên kết ảnh 360 trong RoomModel và FloorPlanMapModel nếu có
+    try {
+      const targetUrl = `/uploads/${filename}`;
+      await RoomModel.updateMany(
+        { $or: [{ panoramaUrl: targetUrl }, { panoramaUrl: filename }] },
+        { $set: { panoramaUrl: '', thumbnailUrl: '' } }
+      );
+      const fpList = await FloorPlanMapModel.find({
+        $or: [
+          { 'nodes.panoramaUrl': targetUrl },
+          { 'nodes.panoramaUrl': filename }
+        ]
+      });
+      for (const fp of fpList) {
+        let changed = false;
+        fp.nodes.forEach((node: any) => {
+          if (node.panoramaUrl === targetUrl || node.panoramaUrl === filename) {
+            node.panoramaUrl = '';
+            node.thumbnailUrl = '';
+            changed = true;
+          }
+        });
+        if (changed) {
+          fp.markModified('nodes');
+          await fp.save();
+          broadcastRealtimeEvent('floor_plan_updated', fp.toObject ? fp.toObject() : fp);
+        }
+      }
+    } catch (cleanErr: any) {
+      console.warn('[Stitch DELETE] Lỗi dọn dẹp liên kết pano trong rooms & floor plans:', cleanErr.message);
+    }
+
     return res.json({ success: true, message: 'Đã xóa không gian 360 khỏi hệ thống và CSDL thành công' });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
@@ -1119,6 +1154,35 @@ stitchRouter.post('/panoramas/batch-delete', async (req: Request, res: Response)
 
     if (validNames.length > 0) {
       await PanoramaModel.deleteMany({ filename: { $in: validNames } });
+
+      // Dọn dẹp liên kết batch trong RoomModel và FloorPlanMapModel
+      try {
+        const targetUrls = validNames.flatMap((fn) => [`/uploads/${fn}`, fn]);
+        await RoomModel.updateMany(
+          { panoramaUrl: { $in: targetUrls } },
+          { $set: { panoramaUrl: '', thumbnailUrl: '' } }
+        );
+        const fpList = await FloorPlanMapModel.find({
+          'nodes.panoramaUrl': { $in: targetUrls }
+        });
+        for (const fp of fpList) {
+          let changed = false;
+          fp.nodes.forEach((node: any) => {
+            if (targetUrls.includes(node.panoramaUrl)) {
+              node.panoramaUrl = '';
+              node.thumbnailUrl = '';
+              changed = true;
+            }
+          });
+          if (changed) {
+            fp.markModified('nodes');
+            await fp.save();
+            broadcastRealtimeEvent('floor_plan_updated', fp.toObject ? fp.toObject() : fp);
+          }
+        }
+      } catch (cleanErr: any) {
+        console.warn('[Stitch Batch DELETE] Lỗi dọn dẹp liên kết pano trong rooms & floor plans:', cleanErr.message);
+      }
     }
 
     return res.json({

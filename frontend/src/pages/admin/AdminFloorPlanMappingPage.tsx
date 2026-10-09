@@ -97,22 +97,23 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
         api.getRooms()
       ]);
 
+      if (Array.isArray(roomsData)) {
+        setAllRooms(roomsData);
+      }
+
       if (floorPlanData) {
         setActiveFloorPlan(floorPlanData);
-        // Khởi tạo mapping hiện có từ dữ liệu máy chủ
+        // Khởi tạo mapping hiện có từ dữ liệu máy chủ (Chỉ chấp nhận các roomId đang thực sự tồn tại trong CSDL)
+        const validRoomIds = new Set((Array.isArray(roomsData) ? roomsData : []).map((r: any) => r.id));
         const initMap: Record<string, string | null> = {};
         (floorPlanData.nodes || []).forEach((node) => {
-          initMap[node.id] = node.roomId || null;
+          initMap[node.id] = (node.roomId && validRoomIds.has(node.roomId)) ? node.roomId : null;
         });
         setNodeMapping(initMap);
 
         if (floorPlanData.nodes?.length && !selectedNodeId) {
           setSelectedNodeId(floorPlanData.nodes[0].id);
         }
-      }
-
-      if (Array.isArray(roomsData)) {
-        setAllRooms(roomsData);
       }
     } catch (err: any) {
       console.error('[AdminFloorPlanMapping] Lỗi tải dữ liệu:', err);
@@ -124,6 +125,18 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
 
   useEffect(() => {
     fetchData();
+
+    const handleRealtimeUpdate = () => {
+      fetchData();
+    };
+
+    window.addEventListener('museum:floor_plan_updated', handleRealtimeUpdate);
+    window.addEventListener('museum:rooms_updated', handleRealtimeUpdate);
+
+    return () => {
+      window.removeEventListener('museum:floor_plan_updated', handleRealtimeUpdate);
+      window.removeEventListener('museum:rooms_updated', handleRealtimeUpdate);
+    };
   }, []);
 
   // Node đang được chọn trên sơ đồ
@@ -565,6 +578,7 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
                 hideSidePanel={true}
                 selectedNodeId={selectedNode?.id}
                 onNodeSelect={(nodeId) => setSelectedNodeId(nodeId)}
+                rooms={allRooms}
               />
             )}
           </div>

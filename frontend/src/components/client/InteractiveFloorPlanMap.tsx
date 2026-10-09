@@ -21,7 +21,7 @@ import {
   Play,
   Pause
 } from 'lucide-react';
-import { FloorPlanMap, FloorPlanNode, FloorPlanEdge, NavigationResult } from '../../types';
+import { FloorPlanMap, FloorPlanNode, FloorPlanEdge, NavigationResult, MuseumRoom } from '../../types';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { api, API_ROOT } from '../../services/api';
 import './interactiveFloorPlanMap.css';
@@ -34,6 +34,7 @@ interface InteractiveFloorPlanMapProps {
   selectedNodeId?: string;
   onNodeSelect?: (nodeId: string) => void;
   previewMode?: boolean;
+  rooms?: MuseumRoom[];
 }
 
 const resolveImageUrl = (url?: string) => {
@@ -306,8 +307,18 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   hideSidePanel = false,
   selectedNodeId: externalSelectedNodeId,
   onNodeSelect,
-  previewMode = false
+  previewMode = false,
+  rooms
 }) => {
+  const isRoomValid = useCallback(
+    (roomId?: string | null) => {
+      if (!roomId) return false;
+      if (!rooms || rooms.length === 0) return true;
+      return rooms.some((r) => r.id === roomId || (r as any).code === roomId || (r as any)._id === roomId);
+    },
+    [rooms]
+  );
+
   const { currentLang, t } = useClientTranslation();
   const langKey = (currentLang || 'vi').toLowerCase();
   const ui = useMemo(() => {
@@ -1562,7 +1573,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     </text>
 
                     {/* Mã phòng vắn tắt góc phải */}
-                    {box.width >= 10 && !node.roomId && (
+                    {box.width >= 10 && (!node.roomId || !isRoomValid(node.roomId)) && (
                       <text
                         x={box.x + box.width - 1.2}
                         y={box.y + 2.6}
@@ -1576,7 +1587,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     )}
 
                     {/* Chỉ báo 360 */}
-                    {node.roomId && (
+                    {node.roomId && isRoomValid(node.roomId) && (
                       <g transform={`translate(${box.x + box.width - 3.2}, ${box.y + 1.2})`}>
                         <rect
                           width="2.4"
@@ -1798,8 +1809,8 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       </button>
 
                       {/* Hàng nút phụ: Khám phá 360° & Đặt vị trí xuất phát */}
-                      <div style={{ display: 'grid', gridTemplateColumns: activeNode?.roomId && onSelectRoom360 ? '1fr 1fr' : '1fr', gap: 6 }}>
-                        {activeNode?.roomId && onSelectRoom360 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: activeNode?.roomId && isRoomValid(activeNode.roomId) && onSelectRoom360 ? '1fr 1fr' : '1fr', gap: 6 }}>
+                        {activeNode?.roomId && isRoomValid(activeNode.roomId) && onSelectRoom360 && (
                           <button
                             type="button"
                             onClick={() => onSelectRoom360(activeNode.roomId!)}

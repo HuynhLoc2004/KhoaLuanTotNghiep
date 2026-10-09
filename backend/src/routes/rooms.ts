@@ -6,7 +6,8 @@ import { ArtifactModel } from '../models/Artifact.js';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 import { pgPool, logAudit } from '../db/postgres.js';
-import { pgUpsertRoom, pgDeleteRoom } from '../db/syncEngine.js';
+import { pgUpsertRoom, pgDeleteRoom, pgUpsertFloorPlan } from '../db/syncEngine.js';
+import { FloorPlanMapModel } from '../models/FloorPlanMap.js';
 import {
   startReconstructionJob,
   getReconstructionJob,
@@ -289,8 +290,34 @@ roomsRouter.delete('/all/clear', async (req: Request, res: Response) => {
     try {
       await pgPool.query('DELETE FROM hotspots; DELETE FROM rooms;');
       await pgPool.query('UPDATE artifacts SET room_id = NULL, room_code = NULL;');
+      await pgPool.query('UPDATE floor_plan_nodes SET room_id = NULL;');
     } catch (pgErr: any) {
       console.warn('[Rooms] Lỗi xóa phòng trong PostgreSQL:', pgErr.message);
+    }
+
+    // 2b. Gỡ liên kết toàn bộ phòng trên mọi Sơ đồ mặt bằng (FloorPlanMap)
+    try {
+      const allFloorPlans = await FloorPlanMapModel.find({});
+      for (const fp of allFloorPlans) {
+        let changed = false;
+        fp.nodes.forEach((node: any) => {
+          if (node.roomId) {
+            node.roomId = null;
+            node.roomCode = null;
+            node.panoramaUrl = '';
+            node.thumbnailUrl = '';
+            changed = true;
+          }
+        });
+        if (changed) {
+          fp.markModified('nodes');
+          await fp.save();
+          await pgUpsertFloorPlan(fp.toObject ? fp.toObject() : fp);
+          broadcastRealtimeEvent('floor_plan_updated', fp.toObject ? fp.toObject() : fp);
+        }
+      }
+    } catch (fpErr: any) {
+      console.warn('[Rooms DELETE ALL] Lỗi gỡ phòng khỏi FloorPlanMap:', fpErr.message);
     }
 
     // 3. Xóa sạch mọi cache liên quan tới rooms & artifacts
@@ -371,8 +398,38 @@ roomsRouter.delete('/:id', async (req: Request, res: Response) => {
         { 'hotspots.targetRoomId': { $in: [realId, realCode] } },
         { $pull: { hotspots: { targetRoomId: { $in: [realId, realCode] } } } }
       );
+
+      // 5b. Gỡ bỏ liên kết phòng khỏi FloorPlanMap (sơ đồ mặt bằng) trên CẢ MongoDB & PostgreSQL
+      const targetRoomIdentifiers = [realId, realCode, mongoId, id].filter(Boolean);
+      const plansToUpdate = await FloorPlanMapModel.find({
+        'nodes.roomId': { $in: targetRoomIdentifiers }
+      });
+
+      for (const fp of plansToUpdate) {
+        let changed = false;
+        fp.nodes.forEach((node: any) => {
+          if (node.roomId && targetRoomIdentifiers.includes(node.roomId)) {
+            node.roomId = null;
+            node.roomCode = null;
+            node.panoramaUrl = '';
+            node.thumbnailUrl = '';
+            changed = true;
+          }
+        });
+        if (changed) {
+          fp.markModified('nodes');
+          await fp.save();
+          await pgUpsertFloorPlan(fp.toObject ? fp.toObject() : fp);
+          broadcastRealtimeEvent('floor_plan_updated', fp.toObject ? fp.toObject() : fp);
+        }
+      }
+
+      await pgPool.query(
+        'UPDATE floor_plan_nodes SET room_id = NULL WHERE room_id = $1 OR room_id = $2;',
+        [realId, realCode]
+      );
     } catch (relErr: any) {
-      console.warn('[Rooms] Lỗi dọn dẹp liên kết hiện vật/hotspots:', relErr.message);
+      console.warn('[Rooms] Lỗi dọn dẹp liên kết hiện vật/hotspots/floor plans:', relErr.message);
     }
 
     // 6. Xóa cache Redis triệt để
