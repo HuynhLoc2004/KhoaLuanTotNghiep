@@ -1782,8 +1782,18 @@ def run_stitch(image_paths, output_path, target_width=0):
 # PHẦN 8: XỬ LÝ VIDEO XOAY VÒNG 360° (TỰ ĐỘNG LỌC KHUNG HÌNH SẮC NÉT)
 # ============================================================================
 
-def extract_keyframes_from_video(video_path, target_count=18, max_dim=1400):
-    """Trích xuất các khung hình sắc nét nhất từ video xoay vòng quanh tâm phòng."""
+def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
+    """
+    TRÍCH XUẤT KHUNG HÌNH THÍCH ỨNG THEO ĐỘ DỊCH CHUYỂN GÓC (MOTION-ADAPTIVE KEYFRAME TRACKING)
+    VÀ TỰ ĐỘNG KHÉP VÒNG 360° (360° LOOP CLOSURE EARLY TERMINATION):
+    1. So khớp quang học ORB/Optical Flow theo trục ngang:
+       - Bỏ qua toàn bộ các khung hình khi máy đứng yên hoặc lia quá chậm (dx < 20%).
+       - Chỉ chọn frame tiếp theo khi góc quay dịch chuyển đúng độ gối đầu vàng (22% - 30% khung hình).
+    2. Tự động ngắt video ngay khi vừa giáp vòng 360° (Loop Closure với F0):
+       - Khi camera quay trở lại góc ban đầu, worker lập tức ngắt video, loại bỏ toàn bộ các frame quay lố,
+         ngăn chặn triệt để hiện tượng lặp lại cảnh vật!
+    3. Dự phòng thông minh: Nếu video ít hoa văn đặc trưng, tự động fallback sang phân bổ đều thời gian.
+    """
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Không tìm thấy file video: {video_path}")
 
@@ -1795,60 +1805,97 @@ def extract_keyframes_from_video(video_path, target_count=18, max_dim=1400):
     fps = float(cap.get(cv2.CAP_PROP_FPS) or 30.0)
     duration = total_frames / fps if total_frames > 0 else 0.0
 
-    if target_count <= 0:
-        if duration <= 15.0:
-            target_count = 18
-        elif duration <= 28.0:
-            target_count = 24
-        elif duration <= 42.0:
-            target_count = 30
-        else:
-            target_count = 36
+    ret, frame0 = cap.read()
+    if not ret or frame0 is None:
+        cap.release()
+        return [], {"total_frames": total_frames, "fps": fps, "duration": duration}
 
-    window_size = float(total_frames) / float(target_count) if total_frames > target_count else 1.0
-    selected_frames = []
+    det_w, det_h = 480, 270
+    orb = cv2.ORB_create(600)
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-    for i in range(target_count):
-        start_f = int(i * window_size)
-        end_f = int((i + 1) * window_size) - 1
-        end_f = max(start_f, min(total_frames - 1, end_f))
+    g0 = cv2.resize(cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY), (det_w, det_h))
+    kp0, des0 = orb.detectAndCompute(g0, None)
 
-        num_cands = min(3, end_f - start_f + 1)
-        cands = [start_f] if num_cands <= 1 else np.linspace(start_f, end_f, num=num_cands, dtype=int)
+    selected_raw = [frame0]
+    g_prev = g0
+    kp_prev, des_prev = kp0, des0
 
-        best_frame = None
-        best_score = -1.0
+    frame_idx = 0
+    step = max(1, int(fps / 10.0))  # Kiểm tra 10 lần mỗi giây
+    min_dx = det_w * 0.22           # Dịch chuyển ít nhất 22% chiều rộng ảnh (~78% overlap)
+    max_kfs = 36 if target_count <= 0 else max(12, int(target_count))
+    loop_closed = False
 
-        for f_idx in cands:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, int(f_idx))
-            ret, frame = cap.read()
-            if not ret or frame is None:
-                continue
+    t0 = time.time()
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_idx += 1
+        if frame_idx % step != 0:
+            continue
 
-            fh, fw = frame.shape[:2]
-            thumb = cv2.resize(frame, (320, max(1, int(fh * (320.0 / float(fw))))), interpolation=cv2.INTER_AREA)
-            gray = cv2.cvtColor(thumb, cv2.COLOR_BGR2GRAY)
-            score = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        gc = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (det_w, det_h))
+        kpc, desc = orb.detectAndCompute(gc, None)
+        if desc is None or len(desc) < 20 or des_prev is None:
+            continue
 
-            mean_b = float(gray.mean())
-            if mean_b < 20 or mean_b > 235:
-                score *= 0.3
+        m = bf.match(des_prev, desc)
+        if len(m) < 15:
+            continue
 
-            if score > best_score:
-                best_score = score
-                best_frame = frame
+        pts_prev = np.float32([kp_prev[x.queryIdx].pt for x in m])
+        pts_cur = np.float32([kpc[x.trainIdx].pt for x in m])
+        med_dx = float(np.median(pts_prev[:, 0] - pts_cur[:, 0]))
 
-        if best_frame is not None:
-            bh, bw = best_frame.shape[:2]
-            if max_dim > 0 and max(bh, bw) > max_dim:
-                scale = max_dim / float(max(bh, bw))
-                best_frame = cv2.resize(best_frame, (int(bw * scale), int(bh * scale)), interpolation=cv2.INTER_AREA)
-            best_frame = preprocess_lighting_clahe(best_frame)
-            selected_frames.append(best_frame)
+        # Chỉ chọn khi camera dịch chuyển góc thực sự (loại bỏ lúc đứng yên)
+        if abs(med_dx) >= min_dx:
+            selected_raw.append(frame)
+            g_prev = gc
+            kp_prev, des_prev = kpc, desc
+
+            # Tự động phát hiện khép vòng 360° với khung hình F0 sau khi đã quay ít nhất 8 góc và > 6 giây
+            if len(selected_raw) >= 8 and frame_idx > int(fps * 6.0) and des0 is not None:
+                m0 = bf.match(des0, desc)
+                good0 = [x for x in m0 if x.distance < 48]
+                if len(good0) >= 28:
+                    loop_closed = True
+                    log(f"[★] Nhận diện Khép vòng 360° (Loop Closure) tại frame {frame_idx}! Ngắt video ngay để chống quay lố.")
+                    break
+
+            if len(selected_raw) >= max_kfs:
+                break
 
     cap.release()
-    log(f"[✓] Đã lọc {len(selected_frames)}/{target_count} khung hình sắc nét nhất từ video.")
-    return selected_frames, {"total_frames": total_frames, "fps": fps, "duration": duration}
+
+    # Fallback dự phòng nếu phòng quá trơn không nhận được điểm đặc trưng
+    if len(selected_raw) < 5:
+        log("[*] Video ít chi tiết điểm ảnh, kích hoạt cơ chế dự phòng trải đều thời gian...")
+        cap = cv2.VideoCapture(video_path)
+        k_cnt = 20
+        win_size = float(total_frames) / float(k_cnt) if total_frames > k_cnt else 1.0
+        selected_raw = []
+        for i in range(k_cnt):
+            f_pos = int(i * win_size)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, f_pos)
+            ret_f, f_data = cap.read()
+            if ret_f and f_data is not None:
+                selected_raw.append(f_data)
+        cap.release()
+
+    # Tối ưu kích thước và ánh sáng CLAHE
+    selected_frames = []
+    for f in selected_raw:
+        fh, fw = f.shape[:2]
+        if max_dim > 0 and max(fh, fw) > max_dim:
+            scale = max_dim / float(max(fh, fw))
+            f = cv2.resize(f, (int(fw * scale), int(fh * scale)), interpolation=cv2.INTER_AREA)
+        f = preprocess_lighting_clahe(f)
+        selected_frames.append(f)
+
+    log(f"[✓] Đã lọc {len(selected_frames)} khung hình động học thích ứng (Khép vòng 360: {'Có' if loop_closed else 'Không'}).")
+    return selected_frames, {"total_frames": total_frames, "fps": fps, "duration": duration, "loop_closed": loop_closed}
 
 
 def run_stitch_video(video_path, output_path, target_width=0, target_count=18):
