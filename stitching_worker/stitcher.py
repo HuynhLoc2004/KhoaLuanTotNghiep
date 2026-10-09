@@ -442,26 +442,29 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
     y_offset = (eh - scaled_h) // 2
     canvas[y_offset : y_offset + scaled_h, :] = scaled_pano
 
-    # 1. Xử lý Trần nhà (Zenith) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG!
+    # 1. Xử lý Trần nhà (Zenith) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG & XÓA SỌC DỌC!
     if y_offset > 0:
         top_strip = scaled_pano[0:min(25, scaled_h), :]
         zenith_avg = np.median(top_strip, axis=(0, 1)) # màu trần trung bình dịu nhẹ
+        # Mịn hóa biên ngang để triệt tiêu hoàn toàn vệt xước sọc dọc
+        smooth_top = cv2.boxFilter(scaled_pano[0:1, :], -1, (101, 1))[0, :]
         for y in range(y_offset):
             t = float(y) / float(y_offset)
             s = t * t * (3.0 - 2.0 * t) # Smoothstep
-            blended = (1.0 - s) * zenith_avg + s * scaled_pano[0, :]
+            blended = (1.0 - s) * zenith_avg + s * smooth_top
             canvas[y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
-    # 2. Xử lý Sàn nhà (Nadir) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG!
+    # 2. Xử lý Sàn nhà (Nadir) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG & XÓA SỌC DỌC!
     floor_start = y_offset + scaled_h
     if floor_start < eh:
         bot_strip = scaled_pano[max(0, scaled_h - 25) : scaled_h, :]
         nadir_avg = np.median(bot_strip, axis=(0, 1)) # màu sàn trung bình
+        smooth_bot = cv2.boxFilter(scaled_pano[-1:, :], -1, (101, 1))[0, :]
         floor_h = eh - floor_start
         for y in range(floor_h):
             t = float(floor_h - y) / float(floor_h)
             s = t * t * (3.0 - 2.0 * t) # Smoothstep
-            blended = (1.0 - s) * nadir_avg + s * scaled_pano[-1, :]
+            blended = (1.0 - s) * nadir_avg + s * smooth_bot
             canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
     return circular_seam_blend(canvas, seam_width=45)
@@ -1817,14 +1820,18 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
     g0 = cv2.resize(cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY), (det_w, det_h))
     kp0, des0 = orb.detectAndCompute(g0, None)
 
+    # Incremental frame tracking (đo lũy kế góc xoay cum_dx thực tế)
+    g_last, kp_last, des_last = g0, kp0, des0
+
+    # Keyframe tracking (chỉ chọn frame khi đã dịch chuyển đủ min_dx)
     selected_raw = [frame0]
-    g_prev = g0
-    kp_prev, des_prev = kp0, des0
+    kp_kf, des_kf = kp0, des0
 
     frame_idx = 0
-    step = max(1, int(fps / 10.0))  # Kiểm tra 10 lần mỗi giây
+    step = max(1, int(fps / 15.0))  # Kiểm tra 15 lần mỗi giây để phát hiện chính xác điểm giáp vòng
     min_dx = det_w * 0.22           # Dịch chuyển ít nhất 22% chiều rộng ảnh (~78% overlap)
     max_kfs = 36 if target_count <= 0 else max(12, int(target_count))
+    cum_dx = 0.0
     loop_closed = False
 
     t0 = time.time()
@@ -1838,34 +1845,44 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
 
         gc = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (det_w, det_h))
         kpc, desc = orb.detectAndCompute(gc, None)
-        if desc is None or len(desc) < 20 or des_prev is None:
+        if desc is None:
             continue
 
-        m = bf.match(des_prev, desc)
-        if len(m) < 15:
-            continue
+        # 1. Đo dịch chuyển góc xoay lũy kế (Incremental Optical Flow)
+        if des_last is not None:
+            m = bf.match(des_last, desc)
+            if len(m) >= 15:
+                p1 = np.float32([kp_last[x.queryIdx].pt for x in m])
+                p2 = np.float32([kpc[x.trainIdx].pt for x in m])
+                inc_dx = float(np.median(p1[:, 0] - p2[:, 0]))
+                if inc_dx > 0:
+                    cum_dx += inc_dx
+        g_last, kp_last, des_last = gc, kpc, desc
 
-        pts_prev = np.float32([kp_prev[x.queryIdx].pt for x in m])
-        pts_cur = np.float32([kpc[x.trainIdx].pt for x in m])
-        med_dx = float(np.median(pts_prev[:, 0] - pts_cur[:, 0]))
-
-        # Chỉ chọn khi camera dịch chuyển góc thực sự (loại bỏ lúc đứng yên)
-        if abs(med_dx) >= min_dx:
-            selected_raw.append(frame)
-            g_prev = gc
-            kp_prev, des_prev = kpc, desc
-
-            # Tự động phát hiện khép vòng 360° với khung hình F0 sau khi đã quay ít nhất 8 góc và > 6 giây
-            if len(selected_raw) >= 8 and frame_idx > int(fps * 6.0) and des0 is not None:
-                m0 = bf.match(des0, desc)
-                good0 = [x for x in m0 if x.distance < 48]
-                if len(good0) >= 28:
-                    loop_closed = True
-                    log(f"[★] Nhận diện Khép vòng 360° (Loop Closure) tại frame {frame_idx}! Ngắt video ngay để chống quay lố.")
-                    break
-
-            if len(selected_raw) >= max_kfs:
+        # 2. Tự động phát hiện khép vòng 360° (Loop Closure với F0):
+        # Một vòng 360° hoàn chỉnh có chu vi góc quay ~1400px - 1800px (trên det_w=480).
+        # Khi camera đã xoay đủ chu vi và xuất hiện điểm tương đồng cao với F0 -> Ngắt video ngay lập tức!
+        if cum_dx >= 1350.0 and len(selected_raw) >= 10 and des0 is not None:
+            m0 = bf.match(des0, desc)
+            good0 = [x for x in m0 if x.distance < 48]
+            if len(good0) >= 28:
+                loop_closed = True
+                log(f"[★] Nhận diện Khép vòng 360° (Loop Closure) tại frame {frame_idx} (cum_dx={cum_dx:.0f}px, matches={len(good0)})! Ngắt video ngay để chống quay lố.")
                 break
+
+        # 3. Lựa chọn Keyframe dựa trên sự dịch chuyển góc so với Keyframe trước
+        if des_kf is not None:
+            m_kf = bf.match(des_kf, desc)
+            if len(m_kf) >= 15:
+                p_kf = np.float32([kp_kf[x.queryIdx].pt for x in m_kf])
+                p_c = np.float32([kpc[x.trainIdx].pt for x in m_kf])
+                kf_dx = abs(float(np.median(p_kf[:, 0] - p_c[:, 0])))
+                if kf_dx >= min_dx:
+                    selected_raw.append(frame)
+                    kp_kf, des_kf = kpc, desc
+
+        if len(selected_raw) >= max_kfs:
+            break
 
     cap.release()
 
