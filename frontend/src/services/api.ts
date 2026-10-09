@@ -1141,6 +1141,15 @@ export const api = {
     return json.data;
   },
 
+  async verifyPayment(orderCode: number | string): Promise<any> {
+    const res = await fetch(`${API_BASE}/tickets/orders/${orderCode}/verify-payment`, {
+      method: 'POST',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể xác thực thanh toán đơn hàng');
+    return json;
+  },
+
   // === QUẢN TRỊ BẢNG GIÁ VÉ & KHUNG GIỜ THAM QUAN (ADMIN CMS) ===
   async getAdminTicketTypes(): Promise<TicketTypeItem[]> {
     const res = await fetch(`${API_BASE}/admin/ticket-settings/types?_t=${Date.now()}`, {

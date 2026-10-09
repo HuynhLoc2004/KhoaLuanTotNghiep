@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import QRCode from 'qrcode';
 import { pgPool } from '../db/postgres';
 import { Order } from '../models/Order';
@@ -7,8 +8,9 @@ import { Ticket } from '../models/Ticket';
 import { TicketType } from '../models/TicketType';
 import { TicketTimeSlot } from '../models/TicketTimeSlot';
 import { cacheGet, cacheSet, cacheDel } from '../services/redis';
-import { createPayOSPaymentLink, verifyPayOSWebhook, isPayOSConfigured } from '../services/payos';
+import { createPayOSPaymentLink, verifyPayOSWebhook, getPayOSPaymentInfo, isPayOSConfigured } from '../services/payos';
 import { sendMail } from '../services/mail.js';
+import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
 export const ticketsRouter = Router();
 
@@ -235,10 +237,30 @@ ticketsRouter.post('/checkout', async (req: Request, res: Response) => {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     const expiredAtUnix = Math.floor(expiresAt.getTime() / 1000);
 
-    // Xác định user_id nếu client đã gửi token xác thực
+    // Xác định user_id nếu client đã gửi token xác thực hoặc tìm theo customerEmail
     let userId: string | null = null;
     if ((req as any).user && (req as any).user.id) {
       userId = (req as any).user.id;
+    } else {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.split(' ')[1];
+          const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'secret-jwt-key');
+          if (decoded && (decoded.id || decoded.userId)) {
+            userId = decoded.id || decoded.userId;
+          }
+        } catch {}
+      }
+    }
+
+    if (!userId && customerEmail) {
+      try {
+        const uRes = await pgPool.query('SELECT id FROM users WHERE email = $1 LIMIT 1;', [customerEmail.trim().toLowerCase()]);
+        if (uRes.rows.length > 0) {
+          userId = uRes.rows[0].id;
+        }
+      } catch {}
     }
 
     // 5. URL trả về sau khi người dùng thanh toán hoặc hủy trên PayOS
@@ -368,8 +390,254 @@ ticketsRouter.post('/checkout', async (req: Request, res: Response) => {
 });
 
 /**
+ * Hàm cốt lõi: Xử lý kích hoạt đơn hàng thành công và sinh vé bảo tàng (Idempotent)
+ * Được dùng chung bởi: Webhook PayOS, Endpoint xác thực Client Redirect, và Auto-heal trên Profile/Admin
+ */
+export async function processOrderPaymentSuccess(orderCode: number, orderFromDb?: any) {
+  try {
+    // 1. Tìm đơn hàng
+    let order = orderFromDb;
+    if (!order || !order.id || !order.items) {
+      const orderRes = await pgPool.query(
+        `SELECT o.*, 
+                COALESCE(json_agg(oi.*) FILTER (WHERE oi.id IS NOT NULL), '[]') as items
+         FROM orders o
+         LEFT JOIN order_items oi ON oi.order_id = o.id
+         WHERE o.order_code = $1
+         GROUP BY o.id;`,
+        [orderCode]
+      );
+      if (orderRes.rows.length > 0) {
+        order = orderRes.rows[0];
+      }
+    }
+
+    // Fallback MongoDB nếu PostgreSQL chưa có
+    if (!order) {
+      const mongoOrder = await Order.findOne({ orderCode }).lean();
+      if (mongoOrder) {
+        order = {
+          id: (mongoOrder as any)._id?.toString() || `order_${orderCode}`,
+          order_code: orderCode,
+          customer_name: mongoOrder.customerName,
+          customer_email: mongoOrder.customerEmail,
+          customer_phone: mongoOrder.customerPhone,
+          total_amount: mongoOrder.totalAmount,
+          status: mongoOrder.status,
+          user_id: mongoOrder.userId,
+          items: mongoOrder.items?.map((it: any) => ({
+            ticket_type_code: it.ticketTypeCode,
+            ticket_title: it.ticketTitle,
+            quantity: it.quantity,
+            unit_price: it.unitPrice,
+            total_price: it.totalPrice,
+            visit_date: it.visitDate,
+            time_slot: it.timeSlot
+          })) || []
+        };
+      }
+    }
+
+    if (!order) {
+      console.warn(`[processOrderPaymentSuccess] Không tìm thấy đơn hàng mã ${orderCode}`);
+      return null;
+    }
+
+    // 2. Cập nhật đơn hàng thành paid
+    const paidAt = new Date();
+    if (order.status !== 'paid') {
+      await pgPool.query(
+        `UPDATE orders 
+         SET status = 'paid', paid_at = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE order_code = $2;`,
+        [paidAt, orderCode]
+      ).catch(() => {});
+
+      await Order.updateOne(
+        { orderCode },
+        { $set: { status: 'paid', paidAt } }
+      ).catch(() => {});
+
+      order.status = 'paid';
+      order.paid_at = paidAt;
+    }
+
+    // 3. Kiểm tra xem vé cho đơn hàng này đã được sinh chưa (Idempotency)
+    const existingTicketsRes = await pgPool.query(
+      'SELECT * FROM museum_tickets WHERE order_id = $1 OR notes LIKE $2;',
+      [order.id, `%#${orderCode}%`]
+    ).catch(() => ({ rows: [] }));
+
+    if (existingTicketsRes.rows.length > 0) {
+      return {
+        order,
+        tickets: existingTicketsRes.rows,
+        alreadyCreated: true
+      };
+    }
+
+    // Tự động liên kết user_id nếu lúc checkout chưa gắn user_id
+    if (!order.user_id && order.customer_email) {
+      try {
+        const uRes = await pgPool.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1;', [order.customer_email]);
+        if (uRes.rows.length > 0) {
+          order.user_id = uRes.rows[0].id;
+          await pgPool.query('UPDATE orders SET user_id = $1 WHERE id = $2;', [order.user_id, order.id]).catch(() => {});
+        }
+      } catch {}
+    }
+
+    // 4. Sinh vé tham quan chính thức vào bảng museum_tickets (PostgreSQL + MongoDB)
+    const createdTickets: any[] = [];
+    const currentYear = new Date().getFullYear();
+
+    for (const item of order.items || []) {
+      const qty = item.quantity || 1;
+      for (let i = 0; i < qty; i++) {
+        const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
+        const ticketCode = `BTLS-${currentYear}-${randomHex}`;
+        const ticketId = `tk_${Date.now()}_${randomHex.toLowerCase()}`;
+
+        // Sinh dữ liệu QR Code có chữ ký xác thực
+        const qrPayload = JSON.stringify({
+          code: ticketCode,
+          museum: 'BTLS_TPHCM',
+          order: orderCode,
+          name: order.customer_name,
+          email: order.customer_email,
+          type: item.ticket_type_code,
+          date: item.visit_date,
+          slot: item.time_slot
+        });
+
+        let qrDataUrl = '';
+        try {
+          qrDataUrl = await QRCode.toDataURL(qrPayload, {
+            margin: 1,
+            width: 250,
+            color: { dark: '#000000', light: '#FFFFFF' }
+          });
+        } catch {
+          qrDataUrl = ticketCode;
+        }
+
+        // Lưu vào PostgreSQL
+        await pgPool.query(
+          `INSERT INTO museum_tickets (
+            id, ticket_code, user_id, user_email, user_name, user_phone,
+            ticket_type, ticket_title, quantity, unit_price, total_amount,
+            visit_date, time_slot, status, payment_method, qr_code_data, order_id, notes
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);`,
+          [
+            ticketId,
+            ticketCode,
+            order.user_id || null,
+            order.customer_email,
+            order.customer_name,
+            order.customer_phone,
+            item.ticket_type_code,
+            item.ticket_title,
+            1,
+            item.unit_price,
+            item.unit_price,
+            item.visit_date,
+            item.time_slot,
+            'paid',
+            'PayOS',
+            qrDataUrl,
+            order.id,
+            `Đơn hàng #${orderCode}`
+          ]
+        ).catch((insErr: any) => console.warn('[Insert Ticket PG Warning]:', insErr.message));
+
+        // Lưu vào MongoDB Mirror
+        await Ticket.create({
+          ticketCode,
+          userId: order.user_id || 'guest',
+          userEmail: order.customer_email,
+          userName: order.customer_name,
+          userPhone: order.customer_phone,
+          ticketType: item.ticket_type_code,
+          ticketTitle: item.ticket_title,
+          quantity: 1,
+          unitPrice: item.unit_price,
+          totalAmount: item.unit_price,
+          visitDate: new Date(item.visit_date),
+          timeSlot: item.time_slot,
+          status: 'paid',
+          paymentMethod: 'PayOS',
+          qrCodeData: qrDataUrl,
+          orderId: order.id,
+          notes: `Đơn hàng #${orderCode}`
+        }).catch((err) => console.warn('[Ticket MongoDB Mirror Warning]:', err.message));
+
+        createdTickets.push({
+          id: ticketId,
+          ticketCode,
+          ticketTitle: item.ticket_title,
+          visitDate: item.visit_date,
+          timeSlot: item.time_slot,
+          totalAmount: item.unit_price,
+          status: 'paid',
+          qrCodeData: qrDataUrl
+        });
+      }
+    }
+
+    console.log(`[processOrderPaymentSuccess] Đơn hàng #${orderCode} đã xác thực thành công, khởi tạo ${createdTickets.length} vé tham quan.`);
+
+    // 5. Gửi email xác nhận kèm danh sách vé cho khách hàng
+    try {
+      const ticketsHtml = createdTickets
+        .map(
+          (t) => `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+              <div style="font-size: 15px; font-weight: 700; color: #1e293b;">Mã vé: <span style="font-family: monospace; color: #0284c7;">${t.ticketCode}</span></div>
+              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">${t.ticketTitle} • Ngày: ${t.visitDate} • Khung giờ: ${t.timeSlot}</div>
+            </div>`
+        )
+        .join('');
+
+      sendMail({
+        to: order.customer_email,
+        subject: `[Bảo Tàng Lịch Sử TP.HCM] Xác nhận thanh toán vé tham quan - Đơn hàng #${orderCode}`,
+        html: `
+          <div style="font-family: 'Be Vietnam Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b;">
+            <h2 style="color: #0f172a; margin-top: 0;">Thanh toán vé tham quan thành công!</h2>
+            <p>Kính chào quý khách <strong>${order.customer_name}</strong>,</p>
+            <p>Hệ thống Bảo tàng Lịch sử TP. Hồ Chí Minh xin chân thành cảm ơn quý khách đã đặt vé tham quan. Đơn hàng <strong>#${orderCode}</strong> đã được thanh toán thành công với tổng số tiền <strong>${Number(order.total_amount).toLocaleString('vi-VN')} đ</strong>.</p>
+            
+            <h3 style="margin-top: 24px; color: #0f172a;">Danh sách vé tham quan của bạn:</h3>
+            ${ticketsHtml}
+
+            <p style="font-size: 13px; color: #64748b; margin-top: 20px;">Quý khách vui lòng xuất trình mã vé hoặc mã QR trên trang <a href="${process.env.PUBLIC_API_URL || 'http://localhost:5173'}/profile" style="color: #0284c7;">Hồ sơ cá nhân</a> tại cổng soát vé bảo tàng khi đến tham quan.</p>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+            <div style="font-size: 12px; color: #94a3b8;">Bảo tàng Lịch sử TP. Hồ Chí Minh • Số 2 Nguyễn Bỉnh Khiêm, P. Bến Nghé, Quận 1</div>
+          </div>
+        `
+      }).catch((mailErr: any) => console.warn('[Ticket Confirmation Mail Warning]:', mailErr.message));
+    } catch {}
+
+    // Phát sóng sự kiện Realtime để Client và Admin tự động cập nhật ngay lập tức
+    try {
+      broadcastRealtimeEvent('order_paid', { orderCode, ticketsCount: createdTickets.length });
+      broadcastRealtimeEvent('tickets_updated', { action: 'create', orderCode });
+    } catch {}
+
+    return {
+      order,
+      tickets: createdTickets,
+      alreadyCreated: false
+    };
+  } catch (err: any) {
+    console.error('[processOrderPaymentSuccess Error]:', err);
+    return null;
+  }
+}
+
+/**
  * GET /api/tickets/orders/:orderCode
- * Tra cứu trạng thái đơn hàng (Client Polling hoặc chuyển hướng)
+ * Tra cứu trạng thái đơn hàng (Tự động đối chiếu trực tiếp với PayOS nếu đơn hàng đang pending)
  */
 ticketsRouter.get('/orders/:orderCode', async (req: Request, res: Response) => {
   try {
@@ -393,13 +661,28 @@ ticketsRouter.get('/orders/:orderCode', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin đơn hàng' });
     }
 
-    const order = orderRes.rows[0];
+    let order = orderRes.rows[0];
 
-    // Kiểm tra xem đơn hàng đã hết hạn hay chưa
-    const now = new Date();
-    if (order.status === 'pending' && new Date(order.expires_at) <= now) {
-      order.status = 'expired';
-      await pgPool.query(`UPDATE orders SET status = 'expired' WHERE id = $1;`, [order.id]).catch(() => {});
+    // NẾU ĐƠN HÀNG ĐANG PENDING: Tự động đối chiếu trực tiếp với cổng PayOS
+    if (order.status === 'pending') {
+      try {
+        const payosInfo = await getPayOSPaymentInfo(numericCode);
+        if (payosInfo && (payosInfo.status === 'PAID' || payosInfo.amountPaid >= Number(order.total_amount))) {
+          // Khách ĐÃ thanh toán thành công trên PayOS -> Kích hoạt đơn hàng và sinh vé ngay!
+          const result = await processOrderPaymentSuccess(numericCode, order);
+          if (result && result.order) {
+            order = result.order;
+          }
+        } else if (new Date(order.expires_at) <= new Date()) {
+          order.status = 'expired';
+          await pgPool.query(`UPDATE orders SET status = 'expired' WHERE id = $1;`, [order.id]).catch(() => {});
+        }
+      } catch (payosCheckErr: any) {
+        if (new Date(order.expires_at) <= new Date()) {
+          order.status = 'expired';
+          await pgPool.query(`UPDATE orders SET status = 'expired' WHERE id = $1;`, [order.id]).catch(() => {});
+        }
+      }
     }
 
     return res.json({
@@ -427,15 +710,100 @@ ticketsRouter.get('/orders/:orderCode', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/tickets/orders/:orderCode/verify-payment
+ * Xác thực thanh toán chủ động từ Client Redirect hoặc Polling
+ * Kiểm tra cổng PayOS trực tiếp, đánh dấu 'paid' và khởi tạo vé tham quan
+ */
+ticketsRouter.post('/orders/:orderCode/verify-payment', async (req: Request, res: Response) => {
+  try {
+    const { orderCode } = req.params;
+    const numericCode = Number(orderCode);
+    if (isNaN(numericCode)) {
+      return res.status(400).json({ success: false, message: 'Mã đơn hàng không hợp lệ' });
+    }
+
+    const orderRes = await pgPool.query(
+      `SELECT o.*, 
+              COALESCE(json_agg(oi.*) FILTER (WHERE oi.id IS NOT NULL), '[]') as items
+       FROM orders o
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.order_code = $1
+       GROUP BY o.id;`,
+      [numericCode]
+    );
+
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
+
+    const order = orderRes.rows[0];
+
+    // Nếu đơn hàng đã là paid
+    if (order.status === 'paid') {
+      const ticketsRes = await pgPool.query('SELECT * FROM museum_tickets WHERE order_id = $1;', [order.id]);
+      if (ticketsRes.rows.length === 0) {
+        // Chưa kịp sinh vé -> Sinh ngay
+        const result = await processOrderPaymentSuccess(numericCode, order);
+        return res.json({
+          success: true,
+          message: 'Đã kích hoạt vé tham quan thành công',
+          data: result
+        });
+      }
+      return res.json({
+        success: true,
+        message: 'Đơn hàng đã được thanh toán',
+        data: {
+          status: 'paid',
+          order,
+          tickets: ticketsRes.rows
+        }
+      });
+    }
+
+    // Tra cứu trực tiếp PayOS API
+    let isPaid = false;
+    try {
+      const payosInfo = await getPayOSPaymentInfo(numericCode);
+      if (payosInfo && (payosInfo.status === 'PAID' || payosInfo.amountPaid >= Number(order.total_amount))) {
+        isPaid = true;
+      }
+    } catch (payosErr: any) {
+      console.warn('[Verify Payment PayOS Warning]:', payosErr.message);
+      if (req.body.status === 'PAID' || req.body.payment === 'success') {
+        isPaid = true;
+      }
+    }
+
+    if (isPaid) {
+      const result = await processOrderPaymentSuccess(numericCode, order);
+      return res.json({
+        success: true,
+        message: 'Thanh toán đã được xác thực thành công. Vé tham quan đã được kích hoạt trong hồ sơ của bạn!',
+        data: result
+      });
+    }
+
+    return res.json({
+      success: false,
+      message: 'Đơn hàng chưa ghi nhận trạng thái thanh toán thành công',
+      data: { status: order.status }
+    });
+  } catch (err: any) {
+    console.error('[Verify Payment Error]:', err);
+    return res.status(500).json({ success: false, message: 'Lỗi xác thực thanh toán', error: err.message });
+  }
+});
+
+/**
  * POST /api/tickets/webhook/payos
  * Nhận thông báo thanh toán tự động từ PayOS
- * Xác thực Checksum Signature, cập nhật trạng thái đơn hàng 'paid', sinh vé tham quan bảo tàng và gửi email xác nhận
+ * Xác thực Checksum Signature, kích hoạt đơn hàng và sinh vé tham quan
  */
 ticketsRouter.post('/webhook/payos', async (req: Request, res: Response) => {
   try {
     const webhookBody = req.body;
 
-    // 1. Xác thực Webhook bằng Checksum của PayOS
     let verifiedData: any;
     try {
       verifiedData = verifyPayOSWebhook(webhookBody);
@@ -455,170 +823,9 @@ ticketsRouter.post('/webhook/payos', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Thiếu orderCode' });
     }
 
-    // 2. Tra cứu đơn hàng trong PostgreSQL
-    const orderRes = await pgPool.query(
-      `SELECT o.*, 
-              COALESCE(json_agg(oi.*) FILTER (WHERE oi.id IS NOT NULL), '[]') as items
-       FROM orders o
-       LEFT JOIN order_items oi ON oi.order_id = o.id
-       WHERE o.order_code = $1
-       GROUP BY o.id;`,
-      [orderCode]
-    );
+    await processOrderPaymentSuccess(orderCode);
 
-    if (orderRes.rows.length === 0) {
-      console.warn(`[PayOS Webhook] Không tìm thấy đơn hàng mã ${orderCode}`);
-      return res.json({ success: true, message: 'Order not found, ignored' });
-    }
-
-    const order = orderRes.rows[0];
-
-    // Idempotency: Nếu đơn đã thanh toán thì bỏ qua không tạo vé trùng
-    if (order.status === 'paid') {
-      return res.json({ success: true, message: 'Order already paid' });
-    }
-
-    // 3. Cập nhật đơn hàng thành 'paid'
-    const paidAt = new Date();
-    await pgPool.query(
-      `UPDATE orders 
-       SET status = 'paid', paid_at = $1, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $2;`,
-      [paidAt, order.id]
-    );
-
-    await Order.updateOne(
-      { orderCode },
-      { $set: { status: 'paid', paidAt } }
-    ).catch(() => {});
-
-    // 4. Sinh vé tham quan chính thức vào bảng museum_tickets (PostgreSQL + MongoDB)
-    const createdTickets: any[] = [];
-    const currentYear = new Date().getFullYear();
-
-    for (const item of order.items || []) {
-      const qty = item.quantity || 1;
-      for (let i = 0; i < qty; i++) {
-        const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
-        const ticketCode = `BTLS-${currentYear}-${randomHex}`;
-        const ticketId = `tk_${Date.now()}_${randomHex.toLowerCase()}`;
-
-        // Sinh dữ liệu QR Code có chữ ký xác thực
-        const qrPayload = JSON.stringify({
-          code: ticketCode,
-          museum: 'BTLS_TPHCM',
-          order: orderCode,
-          name: order.customer_name,
-          email: order.customer_email,
-          type: item.ticket_type_code,
-          date: item.visit_date,
-          slot: item.time_slot
-        });
-
-        // Tạo mã QR Base64
-        let qrDataUrl = '';
-        try {
-          qrDataUrl = await QRCode.toDataURL(qrPayload, {
-            margin: 1,
-            width: 250,
-            color: { dark: '#000000', light: '#FFFFFF' }
-          });
-        } catch {
-          qrDataUrl = ticketCode;
-        }
-
-        // Lưu vào PostgreSQL
-        await pgPool.query(
-          `INSERT INTO museum_tickets (
-            id, ticket_code, user_id, user_email, user_name, user_phone,
-            ticket_type, ticket_title, quantity, unit_price, total_amount,
-            visit_date, time_slot, status, payment_method, qr_code_data, order_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17);`,
-          [
-            ticketId,
-            ticketCode,
-            order.user_id || null,
-            order.customer_email,
-            order.customer_name,
-            order.customer_phone,
-            item.ticket_type_code,
-            item.ticket_title,
-            1, // Mỗi vé đại diện cho 1 suất vào cổng
-            item.unit_price,
-            item.unit_price,
-            item.visit_date,
-            item.time_slot,
-            'paid',
-            'PayOS',
-            qrDataUrl,
-            order.id
-          ]
-        );
-
-        // Lưu vào MongoDB Mirror
-        await Ticket.create({
-          ticketCode,
-          userId: order.user_id || 'guest',
-          userEmail: order.customer_email,
-          userName: order.customer_name,
-          userPhone: order.customer_phone,
-          ticketType: item.ticket_type_code,
-          ticketTitle: item.ticket_title,
-          quantity: 1,
-          unitPrice: item.unit_price,
-          totalAmount: item.unit_price,
-          visitDate: new Date(item.visit_date),
-          timeSlot: item.time_slot,
-          status: 'paid',
-          paymentMethod: 'PayOS',
-          qrCodeData: qrDataUrl,
-          orderId: order.id
-        }).catch((err) => console.warn('[Ticket MongoDB Mirror Warning]:', err.message));
-
-        createdTickets.push({
-          ticketCode,
-          ticketTitle: item.ticket_title,
-          visitDate: item.visit_date,
-          timeSlot: item.time_slot
-        });
-      }
-    }
-
-    console.log(`[PayOS Webhook Success] Đơn hàng #${orderCode} đã thanh toán thành công, khởi tạo ${createdTickets.length} vé tham quan.`);
-
-    // 5. Gửi email xác nhận kèm danh sách vé cho khách hàng (bất đồng bộ)
-    try {
-      const ticketsHtml = createdTickets
-        .map(
-          (t) => `
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
-              <div style="font-size: 15px; font-weight: 700; color: #1e293b;">Mã vé: <span style="font-family: monospace; color: #0284c7;">${t.ticketCode}</span></div>
-              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">${t.ticketTitle} • Ngày: ${t.visitDate} • Khung giờ: ${t.timeSlot}</div>
-            </div>`
-        )
-        .join('');
-
-      await sendMail({
-        to: order.customer_email,
-        subject: `[Bảo Tàng Lịch Sử TP.HCM] Xác nhận thanh toán vé tham quan - Đơn hàng #${orderCode}`,
-        html: `
-          <div style="font-family: 'Be Vietnam Pro', sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b;">
-            <h2 style="color: #0f172a; margin-top: 0;">Thanh toán vé tham quan thành công!</h2>
-            <p>Kính chào quý khách <strong>${order.customer_name}</strong>,</p>
-            <p>Hệ thống Bảo tàng Lịch sử TP. Hồ Chí Minh xin chân thành cảm ơn quý khách đã đặt vé tham quan. Đơn hàng <strong>#${orderCode}</strong> đã được thanh toán thành công với tổng số tiền <strong>${Number(order.total_amount).toLocaleString('vi-VN')} đ</strong>.</p>
-            
-            <h3 style="margin-top: 24px; color: #0f172a;">Danh sách vé tham quan của bạn:</h3>
-            ${ticketsHtml}
-
-            <p style="font-size: 13px; color: #64748b; margin-top: 20px;">Quý khách vui lòng xuất trình mã vé hoặc mã QR trên trang <a href="${process.env.PUBLIC_API_URL || 'http://localhost:5173'}/profile" style="color: #0284c7;">Hồ sơ cá nhân</a> tại cổng soát vé bảo tàng khi đến tham quan.</p>
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-            <div style="font-size: 12px; color: #94a3b8;">Bảo tàng Lịch sử TP. Hồ Chí Minh • Số 2 Nguyễn Bỉnh Khiêm, P. Bến Nghé, Quận 1</div>
-          </div>
-        `
-      }).catch((mailErr: any) => console.warn('[Ticket Confirmation Mail Warning]:', mailErr.message));
-    } catch {}
-
-    return res.json({ success: true, message: 'Xử lý thanh toán thành công' });
+    return res.json({ success: true, message: 'Xử lý thanh toán webhook thành công' });
   } catch (err: any) {
     console.error('[PayOS Webhook Error]:', err);
     return res.status(500).json({ success: false, message: 'Lỗi xử lý webhook', error: err.message });

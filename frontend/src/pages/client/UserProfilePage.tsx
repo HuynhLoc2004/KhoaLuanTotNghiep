@@ -104,9 +104,28 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
       if (payment === 'success' || status === 'PAID') {
         setActiveTab('tickets');
-        showToast(`Thanh toán đơn hàng #${orderCode || ''} thành công! Vé tham quan đã được kích hoạt trong hồ sơ của bạn.`, 'success');
         window.history.replaceState({}, document.title, window.location.pathname);
-        loadData();
+
+        if (orderCode) {
+          showToast(`Đang xác thực thanh toán đơn hàng #${orderCode}...`, 'info');
+          api.verifyPayment(orderCode)
+            .then((res: any) => {
+              if (res && res.success) {
+                showToast(res.message || `Thanh toán đơn hàng #${orderCode} thành công! Vé tham quan đã được kích hoạt.`, 'success');
+              } else {
+                showToast(`Đã nhận giao dịch #${orderCode}. Đang tải vé tham quan...`, 'success');
+              }
+            })
+            .catch(() => {
+              showToast(`Đã nhận giao dịch #${orderCode}. Đang tải vé tham quan...`, 'info');
+            })
+            .finally(() => {
+              loadData();
+            });
+        } else {
+          showToast('Thanh toán thành công! Vé tham quan đã được kích hoạt trong hồ sơ của bạn.', 'success');
+          loadData();
+        }
       } else if (payment === 'cancel' || cancel === 'true' || status === 'CANCELLED') {
         showToast(`Giao dịch thanh toán #${orderCode || ''} đã bị huỷ. Quý khách có thể mua lại vé bất cứ lúc nào.`, 'warning');
         window.history.replaceState({}, document.title, window.location.pathname);

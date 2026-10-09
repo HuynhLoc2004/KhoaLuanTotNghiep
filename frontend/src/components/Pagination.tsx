@@ -31,11 +31,10 @@ export const Pagination: React.FC<PaginationProps> = ({
   const label = itemLabel || t('common.items') || 'mục';
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-  if (totalItems <= 0) return null;
-  if (hideOnSinglePage && totalPages <= 1) return null;
+  if (hideOnSinglePage && (totalItems <= 0 || totalPages <= 1)) return null;
 
-  const startItem = Math.min((currentPage - 1) * pageSize + 1, totalItems);
-  const endItem = Math.min(currentPage * pageSize, totalItems);
+  const startItem = totalItems > 0 ? Math.min((currentPage - 1) * pageSize + 1, totalItems) : 0;
+  const endItem = totalItems > 0 ? Math.min(currentPage * pageSize, totalItems) : 0;
 
   // Tính danh sách các trang cần hiển thị
   const getPageNumbers = () => {
@@ -89,7 +88,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           type="button"
           className="pagination-btn nav-btn"
-          disabled={currentPage === 1}
+          disabled={currentPage <= 1 || totalItems <= 0}
           onClick={() => onPageChange(currentPage - 1)}
           aria-label={t('pagination.prev')}
         >
@@ -119,7 +118,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           type="button"
           className="pagination-btn nav-btn"
-          disabled={currentPage === totalPages}
+          disabled={currentPage >= totalPages || totalItems <= 0}
           onClick={() => onPageChange(currentPage + 1)}
           aria-label={t('pagination.next')}
         >

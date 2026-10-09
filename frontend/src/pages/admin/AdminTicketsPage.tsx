@@ -920,22 +920,20 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
 
             {/* Phân trang chuẩn hệ thống [6, 9, 12, 18, 24] */}
-            {pagination.total > 0 && (
-              <div style={{ borderTop: '1px solid var(--border-color)' }}>
-                <Pagination
-                  currentPage={pagination.page}
-                  totalItems={pagination.total}
-                  pageSize={pagination.limit}
-                  onPageChange={(p) => fetchTickets(p, pagination.limit)}
-                  onPageSizeChange={(newSize) => {
-                    setPagination((prev) => ({ ...prev, limit: newSize }));
-                    fetchTickets(1, newSize);
-                  }}
-                  pageSizeOptions={[6, 9, 12, 18, 24]}
-                  itemLabel="vé"
-                />
-              </div>
-            )}
+            <div style={{ borderTop: '1px solid var(--border-color)' }}>
+              <Pagination
+                currentPage={pagination.page}
+                totalItems={pagination.total}
+                pageSize={pagination.limit}
+                onPageChange={(p) => fetchTickets(p, pagination.limit)}
+                onPageSizeChange={(newSize) => {
+                  setPagination((prev) => ({ ...prev, limit: newSize }));
+                  fetchTickets(1, newSize);
+                }}
+                pageSizeOptions={[6, 9, 12, 18, 24]}
+                itemLabel="vé"
+              />
+            </div>
           </div>
         </>
       )}
@@ -1490,22 +1488,20 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
 
             {/* Phân trang chuẩn hệ thống [6, 9, 12, 18, 24] */}
-            {ordersPagination.total > 0 && (
-              <div style={{ borderTop: '1px solid var(--border-color)' }}>
-                <Pagination
-                  currentPage={ordersPagination.page}
-                  totalItems={ordersPagination.total}
-                  pageSize={ordersPagination.limit}
-                  onPageChange={(p) => fetchOrders(p, ordersPagination.limit)}
-                  onPageSizeChange={(newSize) => {
-                    setOrdersPagination((prev) => ({ ...prev, limit: newSize }));
-                    fetchOrders(1, newSize);
-                  }}
-                  pageSizeOptions={[6, 9, 12, 18, 24]}
-                  itemLabel="giao dịch"
-                />
-              </div>
-            )}
+            <div style={{ borderTop: '1px solid var(--border-color)' }}>
+              <Pagination
+                currentPage={ordersPagination.page}
+                totalItems={ordersPagination.total}
+                pageSize={ordersPagination.limit}
+                onPageChange={(p) => fetchOrders(p, ordersPagination.limit)}
+                onPageSizeChange={(newSize) => {
+                  setOrdersPagination((prev) => ({ ...prev, limit: newSize }));
+                  fetchOrders(1, newSize);
+                }}
+                pageSizeOptions={[6, 9, 12, 18, 24]}
+                itemLabel="giao dịch"
+              />
+            </div>
           </div>
         </>
       )}

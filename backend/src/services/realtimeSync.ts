@@ -7,6 +7,8 @@ export type RealtimeEventType =
   | 'artifacts_updated'
   | 'maintenance_updated'
   | 'floor_plan_updated'
+  | 'tickets_updated'
+  | 'order_paid'
   | 'ping';
 
 export interface RealtimeEventPayload {

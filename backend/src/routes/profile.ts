@@ -7,6 +7,8 @@ import { authenticate, AuthRequest } from './auth.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertTicket, pgUpsertUser } from '../db/syncEngine.js';
 import { cacheDel, cacheDelPattern } from '../services/redis.js';
+import { getPayOSPaymentInfo } from '../services/payos.js';
+import { processOrderPaymentSuccess } from './tickets.js';
 
 export const profileRouter = Router();
 
@@ -351,8 +353,51 @@ profileRouter.put('/change-password', async (req: AuthRequest, res: Response) =>
 profileRouter.get('/tickets', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    const userEmail = req.user?.email;
+    const userEmail = (req.user?.email || '').trim().toLowerCase();
     const isAdmin = req.user?.role === 'admin';
+
+    // 0. Tự động đối chiếu tự phục hồi (Self-Healing):
+    // Quét các đơn hàng pending gần nhất của user để kiểm tra xem đã thanh toán trên PayOS chưa
+    try {
+      const pendingOrdersRes = await pgPool.query(
+        `SELECT order_code, id, total_amount, status 
+         FROM orders 
+         WHERE (user_id = $1 OR LOWER(customer_email) = $2) 
+           AND status = 'pending'
+           AND created_at >= NOW() - INTERVAL '7 days'
+         ORDER BY created_at DESC 
+         LIMIT 10;`,
+        [userId, userEmail]
+      );
+
+      for (const pOrder of pendingOrdersRes.rows) {
+        try {
+          const payosInfo = await getPayOSPaymentInfo(Number(pOrder.order_code));
+          if (payosInfo && (payosInfo.status === 'PAID' || payosInfo.amountPaid >= Number(pOrder.total_amount))) {
+            await processOrderPaymentSuccess(Number(pOrder.order_code), pOrder);
+          }
+        } catch {}
+      }
+
+      // Kiểm tra cả các đơn hàng status = 'paid' nhưng chưa kịp sinh vé vào bảng museum_tickets
+      const paidWithoutTickets = await pgPool.query(
+        `SELECT o.order_code, o.id 
+         FROM orders o
+         LEFT JOIN museum_tickets mt ON mt.order_id = o.id
+         WHERE (o.user_id = $1 OR LOWER(o.customer_email) = $2)
+           AND o.status = 'paid'
+           AND mt.id IS NULL
+         GROUP BY o.id, o.order_code
+         LIMIT 10;`,
+        [userId, userEmail]
+      );
+
+      for (const pOrder of paidWithoutTickets.rows) {
+        await processOrderPaymentSuccess(Number(pOrder.order_code));
+      }
+    } catch (healErr: any) {
+      console.warn('[Profile Tickets Heal Warning]:', healErr.message);
+    }
 
     // 1. Truy vấn PostgreSQL Primary trước
     let tickets: any[] = [];
@@ -362,7 +407,7 @@ profileRouter.get('/tickets', async (req: AuthRequest, res: Response) => {
                 ticket_title, quantity, unit_price, total_amount, visit_date, time_slot, 
                 status, payment_method, qr_code_data, notes, created_at, updated_at
          FROM museum_tickets
-         WHERE user_id = $1 OR user_email = $2
+         WHERE user_id = $1 OR LOWER(user_email) = $2
          ORDER BY created_at DESC;`,
         [userId, userEmail]
       );
@@ -397,7 +442,10 @@ profileRouter.get('/tickets', async (req: AuthRequest, res: Response) => {
     // 2. Fallback MongoDB nếu danh sách vé rỗng
     if (tickets.length === 0) {
       const mongoTickets = await Ticket.find({
-        $or: [{ userId }, { userEmail }]
+        $or: [
+          { userId },
+          { userEmail: { $regex: new RegExp(`^${userEmail}$`, 'i') } }
+        ]
       }).sort({ createdAt: -1 }).lean();
 
       tickets = mongoTickets.map((t: any) => ({

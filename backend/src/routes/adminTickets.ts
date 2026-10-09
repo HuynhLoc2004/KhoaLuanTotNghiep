@@ -4,6 +4,8 @@ import { authenticate, requireAdmin, AuthRequest } from './auth.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertTicket, pgDeleteTicket } from '../db/syncEngine.js';
 import { esSearchTickets, esIndexTicket, esDeleteTicket } from '../services/elasticsearch.js';
+import { getPayOSPaymentInfo } from '../services/payos.js';
+import { processOrderPaymentSuccess } from './tickets.js';
 
 export const adminTicketsRouter = Router();
 
@@ -60,6 +62,44 @@ adminTicketsRouter.get('/', async (req: AuthRequest, res: Response) => {
       cancelledTickets: 0,
       totalRevenue: 0
     };
+
+    // Tự động đối chiếu tự phục hồi (Self-Healing):
+    // Quét các đơn hàng pending gần nhất trực tiếp qua cổng PayOS để kích hoạt vé nếu đã thanh toán
+    try {
+      const recentPendingOrders = await pgPool.query(
+        `SELECT order_code, id, total_amount 
+         FROM orders 
+         WHERE status = 'pending' 
+           AND created_at >= NOW() - INTERVAL '7 days'
+         ORDER BY created_at DESC 
+         LIMIT 10;`
+      );
+
+      for (const pOrder of recentPendingOrders.rows) {
+        try {
+          const pInfo = await getPayOSPaymentInfo(Number(pOrder.order_code));
+          if (pInfo && (pInfo.status === 'PAID' || pInfo.amountPaid >= Number(pOrder.total_amount))) {
+            await processOrderPaymentSuccess(Number(pOrder.order_code), pOrder);
+          }
+        } catch {}
+      }
+
+      // Kích hoạt vé cho các đơn hàng status = 'paid' nhưng chưa kịp lưu vào museum_tickets
+      const paidWithoutTickets = await pgPool.query(
+        `SELECT o.order_code, o.id 
+         FROM orders o
+         LEFT JOIN museum_tickets mt ON mt.order_id = o.id
+         WHERE o.status = 'paid' AND mt.id IS NULL
+         GROUP BY o.id, o.order_code
+         LIMIT 10;`
+      );
+
+      for (const pOrder of paidWithoutTickets.rows) {
+        await processOrderPaymentSuccess(Number(pOrder.order_code));
+      }
+    } catch (healErr: any) {
+      console.warn('[Admin Tickets Heal Warning]:', healErr.message);
+    }
 
     // 0. Thử truy vấn qua cụm Elasticsearch trước tiên (Tốc độ mili-giây)
     const esRes = await esSearchTickets({
@@ -167,7 +207,7 @@ adminTicketsRouter.get('/', async (req: AuthRequest, res: Response) => {
       const statsRes = await pgPool.query(`
         SELECT
           COUNT(*)::int as total,
-          COUNT(*) FILTER (WHERE status = 'paid' AND visit_date >= CURRENT_DATE)::int as active,
+          COUNT(*) FILTER (WHERE (status = 'paid' OR status = 'active') AND status != 'used' AND status != 'cancelled')::int as active,
           COUNT(*) FILTER (WHERE status = 'used')::int as used,
           COUNT(*) FILTER (WHERE status = 'cancelled')::int as cancelled,
           COALESCE(SUM(total_amount) FILTER (WHERE status != 'cancelled'), 0)::int as revenue
@@ -247,6 +287,29 @@ adminTicketsRouter.get('/', async (req: AuthRequest, res: Response) => {
         createdAt: t.createdAt,
         updatedAt: t.updatedAt
       }));
+    }
+
+    // Fallback thống kê từ MongoDB nếu stats từ PostgreSQL rỗng
+    if (stats.totalTickets === 0) {
+      try {
+        const [mTotal, mActive, mUsed, mCancelled, mRevenueAgg] = await Promise.all([
+          Ticket.countDocuments({}),
+          Ticket.countDocuments({ status: 'paid' }),
+          Ticket.countDocuments({ status: 'used' }),
+          Ticket.countDocuments({ status: 'cancelled' }),
+          Ticket.aggregate([
+            { $match: { status: { $ne: 'cancelled' } } },
+            { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+          ])
+        ]);
+        stats = {
+          totalTickets: mTotal,
+          activeTickets: mActive,
+          usedTickets: mUsed,
+          cancelledTickets: mCancelled,
+          totalRevenue: mRevenueAgg[0]?.total || 0
+        };
+      } catch {}
     }
 
     return res.json({
