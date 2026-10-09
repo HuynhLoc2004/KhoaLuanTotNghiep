@@ -303,9 +303,15 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Tên và Mã hiện vật là bắt buộc' });
     }
 
-    // Kiểm tra trùng mã code
-    const existing = await ArtifactModel.findOne({ code: code.trim() });
-    if (existing) {
+    // Kiểm tra trùng mã code trên cả MongoDB và PostgreSQL Primary
+    const cleanCode = code.trim();
+    const existing = await ArtifactModel.findOne({ code: cleanCode });
+    let pgExisting = false;
+    try {
+      const pgCheck = await pgPool.query('SELECT 1 FROM artifacts WHERE code = $1 LIMIT 1', [cleanCode]);
+      if (pgCheck.rows.length > 0) pgExisting = true;
+    } catch {}
+    if (existing || pgExisting) {
       return res.status(400).json({ success: false, message: `Mã hiện vật "${code}" đã tồn tại trên hệ thống` });
     }
 
@@ -367,6 +373,18 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Mã định danh hiện vật (ID) không hợp lệ' });
     }
 
+    if (req.body.code) {
+      const newCode = String(req.body.code).trim();
+      const dupMongo = await ArtifactModel.findOne({ code: newCode, id: { $ne: id }, _id: { $ne: id } });
+      let dupPg = false;
+      try {
+        const pgCheck = await pgPool.query('SELECT id FROM artifacts WHERE code = $1 AND id != $2 AND mongo_id != $2 LIMIT 1', [newCode, id]);
+        if (pgCheck.rows.length > 0) dupPg = true;
+      } catch {}
+      if (dupMongo || dupPg) {
+        return res.status(400).json({ success: false, message: `Mã hiện vật "${newCode}" đã được sử dụng bởi hiện vật khác` });
+      }
+    }
     const query = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { id }, { code: id }] } : { $or: [{ id }, { code: id }] };
     let updated = await ArtifactModel.findOneAndUpdate(query, { $set: req.body }, { returnDocument: 'after' });
 
@@ -497,10 +515,12 @@ artifactsRouter.delete('/:id', async (req: Request, res: Response) => {
       cacheDel(`artifacts:item:${id}`),
       cacheDel(`artifacts:item:${targetId}`),
       cacheDel(`artifacts:item:${targetCode}`),
-      cacheDel('rooms:all')
+      cacheDel('rooms:all'),
+      cacheDelPattern('rooms:*')
     ]);
 
     broadcastRealtimeEvent('artifacts_updated', { action: 'delete', artifactId: id });
+    broadcastRealtimeEvent('rooms_updated', { action: 'hotspot_cleanup', artifactId: id });
     res.json({ success: true, message: 'Đã xóa hiện vật và dọn dẹp liên kết thành công' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi xóa hiện vật: ' + err.message });

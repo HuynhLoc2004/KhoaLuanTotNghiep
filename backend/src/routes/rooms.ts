@@ -272,6 +272,33 @@ roomsRouter.put('/:id', async (req: Request, res: Response) => {
       cacheDel(`rooms:detail:${room.id}`)
     ]);
     const finalRoomData = updated.toJSON({ flattenMaps: true });
+
+    // Đồng bộ tên và ảnh 360 sang sơ đồ mặt bằng nếu phòng này đang được gán trên bản đồ
+    try {
+      const plansWithRoom = await FloorPlanMapModel.find({ 'nodes.roomId': updated.id });
+      for (const fp of plansWithRoom) {
+        let fpChanged = false;
+        fp.nodes.forEach((n: any) => {
+          if (n.roomId === updated.id) {
+            if (updated.name) n.name = updated.name;
+            if (updated.panoramaUrl) {
+              n.panoramaUrl = updated.panoramaUrl;
+              n.thumbnailUrl = updated.thumbnailUrl || updated.panoramaUrl;
+            }
+            fpChanged = true;
+          }
+        });
+        if (fpChanged) {
+          fp.markModified('nodes');
+          await fp.save();
+          await pgUpsertFloorPlan(fp.toObject ? fp.toObject() : fp);
+          broadcastRealtimeEvent('floor_plan_updated', fp.toObject ? fp.toObject() : fp);
+        }
+      }
+    } catch (fpSyncErr: any) {
+      console.warn('[Rooms PUT] Lỗi đồng bộ thông tin phòng sang FloorPlan:', fpSyncErr.message);
+    }
+
     broadcastRealtimeEvent('rooms_updated', { action: 'update', room: finalRoomData });
     res.json({ success: true, data: finalRoomData });
   } catch (err: any) {
@@ -290,7 +317,7 @@ roomsRouter.delete('/all/clear', async (req: Request, res: Response) => {
     try {
       await pgPool.query('DELETE FROM hotspots; DELETE FROM rooms;');
       await pgPool.query('UPDATE artifacts SET room_id = NULL, room_code = NULL;');
-      await pgPool.query('UPDATE floor_plan_nodes SET room_id = NULL;');
+      await pgPool.query('UPDATE floor_plan_nodes SET room_id = NULL, panorama_url = \'\', thumbnail_url = \'\';');
     } catch (pgErr: any) {
       console.warn('[Rooms] Lỗi xóa phòng trong PostgreSQL:', pgErr.message);
     }

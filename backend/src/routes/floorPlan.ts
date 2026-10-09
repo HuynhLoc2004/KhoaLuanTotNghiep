@@ -605,6 +605,93 @@ floorPlanRouter.put('/:id/batch-mapping', async (req: Request, res: Response) =>
 });
 
 /**
+ * DELETE /api/floor-plan/:id
+ * Xóa sơ đồ mặt bằng đồng bộ trên CẢ MongoDB Mirror & PostgreSQL Primary
+ */
+floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const query = {
+      $or: [
+        { id },
+        ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])
+      ]
+    };
+    const targetMap = await FloorPlanMapModel.findOne(query);
+
+    // Kiểm tra trong PostgreSQL
+    let pgMap: any = null;
+    try {
+      const pgRes = await pgPool.query('SELECT * FROM floor_plans WHERE id = $1 OR mongo_id = $1 LIMIT 1;', [id]);
+      if (pgRes.rows.length > 0) pgMap = pgRes.rows[0];
+    } catch {}
+
+    if (!targetMap && !pgMap) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sơ đồ mặt bằng để xóa' });
+    }
+
+    const wasActive = targetMap?.active || pgMap?.active;
+    const targetId = targetMap?.id || pgMap?.id || id;
+    const targetMongoId = targetMap?._id?.toString() || pgMap?.mongo_id;
+
+    // 1. Xóa khỏi MongoDB
+    await FloorPlanMapModel.deleteOne({
+      $or: [
+        { id: targetId },
+        ...(targetMongoId && mongoose.isValidObjectId(targetMongoId) ? [{ _id: targetMongoId }] : [])
+      ]
+    });
+
+    // 2. Xóa khỏi PostgreSQL Primary (bảng floor_plans, nodes, edges)
+    await pgDeleteFloorPlan(targetId);
+    try {
+      await pgPool.query('DELETE FROM floor_plan_nodes WHERE floor_plan_id = $1;', [targetId]);
+      await pgPool.query('DELETE FROM floor_plan_edges WHERE floor_plan_id = $1;', [targetId]);
+    } catch (pgDelErr: any) {
+      console.warn('[FloorPlan DELETE PG Cascade Warning]:', pgDelErr.message);
+    }
+
+    await logAudit('DELETE_FLOOR_PLAN', 'floor_plan', { details: { id: targetId, title: targetMap?.title || pgMap?.title } });
+
+    // 3. Nếu bản đồ bị xóa là active map:
+    let newActiveMap: any = null;
+    if (wasActive) {
+      newActiveMap = await FloorPlanMapModel.findOne().sort({ updatedAt: -1, createdAt: -1 });
+      if (newActiveMap) {
+        newActiveMap.active = true;
+        await newActiveMap.save();
+        try {
+          await pgPool.query('UPDATE floor_plans SET active = true WHERE id = $1 OR mongo_id = $1;', [newActiveMap.id]);
+        } catch {}
+        await syncFloorPlanToBranding({
+          imageUrl: newActiveMap.imageUrl,
+          title: newActiveMap.title,
+          description: newActiveMap.description
+        });
+        broadcastRealtimeEvent('floor_plan_updated', newActiveMap.toObject ? newActiveMap.toObject() : newActiveMap);
+      } else {
+        // Không còn bản đồ nào trong hệ thống
+        try {
+          await pgPool.query('UPDATE floor_plans SET active = false;');
+        } catch {}
+        await syncFloorPlanToBranding(null);
+        broadcastRealtimeEvent('floor_plan_updated', null);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã xóa sơ đồ mặt bằng và đồng bộ dữ liệu thành công',
+      activeMap: newActiveMap ? (newActiveMap.toObject ? newActiveMap.toObject() : newActiveMap) : null
+    });
+  } catch (err: any) {
+    console.error('[FloorPlanRoute DELETE Error]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi xóa sơ đồ mặt bằng: ' + (err.message || '') });
+  }
+});
+
+
+/**
  * POST /api/floor-plan/navigate
  * Trợ lý Dẫn đường Thông minh: Tính toán lộ trình ngắn nhất, sinh chỉ dẫn đa ngôn ngữ và tạo Voice AI
  */
