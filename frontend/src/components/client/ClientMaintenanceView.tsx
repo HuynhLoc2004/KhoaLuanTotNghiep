@@ -44,6 +44,23 @@ export const ClientMaintenanceView: React.FC<ClientMaintenanceViewProps> = ({
     return () => clearInterval(interval);
   }, [maintenance]);
 
+  // Đồng bộ tiêu đề tab và favicon khi ở màn hình bảo trì
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = `Thông Báo Bảo Trì | ${branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}`;
+      const targetFavicon = branding.logoUrl && branding.logoUrl.trim();
+      if (targetFavicon) {
+        let favicons = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
+        if (favicons.length > 0) {
+          favicons.forEach((el) => {
+            el.href = targetFavicon;
+            el.type = 'image/png';
+          });
+        }
+      }
+    }
+  }, [branding]);
+
   const handleManualRetry = async () => {
     if (isRetrying) return;
     setIsRetrying(true);

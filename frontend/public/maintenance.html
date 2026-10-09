@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Thông Báo Bảo Trì | Bảo tàng Lịch sử TP. Hồ Chí Minh</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" id="pageFavicon" href="/api/system/favicon" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -253,6 +253,49 @@
     const btnManualRetry = document.getElementById('btnManualRetry');
     const retryIcon = btnManualRetry.querySelector('svg');
 
+    // Hàm cập nhật Favicon trên thanh website của trình duyệt
+    function updateFavicon(url) {
+      if (!url) return;
+      let favicons = document.querySelectorAll("link[rel*='icon']");
+      if (favicons.length > 0) {
+        favicons.forEach(el => {
+          el.href = url;
+          if (!url.startsWith('data:image/svg') && !url.endsWith('.svg')) {
+            el.type = 'image/png';
+          } else {
+            el.type = 'image/svg+xml';
+          }
+        });
+      } else {
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.href = url;
+        document.head.appendChild(link);
+      }
+    }
+
+    // 0. Khởi tạo favicon và logo ngay lập tức từ bộ nhớ đệm LocalStorage (không đợi mạng)
+    try {
+      const cached = localStorage.getItem('system_branding_cache');
+      if (cached) {
+        const b = JSON.parse(cached);
+        if (b && b.logoUrl && b.logoUrl.trim()) {
+          updateFavicon(b.logoUrl.trim());
+          const emblem = document.getElementById('museumEmblem');
+          if (emblem) {
+            emblem.innerHTML = `<img src="${b.logoUrl.trim()}" alt="${b.shortName || ''}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" />`;
+            emblem.style.background = 'transparent';
+            emblem.style.border = 'none';
+          }
+        }
+        if (b && b.museumName) {
+          document.title = `Thông Báo Bảo Trì | ${b.museumName}`;
+          const orgTitle = document.getElementById('orgTitle');
+          if (orgTitle) orgTitle.textContent = b.museumName;
+        }
+      }
+    } catch {}
+
     function updateTimeDisplay() {
       if (!currentMaintenance) return;
       const startTime = new Date(currentMaintenance.startTime || currentMaintenance.updatedAt).getTime();
@@ -293,11 +336,26 @@
           const bData = await bRes.json();
           if (bData && bData.branding) {
             const b = bData.branding;
+            try {
+              localStorage.setItem('system_branding_cache', JSON.stringify(b));
+            } catch {}
+
             if (b.museumName) {
               document.title = `Thông Báo Bảo Trì | ${b.museumName}`;
               const orgTitle = document.getElementById('orgTitle');
               if (orgTitle) orgTitle.textContent = b.museumName;
             }
+
+            // Đồng bộ Favicon trên thanh website trình duyệt theo logo thật
+            if (b.logoUrl && b.logoUrl.trim()) {
+              updateFavicon(b.logoUrl.trim());
+            } else if (b.emblemText) {
+              const emblem = (b.emblemText || 'BT').trim() || 'BT';
+              const fontSize = emblem.length > 2 ? (emblem.length > 3 ? 18 : 22) : 28;
+              const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8C2D19"/><stop offset="100%" stop-color="#5A1A0C"/></linearGradient><linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F3E5AB"/><stop offset="50%" stop-color="#D4A86A"/><stop offset="100%" stop-color="#AA7C39"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#bgGrad)"/><rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-opacity="0.85"/><text x="32" y="44" font-family="'Be Vietnam Pro', system-ui, -apple-system, sans-serif, Arial" font-size="${fontSize}" font-weight="800" text-anchor="middle" fill="#FFFFFF" letter-spacing="1">${emblem}</text></svg>`;
+              updateFavicon(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+            }
+
             if (b.emblemText && !b.logoUrl) {
               const emblem = document.getElementById('museumEmblem');
               if (emblem) emblem.textContent = b.emblemText;
