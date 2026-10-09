@@ -20,7 +20,7 @@ export const uploadToCloudinary = async (
       filePathOrBuffer,
       {
         folder,
-        resource_type: 'image',
+        resource_type: 'auto',
         use_filename: true,
         unique_filename: true,
         quality: 'auto:best'

@@ -295,10 +295,10 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
                 />
                 <label className="btn btn-secondary" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   <Upload size={14} />
-                  <span>{uploading ? 'Đang tải...' : 'Tải ảnh mới'}</span>
+                  <span>{uploading ? 'Đang tải...' : 'Tải ảnh/video mới'}</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     style={{ display: 'none' }}
                     onChange={handleFileUpload}
                     disabled={uploading}
@@ -309,13 +309,24 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
 
             {panoramaUrl && (
               <div style={{ marginTop: 10, position: 'relative', height: 130, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                <img
-                  src={panoramaUrl}
-                  alt="Xem trước ảnh 360"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                {panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? (
+                  <video
+                    src={panoramaUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <img
+                    src={panoramaUrl}
+                    alt="Xem trước ảnh 360"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                )}
                 <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(0,0,0,0.7)', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4, fontSize: '11px' }}>
-                  Ảnh 360 hiện tại
+                  {panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? 'Video Tour hiện tại' : 'Ảnh 360 hiện tại'}
                 </div>
               </div>
             )}

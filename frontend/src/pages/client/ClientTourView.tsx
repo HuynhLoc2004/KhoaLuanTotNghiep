@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MuseumRoom, Hotspot, LanguageItem } from '../../types';
 import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
+import { InteractiveVideoTourViewer } from '../../components/InteractiveVideoTourViewer';
 import { api, API_ROOT } from '../../services/api';
 import {
   ArrowLeft,
@@ -679,29 +680,47 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         </div>
       )}
 
-      {/* 2. TRÌNH CHIẾU PANNELLUM 360° CHUẨN XÁC, ĐỒNG BỘ 100% VỚI XEM THỬ & STUDIO BÊN ADMIN */}
+      {/* 2. TRÌNH CHIẾU VẬN HÀNH: VIDEO TOUR HOẶC PANNELLUM 360° */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
-        <Pannellum360Viewer
-          key={currentRoom.id}
-          panoramaUrl={currentRoom.panoramaUrl}
-          title=""
-          autoStartLittlePlanet={false}
-          hotspots={pannellumHotspots}
-          onHotspotClick={(hs) => {
-            const origin = currentRoom.hotspots?.find(
-              (h) => (h.targetRoomId && h.targetRoomId === hs.roomId) || h.title === hs.text
-            );
-            if (origin) {
-              handleHotspotClick(origin);
-            } else if (hs.roomId) {
-              const target = allRooms.find((r) => r.id === hs.roomId || r.code === hs.roomId);
-              if (target) onNavigateRoom(target);
-            }
-          }}
-          initialPitch={currentRoom.initialView?.pitch ?? 0}
-          initialYaw={currentRoom.initialView?.yaw ?? 0}
-          initialHfov={currentRoom.initialView?.fov ? Math.min(currentRoom.initialView.fov, 100) : 100}
-        />
+        {currentRoom.panoramaUrl &&
+        (currentRoom.panoramaUrl.endsWith('.mp4') ||
+          currentRoom.panoramaUrl.endsWith('.webm') ||
+          currentRoom.panoramaUrl.endsWith('.mov') ||
+          currentRoom.panoramaUrl.includes('/video/upload/') ||
+          (currentRoom as any).mediaType === 'video' ||
+          (currentRoom as any).videoUrl) ? (
+          <InteractiveVideoTourViewer
+            key={currentRoom.id}
+            videoUrl={(currentRoom as any).videoUrl || currentRoom.panoramaUrl}
+            title={localize(currentRoom, 'name', currentRoom.name)}
+            hotspots={currentRoom.hotspots || []}
+            allRooms={allRooms}
+            onHotspotClick={handleHotspotClick}
+            onNavigateRoom={onNavigateRoom}
+          />
+        ) : (
+          <Pannellum360Viewer
+            key={currentRoom.id}
+            panoramaUrl={currentRoom.panoramaUrl}
+            title=""
+            autoStartLittlePlanet={false}
+            hotspots={pannellumHotspots}
+            onHotspotClick={(hs) => {
+              const origin = currentRoom.hotspots?.find(
+                (h) => (h.targetRoomId && h.targetRoomId === hs.roomId) || h.title === hs.text
+              );
+              if (origin) {
+                handleHotspotClick(origin);
+              } else if (hs.roomId) {
+                const target = allRooms.find((r) => r.id === hs.roomId || r.code === hs.roomId);
+                if (target) onNavigateRoom(target);
+              }
+            }}
+            initialPitch={currentRoom.initialView?.pitch ?? 0}
+            initialYaw={currentRoom.initialView?.yaw ?? 0}
+            initialHfov={currentRoom.initialView?.fov ? Math.min(currentRoom.initialView.fov, 100) : 100}
+          />
+        )}
       </div>
 
       {/* 3. POPUP THÔNG TIN HOTSPOT KHI KHÁCH CLICK VÀO ĐIỂM CHÚ THÍCH */}

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { MuseumRoom, Hotspot } from '../../types';
 import { Pannellum360Viewer, PannellumHotSpot } from '../../viewer360/Pannellum360Viewer';
+import { InteractiveVideoTourViewer } from '../../components/InteractiveVideoTourViewer';
 import { HotspotModal } from '../../components/HotspotModal';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { api, API_BASE } from '../../services/api';
@@ -382,28 +383,46 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
     <div className="studio-container">
       {/* 360 Viewport Area */}
       <div className="studio-viewport-area" style={{ position: 'relative' }}>
-        <Pannellum360Viewer
-          key={currentRoom.id}
-          panoramaUrl={currentRoom.panoramaUrl}
-          title=""
-          autoStartLittlePlanet={false}
-          hotspots={pannellumHotspots}
-          onHotspotClick={(hs) => {
-            const origin = currentRoom.hotspots?.find(
-              (h) => (h.targetRoomId && h.targetRoomId === hs.roomId) || h.title === hs.text
-            );
-            if (origin) handleHotspotClick(origin);
-            else if (hs.roomId) onNavigateRoom(hs.roomId);
-          }}
-          focusCoords={focusCoords}
-          isPinMode={isPinMode}
-          onTogglePinMode={() => setIsPinMode((prev) => !prev)}
-          onCanvasPinClick={handleCanvasPinClick}
-          onCaptureInitialView={handleCaptureInitialView}
-          initialPitch={currentRoom.initialView?.pitch ?? 0}
-          initialYaw={currentRoom.initialView?.yaw ?? 0}
-          initialHfov={currentRoom.initialView?.fov ?? 100}
-        />
+        {currentRoom.panoramaUrl &&
+        (currentRoom.panoramaUrl.endsWith('.mp4') ||
+          currentRoom.panoramaUrl.endsWith('.webm') ||
+          currentRoom.panoramaUrl.endsWith('.mov') ||
+          currentRoom.panoramaUrl.includes('/video/upload/') ||
+          (currentRoom as any).mediaType === 'video' ||
+          (currentRoom as any).videoUrl) ? (
+          <InteractiveVideoTourViewer
+            key={currentRoom.id}
+            videoUrl={(currentRoom as any).videoUrl || currentRoom.panoramaUrl}
+            title={currentRoom.name}
+            hotspots={currentRoom.hotspots || []}
+            allRooms={allRooms}
+            onHotspotClick={handleHotspotClick}
+            onNavigateRoom={(targetRoom) => onNavigateRoom(targetRoom.id)}
+          />
+        ) : (
+          <Pannellum360Viewer
+            key={currentRoom.id}
+            panoramaUrl={currentRoom.panoramaUrl}
+            title=""
+            autoStartLittlePlanet={false}
+            hotspots={pannellumHotspots}
+            onHotspotClick={(hs) => {
+              const origin = currentRoom.hotspots?.find(
+                (h) => (h.targetRoomId && h.targetRoomId === hs.roomId) || h.title === hs.text
+              );
+              if (origin) handleHotspotClick(origin);
+              else if (hs.roomId) onNavigateRoom(hs.roomId);
+            }}
+            focusCoords={focusCoords}
+            isPinMode={isPinMode}
+            onTogglePinMode={() => setIsPinMode((prev) => !prev)}
+            onCanvasPinClick={handleCanvasPinClick}
+            onCaptureInitialView={handleCaptureInitialView}
+            initialPitch={currentRoom.initialView?.pitch ?? 0}
+            initialYaw={currentRoom.initialView?.yaw ?? 0}
+            initialHfov={currentRoom.initialView?.fov ?? 100}
+          />
+        )}
 
         {/* CỤM THANH HEADER DI SẢN 360° THỐNG NHẤT (Tên phòng + Mã phòng + Audio Guide trên cùng 1 thanh sang trọng) */}
         <div className="studio-heritage-capsule">
@@ -875,11 +894,28 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                   background: '#000'
                 }}
               >
-                <img
-                  src={currentRoom.panoramaUrl}
-                  alt={currentRoom.name}
-                  style={{ width: '100%', height: 85, objectFit: 'cover', display: 'block' }}
-                />
+                {currentRoom.panoramaUrl &&
+                (currentRoom.panoramaUrl.endsWith('.mp4') ||
+                  currentRoom.panoramaUrl.endsWith('.webm') ||
+                  currentRoom.panoramaUrl.endsWith('.mov') ||
+                  currentRoom.panoramaUrl.includes('/video/upload/') ||
+                  (currentRoom as any).mediaType === 'video' ||
+                  (currentRoom as any).videoUrl) ? (
+                  <video
+                    src={(currentRoom as any).videoUrl || currentRoom.panoramaUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{ width: '100%', height: 85, objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <img
+                    src={currentRoom.panoramaUrl}
+                    alt={currentRoom.name}
+                    style={{ width: '100%', height: 85, objectFit: 'cover', display: 'block' }}
+                  />
+                )}
                 <div
                   style={{
                     position: 'absolute',
@@ -892,7 +928,13 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                     fontSize: '10px'
                   }}
                 >
-                  Ảnh hiện hành
+                  {currentRoom.panoramaUrl &&
+                  (currentRoom.panoramaUrl.endsWith('.mp4') ||
+                    currentRoom.panoramaUrl.endsWith('.webm') ||
+                    currentRoom.panoramaUrl.endsWith('.mov') ||
+                    currentRoom.panoramaUrl.includes('/video/upload/'))
+                    ? 'Video Tour hiện hành'
+                    : 'Ảnh 360° hiện hành'}
                 </div>
               </div>
 
@@ -902,13 +944,13 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
                   <label
                     className="btn btn-secondary btn-sm"
                     style={{ flex: 1, justifyContent: 'center', cursor: 'pointer', fontSize: '11.5px', gap: 5 }}
-                    title="Tải file ảnh panorama 360 mới từ máy tính lên máy chủ"
+                    title="Tải file ảnh panorama 360 hoặc video tour từ máy tính lên máy chủ"
                   >
                     <Upload size={12} />
-                    <span>{uploading ? 'Đang tải lên...' : 'Tải ảnh mới từ máy'}</span>
+                    <span>{uploading ? 'Đang tải lên...' : 'Tải tệp Ảnh/Video từ máy'}</span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/*"
                       onChange={handleFileUpload}
                       style={{ display: 'none' }}
                       disabled={uploading}

@@ -283,7 +283,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                   <span>{uploading ? t('common.uploading', 'Đang tải...') : t('rooms.uploadImageBtn', 'Tải tệp ảnh')}</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     onChange={handleFileUpload}
                     style={{ display: 'none' }}
                     disabled={uploading}
@@ -294,26 +294,37 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
               {uploading && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', color: 'var(--text-muted)', marginTop: 6 }}>
                   <Loader2 size={13} className="spin" />
-                  <span>{t('rooms.uploadingToServer', 'Đang tải ảnh lên máy chủ...')}</span>
+                  <span>{t('rooms.uploadingToServer', 'Đang tải tệp ảnh/video lên máy chủ...')}</span>
                 </div>
               )}
 
-              {/* Preview ảnh nhỏ nếu đã có link */}
+              {/* Preview ảnh hoặc video nhỏ nếu đã có link */}
               {panoramaUrl && (
                 <div style={{ position: 'relative', height: 110, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: '#0F172A', marginTop: 8 }}>
-                  <img
-                    src={panoramaUrl}
-                    alt="Preview 360"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                  {panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? (
+                    <video
+                      src={panoramaUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <img
+                      src={panoramaUrl}
+                      alt="Preview 360"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  )}
                   <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(15, 23, 42, 0.8)', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>
-                    {t('rooms.preview360Spherical', 'Xem trước ảnh cầu 360°')}
+                    {panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? 'Xem trước Video Tour' : t('rooms.preview360Spherical', 'Xem trước ảnh cầu 360°')}
                   </div>
                   <button
                     type="button"
                     onClick={() => setPanoramaUrl('')}
                     style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239, 68, 68, 0.85)', color: '#FFFFFF', border: 'none', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    title={t('common.deleteImage', 'Xóa ảnh này')}
+                    title={t('common.deleteImage', 'Xóa tệp này')}
                   >
                     <X size={12} />
                   </button>

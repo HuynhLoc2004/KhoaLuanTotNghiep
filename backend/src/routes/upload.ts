@@ -56,12 +56,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 150 * 1024 * 1024 }, // 150MB cho cả video và ảnh
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
       cb(null, true);
     } else {
-      cb(new Error('Chỉ chấp nhận file định dạng hình ảnh (JPEG, PNG, WebP)'));
+      cb(new Error('Chỉ chấp nhận file hình ảnh hoặc video (MP4, WebM, MOV, JPEG, PNG, WebP)'));
     }
   }
 });
