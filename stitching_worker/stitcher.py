@@ -326,10 +326,10 @@ def crop_clean_inscribed_rectangle(image, black_thresh=15):
     row_density = np.mean(mask, axis=1)
     col_density = np.mean(mask, axis=0)
 
-    # Cột chỉ cần có nội dung (>= 15% chiều cao) để giữ trọn vẹn toàn bộ các góc phòng quanh chu vi
-    valid_cols = np.where(col_density >= 0.15)[0]
-    # Hàng cần đủ nội dung (>= 70% chiều ngang) để cắt sạch trần và sàn lượn sóng
-    valid_rows = np.where(row_density >= 0.70)[0]
+    # Cột chỉ cần có nội dung (>= 10% chiều cao) để giữ trọn vẹn toàn bộ các góc phòng quanh chu vi
+    valid_cols = np.where(col_density >= 0.10)[0]
+    # Hàng chỉ cần có nội dung (>= 25% chiều ngang) để không bị xén mất trần nhà và sàn nhà
+    valid_rows = np.where(row_density >= 0.25)[0]
 
     if len(valid_rows) > 50 and len(valid_cols) > 50:
         top = valid_rows[0]
@@ -1672,37 +1672,33 @@ def run_stitch(image_paths, output_path, target_width=0):
     sorted_paths = resolve_capture_sequence(image_paths)
     log(f"[*] Tiếp nhận {len(sorted_paths)} ảnh góc chụp xoay quanh...")
 
-    final_pano = None
-
-    engine_used = "sequential_cylindrical_sift"
-
-    # ƯU TIÊN SỐ 1: OpenCV Native C++ Stitcher (Bundle Adjustment, Graph-cut Seams & Multi-band Blending)
-    # Tự động tối ưu hình học toàn cục, tìm ranh giới ghép né vật thể và hòa trộn đa dải tần không để lại vết nối
+    # ƯU TIÊN SỐ 1: Động cơ Ghép Chuỗi Quang Học Mặt Trụ (Sequential Motion-Aligned Cylindrical Stitcher)
+    # Bảo tồn 100% tường nhà thẳng đứng 90°, sàn nhà phẳng ngang, hoàn toàn không bị uốn lượn méo mó gây nhức đầu!
     try:
-        log("[*] Kích hoạt Động cơ OpenCV Native Stitcher (SIFT/ORB & Multi-band Blending)...")
-        res_cv = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
-        if isinstance(res_cv, tuple):
-            final_pano = res_cv[0]
-        elif res_cv is not None:
-            final_pano = res_cv
+        log("[*] Kích hoạt Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical SIFT & Loop Closure)...")
+        res_seq = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
+        if isinstance(res_seq, tuple):
+            final_pano = res_seq[0]
+        elif res_seq is not None:
+            final_pano = res_seq
         if final_pano is not None:
-            engine_used = "opencv_native"
-    except Exception as cv_err:
-        log(f"[!] OpenCV Native không hội tụ: {cv_err}")
+            engine_used = "sequential_cylindrical_sift"
+    except Exception as seq_err:
+        log(f"[!] Sequential Cylindrical thất bại: {seq_err}")
 
-    # ƯU TIÊN SỐ 2: Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical SIFT & Wide Feathering)
+    # ƯU TIÊN SỐ 2: OpenCV Native C++ Stitcher (Dự phòng)
     if final_pano is None:
         try:
-            log("[*] Kích hoạt Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical SIFT & Loop Closure)...")
-            res_seq = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
-            if isinstance(res_seq, tuple):
-                final_pano = res_seq[0]
-            elif res_seq is not None:
-                final_pano = res_seq
+            log("[*] Kích hoạt Động cơ OpenCV Native Stitcher (SIFT/ORB & Multi-band Blending)...")
+            res_cv = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
+            if isinstance(res_cv, tuple):
+                final_pano = res_cv[0]
+            elif res_cv is not None:
+                final_pano = res_cv
             if final_pano is not None:
-                engine_used = "sequential_cylindrical_sift"
-        except Exception as seq_err:
-            log(f"[!] Sequential Cylindrical thất bại: {seq_err}")
+                engine_used = "opencv_native"
+        except Exception as cv_err:
+            log(f"[!] OpenCV Native không hội tụ: {cv_err}")
 
     # ƯU TIÊN SỐ 3 (Dự phòng): Ghép phẳng kiến trúc
     if final_pano is None:
