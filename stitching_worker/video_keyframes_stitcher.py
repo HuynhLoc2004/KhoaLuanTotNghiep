@@ -116,11 +116,17 @@ def extract_and_stitch(video_path, output_path, max_keyframes=24):
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         cv2.imwrite(output_path, pano, [int(cv2.IMWRITE_JPEG_QUALITY), 96])
         ph, pw = pano.shape[:2]
+        aspect = round(pw / float(ph), 2) if ph > 0 else 2.0
+        vaov = 70.0
+        haov = min(360.0, round(vaov * aspect, 1))
         return {
             "success": True,
             "keyframes_count": len(keyframes),
             "width": pw,
             "height": ph,
+            "aspectRatio": aspect,
+            "haov": haov,
+            "vaov": vaov,
             "output": output_path
         }
     else:

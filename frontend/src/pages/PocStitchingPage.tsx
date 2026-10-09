@@ -97,6 +97,8 @@ interface StitchResult {
   width: number;
   height: number;
   aspectRatio: string | number;
+  haov?: number;
+  vaov?: number;
   message: string;
   views?: RoomSceneView[];
 }
@@ -663,7 +665,7 @@ export const PocStitchingPage: React.FC = () => {
       };
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
-      setViewerMode('spatial');
+      setViewerMode('pano360');
       fetchHistory();
       showToast(json.message || 'Tạo không gian 360° từ video thành công rực rỡ!', 'success');
 
@@ -1325,29 +1327,6 @@ export const PocStitchingPage: React.FC = () => {
                         >
                           <button
                             type="button"
-                            onClick={() => setViewerMode('spatial')}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              padding: '5px 12px',
-                              fontSize: '12px',
-                              borderRadius: 6,
-                              background: viewerMode === 'spatial' ? 'linear-gradient(135deg, #d4a86a, #b8860b)' : 'transparent',
-                              color: viewerMode === 'spatial' ? '#111' : '#d4a86a',
-                              fontWeight: viewerMode === 'spatial' ? 700 : 500,
-                              border: 'none',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                            title="Góc nhìn phẳng hình chữ nhật/vuông, giữ nguyên đường thẳng, tường không bị uốn cong, siêu nét"
-                          >
-                            <Layout size={14} />
-                            <span>📐 Góc Nhìn Phẳng (Không Cong)</span>
-                          </button>
-
-                          <button
-                            type="button"
                             onClick={() => setViewerMode('pano360')}
                             style={{
                               display: 'flex',
@@ -1363,10 +1342,33 @@ export const PocStitchingPage: React.FC = () => {
                               cursor: 'pointer',
                               transition: 'all 0.15s ease'
                             }}
-                            title="Mô phỏng quả cầu 360° để xoay kéo tự do quanh gian phòng"
+                            title="Không gian 360° tự do kéo xoay ngắm nhìn toàn cảnh gian phòng"
                           >
                             <Globe size={14} />
                             <span>🌐 Trình Xoay 360°</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setViewerMode('spatial')}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '5px 12px',
+                              fontSize: '12px',
+                              borderRadius: 6,
+                              background: viewerMode === 'spatial' ? 'linear-gradient(135deg, #d4a86a, #b8860b)' : 'transparent',
+                              color: viewerMode === 'spatial' ? '#111' : '#d4a86a',
+                              fontWeight: viewerMode === 'spatial' ? 700 : 500,
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            title="Xem dạng ảnh phẳng chữ nhật nguyên bản, kiểm tra chi tiết các góc"
+                          >
+                            <Layout size={14} />
+                            <span>📐 Góc Nhìn Phẳng</span>
                           </button>
 
                           {stitchResult.views && stitchResult.views.length > 1 && (
@@ -1479,9 +1481,10 @@ export const PocStitchingPage: React.FC = () => {
                               title={stitchResult.filename}
                               autoStartLittlePlanet={false}
                               initialPitch={0}
-                              initialHfov={68}
-                              minPitch={-38}
-                              maxPitch={38}
+                              imageWidth={stitchResult.width}
+                              imageHeight={stitchResult.height}
+                              haov={stitchResult.haov}
+                              vaov={stitchResult.vaov}
                             />
 
                             {/* Badge chỉ dẫn tương tác xoay 360 trực quan */}

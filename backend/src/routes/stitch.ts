@@ -966,6 +966,8 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
             width: result.width,
             height: result.height,
             aspectRatio: result.aspectRatio,
+            haov: result.haov,
+            vaov: result.vaov,
             inputFramesCount: result.keyframesExtracted || 18,
             keyframesExtracted: result.keyframesExtracted || 18,
             processingTimeSec: result.processingTimeSec,

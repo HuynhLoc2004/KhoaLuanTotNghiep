@@ -39,6 +39,13 @@ interface Pannellum360ViewerProps {
   focusCoords?: { pitch: number; yaw: number; timestamp?: number } | null;
   hideControls?: boolean;
   autoRotateSpeed?: number;
+  haov?: number;
+  vaov?: number;
+  vOffset?: number;
+  minYaw?: number;
+  maxYaw?: number;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
@@ -53,12 +60,19 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   onCaptureInitialView,
   initialPitch = 0,
   initialYaw = 0,
-  initialHfov = 95,
+  initialHfov,
   minPitch = -42,
   maxPitch = 42,
   focusCoords,
   hideControls = false,
   autoRotateSpeed = 0,
+  haov,
+  vaov,
+  vOffset,
+  minYaw,
+  maxYaw,
+  imageWidth,
+  imageHeight,
 }) => {
   const { branding } = useSystemBranding();
   const effectiveTitle = title || (branding ? `Toàn cảnh 360° ${branding.museumName}` : 'Toàn cảnh 360°');
@@ -111,6 +125,22 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
 
     return url;
   }, [panoramaUrl]);
+
+  // Tự động phân giải kích thước ảnh để tính góc quét ngang/dọc (haov/vaov) chuẩn xác
+  const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (!effectivePanoramaUrl) return;
+    if (imageWidth && imageHeight) {
+      setNaturalDimensions({ width: imageWidth, height: imageHeight });
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      setNaturalDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.src = effectivePanoramaUrl;
+  }, [effectivePanoramaUrl, imageWidth, imageHeight]);
 
   // Focus xoay camera đến tọa độ chỉ định (ví dụ click từ sidebar)
   useEffect(() => {
@@ -194,24 +224,68 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     setIsLoadingPanorama(true);
     setViewerError(null);
 
+    const currentW = imageWidth || naturalDimensions?.width;
+    const currentH = imageHeight || naturalDimensions?.height;
+    const aspect = (currentW && currentH) ? (currentW / currentH) : 2.0;
+
+    // Ảnh chuẩn Equirectangular 360x180 độ có tỉ lệ ~2:1 (từ 1.88 đến 2.12)
+    const isStandardEqui = Math.abs(aspect - 2.0) <= 0.12 && !haov && !vaov;
+
+    let effectiveHaov = haov;
+    let effectiveVaov = vaov;
+    let effectiveMinYaw = minYaw;
+    let effectiveMaxYaw = maxYaw;
+    let effectiveMinPitch = minPitch !== undefined ? minPitch : -42;
+    let effectiveMaxPitch = maxPitch !== undefined ? maxPitch : 42;
+    let effectiveHfov = initialHfov || (isStandardEqui ? 100 : 80);
+
+    if (!isStandardEqui) {
+      // Ảnh Panorama trích xuất từ Video / Album ảnh quét từng phần căn phòng:
+      // Góc nhìn dọc camera điện thoại ~70 độ
+      const calculatedVaov = vaov || 70;
+      const calculatedHaov = haov || Math.min(360, Math.round(calculatedVaov * aspect));
+      const halfH = Math.round(calculatedHaov / 2);
+      const halfV = Math.round(calculatedVaov / 2);
+
+      effectiveHaov = calculatedHaov;
+      effectiveVaov = calculatedVaov;
+      effectiveMinYaw = minYaw !== undefined ? minYaw : -halfH;
+      effectiveMaxYaw = maxYaw !== undefined ? maxYaw : halfH;
+      effectiveMinPitch = minPitch !== undefined ? minPitch : -Math.min(halfV, 38);
+      effectiveMaxPitch = maxPitch !== undefined ? maxPitch : Math.min(halfV, 38);
+
+      // Đặt góc nhìn ban đầu vừa vặn bao quát cả căn phòng, triệt tiêu hoàn toàn hiện tượng phóng đại (zoom in) vào 1 điểm
+      effectiveHfov = initialHfov || Math.min(calculatedHaov * 0.75, 80);
+    }
+
     try {
-      const viewer = window.pannellum.viewer(containerId.current, {
+      const pannellumConfig: any = {
         type: 'equirectangular',
         panorama: effectivePanoramaUrl,
         autoLoad: true,
         autoRotate: autoRotateSpeed || 0,
         showControls: false,
         compass: false,
-        hfov: initialHfov || 100, // Góc nhìn chuẩn rộng thoáng đãng 100°, triệt tiêu hoàn toàn hiệu ứng ống hút (tunnel) và làm phẳng không gian
-        minHfov: 35,
-        maxHfov: 130, // Cho phép zoom rộng thoải mái để bao quát toàn phòng
+        hfov: effectiveHfov,
+        minHfov: 30,
+        maxHfov: isStandardEqui ? 130 : Math.max(85, Math.min(125, (effectiveHaov || 360) * 0.9)),
         pitch: initialPitch || 0,
         yaw: initialYaw || 0,
-        minPitch: minPitch !== undefined ? minPitch : -42, // Giới hạn góc nhìn tự nhiên phẳng phiu
-        maxPitch: maxPitch !== undefined ? maxPitch : 42,  // Khóa góc nhìn vừa tầm mắt bảo tàng, không bẻ cong cực cầu
+        minPitch: effectiveMinPitch,
+        maxPitch: effectiveMaxPitch,
         friction: 0.15,
         hotSpots: formattedHotSpots,
-      });
+      };
+
+      if (!isStandardEqui) {
+        pannellumConfig.haov = effectiveHaov;
+        pannellumConfig.vaov = effectiveVaov;
+        pannellumConfig.vOffset = vOffset || 0;
+        if (effectiveMinYaw !== undefined) pannellumConfig.minYaw = effectiveMinYaw;
+        if (effectiveMaxYaw !== undefined) pannellumConfig.maxYaw = effectiveMaxYaw;
+      }
+
+      const viewer = window.pannellum.viewer(containerId.current, pannellumConfig);
 
       viewerRef.current = viewer;
 
@@ -221,7 +295,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         if (autoRotateSpeed) {
           setIsAutoRotating(true);
         }
-        if (autoStartLittlePlanet && hasIntroducedRef.current !== panoramaUrl) {
+        if (isStandardEqui && autoStartLittlePlanet && hasIntroducedRef.current !== panoramaUrl) {
           hasIntroducedRef.current = panoramaUrl;
           runLittlePlanetIntro();
         }
@@ -247,7 +321,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         viewerRef.current = null;
       }
     };
-  }, [panoramaUrl, hotspotsHash, initialPitch, initialYaw, initialHfov]);
+  }, [panoramaUrl, hotspotsHash, initialPitch, initialYaw, initialHfov, naturalDimensions, haov, vaov, minYaw, maxYaw, imageWidth, imageHeight]);
 
   // Hoạt cảnh mở đầu Little Planet bung vào phòng mượt mà (chỉ chạy 1 lần duy nhất)
   const runLittlePlanetIntro = () => {
