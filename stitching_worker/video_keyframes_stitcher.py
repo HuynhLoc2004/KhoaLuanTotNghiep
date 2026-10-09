@@ -83,15 +83,38 @@ def extract_and_stitch(video_path, output_path, max_keyframes=24):
     images = [k[1] for k in keyframes]
 
     stitcher = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
+    # Giữ nguyên 100% độ phân giải gốc, không nén nhỏ
+    try:
+        stitcher.setCompositingResol(-1)
+    except Exception:
+        pass
+
     status, pano = stitcher.stitch(images)
 
     if status != cv2.Stitcher_OK and len(images) > 8:
-        # Thử lại với subset 12 ảnh đầu tiên nếu tập ảnh quá lớn
+        # Thử lại với subset ảnh nếu tập ảnh quá lớn
         status, pano = stitcher.stitch(images[:14])
 
     if status == cv2.Stitcher_OK and pano is not None:
+        # Cắt bớt viền đen uốn cong để ảnh thành hình chữ nhật phẳng đẹp
+        gray = cv2.cvtColor(pano, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 2, 255, cv2.THRESH_BINARY)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
+            c = max(contours, key=cv2.contourArea)
+            x, y, w, h = cv2.boundingRect(c)
+            # Cắt bớt 3% biên trên dưới để loại bỏ mép cong
+            my = int(h * 0.03)
+            mx = int(w * 0.015)
+            y1 = min(y + my, pano.shape[0] - 10)
+            y2 = max(y + h - my, y1 + 10)
+            x1 = min(x + mx, pano.shape[1] - 10)
+            x2 = max(x + w - mx, x1 + 10)
+            if y2 > y1 and x2 > x1:
+                pano = pano[y1:y2, x1:x2]
+
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        cv2.imwrite(output_path, pano)
+        cv2.imwrite(output_path, pano, [int(cv2.IMWRITE_JPEG_QUALITY), 96])
         ph, pw = pano.shape[:2]
         return {
             "success": True,
@@ -107,10 +130,12 @@ def main():
     parser = argparse.ArgumentParser(description="Trích xuất Keyframe từ Video và ghép ảnh 360°")
     parser.add_argument("--video", required=True, help="Đường dẫn file video đầu vào")
     parser.add_argument("--output", required=True, help="Đường dẫn file ảnh 360 đầu ra")
-    parser.add_argument("--max-keyframes", type=int, default=20, help="Số lượng keyframe tối đa")
+    parser.add_argument("--keyframes", "--max-keyframes", dest="max_keyframes", type=int, default=20, help="Số lượng keyframe tối đa")
+    parser.add_argument("--width", type=int, default=0, help="Độ rộng mong muốn (tùy chọn)")
     args = parser.parse_args()
 
-    res = extract_and_stitch(args.video, args.output, args.max_keyframes)
+    max_kf = args.max_keyframes if args.max_keyframes > 0 else 20
+    res = extract_and_stitch(args.video, args.output, max_kf)
     print(json.dumps(res, ensure_ascii=False))
 
 if __name__ == "__main__":

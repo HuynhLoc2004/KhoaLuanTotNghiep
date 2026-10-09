@@ -22,7 +22,8 @@ import {
   Plus,
   Compass,
   Play,
-  Video
+  Video,
+  Layout
 } from 'lucide-react';
 import { NewRoomModal } from '../components/NewRoomModal';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
@@ -662,7 +663,7 @@ export const PocStitchingPage: React.FC = () => {
       };
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
-      setViewerMode('pano360');
+      setViewerMode('spatial');
       fetchHistory();
       showToast(json.message || 'Tạo không gian 360° từ video thành công rực rỡ!', 'success');
 
@@ -1324,6 +1325,29 @@ export const PocStitchingPage: React.FC = () => {
                         >
                           <button
                             type="button"
+                            onClick={() => setViewerMode('spatial')}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '5px 12px',
+                              fontSize: '12px',
+                              borderRadius: 6,
+                              background: viewerMode === 'spatial' ? 'linear-gradient(135deg, #d4a86a, #b8860b)' : 'transparent',
+                              color: viewerMode === 'spatial' ? '#111' : '#d4a86a',
+                              fontWeight: viewerMode === 'spatial' ? 700 : 500,
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            title="Góc nhìn phẳng hình chữ nhật/vuông, giữ nguyên đường thẳng, tường không bị uốn cong, siêu nét"
+                          >
+                            <Layout size={14} />
+                            <span>📐 Góc Nhìn Phẳng (Không Cong)</span>
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => setViewerMode('pano360')}
                             style={{
                               display: 'flex',
@@ -1339,35 +1363,24 @@ export const PocStitchingPage: React.FC = () => {
                               cursor: 'pointer',
                               transition: 'all 0.15s ease'
                             }}
-                            title="Xoay nhìn 360° tự do quanh gian phòng"
+                            title="Mô phỏng quả cầu 360° để xoay kéo tự do quanh gian phòng"
                           >
                             <Globe size={14} />
-                            <span>🌐 Không Gian 360° (Xoay phòng)</span>
+                            <span>🌐 Trình Xoay 360°</span>
                           </button>
 
                           {stitchResult.views && stitchResult.views.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setViewerMode('spatial')}
+                            <span
                               style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                padding: '5px 12px',
-                                fontSize: '12px',
-                                borderRadius: 6,
-                                background: viewerMode === 'spatial' ? 'rgba(212,168,106,0.25)' : 'transparent',
-                                color: viewerMode === 'spatial' ? '#fff' : 'rgba(255,255,255,0.7)',
-                                fontWeight: viewerMode === 'spatial' ? 600 : 400,
-                                border: 'none',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
+                                fontSize: '11px',
+                                color: 'rgba(255,255,255,0.7)',
+                                padding: '0 8px',
+                                borderLeft: '1px solid rgba(212,168,106,0.3)',
+                                whiteSpace: 'nowrap'
                               }}
-                              title="Xem ảnh tĩnh chụp chi tiết từng góc phòng"
                             >
-                              <Eye size={14} />
-                              <span>🖼️ Từng góc ảnh ({stitchResult.views.length})</span>
-                            </button>
+                              ({stitchResult.views.length} góc)
+                            </span>
                           )}
                         </div>
 
@@ -1466,7 +1479,7 @@ export const PocStitchingPage: React.FC = () => {
                               title={stitchResult.filename}
                               autoStartLittlePlanet={false}
                               initialPitch={0}
-                              initialHfov={95}
+                              initialHfov={68}
                               minPitch={-38}
                               maxPitch={38}
                             />

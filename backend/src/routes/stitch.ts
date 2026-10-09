@@ -865,7 +865,10 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
         });
       }
 
-      const result = JSON.parse(stdoutData.trim());
+      const result = extractJsonFromOutput(stdoutData);
+      if (!result) {
+        throw new Error('Không thể đọc kết quả định dạng JSON từ Python Worker');
+      }
 
       if (result.success) {
         const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
