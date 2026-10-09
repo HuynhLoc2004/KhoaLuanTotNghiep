@@ -18,7 +18,11 @@ import {
   RotateCcw,
   Info,
   CheckCircle2,
-  Eye
+  Eye,
+  Plus,
+  ArrowUp,
+  ArrowDown,
+  ArrowRight
 } from 'lucide-react';
 
 interface AdminShowcasePageProps {
@@ -197,22 +201,86 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
     return rooms[0] || null;
   }, [rooms, form.roomsFeaturedId]);
 
-  // Cổ vật hiện đang được chọn
-  const selectedArtifact = useMemo(() => {
-    if (form.artifactsFeaturedId) {
-      return (
-        artifacts.find(
+  // Danh sách ID các cổ vật được chọn chỉ định cụ thể
+  const selectedArtifactIds = useMemo(() => {
+    return form.artifactsFeaturedId
+      ? form.artifactsFeaturedId.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+  }, [form.artifactsFeaturedId]);
+
+  // Danh sách cổ vật thực tế sẽ trưng bày trên Trang chủ (Đồng bộ 100% với Client)
+  const showcaseArtifacts = useMemo(() => {
+    if (!artifacts || artifacts.length === 0) return [];
+
+    if (selectedArtifactIds.length > 0) {
+      const selected: Artifact[] = [];
+      for (const fid of selectedArtifactIds) {
+        const found = artifacts.find(
           (a) =>
-            a.id === form.artifactsFeaturedId ||
-            (a as any)._id === form.artifactsFeaturedId ||
-            (a as any).code === form.artifactsFeaturedId
-        ) || null
-      );
+            a.id === fid ||
+            (a as any)._id === fid ||
+            (a as any).code === fid
+        );
+        if (found && !selected.some((s) => s.id === found.id)) {
+          selected.push(found);
+        }
+      }
+      if (selected.length > 0) return selected;
     }
-    // Mặc định: hiện vật có 3D đầu tiên
-    const has3D = artifacts.find((a) => !!a.model3dUrl);
-    return has3D || artifacts[0] || null;
-  }, [artifacts, form.artifactsFeaturedId]);
+
+    // Tự động: Ưu tiên có mô hình 3D, lấy tối đa 4 hiện vật
+    const sorted = [...artifacts].sort((a, b) => {
+      if (a.model3dUrl && !b.model3dUrl) return -1;
+      if (!a.model3dUrl && b.model3dUrl) return 1;
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    });
+    return sorted.slice(0, 4);
+  }, [artifacts, selectedArtifactIds]);
+
+  const selectedArtifact = showcaseArtifacts[0] || null;
+
+  // Thêm / gỡ 1 cổ vật khỏi danh sách trưng bày
+  const handleToggleArtifact = (artifactId: string) => {
+    let currentIds = [...selectedArtifactIds];
+    if (!form.artifactsFeaturedId) {
+      currentIds = showcaseArtifacts.map((a) => a.id);
+    }
+    const idx = currentIds.indexOf(artifactId);
+    if (idx >= 0) {
+      currentIds.splice(idx, 1);
+    } else {
+      if (currentIds.length >= 6) {
+        showToast('Bạn chỉ nên chọn tối đa 6 cổ vật tiêu biểu để bố cục trang chủ cân đối nhất.', 'warning');
+        return;
+      }
+      currentIds.push(artifactId);
+    }
+    handleChange('artifactsFeaturedId', currentIds.join(','));
+  };
+
+  // Di chuyển thứ tự cổ vật
+  const handleMoveArtifact = (index: number, direction: 'up' | 'down') => {
+    let currentIds = [...selectedArtifactIds];
+    if (!form.artifactsFeaturedId) {
+      currentIds = showcaseArtifacts.map((a) => a.id);
+    }
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentIds.length) return;
+    const temp = currentIds[index];
+    currentIds[index] = currentIds[targetIndex];
+    currentIds[targetIndex] = temp;
+    handleChange('artifactsFeaturedId', currentIds.join(','));
+  };
+
+  // Gỡ bỏ 1 cổ vật khỏi danh sách
+  const handleRemoveArtifact = (artifactId: string) => {
+    let currentIds = [...selectedArtifactIds];
+    if (!form.artifactsFeaturedId) {
+      currentIds = showcaseArtifacts.map((a) => a.id);
+    }
+    currentIds = currentIds.filter((id) => id !== artifactId);
+    handleChange('artifactsFeaturedId', currentIds.join(','));
+  };
 
   const getMediaUrl = (path?: string) => {
     if (!path) return '';
@@ -330,20 +398,17 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           }}
         >
           <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-            Cổ vật 3D đang trưng bày
+            Cổ vật đang trưng bày Trang chủ ({showcaseArtifacts.length} hiện vật)
           </span>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'block' }}>
-            {selectedArtifact ? (
-              <>
-                {selectedArtifact.code ? `[${selectedArtifact.code}] ` : ''}
-                {selectedArtifact.name}
-              </>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {showcaseArtifacts.length > 0 ? (
+              showcaseArtifacts.map((a) => a.name).join(' • ')
             ) : (
               'Chưa có dữ liệu cổ vật'
             )}
           </span>
           <span style={{ fontSize: 11, color: form.artifactsFeaturedId ? 'var(--gold)' : 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-            {form.artifactsFeaturedId ? 'Đang cố định theo chỉ định' : 'Tự động lấy cổ vật 3D mới nhất'}
+            {form.artifactsFeaturedId ? `Đang chỉ định ${selectedArtifactIds.length} hiện vật` : `Tự động lấy ${showcaseArtifacts.length} cổ vật 3D mới nhất`}
           </span>
         </div>
 
@@ -778,7 +843,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   2. Cổ vật & Bảo vật 3D Trưng bày Trang chủ
                 </h2>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  Khách tham quan sẽ chiêm ngưỡng đĩa xoay tương tác 360° của cổ vật này tại Trang chủ
+                  Khách tham quan sẽ chiêm ngưỡng các cổ vật di sản và đĩa xoay tương tác 360° tại Trang chủ ({showcaseArtifacts.length} hiện vật đang hiển thị)
                 </span>
               </div>
             </div>
@@ -800,15 +865,15 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           </div>
 
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1.4fr) minmax(300px, 1fr)', gap: 20 }}>
-              {/* Cột trái: Bộ chọn cổ vật */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 1.25fr) minmax(320px, 1fr)', gap: 20 }}>
+              {/* Cột trái: Bộ chọn & sắp xếp cổ vật */}
               <div>
                 {/* Chế độ chọn */}
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 8 }}>
-                    Cơ chế hiển thị:
+                    Cơ chế hiển thị Trang chủ:
                   </label>
-                  <div style={{ display: 'flex', gap: 14 }}>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
                       <input
                         type="radio"
@@ -816,7 +881,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                         checked={!form.artifactsFeaturedId}
                         onChange={() => handleChange('artifactsFeaturedId', '')}
                       />
-                      <span>Tự động (Lấy cổ vật 3D mới nhất)</span>
+                      <span>Tự động (Lấy {showcaseArtifacts.length} cổ vật 3D mới nhất)</span>
                     </label>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
                       <input
@@ -824,47 +889,135 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                         name="artifact_selection_mode"
                         checked={Boolean(form.artifactsFeaturedId)}
                         onChange={() => {
-                          if (!form.artifactsFeaturedId && artifacts[0]) {
-                            handleChange('artifactsFeaturedId', artifacts[0].id);
+                          if (!form.artifactsFeaturedId) {
+                            handleChange('artifactsFeaturedId', showcaseArtifacts.map((a) => a.id).join(','));
                           }
                         }}
                       />
                       <span style={{ fontWeight: 600, color: form.artifactsFeaturedId ? 'var(--gold)' : 'inherit' }}>
-                        Chỉ định cổ vật cụ thể (Cố định)
+                        Tùy chọn chỉ định ({selectedArtifactIds.length} hiện vật đã chọn)
                       </span>
                     </label>
                   </div>
                 </div>
 
-                {/* Dropdown & tìm kiếm cổ vật */}
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Chọn cổ vật đại diện ({artifacts.length} hiện vật sẵn có):
-                  </label>
-                  <select
-                    value={form.artifactsFeaturedId || ''}
-                    onChange={(e) => handleChange('artifactsFeaturedId', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      background: 'var(--bg-surface)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 8,
-                      color: 'var(--text-main)',
-                      fontSize: 13
-                    }}
-                  >
-                    <option value="">-- Mặc định: Tự động lấy cổ vật 3D mới nhất --</option>
-                    {artifacts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.code ? `[${a.code}] ` : ''}{a.name} {a.model3dUrl ? '(Có mô hình 3D)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* DANH SÁCH HIỆN VẬT ĐÃ CHỌN (KHI Ở CHẾ ĐỘ CHỈ ĐỊNH) */}
+                {Boolean(form.artifactsFeaturedId) && (
+                  <div style={{
+                    marginBottom: 16,
+                    padding: 12,
+                    background: 'rgba(212, 168, 106, 0.06)',
+                    border: '1px solid rgba(212, 168, 106, 0.25)',
+                    borderRadius: 8
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold)' }}>
+                        Thứ tự hiển thị trên Trang chủ ({selectedArtifactIds.length} hiện vật):
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        Tối đa 6 hiện vật
+                      </span>
+                    </div>
 
-                {/* Bộ lọc nhanh danh sách cổ vật */}
+                    {showcaseArtifacts.length === 0 ? (
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0' }}>
+                        Chưa chọn hiện vật nào. Hãy bấm vào các hiện vật bên dưới để đưa lên Trang chủ.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {showcaseArtifacts.map((art, idx) => (
+                          <div
+                            key={art.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '6px 10px',
+                              background: 'var(--bg-surface)',
+                              borderRadius: 6,
+                              border: '1px solid var(--border-color)',
+                              gap: 10
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                              <span style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 11,
+                                background: 'var(--gold)',
+                                color: '#000',
+                                fontSize: 11,
+                                fontWeight: 800,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                {idx + 1}
+                              </span>
+                              {art.thumbnailUrl || (art.images && art.images[0]) ? (
+                                <img
+                                  src={getMediaUrl(art.thumbnailUrl || (art.images && art.images[0]))}
+                                  alt=""
+                                  style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+                                />
+                              ) : (
+                                <Box size={14} style={{ opacity: 0.5 }} />
+                              )}
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {art.code ? `[${art.code}] ` : ''}{art.name}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                disabled={idx === 0}
+                                onClick={() => handleMoveArtifact(idx, 'up')}
+                                title="Đưa lên trên"
+                                style={{ padding: '3px 6px', height: 'auto', fontSize: 11 }}
+                              >
+                                <ArrowUp size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                disabled={idx === showcaseArtifacts.length - 1}
+                                onClick={() => handleMoveArtifact(idx, 'down')}
+                                title="Đưa xuống dưới"
+                                style={{ padding: '3px 6px', height: 'auto', fontSize: 11 }}
+                              >
+                                <ArrowDown size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                onClick={() => handleRemoveArtifact(art.id)}
+                                title="Gỡ khỏi Trang chủ"
+                                style={{ padding: '3px 6px', height: 'auto', fontSize: 11, color: '#EF4444' }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Kho tất cả cổ vật để tìm kiếm & tick chọn */}
                 <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-main)' }}>
+                      Kho hiện vật bảo tàng ({artifacts.length} hiện vật sẵn có):
+                    </label>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      Bấm vào hiện vật để Thêm / Bỏ khỏi Trang chủ
+                    </span>
+                  </div>
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <div style={{ position: 'relative', flex: 1 }}>
                       <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -897,7 +1050,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   {/* Danh sách hiện vật dạng thẻ nhỏ */}
                   <div
                     style={{
-                      maxHeight: 220,
+                      maxHeight: 250,
                       overflowY: 'auto',
                       border: '1px solid var(--border-color)',
                       borderRadius: 8,
@@ -914,12 +1067,18 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                       </div>
                     ) : (
                       filteredArtifacts.map((a) => {
-                        const isSelected = form.artifactsFeaturedId === a.id;
+                        const isSelected = form.artifactsFeaturedId
+                          ? selectedArtifactIds.includes(a.id)
+                          : showcaseArtifacts.some((sa) => sa.id === a.id);
+                        const selectedIdx = form.artifactsFeaturedId
+                          ? selectedArtifactIds.indexOf(a.id)
+                          : showcaseArtifacts.findIndex((sa) => sa.id === a.id);
                         const has3D = Boolean(a.model3dUrl);
+
                         return (
                           <div
                             key={a.id}
-                            onClick={() => handleChange('artifactsFeaturedId', a.id)}
+                            onClick={() => handleToggleArtifact(a.id)}
                             style={{
                               padding: '8px 10px',
                               borderRadius: 6,
@@ -960,12 +1119,21 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                               </div>
                             </div>
 
-                            {isSelected && (
-                              <div style={{ color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
-                                <Check size={13} />
-                                <span>Đang chọn</span>
-                              </div>
-                            )}
+                            <div>
+                              {isSelected ? (
+                                <div style={{ color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700 }}>
+                                  <span style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(212, 168, 106, 0.25)', border: '1px solid rgba(212, 168, 106, 0.5)' }}>
+                                    Vị trí #{selectedIdx + 1}
+                                  </span>
+                                  <Check size={13} />
+                                </div>
+                              ) : (
+                                <div style={{ color: 'var(--text-muted)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                  <Plus size={12} />
+                                  <span>Thêm</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })
@@ -976,7 +1144,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                 {/* Tuỳ chọn ảnh bìa riêng */}
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px dashed var(--border-color)' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Ảnh bìa đại diện riêng (Tùy chọn - thay thế thumbnail mặc định):
+                    Ảnh bìa đại diện riêng (Tùy chọn - áp dụng nếu chỉ trưng bày 1 hiện vật duy nhất):
                   </label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input
@@ -1026,7 +1194,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                 </div>
               </div>
 
-              {/* Cột phải: Khung xem trước cổ vật (Live Preview) */}
+              {/* Cột phải: Khung xem trước cổ vật (Live Preview giống hệt Client Homepage) */}
               <div
                 style={{
                   background: 'var(--bg-surface)',
@@ -1037,75 +1205,211 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   flexDirection: 'column'
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Xem trước hiển thị Trang chủ</span>
-                  <span style={{ fontSize: 11, color: 'var(--gold)' }}>
-                    {form.artifactsFeaturedId ? 'Cố định theo chỉ định' : 'Mặc định'}
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Eye size={13} style={{ color: 'var(--primary)' }} />
+                    <span style={{ color: 'var(--text-main)' }}>Xem trước hiển thị Trang chủ</span>
+                  </div>
+                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: form.artifactsFeaturedId ? 'rgba(212, 168, 106, 0.15)' : 'rgba(255, 255, 255, 0.05)', color: form.artifactsFeaturedId ? 'var(--gold)' : 'var(--text-muted)', fontWeight: 600 }}>
+                    {form.artifactsFeaturedId ? `Chỉ định (${showcaseArtifacts.length} hiện vật)` : `Tự động (${showcaseArtifacts.length} hiện vật 3D)`}
                   </span>
                 </div>
 
-                {selectedArtifact ? (
-                  <div>
-                    {/* Media Preview Box */}
-                    <div
-                      style={{
-                        position: 'relative',
-                        width: '100%',
-                        height: 180,
-                        borderRadius: 6,
-                        overflow: 'hidden',
-                        background: '#05070A',
-                        border: '1px solid var(--border-color)',
-                        marginBottom: 12,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {form.artifactsShowcaseImageUrl || selectedArtifact.thumbnailUrl || (selectedArtifact.images && selectedArtifact.images[0]) ? (
-                        <img
-                          src={getMediaUrl(form.artifactsShowcaseImageUrl || selectedArtifact.thumbnailUrl || (selectedArtifact.images && selectedArtifact.images[0]))}
-                          alt=""
-                          style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
-                        />
-                      ) : (
-                        <Box size={32} style={{ color: 'var(--text-muted)' }} />
-                      )}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 10,
-                          left: 10,
-                          padding: '3px 8px',
-                          borderRadius: 4,
-                          background: 'rgba(0,0,0,0.75)',
-                          border: '1px solid rgba(255,255,255,0.15)',
-                          color: '#FDE68A',
-                          fontSize: 10.5,
-                          fontWeight: 600
-                        }}
-                      >
-                        {selectedArtifact.model3dUrl ? 'Mô hình 3D tương tác' : 'Ảnh hiện vật 2D'}
+                {/* Tiêu đề phân khu thu nhỏ như trên Trang chủ */}
+                <div style={{ textAlign: 'center', marginBottom: 14, padding: '10px 12px', background: 'rgba(0,0,0,0.25)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ fontSize: 10, letterSpacing: '0.12em', color: 'var(--gold)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 3 }}>
+                    {form.artifactsTag || 'BẢO VẬT DI SẢN & MÔ HÌNH 3D'}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--heading-color)', marginBottom: 4 }}>
+                    {form.artifactsTitle || 'Kho Tàng Cổ Vật & Bảo Vật Di Sản'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4, maxWidth: 440, margin: '0 auto' }}>
+                    {form.artifactsDesc || 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.'}
+                  </div>
+                </div>
+
+                {showcaseArtifacts.length > 0 ? (
+                  showcaseArtifacts.length === 1 ? (
+                    /* DẠNG 1 HIỆN VẬT DUY NHẤT (HERO TEASER) */
+                    <div style={{
+                      background: 'rgba(18, 15, 12, 0.85)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}>
+                      <div style={{ position: 'relative', width: '100%', height: 180, background: '#05070A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {getMediaUrl(form.artifactsShowcaseImageUrl || showcaseArtifacts[0].thumbnailUrl || (showcaseArtifacts[0].images && showcaseArtifacts[0].images[0])) ? (
+                          <img
+                            src={getMediaUrl(form.artifactsShowcaseImageUrl || showcaseArtifacts[0].thumbnailUrl || (showcaseArtifacts[0].images && showcaseArtifacts[0].images[0]))}
+                            alt=""
+                            style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <Box size={32} style={{ color: 'var(--text-muted)' }} />
+                        )}
+                        <div style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 4, background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.15)', color: '#FDE68A', fontSize: 10, fontWeight: 600 }}>
+                          {showcaseArtifacts[0].model3dUrl ? 'Bảo vật số hóa 3D' : 'Hiện vật di sản'}
+                        </div>
+                      </div>
+                      <div style={{ padding: '12px' }}>
+                        <div style={{ fontSize: 10.5, color: 'var(--gold)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>
+                          {showcaseArtifacts[0].period || 'Cổ vật di sản'}
+                        </div>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--heading-color)', marginBottom: 4 }}>
+                          {showcaseArtifacts[0].code ? `[${showcaseArtifacts[0].code}] ` : ''}{showcaseArtifacts[0].name}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: 10 }}>
+                          {(showcaseArtifacts[0] as any).description || 'Hiện vật quý giá được lưu giữ tại Bảo tàng Lịch sử TP. Hồ Chí Minh...'}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                          <span>Chiêm ngưỡng chi tiết hiện vật</span>
+                          <ArrowRight size={12} />
+                        </div>
                       </div>
                     </div>
+                  ) : (
+                    /* DẠNG NHIỀU HIỆN VẬT (LƯỚI CARDS GIỐNG HỆT TRANG CHỦ CLIENT) */
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                      gap: 10
+                    }}>
+                      {showcaseArtifacts.map((art, idx) => {
+                        const thumb = getMediaUrl(art.thumbnailUrl || (art.images && art.images[0]));
+                        return (
+                          <div
+                            key={art.id}
+                            style={{
+                              background: 'rgba(18, 15, 12, 0.85)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 8,
+                              overflow: 'hidden',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              position: 'relative'
+                            }}
+                          >
+                            {/* Thứ tự */}
+                            <div style={{
+                              position: 'absolute',
+                              top: 6,
+                              left: 6,
+                              zIndex: 2,
+                              background: 'rgba(0,0,0,0.85)',
+                              border: '1px solid rgba(212, 168, 106, 0.4)',
+                              color: 'var(--gold)',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: 4
+                            }}>
+                              #{idx + 1}
+                            </div>
 
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--heading-color)', marginBottom: 4 }}>
-                      {selectedArtifact.code ? `[${selectedArtifact.code}] ` : ''}{selectedArtifact.name}
-                    </div>
+                            {/* Khối Media ảnh */}
+                            <div style={{
+                              position: 'relative',
+                              width: '100%',
+                              height: 120,
+                              background: '#07090c',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              {thumb ? (
+                                <img
+                                  src={thumb}
+                                  alt={art.name}
+                                  style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }}
+                                />
+                              ) : (
+                                <Box size={24} style={{ color: 'var(--text-muted)' }} />
+                              )}
+                              {art.model3dUrl && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: 6,
+                                  right: 6,
+                                  background: 'rgba(212, 168, 106, 0.25)',
+                                  border: '1px solid rgba(212, 168, 106, 0.6)',
+                                  color: '#FDE68A',
+                                  fontSize: 9.5,
+                                  fontWeight: 700,
+                                  padding: '1px 5px',
+                                  borderRadius: 3
+                                }}>
+                                  3D Scan
+                                </div>
+                              )}
+                            </div>
 
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.4 }}>
-                      {selectedArtifact.period || 'Thời kỳ di sản'} • Phân loại: {selectedArtifact.category || 'Hiện vật quý'}
+                            {/* Thân thẻ */}
+                            <div style={{ padding: '8px 10px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                              <div style={{
+                                fontSize: 10,
+                                color: 'var(--text-muted)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                marginBottom: 2
+                              }}>
+                                {art.period || 'Cổ vật di sản'}
+                              </div>
+                              <div style={{
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                color: 'var(--heading-color)',
+                                lineHeight: 1.3,
+                                marginBottom: 6,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                minHeight: 30
+                              }} title={art.name}>
+                                {art.name}
+                              </div>
+                              <div style={{
+                                marginTop: 'auto',
+                                fontSize: 10.5,
+                                color: 'var(--gold)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                fontWeight: 600
+                              }}>
+                                <span>Chiêm ngưỡng</span>
+                                <ArrowRight size={10} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-color)' }}>
-                      Khách tham quan bấm nút "{form.artifactsCtaText || 'Khám phá toàn bộ kho hiện vật'}" để tra cứu hồ sơ hiện vật.
-                    </div>
-                  </div>
+                  )
                 ) : (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, color: 'var(--text-muted)', fontSize: 12 }}>
                     Chưa có dữ liệu cổ vật trong cơ sở dữ liệu.
                   </div>
                 )}
+
+                {/* Nút Khám phá toàn bộ ở chân Preview */}
+                <div style={{ textAlign: 'center', marginTop: 14 }}>
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    border: '1px solid var(--border-color)',
+                    background: 'rgba(255,255,255,0.04)',
+                    color: 'var(--text-main)',
+                    fontSize: 11,
+                    fontWeight: 600
+                  }}>
+                    {form.artifactsCtaText || `Khám phá toàn bộ kho hiện vật (${artifacts.length})`}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -21,27 +21,38 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   const { branding } = useSystemBranding();
   const { t, localize } = useClientTranslation();
 
-  // Ưu tiên hiện vật có 3D trước, lấy tối đa 4 hiện vật đại diện
+  // Lấy danh sách hiện vật trưng bày: ưu tiên danh sách ID do Admin chỉ định cụ thể, nếu không có thì tự động lấy tối đa 4 hiện vật ưu tiên 3D
   const showcaseArtifacts = React.useMemo(() => {
     if (!artifacts || artifacts.length === 0) return [];
 
-    let sorted = [...artifacts].sort((a, b) => {
+    const featuredIds = branding.artifactsFeaturedId
+      ? branding.artifactsFeaturedId.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    if (featuredIds.length > 0) {
+      const selected: Artifact[] = [];
+      for (const fid of featuredIds) {
+        const found = artifacts.find(
+          (a) =>
+            a.id === fid ||
+            (a as any)._id === fid ||
+            (a as any).code === fid
+        );
+        if (found && !selected.some((s) => s.id === found.id)) {
+          selected.push(found);
+        }
+      }
+      if (selected.length > 0) {
+        return selected;
+      }
+    }
+
+    // Tự động: Ưu tiên hiện vật có 3D trước, lấy tối đa 4 hiện vật đại diện
+    const sorted = [...artifacts].sort((a, b) => {
       if (a.model3dUrl && !b.model3dUrl) return -1;
       if (!a.model3dUrl && b.model3dUrl) return 1;
       return String(b.id || '').localeCompare(String(a.id || ''));
     });
-
-    if (branding.artifactsFeaturedId) {
-      const featured = sorted.find(
-        (a) =>
-          a.id === branding.artifactsFeaturedId ||
-          (a as any)._id === branding.artifactsFeaturedId ||
-          (a as any).code === branding.artifactsFeaturedId
-      );
-      if (featured) {
-        sorted = [featured, ...sorted.filter((a) => a.id !== featured.id)];
-      }
-    }
 
     return sorted.slice(0, 4);
   }, [artifacts, branding.artifactsFeaturedId]);

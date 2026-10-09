@@ -1929,6 +1929,11 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                     }}
                   >
                     <option value="">-- Mặc định (Tự động lấy cổ vật 3D mới nhất) --</option>
+                    {form.artifactsFeaturedId && form.artifactsFeaturedId.includes(',') && (
+                      <option value={form.artifactsFeaturedId}>
+                        ⭐ Đang chỉ định {form.artifactsFeaturedId.split(',').length} hiện vật (Quản lý tại tab "Trưng bày Trang chủ")
+                      </option>
+                    )}
                     {availableArtifacts.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.code ? `[${a.code}] ` : ''}{a.name} {a.model3dUrl ? '(Có 3D)' : ''}
