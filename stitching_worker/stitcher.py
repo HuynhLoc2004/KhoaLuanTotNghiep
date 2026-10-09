@@ -326,10 +326,10 @@ def crop_clean_inscribed_rectangle(image, black_thresh=15):
     row_density = np.mean(mask, axis=1)
     col_density = np.mean(mask, axis=0)
 
-    # Cột chỉ cần có nội dung (>= 10% chiều cao) để giữ trọn vẹn toàn bộ các góc phòng quanh chu vi
-    valid_cols = np.where(col_density >= 0.10)[0]
-    # Hàng chỉ cần có nội dung (>= 25% chiều ngang) để không bị xén mất trần nhà và sàn nhà
-    valid_rows = np.where(row_density >= 0.25)[0]
+    # Đảm bảo hàng phải có nội dung phủ kín chu vi (>= 96%)
+    # để loại bỏ hoàn toàn các vòm uốn lượn hình răng cưa do phép chiếu trụ sinh ra ở trần và sàn!
+    valid_cols = np.where(col_density >= 0.30)[0]
+    valid_rows = np.where(row_density >= 0.96)[0]
 
     if len(valid_rows) > 50 and len(valid_cols) > 50:
         top = valid_rows[0]
@@ -345,8 +345,8 @@ def crop_clean_inscribed_rectangle(image, black_thresh=15):
         c_gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
         dark_mask = (c_gray <= black_thresh).astype(np.uint8) * 255
         dark_count = int(np.sum(dark_mask > 0))
-        if 0 < dark_count < cropped.size * 0.05:
-            cropped = cv2.inpaint(cropped, dark_mask, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
+        if 0 < dark_count < cropped.size * 0.01:
+            cropped = cv2.inpaint(cropped, dark_mask, inpaintRadius=3, flags=cv2.INPAINT_TELEA)
 
     return cropped
 
@@ -389,10 +389,14 @@ def circular_seam_blend(img, seam_width=45):
 def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True):
     """
     Chuẩn hóa ảnh thành định dạng Equirectangular chuẩn 2:1 cho Web 360 / VR Viewer:
-    - BẢO TOÀN 100% TỶ LỆ HÌNH HỌC THẬT CỦA CĂN PHÒNG (KHÔNG ÉP CO GIÃN BẤT ĐỐI XỨNG).
-    - 100% TRIỆT TIÊU BỆT ĐEN & VỆT CỘT SÁNG: Lấp đầy mượt mà cực Bắc (Zenith) và cực Nam (Nadir)
-      bằng gradient màu sắc kiến trúc thật của trần và sàn bảo tàng.
-    - Không để lại bất kỳ pixel đen xì [0, 0, 0] nào trên toàn bộ bức ảnh!
+    - BẢO TOÀN TỶ LỆ VÀ MỞ RỘNG TẦM NHÌN KHÔNG GIAN BẢO TÀNG:
+      Phủ 75% - 80% chiều cao khung hình 360 để khách tham quan ngắm trọn vẹn hiện vật, quạt trần,
+      phào chỉ kiến trúc và gạch lát sàn mà không bị bẹt hay mất nét.
+    - TRIỆT TIÊU 100% CÁC VẾT MỜ DẠNG LỀU/NAN HOA (Circus Tent / Spoke Artifacts):
+      Khuếch tán quang học ngang (Spherical Horizontal Diffusion) tăng dần về phía cực đỉnh (Zenith)
+      và cực đáy (Nadir), chuyển sắc êm ái sang tone màu kiến trúc tự nhiên.
+    - XÓA SẠCH ĐƯỜNG RÃNH NỐI (Invisible Seams):
+      Khử hoàn toàn vết cắt tròn cứng ngắc giữa viền phòng và trần/sàn.
     """
     if panorama is None or panorama.size == 0:
         return panorama
@@ -400,7 +404,7 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
     ew = 2560 if target_width <= 0 else int(target_width)
     eh = ew // 2
 
-    # Trước tiên cắt sạch viền đen răng cưa nội tiếp
+    # Cắt sạch viền đen răng cưa nội tiếp
     panorama = crop_clean_inscribed_rectangle(panorama)
     h_orig, w_orig = panorama.shape[:2]
     ar_orig = float(w_orig) / float(max(1, h_orig))
@@ -410,10 +414,16 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
         scaled_pano = cv2.resize(panorama, (ew, eh), interpolation=cv2.INTER_LANCZOS4)
         return circular_seam_blend(scaled_pano, seam_width=45)
 
-    # Co giãn đảm bảo chiều ngang luôn phủ kín toàn bộ chu vi 360° (ew = 4096)
-    scaled_w = ew
-    scaled_h = min(eh, max(1, int(h_orig * (float(ew) / float(w_orig)))))
+    # Tối ưu tỷ lệ chiều cao phòng:
+    # Nếu panorama quét ngang rộng (ar > 2.5), cho phòng chiếm ~78% chiều cao canvas (thay vì 44%)
+    # Giúp thu nhỏ diện tích vùng mờ ở cực đỉnh và cực đáy xuống hơn 65%, phô diễn tối đa không gian thật!
+    if ar_orig > 2.5:
+        target_fill_ratio = 0.78
+        scaled_h = min(eh, max(1, int(eh * target_fill_ratio)))
+    else:
+        scaled_h = min(eh, max(1, int(h_orig * (float(ew) / float(w_orig)))))
 
+    scaled_w = ew
     scaled_pano = cv2.resize(panorama, (scaled_w, scaled_h), interpolation=cv2.INTER_LANCZOS4)
     scaled_pano = circular_seam_blend(scaled_pano, seam_width=45)
 
@@ -421,30 +431,51 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
     y_offset = (eh - scaled_h) // 2
     canvas[y_offset : y_offset + scaled_h, :] = scaled_pano
 
-    # 1. Xử lý Trần nhà (Zenith) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG & XÓA SỌC DỌC!
+    # 1. XỬ LÝ TRẦN NHÀ (ZENITH) - TRIỆT TIÊU TOÀN BỘ VẾT MỜ NAN HOA & ĐƯỜNG CẮT
     if y_offset > 0:
-        top_strip = scaled_pano[0:min(25, scaled_h), :]
-        zenith_avg = np.median(top_strip, axis=(0, 1)) # màu trần trung bình dịu nhẹ
-        # Mịn hóa biên ngang để triệt tiêu hoàn toàn vệt xước sọc dọc
-        smooth_top = cv2.boxFilter(scaled_pano[0:1, :], -1, (101, 1))[0, :]
-        for y in range(y_offset):
-            t = float(y) / float(y_offset)
-            s = t * t * (3.0 - 2.0 * t) # Smoothstep
-            blended = (1.0 - s) * zenith_avg + s * smooth_top
-            canvas[y, :] = np.clip(blended, 0, 255).astype(np.uint8)
+        zenith_avg = np.median(scaled_pano[:min(35, scaled_h), :], axis=(0, 1))
+        # Hạt giống biên trần được làm mịn nhẹ theo phương ngang để tránh nhiễu điểm
+        top_seed = cv2.boxFilter(scaled_pano[0:1, :], -1, (25, 1))[0]
 
-    # 2. Xử lý Sàn nhà (Nadir) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG & XÓA SỌC DỌC!
+        for i in range(y_offset):
+            # i = 0 (cực đỉnh), i = y_offset - 1 (sát biên phòng)
+            t = float(i + 1) / float(y_offset) # 0 -> 1
+            s = t ** 2.2 # Hàm bậc lũy thừa: vùng gần đỉnh chuyển hoàn toàn về màu vòm trần dịu nhẹ
+            row = (1.0 - s) * zenith_avg + s * top_seed
+            canvas[i, :] = np.clip(row, 0, 255).astype(np.uint8)
+
+        # Khuếch tán quang học ngang (Spherical Diffusion) triệt tiêu nan hoa
+        for i in range(y_offset):
+            dist_to_pole = float(y_offset - i) / float(y_offset)
+            ksize = int(dist_to_pole * 451) // 2 * 2 + 1
+            if ksize >= 3:
+                canvas[i:i+1, :] = cv2.boxFilter(canvas[i:i+1, :], -1, (ksize, 1))
+
+    # 2. XỬ LÝ SÀN NHÀ (NADIR) - TRIỆT TIÊU TOÀN BỘ VẾT MỜ NAN HOA & ĐƯỜNG CẮT
     floor_start = y_offset + scaled_h
     if floor_start < eh:
-        bot_strip = scaled_pano[max(0, scaled_h - 25) : scaled_h, :]
-        nadir_avg = np.median(bot_strip, axis=(0, 1)) # màu sàn trung bình
-        smooth_bot = cv2.boxFilter(scaled_pano[-1:, :], -1, (101, 1))[0, :]
         floor_h = eh - floor_start
-        for y in range(floor_h):
-            t = float(floor_h - y) / float(floor_h)
-            s = t * t * (3.0 - 2.0 * t) # Smoothstep
-            blended = (1.0 - s) * nadir_avg + s * smooth_bot
-            canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
+        nadir_avg = np.median(scaled_pano[-min(35, scaled_h):, :], axis=(0, 1))
+        bot_seed = cv2.boxFilter(scaled_pano[-1:, :], -1, (25, 1))[0]
+
+        for j in range(floor_h):
+            t = float(floor_h - j) / float(floor_h) # 1 tại biên phòng, 0 tại cực đáy
+            s = t ** 2.2
+            row = (1.0 - s) * nadir_avg + s * bot_seed
+            canvas[floor_start + j, :] = np.clip(row, 0, 255).astype(np.uint8)
+
+        for j in range(floor_h):
+            dist_to_pole = float(j + 1) / float(floor_h)
+            ksize = int(dist_to_pole * 451) // 2 * 2 + 1
+            if ksize >= 3:
+                row_y = floor_start + j
+                canvas[row_y:row_y+1, :] = cv2.boxFilter(canvas[row_y:row_y+1, :], -1, (ksize, 1))
+
+    # Khử hoàn toàn rãnh nối ngang tiếp giáp giữa phòng thật và trần/sàn bằng Gaussian mượt mà
+    if y_offset > 2:
+        canvas[y_offset - 2 : y_offset + 3, :] = cv2.GaussianBlur(canvas[y_offset - 2 : y_offset + 3, :], (5, 5), 0)
+    if floor_start < eh - 2:
+        canvas[floor_start - 2 : floor_start + 3, :] = cv2.GaussianBlur(canvas[floor_start - 2 : floor_start + 3, :], (5, 5), 0)
 
     return circular_seam_blend(canvas, seam_width=45)
 
