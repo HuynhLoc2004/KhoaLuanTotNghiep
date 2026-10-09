@@ -1268,9 +1268,11 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
                 pts2 = np.float32([kp2[m.trainIdx].pt for m in good])
                 M_aff, inls = cv2.estimateAffinePartial2D(pts2, pts1, method=cv2.RANSAC, ransacReprojThreshold=5.0)
                 if M_aff is not None and inls is not None and int(np.sum(inls)) >= 4:
+                    inls_mask = inls.ravel() == 1
+                    diffs_inl = pts1[inls_mask] - pts2[inls_mask]
                     best_cnt = int(np.sum(inls))
-                    best_dx = float(M_aff[0, 2])
-                    best_dy = float(M_aff[1, 2])
+                    best_dx = float(np.median(diffs_inl[:, 0]))
+                    best_dy = float(np.median(diffs_inl[:, 1]))
                 else:
                     diffs = pts1 - pts2
                     n_diff = len(diffs)
@@ -1310,7 +1312,8 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
         min_step = float(w0 * 0.02)
         max_step = float(w0 * 0.65)
         step_dx = max(min_step, min(max_step, abs(best_dx)))
-        shifts.append((step_dx, best_dy))
+        safe_dy = max(-15.0, min(15.0, best_dy))
+        shifts.append((step_dx, safe_dy))
 
     # 5. Tích lũy tọa độ ban đầu
     positions = [(0.0, 0.0)]
@@ -1414,27 +1417,43 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
                     max_dist_canvas[sy:ey, sx:ex], dist_local[src_y:src_y+uh, src_x:src_x+uw]
                 )
 
-        # Pass 2: Accumulate color & weight
-        accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
-        accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
-        feather_band = 96.0
+        # Pass 2: Hòa trộn 2 Băng Tần (Two-Band / Multi-Frequency Blending)
+        # Băng tần cao (High Frequency): Dùng đường mí Voronoi sắc nét (feather_high = 3.0px) -> Triệt tiêu 100% bóng mờ, bóng ma!
+        # Băng tần thấp (Low Frequency): Dùng dải chuyển mềm mại (feather_low = 60.0px) -> Hòa trộn ánh sáng, triệt tiêu viền ghép!
+        accum_low = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
+        accum_w_low = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+        accum_high = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
+        accum_w_high = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+        feather_low = 60.0
+        feather_high = 3.0
 
         for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
             cur_h, cur_w = im.shape[:2]
             px = int(round(positions[i][0]))
             py = int(round(positions[i][1] - min_y + 15))
             dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
+            
+            low_im = cv2.GaussianBlur(im.astype(np.float32), (0, 0), sigmaX=15.0, sigmaY=15.0)
+            high_im = im.astype(np.float32) - low_im
+
             for sx, sy, ex, ey, src_x, src_y, uw, uh in get_periodic_slices(canvas_w, canvas_h, px, py, cur_w, cur_h):
                 dist_crop = dist_local[src_y:src_y+uh, src_x:src_x+uw]
                 local_max = max_dist_canvas[sy:ey, sx:ex]
-                w_crop = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_band)
-                w_crop[dist_crop <= 0] = 0.0
-                accum_color[sy:ey, sx:ex] += im[src_y:src_y+uh, src_x:src_x+uw].astype(np.float32) * w_crop[:, :, None]
-                accum_weight[sy:ey, sx:ex] += w_crop
+                
+                w_low = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_low)
+                w_low[dist_crop <= 0] = 0.0
+                accum_low[sy:ey, sx:ex] += low_im[src_y:src_y+uh, src_x:src_x+uw] * w_low[:, :, None]
+                accum_w_low[sy:ey, sx:ex] += w_low
+                
+                w_high = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_high)
+                w_high[dist_crop <= 0] = 0.0
+                accum_high[sy:ey, sx:ex] += high_im[src_y:src_y+uh, src_x:src_x+uw] * w_high[:, :, None]
+                accum_w_high[sy:ey, sx:ex] += w_high
 
-        safe_weight = np.maximum(accum_weight[:, :, None], 1e-5)
-        blended = (accum_color / safe_weight).clip(0, 255).astype(np.uint8)
-        del accum_color, accum_weight, max_dist_canvas
+        blended_low = accum_low / np.maximum(accum_w_low[:, :, None], 1e-5)
+        blended_high = accum_high / np.maximum(accum_w_high[:, :, None], 1e-5)
+        blended = np.clip(blended_low + blended_high, 0, 255).astype(np.uint8)
+        del accum_low, accum_w_low, accum_high, accum_w_high, max_dist_canvas
         gc.collect()
 
         clean_blended = crop_clean_inscribed_rectangle(blended)
@@ -1473,9 +1492,13 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
             dist_local = cv2.distanceTransform(m, cv2.DIST_L2, 5).astype(np.float32)
             max_dist_canvas[py:end_y, px:end_x] = np.maximum(max_dist_canvas[py:end_y, px:end_x], dist_local[:use_h, :use_w])
 
-        accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
-        accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
-        feather_band = 96.0
+        # Hòa trộn 2 Băng Tần (Two-Band Blending) triệt tiêu bóng ma:
+        accum_low = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
+        accum_w_low = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+        accum_high = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
+        accum_w_high = np.zeros((canvas_h, canvas_w), dtype=np.float32)
+        feather_low = 60.0
+        feather_high = 3.0
 
         for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
             cur_h, cur_w = im.shape[:2]
@@ -1490,15 +1513,24 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
             dist_crop = dist_local[:use_h, :use_w]
             local_max = max_dist_canvas[py:end_y, px:end_x]
 
-            w_crop = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_band)
-            w_crop[dist_crop <= 0] = 0.0
+            im_crop = im[:use_h, :use_w].astype(np.float32)
+            low_im = cv2.GaussianBlur(im_crop, (0, 0), sigmaX=15.0, sigmaY=15.0)
+            high_im = im_crop - low_im
 
-            accum_color[py:end_y, px:end_x] += im[:use_h, :use_w].astype(np.float32) * w_crop[:, :, None]
-            accum_weight[py:end_y, px:end_x] += w_crop
+            w_low = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_low)
+            w_low[dist_crop <= 0] = 0.0
+            accum_low[py:end_y, px:end_x] += low_im * w_low[:, :, None]
+            accum_w_low[py:end_y, px:end_x] += w_low
 
-        safe_weight = np.maximum(accum_weight[:, :, None], 1e-5)
-        blended = (accum_color / safe_weight).clip(0, 255).astype(np.uint8)
-        del accum_color, accum_weight, max_dist_canvas
+            w_high = np.maximum(0.0, 1.0 - (local_max - dist_crop) / feather_high)
+            w_high[dist_crop <= 0] = 0.0
+            accum_high[py:end_y, px:end_x] += high_im * w_high[:, :, None]
+            accum_w_high[py:end_y, px:end_x] += w_high
+
+        blended_low = accum_low / np.maximum(accum_w_low[:, :, None], 1e-5)
+        blended_high = accum_high / np.maximum(accum_w_high[:, :, None], 1e-5)
+        blended = np.clip(blended_low + blended_high, 0, 255).astype(np.uint8)
+        del accum_low, accum_w_low, accum_high, accum_w_high, max_dist_canvas
         gc.collect()
 
         clean_blended = crop_clean_inscribed_rectangle(blended)
@@ -1696,6 +1728,9 @@ def run_stitch(image_paths, output_path, target_width=0):
     # TRƯỜNG HỢP 2: CHÙM ẢNH TỪNG GÓC XOAY 360°
     sorted_paths = resolve_capture_sequence(image_paths)
     log(f"[*] Tiếp nhận {len(sorted_paths)} ảnh góc chụp xoay quanh...")
+
+    final_pano = None
+    engine_used = "none"
 
     # ƯU TIÊN SỐ 1: Động cơ Ghép Chuỗi Quang Học Mặt Trụ (Sequential Motion-Aligned Cylindrical Stitcher)
     # Bảo tồn 100% tường nhà thẳng đứng 90°, sàn nhà phẳng ngang, hoàn toàn không bị uốn lượn méo mó gây nhức đầu!
