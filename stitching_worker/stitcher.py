@@ -1873,10 +1873,13 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
             dx_since_last_kf = 0.0
             frames_since_last_kf = 0
 
-        if len(selected_raw) >= max_kfs:
-            break
-
     cap.release()
+
+    # Phân bố đều keyframes trên toàn bộ thời lượng video nếu thu được nhiều hơn max_kfs
+    # (Đảm bảo 100% không gian từ giây đầu đến giây cuối đều được trích xuất đầy đủ, không bị bỏ sót đuôi video)
+    if len(selected_raw) > max_kfs:
+        indices = np.linspace(0, len(selected_raw) - 1, max_kfs, dtype=int)
+        selected_raw = [selected_raw[idx] for idx in indices]
 
     # Fallback dự phòng nếu phòng quá trơn không nhận được điểm đặc trưng
     if len(selected_raw) < 5:
