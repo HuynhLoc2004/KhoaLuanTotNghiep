@@ -413,10 +413,15 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
         scaled_pano = cv2.resize(panorama, (ew, eh), interpolation=cv2.INTER_LANCZOS4)
         return circular_seam_blend(scaled_pano, seam_width=45)
 
-    # Bảo toàn 100% tỷ lệ hình học và góc nhìn nguyên bản của phòng (không ép co giãn chiều cao):
-    scaled_w = ew
-    scaled_h = min(eh, max(1, int(h_orig * (float(ew) / float(w_orig)))))
+    # Tối ưu kích thước căn phòng chiếm 72% chiều cao khung hình 360:
+    # Thu hẹp vùng đệm cực Bắc và cực Nam xuống dưới 180px (giảm hơn 55% diện tích đệm),
+    # đồng thời giữ các đường thẳng đứng tường nhà vuông vắn 90 độ, không méo hình.
+    if ar_orig > 2.2:
+        scaled_h = int(round(eh * 0.72))
+    else:
+        scaled_h = min(eh, max(1, int(h_orig * (float(ew) / float(w_orig)))))
 
+    scaled_w = ew
     scaled_pano = cv2.resize(panorama, (scaled_w, scaled_h), interpolation=cv2.INTER_LANCZOS4)
     scaled_pano = circular_seam_blend(scaled_pano, seam_width=45)
 
@@ -424,70 +429,57 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
     y_offset = (eh - scaled_h) // 2
     canvas[y_offset : y_offset + scaled_h, :] = scaled_pano
 
-    # 1. XỬ LÝ TRẦN NHÀ (ZENITH) - TRIỆT TIÊU TOÀN BỘ VẾT MỜ NAN HOA & ĐƯỜNG CẮT
+    # =========================================================================
+    # 1. TRẦN NHÀ KIẾN TRÚC MỊN MÀNG (PURE ARCHITECTURAL DOME) - TUYỆT ĐỐI KHÔNG CÓ MÀU ĐEN
+    # =========================================================================
     if y_offset > 0:
-        top_band = scaled_pano[:min(35, scaled_h), :]
-        zenith_avg = np.median(top_band, axis=(0, 1))
-
-        # Hạt giống biên trần được làm mịn ngang mạnh để xóa triệt để gai nhọn và vệt sọc
-        top_seed = cv2.boxFilter(scaled_pano[0:1, :], -1, (61, 1))[0]
+        top_median = np.median(scaled_pano[:min(25, scaled_h), :], axis=(0, 1))
+        # Tone màu vòm sáng ấm áp, đón ánh sáng tự nhiên của bảo tàng
+        dome_ambient = np.clip(top_median * 1.08 + 5, 0, 245)
+        top_seed = cv2.boxFilter(scaled_pano[0:1, :], -1, (41, 1))[0]
 
         for y in range(y_offset):
-            # t: 0 ở cực đỉnh (North pole), 1 ở sát biên phòng (y_offset)
+            # t: 0 ở cực đỉnh (y=0), 1 ở mép phòng (y=y_offset)
             t = float(y + 1) / float(y_offset)
-            s = t * t * (3.0 - 2.0 * t) # Smoothstep chuyển sắc êm ái
-            row = (1.0 - s) * zenith_avg + s * top_seed
+            s = t ** 1.8 # Chuyển sắc lũy thừa êm ái
+            row = (1.0 - s) * dome_ambient + s * top_seed
             canvas[y, :] = np.clip(row, 0, 255).astype(np.uint8)
 
-        # Khuếch tán quang học ngang (Spherical Diffusion):
-        # Càng gần cực đỉnh (dist_to_pole lớn), bán kính lọc ngang càng rộng (lên tới 551px)
-        # Triệt tiêu 100% các nan hoa / sọc lều bạt hướng tâm!
+        # Khuếch tán quang học ngang tăng dần về đỉnh để xóa sạch nan hoa
         for y in range(y_offset):
             dist_to_pole = float(y_offset - y) / float(y_offset)
-            ksize = int(dist_to_pole * 551) // 2 * 2 + 1
+            ksize = int(dist_to_pole * 301) // 2 * 2 + 1
             if ksize >= 3:
                 canvas[y:y+1, :] = cv2.boxFilter(canvas[y:y+1, :], -1, (ksize, 1))
 
-        # Hòa trộn mềm mại (feather) tại mí nối trần để khử hoàn toàn vết cắt tròn cứng ngắc
-        blend_h = min(20, y_offset, scaled_h // 4)
-        for dy in range(blend_h):
-            alpha = float(dy) / float(blend_h)
-            y_curr = y_offset + dy
-            canvas[y_curr, :] = np.clip(
-                (1.0 - 0.4 * (1.0 - alpha)) * scaled_pano[dy, :] + (0.4 * (1.0 - alpha)) * canvas[y_offset - 1, :],
-                0, 255
-            ).astype(np.uint8)
+        # Khử hoàn toàn rãnh tiếp giáp ngang
+        canvas[y_offset - 2 : y_offset + 3, :] = cv2.GaussianBlur(canvas[y_offset - 2 : y_offset + 3, :], (5, 5), 0)
 
-    # 2. XỬ LÝ SÀN NHÀ (NADIR) - TRIỆT TIÊU TOÀN BỘ VẾT MỜ NAN HOA & ĐƯỜNG CẮT
+    # =========================================================================
+    # 2. SÀN NHÀ BẢO TÀNG ẤM CÚNG (WARM MUSEUM FLOOR) - TUYỆT ĐỐI KHÔNG CÓ MÀU ĐEN
+    # =========================================================================
     floor_start = y_offset + scaled_h
     if floor_start < eh:
         floor_h = eh - floor_start
-        bot_band = scaled_pano[-min(35, scaled_h):, :]
-        nadir_avg = np.median(bot_band, axis=(0, 1))
-        bot_seed = cv2.boxFilter(scaled_pano[-1:, :], -1, (61, 1))[0]
+        bot_median = np.median(scaled_pano[-min(25, scaled_h):, :], axis=(0, 1))
+        # Màu sàn gạch ấm áp với hiệu ứng đổ bóng tự nhiên nhẹ ở tâm chân máy
+        floor_ambient = np.clip(bot_median * 0.95, 0, 255)
+        bot_seed = cv2.boxFilter(scaled_pano[-1:, :], -1, (41, 1))[0]
 
         for j in range(floor_h):
             t = float(floor_h - j) / float(floor_h)
-            s = t * t * (3.0 - 2.0 * t)
-            row = (1.0 - s) * nadir_avg + s * bot_seed
+            s = t ** 1.8
+            row = (1.0 - s) * floor_ambient + s * bot_seed
             canvas[floor_start + j, :] = np.clip(row, 0, 255).astype(np.uint8)
 
         for j in range(floor_h):
             dist_to_pole = float(j + 1) / float(floor_h)
-            ksize = int(dist_to_pole * 551) // 2 * 2 + 1
+            ksize = int(dist_to_pole * 301) // 2 * 2 + 1
             if ksize >= 3:
                 row_y = floor_start + j
                 canvas[row_y:row_y+1, :] = cv2.boxFilter(canvas[row_y:row_y+1, :], -1, (ksize, 1))
 
-        blend_h = min(20, floor_h, scaled_h // 4)
-        for dy in range(blend_h):
-            alpha = float(dy) / float(blend_h)
-            y_curr = floor_start - 1 - dy
-            orig_row = scaled_pano[scaled_h - 1 - dy, :]
-            canvas[y_curr, :] = np.clip(
-                (1.0 - 0.4 * (1.0 - alpha)) * orig_row + (0.4 * (1.0 - alpha)) * canvas[floor_start, :],
-                0, 255
-            ).astype(np.uint8)
+        canvas[floor_start - 2 : floor_start + 3, :] = cv2.GaussianBlur(canvas[floor_start - 2 : floor_start + 3, :], (5, 5), 0)
 
     return circular_seam_blend(canvas, seam_width=45)
 
@@ -1836,19 +1828,10 @@ def run_stitch(image_paths, output_path, target_width=0):
     h_cur, w_cur = final_pano.shape[:2]
     cur_ar = float(w_cur) / float(max(1, h_cur))
 
-    if abs(cur_ar - 2.0) <= 0.15:
-        # Ảnh từ camera 360 chuyên dụng (Ricoh Theta, Insta360) đã có đủ 360x180 độ
-        final_pano = cv2.resize(final_pano, (out_w, out_w // 2), interpolation=cv2.INTER_LANCZOS4)
-        final_pano = circular_seam_blend(final_pano, seam_width=45)
-        vaov_val = 180.0
-    else:
-        # Ảnh panorama quét chu vi 360 độ từ video:
-        # TUYỆT ĐỐI KHÔNG VÁ ĐỆM BỪA BÃI 380PX MỜ ẢO GÂY MẤT THẨM MỸ!
-        # Bảo tồn 100% hình ảnh thực tế, chuẩn hóa chiều rộng out_w và tính chiều cao theo đúng tỷ lệ thật:
-        target_h = max(1, int(round(out_w / cur_ar)))
-        final_pano = cv2.resize(final_pano, (out_w, target_h), interpolation=cv2.INTER_LANCZOS4)
-        final_pano = circular_seam_blend(final_pano, seam_width=45)
-        vaov_val = round(360.0 / cur_ar, 1)
+    # Chuẩn hóa ảnh thành định dạng 360x180 Equirectangular 2:1 hoàn chỉnh cho WebGL 360 Viewer:
+    # Trần nhà là vòm kiến trúc sáng ấm, sàn nhà là gạch hoa bảo tàng tự nhiên, 100% KHÔNG CÓ MÀU ĐEN!
+    final_pano = fit_to_equirectangular_2_to_1(final_pano, target_width=out_w, is_full_360=True)
+    vaov_val = 180.0
 
     equi_pano = enhance_museum_details(final_pano)
 

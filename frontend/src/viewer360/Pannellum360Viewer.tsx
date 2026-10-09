@@ -229,9 +229,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     const aspect = (currentW && currentH) ? (currentW / currentH) : 2.0;
 
     // Kiểm tra loại ảnh Panorama:
-    // Nếu tỉ lệ aspect >= 2.3 HOẶC vaov được truyền vào < 170 -> Chắc chắn là Partial Panorama 360°
-    const is360Loop = (Boolean(haov) && (haov ?? 0) >= 350) || aspect >= 2.3;
-    const isStandardEqui = (Math.abs(aspect - 2.0) <= 0.15) && (!vaov || (vaov ?? 0) >= 170) && !is360Loop;
+    // Toàn bộ ảnh 360 có tỷ lệ ~2:1 (ví dụ 2560x1280, 4096x2048) là ảnh cầu toàn phần 360x180 hoàn chỉnh (Standard Equirectangular)
+    const isStandardEqui = (Math.abs(aspect - 2.0) <= 0.25) && (!vaov || (vaov ?? 0) >= 170);
 
     let effectiveHaov = haov;
     let effectiveVaov = vaov;
@@ -242,12 +241,12 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     let effectiveHfov = initialHfov || 100;
 
     if (!isStandardEqui) {
-      // Ảnh Panorama trích xuất từng phần (Partial Panorama 360):
-      // Tính toán góc nhìn dọc vaov thực tế:
+      // Chỉ khi ảnh thực sự là dải panorama từng phần (chưa qua chuẩn hóa 2:1):
       const calculatedVaov = (vaov && vaov < 170) 
         ? vaov 
-        : (is360Loop ? Math.max(45, Math.min(120, Math.round(360 / aspect))) : (vaov || 70));
-      const calculatedHaov = is360Loop ? 360 : (haov || Math.min(360, Math.round(calculatedVaov * aspect)));
+        : Math.max(45, Math.min(120, Math.round(360 / aspect)));
+      const calculatedHaov = (haov && haov < 350) ? haov : 360;
+      const is360Loop = calculatedHaov >= 350;
       const halfH = Math.round(calculatedHaov / 2);
       const halfV = Math.round(calculatedVaov / 2);
 
@@ -256,14 +255,13 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       effectiveMinYaw = is360Loop ? -180 : (minYaw !== undefined ? minYaw : -halfH);
       effectiveMaxYaw = is360Loop ? 180 : (maxYaw !== undefined ? maxYaw : halfH);
 
-      // Kỹ thuật giới hạn tầm nhìn thông minh (Smart Dynamic Pitch Clamp):
-      // Giới hạn trong vùng ảnh thật, triệt tiêu 100% việc người dùng nhìn thấy các quầng mờ ở cực đỉnh và cực đáy!
-      const safePitchLimit = Math.max(15, Math.min(45, Math.round(halfV * 0.75)));
+      // Kỹ thuật giới hạn tầm nhìn: Giữ góc nhìn trong phạm vi ảnh thực
+      const safePitchLimit = Math.max(15, Math.min(45, Math.round(halfV * 0.65)));
       effectiveMinPitch = minPitch !== undefined ? minPitch : -safePitchLimit;
       effectiveMaxPitch = maxPitch !== undefined ? maxPitch : safePitchLimit;
 
-      // Đặt góc nhìn ban đầu vừa vặn bao quát cả căn phòng, ngắm 100% hình ảnh thực
-      effectiveHfov = initialHfov || Math.min(85, Math.max(65, Math.round(calculatedVaov * 1.15)));
+      // Đặt góc nhìn ban đầu vừa vặn bao quát cả căn phòng
+      effectiveHfov = initialHfov || Math.min(85, Math.max(65, Math.round(calculatedVaov * 1.1)));
     }
 
     try {
