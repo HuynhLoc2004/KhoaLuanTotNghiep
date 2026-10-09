@@ -20,7 +20,9 @@ import {
   HardDrive,
   Monitor,
   Plus,
-  Compass
+  Compass,
+  Play,
+  Video
 } from 'lucide-react';
 import { NewRoomModal } from '../components/NewRoomModal';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
@@ -628,6 +630,56 @@ export const PocStitchingPage: React.FC = () => {
   // Trạng thái đang tạo phòng từ 1 ảnh đơn lẻ
   const [singleCreatingId, setSingleCreatingId] = useState<string | null>(null);
 
+  // Tạo không gian 360° từ Video quét phòng (Python trích xuất Keyframe thông minh & Cylindrical Stitch)
+  const [videoProcessingText, setVideoProcessingText] = useState<string | null>(null);
+
+  const handleVideoStitch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsProcessing(true);
+      setErrorMsg(null);
+      setVideoProcessingText('Đang tải video & Python đang quét trích xuất các khung hình sắc nét...');
+      showToast('Đang tải video lên máy chủ để trích xuất các góc nhìn 360°...', 'info');
+
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const res = await fetch(`${API_BASE}/stitch/video`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || 'Không thể tạo không gian 360° từ video này.');
+      }
+
+      const resData = {
+        ...json.data,
+        panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
+      };
+      setStitchResult(resData);
+      setActiveViewUrl(resData.panoramaUrl);
+      setViewerMode('pano360');
+      fetchHistory();
+      showToast(json.message || 'Tạo không gian 360° từ video thành công rực rỡ!', 'success');
+
+      setTimeout(() => {
+        viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    } catch (err: any) {
+      console.error('[Video Stitch Error]:', err);
+      showToast(err.message || 'Lỗi khi tạo không gian từ video', 'error');
+      setErrorMsg(err.message);
+    } finally {
+      setIsProcessing(false);
+      setVideoProcessingText(null);
+      if (e.target) e.target.value = '';
+    }
+  };
+
   // Tạo căn phòng trực tiếp từ 1 góc ảnh đã chọn (100% giữ nguyên góc chụp, không méo hình, không lặp lại)
   const handleCreateRoomFromSingleFrame = async (frame: VerifiedFrame) => {
     try {
@@ -890,7 +942,48 @@ export const PocStitchingPage: React.FC = () => {
                           disabled={isProcessing}
                         />
                       </label>
+
+                      {/* Nút tải Video quét phòng (Python trích xuất Keyframe thông minh & Ghép 360) */}
+                      <label
+                        className="studio-action-btn"
+                        style={{
+                          borderColor: 'rgba(212, 168, 106, 0.45)',
+                          background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.15) 0%, rgba(180, 83, 9, 0.1) 100%)',
+                          cursor: isProcessing ? 'wait' : 'pointer'
+                        }}
+                        title="Tải video quay quét phòng (.mp4, .mov, .webm). Python sẽ tự động trích xuất các khung hình sắc nét và ghép thành không gian 360°."
+                      >
+                        <Play size={20} style={{ color: 'var(--accent-gold)' }} />
+                        <span>Tải Video quét phòng</span>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          style={{ display: 'none' }}
+                          onChange={handleVideoStitch}
+                          disabled={isProcessing}
+                        />
+                      </label>
                     </div>
+
+                    {videoProcessingText && (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          padding: '10px 14px',
+                          background: 'rgba(212, 168, 106, 0.15)',
+                          border: '1px solid rgba(212, 168, 106, 0.4)',
+                          borderRadius: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          color: '#FDE68A',
+                          fontSize: '12px'
+                        }}
+                      >
+                        <Loader2 size={16} className="spin" style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                        <span>{videoProcessingText}</span>
+                      </div>
+                    )}
 
                     {!canUseNativeCapture && (
                       <p className="studio-device-note">

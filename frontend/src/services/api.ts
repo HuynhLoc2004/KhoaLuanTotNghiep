@@ -137,6 +137,18 @@ export const api = {
     };
   },
 
+  async stitchVideo(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('video', file);
+    const res = await fetch(`${API_BASE}/stitch/video`, {
+      method: 'POST',
+      body: formData
+    });
+    const json = await safeJson(res, 'Lỗi trích xuất và ghép video');
+    if (!json.success) throw new Error(json.message || 'Lỗi ghép video');
+    return json.data;
+  },
+
   // Language Registry APIs
   async getLanguages(): Promise<any[]> {
     const res = await fetch(`${API_BASE}/languages?_t=${Date.now()}`, {
