@@ -97,30 +97,70 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [isLoadingPanorama, setIsLoadingPanorama] = useState(true);
 
-  // Tự động phân giải URL: chuyển relative/localhost về domain client thực tế và bọc R2 qua Proxy nếu cần
+  const hasTriedBlobRef = useRef(false);
+  const blobUrlRef = useRef<string | null>(null);
+  const [blobPanoUrl, setBlobPanoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setBlobPanoUrl(null);
+    hasTriedBlobRef.current = false;
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+  }, [panoramaUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // Tự động phân giải URL: chuyển relative/localhost/IP/uploads về domain client thực tế và bọc Proxy nếu cần
   const effectivePanoramaUrl = React.useMemo(() => {
     let url = panoramaUrl;
-    if (url) {
-      if (url.startsWith('/')) {
-        url = `${typeof window !== 'undefined' ? window.location.origin : ''}${url}`;
-      } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        if (url.includes('localhost') || url.includes('127.0.0.1')) {
-          try {
-            const parsed = new URL(url);
-            url = `${window.location.origin}${parsed.pathname}${parsed.search}`;
-          } catch (_) {
-            url = url.replace(/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, window.location.origin);
+    if (!url) return '';
+
+    if (url.startsWith('/')) {
+      return `${typeof window !== 'undefined' ? window.location.origin : ''}${url}`;
+    }
+
+    try {
+      const parsed = new URL(url);
+      if (typeof window !== 'undefined') {
+        // Mọi ảnh trong /uploads/ đều nằm trên cùng máy chủ và phục vụ qua Nginx port 80/443 (loại trừ mọi IP/Port 3000/sslip.io gây lỗi CORS WebGL)
+        if (parsed.pathname.includes('/uploads/')) {
+          return `${window.location.origin}${parsed.pathname}${parsed.search}`;
+        }
+
+        if (
+          parsed.hostname === 'localhost' ||
+          parsed.hostname === '127.0.0.1' ||
+          parsed.hostname.includes('sslip.io') ||
+          /^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname)
+        ) {
+          return `${window.location.origin}${parsed.pathname}${parsed.search}`;
+        }
+
+        // Bọc proxy cho bất kỳ nguồn ảnh bên ngoài nào (R2, Cloudinary...) để đảm bảo WebGL nhận đầy đủ CORS header
+        if (parsed.origin !== window.location.origin) {
+          if (parsed.hostname.includes('r2.dev') || parsed.hostname.includes('cloudinary.com')) {
+            if (!url.includes('/api/stitch/proxy-image')) {
+              return `${API_BASE}/stitch/proxy-image?url=${encodeURIComponent(url)}`;
+            }
           }
         }
       }
-    }
-
-    if (
-      url &&
-      url.includes('r2.dev') &&
-      !url.includes('/api/stitch/proxy-image')
-    ) {
-      url = `${API_BASE}/stitch/proxy-image?url=${encodeURIComponent(url)}`;
+    } catch (_) {
+      if (url.includes('/uploads/')) {
+        const match = url.match(/\/uploads\/[^?#]+/);
+        if (match && typeof window !== 'undefined') {
+          return `${window.location.origin}${match[0]}`;
+        }
+      }
     }
 
     return url;
@@ -265,9 +305,10 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     }
 
     try {
+      const targetPanoUrl = blobPanoUrl || effectivePanoramaUrl;
       const pannellumConfig: any = {
         type: 'equirectangular',
-        panorama: effectivePanoramaUrl,
+        panorama: targetPanoUrl,
         autoLoad: true,
         autoRotate: autoRotateSpeed || 0,
         showControls: false,
@@ -307,8 +348,62 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         }
       });
 
-      viewer.on('error', (err: any) => {
+      viewer.on('error', async (err: any) => {
         console.warn('[Pannellum 360 Error]:', err);
+        // Tự động thử lại bằng Blob Object URL (hoặc qua Proxy) để triệt tiêu lỗi CORS hoặc giới hạn GPU texture size
+        if (!hasTriedBlobRef.current && effectivePanoramaUrl && !blobPanoUrl) {
+          hasTriedBlobRef.current = true;
+          try {
+            let blob: Blob | null = null;
+            try {
+              const res = await fetch(effectivePanoramaUrl, { mode: 'cors' });
+              if (res.ok) {
+                blob = await res.blob();
+              }
+            } catch (_) {
+              // Bọc proxy nếu gọi trực tiếp bị CORS
+              const proxyUrl = `${API_BASE}/stitch/proxy-image?url=${encodeURIComponent(effectivePanoramaUrl)}`;
+              const proxyRes = await fetch(proxyUrl);
+              if (proxyRes.ok) {
+                blob = await proxyRes.blob();
+              }
+            }
+
+            if (blob) {
+              let finalBlob = blob;
+              try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                const maxTextureSize = gl ? (gl as WebGLRenderingContext).getParameter((gl as WebGLRenderingContext).MAX_TEXTURE_SIZE) : 4096;
+                const bmp = await createImageBitmap(blob);
+                if (bmp.width > maxTextureSize || bmp.height > maxTextureSize) {
+                  const scale = Math.min(maxTextureSize / bmp.width, maxTextureSize / bmp.height);
+                  const targetW = Math.floor(bmp.width * scale);
+                  const targetH = Math.floor(bmp.height * scale);
+                  canvas.width = targetW;
+                  canvas.height = targetH;
+                  const ctx = canvas.getContext('2d');
+                  if (ctx) {
+                    ctx.drawImage(bmp, 0, 0, targetW, targetH);
+                    const resizedBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+                    if (resizedBlob) finalBlob = resizedBlob;
+                  }
+                }
+              } catch (resizeErr) {
+                console.warn('[Pannellum Texture Resize Check]:', resizeErr);
+              }
+
+              if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+              const objUrl = URL.createObjectURL(finalBlob);
+              blobUrlRef.current = objUrl;
+              setBlobPanoUrl(objUrl);
+              return;
+            }
+          } catch (blobErr) {
+            console.warn('[Pannellum Blob Fallback Failed]:', blobErr);
+          }
+        }
+
         setIsLoadingPanorama(false);
         setViewerError(typeof err === 'string' ? err : 'Không thể khởi tạo WebGL 360° với ảnh này.');
       });
@@ -327,7 +422,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         viewerRef.current = null;
       }
     };
-  }, [panoramaUrl, hotspotsHash, initialPitch, initialYaw, initialHfov, naturalDimensions, haov, vaov, minYaw, maxYaw, imageWidth, imageHeight]);
+  }, [panoramaUrl, blobPanoUrl, hotspotsHash, initialPitch, initialYaw, initialHfov, naturalDimensions, haov, vaov, minYaw, maxYaw, imageWidth, imageHeight]);
 
   // Hoạt cảnh mở đầu Little Planet bung vào phòng mượt mà (chỉ chạy 1 lần duy nhất)
   const runLittlePlanetIntro = () => {

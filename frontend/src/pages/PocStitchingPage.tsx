@@ -223,7 +223,7 @@ export const PocStitchingPage: React.FC = () => {
     fetchHistory();
   }, []);
 
-  // Chuẩn hóa URL ảnh 360° tự động chuyển localhost/IP thành domain thực tế của trình duyệt
+  // Chuẩn hóa URL ảnh 360° tự động chuyển localhost/IP/sslip.io thành domain thực tế của trình duyệt để WebGL không bị chặn CORS
   function normalizePanoUrl(rawUrl: string): string {
     if (!rawUrl) return '';
     if (rawUrl.startsWith('/')) {
@@ -231,8 +231,17 @@ export const PocStitchingPage: React.FC = () => {
     }
     try {
       const parsed = new URL(rawUrl);
-      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname.includes('sslip.io')) {
+      if (typeof window !== 'undefined') {
+        // Mọi ảnh trong /uploads/ đều nằm trên cùng host và đi qua Nginx port 80/443
+        if (parsed.pathname.includes('/uploads/')) {
+          return `${window.location.origin}${parsed.pathname}${parsed.search}`;
+        }
+        if (
+          parsed.hostname === 'localhost' ||
+          parsed.hostname === '127.0.0.1' ||
+          parsed.hostname.includes('sslip.io') ||
+          /^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname)
+        ) {
           return `${window.location.origin}${parsed.pathname}${parsed.search}`;
         }
       }
