@@ -524,106 +524,6 @@ stitchRouter.post('/verify-frame', uploadSingleFrame, async (req: Request, res: 
 });
 
 /**
- * POST /api/stitch/video
- * Nhận file video quay quét phòng (.mp4, .mov, .webm)
- * Tự động chạy Python: Trích xuất Keyframe thông minh (Lọc mờ + Đo góc vàng SIFT)
- * Ghép thành Panorama 360° sắc nét hoàn hảo
- */
-stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Response) => {
-  if (!req.file) {
-    return res.status(400).json({
-      success: false,
-      message: 'Vui lòng chọn hoặc tải lên file video quay phòng.'
-    });
-  }
-
-  const videoPath = req.file.path;
-  const outFilename = `stitched_video_${Date.now()}.jpg`;
-  const outputPath = path.join(UPLOAD_ROOT, outFilename);
-
-  const videoScript = path.join(process.cwd(), 'stitching_worker', 'video_keyframes_stitcher.py');
-  const altVideoScript = path.join(process.cwd(), '..', 'stitching_worker', 'video_keyframes_stitcher.py');
-  const actualScript = fs.existsSync(videoScript) ? videoScript : altVideoScript;
-
-  const args = [
-    actualScript,
-    '--video', videoPath,
-    '--output', outputPath,
-    '--max-keyframes', '24'
-  ];
-
-  console.log(`[Stitch API] Bắt đầu xử lý video quét phòng: ${videoPath} -> ${outputPath}`);
-
-  const pyProcess = spawn(PYTHON_PATH, args);
-
-  let stdoutData = '';
-  let stderrData = '';
-  let isClosed = false;
-
-  const timeoutTimer = setTimeout(() => {
-    if (!isClosed) {
-      isClosed = true;
-      try { pyProcess.kill('SIGKILL'); } catch (_) {}
-      if (!res.headersSent) {
-        return res.status(500).json({
-          success: false,
-          message: 'Thời gian trích xuất và ghép video quá lâu (>120s).'
-        });
-      }
-    }
-  }, 120000);
-
-  pyProcess.stdout.on('data', (d) => { stdoutData += d.toString(); });
-  pyProcess.stderr.on('data', (d) => { stderrData += d.toString(); });
-
-  pyProcess.on('close', async (code) => {
-    clearTimeout(timeoutTimer);
-    if (isClosed) return;
-    isClosed = true;
-
-    // Clean up uploaded video temp file to save disk space
-    try { if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath); } catch (_) {}
-
-    if (code !== 0 || !fs.existsSync(outputPath)) {
-      console.error('[Stitch API Video Error]:', stderrData || stdoutData);
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi trong quá trình trích xuất keyframe và ghép video: ' + (stderrData || stdoutData || 'Không tạo được ảnh đầu ra')
-      });
-    }
-
-    try {
-      let pyRes: any = {};
-      try {
-        pyRes = JSON.parse(stdoutData.trim());
-      } catch (_) {}
-
-      const meta = await sharp(outputPath).metadata();
-      const width = meta.width || pyRes.width || 4000;
-      const height = meta.height || pyRes.height || 1200;
-      const keyframeCount = pyRes.keyframes_count || 18;
-
-      return await finalizePanoramaAndRespond(
-        req,
-        res,
-        outputPath,
-        outFilename,
-        width,
-        height,
-        keyframeCount,
-        'Video Keyframe Extractor & Cylindrical 360 Engine',
-        `Ghép thành công từ ${keyframeCount} góc nhìn sắc nét trích xuất tự động từ video!`
-      );
-    } catch (procErr: any) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi hoàn thiện ảnh không gian: ' + procErr.message
-      });
-    }
-  });
-});
-
-/**
  * POST /api/stitch
  * Tạo gian phòng bảo tàng đa góc nhìn (Cách 2 chuẩn mực).
  * 100% không nếp gấp, không méo mó, ảnh sắc nét nguyên bản, đúng 1 Card duy nhất trong thư viện.
@@ -965,9 +865,9 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
             filename: outFilename,
             width: result.width,
             height: result.height,
-            aspectRatio: result.aspectRatio,
-            haov: result.haov,
-            vaov: result.vaov,
+            aspectRatio: result.aspectRatio || 2.0,
+            haov: result.haov || (result.aspectRatio >= 1.9 ? 360 : Math.round(70 * (result.aspectRatio || 2.0))),
+            vaov: result.vaov || (result.aspectRatio >= 1.9 ? 180 : 70),
             inputFramesCount: result.keyframesExtracted || 18,
             keyframesExtracted: result.keyframesExtracted || 18,
             processingTimeSec: result.processingTimeSec,

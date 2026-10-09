@@ -228,19 +228,19 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     const currentH = imageHeight || naturalDimensions?.height;
     const aspect = (currentW && currentH) ? (currentW / currentH) : 2.0;
 
-    // Ảnh chuẩn Equirectangular 360x180 độ có tỉ lệ ~2:1 (từ 1.88 đến 2.12)
-    const isStandardEqui = Math.abs(aspect - 2.0) <= 0.12 && !haov && !vaov;
+    // Ảnh chuẩn Equirectangular 360x180 độ có tỉ lệ ~2:1 (từ 1.85 đến 2.15) hoặc haov >= 350
+    const isStandardEqui = (Math.abs(aspect - 2.0) <= 0.15 || (Boolean(haov) && (haov ?? 0) >= 350)) && (!vaov || (vaov ?? 0) >= 170 || !haov);
 
     let effectiveHaov = haov;
     let effectiveVaov = vaov;
     let effectiveMinYaw = minYaw;
     let effectiveMaxYaw = maxYaw;
-    let effectiveMinPitch = minPitch !== undefined ? minPitch : -42;
-    let effectiveMaxPitch = maxPitch !== undefined ? maxPitch : 42;
-    let effectiveHfov = initialHfov || (isStandardEqui ? 100 : 80);
+    let effectiveMinPitch = minPitch !== undefined ? minPitch : -80;
+    let effectiveMaxPitch = maxPitch !== undefined ? maxPitch : 80;
+    let effectiveHfov = initialHfov || 100;
 
     if (!isStandardEqui) {
-      // Ảnh Panorama trích xuất từ Video / Album ảnh quét từng phần căn phòng:
+      // Ảnh Panorama trích xuất từng phần (Partial Panorama):
       // Góc nhìn dọc camera điện thoại ~70 độ
       const calculatedVaov = vaov || 70;
       const calculatedHaov = haov || Math.min(360, Math.round(calculatedVaov * aspect));
@@ -251,11 +251,11 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       effectiveVaov = calculatedVaov;
       effectiveMinYaw = minYaw !== undefined ? minYaw : -halfH;
       effectiveMaxYaw = maxYaw !== undefined ? maxYaw : halfH;
-      effectiveMinPitch = minPitch !== undefined ? minPitch : -Math.min(halfV, 38);
-      effectiveMaxPitch = maxPitch !== undefined ? maxPitch : Math.min(halfV, 38);
+      effectiveMinPitch = minPitch !== undefined ? minPitch : -Math.min(halfV, 45);
+      effectiveMaxPitch = maxPitch !== undefined ? maxPitch : Math.min(halfV, 45);
 
-      // Đặt góc nhìn ban đầu vừa vặn bao quát cả căn phòng, triệt tiêu hoàn toàn hiện tượng phóng đại (zoom in) vào 1 điểm
-      effectiveHfov = initialHfov || Math.min(calculatedHaov * 0.75, 80);
+      // Đặt góc nhìn ban đầu vừa vặn bao quát cả căn phòng
+      effectiveHfov = initialHfov || Math.min(calculatedHaov * 0.75, 85);
     }
 
     try {

@@ -1724,6 +1724,8 @@ def run_stitch(image_paths, output_path, target_width=0):
         "height": h,
         "aspectRatio": cur_ar,
         "aspectRatioStr": f"{w}:{h}",
+        "haov": 360.0 if abs(cur_ar - 2.0) <= 0.1 else min(360.0, round(70.0 * cur_ar, 1)),
+        "vaov": 180.0 if abs(cur_ar - 2.0) <= 0.1 else 70.0,
         "engine": "equiangular_cylindrical_voronoi",
         "processingTimeSec": total_time,
         "message": f"Đã ghép thành công không gian phòng 360° ({w}x{h}, {total_time}s) sắc nét chuẩn bảo tàng, không lặp hình."
