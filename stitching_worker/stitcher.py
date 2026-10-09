@@ -343,12 +343,14 @@ def crop_clean_inscribed_rectangle(image, black_thresh=15):
     if not np.any(mask):
         return image
 
-    # Tỷ lệ pixel có nội dung trên mỗi hàng và mỗi cột (yêu cầu ít nhất 95% là nội dung thật, triệt tiêu 100% rìa đen lượn sóng)
+    # Tỷ lệ pixel có nội dung trên mỗi hàng và mỗi cột
     row_density = np.mean(mask, axis=1)
     col_density = np.mean(mask, axis=0)
 
-    valid_rows = np.where(row_density >= 0.95)[0]
-    valid_cols = np.where(col_density >= 0.95)[0]
+    # Cột chỉ cần có nội dung (>= 15% chiều cao) để giữ trọn vẹn toàn bộ các góc phòng quanh chu vi
+    valid_cols = np.where(col_density >= 0.15)[0]
+    # Hàng cần đủ nội dung (>= 70% chiều ngang) để cắt sạch trần và sàn lượn sóng
+    valid_rows = np.where(row_density >= 0.70)[0]
 
     if len(valid_rows) > 50 and len(valid_cols) > 50:
         top = valid_rows[0]
@@ -429,18 +431,16 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
         scaled_pano = cv2.resize(panorama, (ew, eh), interpolation=cv2.INTER_LANCZOS4)
         return circular_seam_blend(scaled_pano, seam_width=45)
 
-    # Co giãn đồng dạng ĐẲNG HƯỚNG (Isotropic Scaling) - TUYỆT ĐỐI KHÔNG BÓP MÉO TỈ LỆ ẢNH
-    scale = min(float(ew) / float(w_orig), float(eh) / float(h_orig))
-    scaled_w = max(1, int(w_orig * scale))
-    scaled_h = max(1, int(h_orig * scale))
+    # Co giãn đảm bảo chiều ngang luôn phủ kín toàn bộ chu vi 360° (ew = 4096)
+    scaled_w = ew
+    scaled_h = min(eh, max(1, int(h_orig * (float(ew) / float(w_orig)))))
 
     scaled_pano = cv2.resize(panorama, (scaled_w, scaled_h), interpolation=cv2.INTER_LANCZOS4)
     scaled_pano = circular_seam_blend(scaled_pano, seam_width=45)
 
     canvas = np.zeros((eh, ew, 3), dtype=np.uint8)
-    x_offset = (ew - scaled_w) // 2
     y_offset = (eh - scaled_h) // 2
-    canvas[y_offset : y_offset + scaled_h, x_offset : x_offset + scaled_w] = scaled_pano
+    canvas[y_offset : y_offset + scaled_h, :] = scaled_pano
 
     # 1. Xử lý Trần nhà (Zenith) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG!
     if y_offset > 0:
@@ -450,7 +450,7 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
             t = float(y) / float(y_offset)
             s = t * t * (3.0 - 2.0 * t) # Smoothstep
             blended = (1.0 - s) * zenith_avg + s * scaled_pano[0, :]
-            canvas[y, x_offset : x_offset + scaled_w] = np.clip(blended, 0, 255).astype(np.uint8)
+            canvas[y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
     # 2. Xử lý Sàn nhà (Nadir) - KHÔNG ĐỂ MÀU ĐEN & TRIỆT TIÊU VỆT CỘT SÁNG!
     floor_start = y_offset + scaled_h
@@ -462,7 +462,7 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
             t = float(floor_h - y) / float(floor_h)
             s = t * t * (3.0 - 2.0 * t) # Smoothstep
             blended = (1.0 - s) * nadir_avg + s * scaled_pano[-1, :]
-            canvas[floor_start + y, x_offset : x_offset + scaled_w] = np.clip(blended, 0, 255).astype(np.uint8)
+            canvas[floor_start + y, :] = np.clip(blended, 0, 255).astype(np.uint8)
 
     return circular_seam_blend(canvas, seam_width=45)
 
@@ -771,10 +771,10 @@ def run_opencv_native_stitcher(image_paths, target_width=0):
     log(f"[*] Kích hoạt Động cơ OpenCV Native: Đang nạp và tiền xử lý CLAHE {num_imgs} bức ảnh...")
 
     configs = [
-        (cv2.Stitcher_PANORAMA, 1400, 0.12, "PANORAMA Chuẩn 360"),
-        (cv2.Stitcher_PANORAMA, 1200, 0.06, "PANORAMA Cầm Tay Nhạy"),
-        (cv2.Stitcher_PANORAMA, 1000, 0.03, "PANORAMA Siêu Nhạy"),
-        (cv2.Stitcher_SCANS, 1200, 0.04, "SCANS Cầm Tay"),
+        (cv2.Stitcher_PANORAMA, 1100, 0.08, "PANORAMA Chuẩn 360"),
+        (cv2.Stitcher_PANORAMA, 900, 0.04, "PANORAMA Cầm Tay Nhạy"),
+        (cv2.Stitcher_PANORAMA, 700, 0.02, "PANORAMA Siêu Nhạy"),
+        (cv2.Stitcher_SCANS, 900, 0.03, "SCANS Cầm Tay"),
     ]
 
     for mode, max_dim, conf, desc in configs:
@@ -807,6 +807,10 @@ def run_opencv_native_stitcher(image_paths, target_width=0):
                 pass
             try:
                 s.setSeamEstimationResol(0.15)
+            except Exception:
+                pass
+            try:
+                s.setCompositingResol(1.5)
             except Exception:
                 pass
 
@@ -1688,21 +1692,62 @@ def run_stitch(image_paths, output_path, target_width=0):
 
     final_pano = None
 
-    # ƯU TIÊN SỐ 1: ĐỘNG CƠ GHÉP TRỤ ĐỒNG GÓC BẢO TÀNG (EQUI-ANGULAR CYLINDRICAL STRIDE ENGINE)
-    # Siêu nhẹ (< 1s, RAM < 80MB), 100% thẳng góc tường, không lệch tranh, không lặp cột, không méo thị sai
-    log(f"[*] Kích hoạt Động cơ Ghép Trụ Đồng Góc (Equi-Angular Cylindrical Stride Engine)...")
-    final_pano = run_equiangular_cylindrical_stitcher(sorted_paths, target_width=out_w)
+    engine_used = "sequential_cylindrical_sift"
 
-    # Ưu tiên số 2 (Dự phòng): Ghép phẳng kiến trúc
+    # ƯU TIÊN SỐ 1: Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Motion-Aligned Cylindrical Stitcher)
+    # Tự động loại bỏ ảnh trùng, đo dịch chuyển SIFT tuần tự, khép vòng 360° và hòa trộn biên mềm trong 4-6s!
+    try:
+        log("[*] Kích hoạt Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical SIFT & Loop Closure)...")
+        res_seq = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
+        if isinstance(res_seq, tuple):
+            final_pano = res_seq[0]
+        elif res_seq is not None:
+            final_pano = res_seq
+        if final_pano is not None:
+            engine_used = "sequential_cylindrical_sift"
+    except Exception as seq_err:
+        log(f"[!] Sequential Cylindrical thất bại: {seq_err}")
+
+    # ƯU TIÊN SỐ 2: OpenCV Native C++ Stitcher (Bundle Adjustment & Multi-band Blending)
     if final_pano is None:
-        log("[*] Kích hoạt cơ chế dự phòng ghép phẳng kiến trúc...")
-        final_pano = run_planar_architectural_stitcher(sorted_paths, target_width=out_w)
+        try:
+            log("[*] Kích hoạt Động cơ OpenCV Native Stitcher (SIFT/ORB & Multi-band Blending)...")
+            res_cv = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
+            if isinstance(res_cv, tuple):
+                final_pano = res_cv[0]
+            elif res_cv is not None:
+                final_pano = res_cv
+            if final_pano is not None:
+                engine_used = "opencv_native"
+        except Exception as cv_err:
+            log(f"[!] OpenCV Native không hội tụ: {cv_err}")
 
-    # Ưu tiên số 3 (Dự phòng khẩn cấp): Nạp ảnh chính
+    # ƯU TIÊN SỐ 3 (Dự phòng): Ghép phẳng kiến trúc
+    if final_pano is None:
+        try:
+            log("[*] Kích hoạt cơ chế dự phòng ghép phẳng kiến trúc...")
+            res_pl = run_planar_architectural_stitcher(sorted_paths, target_width=out_w)
+            if isinstance(res_pl, tuple):
+                final_pano = res_pl[0]
+            elif res_pl is not None:
+                final_pano = res_pl
+            if final_pano is not None:
+                engine_used = "planar_architectural"
+        except Exception as pl_err:
+            log(f"[!] Planar architectural thất bại: {pl_err}")
+
+    # ƯU TIÊN SỐ 4 (Dự phòng cuối cùng khi phòng hoàn toàn không có vân tường):
+    if final_pano is None:
+        log("[*] Kích hoạt cơ chế dự phòng trụ đồng góc Voronoi...")
+        final_pano = run_equiangular_cylindrical_stitcher(sorted_paths, target_width=out_w)
+        engine_used = "equiangular_cylindrical_voronoi"
+
+    # ƯU TIÊN SỐ 5 (Dự phòng khẩn cấp): Nạp ảnh chính
     if final_pano is None:
         log("[*] Nạp ảnh chính góc nhìn chuẩn bảo tàng...")
         im0 = load_and_orient_image(sorted_paths[0], max_dim=3000)
         final_pano = enhance_museum_details(im0)
+        engine_used = "single_image_fallback"
 
     # Đảm bảo tỷ lệ 2:1 Equirectangular cho WebGL 360 viewer
     h_cur, w_cur = final_pano.shape[:2]
@@ -1726,7 +1771,7 @@ def run_stitch(image_paths, output_path, target_width=0):
         "aspectRatioStr": f"{w}:{h}",
         "haov": 360.0 if abs(cur_ar - 2.0) <= 0.1 else min(360.0, round(70.0 * cur_ar, 1)),
         "vaov": 180.0 if abs(cur_ar - 2.0) <= 0.1 else 70.0,
-        "engine": "equiangular_cylindrical_voronoi",
+        "engine": engine_used,
         "processingTimeSec": total_time,
         "message": f"Đã ghép thành công không gian phòng 360° ({w}x{h}, {total_time}s) sắc nét chuẩn bảo tàng, không lặp hình."
     }
