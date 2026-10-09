@@ -1830,10 +1830,25 @@ def run_stitch(image_paths, output_path, target_width=0):
         final_pano = enhance_museum_details(im0)
         engine_used = "single_image_fallback"
 
-    # Đảm bảo tỷ lệ 2:1 Equirectangular cho WebGL 360 viewer
+    # Chuẩn hóa kích thước đầu ra:
+    # Cắt gọn sạch viền nội tiếp trước
+    final_pano = crop_clean_inscribed_rectangle(final_pano)
     h_cur, w_cur = final_pano.shape[:2]
-    if w_cur != out_w or abs(float(w_cur) / float(max(1, h_cur)) - 2.0) > 0.01:
-        final_pano = fit_to_equirectangular_2_to_1(final_pano, target_width=out_w, is_full_360=True)
+    cur_ar = float(w_cur) / float(max(1, h_cur))
+
+    if abs(cur_ar - 2.0) <= 0.15:
+        # Ảnh từ camera 360 chuyên dụng (Ricoh Theta, Insta360) đã có đủ 360x180 độ
+        final_pano = cv2.resize(final_pano, (out_w, out_w // 2), interpolation=cv2.INTER_LANCZOS4)
+        final_pano = circular_seam_blend(final_pano, seam_width=45)
+        vaov_val = 180.0
+    else:
+        # Ảnh panorama quét chu vi 360 độ từ video:
+        # TUYỆT ĐỐI KHÔNG VÁ ĐỆM BỪA BÃI 380PX MỜ ẢO GÂY MẤT THẨM MỸ!
+        # Bảo tồn 100% hình ảnh thực tế, chuẩn hóa chiều rộng out_w và tính chiều cao theo đúng tỷ lệ thật:
+        target_h = max(1, int(round(out_w / cur_ar)))
+        final_pano = cv2.resize(final_pano, (out_w, target_h), interpolation=cv2.INTER_LANCZOS4)
+        final_pano = circular_seam_blend(final_pano, seam_width=45)
+        vaov_val = round(360.0 / cur_ar, 1)
 
     equi_pano = enhance_museum_details(final_pano)
 
@@ -1850,8 +1865,8 @@ def run_stitch(image_paths, output_path, target_width=0):
         "height": h,
         "aspectRatio": cur_ar,
         "aspectRatioStr": f"{w}:{h}",
-        "haov": 360.0 if abs(cur_ar - 2.0) <= 0.1 else min(360.0, round(70.0 * cur_ar, 1)),
-        "vaov": 180.0 if abs(cur_ar - 2.0) <= 0.1 else 70.0,
+        "haov": 360.0,
+        "vaov": vaov_val,
         "engine": engine_used,
         "processingTimeSec": total_time,
         "message": f"Đã ghép thành công không gian phòng 360° ({w}x{h}, {total_time}s) sắc nét chuẩn bảo tàng, không lặp hình."
