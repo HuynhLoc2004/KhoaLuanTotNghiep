@@ -1794,7 +1794,7 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
 
     det_w, det_h = 480, 270
     orb = cv2.ORB_create(600)
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
 
     g0 = cv2.resize(cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY), (det_w, det_h))
     kp0, des0 = orb.detectAndCompute(g0, None)
@@ -1833,12 +1833,15 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
         # 1. Đo dịch chuyển vi sai liên tục (Frame-to-Frame Incremental Tracking)
         # Giữa 2 frame cách nhau 66ms, độ chồng lấp luôn > 95% nên KHÔNG BAO GIỜ MẤT DẤU
         inc_dx = 0.0
-        if des_last is not None:
-            m = bf.match(des_last, desc)
-            if len(m) >= 12:
-                p1 = np.float32([kp_last[x.queryIdx].pt for x in m])
-                p2 = np.float32([kpc[x.trainIdx].pt for x in m])
-                inc_dx = float(np.median(p1[:, 0] - p2[:, 0]))
+        if des_last is not None and desc is not None:
+            try:
+                m = bf.match(des_last, desc)
+                if len(m) >= 12:
+                    p1 = np.float32([kp_last[x.queryIdx].pt for x in m])
+                    p2 = np.float32([kpc[x.trainIdx].pt for x in m])
+                    inc_dx = float(np.median(p1[:, 0] - p2[:, 0]))
+            except Exception:
+                pass
 
         abs_inc = abs(inc_dx)
         cum_dx += abs_inc
@@ -1848,17 +1851,20 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
         # 2. Tự động phát hiện khép vòng 360° (Loop Closure với F0):
         # Yêu cầu camera đã quay ít nhất chu vi ~2200px (tương đương ~320°+ thực tế)
         # và thẩm định khắt khe bằng RANSAC Affine Inliers để không ngắt nhầm giữa các bức tường giống nhau
-        if cum_dx >= 2200.0 and len(selected_raw) >= 12 and des0 is not None:
-            m0 = bf.knnMatch(des0, desc, k=2)
-            good0 = [m[0] for m in m0 if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
-            if len(good0) >= 18:
-                p0 = np.float32([kp0[x.queryIdx].pt for x in good0])
-                pc = np.float32([kpc[x.trainIdx].pt for x in good0])
-                M_lc, inls_lc = cv2.estimateAffinePartial2D(p0, pc, method=cv2.RANSAC, ransacReprojThreshold=15.0)
-                if inls_lc is not None and int(np.sum(inls_lc)) >= 14:
-                    loop_closed = True
-                    log(f"[★] Nhận diện Khép vòng 360° chuẩn xác tại frame {frame_idx} (cum_dx={cum_dx:.0f}px, inliers={int(np.sum(inls_lc))})! Ngắt video ngay để chống quay lố.")
-                    break
+        if cum_dx >= 2200.0 and len(selected_raw) >= 12 and des0 is not None and desc is not None:
+            try:
+                m0 = bf.knnMatch(des0, desc, k=2)
+                good0 = [m[0] for m in m0 if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
+                if len(good0) >= 18:
+                    p0 = np.float32([kp0[x.queryIdx].pt for x in good0])
+                    pc = np.float32([kpc[x.trainIdx].pt for x in good0])
+                    M_lc, inls_lc = cv2.estimateAffinePartial2D(p0, pc, method=cv2.RANSAC, ransacReprojThreshold=15.0)
+                    if inls_lc is not None and int(np.sum(inls_lc)) >= 14:
+                        loop_closed = True
+                        log(f"[★] Nhận diện Khép vòng 360° chuẩn xác tại frame {frame_idx} (cum_dx={cum_dx:.0f}px, inliers={int(np.sum(inls_lc))})! Ngắt video ngay để chống quay lố.")
+                        break
+            except Exception as lc_err:
+                log(f"[Warning] Loop closure check error: {lc_err}")
 
         # 3. Thu thập Keyframe: Khi đã dịch chuyển đủ góc HOẶC khi qua tường trơn (timeout)
         # Đảm bảo 100% không gian video đều được ghi nhận trọn vẹn, không bỏ sót bất kỳ góc nào
