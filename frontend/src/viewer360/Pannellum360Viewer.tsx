@@ -61,8 +61,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   initialPitch = 0,
   initialYaw = 0,
   initialHfov,
-  minPitch = -65,
-  maxPitch = 65,
+  minPitch = -85,
+  maxPitch = 85,
   focusCoords,
   hideControls = false,
   autoRotateSpeed = 0,
@@ -235,8 +235,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     let effectiveVaov = vaov;
     let effectiveMinYaw = minYaw;
     let effectiveMaxYaw = maxYaw;
-    let effectiveMinPitch = minPitch !== undefined ? minPitch : -65;
-    let effectiveMaxPitch = maxPitch !== undefined ? maxPitch : 65;
+    let effectiveMinPitch = minPitch !== undefined ? minPitch : -85;
+    let effectiveMaxPitch = maxPitch !== undefined ? maxPitch : 85;
     let effectiveHfov = initialHfov || 100;
 
     if (!isStandardEqui) {
