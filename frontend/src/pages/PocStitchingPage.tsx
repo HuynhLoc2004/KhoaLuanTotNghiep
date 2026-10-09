@@ -1313,79 +1313,6 @@ export const PocStitchingPage: React.FC = () => {
 
                     {stitchResult && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                        {/* Bộ chuyển chế độ: Không Gian 360° (Mặc định) vs Xem ảnh chi tiết */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            background: 'rgba(0,0,0,0.55)',
-                            borderRadius: 8,
-                            padding: 3,
-                            border: '1px solid rgba(212,168,106,0.3)',
-                            gap: 3
-                          }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setViewerMode('pano360')}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              padding: '5px 12px',
-                              fontSize: '12px',
-                              borderRadius: 6,
-                              background: viewerMode === 'pano360' ? 'linear-gradient(135deg, #d4a86a, #b8860b)' : 'transparent',
-                              color: viewerMode === 'pano360' ? '#111' : '#d4a86a',
-                              fontWeight: viewerMode === 'pano360' ? 700 : 500,
-                              border: 'none',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                            title="Không gian 360° tự do kéo xoay ngắm nhìn toàn cảnh gian phòng"
-                          >
-                            <Globe size={14} />
-                            <span>🌐 Trình Xoay 360°</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setViewerMode('spatial')}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              padding: '5px 12px',
-                              fontSize: '12px',
-                              borderRadius: 6,
-                              background: viewerMode === 'spatial' ? 'linear-gradient(135deg, #d4a86a, #b8860b)' : 'transparent',
-                              color: viewerMode === 'spatial' ? '#111' : '#d4a86a',
-                              fontWeight: viewerMode === 'spatial' ? 700 : 500,
-                              border: 'none',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                            title="Xem dạng ảnh phẳng chữ nhật nguyên bản, kiểm tra chi tiết các góc"
-                          >
-                            <Layout size={14} />
-                            <span>📐 Góc Nhìn Phẳng</span>
-                          </button>
-
-                          {stitchResult.views && stitchResult.views.length > 1 && (
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                color: 'rgba(255,255,255,0.7)',
-                                padding: '0 8px',
-                                borderLeft: '1px solid rgba(212,168,106,0.3)',
-                                whiteSpace: 'nowrap'
-                              }}
-                            >
-                              ({stitchResult.views.length} góc)
-                            </span>
-                          )}
-                        </div>
-
                         <button
                           type="button"
                           className="btn btn-primary btn-sm"
@@ -1456,68 +1383,28 @@ export const PocStitchingPage: React.FC = () => {
                     )}
 
                     {stitchResult ? (
-                      viewerMode === 'spatial' ? (
-                        <SpatialRoomViewer
-                          currentUrl={activeViewUrl || stitchResult.panoramaUrl}
-                          views={stitchResult.views || []}
+                      <div
+                        style={{
+                          position: 'relative',
+                          width: '100%',
+                          height: '100%',
+                          opacity: isViewFading ? 0 : 1,
+                          transition: 'opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+                          pointerEvents: isViewFading ? 'none' : 'auto'
+                        }}
+                      >
+                        <Pannellum360Viewer
+                          key={stitchResult.panoramaUrl}
+                          panoramaUrl={stitchResult.panoramaUrl}
                           title={stitchResult.filename}
-                          onSwitchView={handleSwitchView}
+                          autoStartLittlePlanet={false}
+                          initialPitch={0}
+                          imageWidth={stitchResult.width}
+                          imageHeight={stitchResult.height}
+                          haov={stitchResult.haov}
+                          vaov={stitchResult.vaov}
                         />
-                      ) : (
-                        <>
-                          <div
-                            style={{
-                              position: 'relative',
-                              width: '100%',
-                              height: '100%',
-                              opacity: isViewFading ? 0 : 1,
-                              transition: 'opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
-                              pointerEvents: isViewFading ? 'none' : 'auto'
-                            }}
-                          >
-                            <Pannellum360Viewer
-                              key={stitchResult.panoramaUrl}
-                              panoramaUrl={stitchResult.panoramaUrl}
-                              title={stitchResult.filename}
-                              autoStartLittlePlanet={false}
-                              initialPitch={0}
-                              imageWidth={stitchResult.width}
-                              imageHeight={stitchResult.height}
-                              haov={stitchResult.haov}
-                              vaov={stitchResult.vaov}
-                            />
-
-                            {/* Badge chỉ dẫn tương tác xoay 360 trực quan */}
-                            <div
-                              style={{
-                                position: 'absolute',
-                                top: 14,
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                background: 'rgba(10, 15, 25, 0.85)',
-                                backdropFilter: 'blur(8px)',
-                                color: '#e2e8f0',
-                                padding: '6px 16px',
-                                borderRadius: '20px',
-                                fontSize: '12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                border: '1px solid rgba(212, 168, 106, 0.4)',
-                                pointerEvents: 'none',
-                                zIndex: 5,
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
-                              }}
-                            >
-                              <Compass size={15} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
-                              <span style={{ fontWeight: 600, color: 'var(--accent-gold, #d4a86a)' }}>
-                                Không Gian Phòng 360°:
-                              </span>
-                              <span>Kéo chuột hoặc vuốt tay để xoay nhìn 360° quanh gian phòng</span>
-                            </div>
-                          </div>
-                        </>
-                      )
+                      </div>
                     ) : (
                       <div className="studio-empty-viewer">
                         <div className="studio-empty-icon">
