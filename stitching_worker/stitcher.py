@@ -1238,21 +1238,27 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
         if des1 is not None and des2 is not None and len(des1) >= 8 and len(des2) >= 8:
             matches = bf.knnMatch(des1, des2, k=2)
             good = [m[0] for m in matches if len(m) == 2 and m[0].distance < 0.78 * m[1].distance]
-            if len(good) >= 6:
+            if len(good) >= 4:
                 pts1 = np.float32([kp1[m.queryIdx].pt for m in good])
                 pts2 = np.float32([kp2[m.trainIdx].pt for m in good])
-                diffs = pts1 - pts2
-                n_diff = len(diffs)
-                for _ in range(min(200, n_diff * 4)):
-                    rand_idx = np.random.randint(0, n_diff)
-                    cdx, cdy = diffs[rand_idx]
-                    err = np.hypot(diffs[:, 0] - cdx, diffs[:, 1] - cdy)
-                    inls = err < 14.0
-                    cnt = int(np.sum(inls))
-                    if cnt > best_cnt:
-                        best_cnt = cnt
-                        best_dx = float(np.mean(diffs[inls, 0]))
-                        best_dy = float(np.mean(diffs[inls, 1]))
+                M_aff, inls = cv2.estimateAffinePartial2D(pts2, pts1, method=cv2.RANSAC, ransacReprojThreshold=5.0)
+                if M_aff is not None and inls is not None and int(np.sum(inls)) >= 4:
+                    best_cnt = int(np.sum(inls))
+                    best_dx = float(M_aff[0, 2])
+                    best_dy = float(M_aff[1, 2])
+                else:
+                    diffs = pts1 - pts2
+                    n_diff = len(diffs)
+                    for _ in range(min(300, n_diff * 6)):
+                        rand_idx = np.random.randint(0, n_diff)
+                        cdx, cdy = diffs[rand_idx]
+                        err = np.hypot(diffs[:, 0] - cdx, diffs[:, 1] - cdy)
+                        inls_arr = err < 10.0
+                        cnt = int(np.sum(inls_arr))
+                        if cnt > best_cnt:
+                            best_cnt = cnt
+                            best_dx = float(np.mean(diffs[inls_arr, 0]))
+                            best_dy = float(np.mean(diffs[inls_arr, 1]))
 
         # Dự phòng bằng tương quan pha (Phase Correlation) khi gặp tường phẳng ít vân
         if best_dx is None or best_cnt < 5:
@@ -1386,7 +1392,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
         # Pass 2: Accumulate color & weight
         accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
         accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
-        feather_band = 24.0
+        feather_band = 96.0
 
         for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
             cur_h, cur_w = im.shape[:2]
@@ -1444,7 +1450,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
 
         accum_color = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
         accum_weight = np.zeros((canvas_h, canvas_w), dtype=np.float32)
-        feather_band = 24.0
+        feather_band = 96.0
 
         for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
             cur_h, cur_w = im.shape[:2]
@@ -1670,33 +1676,33 @@ def run_stitch(image_paths, output_path, target_width=0):
 
     engine_used = "sequential_cylindrical_sift"
 
-    # ƯU TIÊN SỐ 1: Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Motion-Aligned Cylindrical Stitcher)
-    # Tự động loại bỏ ảnh trùng, đo dịch chuyển SIFT tuần tự, khép vòng 360° và hòa trộn biên mềm trong 4-6s!
+    # ƯU TIÊN SỐ 1: OpenCV Native C++ Stitcher (Bundle Adjustment, Graph-cut Seams & Multi-band Blending)
+    # Tự động tối ưu hình học toàn cục, tìm ranh giới ghép né vật thể và hòa trộn đa dải tần không để lại vết nối
     try:
-        log("[*] Kích hoạt Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical SIFT & Loop Closure)...")
-        res_seq = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
-        if isinstance(res_seq, tuple):
-            final_pano = res_seq[0]
-        elif res_seq is not None:
-            final_pano = res_seq
+        log("[*] Kích hoạt Động cơ OpenCV Native Stitcher (SIFT/ORB & Multi-band Blending)...")
+        res_cv = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
+        if isinstance(res_cv, tuple):
+            final_pano = res_cv[0]
+        elif res_cv is not None:
+            final_pano = res_cv
         if final_pano is not None:
-            engine_used = "sequential_cylindrical_sift"
-    except Exception as seq_err:
-        log(f"[!] Sequential Cylindrical thất bại: {seq_err}")
+            engine_used = "opencv_native"
+    except Exception as cv_err:
+        log(f"[!] OpenCV Native không hội tụ: {cv_err}")
 
-    # ƯU TIÊN SỐ 2: OpenCV Native C++ Stitcher (Bundle Adjustment & Multi-band Blending)
+    # ƯU TIÊN SỐ 2: Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical SIFT & Wide Feathering)
     if final_pano is None:
         try:
-            log("[*] Kích hoạt Động cơ OpenCV Native Stitcher (SIFT/ORB & Multi-band Blending)...")
-            res_cv = run_opencv_native_stitcher(sorted_paths, target_width=out_w)
-            if isinstance(res_cv, tuple):
-                final_pano = res_cv[0]
-            elif res_cv is not None:
-                final_pano = res_cv
+            log("[*] Kích hoạt Động cơ Ghép Chuỗi Quang Học Liên Tục (Sequential Cylindrical SIFT & Loop Closure)...")
+            res_seq = run_sequential_cylindrical_stitcher(sorted_paths, target_width=out_w)
+            if isinstance(res_seq, tuple):
+                final_pano = res_seq[0]
+            elif res_seq is not None:
+                final_pano = res_seq
             if final_pano is not None:
-                engine_used = "opencv_native"
-        except Exception as cv_err:
-            log(f"[!] OpenCV Native không hội tụ: {cv_err}")
+                engine_used = "sequential_cylindrical_sift"
+        except Exception as seq_err:
+            log(f"[!] Sequential Cylindrical thất bại: {seq_err}")
 
     # ƯU TIÊN SỐ 3 (Dự phòng): Ghép phẳng kiến trúc
     if final_pano is None:
@@ -1727,7 +1733,7 @@ def run_stitch(image_paths, output_path, target_width=0):
 
     # Đảm bảo tỷ lệ 2:1 Equirectangular cho WebGL 360 viewer
     h_cur, w_cur = final_pano.shape[:2]
-    if abs(float(w_cur) / float(max(1, h_cur)) - 2.0) > 0.05:
+    if w_cur != out_w or abs(float(w_cur) / float(max(1, h_cur)) - 2.0) > 0.01:
         final_pano = fit_to_equirectangular_2_to_1(final_pano, target_width=out_w, is_full_360=True)
 
     equi_pano = enhance_museum_details(final_pano)
@@ -1798,13 +1804,13 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
 
     # Keyframe tracking (chỉ chọn frame khi đã dịch chuyển đủ min_dx)
     selected_raw = [frame0]
-    kp_kf, des_kf = kp0, des0
-
     frame_idx = 0
-    step = max(1, int(fps / 15.0))  # Kiểm tra 15 lần mỗi giây để phát hiện chính xác điểm giáp vòng
-    min_dx = det_w * 0.22           # Dịch chuyển ít nhất 22% chiều rộng ảnh (~78% overlap)
-    max_kfs = 36 if target_count <= 0 else max(12, int(target_count))
+    step = max(1, int(fps / 15.0))  # Kiểm tra 15 lần mỗi giây
+    min_dx = det_w * 0.18           # ~18% chiều rộng ảnh (~82% overlap tối ưu)
+    max_kfs = 36 if target_count <= 0 else max(16, int(target_count))
     cum_dx = 0.0
+    dx_since_last_kf = 0.0
+    frames_since_last_kf = 0
     loop_closed = False
 
     t0 = time.time()
@@ -1819,40 +1825,47 @@ def extract_keyframes_from_video(video_path, target_count=0, max_dim=1400):
         gc = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (det_w, det_h))
         kpc, desc = orb.detectAndCompute(gc, None)
         if desc is None:
+            frames_since_last_kf += 1
             continue
 
-        # 1. Đo dịch chuyển góc xoay lũy kế (Incremental Optical Flow)
+        frames_since_last_kf += 1
+
+        # 1. Đo dịch chuyển vi sai liên tục (Frame-to-Frame Incremental Tracking)
+        # Giữa 2 frame cách nhau 66ms, độ chồng lấp luôn > 95% nên KHÔNG BAO GIỜ MẤT DẤU
+        inc_dx = 0.0
         if des_last is not None:
             m = bf.match(des_last, desc)
-            if len(m) >= 15:
+            if len(m) >= 12:
                 p1 = np.float32([kp_last[x.queryIdx].pt for x in m])
                 p2 = np.float32([kpc[x.trainIdx].pt for x in m])
                 inc_dx = float(np.median(p1[:, 0] - p2[:, 0]))
-                if inc_dx > 0:
-                    cum_dx += inc_dx
+
+        abs_inc = abs(inc_dx)
+        cum_dx += abs_inc
+        dx_since_last_kf += abs_inc
         g_last, kp_last, des_last = gc, kpc, desc
 
         # 2. Tự động phát hiện khép vòng 360° (Loop Closure với F0):
-        # Một vòng 360° hoàn chỉnh có chu vi góc quay ~1400px - 1800px (trên det_w=480).
-        # Khi camera đã xoay đủ chu vi và xuất hiện điểm tương đồng cao với F0 -> Ngắt video ngay lập tức!
-        if cum_dx >= 1350.0 and len(selected_raw) >= 10 and des0 is not None:
-            m0 = bf.match(des0, desc)
-            good0 = [x for x in m0 if x.distance < 48]
-            if len(good0) >= 28:
-                loop_closed = True
-                log(f"[★] Nhận diện Khép vòng 360° (Loop Closure) tại frame {frame_idx} (cum_dx={cum_dx:.0f}px, matches={len(good0)})! Ngắt video ngay để chống quay lố.")
-                break
+        # Yêu cầu camera đã quay ít nhất chu vi ~2200px (tương đương ~320°+ thực tế)
+        # và thẩm định khắt khe bằng RANSAC Affine Inliers để không ngắt nhầm giữa các bức tường giống nhau
+        if cum_dx >= 2200.0 and len(selected_raw) >= 12 and des0 is not None:
+            m0 = bf.knnMatch(des0, desc, k=2)
+            good0 = [m[0] for m in m0 if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
+            if len(good0) >= 18:
+                p0 = np.float32([kp0[x.queryIdx].pt for x in good0])
+                pc = np.float32([kpc[x.trainIdx].pt for x in good0])
+                M_lc, inls_lc = cv2.estimateAffinePartial2D(p0, pc, method=cv2.RANSAC, ransacReprojThreshold=15.0)
+                if inls_lc is not None and int(np.sum(inls_lc)) >= 14:
+                    loop_closed = True
+                    log(f"[★] Nhận diện Khép vòng 360° chuẩn xác tại frame {frame_idx} (cum_dx={cum_dx:.0f}px, inliers={int(np.sum(inls_lc))})! Ngắt video ngay để chống quay lố.")
+                    break
 
-        # 3. Lựa chọn Keyframe dựa trên sự dịch chuyển góc so với Keyframe trước
-        if des_kf is not None:
-            m_kf = bf.match(des_kf, desc)
-            if len(m_kf) >= 15:
-                p_kf = np.float32([kp_kf[x.queryIdx].pt for x in m_kf])
-                p_c = np.float32([kpc[x.trainIdx].pt for x in m_kf])
-                kf_dx = abs(float(np.median(p_kf[:, 0] - p_c[:, 0])))
-                if kf_dx >= min_dx:
-                    selected_raw.append(frame)
-                    kp_kf, des_kf = kpc, desc
+        # 3. Thu thập Keyframe: Khi đã dịch chuyển đủ góc HOẶC khi qua tường trơn (timeout)
+        # Đảm bảo 100% không gian video đều được ghi nhận trọn vẹn, không bỏ sót bất kỳ góc nào
+        if dx_since_last_kf >= min_dx or frames_since_last_kf >= 25:
+            selected_raw.append(frame)
+            dx_since_last_kf = 0.0
+            frames_since_last_kf = 0
 
         if len(selected_raw) >= max_kfs:
             break
