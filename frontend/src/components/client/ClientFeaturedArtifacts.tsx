@@ -4,11 +4,11 @@ import { Artifact } from '../../types';
 import { API_ROOT } from '../../services/api';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { Turntable360Viewer } from '../Turntable360Viewer';
+import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 
 interface ClientFeaturedArtifactsProps {
   artifacts: Artifact[];
-  onOpen3DViewer?: (artifact: Artifact) => void;
+  onOpen3DViewer: (artifact: Artifact) => void;
   onSelectArtifactDetail?: (artifactId: string) => void;
   onViewAllArtifacts: () => void;
 }
@@ -24,14 +24,8 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
 
   const sortedArtifacts = React.useMemo(() => {
     return [...artifacts].sort((a, b) => {
-      const has3DA = a.model3dUrl ? 1 : 0;
-      const has3DB = b.model3dUrl ? 1 : 0;
-      if (has3DA !== has3DB) return has3DB - has3DA;
-
-      const timeA = new Date((a as any).createdAt || (a as any).updatedAt || (a as any).created_at || 0).getTime();
-      const timeB = new Date((b as any).createdAt || (b as any).updatedAt || (b as any).created_at || 0).getTime();
-      if (timeA !== timeB) return timeB - timeA;
-
+      if (a.model3dUrl && !b.model3dUrl) return -1;
+      if (!a.model3dUrl && b.model3dUrl) return 1;
       return String(b.id || '').localeCompare(String(a.id || ''));
     });
   }, [artifacts]);
@@ -78,21 +72,38 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   };
 
   return (
-    <section id="artifacts" className="client-zigzag-section">
+    <section id="artifacts" className="client-section">
       <div className="client-container">
-        {/* ZIG-ZAG 3: MEDIA HIỆN VẬT BÊN TRÁI - NỘI DUNG BÊN PHẢI */}
-        <div className="client-zigzag-card horizontal-split align-right reveal-on-scroll">
-          {/* CỘT MEDIA: MÔ HÌNH 3D / ẢNH HIỆN VẬT LỊCH SỬ CHUẨN MỰC */}
+        {/* TIÊU ĐỀ PHÂN KHU TRUNG TÂM */}
+        <div className="client-section-header-centered reveal-on-scroll">
+          <span className="client-section-eyebrow">
+            {t(branding.artifactsTag || 'artifacts.tag', branding.artifactsTag || 'Bảo Vật & Hiện Vật Tiêu Biểu')}
+          </span>
+          <h2 className="client-section-main-title">
+            {t(branding.artifactsTitle || 'artifacts.headline', branding.artifactsTitle || 'Bộ Sưu Tập Hiện Vật & Cổ Vật 3D')}
+          </h2>
+          <p className="client-section-lead">
+            {t(
+              branding.artifactsDesc || 'artifacts.sub',
+              branding.artifactsDesc ||
+                'Chiêm ngưỡng các bảo vật và hiện vật lịch sử được số hóa 3D đa chiều, tái hiện chi tiết từng đường nét điêu khắc cổ xưa.'
+            )}
+          </p>
+        </div>
+
+        {/* BỐ CỤC TRIỂN LÃM 2 CỘT MỞ RỘNG (OPEN 2-COLUMN SHOWCASE) */}
+        <div className="client-artifacts-showcase-split reveal-on-scroll">
+          {/* CỘT TRÁI: BỤC TRƯNG BÀY 3D / TỦ KÍNH VITRINE */}
           <div
-            className={`client-zigzag-card-media dark-vitrine clickable ${!currentThumb && !activeArtifact?.model3dUrl ? 'has-placeholder' : ''}`}
+            className="client-artifacts-showcase-media"
             onClick={handleArtifactClick}
             role="button"
             tabIndex={0}
             title={t('artifacts.clickToEnter', 'Bấm để xem chi tiết hiện vật')}
-            style={{ cursor: 'pointer', minHeight: '460px', height: '100%' }}
+            style={{ cursor: 'pointer' }}
           >
             {activeArtifact?.model3dUrl ? (
-              <div style={{ width: '100%', height: '100%', minHeight: 460, cursor: 'pointer' }}>
+              <div style={{ width: '100%', height: '100%', minHeight: 480, cursor: 'pointer' }}>
                 <Turntable360Viewer
                   modelUrl={
                     activeArtifact.model3dUrl.startsWith('http')
@@ -106,18 +117,17 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                     undefined
                   }
                   artifactName={currentTitle}
-                  height={460}
+                  height={480}
                   hideControls={true}
                   onClick={handleArtifactClick}
                 />
               </div>
             ) : currentThumb ? (
-              <div className="client-zigzag-vitrine-static" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                 <img
                   src={currentThumb}
                   alt={currentTitle}
-                  className="client-zigzag-vitrine-img"
-                  style={{ maxHeight: '85%', maxWidth: '85%', objectFit: 'contain' }}
+                  style={{ maxHeight: '85%', maxWidth: '85%', objectFit: 'contain', filter: 'drop-shadow(0 16px 32px rgba(0,0,0,0.7))' }}
                   loading="lazy"
                 />
                 <div className="client-zigzag-badge-float">
@@ -139,51 +149,52 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
             )}
           </div>
 
-          {/* CỘT NỘI DUNG: SANG TRỌNG, ĐẲNG CẤP, KHÔNG SIDEBAR VỤN VẶT */}
-          <div className="client-zigzag-card-body">
-            <span className="client-zigzag-tag">
-              {t(branding.artifactsTag || 'artifacts.tag', branding.artifactsTag || 'Bảo Vật Di Sản & Mô Hình 3D')}
+          {/* CỘT PHẢI: BẢNG GIÁM TUYỂN THÔNG TIN HIỆN VẬT */}
+          <div className="client-artifacts-showcase-info">
+            <span className="client-section-eyebrow" style={{ marginBottom: 8 }}>
+              {activeArtifact ? localize(activeArtifact, 'period', (activeArtifact as any).period || 'Cổ vật di sản') : 'Hiện vật số hóa'}
             </span>
 
-            <h2 className="client-zigzag-title">
-              {t(branding.artifactsTitle || 'artifacts.headline', branding.artifactsTitle || 'Kho Tàng Cổ Vật & Bảo Vật Di Sản')}
-            </h2>
+            <h3 className="client-artifacts-showcase-name">
+              {currentTitle}
+            </h3>
 
-            <p className="client-zigzag-desc">
-              {t(
-                branding.artifactsDesc || 'artifacts.sub',
-                branding.artifactsDesc ||
-                  'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.'
-              )}
+            <p className="client-artifacts-showcase-desc">
+              {activeArtifact
+                ? localize(
+                    activeArtifact,
+                    'description',
+                    (activeArtifact as any).description ||
+                      'Hiện vật quý giá được lưu giữ tại Bảo tàng Lịch sử TP. Hồ Chí Minh, được phục dựng số hóa chi tiết nhằm lan tỏa giá trị di sản văn hóa dân tộc.'
+                  )
+                : 'Hiện vật quý giá được lưu giữ tại Bảo tàng Lịch sử TP. Hồ Chí Minh.'}
             </p>
 
-            {/* DÒNG THÔNG SỐ ĐỒNG BỘ THẬT */}
-            <div className="client-zigzag-meta-line">
-              <span className="client-zigzag-meta-item">
-                <strong>{artifacts.length}</strong> {t('artifacts.totalArtifacts', 'Hiện vật lưu trữ')}
-              </span>
-              {artifact3DCount > 0 && (
-                <>
-                  <span className="client-zigzag-meta-sep">•</span>
-                  <span className="client-zigzag-meta-item">
-                    <strong>{artifact3DCount}</strong> {t('artifacts.total3D', 'Mô hình 3D xoay')}
-                  </span>
-                </>
-              )}
-              <span className="client-zigzag-meta-sep">•</span>
-              <span className="client-zigzag-meta-item">
-                {t('artifacts.audioGuide', 'Thuyết minh song ngữ')}
-              </span>
+            {/* DÒNG THỐNG KÊ HIỆN VẬT */}
+            <div className="client-intro-plaque-grid" style={{ marginBottom: 26, padding: '16px 22px' }}>
+              <div className="client-intro-plaque-item">
+                <span className="client-intro-plaque-num">{artifacts.length}</span>
+                <span className="client-intro-plaque-label">{t('artifacts.statTotal', 'Hiện vật lưu trữ')}</span>
+              </div>
+              <div className="client-intro-plaque-sep" />
+              <div className="client-intro-plaque-item">
+                <span className="client-intro-plaque-num">{artifact3DCount}</span>
+                <span className="client-intro-plaque-label">{t('artifacts.stat3D', 'Mô hình 3D xoay')}</span>
+              </div>
+              <div className="client-intro-plaque-sep" />
+              <div className="client-intro-plaque-item">
+                <span className="client-intro-plaque-num">AI</span>
+                <span className="client-intro-plaque-label">{t('artifacts.statAudio', 'Thuyết minh đa ngữ')}</span>
+              </div>
             </div>
 
-            {/* NÚT HÀNH ĐỘNG SANG TRỌNG */}
-            <div className="client-zigzag-actions">
+            <div>
               <button
                 type="button"
-                className="client-zigzag-btn-primary"
+                className="client-intro-btn"
                 onClick={onViewAllArtifacts}
               >
-                {t(branding.artifactsCtaText || 'artifacts.btnViewAll', branding.artifactsCtaText || 'Khám phá toàn bộ kho hiện vật')}
+                {t(branding.artifactsCtaText || 'artifacts.btnViewAll', branding.artifactsCtaText || `Khám phá toàn bộ cổ vật (${artifacts.length})`)}
               </button>
             </div>
           </div>

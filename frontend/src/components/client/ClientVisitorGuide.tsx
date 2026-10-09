@@ -54,27 +54,82 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   const hasMapDrawing = Boolean(mapImageUrl);
 
   return (
-    <section id="guide" className="client-zigzag-section">
+    <section id="guide" className="client-section">
       <div className="client-container">
-        {/* ZIG-ZAG 4: NỘI DUNG BÊN TRÁI - MEDIA SƠ ĐỒ BÊN PHẢI */}
-        <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
-          {/* CỘT MEDIA SƠ ĐỒ MẶT BẰNG */}
+        {/* TIÊU ĐỀ PHÂN KHU TRUNG TÂM */}
+        <div className="client-section-header-centered reveal-on-scroll">
+          <span className="client-section-eyebrow">
+            {t(branding.guideTag || 'guide.tag', branding.guideTag || 'Kế Hoạch & Sơ Đồ')}
+          </span>
+          <h2 className="client-section-main-title">
+            {t(branding.guideTitle || 'guide.headline', branding.guideTitle || 'Cẩm Nang Tham Quan & Sơ Đồ Thực Địa')}
+          </h2>
+          <p className="client-section-lead">
+            {t(
+              branding.guideDesc || 'guide.sub',
+              branding.guideDesc ||
+                'Thông tin hướng dẫn đón tiếp khách tham quan và định vị các cánh trưng bày trong khuôn viên bảo tàng.'
+            )}
+          </p>
+        </div>
+
+        {/* BỐ CỤC 2 CỘT CÂN ĐỐI: THÔNG BÁO THAM QUAN & SƠ ĐỒ MẶT BẰNG */}
+        <div className="client-guide-split-layout reveal-on-scroll">
+          {/* CỘT TRÁI: BẢNG THÔNG TIN ĐÓN TIẾP KHÁCH THAM QUAN */}
+          <div className="client-guide-notice-card">
+            <h3 className="client-guide-notice-heading">
+              {t('guide.visitorHeading', 'Thông tin đón tiếp khách tham quan')}
+            </h3>
+
+            <div className="client-guide-notice-row">
+              <span className="client-guide-notice-label">
+                {t('guide.locationLabel', 'Địa chỉ bảo tàng')}
+              </span>
+              <span className="client-guide-notice-value">
+                Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh (Khuôn viên Thảo Cầm Viên)
+              </span>
+            </div>
+
+            <div className="client-guide-notice-row">
+              <span className="client-guide-notice-label">
+                {t('guide.hoursLabel', 'Thời gian mở cửa')}
+              </span>
+              <span className="client-guide-notice-value">
+                Sáng: 08:00 – 11:30 | Chiều: 13:00 – 17:00 (Từ Thứ Ba đến Chủ Nhật hàng tuần)
+              </span>
+            </div>
+
+            <div className="client-guide-notice-row">
+              <span className="client-guide-notice-label">
+                {t('guide.amenitiesLabel', 'Dịch vụ & Tiện ích')}
+              </span>
+              <span className="client-guide-notice-value">
+                Thuyết minh Audio Guide đa ngôn ngữ, mã QR chú thích hiện vật & dịch vụ gửi đồ tại sảnh
+              </span>
+            </div>
+
+            {onViewAllGuide && (
+              <div style={{ marginTop: 14 }}>
+                <button
+                  type="button"
+                  className="client-intro-btn"
+                  onClick={onViewAllGuide}
+                >
+                  {t(branding.guideCtaText || 'guide.btnViewAll', branding.guideCtaText || 'Xem cẩm nang tham quan & bảng giá vé đầy đủ →')}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* CỘT PHẢI: KHUNG HIỂN THỊ SƠ ĐỒ MẶT BẰNG */}
           <div
-            className="client-zigzag-card-media"
+            className="client-guide-map-display"
             onClick={onViewAllGuide}
             role="button"
             tabIndex={0}
             title={t('guide.clickToEnter', 'Bấm để mở sơ đồ tham quan chi tiết')}
-            style={{ cursor: 'pointer', minHeight: '460px', height: '100%' }}
           >
-            <div className="client-guide-map-topbar">
-              <div className="client-guide-map-badge">
-                <span className="client-guide-pulse-dot" />
-                <span>{t('guide.realtimeMapBadge', 'Sơ đồ định vị số hóa')}</span>
-              </div>
-            </div>
-
-            <div className="client-guide-map-canvas">
+            <div className="client-guide-map-viewport">
               {hasSimulationNodes ? (
                 <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                   <InteractiveFloorPlanMap
@@ -85,11 +140,11 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                   />
                 </div>
               ) : hasMapDrawing ? (
-                <div className="client-guide-drawing-frame">
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   <img
                     src={mapImageUrl}
                     alt={floorPlan?.title || 'Sơ đồ mặt bằng'}
-                    className="client-guide-drawing-img"
+                    style={{ maxWidth: '92%', maxHeight: '92%', objectFit: 'contain' }}
                     loading="lazy"
                   />
                 </div>
@@ -102,75 +157,15 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
               )}
             </div>
 
-            <div className="client-guide-map-bottombar">
-              <span className="client-guide-map-title">
-                {floorPlan?.title || t('guide.mapFooterTitle', 'Sơ đồ mặt bằng các gian trưng bày')}
+            <div className="client-guide-map-footer">
+              <span>
+                {floorPlan?.title || t('guide.mapFooterTitle', 'Sơ đồ mặt bằng các gian trưng bày bảo tàng')}
               </span>
-              <span className="client-guide-map-action">
+              <span className="client-guide-map-link">
                 <span>{t('guide.openFullMap', 'Mở sơ đồ chi tiết')}</span>
-                <ExternalLink size={12} />
+                <ExternalLink size={12} style={{ display: 'inline', marginLeft: 4 }} />
               </span>
             </div>
-          </div>
-
-          {/* CỘT NỘI DUNG THÔNG TIN ĐÓN TIẾP KHÁCH */}
-          <div className="client-zigzag-card-body">
-            <span className="client-zigzag-tag">
-              {t(branding.guideTag || 'guide.tag', branding.guideTag || 'Kế Hoạch & Sơ Đồ')}
-            </span>
-
-            <h2 className="client-zigzag-title">
-              {t(branding.guideTitle || 'guide.headline', branding.guideTitle || 'Cẩm Nang Tham Quan & Sơ Đồ Thực Địa')}
-            </h2>
-
-            <p className="client-zigzag-desc">
-              {t(
-                branding.guideDesc || 'guide.sub',
-                branding.guideDesc ||
-                  'Thông tin hướng dẫn đón tiếp khách tham quan và định vị các cánh trưng bày trong khuôn viên bảo tàng.'
-              )}
-            </p>
-
-            {/* DÒNG THÔNG TIN ĐÓN TIẾP KHÁCH THAM QUAN */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '12px 0 24px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: '0.88rem' }}>
-                <span style={{ color: '#D4A86A', fontWeight: 600, flexShrink: 0, minWidth: 80 }}>
-                  {t('guide.locationLabel', 'Địa chỉ:')}
-                </span>
-                <span style={{ color: '#E2E8F0', lineHeight: 1.5 }}>
-                  Số 2 Nguyễn Bỉnh Khiêm, P. Bến Nghé, Quận 1, TP. Hồ Chí Minh
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: '0.88rem' }}>
-                <span style={{ color: '#D4A86A', fontWeight: 600, flexShrink: 0, minWidth: 80 }}>
-                  {t('guide.hoursLabel', 'Mở cửa:')}
-                </span>
-                <span style={{ color: '#E2E8F0', lineHeight: 1.5 }}>
-                  08:00 – 11:30 | 13:00 – 17:00 (Thứ Ba – Chủ Nhật hàng tuần)
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: '0.88rem' }}>
-                <span style={{ color: '#D4A86A', fontWeight: 600, flexShrink: 0, minWidth: 80 }}>
-                  {t('guide.amenitiesLabel', 'Tiện ích:')}
-                </span>
-                <span style={{ color: '#9CA3AF', lineHeight: 1.5 }}>
-                  Thuyết minh Audio Guide đa ngôn ngữ, mã QR chú thích hiện vật & gửi đồ miễn phí
-                </span>
-              </div>
-            </div>
-
-            {/* NÚT HÀNH ĐỘNG DUY NHẤT */}
-            {onViewAllGuide && (
-              <div className="client-zigzag-actions">
-                <button
-                  type="button"
-                  className="client-zigzag-btn-primary"
-                  onClick={onViewAllGuide}
-                >
-                  {t(branding.guideCtaText || 'guide.btnViewAll', branding.guideCtaText || 'Xem cẩm nang tham quan & sơ đồ')}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
