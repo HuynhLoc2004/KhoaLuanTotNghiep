@@ -1583,9 +1583,13 @@ def run_stitch(image_paths, output_path, target_width=0):
     # Cắt sạch viền nội tiếp phẳng phiu (triệt tiêu 100% bệt đen rìa mép)
     final_pano = crop_clean_inscribed_rectangle(final_pano)
 
+    # Chuẩn hóa ảnh sang tỷ lệ 2:1 Equirectangular để người dùng có thể xoay nhìn quanh phòng 360° thực thụ
+    equi_pano = fit_to_equirectangular_2_to_1(final_pano, target_width=out_w, is_full_360=True)
+    equi_pano = enhance_museum_details(equi_pano)
+
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    cv2.imwrite(output_path, final_pano, [cv2.IMWRITE_JPEG_QUALITY, 99])
-    h, w = final_pano.shape[:2]
+    cv2.imwrite(output_path, equi_pano, [cv2.IMWRITE_JPEG_QUALITY, 99])
+    h, w = equi_pano.shape[:2]
     cur_ar = round(w / max(1, h), 2)
     total_time = round(time.time() - t0, 1)
 
@@ -1598,7 +1602,7 @@ def run_stitch(image_paths, output_path, target_width=0):
         "aspectRatioStr": f"{w}:{h}",
         "engine": "planar_architectural_scans",
         "processingTimeSec": total_time,
-        "message": f"Đã ghép thành công không gian kiến trúc góc rộng phẳng ({w}x{h}, {total_time}s) sắc nét chuẩn bảo tàng, không lặp hình."
+        "message": f"Đã ghép thành công không gian phòng 360° ({w}x{h}, {total_time}s) sắc nét chuẩn bảo tàng, không lặp hình."
     }
 
 

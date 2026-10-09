@@ -111,8 +111,8 @@ export const PocStitchingPage: React.FC = () => {
   const [activeViewUrl, setActiveViewUrl] = useState<string | null>(null);
   // Hiệu ứng mờ dần (Fade transition) khi chuyển góc nhìn
   const [isViewFading, setIsViewFading] = useState(false);
-  // Chế độ trình xem: Mặc định là Không Gian Đa Góc (spatial) để bảo tồn 100% góc nhìn gốc sắc nét, không méo hình
-  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('spatial');
+  // Chế độ trình xem: Mặc định là Không Gian 360° (pano360) để người dùng xoay nhìn toàn cảnh phòng thực thụ
+  const [viewerMode, setViewerMode] = useState<'spatial' | 'pano360'>('pano360');
   // Danh sách ảnh chọn hàng loạt từ máy (nếu có)
   const [batchFiles, setBatchFiles] = useState<File[]>([]);
   const [batchPreviews, setBatchPreviews] = useState<string[]>([]);
@@ -252,9 +252,7 @@ export const PocStitchingPage: React.FC = () => {
       message: `Đang xem gian phòng: ${item.title || item.filename}`
     });
     setActiveViewUrl(normalizedUrl);
-    if (normalizedViews && normalizedViews.length > 1) {
-      setViewerMode('spatial');
-    }
+    setViewerMode('pano360');
     setTimeout(() => {
       viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
@@ -663,7 +661,7 @@ export const PocStitchingPage: React.FC = () => {
       };
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
-      setViewerMode('spatial');
+      setViewerMode('pano360');
       fetchHistory();
       showToast('Đã tạo không gian thành công! Vui lòng đặt tên và lưu gian phòng.', 'success');
       setShowCreateRoomModal(true);
@@ -759,7 +757,7 @@ export const PocStitchingPage: React.FC = () => {
       };
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
-      setViewerMode('spatial');
+      setViewerMode('pano360');
       fetchHistory();
       showToast('Đã tạo không gian căn phòng thành công!', 'success');
 
@@ -1219,10 +1217,65 @@ export const PocStitchingPage: React.FC = () => {
 
                     {stitchResult && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                        {/* Huy hiệu Chế độ Không Gian Phòng */}
-                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.45)', borderRadius: 6, padding: '4px 10px', border: '1px solid rgba(212,168,106,0.3)', gap: 6, color: 'var(--accent-gold, #d4a86a)', fontSize: '11.5px', fontWeight: 600 }}>
-                          <Compass size={14} />
-                          <span>🖼️ Không Gian Phòng {stitchResult.views && stitchResult.views.length > 1 ? `(${stitchResult.views.length} góc nhìn)` : ''}</span>
+                        {/* Bộ chuyển chế độ: Không Gian 360° (Mặc định) vs Xem ảnh chi tiết */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0,0,0,0.55)',
+                            borderRadius: 8,
+                            padding: 3,
+                            border: '1px solid rgba(212,168,106,0.3)',
+                            gap: 3
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setViewerMode('pano360')}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '5px 12px',
+                              fontSize: '12px',
+                              borderRadius: 6,
+                              background: viewerMode === 'pano360' ? 'linear-gradient(135deg, #d4a86a, #b8860b)' : 'transparent',
+                              color: viewerMode === 'pano360' ? '#111' : '#d4a86a',
+                              fontWeight: viewerMode === 'pano360' ? 700 : 500,
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            title="Xoay nhìn 360° tự do quanh gian phòng"
+                          >
+                            <Globe size={14} />
+                            <span>🌐 Không Gian 360° (Xoay phòng)</span>
+                          </button>
+
+                          {stitchResult.views && stitchResult.views.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setViewerMode('spatial')}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '5px 12px',
+                                fontSize: '12px',
+                                borderRadius: 6,
+                                background: viewerMode === 'spatial' ? 'rgba(212,168,106,0.25)' : 'transparent',
+                                color: viewerMode === 'spatial' ? '#fff' : 'rgba(255,255,255,0.7)',
+                                fontWeight: viewerMode === 'spatial' ? 600 : 400,
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title="Xem ảnh tĩnh chụp chi tiết từng góc phòng"
+                            >
+                              <Eye size={14} />
+                              <span>🖼️ Từng góc ảnh ({stitchResult.views.length})</span>
+                            </button>
+                          )}
                         </div>
 
                         <button
@@ -1320,118 +1373,40 @@ export const PocStitchingPage: React.FC = () => {
                               title={stitchResult.filename}
                               autoStartLittlePlanet={false}
                               initialPitch={0}
-                              initialHfov={92}
+                              initialHfov={95}
                               minPitch={-38}
                               maxPitch={38}
                             />
-                          </div>
 
-                          {/* Màn đen mờ khi chuyển góc nhìn mượt mà (Fade effect) */}
-                          {isViewFading && (
+                            {/* Badge chỉ dẫn tương tác xoay 360 trực quan */}
                             <div
                               style={{
                                 position: 'absolute',
-                                inset: 0,
-                                backgroundColor: '#0a0d14',
+                                top: 14,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: 'rgba(10, 15, 25, 0.85)',
+                                backdropFilter: 'blur(8px)',
+                                color: '#e2e8f0',
+                                padding: '6px 16px',
+                                borderRadius: '20px',
+                                fontSize: '12px',
                                 display: 'flex',
-                                flexDirection: 'column',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 10,
-                                zIndex: 10,
-                                color: 'var(--accent-gold, #d4a86a)'
+                                gap: 8,
+                                border: '1px solid rgba(212, 168, 106, 0.4)',
+                                pointerEvents: 'none',
+                                zIndex: 5,
+                                boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
                               }}
                             >
-                              <Loader2 size={32} className="spin" />
-                              <span style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.3px' }}>
-                                Đang chuyển góc nhìn mượt mà...
+                              <Compass size={15} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+                              <span style={{ fontWeight: 600, color: 'var(--accent-gold, #d4a86a)' }}>
+                                Không Gian Phòng 360°:
                               </span>
+                              <span>Kéo chuột hoặc vuốt tay để xoay nhìn 360° quanh gian phòng</span>
                             </div>
-                          )}
-
-                          {/* Thanh chuyển đổi Multi-view các góc nhìn trong phòng */}
-                          {stitchResult.views && stitchResult.views.length > 1 && (
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: 10,
-                                padding: '10px 16px',
-                                background: 'rgba(15, 20, 28, 0.98)',
-                                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                                flexWrap: 'wrap'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', scrollbarWidth: 'thin', flex: 1 }}>
-                                <span
-                                  style={{
-                                    fontSize: '12px',
-                                    fontWeight: 600,
-                                    color: 'var(--accent-gold, #d4a86a)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  <Sparkles size={14} />
-                                  Các góc trong phòng ({stitchResult.views.length}):
-                                </span>
-
-                                <button
-                                  type="button"
-                                  onClick={handlePrevView}
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap', borderRadius: '6px' }}
-                                  title="Chuyển sang góc trước đó"
-                                >
-                                  ‹ Góc trước
-                                </button>
-
-                                {stitchResult.views.map((v, i) => {
-                                  const isActive = (activeViewUrl || stitchResult.panoramaUrl) === v.url;
-                                  return (
-                                    <button
-                                      key={v.id || i}
-                                      type="button"
-                                      onClick={() => handleSwitchView(v.url)}
-                                      className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-                                      style={{
-                                        fontSize: '11.5px',
-                                        padding: '5px 13px',
-                                        whiteSpace: 'nowrap',
-                                        borderRadius: '6px',
-                                        fontWeight: isActive ? 600 : 400,
-                                        boxShadow: isActive ? '0 0 10px rgba(212, 168, 106, 0.4)' : undefined,
-                                        border: isActive ? '1px solid var(--accent-gold, #d4a86a)' : undefined
-                                      }}
-                                    >
-                                      {v.isPrimary ? '⭐ ' : ''}
-                                      {v.title || `Góc ${i + 1}`}
-                                    </button>
-                                  );
-                                })}
-
-                                <button
-                                  type="button"
-                                  onClick={handleNextView}
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap', borderRadius: '6px' }}
-                                  title="Chuyển sang góc tiếp theo"
-                                >
-                                  Góc sau ›
-                                </button>
-                              </div>
-
-                              <div style={{ fontSize: '11.5px', color: 'rgba(255, 255, 255, 0.6)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span>Góc đang xem:</span>
-                                <strong style={{ color: 'var(--accent-gold, #d4a86a)' }}>
-                                  {stitchResult.views[currentViewIndex]?.title || `Góc ${currentViewIndex + 1}`}
-                                </strong>
-                              </div>
-                            </div>
-                          )}
+                          </div>
                         </>
                       )
                     ) : (
