@@ -3848,21 +3848,42 @@ html {
    -> Scroll trồi từ dưới lên Thằng 3: Bên cùng bên PHẢI
    ========================================================================= */
 .client-zigzag-section {
-  padding: clamp(52px, 6.5vw, 88px) 0;
+  padding: clamp(54px, 6vw, 84px) 0;
   position: relative;
-  overflow: hidden;
+  width: 100%;
+}
+
+.client-zigzag-section#intro {
+  background: linear-gradient(180deg, #0C1019 0%, #080B12 100%);
+  border-top: 1px solid rgba(212, 168, 106, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.client-zigzag-section#rooms {
+  background: radial-gradient(ellipse at 50% 15%, rgba(24, 32, 48, 0.7) 0%, #07090F 75%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.client-zigzag-section#artifacts {
+  background: linear-gradient(180deg, #07090F 0%, #0D1320 50%, #070A10 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.client-zigzag-section#guide {
+  background: radial-gradient(ellipse at 50% 20%, rgba(22, 30, 46, 0.7) 0%, #06080E 80%);
+  border-bottom: 1px solid rgba(212, 168, 106, 0.2);
 }
 
 /* THẺ ZIG-ZAG ĐƠN LẺ */
 .client-zigzag-card {
   width: 100%;
-  max-width: 1220px;
+  max-width: 1480px;
   margin: 0 auto;
-  background: linear-gradient(145deg, rgba(20, 26, 38, 0.9) 0%, rgba(11, 15, 23, 0.96) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(145deg, rgba(20, 26, 38, 0.92) 0%, rgba(11, 15, 23, 0.98) 100%);
+  border: 1px solid rgba(212, 168, 106, 0.22);
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
@@ -3880,12 +3901,12 @@ html {
 /* BỐ CỤC 2 CỘT NGHỆ THUẬT (HORIZONTAL SPLIT CHO DESKTOP) */
 .client-zigzag-card.horizontal-split {
   display: grid;
-  grid-template-columns: 1.08fr 1fr;
+  grid-template-columns: 1.15fr 1fr;
 }
 
 /* ĐẢO VỊ TRÍ CỘT: NỘI DUNG TRÁI - MEDIA PHẢI */
 .client-zigzag-card.horizontal-split.reverse-columns {
-  grid-template-columns: 1fr 1.08fr;
+  grid-template-columns: 1fr 1.15fr;
 }
 
 .client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-media {
@@ -3898,11 +3919,11 @@ html {
 
 .client-zigzag-card.horizontal-split .client-zigzag-card-media {
   height: 100%;
-  min-height: 420px;
+  min-height: 460px;
 }
 
 .client-zigzag-card.horizontal-split .client-zigzag-card-body {
-  padding: clamp(32px, 3.8vw, 52px);
+  padding: clamp(36px, 4.2vw, 60px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -3920,11 +3941,11 @@ html {
     order: 2;
   }
   .client-zigzag-card.horizontal-split .client-zigzag-card-media {
-    height: clamp(260px, 38vw, 360px);
+    height: clamp(280px, 40vw, 380px);
     min-height: auto;
   }
   .client-zigzag-card.horizontal-split .client-zigzag-card-body {
-    padding: 26px 22px;
+    padding: 28px 24px;
   }
 }
 
@@ -3944,22 +3965,21 @@ html {
   }
 }
 
-/* HIỆU ỨNG TRỒI TỪ DƯỚI LÊN KHI SCROLL (Subtle Scroll Reveal) */
+/* HIỆU ỨNG TRỒI TỪ DƯỚI LÊN KHI SCROLL: MƯỢT MÀ KHÔNG TRỄ */
 .client-zigzag-card.reveal-on-scroll {
-  opacity: 0;
-  transform: translateY(48px);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.3s ease;
 }
 
 .client-zigzag-card.reveal-on-scroll.is-revealed {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
 .client-zigzag-card:hover {
-  border-color: rgba(212, 175, 55, 0.35);
-  box-shadow: 0 26px 65px rgba(0, 0, 0, 0.65), 0 0 25px rgba(212, 175, 55, 0.08);
+  border-color: rgba(212, 168, 106, 0.45);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65), 0 0 25px rgba(212, 168, 106, 0.1);
 }
 
 [data-client-theme="light"] .client-zigzag-card:hover {
