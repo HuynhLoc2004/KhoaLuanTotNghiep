@@ -55,13 +55,77 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   const hasMapDrawing = Boolean(mapImageUrl);
 
   return (
-    <section id="guide" className="client-zigzag-section">
+    <section id="guide" className="client-section">
       <div className="client-container">
-        {/* ZIG-ZAG 4: NẰM BÊN TRÁI, ĐẢO CỘT NỘI DUNG TRÁI - ẢNH KIẾN TRÚC PHẢI */}
-        <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
-          {/* CỘT MEDIA: SƠ ĐỒ MÔ PHỎNG / BẢN VẼ SỐ HÓA / PLACEHOLDER CHƯA CÓ SƠ ĐỒ */}
+        {/* TIÊU ĐỀ PHÂN KHU TRUNG TÂM */}
+        <div className="client-section-header-centered reveal-on-scroll">
+          <span className="client-section-eyebrow">
+            {t(branding.guideTag || 'guide.tag', branding.guideTag || 'Kế Hoạch & Sơ Đồ')}
+          </span>
+          <h2 className="client-section-main-title">
+            {t(branding.guideTitle || 'guide.headline', branding.guideTitle || 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa')}
+          </h2>
+          <p className="client-section-lead">
+            {t(
+              branding.guideDesc || 'guide.sub',
+              branding.guideDesc ||
+                'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các gian trưng bày và tra cứu thông tin phục vụ hành trình tham quan.'
+            )}
+          </p>
+        </div>
+
+        {/* BỐ CỤC ĐÔI: CỘT THÔNG TIN THỰC TẾ & CỘT BẢN ĐỒ MẶT BẰNG */}
+        <div className="client-guide-layout-grid reveal-on-scroll">
+          {/* CỘT TRÁI: 3 THẺ HƯỚNG DẪN THỰC ĐỊA & NÚT CẨM NANG */}
+          <div className="client-guide-cards-col">
+            <div className="client-guide-info-tile">
+              <div className="client-guide-info-icon">
+                <MapPin size={18} style={{ color: '#D4A86A' }} />
+              </div>
+              <div className="client-guide-info-content">
+                <h4>{t('guide.locationTitle', 'Địa chỉ bảo tàng')}</h4>
+                <p>Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh.</p>
+                <span className="client-guide-info-sub">Khuôn viên Thảo Cầm Viên Sài Gòn</span>
+              </div>
+            </div>
+
+            <div className="client-guide-info-tile">
+              <div className="client-guide-info-icon">
+                <Sparkles size={18} style={{ color: '#D4A86A' }} />
+              </div>
+              <div className="client-guide-info-content">
+                <h4>{t('guide.hoursTitle', 'Thời gian mở cửa')}</h4>
+                <p>Sáng: 08:00 – 11:30 | Chiều: 13:00 – 17:00</p>
+                <span className="client-guide-info-sub">Đón khách từ Thứ Ba đến Chủ Nhật hàng tuần</span>
+              </div>
+            </div>
+
+            <div className="client-guide-info-tile">
+              <div className="client-guide-info-icon">
+                <ImageIcon size={18} style={{ color: '#D4A86A' }} />
+              </div>
+              <div className="client-guide-info-content">
+                <h4>{t('guide.amenitiesTitle', 'Dịch vụ tham quan')}</h4>
+                <p>Thuyết minh âm thanh số hóa, mã QR tại từng hiện vật & hỗ trợ gửi đồ.</p>
+                <span className="client-guide-info-sub">Sẵn sàng phục vụ khách tham quan trong nước & quốc tế</span>
+              </div>
+            </div>
+
+            {onViewAllGuide && (
+              <button
+                type="button"
+                className="client-guide-full-btn"
+                onClick={onViewAllGuide}
+              >
+                <span>{t(branding.guideCtaText || 'guide.btnViewAll', branding.guideCtaText || 'Xem cẩm nang & bảng giá vé đầy đủ')}</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            )}
+          </div>
+
+          {/* CỘT PHẢI: KHUNG SƠ ĐỒ MẶT BẰNG TƯƠNG TÁC */}
           <div
-            className="client-zigzag-card-media clickable"
+            className="client-guide-map-col clickable"
             onClick={onViewAllGuide}
             role="button"
             tabIndex={0}
@@ -102,7 +166,6 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                     onClick={() => setViewMode('simulation')}
                     title="Xem sơ đồ số hóa mô phỏng phân tích từ thị giác máy tính"
                   >
-                    <Sparkles size={11} />
                     <span>Mô phỏng</span>
                   </button>
                   <button
@@ -111,7 +174,6 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                     onClick={() => setViewMode('drawing')}
                     title="Xem bản vẽ sơ đồ kiến trúc gốc"
                   >
-                    <ImageIcon size={11} />
                     <span>Bản vẽ</span>
                   </button>
                 </div>
@@ -119,7 +181,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
             </div>
 
             {/* 2. VÙNG KHUNG CANVAS HIỂN THỊ CHÍNH */}
-            <div className={`client-guide-map-canvas ${!hasSimulationNodes && !hasMapDrawing ? 'has-placeholder' : ''}`}>
+            <div className={`client-guide-map-canvas-frame ${!hasSimulationNodes && !hasMapDrawing ? 'has-placeholder' : ''}`}>
               {hasSimulationNodes && viewMode === 'simulation' ? (
                 <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                   <InteractiveFloorPlanMap
@@ -153,11 +215,11 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
               )}
             </div>
 
-            {/* 3. THANH THÔNG TIN DƯỚI (BOTTOMBAR) */}
+            {/* 3. THANH THÔNG TIN DƯỚI (BOTTOMBAR - KHÔNG DÙNG EMOJI) */}
             {(hasSimulationNodes || hasMapDrawing) && (
               <div className="client-guide-map-bottombar">
                 <span className="client-guide-map-title">
-                  📍 {hasSimulationNodes
+                  {hasSimulationNodes
                     ? (floorPlan?.title || 'Sơ đồ mặt bằng các gian trưng bày')
                     : (floorPlan?.title || branding.guideMapTitle || 'Sơ đồ mặt bằng bảo tàng')}
                 </span>
@@ -165,55 +227,6 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
                   <span>{t('guide.clickToExplore', 'Chạm để mở bản đồ chi tiết')}</span>
                   <ExternalLink size={11} />
                 </span>
-              </div>
-            )}
-          </div>
-
-          {/* CỘT NỘI DUNG: TỐI GIẢN, TINH TẾ, TUYỆT ĐỐI KHÔNG DÙNG HỘP DỮ LIỆU ẢO */}
-          <div className="client-zigzag-card-body">
-            <span className="client-zigzag-tag">
-              {t(branding.guideTag || 'guide.tag', branding.guideTag || 'Kế Hoạch & Sơ Đồ')}
-            </span>
-
-            <h2 className="client-zigzag-title">
-              {t(branding.guideTitle || 'guide.headline', branding.guideTitle || 'Cẩm Nang & Sơ Đồ Tham Quan Thực Địa')}
-            </h2>
-
-            <p className="client-zigzag-desc">
-              {t(
-                branding.guideDesc || 'guide.sub',
-                branding.guideDesc ||
-                  'Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế cho hành trình chiêm ngưỡng di sản.'
-              )}
-            </p>
-
-            {/* DÒNG THÔNG SỐ ĐỒNG BỘ TINH TẾ */}
-            <div className="client-zigzag-meta-line">
-              <span className="client-zigzag-meta-item">
-                {t(branding.city || 'TP. Hồ Chí Minh', branding.city || 'TP. Hồ Chí Minh')}
-              </span>
-              <span className="client-zigzag-meta-sep">•</span>
-              <span className="client-zigzag-meta-item">
-                {hasSimulationNodes
-                  ? `${floorPlan?.nodes?.length || 0} gian phòng số hóa`
-                  : t('guide.digitizedMap', 'Sơ đồ mặt bằng số hóa')}
-              </span>
-              <span className="client-zigzag-meta-sep">•</span>
-              <span className="client-zigzag-meta-item">
-                {t('guide.audioGuide', 'Thuyết minh Audio Guide')}
-              </span>
-            </div>
-
-            {/* DUY NHẤT 1 NÚT ĐIỀU HƯỚNG SANG TRANG CẨM NANG */}
-            {onViewAllGuide && (
-              <div className="client-zigzag-actions">
-                <button
-                  type="button"
-                  className="client-zigzag-btn-primary"
-                  onClick={onViewAllGuide}
-                >
-                  {t(branding.guideCtaText || 'guide.btnViewAll', branding.guideCtaText || 'Xem cẩm nang & sơ đồ tham quan')}
-                </button>
               </div>
             )}
           </div>

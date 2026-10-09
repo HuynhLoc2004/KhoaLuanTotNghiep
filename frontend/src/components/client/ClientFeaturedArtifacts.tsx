@@ -25,12 +25,10 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   // Ưu tiên hiện vật có mô hình 3D và mới tạo nhất lên đầu trang chủ
   const sortedArtifacts = React.useMemo(() => {
     return [...artifacts].sort((a, b) => {
-      // 1. Ưu tiên hiện vật có 3D model
       const has3DA = a.model3dUrl ? 1 : 0;
       const has3DB = b.model3dUrl ? 1 : 0;
       if (has3DA !== has3DB) return has3DB - has3DA;
 
-      // 2. Ưu tiên thời gian tạo mới nhất
       const timeA = new Date((a as any).createdAt || (a as any).updatedAt || (a as any).created_at || 0).getTime();
       const timeB = new Date((b as any).createdAt || (b as any).updatedAt || (b as any).created_at || 0).getTime();
       if (timeA !== timeB) return timeB - timeA;
@@ -39,8 +37,8 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     });
   }, [artifacts]);
 
-  // Ưu tiên: Cổ vật do Quản trị viên chỉ định trong Cấu hình Trưng bày -> nếu chưa chỉ định thì lấy hiện vật 3D mới nhất
-  const activeArtifact = React.useMemo(() => {
+  // Cổ vật mặc định
+  const defaultArtifact = React.useMemo(() => {
     if (branding.artifactsFeaturedId?.trim()) {
       const targetId = branding.artifactsFeaturedId.trim();
       const matched = artifacts.find(
@@ -54,6 +52,10 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     return sortedArtifacts[0];
   }, [artifacts, branding.artifactsFeaturedId, sortedArtifacts]);
 
+  const [selectedArtifactId, setSelectedArtifactId] = React.useState<string>(defaultArtifact?.id || '');
+
+  const activeArtifact = artifacts.find((a) => a.id === selectedArtifactId) || defaultArtifact || sortedArtifacts[0];
+
   const getFullThumb = (art?: Artifact) => {
     if (!art) return '';
     const raw = art.thumbnailUrl || (art.images && art.images[0]);
@@ -65,129 +67,215 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
 
   const customShowcase = branding.artifactsShowcaseImageUrl?.trim();
   const rawThumb = getFullThumb(activeArtifact);
-  const currentThumb = customShowcase
+  const currentThumb = (activeArtifact === defaultArtifact && customShowcase)
     ? (customShowcase.startsWith('http') ? customShowcase : `${API_ROOT}${customShowcase.startsWith('/') ? '' : '/'}${customShowcase}`)
     : rawThumb;
   const currentTitle = activeArtifact
     ? localize(activeArtifact, 'name', activeArtifact.name)
     : t('artifacts.defaultTitle', 'Cổ vật di sản tiêu biểu');
+  const currentPeriod = activeArtifact ? localize(activeArtifact, 'period', (activeArtifact as any).period || '') : '';
   const artifact3DCount = artifacts.filter((a) => !!a.model3dUrl).length;
 
-  const handleArtifactClick = () => {
-    if (activeArtifact?.id && onSelectArtifactDetail) {
-      onSelectArtifactDetail(activeArtifact.id);
+  // Lấy 4 hiện vật tiêu biểu cho danh sách tuyển tập bên phải
+  const showcaseList = sortedArtifacts.slice(0, 4);
+
+  const handleArtifactClick = (art?: Artifact) => {
+    const target = art || activeArtifact;
+    if (target?.id && onSelectArtifactDetail) {
+      onSelectArtifactDetail(target.id);
     } else {
       onViewAllArtifacts();
     }
   };
 
   return (
-    <section id="artifacts" className="client-zigzag-section client-section-alt">
+    <section id="artifacts" className="client-section client-section-alt">
       <div className="client-container">
-        {/* ZIG-ZAG 3: NẰM BÊN PHẢI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
-        <div className="client-zigzag-card horizontal-split align-right reveal-on-scroll">
-          {/* CỘT MEDIA: MÔ HÌNH 3D / ẢNH HIỆN VẬT LỊCH SỬ CHUẨN MỰC */}
-          <div
-            className={`client-zigzag-card-media dark-vitrine clickable ${!currentThumb && !activeArtifact?.model3dUrl ? 'has-placeholder' : ''}`}
-            onClick={handleArtifactClick}
-            role="button"
-            tabIndex={0}
-            title={t('artifacts.clickToEnter', 'Bấm để xem chi tiết hiện vật')}
-            style={{ cursor: 'pointer' }}
-          >
-            {activeArtifact?.model3dUrl ? (
-              <div style={{ width: '100%', height: '100%', minHeight: 380, cursor: 'pointer' }}>
-                <Turntable360Viewer
-                  modelUrl={
-                    activeArtifact.model3dUrl.startsWith('http')
-                      ? activeArtifact.model3dUrl
-                      : `${API_ROOT}${activeArtifact.model3dUrl.startsWith('/') ? '' : '/'}${activeArtifact.model3dUrl}`
-                  }
-                  imageUrl={
-                    currentThumb ||
-                    activeArtifact.thumbnailUrl ||
-                    activeArtifact.images?.[0] ||
-                    undefined
-                  }
-                  artifactName={currentTitle}
-                  height={380}
-                  hideControls={true}
-                  onClick={handleArtifactClick}
-                />
-              </div>
-            ) : currentThumb ? (
-              <div className="client-zigzag-vitrine-static">
-                <img
-                  src={currentThumb}
-                  alt={currentTitle}
-                  className="client-zigzag-vitrine-img"
-                  loading="lazy"
-                />
-                <div className="client-zigzag-badge-float">
-                  <span>{t('artifacts.vitrineBadge', 'Bảo vật số hóa')}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="client-media-placeholder">
-                <div className="client-media-placeholder-icon">
-                  <Box size={32} strokeWidth={1.5} />
-                </div>
-                <span className="client-media-placeholder-title">
-                  {t('artifacts.noArtifactTitle', 'Chưa bổ sung hiện vật di sản')}
-                </span>
-                <span className="client-media-placeholder-desc">
-                  {t('artifacts.noArtifactDesc', 'Thông tin và mô hình 3D sẽ xuất hiện sau khi được quản trị viên tải lên hệ thống.')}
-                </span>
-              </div>
+        {/* TIÊU ĐỀ PHÂN KHU TRUNG TÂM */}
+        <div className="client-section-header-centered reveal-on-scroll">
+          <span className="client-section-eyebrow">
+            {t(branding.artifactsTag || 'artifacts.tag', branding.artifactsTag || 'Bảo Vật Di Sản & Mô Hình 3D')}
+          </span>
+          <h2 className="client-section-main-title">
+            {t(branding.artifactsTitle || 'artifacts.headline', branding.artifactsTitle || 'Kho Tàng Cổ Vật & Bảo Vật Di Sản')}
+          </h2>
+          <p className="client-section-lead">
+            {t(
+              branding.artifactsDesc || 'artifacts.sub',
+              branding.artifactsDesc ||
+                'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ tương tác xoay đa góc độ và tra cứu tư liệu lịch sử.'
             )}
-          </div>
+          </p>
+        </div>
 
-          {/* CỘT NỘI DUNG: TINH TẾ, ĐẲNG CẤP, KHÔNG TÈM LEM MÀU SẮC */}
-          <div className="client-zigzag-card-body">
-            <span className="client-zigzag-tag">
-              {t(branding.artifactsTag || 'artifacts.tag', branding.artifactsTag || 'Bảo Vật Di Sản & Mô Hình 3D')}
-            </span>
-
-            <h2 className="client-zigzag-title">
-              {t(branding.artifactsTitle || 'artifacts.headline', branding.artifactsTitle || 'Kho Tàng Cổ Vật & Bảo Vật Di Sản')}
-            </h2>
-
-            <p className="client-zigzag-desc">
-              {t(
-                branding.artifactsDesc || 'artifacts.sub',
-                branding.artifactsDesc ||
-                  'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.'
-              )}
-            </p>
-
-            {/* DÒNG THÔNG SỐ ĐỒNG BỘ THẬT */}
-            <div className="client-zigzag-meta-line">
-              <span className="client-zigzag-meta-item">
-                <strong>{artifacts.length}</strong> {t('artifacts.totalArtifacts', 'Hiện vật lưu trữ')}
-              </span>
-              {artifact3DCount > 0 && (
-                <>
-                  <span className="client-zigzag-meta-sep">•</span>
-                  <span className="client-zigzag-meta-item">
-                    <strong>{artifact3DCount}</strong> {t('artifacts.total3D', 'Mô hình 3D xoay')}
+        {/* BỐ CỤC TỦ TRƯNG BÀY (VITRINE SPOTLIGHT + CURATED LIST) */}
+        <div className="client-vitrine-showcase-grid reveal-on-scroll">
+          {/* CỘT TRÁI (60%): SÂN KHẤU TIÊU ĐIỂM 3D */}
+          <div className="client-vitrine-spotlight-card">
+            <div className="client-vitrine-3d-stage">
+              {activeArtifact?.model3dUrl ? (
+                <div style={{ width: '100%', height: '100%' }}>
+                  <Turntable360Viewer
+                    key={activeArtifact.id}
+                    modelUrl={
+                      activeArtifact.model3dUrl.startsWith('http')
+                        ? activeArtifact.model3dUrl
+                        : `${API_ROOT}${activeArtifact.model3dUrl.startsWith('/') ? '' : '/'}${activeArtifact.model3dUrl}`
+                    }
+                    imageUrl={
+                      currentThumb ||
+                      activeArtifact.thumbnailUrl ||
+                      activeArtifact.images?.[0] ||
+                      undefined
+                    }
+                    artifactName={currentTitle}
+                    height={380}
+                    hideControls={true}
+                    onClick={() => handleArtifactClick(activeArtifact)}
+                  />
+                </div>
+              ) : currentThumb ? (
+                <div
+                  className="client-vitrine-static-media"
+                  onClick={() => handleArtifactClick(activeArtifact)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <img
+                    src={currentThumb}
+                    alt={currentTitle}
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div className="client-media-placeholder">
+                  <div className="client-media-placeholder-icon">
+                    <Box size={32} strokeWidth={1.5} />
+                  </div>
+                  <span className="client-media-placeholder-title">
+                    {t('artifacts.noArtifactTitle', 'Chưa bổ sung hiện vật di sản')}
                   </span>
-                </>
+                  <span className="client-media-placeholder-desc">
+                    {t('artifacts.noArtifactDesc', 'Thông tin và mô hình 3D sẽ xuất hiện sau khi được quản trị viên tải lên hệ thống.')}
+                  </span>
+                </div>
               )}
-              <span className="client-zigzag-meta-sep">•</span>
-              <span className="client-zigzag-meta-item">
-                {t('artifacts.audioGuide', 'Thuyết minh song ngữ')}
-              </span>
+
+              {/* Huy hiệu nhận diện */}
+              <div className="client-vitrine-stage-badge">
+                <Box size={13} style={{ color: '#D4A86A' }} />
+                <span>
+                  {activeArtifact?.model3dUrl
+                    ? t('artifacts.3dRotatableBadge', 'Mô hình 3D • Kéo để xoay')
+                    : t('artifacts.vitrineBadge', 'Bảo vật số hóa')}
+                </span>
+              </div>
             </div>
 
-            {/* NÚT HÀNH ĐỘNG SANG TRỌNG */}
-            <div className="client-zigzag-actions">
+            {/* Thông tin chân thẻ tiêu điểm */}
+            <div className="client-vitrine-spotlight-info">
+              <div style={{ minWidth: 0, flex: 1, paddingRight: 10 }}>
+                <h3 className="client-vitrine-spotlight-title">
+                  {currentTitle}
+                </h3>
+                {currentPeriod && (
+                  <span className="client-vitrine-spotlight-period">
+                    {currentPeriod}
+                  </span>
+                )}
+              </div>
+
               <button
                 type="button"
-                className="client-zigzag-btn-primary"
+                className="client-vitrine-detail-btn"
+                onClick={() => handleArtifactClick(activeArtifact)}
+              >
+                <span>{t('artifacts.viewDetailsBtn', 'Xem chi tiết hiện vật')}</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* CỘT PHẢI (40%): DANH SÁCH TUYỂN TẬP CỔ VẬT TIÊU BIỂU */}
+          <div className="client-vitrine-sidebar-card">
+            <div className="client-vitrine-sidebar-header">
+              <span className="client-vitrine-sidebar-title">
+                {t('artifacts.curatedCollection', 'Tuyển tập bảo vật')}
+              </span>
+              <button
+                type="button"
+                className="client-vitrine-sidebar-all-link"
                 onClick={onViewAllArtifacts}
               >
-                {t(branding.artifactsCtaText || 'artifacts.btnViewAll', branding.artifactsCtaText || 'Khám phá toàn bộ kho hiện vật')}
+                <span>{t('artifacts.viewAllCount', `Tất cả (${artifacts.length})`)}</span>
+                <span aria-hidden="true">→</span>
               </button>
+            </div>
+
+            <div className="client-vitrine-sidebar-list">
+              {showcaseList.map((art) => {
+                const isSelected = art.id === activeArtifact?.id;
+                const thumb = getFullThumb(art);
+                const title = localize(art, 'name', art.name);
+                const period = localize(art, 'period', (art as any).period || '');
+                const has3D = Boolean(art.model3dUrl);
+
+                return (
+                  <div
+                    key={art.id}
+                    className={`client-vitrine-item-row ${isSelected ? 'is-selected' : ''}`}
+                    onClick={() => setSelectedArtifactId(art.id)}
+                    role="button"
+                    tabIndex={0}
+                    title={`Chọn xem: ${title}`}
+                  >
+                    <div className="client-vitrine-item-thumb">
+                      {thumb ? (
+                        <img src={thumb} alt={title} loading="lazy" />
+                      ) : (
+                        <Box size={20} />
+                      )}
+                      {has3D && <span className="client-vitrine-item-3d-badge">3D</span>}
+                    </div>
+
+                    <div className="client-vitrine-item-details">
+                      <div className="client-vitrine-item-name">{title}</div>
+                      <div className="client-vitrine-item-period">
+                        {period || (art as any).category || 'Hiện vật di sản'}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="client-vitrine-item-quick-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleArtifactClick(art);
+                      }}
+                      title="Xem toàn trang chi tiết"
+                    >
+                      <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Dòng tóm tắt thông số di sản ở chân thẻ */}
+            <div className="client-vitrine-stat-footer">
+              <div className="client-vitrine-stat-col">
+                <strong>{artifacts.length}</strong>
+                <span>{t('artifacts.statTotal', 'Hiện vật lưu trữ')}</span>
+              </div>
+              <div className="client-vitrine-stat-sep" />
+              <div className="client-vitrine-stat-col">
+                <strong>{artifact3DCount}</strong>
+                <span>{t('artifacts.stat3D', 'Mô hình 3D')}</span>
+              </div>
+              <div className="client-vitrine-stat-sep" />
+              <div className="client-vitrine-stat-col">
+                <strong>100%</strong>
+                <span>{t('artifacts.statAudio', 'Thuyết minh')}</span>
+              </div>
             </div>
           </div>
         </div>

@@ -4444,6 +4444,904 @@
   transform: translateY(-1px);
 }
 
+/* =========================================================================
+   BỐ CỤC MỚI: PHÂN KHU DI SẢN BẢO TÀNG TRANG NHÃ (HERITAGE ARCHITECTURAL SECTIONS)
+   KHÔNG AI HÓA, KHÔNG LÒE LOẸT, KHÔNG EMOJI - BỐ CỤC ĐA DẠNG SỐNG ĐỘNG
+   ========================================================================= */
+
+.client-section {
+  padding: clamp(44px, 5.5vw, 68px) 0;
+  position: relative;
+}
+
+/* TIÊU ĐỀ TRUNG TÂM PHÂN KHU */
+.client-section-header-centered {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto clamp(24px, 3.5vw, 36px) auto;
+}
+
+.client-section-eyebrow {
+  display: inline-block;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #D4A86A;
+  margin-bottom: 10px;
+}
+
+.client-section-main-title {
+  font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
+  font-size: clamp(1.85rem, 2.6vw, 2.35rem);
+  font-weight: 700;
+  color: #F8FAFC;
+  line-height: 1.28;
+  letter-spacing: -0.015em;
+  margin: 0 0 12px 0;
+}
+
+.client-section-lead {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.68;
+  color: #94A3B8;
+  margin: 0;
+}
+
+/* 1. KHỐI KIẾN TRÚC & LỊCH SỬ (INTRO SECTION) */
+.client-intro-feature-card {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  background: linear-gradient(145deg, rgba(18, 24, 35, 0.92) 0%, rgba(11, 15, 23, 0.98) 100%);
+  border: 1px solid rgba(212, 168, 106, 0.22);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+.client-intro-media {
+  position: relative;
+  min-height: 400px;
+  background: #090C14;
+  overflow: hidden;
+}
+
+.client-intro-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.client-intro-feature-card:hover .client-intro-img {
+  transform: scale(1.025);
+}
+
+.client-intro-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(10, 14, 22, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 168, 106, 0.35);
+  color: #FDE68A;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.client-intro-body {
+  padding: clamp(32px, 3.8vw, 48px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.client-intro-title {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: clamp(1.75rem, 2.4vw, 2.2rem);
+  font-weight: 700;
+  color: #F8FAFC;
+  line-height: 1.32;
+  margin: 0 0 14px 0;
+}
+
+.client-intro-desc {
+  font-size: 0.92rem;
+  line-height: 1.74;
+  color: #94A3B8;
+  margin: 0 0 24px 0;
+}
+
+.client-intro-plaque-grid {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+  background: rgba(10, 14, 22, 0.65);
+  border: 1px solid rgba(212, 168, 106, 0.18);
+  border-radius: 12px;
+  margin-bottom: 26px;
+}
+
+.client-intro-plaque-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.client-intro-plaque-num {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #D4A86A;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.client-intro-plaque-label {
+  font-size: 0.72rem;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-intro-plaque-sep {
+  width: 1px;
+  height: 32px;
+  background: rgba(212, 168, 106, 0.2);
+}
+
+.client-intro-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 26px;
+  border-radius: 24px;
+  background: #F8FAFC;
+  color: #0F172A;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.client-intro-btn:hover {
+  background: #D4A86A;
+  color: #0F172A;
+  transform: translateY(-2px);
+}
+
+/* 2. KHỐI SÂN KHẤU PANORAMA 360° (ROOMS STAGE) */
+.client-rooms-panoramic-stage {
+  max-width: 1220px;
+  margin: 0 auto;
+  background: linear-gradient(145deg, rgba(18, 24, 35, 0.92) 0%, rgba(11, 15, 23, 0.98) 100%);
+  border: 1px solid rgba(212, 168, 106, 0.24);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+.client-rooms-panoramic-viewport {
+  width: 100%;
+  height: clamp(380px, 42vw, 480px);
+  position: relative;
+  background: #090C14;
+  cursor: grab;
+}
+
+.client-rooms-panoramic-viewport:active {
+  cursor: grabbing;
+}
+
+.client-rooms-stage-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(10, 14, 22, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 168, 106, 0.35);
+  color: #FDE68A;
+  font-size: 0.74rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.client-rooms-stage-footer {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(10, 14, 22, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 168, 106, 0.3);
+  border-radius: 12px;
+  padding: 10px 16px;
+}
+
+.client-rooms-stage-name {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #F8FAFC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-rooms-stage-period {
+  font-size: 0.75rem;
+  color: #D4A86A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-rooms-stage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #D4A86A 0%, #B48A3C 100%);
+  color: #0F1218;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.client-rooms-stage-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(212, 168, 106, 0.4);
+}
+
+.client-rooms-strip-container {
+  padding: 16px 20px 20px 20px;
+  background: rgba(8, 12, 18, 0.85);
+  border-top: 1px solid rgba(212, 168, 106, 0.15);
+}
+
+.client-rooms-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.client-rooms-strip-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94A3B8;
+}
+
+.client-rooms-strip-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #D4A86A;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.client-rooms-strip-all-btn:hover {
+  text-decoration: underline;
+}
+
+.client-rooms-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.client-rooms-chip-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(18, 24, 35, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.client-rooms-chip-card:hover {
+  border-color: rgba(212, 168, 106, 0.4);
+  background: rgba(24, 32, 46, 0.95);
+}
+
+.client-rooms-chip-card.is-active {
+  border-color: #D4A86A;
+  background: rgba(212, 168, 106, 0.12);
+  box-shadow: 0 0 16px rgba(212, 168, 106, 0.15);
+}
+
+.client-rooms-chip-thumb {
+  position: relative;
+  width: 54px;
+  height: 42px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #090C14;
+  flex-shrink: 0;
+}
+
+.client-rooms-chip-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.client-rooms-chip-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+}
+
+.client-rooms-chip-active-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #D4A86A;
+  box-shadow: 0 0 6px #D4A86A;
+}
+
+.client-rooms-chip-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.client-rooms-chip-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #F8FAFC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-rooms-chip-period {
+  font-size: 0.7rem;
+  color: #94A3B8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-rooms-chip-action-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94A3B8;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.client-rooms-chip-action-btn:hover {
+  border-color: #D4A86A;
+  color: #D4A86A;
+}
+
+/* 3. KHỐI VITRINE CỔ VẬT & HIỆN VẬT 3D (ARTIFACTS VITRINE) */
+.client-vitrine-showcase-grid {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 20px;
+}
+
+.client-vitrine-spotlight-card {
+  background: linear-gradient(145deg, rgba(18, 24, 35, 0.92) 0%, rgba(11, 15, 23, 0.98) 100%);
+  border: 1px solid rgba(212, 168, 106, 0.24);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+}
+
+.client-vitrine-3d-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(340px, 35vw, 420px);
+  background: radial-gradient(circle at center, #141A28 0%, #090C14 75%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+
+.client-vitrine-stage-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(10, 14, 22, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 168, 106, 0.35);
+  color: #FDE68A;
+  font-size: 0.74rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.client-vitrine-static-media {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.client-vitrine-static-media img {
+  max-height: 85%;
+  max-width: 85%;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 30px rgba(0,0,0,0.6));
+}
+
+.client-vitrine-spotlight-info {
+  padding: 16px 20px;
+  background: rgba(8, 12, 18, 0.9);
+  border-top: 1px solid rgba(212, 168, 106, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.client-vitrine-spotlight-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-vitrine-spotlight-period {
+  font-size: 0.78rem;
+  color: #D4A86A;
+  display: block;
+  margin-top: 2px;
+}
+
+.client-vitrine-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: #F8FAFC;
+  color: #0F172A;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.client-vitrine-detail-btn:hover {
+  background: #D4A86A;
+  color: #0F172A;
+  transform: translateY(-1px);
+}
+
+.client-vitrine-sidebar-card {
+  background: linear-gradient(145deg, rgba(18, 24, 35, 0.92) 0%, rgba(11, 15, 23, 0.98) 100%);
+  border: 1px solid rgba(212, 168, 106, 0.2);
+  border-radius: 20px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.client-vitrine-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(212, 168, 106, 0.15);
+}
+
+.client-vitrine-sidebar-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.client-vitrine-sidebar-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #D4A86A;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.client-vitrine-sidebar-all-link:hover {
+  text-decoration: underline;
+}
+
+.client-vitrine-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.client-vitrine-item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(14, 19, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.client-vitrine-item-row:hover {
+  border-color: rgba(212, 168, 106, 0.35);
+  background: rgba(22, 29, 42, 0.9);
+}
+
+.client-vitrine-item-row.is-selected {
+  border-color: #D4A86A;
+  background: rgba(212, 168, 106, 0.1);
+}
+
+.client-vitrine-item-thumb {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: #090C14;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+}
+
+.client-vitrine-item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.client-vitrine-item-3d-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: #D4A86A;
+  color: #0F1218;
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.client-vitrine-item-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.client-vitrine-item-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #F8FAFC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-vitrine-item-period {
+  font-size: 0.72rem;
+  color: #94A3B8;
+  margin-top: 1px;
+}
+
+.client-vitrine-item-quick-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94A3B8;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.client-vitrine-item-quick-btn:hover {
+  border-color: #D4A86A;
+  color: #D4A86A;
+}
+
+.client-vitrine-stat-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(212, 168, 106, 0.12);
+}
+
+.client-vitrine-stat-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.client-vitrine-stat-col strong {
+  font-size: 1.1rem;
+  color: #D4A86A;
+  font-weight: 700;
+}
+
+.client-vitrine-stat-col span {
+  font-size: 0.72rem;
+  color: #94A3B8;
+}
+
+.client-vitrine-stat-sep {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 4. KHỐI CẨM NANG & SƠ ĐỒ THAM QUAN (GUIDE & MAP) */
+.client-guide-layout-grid {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 0.95fr 1.35fr;
+  gap: 20px;
+}
+
+.client-guide-cards-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.client-guide-info-tile {
+  background: linear-gradient(145deg, rgba(18, 24, 35, 0.92) 0%, rgba(11, 15, 23, 0.98) 100%);
+  border: 1px solid rgba(212, 168, 106, 0.2);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.client-guide-info-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(212, 168, 106, 0.12);
+  border: 1px solid rgba(212, 168, 106, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.client-guide-info-content h4 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0 0 4px 0;
+}
+
+.client-guide-info-content p {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #94A3B8;
+  margin: 0 0 4px 0;
+}
+
+.client-guide-info-sub {
+  font-size: 0.72rem;
+  color: #D4A86A;
+  display: block;
+}
+
+.client-guide-full-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: rgba(212, 168, 106, 0.12);
+  border: 1px solid rgba(212, 168, 106, 0.3);
+  color: #D4A86A;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+}
+
+.client-guide-full-btn:hover {
+  background: #D4A86A;
+  color: #0F1218;
+}
+
+.client-guide-map-col {
+  background: linear-gradient(145deg, rgba(18, 24, 35, 0.92) 0%, rgba(11, 15, 23, 0.98) 100%);
+  border: 1px solid rgba(212, 168, 106, 0.24);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+}
+
+.client-guide-map-canvas-frame {
+  width: 100%;
+  height: clamp(380px, 40vw, 460px);
+  position: relative;
+  background: #090C14;
+}
+
+.client-guide-map-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(10, 14, 22, 0.9);
+  border-bottom: 1px solid rgba(212, 168, 106, 0.15);
+}
+
+.client-guide-map-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #FDE68A;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.client-guide-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+}
+
+.client-guide-view-toggle {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 2px;
+}
+
+.client-guide-toggle-btn {
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.client-guide-toggle-btn.active {
+  background: #D4A86A;
+  color: #0F1218;
+}
+
+.client-guide-drawing-frame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #090C14;
+}
+
+.client-guide-drawing-img {
+  max-width: 92%;
+  max-height: 92%;
+  object-fit: contain;
+}
+
+.client-guide-map-bottombar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(8, 12, 18, 0.95);
+  border-top: 1px solid rgba(212, 168, 106, 0.15);
+}
+
+.client-guide-map-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+.client-guide-map-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  color: #D4A86A;
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .client-intro-feature-card,
+  .client-vitrine-showcase-grid,
+  .client-guide-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .client-zigzag-btn-link {
   background: none;
   border: none;

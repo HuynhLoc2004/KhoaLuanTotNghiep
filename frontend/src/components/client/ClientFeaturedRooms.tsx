@@ -20,141 +20,95 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
   const { branding } = useSystemBranding();
   const { t, localize } = useClientTranslation();
 
-  // Ưu tiên: phòng được Admin chỉ định trong branding -> hoặc phòng đầu tiên có trong CSDL thực tế
-  const featuredRoom = (branding.roomsFeaturedId && rooms.find((r) =>
+  // Khởi tạo phòng được chọn: Ưu tiên phòng Admin cấu hình -> hoặc phòng đầu tiên trong danh sách
+  const initialRoom = (branding.roomsFeaturedId && rooms.find((r) =>
     r.id === branding.roomsFeaturedId ||
     (r as any)._id === branding.roomsFeaturedId ||
     (r as any).code === branding.roomsFeaturedId
   )) || rooms[0];
 
+  const [activeRoomId, setActiveRoomId] = useState<string>(initialRoom?.id || '');
+
+  const activeRoom = rooms.find((r) => r.id === activeRoomId) || initialRoom || rooms[0];
+
   // Ưu tiên ảnh:
-  // 1. Ảnh tùy chỉnh do Admin cấu hình trong CMS (branding.roomsShowcaseImageUrl)
-  // 2. Ảnh toàn cảnh 360 / Thumbnail của gian phòng thực tế trong CSDL
+  // 1. Nếu phòng đang chọn có panoramaUrl -> dùng luôn
+  // 2. Nếu là phòng featured và admin có ảnh custom -> dùng custom
   const customShowcase = branding.roomsShowcaseImageUrl?.trim();
-  const panoUrl = customShowcase || (featuredRoom ? (featuredRoom.panoramaUrl || featuredRoom.thumbnailUrl) : '');
+  const panoUrl = (activeRoom ? (activeRoom.panoramaUrl || activeRoom.thumbnailUrl) : '') || customShowcase || '';
   const fullFeaturedThumb = panoUrl
     ? (panoUrl.startsWith('http') ? panoUrl : `${API_ROOT}${panoUrl.startsWith('/') ? '' : '/'}${panoUrl}`)
     : '';
 
-  const featuredTitle = featuredRoom
-    ? localize(featuredRoom, 'name', featuredRoom.name)
+  const activeTitle = activeRoom
+    ? localize(activeRoom, 'name', activeRoom.name)
     : (customShowcase ? (branding.roomsTitle || 'Không gian trưng bày') : '');
-  const featuredPeriod = featuredRoom ? localize(featuredRoom, 'period', (featuredRoom as any).period || '') : '';
+  const activePeriod = activeRoom ? localize(activeRoom, 'period', (activeRoom as any).period || '') : '';
+
+  // Danh sách phòng rút gọn để làm Room Strip (lấy 4 phòng tiêu biểu)
+  const stripRooms = rooms.slice(0, 4);
 
   return (
-    <section id="rooms" className="client-zigzag-section">
+    <section id="rooms" className="client-section">
       <div className="client-container">
-        {/* ZIG-ZAG 2: NẰM BÊN TRÁI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
-        <div className="client-zigzag-card horizontal-split reverse-columns align-left reveal-on-scroll">
-          {/* CỘT MEDIA: KHÔNG GIAN 360° TƯƠNG TÁC THỰC TẾ (THAY THẾ ẢNH TĨNH CŨ) */}
-          <div
-            className={`client-zigzag-card-media has-360-viewer ${!fullFeaturedThumb ? 'has-placeholder' : ''}`}
-            style={{ minHeight: '380px', height: 'clamp(340px, 35vw, 420px)', cursor: 'grab' }}
-          >
+        {/* TIÊU ĐỀ PHÂN KHU TRUNG TÂM */}
+        <div className="client-section-header-centered reveal-on-scroll">
+          <span className="client-section-eyebrow">
+            {t(branding.roomsTag || 'rooms.tag', branding.roomsTag || 'Không Gian Thực Tế Ảo')}
+          </span>
+          <h2 className="client-section-main-title">
+            {t(branding.roomsTitle || 'rooms.headline', branding.roomsTitle || 'Hệ Thống Gian Phòng Tour 360°')}
+          </h2>
+          <p className="client-section-lead">
+            {t(
+              branding.roomsDesc || 'rooms.sub',
+              branding.roomsDesc ||
+                'Khám phá các gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển tương tác trực quan và nghe thuyết minh lịch sử.'
+            )}
+          </p>
+        </div>
+
+        {/* SÂN KHẤU PANORAMA RỘNG + DẢI CHỌN PHÒNG */}
+        <div className="client-rooms-panoramic-stage reveal-on-scroll">
+          {/* VÙNG XEM 360 ĐIỆN ẢNH */}
+          <div className="client-rooms-panoramic-viewport">
             {fullFeaturedThumb ? (
-              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                {/* Trình chiếu 360° Panorama sống động với WebGL */}
+              <>
                 <Pannellum360Viewer
-                  key={featuredRoom?.id || fullFeaturedThumb}
+                  key={activeRoom?.id || fullFeaturedThumb}
                   panoramaUrl={fullFeaturedThumb}
                   autoStartLittlePlanet={false}
-                  autoRotateSpeed={-1.8}
+                  autoRotateSpeed={-1.5}
                   hideControls={true}
                   initialHfov={100}
-                  initialPitch={featuredRoom?.initialView?.pitch || 0}
-                  initialYaw={featuredRoom?.initialView?.yaw || 0}
+                  initialPitch={activeRoom?.initialView?.pitch || 0}
+                  initialYaw={activeRoom?.initialView?.yaw || 0}
                 />
 
-                {/* Huy hiệu nổi: Nhận diện không gian 360° thực tế */}
-                <div
-                  className="client-zigzag-badge-float"
-                  style={{
-                    top: 14,
-                    left: 14,
-                    zIndex: 20,
-                    pointerEvents: 'none',
-                    background: 'rgba(12, 16, 24, 0.88)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(212, 168, 106, 0.35)',
-                    color: '#FDE68A',
-                    padding: '5px 12px',
-                    borderRadius: 20,
-                    fontSize: '11.5px',
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                >
-                  <Compass size={13} style={{ color: '#D4A86A', animation: 'spin 12s linear infinite' }} />
-                  <span>{t('rooms.360InteractiveBadge', 'Không gian 360° thực tế • Kéo để xoay')}</span>
+                {/* Huy hiệu nhận diện 360° không emoji */}
+                <div className="client-rooms-stage-badge">
+                  <Compass size={13} style={{ color: '#D4A86A' }} />
+                  <span>{t('rooms.360InteractiveBadge', 'Không gian 360° tương tác • Kéo để xoay')}</span>
                 </div>
 
-                {/* Thanh điều khiển nổi chân thẻ: Tên phòng & Nút bấm vào Tour trực tiếp */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 12,
-                    left: 12,
-                    right: 12,
-                    zIndex: 25,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 10,
-                    background: 'rgba(10, 14, 22, 0.92)',
-                    backdropFilter: 'blur(14px)',
-                    WebkitBackdropFilter: 'blur(14px)',
-                    border: '1px solid rgba(212, 168, 106, 0.3)',
-                    borderRadius: 14,
-                    padding: '8px 14px',
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)'
-                  }}
-                >
-                  <div style={{ minWidth: 0, flex: 1, paddingRight: 6 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {featuredTitle || 'Gian phòng di sản'}
+                {/* Thanh điều khiển nổi chân sân khấu */}
+                <div className="client-rooms-stage-footer">
+                  <div style={{ minWidth: 0, flex: 1, paddingRight: 8 }}>
+                    <div className="client-rooms-stage-name">
+                      {activeTitle || 'Gian phòng di sản'}
                     </div>
-                    {featuredPeriod && (
-                      <div style={{ fontSize: '11px', color: '#D4A86A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
-                        {featuredPeriod}
+                    {activePeriod && (
+                      <div className="client-rooms-stage-period">
+                        {activePeriod}
                       </div>
                     )}
                   </div>
 
-                  {featuredRoom && (
+                  {activeRoom && (
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectRoom(featuredRoom);
-                      }}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: 'linear-gradient(135deg, #D4A86A 0%, #B48A3C 100%)',
-                        color: '#0F1218',
-                        border: 'none',
-                        borderRadius: 24,
-                        padding: '6px 14px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                        boxShadow: '0 3px 12px rgba(212, 168, 106, 0.35)',
-                        transition: 'all 0.2s ease',
-                        whiteSpace: 'nowrap'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-1px) scale(1.03)';
-                        e.currentTarget.style.boxShadow = '0 5px 16px rgba(212, 168, 106, 0.5)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                        e.currentTarget.style.boxShadow = '0 3px 12px rgba(212, 168, 106, 0.35)';
-                      }}
+                      className="client-rooms-stage-btn"
+                      onClick={() => onSelectRoom(activeRoom)}
                       title="Mở toàn màn hình và tham quan chi tiết gian phòng này"
                     >
                       <span>{t('rooms.enterTourBtn', 'Vào tham quan')}</span>
@@ -162,7 +116,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
                     </button>
                   )}
                 </div>
-              </div>
+              </>
             ) : (
               <div className="client-media-placeholder">
                 <div className="client-media-placeholder-icon">
@@ -178,56 +132,69 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
             )}
           </div>
 
-          {/* CỘT NỘI DUNG: ĐẠI DIỆN CHO PHÂN HỆ GIAN PHÒNG 360 */}
-          <div className="client-zigzag-card-body">
-            <span className="client-zigzag-tag">
-              {t(branding.roomsTag || 'rooms.tag', branding.roomsTag || 'Không Gian Thực Tế Ảo')}
-            </span>
+          {/* DẢI CHỌN PHÒNG TIÊU BIỂU (ROOM SELECTOR STRIP) */}
+          {stripRooms.length > 0 && (
+            <div className="client-rooms-strip-container">
+              <div className="client-rooms-strip-header">
+                <span className="client-rooms-strip-title">
+                  {t('rooms.featuredRoomsStrip', 'Gian phòng tiêu biểu')} ({rooms.length})
+                </span>
+                <button
+                  type="button"
+                  className="client-rooms-strip-all-btn"
+                  onClick={onViewAllRooms}
+                >
+                  <span>{t('rooms.viewAllRoomsLink', 'Xem toàn bộ gian phòng')}</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
 
-            <h2 className="client-zigzag-title">
-              {t(branding.roomsTitle || 'rooms.headline', branding.roomsTitle || 'Hệ Thống Gian Phòng Tour 360°')}
-            </h2>
+              <div className="client-rooms-strip-grid">
+                {stripRooms.map((r) => {
+                  const isSelected = r.id === activeRoom?.id;
+                  const thumb = r.thumbnailUrl || r.panoramaUrl || '';
+                  const thumbUrl = thumb
+                    ? (thumb.startsWith('http') ? thumb : `${API_ROOT}${thumb.startsWith('/') ? '' : '/'}${thumb}`)
+                    : '';
+                  const rName = localize(r, 'name', r.name);
+                  const rPeriod = localize(r, 'period', (r as any).period || '');
 
-            <p className="client-zigzag-desc">
-              {t(
-                branding.roomsDesc || 'rooms.sub',
-                branding.roomsDesc ||
-                  'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.'
-              )}
-            </p>
+                  return (
+                    <div
+                      key={r.id}
+                      className={`client-rooms-chip-card ${isSelected ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setActiveRoomId(r.id);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      title={`Bấm để chuyển sang: ${rName}`}
+                    >
+                      <div className="client-rooms-chip-thumb">
+                        {thumbUrl ? (
+                          <img src={thumbUrl} alt={rName} loading="lazy" />
+                        ) : (
+                          <div className="client-rooms-chip-placeholder">
+                            <Compass size={18} />
+                          </div>
+                        )}
+                        {isSelected && <span className="client-rooms-chip-active-dot" />}
+                      </div>
 
-            {/* DÒNG THÔNG SỐ TINH TẾ */}
-            <div className="client-zigzag-meta-line">
-              <span className="client-zigzag-meta-item">
-                {rooms.length > 0 ? (
-                  <>
-                    <strong>{rooms.length}</strong> {t('rooms.totalRooms', 'Gian phòng số hóa')}
-                  </>
-                ) : (
-                  <span>{t('rooms.updating', 'Đang cập nhật không gian')}</span>
-                )}
-              </span>
-              <span className="client-zigzag-meta-sep">•</span>
-              <span className="client-zigzag-meta-item">
-                {t('rooms.interactiveHotspots', 'Thuyết minh đa điểm')}
-              </span>
-              <span className="client-zigzag-meta-sep">•</span>
-              <span className="client-zigzag-meta-item">
-                {t('rooms.seamlessNav', 'Chuyển phòng mượt mà')}
-              </span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div className="client-rooms-stage-name" style={{ fontSize: '0.84rem' }}>
+                          {rName}
+                        </div>
+                        <div className="client-rooms-stage-period" style={{ fontSize: '0.72rem' }}>
+                          {rPeriod || t('rooms.digitizedTag', 'Không gian 360°')}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-
-            {/* NÚT HÀNH ĐỘNG */}
-            <div className="client-zigzag-actions">
-              <button
-                type="button"
-                className="client-zigzag-btn-primary"
-                onClick={onViewAllRooms}
-              >
-                {t(branding.roomsCtaText || 'rooms.btnViewAll', branding.roomsCtaText || 'Khám phá tất cả gian phòng 360°')}
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

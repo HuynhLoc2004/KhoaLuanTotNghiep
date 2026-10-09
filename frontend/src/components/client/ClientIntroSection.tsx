@@ -19,17 +19,16 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
   const { t } = useClientTranslation();
 
   return (
-    <section id="intro" className="client-zigzag-section client-section-alt">
+    <section id="intro" className="client-section client-section-alt">
       <div className="client-container">
-        {/* ZIG-ZAG 1: NẰM BÊN PHẢI, TRỒI TỪ DƯỚI LÊN KHI SCROLL */}
-        <div className="client-zigzag-card horizontal-split align-right reveal-on-scroll">
+        <div className="client-intro-feature-card reveal-on-scroll">
           {/* CỘT ẢNH: KIẾN TRÚC BẢO TÀNG TINH TẾ */}
-          <div className={`client-zigzag-card-media ${!branding.introImageUrl ? 'has-placeholder' : ''}`}>
+          <div className={`client-intro-media ${!branding.introImageUrl ? 'has-placeholder' : ''}`}>
             {branding.introImageUrl ? (
               <img
                 src={branding.introImageUrl}
                 alt={branding.introTitle || branding.museumName || 'Kiến trúc Bảo tàng Lịch sử'}
-                className="client-zigzag-card-img"
+                className="client-intro-img"
                 loading="lazy"
               />
             ) : (
@@ -45,22 +44,22 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
                 </span>
               </div>
             )}
-            <div className="client-zigzag-badge-float">
+            <div className="client-intro-badge">
               <span>{t(branding.introBadgeText || 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia', branding.introBadgeText || 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia')}</span>
             </div>
           </div>
 
-          {/* CỘT NỘI DUNG: TRANG NHÃ, KHÔNG TÈM LEM MÀU, KHÔNG ICON DƯ THỪA */}
-          <div className="client-zigzag-card-body">
-            <span className="client-zigzag-tag">
+          {/* CỘT NỘI DUNG: TRANG NHÃ, NGẮN GỌN, CHUẨN MỰC BẢO TÀNG */}
+          <div className="client-intro-body">
+            <span className="client-section-eyebrow">
               {t(branding.introTag || 'intro.tag', branding.introTag || 'Kiến Trúc & Không Gian')}
             </span>
 
-            <h2 className="client-zigzag-title">
+            <h2 className="client-intro-title">
               {t(branding.introTitle || branding.museumName || 'intro.title', branding.introTitle || branding.museumName || 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh')}
             </h2>
 
-            <p className="client-zigzag-desc">
+            <p className="client-intro-desc">
               {t(
                 branding.introDesc || branding.tagline || 'intro.desc',
                 branding.introDesc ||
@@ -69,27 +68,34 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
               )}
             </p>
 
-            {/* DÒNG THÔNG SỐ ĐỒNG BỘ THẬT: TỐI GIẢN, LỊCH THIỆP, KHÔNG ICON LÒE LOẸT */}
-            <div className="client-zigzag-meta-line">
-              <span className="client-zigzag-meta-item">
-                <strong>{roomCount}</strong> {t('intro.statRooms', 'Gian phòng 360°')}
-              </span>
-              <span className="client-zigzag-meta-sep">•</span>
-              <span className="client-zigzag-meta-item">
-                <strong>{artifactCount}</strong> {t('intro.statArtifacts', 'Hiện vật số hóa')}
-              </span>
-              <span className="client-zigzag-meta-sep">•</span>
-              <span className="client-zigzag-meta-item">
-                {t('intro.interactiveTag', 'Không gian tương tác')}
-              </span>
+            {/* BẢNG ĐỒNG THÔNG SỐ BẢO TÀNG LỊCH SỬ CHUẨN MỰC */}
+            <div className="client-intro-plaque-grid">
+              <div className="client-intro-plaque-item">
+                <span className="client-intro-plaque-num">1929</span>
+                <span className="client-intro-plaque-label">{t('intro.statYear', 'Khởi lập công trình')}</span>
+              </div>
+              <div className="client-intro-plaque-sep" />
+              <div className="client-intro-plaque-item">
+                <span className="client-intro-plaque-num">
+                  {artifactCount > 0 ? `${artifactCount}+` : '30.000+'}
+                </span>
+                <span className="client-intro-plaque-label">{t('intro.statArtifacts', 'Hiện vật di sản')}</span>
+              </div>
+              <div className="client-intro-plaque-sep" />
+              <div className="client-intro-plaque-item">
+                <span className="client-intro-plaque-num">
+                  {roomCount > 0 ? roomCount : '12+'}
+                </span>
+                <span className="client-intro-plaque-label">{t('intro.statRooms', 'Gian phòng số hóa')}</span>
+              </div>
             </div>
 
-            {/* NÚT HÀNH ĐỘNG SANG TRỌNG CHUẨN MỰC */}
+            {/* NÚT HÀNH ĐỘNG SANG TRỌNG */}
             {onExploreRooms && (
-              <div className="client-zigzag-actions">
+              <div>
                 <button
                   type="button"
-                  className="client-zigzag-btn-primary"
+                  className="client-intro-btn"
                   onClick={onExploreRooms}
                 >
                   {t(branding.introCtaText || 'intro.btnExplore', branding.introCtaText || 'Khám phá gian trưng bày')}
