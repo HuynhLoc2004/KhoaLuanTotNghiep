@@ -59,6 +59,8 @@ interface PanoHistoryItem {
   url: string;
   size: number;
   createdAt: string;
+  usedInRooms?: string[];
+  isUsed?: boolean;
 }
 
 // Tư liệu mẫu chuẩn xác của Bảo tàng Lịch sử TP.HCM phục vụ RAG và TTS
@@ -864,10 +866,15 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   const totalQrScans = rooms.reduce((acc, r) => acc + (r.qrScanCount || 0), 0);
 
   // Xóa Pano ảnh 360
-  const handleDeletePano = (filename: string) => {
+  const handleDeletePano = (filename: string, usedInRooms?: string[]) => {
+    if (usedInRooms && usedInRooms.length > 0) {
+      showToast(`Không thể xóa ảnh toàn cảnh này vì đang được sử dụng trong gian phòng "${usedInRooms.join(', ')}". Vui lòng thay đổi hoặc gỡ ảnh trong gian phòng trước khi xóa.`, 'warning');
+      return;
+    }
+
     triggerConfirm(
       'Xóa không gian 360°',
-      `Bạn có chắc chắn muốn xóa vĩnh viễn file toàn cảnh "${filename}" khỏi máy chủ lưu trữ?`,
+      `Bạn có chắc chắn muốn xóa file toàn cảnh "${filename}"?`,
       async () => {
         try {
           const res = await fetch(`${API_BASE}/stitch/panoramas/${encodeURIComponent(filename)}`, {
@@ -896,6 +903,13 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
 
   const handleDeleteSelected = () => {
     if (selectedFilenames.length === 0) return;
+    const inUseItems = panoramas.filter((p) => selectedFilenames.includes(p.filename) && p.usedInRooms && p.usedInRooms.length > 0);
+    if (inUseItems.length > 0 && inUseItems.length === selectedFilenames.length) {
+      const roomNames = Array.from(new Set(inUseItems.flatMap((i) => i.usedInRooms || []))).join(', ');
+      showToast(`Không thể xóa các ảnh đã chọn vì đều đang được sử dụng trong gian phòng "${roomNames}". Vui lòng gỡ ảnh trong gian phòng trước khi xóa.`, 'warning');
+      return;
+    }
+
     triggerConfirm(
       'Xóa hàng loạt không gian 360°',
       `Bạn có chắc muốn xóa vĩnh viễn ${selectedFilenames.length} file ảnh 360° đã chọn khỏi máy chủ lưu trữ?`,
@@ -910,7 +924,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
           if (data.success) {
             setPanoramas((prev) => prev.filter((p) => !selectedFilenames.includes(p.filename)));
             setSelectedFilenames([]);
-            showToast(`Đã xóa thành công ${selectedFilenames.length} ảnh 360°`, 'success');
+            showToast(data.message || `Đã xóa thành công ${selectedFilenames.length} ảnh 360°`, 'success');
           } else {
             showToast(data.message || 'Lỗi khi xóa ảnh', 'error');
           }
@@ -1828,13 +1842,18 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          onClick={() => handleDeletePano(item.filename)}
-                          title="Xóa vĩnh viễn"
+                          onClick={() => handleDeletePano(item.filename, item.usedInRooms)}
+                          title={item.usedInRooms?.length ? `Đang sử dụng trong gian phòng "${item.usedInRooms.join(', ')}"` : "Xóa vĩnh viễn"}
                           style={{ color: 'var(--error)' }}
                         >
                           <Trash2 size={14} />
                         </button>
                       </div>
+                      {item.usedInRooms && item.usedInRooms.length > 0 && (
+                        <div style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 500, marginTop: 4 }}>
+                          Đang sử dụng trong: {item.usedInRooms.join(', ')}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

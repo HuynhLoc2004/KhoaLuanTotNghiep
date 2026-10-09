@@ -53,6 +53,8 @@ interface StitchedHistoryItem {
   height?: number;
   inputFramesCount?: number;
   views?: RoomSceneView[];
+  usedInRooms?: string[];
+  isUsed?: boolean;
   createdAt: string;
 }
 
@@ -283,13 +285,18 @@ export const PocStitchingPage: React.FC = () => {
     setTimeout(() => setCopiedHistoryUrl(null), 2500);
   };
 
-  const handleDeleteHistoryPano = (filename: string) => {
+  const handleDeleteHistoryPano = (filename: string, usedInRooms?: string[]) => {
+    if (usedInRooms && usedInRooms.length > 0) {
+      showToast(`Không thể xóa ảnh toàn cảnh này vì đang được sử dụng trong gian phòng "${usedInRooms.join(', ')}". Vui lòng thay đổi hoặc gỡ ảnh trong gian phòng trước khi xóa.`, 'warning');
+      return;
+    }
+
     setConfirmDialog({
       isOpen: true,
       title: 'Xóa không gian 360°',
-      message: `Bạn có chắc chắn muốn xóa vĩnh viễn không gian 360° "${filename}" khỏi máy chủ? Thao tác này không thể hoàn tác.`,
+      message: `Bạn có chắc chắn muốn xóa không gian 360° "${filename}"?`,
       type: 'danger',
-      confirmText: 'Xóa vĩnh viễn',
+      confirmText: 'Xóa',
       onConfirm: async () => {
         setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
         try {
@@ -1598,13 +1605,18 @@ export const PocStitchingPage: React.FC = () => {
                               <button
                                 type="button"
                                 className="btn btn-secondary btn-sm"
-                                onClick={() => handleDeleteHistoryPano(item.filename)}
-                                title="Xóa khỏi máy chủ"
+                                onClick={() => handleDeleteHistoryPano(item.filename, item.usedInRooms)}
+                                title={item.usedInRooms?.length ? `Đang sử dụng trong gian phòng "${item.usedInRooms.join(', ')}"` : "Xóa khỏi máy chủ"}
                                 style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
                               >
                                 <Trash2 size={13} />
                               </button>
                             </div>
+                            {item.usedInRooms && item.usedInRooms.length > 0 && (
+                              <div style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 500, marginTop: 4 }}>
+                                Đang sử dụng trong: {item.usedInRooms.join(', ')}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

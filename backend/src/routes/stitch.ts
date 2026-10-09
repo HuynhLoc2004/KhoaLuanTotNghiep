@@ -11,6 +11,7 @@ import { PanoramaModel } from '../models/Panorama.js';
 import { RoomModel } from '../models/Room.js';
 import { FloorPlanMapModel } from '../models/FloorPlanMap.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
+import { pgPool } from '../db/postgres.js';
 
 export const stitchRouter = Router();
 
@@ -980,7 +981,7 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
       filename: { $not: { $regex: '_view_' } }
     }).sort({ createdAt: -1 }).lean();
 
-    // 4. Tự động đồng bộ các ảnh phòng cũ đã có trên đĩa nhưng chưa kịp lưu vào MongoDB
+    // 4. Tự động đồng bộ các ảnh phòng cũ đã có trên đĩa hoặc đang gán cho gian phòng
     const recordedFilenames = new Set(dbPanos.map((p: any) => p.filename));
     const missingInDb = existingDiskFiles.filter(f => !recordedFilenames.has(f) && !f.includes('_view_'));
 
@@ -1002,28 +1003,114 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
             updatedAt: stats.mtime
           });
           dbPanos.push(newDoc.toObject ? newDoc.toObject() : newDoc);
+          recordedFilenames.add(missingFile);
         } catch (syncErr) {
           console.warn('[Stitch DB Sync Warning]:', syncErr);
         }
       }
-      dbPanos.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
-    // 4. Định dạng kết quả trả về tương thích 100% với giao diện hiện tại
-    const panoramas = dbPanos.map((p: any) => ({
-      id: p.id || `pano-${p._id}`,
-      filename: p.filename,
-      title: p.title || p.filename,
-      url: p.panoramaUrl || `${baseUrl}/uploads/${p.filename}`,
-      thumbnailUrl: p.thumbnailUrl || p.panoramaUrl || `${baseUrl}/uploads/${p.filename}`,
-      size: p.sizeBytes || 0,
-      width: p.width || 4096,
-      height: p.height || 2048,
-      inputFramesCount: p.inputFramesCount || 0,
-      linkedRoomId: p.linkedRoomId || null,
-      views: p.metadata?.views || [],
-      createdAt: p.createdAt
-    }));
+    // Tự động khôi phục vào thư viện các ảnh 360 đang được gian phòng sử dụng
+    try {
+      const roomPanoUrls: string[] = [];
+      const pgRooms = await pgPool.query('SELECT panorama_url FROM rooms WHERE panorama_url IS NOT NULL AND panorama_url != \'\';');
+      for (const r of pgRooms.rows) {
+        if (r.panorama_url) roomPanoUrls.push(r.panorama_url);
+      }
+      const mongoRooms = await RoomModel.find({ panoramaUrl: { $ne: '' } }).select('panoramaUrl').lean();
+      for (const r of mongoRooms) {
+        if ((r as any).panoramaUrl) roomPanoUrls.push((r as any).panoramaUrl);
+      }
+
+      for (const pUrl of roomPanoUrls) {
+        const cleanBase = path.basename(pUrl.split('?')[0]);
+        if (cleanBase && !recordedFilenames.has(cleanBase) && !cleanBase.includes('_view_')) {
+          const filePath = path.join(UPLOAD_ROOT, cleanBase);
+          if (fs.existsSync(filePath)) {
+            try {
+              const stats = await fs.promises.stat(filePath);
+              const newDoc = await PanoramaModel.create({
+                id: `pano-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                filename: cleanBase,
+                title: `Không gian toàn cảnh 360° (${cleanBase})`,
+                panoramaUrl: `${baseUrl}/uploads/${cleanBase}`,
+                thumbnailUrl: `${baseUrl}/uploads/${cleanBase}`,
+                localUrl: `${baseUrl}/uploads/${cleanBase}`,
+                sizeBytes: stats.size,
+                status: 'ready',
+                createdAt: stats.mtime,
+                updatedAt: stats.mtime
+              });
+              dbPanos.push(newDoc.toObject ? newDoc.toObject() : newDoc);
+              recordedFilenames.add(cleanBase);
+            } catch {}
+          }
+        }
+      }
+      dbPanos.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch {}
+
+    // Tra cứu danh sách các gian phòng đang sử dụng ảnh để hiển thị liên kết
+    const roomUsageMap = new Map<string, string[]>();
+    try {
+      const pgRooms = await pgPool.query('SELECT id, code, name, panorama_url, thumbnail_url FROM rooms;');
+      for (const r of pgRooms.rows) {
+        const rName = (r.name || r.code || '').trim();
+        const pUrl = (r.panorama_url || '').toLowerCase();
+        const tUrl = (r.thumbnail_url || '').toLowerCase();
+        for (const p of dbPanos) {
+          const fn = (p.filename || '').toLowerCase();
+          if (fn && (pUrl.includes(fn) || tUrl.includes(fn))) {
+            const list = roomUsageMap.get(p.filename) || [];
+            if (!list.includes(rName)) list.push(rName);
+            roomUsageMap.set(p.filename, list);
+          }
+        }
+      }
+    } catch {}
+
+    try {
+      const mongoRooms = await RoomModel.find({}).select('id code name panoramaUrl thumbnailUrl scenes').lean();
+      for (const r of mongoRooms) {
+        const rName = ((r as any).name || (r as any).code || '').trim();
+        const pUrl = ((r as any).panoramaUrl || '').toLowerCase();
+        const tUrl = ((r as any).thumbnailUrl || '').toLowerCase();
+        const scenes = (r as any).scenes || [];
+        for (const p of dbPanos) {
+          const fn = (p.filename || '').toLowerCase();
+          let matched = fn && (pUrl.includes(fn) || tUrl.includes(fn));
+          if (!matched && Array.isArray(scenes)) {
+            matched = scenes.some((s: any) => (s?.panoramaUrl || '').toLowerCase().includes(fn));
+          }
+          if (matched) {
+            const list = roomUsageMap.get(p.filename) || [];
+            if (!list.includes(rName)) list.push(rName);
+            roomUsageMap.set(p.filename, list);
+          }
+        }
+      }
+    } catch {}
+
+    // 5. Định dạng kết quả trả về kèm thông tin liên kết phòng
+    const panoramas = dbPanos.map((p: any) => {
+      const usedInRooms = roomUsageMap.get(p.filename) || [];
+      return {
+        id: p.id || `pano-${p._id}`,
+        filename: p.filename,
+        title: p.title || p.filename,
+        url: p.panoramaUrl || `${baseUrl}/uploads/${p.filename}`,
+        thumbnailUrl: p.thumbnailUrl || p.panoramaUrl || `${baseUrl}/uploads/${p.filename}`,
+        size: p.sizeBytes || 0,
+        width: p.width || 4096,
+        height: p.height || 2048,
+        inputFramesCount: p.inputFramesCount || 0,
+        linkedRoomId: p.linkedRoomId || null,
+        views: p.metadata?.views || [],
+        usedInRooms,
+        isUsed: usedInRooms.length > 0,
+        createdAt: p.createdAt
+      };
+    });
 
     return res.json({
       success: true,
@@ -1040,6 +1127,73 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
 });
 
 /**
+ * Kiểm tra xem một file ảnh 360 có đang được sử dụng trong các gian phòng hoặc bản đồ hay không
+ */
+async function checkPanoramaUsage(filename: string): Promise<{ inUse: boolean; rooms: string[]; floorPlans: string[] }> {
+  const rooms: string[] = [];
+  const floorPlans: string[] = [];
+  const cleanName = path.basename(filename).toLowerCase();
+
+  // 1. Kiểm tra trong PostgreSQL (Primary Database)
+  try {
+    const pgRes = await pgPool.query(
+      `SELECT name, code FROM rooms WHERE LOWER(panorama_url) LIKE $1 OR LOWER(thumbnail_url) LIKE $1;`,
+      [`%${cleanName}%`]
+    );
+    for (const r of pgRes.rows) {
+      const roomName = (r.name || r.code || '').trim();
+      if (roomName && !rooms.includes(roomName)) {
+        rooms.push(roomName);
+      }
+    }
+  } catch (err: any) {
+    console.warn('[checkPanoramaUsage PG Warning]:', err.message);
+  }
+
+  // 2. Kiểm tra trong MongoDB (Mirror Database)
+  try {
+    const mongoRooms = await RoomModel.find({
+      $or: [
+        { panoramaUrl: { $regex: cleanName, $options: 'i' } },
+        { thumbnailUrl: { $regex: cleanName, $options: 'i' } },
+        { 'scenes.panoramaUrl': { $regex: cleanName, $options: 'i' } }
+      ]
+    }).select('name code').lean();
+
+    for (const r of mongoRooms) {
+      const roomName = ((r as any).name || (r as any).code || '').trim();
+      if (roomName && !rooms.includes(roomName)) {
+        rooms.push(roomName);
+      }
+    }
+  } catch (err: any) {
+    console.warn('[checkPanoramaUsage Mongo Warning]:', err.message);
+  }
+
+  // 3. Kiểm tra trong FloorPlanMap (Bản đồ tầng)
+  try {
+    const fpList = await FloorPlanMapModel.find({
+      'nodes.panoramaUrl': { $regex: cleanName, $options: 'i' }
+    }).select('name title').lean();
+
+    for (const fp of fpList) {
+      const fpName = ((fp as any).name || (fp as any).title || '').trim();
+      if (fpName && !floorPlans.includes(fpName)) {
+        floorPlans.push(fpName);
+      }
+    }
+  } catch (err: any) {
+    console.warn('[checkPanoramaUsage FloorPlan Warning]:', err.message);
+  }
+
+  return {
+    inUse: rooms.length > 0 || floorPlans.length > 0,
+    rooms,
+    floorPlans
+  };
+}
+
+/**
  * DELETE /api/stitch/panoramas/:filename
  * Xóa file ảnh 360 khỏi thư mục uploads và MongoDB
  */
@@ -1048,6 +1202,22 @@ stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) 
     const filename = Array.isArray(req.params.filename) ? req.params.filename[0] : String(req.params.filename || '');
     if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       return res.status(400).json({ success: false, message: 'Tên file không hợp lệ' });
+    }
+
+    // Ràng buộc toàn vẹn dữ liệu: Không cho phép xóa nếu ảnh đang được dùng để tạo gian phòng hoặc bản đồ
+    const usage = await checkPanoramaUsage(filename);
+    if (usage.inUse) {
+      const details: string[] = [];
+      if (usage.rooms.length > 0) {
+        details.push(`gian phòng "${usage.rooms.join(', ')}"`);
+      }
+      if (usage.floorPlans.length > 0) {
+        details.push(`bản đồ "${usage.floorPlans.join(', ')}"`);
+      }
+      return res.status(400).json({
+        success: false,
+        message: `Không thể xóa ảnh toàn cảnh này vì đang được sử dụng trong ${details.join(' và ')}. Vui lòng thay đổi hoặc gỡ ảnh trong gian phòng trước khi xóa.`
+      });
     }
 
     // Cho phép xóa tất cả ảnh stitched_* (stitched_360_, stitched_room_, stitched_video_360_) hoặc có trong CSDL
@@ -1078,39 +1248,7 @@ stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) 
     // Xóa trong MongoDB
     await PanoramaModel.deleteOne({ filename });
 
-    // Dọn dẹp liên kết ảnh 360 trong RoomModel và FloorPlanMapModel nếu có
-    try {
-      const targetUrl = `/uploads/${filename}`;
-      await RoomModel.updateMany(
-        { $or: [{ panoramaUrl: targetUrl }, { panoramaUrl: filename }] },
-        { $set: { panoramaUrl: '', thumbnailUrl: '' } }
-      );
-      const fpList = await FloorPlanMapModel.find({
-        $or: [
-          { 'nodes.panoramaUrl': targetUrl },
-          { 'nodes.panoramaUrl': filename }
-        ]
-      });
-      for (const fp of fpList) {
-        let changed = false;
-        fp.nodes.forEach((node: any) => {
-          if (node.panoramaUrl === targetUrl || node.panoramaUrl === filename) {
-            node.panoramaUrl = '';
-            node.thumbnailUrl = '';
-            changed = true;
-          }
-        });
-        if (changed) {
-          fp.markModified('nodes');
-          await fp.save();
-          broadcastRealtimeEvent('floor_plan_updated', fp.toObject ? fp.toObject() : fp);
-        }
-      }
-    } catch (cleanErr: any) {
-      console.warn('[Stitch DELETE] Lỗi dọn dẹp liên kết pano trong rooms & floor plans:', cleanErr.message);
-    }
-
-    return res.json({ success: true, message: 'Đã xóa không gian 360 khỏi hệ thống và CSDL thành công' });
+    return res.json({ success: true, message: 'Đã xóa không gian 360° khỏi hệ thống thành công' });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -1118,7 +1256,7 @@ stitchRouter.delete('/panoramas/:filename', async (req: Request, res: Response) 
 
 /**
  * POST /api/stitch/panoramas/batch-delete
- * Xóa nhiều file ảnh 360 cùng lúc khỏi đĩa và MongoDB
+ * Xóa nhiều file ảnh 360 cùng lúc khỏi đĩa và MongoDB (tự động bỏ qua các ảnh đang dùng trong gian phòng)
  */
 stitchRouter.post('/panoramas/batch-delete', async (req: Request, res: Response) => {
   try {
@@ -1127,68 +1265,56 @@ stitchRouter.post('/panoramas/batch-delete', async (req: Request, res: Response)
       return res.status(400).json({ success: false, message: 'Danh sách file cần xóa không hợp lệ' });
     }
 
-    let deletedCount = 0;
-    const validNames: string[] = [];
-
-    const dbDocs = await PanoramaModel.find({ filename: { $in: filenames } }).select('filename').lean();
-    const dbFilenames = new Set(dbDocs.map((d: any) => d.filename));
+    const inUseItems: { filename: string; rooms: string[] }[] = [];
+    const allowedToDelete: string[] = [];
 
     for (const filename of filenames) {
-      const cleanName = String(filename || '');
+      const cleanName = String(filename || '').trim();
       if (!cleanName || cleanName.includes('..') || cleanName.includes('/') || cleanName.includes('\\')) {
         continue;
       }
-
-      const isAllowed = cleanName.startsWith('stitched_') || cleanName.startsWith('pano_') || dbFilenames.has(cleanName);
-      if (isAllowed) {
-        validNames.push(cleanName);
-        const filePath = path.join(UPLOAD_ROOT, cleanName);
-        if (fs.existsSync(filePath)) {
-          try {
-            await fs.promises.unlink(filePath);
-            deletedCount++;
-          } catch (e) {}
-        }
+      const usage = await checkPanoramaUsage(cleanName);
+      if (usage.inUse) {
+        inUseItems.push({ filename: cleanName, rooms: usage.rooms });
+      } else {
+        allowedToDelete.push(cleanName);
       }
     }
 
-    if (validNames.length > 0) {
-      await PanoramaModel.deleteMany({ filename: { $in: validNames } });
+    if (allowedToDelete.length === 0 && inUseItems.length > 0) {
+      const usedRooms = Array.from(new Set(inUseItems.flatMap((i) => i.rooms))).join(', ');
+      return res.status(400).json({
+        success: false,
+        message: `Không thể xóa các ảnh đã chọn vì đang được sử dụng trong gian phòng: ${usedRooms}. Vui lòng thay đổi hoặc gỡ ảnh trong gian phòng trước khi xóa.`
+      });
+    }
 
-      // Dọn dẹp liên kết batch trong RoomModel và FloorPlanMapModel
-      try {
-        const targetUrls = validNames.flatMap((fn) => [`/uploads/${fn}`, fn]);
-        await RoomModel.updateMany(
-          { panoramaUrl: { $in: targetUrls } },
-          { $set: { panoramaUrl: '', thumbnailUrl: '' } }
-        );
-        const fpList = await FloorPlanMapModel.find({
-          'nodes.panoramaUrl': { $in: targetUrls }
-        });
-        for (const fp of fpList) {
-          let changed = false;
-          fp.nodes.forEach((node: any) => {
-            if (targetUrls.includes(node.panoramaUrl)) {
-              node.panoramaUrl = '';
-              node.thumbnailUrl = '';
-              changed = true;
-            }
-          });
-          if (changed) {
-            fp.markModified('nodes');
-            await fp.save();
-            broadcastRealtimeEvent('floor_plan_updated', fp.toObject ? fp.toObject() : fp);
-          }
-        }
-      } catch (cleanErr: any) {
-        console.warn('[Stitch Batch DELETE] Lỗi dọn dẹp liên kết pano trong rooms & floor plans:', cleanErr.message);
+    let deletedCount = 0;
+    for (const cleanName of allowedToDelete) {
+      const filePath = path.join(UPLOAD_ROOT, cleanName);
+      if (fs.existsSync(filePath)) {
+        try {
+          await fs.promises.unlink(filePath);
+          deletedCount++;
+        } catch (_) {}
       }
+    }
+
+    if (allowedToDelete.length > 0) {
+      await PanoramaModel.deleteMany({ filename: { $in: allowedToDelete } });
+    }
+
+    let message = `Đã xóa thành công ${deletedCount} không gian 360°.`;
+    if (inUseItems.length > 0) {
+      const usedRooms = Array.from(new Set(inUseItems.flatMap((i) => i.rooms))).join(', ');
+      message += ` Bỏ qua ${inUseItems.length} ảnh đang được sử dụng trong gian phòng (${usedRooms}).`;
     }
 
     return res.json({
       success: true,
-      message: `Đã dọn dẹp thành công ${deletedCount} không gian 360° khỏi hệ thống và CSDL`,
-      deletedCount
+      message,
+      deletedCount,
+      skippedCount: inUseItems.length
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
