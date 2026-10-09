@@ -1302,52 +1302,47 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
                 pts1 = np.float32([kp1[m.queryIdx].pt for m in good])
                 pts2 = np.float32([kp2[m.trainIdx].pt for m in good])
                 M_aff, inls = cv2.estimateAffinePartial2D(pts2, pts1, method=cv2.RANSAC, ransacReprojThreshold=5.0)
-                if M_aff is not None and inls is not None and int(np.sum(inls)) >= 4:
+                if M_aff is not None and inls is not None and int(np.sum(inls)) >= 6:
                     inls_mask = inls.ravel() == 1
                     diffs_inl = pts1[inls_mask] - pts2[inls_mask]
-                    best_cnt = int(np.sum(inls))
-                    best_dx = float(np.median(diffs_inl[:, 0]))
-                    best_dy = float(np.median(diffs_inl[:, 1]))
-                else:
-                    diffs = pts1 - pts2
-                    n_diff = len(diffs)
-                    for _ in range(min(300, n_diff * 6)):
-                        rand_idx = np.random.randint(0, n_diff)
-                        cdx, cdy = diffs[rand_idx]
-                        err = np.hypot(diffs[:, 0] - cdx, diffs[:, 1] - cdy)
-                        inls_arr = err < 10.0
-                        cnt = int(np.sum(inls_arr))
-                        if cnt > best_cnt:
-                            best_cnt = cnt
-                            best_dx = float(np.mean(diffs[inls_arr, 0]))
-                            best_dy = float(np.mean(diffs[inls_arr, 1]))
+                    cdx = float(np.median(diffs_inl[:, 0]))
+                    cdy = float(np.median(diffs_inl[:, 1]))
+                    # Khử triệt để outlier: bước dịch ngang phải tiến về phía trước và độ lệch dọc hợp lý
+                    if cdx > w0 * 0.04 and abs(cdy) < h0 * 0.25:
+                        best_dx = cdx
+                        best_dy = cdy
+                        best_cnt = int(np.sum(inls))
 
         # Dự phòng bằng tương quan pha (Phase Correlation) khi gặp tường phẳng ít vân
-        if best_dx is None or best_cnt < 5:
+        if best_dx is None:
             try:
                 cur_w1 = g1.shape[1]
                 ov_w = int(cur_w1 * 0.45)
                 slice1 = g1[:, cur_w1 - ov_w:].astype(np.float32)
                 slice2 = g2[:, :ov_w].astype(np.float32)
                 shift, resp = cv2.phaseCorrelate(slice1, slice2)
-                if resp > 0.10:
-                    best_dx = float((cur_w1 - ov_w) + shift[0])
-                    best_dy = float(shift[1])
+                p_dx = float((cur_w1 - ov_w) + shift[0])
+                p_dy = float(shift[1])
+                if resp > 0.08 and p_dx > w0 * 0.04 and abs(p_dy) < h0 * 0.20:
+                    best_dx = p_dx
+                    best_dy = p_dy
                     best_cnt = int(resp * 50)
             except Exception:
                 pass
 
         # Dự phòng bằng độ dịch chuyển trung bình của các góc trước đó
         if best_dx is None:
-            valid_prev = [s[0] for s in shifts if s[0] > 0]
-            best_dx = float(np.median(valid_prev)) if valid_prev else float(w0 * 0.25)
-            best_dy = 0.0
+            valid_dxs = [s[0] for s in shifts if s[0] > 0]
+            valid_dys = [s[1] for s in shifts]
+            best_dx = float(np.median(valid_dxs)) if valid_dxs else float(w0 * 0.25)
+            best_dy = float(np.median(valid_dys)) if valid_dys else 0.0
 
-        # Không cưỡng ép bước dịch chuyển giả tạo lớn nếu camera di chuyển chậm hoặc đứng yên
+        # Giữ đúng độ dời hình học thực tế giữa 2 ảnh để khớp khít 100% các thanh xà, mái hiên, viền cửa
         min_step = float(w0 * 0.02)
         max_step = float(w0 * 0.65)
         step_dx = max(min_step, min(max_step, abs(best_dx)))
-        safe_dy = max(-15.0, min(15.0, best_dy))
+        max_physical_dy = float(h0 * 0.15)
+        safe_dy = max(-max_physical_dy, min(max_physical_dy, best_dy))
         shifts.append((step_dx, safe_dy))
 
     # 5. Tích lũy tọa độ ban đầu
@@ -1460,7 +1455,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
         accum_high = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
         accum_w_high = np.zeros((canvas_h, canvas_w), dtype=np.float32)
         feather_low = 60.0
-        feather_high = 3.0
+        feather_high = 12.0
 
         for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
             cur_h, cur_w = im.shape[:2]
@@ -1533,7 +1528,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
         accum_high = np.zeros((canvas_h, canvas_w, 3), dtype=np.float32)
         accum_w_high = np.zeros((canvas_h, canvas_w), dtype=np.float32)
         feather_low = 60.0
-        feather_high = 3.0
+        feather_high = 12.0
 
         for i, (im, m) in enumerate(zip(warped_imgs, warped_masks)):
             cur_h, cur_w = im.shape[:2]
