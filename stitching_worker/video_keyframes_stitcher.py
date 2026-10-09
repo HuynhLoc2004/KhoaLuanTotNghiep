@@ -19,81 +19,66 @@ def extract_and_stitch(video_path, output_path, max_keyframes=24):
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     w_orig = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h_orig = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration_sec = total_frames / float(fps) if fps > 0 else 0
 
-    # Lấy mẫu mỗi ~0.3 giây
-    sample_interval = max(1, int(fps * 0.3))
+    if total_frames < 10:
+        cap.release()
+        return {"success": False, "message": "Video quá ngắn để ghép toàn cảnh 360°"}
 
-    sift = cv2.SIFT_create(nfeatures=600)
-    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
+    # Xác định số lượng khung hình tối ưu trải đều 100% thời lượng video (từ 0s đến hết video)
+    # 20 - 24 khung hình trải đều là tỷ lệ vàng: đủ gối đầu 60-70% khắp 360 độ và OpenCV hội tụ trong vài giây
+    target_kfs = max(18, min(24, max_keyframes if max_keyframes > 0 else int(duration_sec / 2.0)))
+    segment_size = total_frames / float(target_kfs)
 
     det_w = 360
     det_h = int(h_orig * (det_w / float(w_orig)))
-    target_dx_min = det_w * 0.22  # ~80px
 
     keyframes = []
-    last_des, last_kp = None, None
 
-    frame_idx = 0
-    while frame_idx < total_frames:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-        ret, frame = cap.read()
-        if not ret:
-            break
+    for seg_i in range(target_kfs):
+        start_frame = int(seg_i * segment_size)
+        end_frame = int((seg_i + 1) * segment_size)
+        # Khảo sát 5 vị trí trong phân đoạn này để chọn khung hình sắc nét nhất (chống nhòe do lia nhanh)
+        candidates = np.linspace(start_frame, max(start_frame, end_frame - 1), 5, dtype=int)
+        best_frame = None
+        best_sharpness = -1.0
 
-        small = cv2.resize(frame, (det_w, det_h))
-        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-        sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        for c_idx in candidates:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, int(c_idx))
+            ret, frame = cap.read()
+            if not ret:
+                continue
+            small = cv2.resize(frame, (det_w, det_h))
+            gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+            sharp = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+            if sharp > best_sharpness:
+                best_sharpness = sharp
+                best_frame = frame
 
-        # Loại bỏ khung hình bị mờ do rung tay lia nhanh
-        if sharpness < 75.0:
-            frame_idx += sample_interval
-            continue
-
-        kp, des = sift.detectAndCompute(gray, None)
-        if des is None or len(des) < 20:
-            frame_idx += sample_interval
-            continue
-
-        if len(keyframes) == 0:
-            keyframes.append((frame_idx, frame))
-            last_des, last_kp = des, kp
-        else:
-            matches = bf.knnMatch(last_des, des, k=2)
-            good = [m[0] for m in matches if len(m) == 2 and m[0].distance < 0.75 * m[1].distance]
-            if len(good) >= 12:
-                pts1 = np.float32([last_kp[m.queryIdx].pt for m in good])
-                pts2 = np.float32([kp[m.trainIdx].pt for m in good])
-                diffs = pts1 - pts2
-                dx = float(np.median(diffs[:, 0]))
-
-                if dx >= target_dx_min:
-                    keyframes.append((frame_idx, frame))
-                    last_des, last_kp = des, kp
-
-                    if len(keyframes) >= max_keyframes:
-                        break
-
-        frame_idx += sample_interval
+        if best_frame is not None:
+            keyframes.append(best_frame)
 
     cap.release()
 
-    if len(keyframes) < 2:
-        return {"success": False, "message": "Không đủ góc nhìn hợp lệ từ video để ghép 360°"}
-
-    images = [k[1] for k in keyframes]
+    if len(keyframes) < 3:
+        return {"success": False, "message": "Không đủ khung hình sắc nét từ video để ghép 360°"}
 
     stitcher = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
-    # Giữ nguyên 100% độ phân giải gốc, không nén nhỏ
+    # Giữ nguyên 100% độ phân giải gốc của camera
     try:
         stitcher.setCompositingResol(-1)
+        stitcher.setRegistrationResol(0.5)
+        stitcher.setPanoConfidenceThresh(0.6)
     except Exception:
         pass
 
-    status, pano = stitcher.stitch(images)
+    status, pano = stitcher.stitch(keyframes)
 
-    if status != cv2.Stitcher_OK and len(images) > 8:
-        # Thử lại với subset ảnh nếu tập ảnh quá lớn
-        status, pano = stitcher.stitch(images[:14])
+    if status != cv2.Stitcher_OK and len(keyframes) > 10:
+        # Fallback thông minh: Lấy bước nhảy cách 1 frame (vẫn trải đều 100% video từ đầu đến cuối)
+        stride_frames = keyframes[::2]
+        if len(stride_frames) >= 8:
+            status, pano = stitcher.stitch(stride_frames)
 
     if status == cv2.Stitcher_OK and pano is not None:
         # Cắt bớt viền đen uốn cong để ảnh thành hình chữ nhật phẳng đẹp
@@ -103,9 +88,9 @@ def extract_and_stitch(video_path, output_path, max_keyframes=24):
         if contours:
             c = max(contours, key=cv2.contourArea)
             x, y, w, h = cv2.boundingRect(c)
-            # Cắt bớt 3% biên trên dưới để loại bỏ mép cong
-            my = int(h * 0.03)
-            mx = int(w * 0.015)
+            # Cắt bớt 2% biên trên dưới để loại bỏ mép cong
+            my = int(h * 0.02)
+            mx = int(w * 0.01)
             y1 = min(y + my, pano.shape[0] - 10)
             y2 = max(y + h - my, y1 + 10)
             x1 = min(x + mx, pano.shape[1] - 10)
