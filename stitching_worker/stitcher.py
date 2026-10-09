@@ -111,35 +111,14 @@ def load_and_orient_image(image_path, max_dim=0):
     return img
 
 
-def preprocess_lighting_clahe(img, clip_limit=2.5, grid_size=(8, 8)):
+def preprocess_lighting_clahe(img, clip_limit=1.0, grid_size=(8, 8)):
     """
-    Cân bằng sáng thích ứng cục bộ CLAHE trên kênh Luminance (L) của không gian màu LAB:
-    - Làm sáng rõ các hiện vật trưng bày nằm trong góc tối / bóng khuất.
-    - Giảm thiểu cháy sáng lóa (overexposure) tại các khu vực bị đèn rọi spotlight chiếu trực diện.
-    - Giữ nguyên vẹn độ bão hòa màu sắc tự nhiên của không gian bảo tàng.
+    Bảo tồn 100% màu sắc, ánh sáng và chi tiết tự nhiên từ camera:
+    - Giữ nguyên màu thực tế của tường, vật thể, không gian.
+    - Không làm sẫm màu/cháy tối (crushed shadows) và không gây bệt ảo như tranh vẽ.
     """
-    if img is None or img.size == 0:
-        return img
-    try:
-        # Chuyển đổi sang không gian màu LAB (L: Luminance, A-B: Sắc độ màu)
-        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        l_chan, a_chan, b_chan = cv2.split(lab)
+    return img
 
-        # Áp dụng CLAHE giới hạn tương phản lên kênh L
-        clahe = cv2.createCLAHE(clipLimit=float(clip_limit), tileGridSize=grid_size)
-        cl = clahe.apply(l_chan)
-
-        # Hòa trộn nhẹ 85% CLAHE + 15% gốc để giữ độ chuyển tông màu mượt mà
-        cl = cv2.addWeighted(cl, 0.85, l_chan, 0.15, 0)
-
-        # Khử nhiễu nhẹ kênh sáng bằng bộ lọc song phương (Bilateral Filter) giữ sắc cạnh
-        cl_smooth = cv2.bilateralFilter(cl, d=5, sigmaColor=35, sigmaSpace=35)
-
-        merged = cv2.merge([cl_smooth, a_chan, b_chan])
-        return cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
-    except Exception as e:
-        log(f"[Warning] Lỗi CLAHE: {e}, dùng ảnh gốc.")
-        return img
 
 
 def resolve_capture_sequence(image_paths):
@@ -418,7 +397,7 @@ def fit_to_equirectangular_2_to_1(panorama, target_width=4096, is_full_360=True)
     if panorama is None or panorama.size == 0:
         return panorama
 
-    ew = 4096 if target_width <= 0 else int(target_width)
+    ew = 2560 if target_width <= 0 else int(target_width)
     eh = ew // 2
 
     # Trước tiên cắt sạch viền đen răng cưa nội tiếp
@@ -490,15 +469,9 @@ def cylindrical_to_equirectangular(cyl_img, f_cam=None, out_w=4096, out_h=2048):
 
 
 def enhance_museum_details(image):
-    """Tăng cường độ chi tiết hoa văn hiện vật bằng Unsharp Masking dịu nhẹ."""
-    if image is None or image.size == 0:
-        return image
-    try:
-        blurred = cv2.GaussianBlur(image, (0, 0), sigmaX=1.2)
-        sharpened = cv2.addWeighted(image, 1.20, blurred, -0.20, 0)
-        return np.clip(sharpened, 0, 255).astype(np.uint8)
-    except Exception:
-        return image
+    """Bảo tồn độ sắc nét chân thực của không gian, không tạo quầng sáng halo hay làm gắt viền."""
+    return image
+
 
 
 # ============================================================================
@@ -1193,7 +1166,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     if N_raw == 0:
         return None, False, None
 
-    out_w = 4096 if target_width <= 0 else int(target_width)
+    out_w = 2560 if target_width <= 0 else int(target_width)
     out_h = out_w // 2
 
     log(f"[*] Động cơ Ghép Chuỗi Quang Học: Bắt đầu xử lý {N_raw} góc ảnh...")
@@ -1521,7 +1494,7 @@ def run_equiangular_cylindrical_stitcher(image_paths, target_width=4096, target_
     if not image_paths or len(image_paths) == 0:
         return None
 
-    out_w = 4096 if target_width <= 0 else int(target_width)
+    out_w = 2560 if target_width <= 0 else int(target_width)
     out_h = out_w // 2
 
     # Lọc thông minh: Chọn 14 - 18 góc chụp đều quanh 360°
@@ -1650,7 +1623,7 @@ def run_stitch(image_paths, output_path, target_width=0):
     if not image_paths or len(image_paths) < 1:
         return {"success": False, "error": "ERR_TOO_FEW_IMAGES", "detail": "Vui lòng chọn ít nhất 1 ảnh."}
 
-    out_w = 4096 if target_width <= 0 else int(target_width)
+    out_w = 2560 if target_width <= 0 else int(target_width)
 
     # TRƯỜNG HỢP 1: 1 ẢNH ĐẦU VÀO (ẢNH PANO HOẶC ẢNH GÓC PHÒNG)
     if len(image_paths) == 1:
@@ -1760,7 +1733,7 @@ def run_stitch(image_paths, output_path, target_width=0):
     equi_pano = enhance_museum_details(final_pano)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    cv2.imwrite(output_path, equi_pano, [cv2.IMWRITE_JPEG_QUALITY, 99])
+    cv2.imwrite(output_path, equi_pano, [cv2.IMWRITE_JPEG_QUALITY, 93])
     h, w = equi_pano.shape[:2]
     cur_ar = round(w / max(1, h), 2)
     total_time = round(time.time() - t0, 1)

@@ -61,8 +61,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   initialPitch = 0,
   initialYaw = 0,
   initialHfov,
-  minPitch = -42,
-  maxPitch = 42,
+  minPitch = -85,
+  maxPitch = 85,
   focusCoords,
   hideControls = false,
   autoRotateSpeed = 0,
@@ -235,8 +235,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
     let effectiveVaov = vaov;
     let effectiveMinYaw = minYaw;
     let effectiveMaxYaw = maxYaw;
-    let effectiveMinPitch = minPitch !== undefined ? minPitch : -80;
-    let effectiveMaxPitch = maxPitch !== undefined ? maxPitch : 80;
+    let effectiveMinPitch = minPitch !== undefined ? minPitch : -85;
+    let effectiveMaxPitch = maxPitch !== undefined ? maxPitch : 85;
     let effectiveHfov = initialHfov || 100;
 
     if (!isStandardEqui) {
@@ -251,8 +251,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       effectiveVaov = calculatedVaov;
       effectiveMinYaw = minYaw !== undefined ? minYaw : -halfH;
       effectiveMaxYaw = maxYaw !== undefined ? maxYaw : halfH;
-      effectiveMinPitch = minPitch !== undefined ? minPitch : -Math.min(halfV, 45);
-      effectiveMaxPitch = maxPitch !== undefined ? maxPitch : Math.min(halfV, 45);
+      effectiveMinPitch = minPitch !== undefined ? minPitch : -Math.min(halfV, 80);
+      effectiveMaxPitch = maxPitch !== undefined ? maxPitch : Math.min(halfV, 80);
 
       // Đặt góc nhìn ban đầu vừa vặn bao quát cả căn phòng
       effectiveHfov = initialHfov || Math.min(calculatedHaov * 0.75, 85);
