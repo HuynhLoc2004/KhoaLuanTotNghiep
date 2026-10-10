@@ -1305,6 +1305,31 @@ export const api = {
     const json = await safeJson(res, 'Không thể dọn dẹp nhật ký');
     if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi dọn dẹp nhật ký');
     return json;
+  },
+
+  async exportSystemLogs(params?: { level?: string; module?: string; limit?: number }): Promise<void> {
+    const query = new URLSearchParams();
+    if (params?.level && params.level !== 'all') query.append('level', params.level);
+    if (params?.module && params.module !== 'all') query.append('module', params.module);
+    if (params?.limit) query.append('limit', params.limit.toString());
+
+    const res = await fetch(`${API_BASE}/system/logs/export/json?${query.toString()}`, {
+      headers: getAuthHeaders(true)
+    });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Lỗi khi xuất tệp nhật ký');
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `system_logs_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   }
 };
 

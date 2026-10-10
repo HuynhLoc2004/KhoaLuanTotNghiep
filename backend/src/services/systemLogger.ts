@@ -18,6 +18,57 @@ export interface LogContextOptions {
 }
 
 /**
+ * Danh sách các trường nhạy cảm cần loại bỏ hoặc ẩn mã hóa
+ */
+const SENSITIVE_KEY_REGEX = /(password|pass|token|secret|apiKey|api_key|authorization|bearer|cookie|checksum|cardNumber|cvv|pin|privateKey|auth|session|credential)/i;
+
+/**
+ * Khử mã độc / ẩn thông tin nhạy cảm khỏi dữ liệu nhật ký một cách an toàn (Chống rò rỉ bảo mật)
+ */
+export function sanitizeData(data: any, depth = 0): any {
+  if (depth > 6) return '[MAX_DEPTH]';
+  if (data === null || data === undefined) return data;
+
+  if (typeof data === 'string') {
+    // Ẩn Bearer token nếu có trong chuỗi
+    if (data.toLowerCase().startsWith('bearer ') && data.length > 15) {
+      return 'Bearer [REDACTED_TOKEN]';
+    }
+    // Ẩn JWT token nếu có cấu trúc eyJ...
+    if (/eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}/.test(data)) {
+      return data.replace(/eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}/g, '[REDACTED_JWT]');
+    }
+    // Ẩn chuỗi kết nối chứa mật khẩu (mongodb://user:pass@...)
+    if (/(mongodb|postgres|postgresql|mysql):\/\/[^:\s]+:[^@\s]+@/.test(data)) {
+      return data.replace(/(:)([^:\s@]+)(@)/g, '$1***$3');
+    }
+    return data;
+  }
+
+  if (typeof data === 'number' || typeof data === 'boolean') {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.slice(0, 100).map((item) => sanitizeData(item, depth + 1));
+  }
+
+  if (typeof data === 'object') {
+    const sanitized: Record<string, any> = {};
+    for (const key of Object.keys(data)) {
+      if (SENSITIVE_KEY_REGEX.test(key)) {
+        sanitized[key] = '[REDACTED]';
+      } else {
+        sanitized[key] = sanitizeData(data[key], depth + 1);
+      }
+    }
+    return sanitized;
+  }
+
+  return String(data);
+}
+
+/**
  * Trích xuất an toàn thông tin tác nhân từ Express Request
  */
 function extractActorFromReq(req?: Request) {
@@ -29,29 +80,42 @@ function extractActorFromReq(req?: Request) {
     req.socket?.remoteAddress ||
     '127.0.0.1';
 
+  // Lọc sạch URL và đường dẫn nếu có token trong query
+  let safePath = req.originalUrl || req.url || '';
+  if (safePath.includes('token=')) {
+    safePath = safePath.replace(/([?&]token=)[^&]+/g, '$1[REDACTED]');
+  }
+
   return {
     userId: user?._id || user?.id || 'guest',
     username: user?.name || user?.username || (user ? 'Người dùng xác thực' : 'Khách vãng lai'),
     role: user?.role || 'guest',
     ipAddress,
-    userAgent: req.headers['user-agent'] || '',
+    userAgent: (req.headers['user-agent'] || '').slice(0, 255),
     method: req.method,
-    path: req.originalUrl || req.url
+    path: safePath
   };
 }
 
 /**
- * Chuẩn hóa lỗi ra định dạng phân tích có cấu trúc
+ * Chuẩn hóa lỗi ra định dạng phân tích có cấu trúc và loại bỏ đường dẫn file nội bộ nhạy cảm
  */
 function formatErrorDetails(err: any) {
   if (!err) return undefined;
   if (typeof err === 'string') {
-    return { name: 'Error', message: err, stack: '' };
+    return { name: 'Error', message: sanitizeData(err), stack: '' };
   }
+
+  const rawMsg = err.message || String(err);
+  let stack = err.stack ? err.stack.split('\n').slice(0, 8).join('\n') : '';
+
+  // Ẩn đường dẫn tuyệt đối của máy chủ trên stack trace
+  stack = stack.replace(/([a-zA-Z]:\\[^\n\r]+?|(?:\/[a-zA-Z0-9._-]+)+\/)(?=backend|frontend|node_modules)/g, '.../');
+
   return {
     name: err.name || 'Error',
-    message: err.message || String(err),
-    stack: err.stack ? err.stack.split('\n').slice(0, 10).join('\n') : '',
+    message: sanitizeData(rawMsg),
+    stack: sanitizeData(stack),
     code: err.code ? String(err.code) : undefined
   };
 }
@@ -79,13 +143,15 @@ class SystemLogger {
       const path = options.req ? actor.path : (options.details?.path || '');
 
       const parsedError = formatErrorDetails(options.error);
+      const sanitizedDetails = sanitizeData(options.details || {});
+      const sanitizedMessage = sanitizeData(message || '');
 
       // 1. Lưu bản ghi chi tiết vào NoSQL MongoDB
       const logDoc = await SystemLogModel.create({
         level,
         module,
-        action,
-        message,
+        action: action ? String(action).slice(0, 80) : 'UNKNOWN',
+        message: sanitizedMessage,
         statusCode: options.statusCode,
         durationMs: options.durationMs || 0,
         ipAddress,
@@ -97,7 +163,7 @@ class SystemLogger {
         method,
         path,
         error: parsedError,
-        details: options.details || {},
+        details: sanitizedDetails,
         tags: options.tags || []
       });
 
@@ -108,10 +174,10 @@ class SystemLogger {
         action: `${level}_${module}_${action}`,
         resource: options.resource || module,
         details: {
-          message,
+          message: sanitizedMessage,
           statusCode: options.statusCode,
           error: parsedError,
-          ...options.details
+          ...sanitizedDetails
         },
         ipAddress
       }).catch(() => {});
