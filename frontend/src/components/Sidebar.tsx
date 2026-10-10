@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate, ChevronDown, Layers, Users, Ticket, SlidersHorizontal } from 'lucide-react';
+import { Compass, Landmark, Box, BarChart3, Settings, Camera, X, Languages, PanelLeftClose, LayoutTemplate, ChevronDown, Layers, Users, Ticket, SlidersHorizontal, ScrollText } from 'lucide-react';
 import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 import { useClientTranslation } from '../context/ClientTranslationContext';
@@ -278,6 +278,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Settings size={16} />
           <span className="nav-item-text">{t('nav.settings', 'Cấu hình hệ thống')}</span>
+        </button>
+
+        <button
+          className={`nav-item ${currentTab === 'logs' ? 'active' : ''}`}
+          onClick={() => handleItemClick('logs')}
+          title="Nhật ký và giám sát toàn diện hoạt động, lỗi hệ thống NoSQL"
+        >
+          <ScrollText size={16} />
+          <span className="nav-item-text">{t('nav.logs', 'Nhật ký & Giám sát (NoSQL)')}</span>
         </button>
       </nav>
 

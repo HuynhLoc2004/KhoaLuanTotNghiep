@@ -39,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'tickets': return t('nav.tickets', 'Quản lý Vé Tham Quan');
       case 'analytics': return t('nav.analytics', 'Báo cáo & Thống kê');
       case 'settings': return t('nav.settings', 'Cấu hình hệ thống');
+      case 'logs': return t('nav.logs', 'Nhật ký & Giám sát hệ thống NoSQL');
       default: return t('nav.dashboard', 'Bảng Điều Khiển');
     }
   };

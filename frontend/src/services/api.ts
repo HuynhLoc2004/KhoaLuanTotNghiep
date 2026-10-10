@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload, TicketTypeItem, TicketTimeSlotItem, TicketCatalogData, TicketCheckoutPayload, TicketCheckoutResponse, AdminOrderItem, AdminOrdersResponse, NavigationResult, FloorPlanNavSettings, FloorPlanNavLog } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload, TicketTypeItem, TicketTimeSlotItem, TicketCatalogData, TicketCheckoutPayload, TicketCheckoutResponse, AdminOrderItem, AdminOrdersResponse, NavigationResult, FloorPlanNavSettings, FloorPlanNavLog, SystemLogItem, SystemLogStats } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -1247,6 +1247,64 @@ export const api = {
     const json = await safeJson(res, 'Không thể tải danh sách đơn hàng');
     if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải đơn hàng');
     return { data: json.data || [], pagination: json.pagination, stats: json.stats };
+  },
+
+  // === QUẢN TRỊ NHẬT KÝ & GIÁM SÁT HỆ THỐNG NOSQL ===
+  async getSystemLogs(params?: {
+    page?: number;
+    limit?: number;
+    level?: string;
+    module?: string;
+    search?: string;
+    hasError?: boolean;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ data: SystemLogItem[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+    if (params?.level) query.append('level', params.level);
+    if (params?.module) query.append('module', params.module);
+    if (params?.search) query.append('search', params.search);
+    if (params?.hasError) query.append('hasError', 'true');
+    if (params?.startDate) query.append('startDate', params.startDate);
+    if (params?.endDate) query.append('endDate', params.endDate);
+
+    const res = await fetch(`${API_BASE}/system/logs?${query.toString()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải danh sách nhật ký hệ thống');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải nhật ký hệ thống');
+    return { data: json.data || [], pagination: json.pagination };
+  },
+
+  async getSystemLogStats(): Promise<SystemLogStats> {
+    const res = await fetch(`${API_BASE}/system/logs/stats`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải thống kê nhật ký');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải thống kê nhật ký');
+    return json.data;
+  },
+
+  async getSystemLogDetail(id: string): Promise<SystemLogItem> {
+    const res = await fetch(`${API_BASE}/system/logs/${id}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải chi tiết nhật ký');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải chi tiết nhật ký');
+    return json.data;
+  },
+
+  async cleanupSystemLogs(options: { olderThanDays: number; keepErrorsOnly?: boolean }): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/logs/cleanup`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(options)
+    });
+    const json = await safeJson(res, 'Không thể dọn dẹp nhật ký');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi dọn dẹp nhật ký');
+    return json;
   }
 };
 

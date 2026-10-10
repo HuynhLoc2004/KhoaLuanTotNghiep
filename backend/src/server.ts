@@ -22,6 +22,8 @@ import { startOrderCleanupJob } from './services/orderCleanup.js';
 import { profileRouter } from './routes/profile.js';
 import { splatRouter } from './routes/splat.js';
 import { aiRouter } from './routes/ai.js';
+import { logsRouter } from './routes/logs.js';
+import { systemLogger } from './services/systemLogger.js';
 import { seedDefaultLanguages } from './models/Language.js';
 import { seedDefaultRoles } from './models/Role.js';
 import { seedDefaultAdmin } from './models/User.js';
@@ -164,6 +166,40 @@ app.use('/api/tickets', ticketsRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/splat', splatRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/system/logs', logsRouter);
+
+// Middleware tự động ghi nhận các tác vụ quản trị và lỗi hệ thống vào NoSQL MongoDB
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const durationMs = Date.now() - start;
+    const isMutation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method);
+    const isError = res.statusCode >= 400;
+
+    if ((isMutation || isError) && !req.path.startsWith('/api/system/logs')) {
+      let module: any = 'SYSTEM';
+      if (req.path.startsWith('/api/rooms')) module = 'ROOMS';
+      else if (req.path.startsWith('/api/artifacts')) module = 'ARTIFACTS';
+      else if (req.path.startsWith('/api/stitch')) module = 'STITCHING';
+      else if (req.path.startsWith('/api/floor-plan')) module = 'FLOOR_PLAN';
+      else if (req.path.startsWith('/api/tickets') || req.path.startsWith('/api/admin/tickets')) module = 'TICKETS';
+      else if (req.path.startsWith('/api/auth')) module = 'AUTH';
+      else if (req.path.startsWith('/api/languages') || req.path.startsWith('/api/ai')) module = 'AI_VOICE';
+
+      const level = res.statusCode >= 500 ? 'ERROR' : res.statusCode >= 400 ? 'WARN' : 'INFO';
+      const action = `${req.method}_${req.path.split('/')[2] || 'REQUEST'}`;
+      const message = `${req.method} ${req.originalUrl} -> ${res.statusCode} (${durationMs}ms)`;
+
+      systemLogger.log(level, module, action, message, {
+        req,
+        statusCode: res.statusCode,
+        durationMs,
+        resource: req.path
+      }).catch(() => {});
+    }
+  });
+  next();
+});
 
 // Health check with real statuses
 app.get('/api/health', async (req, res) => {
@@ -207,6 +243,11 @@ app.get('/api/health', async (req, res) => {
 // Global error handler (prevent process crash on aborted uploads)
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.warn('[Server Warning]:', err.message);
+  systemLogger.error('SYSTEM', 'UNHANDLED_ERROR', err.message || 'Lỗi xử lý yêu cầu', err, {
+    req,
+    statusCode: err.status || 500
+  }).catch(() => {});
+
   if (!res.headersSent) {
     res.status(err.status || 500).json({
       success: false,

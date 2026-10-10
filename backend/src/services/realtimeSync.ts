@@ -9,6 +9,7 @@ export type RealtimeEventType =
   | 'floor_plan_updated'
   | 'tickets_updated'
   | 'order_paid'
+  | 'system_log_created'
   | 'ping';
 
 export interface RealtimeEventPayload {

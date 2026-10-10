@@ -22,6 +22,7 @@ import { ClientMaintenanceView } from './components/client/ClientMaintenanceView
 import { PocStitchingPage } from './pages/PocStitchingPage';
 import { AdminLanguagePage } from './pages/admin/AdminLanguagePage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { AdminLogsPage } from './pages/admin/AdminLogsPage';
 import { AdminHomepageCMSPage } from './pages/admin/AdminHomepageCMSPage';
 import { AdminShowcasePage } from './pages/admin/AdminShowcasePage';
 import { AdminGuideCMSPage } from './pages/admin/AdminGuideCMSPage';
@@ -1041,6 +1042,8 @@ const AppContent: React.FC = () => {
           <AdminTicketsPage />
         ) : currentTab === 'settings' ? (
           <AdminSettingsPage />
+        ) : currentTab === 'logs' ? (
+          <AdminLogsPage />
         ) : (
           <div className="admin-content">
             <div className="panel" style={{ padding: 40, textAlign: 'center' }}>

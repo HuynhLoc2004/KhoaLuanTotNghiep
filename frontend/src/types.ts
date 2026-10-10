@@ -78,7 +78,59 @@ export interface TopicItem {
   updatedAt?: string;
 }
 
-export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'showcase' | 'homepage_cms' | 'guide' | 'languages' | 'users' | 'tickets' | 'analytics' | 'settings';
+export type AdminTab = 'rooms' | 'studio' | 'poc_stitching' | 'artifacts' | 'showcase' | 'homepage_cms' | 'guide' | 'languages' | 'users' | 'tickets' | 'analytics' | 'settings' | 'logs';
+
+export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS';
+export type LogModule =
+  | 'ROOMS'
+  | 'ARTIFACTS'
+  | 'STITCHING'
+  | 'FLOOR_PLAN'
+  | 'TICKETS'
+  | 'AUTH'
+  | 'SYSTEM'
+  | 'AI_VOICE'
+  | 'DATABASE'
+  | 'SHOWCASE';
+
+export interface SystemLogItem {
+  _id: string;
+  level: LogLevel;
+  module: LogModule;
+  action: string;
+  message: string;
+  statusCode?: number;
+  durationMs?: number;
+  ipAddress?: string;
+  userAgent?: string;
+  userId?: string;
+  username?: string;
+  role?: string;
+  resource?: string;
+  method?: string;
+  path?: string;
+  error?: {
+    name?: string;
+    message?: string;
+    stack?: string;
+    code?: string;
+  };
+  details?: Record<string, any>;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SystemLogStats {
+  total: number;
+  errorCount: number;
+  warnCount: number;
+  infoCount: number;
+  successCount: number;
+  errorRate: number;
+  byModule: { module: string; count: number; errors: number }[];
+  recentErrors: SystemLogItem[];
+}
 
 export interface AdminTicketItem {
   id: string;
