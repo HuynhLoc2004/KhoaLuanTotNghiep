@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import http from 'http';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
 import { cloudinary } from './cloudinary.js';
 import { systemLogger } from './systemLogger.js';
 import { logAudit, pgPool } from '../db/postgres.js';
@@ -572,6 +575,15 @@ export async function executeComprehensiveCleanup(options: {
   // 1. Docker BuildKit Cache, Unused Images & Host OS System Logs
   if (doDocker && fs.existsSync('/var/run/docker.sock')) {
     try {
+      // 1.0 Chạy dọn dẹp BuildKit Cache sâu qua Docker CLI (tương đương lệnh host)
+      try {
+        await execAsync('docker builder prune -a -f');
+        await execAsync('docker image prune -a -f');
+        await execAsync('docker container prune -f');
+      } catch {
+        // Fallback qua socket API bên dưới
+      }
+
       await Promise.allSettled([
         callDockerSocketApi('POST', '/build/prune?all=true&keep-storage=0'),
         callDockerSocketApi('POST', '/containers/prune')

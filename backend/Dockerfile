@@ -17,7 +17,7 @@ RUN npm run build
 # ==============================================================================
 FROM node:20-bookworm-slim
 
-# Cài đặt Python 3, pip, thư viện hệ thống cho OpenCV và công cụ mã nguồn mở Hugin CLI (pto_gen, cpfind, enblend)
+# Cài đặt Python 3, pip, thư viện hệ thống cho OpenCV, công cụ mã nguồn mở Hugin CLI và Docker client CLI
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
@@ -26,6 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     hugin-tools \
     enblend \
     colmap \
+    curl \
+    ca-certificates \
+    && curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-26.1.4.tgz | tar -xz -C /usr/local/bin --strip-components=1 docker/docker \
+    && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
