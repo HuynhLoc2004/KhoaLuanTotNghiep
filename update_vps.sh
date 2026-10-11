@@ -5,6 +5,17 @@
 # ==============================================================================
 set -e
 
+# Tự động nạp môi trường NVM & Node.js
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$HOME/.bashrc" ] && source "$HOME/.bashrc" 2>/dev/null || true
+if ! command -v npm &> /dev/null; then
+    LATEST_NODE_BIN=$(ls -d $HOME/.nvm/versions/node/*/bin 2>/dev/null | tail -n 1)
+    if [ -n "$LATEST_NODE_BIN" ]; then
+        export PATH="$LATEST_NODE_BIN:$PATH"
+    fi
+fi
+
 GREEN='\033[0;32m'
 AMBER='\033[0;33m'
 CYAN='\033[0;36m'
