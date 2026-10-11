@@ -1426,13 +1426,56 @@ export const api = {
     return json;
   },
 
-  async cleanupVpsDisk(): Promise<any> {
+  async cleanupVpsDisk(options?: {
+    cleanDocker?: boolean;
+    cleanCloudinary?: boolean;
+    cleanMongoBotLogs?: boolean;
+    cleanAppTemp?: boolean;
+  }): Promise<any> {
     const res = await fetch(`${API_BASE}/system/cleanup-vps-disk`, {
       method: 'POST',
-      headers: getAuthHeaders(true)
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(options || {})
     });
-    const json = await safeJson(res, 'Không thể dọn dẹp ổ cứng VPS');
-    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi dọn dẹp ổ cứng VPS');
+    const json = await safeJson(res, 'Không thể dọn dẹp hệ thống VPS');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi dọn dẹp hệ thống VPS');
+    return json;
+  },
+
+  async getCleanupSchedule(): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/cleanup/schedule`, {
+      headers: getAuthHeaders()
+    });
+    const json = await safeJson(res, 'Không thể lấy cấu hình dọn dẹp định kỳ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi lấy cấu hình dọn dẹp định kỳ');
+    return json;
+  },
+
+  async updateCleanupSchedule(data: {
+    enabled?: boolean;
+    scheduleTime?: string;
+    frequency?: 'daily' | 'weekly';
+    cleanDocker?: boolean;
+    cleanCloudinary?: boolean;
+    cleanMongoBotLogs?: boolean;
+    cleanAppTemp?: boolean;
+  }): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/cleanup/schedule`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể cập nhật lịch dọn dẹp định kỳ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi cập nhật lịch dọn dẹp định kỳ');
+    return json;
+  },
+
+  async previewCloudinaryCleanup(): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/cleanup/cloudinary-preview`, {
+      headers: getAuthHeaders()
+    });
+    const json = await safeJson(res, 'Không thể quét ảnh thừa Cloudinary');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi quét ảnh thừa Cloudinary');
     return json;
   }
 };

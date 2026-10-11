@@ -51,6 +51,12 @@ import { getPgStatus, logAudit } from '../db/postgres.js';
 import { getRabbitMQStatus } from '../services/rabbitmq.js';
 import { pgUpsertBranding, syncAuditLogs } from '../db/syncEngine.js';
 import { AuditLogModel } from '../models/AuditLog.js';
+import {
+  executeComprehensiveCleanup,
+  getScheduledCleanupConfig,
+  updateScheduledCleanupConfig,
+  scanOrphanedCloudinaryImages
+} from '../services/scheduledCleanup.js';
 
 export const systemRouter = Router();
 
@@ -811,123 +817,73 @@ systemRouter.post('/audit-logs/sync', authenticate, requireAdmin, async (req: Re
 });
 
 /**
+ * GET /api/system/cleanup/schedule
+ * Lấy cấu hình dọn dẹp định kỳ và kết quả lần dọn gần nhất
+ */
+systemRouter.get('/cleanup/schedule', authenticate, requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const config = await getScheduledCleanupConfig();
+    res.json({ success: true, config });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi tải cấu hình dọn dẹp: ' + err.message });
+  }
+});
+
+/**
+ * PUT /api/system/cleanup/schedule
+ * Cập nhật cấu hình dọn dẹp định kỳ (Bật/tắt, tần suất, các mục)
+ */
+systemRouter.put('/cleanup/schedule', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const updated = await updateScheduledCleanupConfig(req.body);
+    res.json({ success: true, message: 'Đã lưu cấu hình dọn dẹp định kỳ', config: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật cấu hình: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/system/cleanup/cloudinary-preview
+ * Quét xem trước số lượng ảnh mồ côi thừa trên Cloudinary
+ */
+systemRouter.get('/cleanup/cloudinary-preview', authenticate, requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const preview = await scanOrphanedCloudinaryImages(300);
+    res.json({ success: true, preview });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi quét ảnh Cloudinary: ' + err.message });
+  }
+});
+
+/**
  * POST /api/system/cleanup-vps-disk
- * Kích hoạt dọn dẹp ổ cứng VPS trực tiếp từ Dashboard:
- * 1. Prune Docker BuildKit Cache & Dangling Images qua unix socket
- * 2. Prune Dead Containers
- * 3. Xóa các tệp tạm/cache của ứng dụng
- * 4. Dọn log rác bot scanner 404 cũ
+ * Kích hoạt dọn dẹp toàn diện trực tiếp từ Dashboard:
+ * - Docker BuildKit Cache & Dangling Images
+ * - Container đã dừng
+ * - Tệp tạm/cache ứng dụng
+ * - Log bot scanner MongoDB
+ * - Ảnh thừa/mồ côi trên Cloudinary
  */
 systemRouter.post('/cleanup-vps-disk', authenticate, requireAdmin, async (req: Request, res: Response) => {
   try {
-    const getDiskStats = () => {
-      try {
-        const checkPath = process.platform === 'win32' ? process.cwd().substring(0, 3) : '/';
-        const stat = (fs as any).statfsSync(checkPath);
-        const bsize = stat.bsize || 4096;
-        const totalB = Number(stat.blocks) * bsize;
-        const freeB = Number(stat.bavail ?? stat.bfree) * bsize;
-        const usedB = totalB - freeB;
-        return {
-          totalGb: +(totalB / (1024 * 1024 * 1024)).toFixed(1),
-          usedGb: +(usedB / (1024 * 1024 * 1024)).toFixed(1),
-          freeGb: +(freeB / (1024 * 1024 * 1024)).toFixed(1),
-          percent: Math.min(100, Math.max(0, Math.round((usedB / totalB) * 100)))
-        };
-      } catch {
-        return null;
+    const { cleanDocker, cleanCloudinary, cleanMongoBotLogs, cleanAppTemp } = req.body || {};
+    const result = await executeComprehensiveCleanup({
+      cleanDocker,
+      cleanCloudinary,
+      cleanMongoBotLogs,
+      cleanAppTemp,
+      isScheduled: false,
+      user: {
+        id: (req as any).user?.id,
+        username: (req as any).user?.username
       }
-    };
-
-    const beforeStats = getDiskStats();
-    let dockerCleaned = false;
-    const actionsTaken: string[] = [];
-
-    // 1. Thử gọi Docker Socket nếu có
-    if (fs.existsSync('/var/run/docker.sock')) {
-      try {
-        await Promise.allSettled([
-          callDockerSocketApi('POST', '/build/prune?all=true&keep-storage=0'),
-          callDockerSocketApi('POST', '/images/prune?filters=%7B%22dangling%22%3A%5B%22true%22%5D%7D'),
-          callDockerSocketApi('POST', '/containers/prune')
-        ]);
-        dockerCleaned = true;
-        actionsTaken.push('Đã giải phóng BuildKit Cache và image Docker cũ');
-        actionsTaken.push('Đã dọn dẹp các container đã dừng');
-      } catch (dockerErr: any) {
-        console.warn('Docker socket error during prune:', dockerErr?.message);
-      }
-    }
-
-    // 2. Dọn rác MongoDB log bot 404 cũ hơn 3 ngày
-    try {
-      const SystemLogModel = (await import('../models/SystemLog.js')).SystemLogModel;
-      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-      const botUrls = ['/service-account.json', '/.env', '/pdown', '/api/mcp', '/login', '/api/v1/version', '/api/.env'];
-      const deleteResult = await SystemLogModel.deleteMany({
-        $or: [
-          { path: { $in: botUrls }, statusCode: 404 },
-          { level: 'INFO', createdAt: { $lt: threeDaysAgo } }
-        ]
-      });
-      if (deleteResult.deletedCount > 0) {
-        actionsTaken.push(`Đã dọn ${deleteResult.deletedCount} log bot scanner rác trong MongoDB`);
-      }
-    } catch {
-      // ignore
-    }
-
-    // 3. Dọn thư mục tạm (temp)
-    const tempDirs = [
-      path.join(process.cwd(), 'scratch'),
-      path.join(process.cwd(), 'storage', 'temp'),
-      path.join(process.cwd(), 'public', 'uploads', 'temp')
-    ];
-    let tempFilesCount = 0;
-    for (const d of tempDirs) {
-      if (fs.existsSync(d)) {
-        try {
-          const files = fs.readdirSync(d);
-          for (const f of files) {
-            const fp = path.join(d, f);
-            try {
-              if (fs.statSync(fp).isFile()) {
-                fs.unlinkSync(fp);
-                tempFilesCount++;
-              }
-            } catch {}
-          }
-        } catch {}
-      }
-    }
-    if (tempFilesCount > 0) {
-      actionsTaken.push(`Đã dọn ${tempFilesCount} tệp tạm/cache ứng dụng`);
-    }
-
-    const afterStats = getDiskStats();
-    const freedGb = (beforeStats && afterStats) ? Math.max(0, +(beforeStats.usedGb - afterStats.usedGb).toFixed(1)) : 0;
-
-    await logAudit('VPS_DISK_CLEANUP', 'SYSTEM', {
-      userId: (req as any).user?.id || 'admin',
-      username: (req as any).user?.username || 'Admin',
-      details: { freedGb, beforeStats, afterStats, dockerCleaned, actionsTaken }
     });
 
-    res.json({
-      success: true,
-      message: dockerCleaned
-        ? `Đã dọn dẹp Build Cache & Docker thành công! Giải phóng ~${freedGb > 0 ? freedGb : 'nhiều'} GB ổ cứng.`
-        : 'Đã dọn dẹp bộ nhớ đệm và nhật ký bot MongoDB thành công!',
-      freedGb,
-      dockerCleaned,
-      actionsTaken,
-      beforeStats,
-      afterStats
-    });
+    res.json(result);
   } catch (err: any) {
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi dọn dẹp ổ cứng VPS: ' + (err.message || '')
+      message: 'Lỗi khi dọn dẹp hệ thống: ' + (err.message || '')
     });
   }
 });

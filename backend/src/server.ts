@@ -19,6 +19,7 @@ import { adminTicketsRouter } from './routes/adminTickets.js';
 import { ticketsRouter } from './routes/tickets.js';
 import { adminTicketSettingsRouter } from './routes/adminTicketSettings.js';
 import { startOrderCleanupJob } from './services/orderCleanup.js';
+import { startPeriodicSystemCleanupJob } from './services/scheduledCleanup.js';
 import { profileRouter } from './routes/profile.js';
 import { splatRouter } from './routes/splat.js';
 import { aiRouter } from './routes/ai.js';
@@ -279,6 +280,9 @@ connectMongoDB().then(async () => {
 
   // Khởi động tiến trình dọn dẹp đơn hàng rác/quá hạn định kỳ (chống spam)
   startOrderCleanupJob(60000);
+
+  // Khởi động tiến trình tự động dọn dẹp hệ thống & Cloudinary định kỳ
+  startPeriodicSystemCleanupJob();
 
   app.listen(PORT, () => {
     console.log(`[Bảo tàng Lịch sử TP.HCM API] Máy chủ chạy tại http://localhost:${PORT}`);
