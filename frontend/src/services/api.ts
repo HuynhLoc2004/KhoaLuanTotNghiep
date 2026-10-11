@@ -923,6 +923,23 @@ export const api = {
     return json;
   },
 
+  async adminVerifyTicketQR(qrData: string, autoCheckin: boolean = true): Promise<{
+    success: boolean;
+    valid: boolean;
+    reason: string;
+    message: string;
+    ticket?: any;
+    ticketCode?: string;
+  }> {
+    const res = await fetch(`${API_BASE}/admin/tickets/verify-qr`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({ qrData, autoCheckin })
+    });
+    const json = await safeJson(res, 'Không thể kiểm tra mã QR vé');
+    return json;
+  },
+
   async adminCancelTicket(code: string): Promise<{ success: boolean; message: string; data: any }> {
     const res = await fetch(`${API_BASE}/admin/tickets/${code}/cancel`, {
       method: 'PUT',

@@ -10,7 +10,8 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Clock
+  Clock,
+  QrCode
 } from 'lucide-react';
 import { api, API_BASE } from '../../services/api';
 import {
@@ -23,6 +24,7 @@ import {
 import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Pagination } from '../../components/Pagination';
+import { AdminTicketScannerModal } from '../../components/admin/AdminTicketScannerModal';
 
 export const AdminTicketsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -60,6 +62,7 @@ export const AdminTicketsPage: React.FC = () => {
 
   // Modal Chi tiết vé & Soát vé QR
   const [detailTicket, setDetailTicket] = useState<AdminTicketItem | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   // Modal Xác nhận (Soát vé / Hủy vé)
   const [checkinTarget, setCheckinTarget] = useState<AdminTicketItem | null>(null);
@@ -559,16 +562,29 @@ export const AdminTicketsPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          onClick={handleRefresh}
-          disabled={isLoading || isRefreshing || isLoadingPricing || isLoadingOrders}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-        >
-          <RefreshCw size={13} className={isRefreshing ? 'spin' : ''} />
-          <span>Làm mới</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => setIsScannerOpen(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            title="Mở camera hoặc súng quét mã vạch để kiểm tra và soát vé"
+          >
+            <QrCode size={14} />
+            <span>Quét mã QR soát vé</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing || isLoadingPricing || isLoadingOrders}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <RefreshCw size={13} className={isRefreshing ? 'spin' : ''} />
+            <span>Làm mới</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. CHUYỂN ĐỔI TAB CON TỐI GIẢN */}
@@ -2143,6 +2159,15 @@ export const AdminTicketsPage: React.FC = () => {
         type="danger"
         onConfirm={handleConfirmDeleteSlot}
         onCancel={() => setDeleteSlotTarget(null)}
+      />
+
+      {/* MODAL QUÉT MÃ QR SOÁT VÉ */}
+      <AdminTicketScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onTicketCheckedIn={() => {
+          fetchTickets(pagination.page, pagination.limit);
+        }}
       />
     </div>
   );
