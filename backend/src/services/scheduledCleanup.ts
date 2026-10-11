@@ -109,7 +109,7 @@ function callDockerSocketApi(method: string, apiPath: string, body?: any): Promi
       });
     });
     req.on('error', reject);
-    req.setTimeout(60000, () => {
+    req.setTimeout(180000, () => {
       req.destroy();
       reject(new Error('DOCKER_API_TIMEOUT'));
     });
@@ -118,6 +118,61 @@ function callDockerSocketApi(method: string, apiPath: string, body?: any): Promi
     }
     req.end();
   });
+}
+
+/**
+ * Dọn dẹp triệt để các Docker Image không còn sử dụng trên VPS (giải phóng hàng chục GB)
+ */
+async function pruneUnusedDockerImages(): Promise<{ deletedImagesCount: number; spaceReclaimed: number }> {
+  let deletedImagesCount = 0;
+  let spaceReclaimed = 0;
+
+  try {
+    // 1. Thử gọi API prune chuẩn của Docker với dangling=false (tương đương docker image prune -a)
+    const pruneRes = await callDockerSocketApi('POST', '/images/prune?filters=%7B%22dangling%22%3A%5B%22false%22%5D%7D');
+    if (pruneRes?.ImagesDeleted && Array.isArray(pruneRes.ImagesDeleted)) {
+      deletedImagesCount += pruneRes.ImagesDeleted.length;
+      spaceReclaimed += (pruneRes.SpaceReclaimed || 0);
+    }
+  } catch (err: any) {
+    console.warn('[Docker Prune API] images/prune warning:', err?.message);
+  }
+
+  // 2. Quét đối chiếu danh sách images và containers để xóa triệt để các image cũ còn sót
+  try {
+    const [allImages, activeContainers] = await Promise.all([
+      callDockerSocketApi('GET', '/images/json'),
+      callDockerSocketApi('GET', '/containers/json?all=true')
+    ]);
+
+    if (Array.isArray(allImages) && Array.isArray(activeContainers)) {
+      // Tập hợp tất cả ImageID đang được container sử dụng (bảo vệ tuyệt đối)
+      const protectedImageIds = new Set<string>();
+      activeContainers.forEach((c: any) => {
+        if (c.ImageID) protectedImageIds.add(c.ImageID);
+        if (c.Image) protectedImageIds.add(c.Image);
+      });
+
+      for (const img of allImages) {
+        const imgId = img.Id;
+        // Nếu image này không thuộc container nào đang chạy -> xóa an toàn
+        if (imgId && !protectedImageIds.has(imgId)) {
+          try {
+            const delRes = await callDockerSocketApi('DELETE', `/images/${imgId}?force=true`);
+            if (Array.isArray(delRes)) {
+              deletedImagesCount += delRes.length;
+            }
+          } catch {
+            // Bỏ qua nếu image này có quan hệ kế thừa đang khóa
+          }
+        }
+      }
+    }
+  } catch (scanErr: any) {
+    console.warn('[Docker Prune Engine] Quét thủ công image thừa cảnh báo:', scanErr?.message);
+  }
+
+  return { deletedImagesCount, spaceReclaimed };
 }
 
 /**
@@ -148,6 +203,7 @@ async function cleanHostLogsAndAptCache(): Promise<boolean> {
 
     if (createRes?.Id) {
       await callDockerSocketApi('POST', `/containers/${createRes.Id}/start`);
+      await new Promise(r => setTimeout(r, 2000));
       return true;
     }
     return false;
@@ -518,15 +574,17 @@ export async function executeComprehensiveCleanup(options: {
     try {
       await Promise.allSettled([
         callDockerSocketApi('POST', '/build/prune?all=true&keep-storage=0'),
-        callDockerSocketApi('POST', '/images/prune?filters=%7B%22dangling%22%3A%5B%22false%22%5D%7D'),
         callDockerSocketApi('POST', '/containers/prune')
       ]);
+
+      // Xóa triệt để toàn bộ Docker image cũ không còn container nào sử dụng
+      const imgPruneResult = await pruneUnusedDockerImages();
 
       // Dọn dẹp log hệ điều hành Linux (journalctl) và APT cache ngoài Host
       await cleanHostLogsAndAptCache();
 
       dockerCleaned = true;
-      actionsTaken.push('Đã giải phóng BuildKit Cache, Docker Images cũ & Log hệ điều hành VPS');
+      actionsTaken.push(`Đã giải phóng BuildKit Cache & ${imgPruneResult.deletedImagesCount} Docker Images cũ`);
       actionsTaken.push('Đã dọn dẹp các container đã dừng');
     } catch (dockerErr: any) {
       console.warn('[Cleanup Engine] Docker prune cảnh báo:', dockerErr?.message);

@@ -323,8 +323,9 @@ export const AdminSettingsPage: React.FC = () => {
         cleanAppTemp: cleanAppTempOpt
       });
       setCleanupReport(res.report || res);
-      showToast(res.message || 'Dọn dẹp hệ thống & Cloudinary thành công!', 'success');
-      await Promise.all([fetchData(), fetchCleanupSchedule()]);
+      const freedInfo = res.freedGb > 0 ? ` (Giải phóng: ${res.freedGb} GB SSD)` : '';
+      showToast((res.message || 'Dọn dẹp hệ thống & Cloudinary thành công!') + freedInfo, 'success');
+      await Promise.all([fetchData(), fetchCleanupSchedule(), handleManualRefresh()]);
       if (cleanCloudinaryOpt) {
         handlePreviewCloudinary();
       }
@@ -2811,8 +2812,29 @@ export const AdminSettingsPage: React.FC = () => {
                     </label>
                   </div>
 
+                  {/* Banner đang thực hiện */}
+                  {cleaningVpsDisk && (
+                    <div style={{
+                      padding: '12px 14px',
+                      backgroundColor: 'rgba(212, 168, 106, 0.08)',
+                      border: '1px solid rgba(212, 168, 106, 0.3)',
+                      borderRadius: 'var(--radius-sm, 6px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12
+                    }}>
+                      <i className="fas fa-spinner fa-spin" style={{ fontSize: 18, color: 'var(--accent-gold)' }} />
+                      <div style={{ fontSize: 12, lineHeight: 1.4 }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Đang tiến hành dọn dẹp hệ thống & VPS...</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginTop: 2 }}>
+                          Đang thu hồi các Docker images cũ, BuildKit cache và log hệ thống. Vui lòng đợi trong giây lát...
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Báo cáo kết quả */}
-                  {cleanupReport && (
+                  {cleanupReport && !cleaningVpsDisk && (
                     <div style={{
                       padding: '10px 12px',
                       backgroundColor: 'var(--bg-subtle)',
@@ -2824,7 +2846,7 @@ export const AdminSettingsPage: React.FC = () => {
                       gap: 4
                     }}>
                       <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Kết quả dọn dẹp vừa thực hiện:</div>
-                      <div style={{ color: 'var(--text-muted)' }}>• Dung lượng giải phóng VPS: {cleanupReport.dockerFreedSpace || 'Đã dọn cache'}</div>
+                      <div style={{ color: 'var(--text-muted)' }}>• Dung lượng giải phóng VPS: {cleanupReport.dockerFreedSpace || (cleanupReport.freedGb ? `${cleanupReport.freedGb} GB` : 'Đã dọn cache')}</div>
                       <div style={{ color: 'var(--text-muted)' }}>• Ảnh Cloudinary đã xóa: {cleanupReport.cloudinaryDeletedCount ?? 0} ảnh</div>
                       <div style={{ color: 'var(--text-muted)' }}>• Nhật ký MongoDB đã dọn: {cleanupReport.mongoLogsCleaned ?? 0} bản ghi</div>
                     </div>
@@ -2981,8 +3003,16 @@ export const AdminSettingsPage: React.FC = () => {
                   className="btn btn-primary btn-sm"
                   onClick={handleExecuteSystemCleanup}
                   disabled={cleaningVpsDisk}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  {cleaningVpsDisk ? 'Đang thực hiện...' : 'Bắt đầu dọn dẹp'}
+                  {cleaningVpsDisk ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin" />
+                      <span>Đang dọn dẹp...</span>
+                    </>
+                  ) : (
+                    <span>Bắt đầu dọn dẹp</span>
+                  )}
                 </button>
               ) : (
                 <button
