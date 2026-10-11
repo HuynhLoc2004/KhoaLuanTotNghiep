@@ -6058,11 +6058,29 @@ html {
   font-weight: 600;
 }
 
-/* LƯỚI CARD TRÊN CÁC TRANG CON */
+/* Container giới hạn bề rộng chuẩn và căn giữa trên các trang subpage client */
+.client-subpage .client-container {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+/* LƯỚI CARD TRÊN CÁC TRANG CON: CHUẨN 3 CỘT / HÀNG ĐỒNG BỘ VỚI PHÂN TRANG (6 - 9 - 12 - 18 - 24) */
 .client-subpage-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 28px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 1100px) {
+  .client-subpage-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
 }
 
 @media (max-width: 768px) {
