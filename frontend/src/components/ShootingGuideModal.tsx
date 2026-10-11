@@ -19,7 +19,7 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Camera size={18} style={{ color: 'var(--primary)' }} />
-            <h2 className="modal-title">Hướng dẫn kỹ thuật chụp ảnh 360°</h2>
+            <h2 className="modal-title">Hướng dẫn tạo ảnh không gian 360° (Video & Ảnh)</h2>
           </div>
           <button
             type="button"
@@ -36,21 +36,21 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
           <div className="guide-principle-card">
             <div className="guide-principle-title">
               <CheckCircle2 size={17} style={{ color: 'var(--success)' }} />
-              <span>Nguyên tắc cốt lõi: Đứng yên làm trụ tại tâm phòng</span>
+              <span>Nguyên tắc vàng: Đứng yên làm trụ tại tâm phòng</span>
             </div>
             <p className="guide-principle-desc">
-              Không bước di chuyển chân khi chụp. Khi bạn bước đi, khoảng cách giữa các vật thể thay đổi tạo ra sai lệch góc nhìn (thị sai), làm méo hình. Giữ nguyên 2 chân tại chỗ và chỉ xoay thân người là bí quyết để có không gian chuẩn kiến trúc.
+              Giữ cố định vị trí đứng ở chính giữa gian phòng, chỉ xoay thân người khi quay hoặc chụp. Tuyệt đối không bước chân di chuyển qua lại để các góc nhìn đồng trục, giúp ảnh 360° liền mạch và không bị méo lệch.
             </p>
           </div>
 
-          {/* 3 Bước thực hiện */}
+          {/* 3 Phương pháp thực hiện */}
           <div className="guide-steps-list">
             <div className="guide-step-item">
               <div className="guide-step-badge">1</div>
               <div className="guide-step-info">
-                <div className="guide-step-heading">Chọn vị trí trung tâm</div>
+                <div className="guide-step-heading">Cách 1 (Nhanh nhất): Quay video quét phòng</div>
                 <div className="guide-step-text">
-                  Đứng ở khoảng giữa gian phòng, giữ điện thoại ngang tầm ngực và giữ máy cân bằng thẳng đứng.
+                  Đứng ở giữa phòng, cầm điện thoại ngang ngực. Bấm quay video và xoay người chậm rãi, đều tay trọn một vòng 360° (khoảng 15 – 30 giây). Bấm nút <strong>"Tải Video quét phòng"</strong>, kiểm tra và xác nhận tải lên để hệ thống tự động lọc các khung hình đẹp nhất.
                 </div>
               </div>
             </div>
@@ -58,9 +58,9 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
             <div className="guide-step-item">
               <div className="guide-step-badge">2</div>
               <div className="guide-step-info">
-                <div className="guide-step-heading">Xoay người tại chỗ ~30° mỗi góc</div>
+                <div className="guide-step-heading">Cách 2: Chụp từng góc ảnh (Điện thoại hoặc Webcam)</div>
                 <div className="guide-step-text">
-                  Chụp một tấm, sau đó nhích xoay người sang bên một góc nhỏ để chụp tiếp. Hệ thống hỗ trợ linh hoạt từ 8 đến 24 góc cơ bản đến chùm ảnh dày 50 – 100 góc để tạo không gian 360° siêu chi tiết.
+                  Đứng yên tại chỗ, chụp một tấm rồi nhích xoay người sang bên một góc nhỏ (~30°) để chụp tiếp cho đến khi đủ một vòng tròn (khoảng 8 – 24 tấm). Chọn <strong>"Chọn từ máy"</strong> hoặc <strong>"Chụp bằng webcam"</strong> để nạp ảnh.
                 </div>
               </div>
             </div>
@@ -68,9 +68,9 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
             <div className="guide-step-item">
               <div className="guide-step-badge">3</div>
               <div className="guide-step-info">
-                <div className="guide-step-heading">Tận dụng chế độ Pano có sẵn</div>
+                <div className="guide-step-heading">Cách 3: Tải ảnh Panorama chụp sẵn</div>
                 <div className="guide-step-text">
-                  Nếu bạn dùng điện thoại, mở camera mặc định chọn chế độ <strong>Panorama</strong> rồi lia tròn 360°. Sau đó nhấn nút <strong>"Chọn từ máy"</strong> để tải tấm ảnh Pano lên hệ thống.
+                  Nếu điện thoại của bạn có chế độ chụp <strong>Panorama</strong> hoặc bạn dùng camera 360° chuyên dụng, hãy chụp một tấm ảnh toàn cảnh rồi bấm <strong>"Chọn từ máy"</strong> để tải trực tiếp lên.
                 </div>
               </div>
             </div>
@@ -84,10 +84,10 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
             </div>
             <ul className="guide-permission-list">
               <li>
-                <strong>Trên máy tính & Android:</strong> Bấm vào biểu tượng ổ khóa bên trái đường link trình duyệt → Quyền cho trang web → Bật Máy ảnh thành <em>Cho phép</em>.
+                <strong>Trên máy tính & Android:</strong> Bấm vào biểu tượng ổ khóa bên trái thanh địa chỉ trình duyệt → Quyền trang web → Bật Máy ảnh thành <em>Cho phép</em>.
               </li>
               <li>
-                <strong>Trên iPhone / iPad:</strong> Vào Cài đặt máy → Chọn ứng dụng Safari (hoặc Chrome) → Mục Camera → Chọn <em>Cho phép</em>.
+                <strong>Trên iPhone / iPad:</strong> Vào Cài đặt máy → Chọn Safari (hoặc Chrome) → Mục Camera → Chọn <em>Cho phép</em>.
               </li>
             </ul>
           </div>
@@ -100,7 +100,7 @@ export const ShootingGuideModal: React.FC<ShootingGuideModalProps> = ({ isOpen, 
             onClick={onClose}
             style={{ width: '100%', justifyContent: 'center', padding: '12px 32px', fontSize: '14px', fontWeight: 600, gap: 8 }}
           >
-            <span>Đã nắm rõ & Bắt đầu chụp</span>
+            <span>Đã nắm rõ & Bắt đầu thực hiện</span>
             <ArrowRight size={16} />
           </button>
         </div>

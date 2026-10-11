@@ -23,6 +23,8 @@ import {
   Compass,
   Play,
   Video,
+  Film,
+  X,
   Layout
 } from 'lucide-react';
 import { NewRoomModal } from '../components/NewRoomModal';
@@ -636,8 +638,8 @@ export const PocStitchingPage: React.FC = () => {
     });
   };
 
-  // Xóa tất cả ảnh đã nạp
-  const handleClearAll = () => {
+  // Xóa danh sách ảnh đã nạp
+  const handleClearPhotos = () => {
     verifiedFrames.forEach((f) => URL.revokeObjectURL(f.previewUrl));
     batchPreviews.forEach((u) => URL.revokeObjectURL(u));
     setVerifiedFrames([]);
@@ -646,35 +648,72 @@ export const PocStitchingPage: React.FC = () => {
     setErrorMsg(null);
   };
 
+  // Xóa toàn bộ ảnh và video đã chọn
+  const handleClearAll = () => {
+    handleClearPhotos();
+    setPendingVideoFile(null);
+  };
+
   // Trạng thái đang tạo phòng từ 1 ảnh đơn lẻ
   const [singleCreatingId, setSingleCreatingId] = useState<string | null>(null);
 
-  // Tạo không gian 360° từ Video quét phòng (Python trích xuất Keyframe thông minh & Cylindrical Stitch)
+  // Video quét phòng chờ xác nhận tải lên máy chủ
+  const [pendingVideoFile, setPendingVideoFile] = useState<File | null>(null);
   const [videoProcessingText, setVideoProcessingText] = useState<string | null>(null);
 
-  const handleVideoStitch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Chọn video quét phòng từ máy (chưa tải lên máy chủ ngay, chờ người dùng bấm xác nhận)
+  const handleSelectVideo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPendingVideoFile(file);
+    e.target.value = '';
+    showToast(`Đã chọn video: "${file.name}". Bấm "Xác nhận & Bắt đầu" để tạo ảnh 360°.`, 'info');
+  };
+
+  // Thực thi tải video lên máy chủ và tạo không gian 360° sau khi đã bấm xác nhận
+  const handleExecuteVideoStitch = async () => {
+    if (!pendingVideoFile) return;
 
     try {
       setIsProcessing(true);
       setErrorMsg(null);
-      setVideoProcessingText('Đang tải video & Python đang quét trích xuất các khung hình sắc nét...');
-      showToast('Đang tải video lên máy chủ để trích xuất các góc nhìn 360°...', 'info');
+      setCurrentStep(1);
+      setVideoProcessingText('Bước 1/4: Đang đọc và tải video lên máy chủ...');
+      showToast('Đang tải video lên máy chủ để xử lý...', 'info');
+
+      const stepTimer1 = setTimeout(() => {
+        setCurrentStep(2);
+        setVideoProcessingText('Bước 2/4: Đang trích xuất các khung hình sắc nét từ video...');
+      }, 1500);
+
+      const stepTimer2 = setTimeout(() => {
+        setCurrentStep(3);
+        setVideoProcessingText('Bước 3/4: Đang ghép nối không gian phòng 360°...');
+      }, 4000);
+
+      const stepTimer3 = setTimeout(() => {
+        setCurrentStep(4);
+        setVideoProcessingText('Bước 4/4: Đang hoàn thiện ảnh toàn cảnh 360°...');
+      }, 7000);
 
       const formData = new FormData();
-      formData.append('video', file);
+      formData.append('video', pendingVideoFile);
 
       const res = await fetch(`${API_BASE}/stitch/video`, {
         method: 'POST',
         body: formData
       });
 
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      clearTimeout(stepTimer3);
+
       const json = await res.json();
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || 'Không thể tạo không gian 360° từ video này.');
       }
 
+      setCurrentStep(5);
       const resData = {
         ...json.data,
         panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
@@ -682,8 +721,9 @@ export const PocStitchingPage: React.FC = () => {
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
       setViewerMode('pano360');
+      setPendingVideoFile(null);
       fetchHistory();
-      showToast(json.message || 'Tạo không gian 360° từ video thành công rực rỡ!', 'success');
+      showToast(json.message || 'Tạo không gian 360° từ video thành công!', 'success');
 
       setTimeout(() => {
         viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -692,10 +732,10 @@ export const PocStitchingPage: React.FC = () => {
       console.error('[Video Stitch Error]:', err);
       showToast(err.message || 'Lỗi khi tạo không gian từ video', 'error');
       setErrorMsg(err.message);
+      setCurrentStep(0);
     } finally {
       setIsProcessing(false);
       setVideoProcessingText(null);
-      if (e.target) e.target.value = '';
     }
   };
 
@@ -899,17 +939,35 @@ export const PocStitchingPage: React.FC = () => {
                       <Layers size={16} />
                       {t('stitching.inputSource', 'Nguồn ảnh đầu vào')}
                     </span>
-                    {totalFrames > 0 && (
-                      <button
-                        type="button"
-                        onClick={handleClearAll}
-                        disabled={isProcessing}
-                        className="btn btn-secondary btn-sm"
-                        style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
-                      >
-                        <Trash2 size={13} />
-                        <span>{t('stitching.clearPhotos', 'Xóa ảnh')}</span>
-                      </button>
+                    {(totalFrames > 0 || pendingVideoFile) && (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {totalFrames > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleClearPhotos}
+                            disabled={isProcessing}
+                            className="btn btn-secondary btn-sm"
+                            style={{ color: 'var(--error)', borderColor: 'var(--error-border)', fontSize: '11px', padding: '3px 8px' }}
+                            title="Xóa danh sách ảnh đã tải lên"
+                          >
+                            <Trash2 size={12} />
+                            <span>Xóa ảnh ({totalFrames})</span>
+                          </button>
+                        )}
+                        {pendingVideoFile && (
+                          <button
+                            type="button"
+                            onClick={() => setPendingVideoFile(null)}
+                            disabled={isProcessing}
+                            className="btn btn-secondary btn-sm"
+                            style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)', fontSize: '11px', padding: '3px 8px' }}
+                            title="Hủy video đang chờ tải lên"
+                          >
+                            <X size={12} />
+                            <span>Hủy video</span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -962,15 +1020,17 @@ export const PocStitchingPage: React.FC = () => {
                         />
                       </label>
 
-                      {/* Nút tải Video quét phòng (Python trích xuất Keyframe thông minh & Ghép 360) */}
+                      {/* Nút tải Video quét phòng (Chọn video, cần bấm xác nhận mới gửi lên server) */}
                       <label
                         className="studio-action-btn"
                         style={{
-                          borderColor: 'rgba(212, 168, 106, 0.45)',
-                          background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.15) 0%, rgba(180, 83, 9, 0.1) 100%)',
+                          borderColor: pendingVideoFile ? 'var(--accent-gold)' : 'rgba(212, 168, 106, 0.45)',
+                          background: pendingVideoFile
+                            ? 'rgba(212, 168, 106, 0.25)'
+                            : 'linear-gradient(135deg, rgba(212, 168, 106, 0.15) 0%, rgba(180, 83, 9, 0.1) 100%)',
                           cursor: isProcessing ? 'wait' : 'pointer'
                         }}
-                        title="Tải video quay quét phòng (.mp4, .mov, .webm). Python sẽ tự động trích xuất các khung hình sắc nét và ghép thành không gian 360°."
+                        title="Tải video quay quét phòng (.mp4, .mov, .webm). Hệ thống sẽ tự động trích xuất các khung hình sắc nét và ghép thành không gian 360°."
                       >
                         <Play size={20} style={{ color: 'var(--accent-gold)' }} />
                         <span>Tải Video quét phòng</span>
@@ -978,11 +1038,123 @@ export const PocStitchingPage: React.FC = () => {
                           type="file"
                           accept="video/*"
                           style={{ display: 'none' }}
-                          onChange={handleVideoStitch}
+                          onChange={handleSelectVideo}
                           disabled={isProcessing}
                         />
                       </label>
                     </div>
+
+                    {/* Hộp xác nhận Video đã chọn - Người dùng bấm xác nhận mới gửi lên server */}
+                    {pendingVideoFile && (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          padding: '12px 14px',
+                          background: 'rgba(212, 168, 106, 0.1)',
+                          border: '1px solid rgba(212, 168, 106, 0.45)',
+                          borderRadius: 8,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 10
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <div
+                              style={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: 6,
+                                background: 'rgba(212, 168, 106, 0.25)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--accent-gold)',
+                                flexShrink: 0
+                              }}
+                            >
+                              <Video size={18} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: '#f8fafc',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis'
+                                }}
+                                title={pendingVideoFile.name}
+                              >
+                                {pendingVideoFile.name}
+                              </div>
+                              <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                                {(pendingVideoFile.size / (1024 * 1024)).toFixed(1)} MB • Đã chọn, chờ bạn xác nhận
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPendingVideoFile(null)}
+                            disabled={isProcessing}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              borderRadius: 4
+                            }}
+                            title="Hủy bỏ video này"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleExecuteVideoStitch}
+                            disabled={isProcessing}
+                            style={{
+                              flex: 1,
+                              justifyContent: 'center',
+                              padding: '8px 12px',
+                              fontSize: '12.5px',
+                              fontWeight: 600
+                            }}
+                          >
+                            {isProcessing ? (
+                              <>
+                                <Loader2 size={14} className="spin" />
+                                <span>Đang xử lý video...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Check size={14} />
+                                <span>Xác nhận & Bắt đầu tạo 360°</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => setPendingVideoFile(null)}
+                            disabled={isProcessing}
+                            style={{
+                              padding: '8px 12px',
+                              fontSize: '12px'
+                            }}
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {videoProcessingText && (
                       <div
@@ -1053,42 +1225,46 @@ export const PocStitchingPage: React.FC = () => {
                     )}
 
                     {/* Thanh công cụ quản lý chuỗi ảnh góc quay */}
-                    {verifiedFrames.length > 1 && (
+                    {totalFrames > 0 && (
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0 6px', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px' }}
-                          onClick={handleReverseFrames}
-                          disabled={isProcessing}
-                          title="Đảo ngược chuỗi ảnh 180° (khi bạn quay ngược chiều kim đồng hồ)"
-                        >
-                          <RotateCcw size={12} />
-                          <span>Đảo chiều 180°</span>
-                        </button>
+                        {verifiedFrames.length > 1 && (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px' }}
+                              onClick={handleReverseFrames}
+                              disabled={isProcessing}
+                              title="Đảo ngược chuỗi ảnh 180° (khi bạn quay ngược chiều kim đồng hồ)"
+                            >
+                              <RotateCcw size={12} />
+                              <span>Đảo chiều 180°</span>
+                            </button>
 
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px' }}
-                          onClick={handleSortByTime}
-                          disabled={isProcessing}
-                          title="Sắp xếp lại theo thời điểm chụp của camera điện thoại"
-                        >
-                          <Clock size={12} />
-                          <span>Xếp theo giờ chụp</span>
-                        </button>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px' }}
+                              onClick={handleSortByTime}
+                              disabled={isProcessing}
+                              title="Sắp xếp lại theo thời điểm chụp của camera điện thoại"
+                            >
+                              <Clock size={12} />
+                              <span>Xếp theo giờ chụp</span>
+                            </button>
+                          </>
+                        )}
 
                         <button
                           type="button"
                           className="btn-secondary"
                           style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px', color: '#ef4444' }}
-                          onClick={handleClearAll}
+                          onClick={handleClearPhotos}
                           disabled={isProcessing}
                           title="Xóa toàn bộ ảnh đang chọn"
                         >
                           <Trash2 size={12} />
-                          <span>Xóa tất cả</span>
+                          <span>Xóa tất cả ảnh ({totalFrames})</span>
                         </button>
                       </div>
                     )}
@@ -1379,13 +1555,18 @@ export const PocStitchingPage: React.FC = () => {
                       <div className="studio-viewer-overlay" role="status" aria-live="polite">
                         <Loader2 size={40} className="spin" style={{ color: 'var(--accent-gold)' }} />
                         <div className="studio-overlay-stage">
-                          {currentStep <= 1 && 'Đang chuẩn bị các góc ảnh của phòng...'}
-                          {currentStep === 2 && 'Đang nắn mặt trụ quang học và so khớp quỹ đạo xoay...'}
-                          {currentStep === 3 && 'Đang hòa trộn Voronoi và cân bằng chân trời...'}
-                          {currentStep >= 4 && 'Đang hoàn tất không gian quả cầu 360°...'}
+                          {videoProcessingText
+                            ? videoProcessingText
+                            : currentStep <= 1
+                              ? 'Bước 1/4: Đọc và kiểm tra các góc ảnh của phòng...'
+                              : currentStep === 2
+                                ? 'Bước 2/4: Phân tích góc nhìn và ghép nối không gian phòng...'
+                                : currentStep === 3
+                                  ? 'Bước 3/4: Làm mịn đường ghép và cân bằng màu sắc ánh sáng...'
+                                  : 'Bước 4/4: Hoàn thiện ảnh toàn cảnh 360°...'}
                         </div>
                         <div className="studio-overlay-note">
-                          Động cơ đang xử lý để tạo không gian 360° hoàn chỉnh. Vui lòng không tắt hoặc tải lại trang.
+                          Hệ thống đang xử lý không gian phòng 360°. Vui lòng đợi trong giây lát, không tắt trình duyệt.
                         </div>
                         <div className="studio-overlay-steps" aria-hidden="true">
                           {[1, 2, 3, 4].map((step) => (
