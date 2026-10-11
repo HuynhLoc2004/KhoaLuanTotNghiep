@@ -2579,298 +2579,162 @@ export const AdminSettingsPage: React.FC = () => {
       {isCleanupModalOpen && (
         <div
           className="modal-backdrop"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(5px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1200,
-            padding: 16
-          }}
           onClick={() => !cleaningVpsDisk && setIsCleanupModalOpen(false)}
         >
           <div
             className="modal-card"
             style={{
-              maxWidth: 720,
-              width: '100%',
-              maxHeight: '90vh',
+              maxWidth: 600,
+              width: 'min(600px, 94vw)',
+              maxHeight: 'min(90vh, 760px)',
               display: 'flex',
-              flexDirection: 'column',
-              backgroundColor: 'var(--bg-card, #1A1613)',
-              border: '1px solid var(--border-color, rgba(212, 168, 106, 0.25))',
-              borderRadius: 12,
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.65)',
-              overflow: 'hidden'
+              flexDirection: 'column'
             }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >
             {/* Header */}
-            <div
-              style={{
-                padding: '16px 20px',
-                borderBottom: '1px solid var(--border-color)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: 'var(--bg-surface)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    backgroundColor: 'rgba(212, 168, 106, 0.12)',
-                    border: '1px solid rgba(212, 168, 106, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--accent-gold, #D4A86A)'
-                  }}
-                >
-                  <HardDrive size={18} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--heading-color)' }}>
-                    Trung tâm Điều phối Dọn dẹp & Tối ưu Hệ thống
-                  </h3>
-                  <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    Giải phóng tầng cache VPS, nhật ký bot MongoDB và đối chiếu tệp ảnh không sử dụng trên Cloudinary
-                  </p>
-                </div>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-title" style={{ fontSize: 16, margin: 0 }}>
+                  Dọn dẹp & Tối ưu dung lượng
+                </h2>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                  Quản lý giải phóng bộ nhớ đệm VPS, MongoDB và tệp ảnh Cloudinary
+                </p>
               </div>
-
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => !cleaningVpsDisk && setIsCleanupModalOpen(false)}
                 disabled={cleaningVpsDisk}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: cleaningVpsDisk ? 'not-allowed' : 'pointer',
-                  padding: 4,
-                  borderRadius: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title="Đóng"
+                aria-label="Đóng"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Navigation Tabs */}
-            <div
-              style={{
-                display: 'flex',
-                borderBottom: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-subtle)',
-                padding: '0 20px'
-              }}
-            >
+            <div style={{ display: 'flex', gap: 8, padding: '10px 16px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-subtle)' }}>
               <button
                 type="button"
                 onClick={() => setCleanupTab('instant')}
-                style={{
-                  padding: '12px 16px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: cleanupTab === 'instant' ? '2px solid var(--accent-gold, #D4A86A)' : '2px solid transparent',
-                  color: cleanupTab === 'instant' ? 'var(--heading-color)' : 'var(--text-muted)',
-                  fontWeight: cleanupTab === 'instant' ? 600 : 500,
-                  fontSize: 12.5,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 7
-                }}
+                className={`btn btn-sm ${cleanupTab === 'instant' ? 'btn-primary' : 'btn-secondary'}`}
               >
-                <Trash2 size={14} />
-                <span>Dọn dẹp theo yêu cầu</span>
+                Dọn dẹp tức thì
               </button>
-
               <button
                 type="button"
                 onClick={() => setCleanupTab('schedule')}
-                style={{
-                  padding: '12px 16px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: cleanupTab === 'schedule' ? '2px solid var(--accent-gold, #D4A86A)' : '2px solid transparent',
-                  color: cleanupTab === 'schedule' ? 'var(--heading-color)' : 'var(--text-muted)',
-                  fontWeight: cleanupTab === 'schedule' ? 600 : 500,
-                  fontSize: 12.5,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 7
-                }}
+                className={`btn btn-sm ${cleanupTab === 'schedule' ? 'btn-primary' : 'btn-secondary'}`}
               >
-                <Calendar size={14} />
-                <span>Lập lịch tự động định kỳ</span>
-                {cleanupSchedule.enabled && (
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      backgroundColor: '#10B981'
-                    }}
-                  />
-                )}
+                Lập lịch tự động {cleanupSchedule.enabled ? '(Đang bật)' : '(Đang tắt)'}
               </button>
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1 }}>
+            <div className="modal-body" style={{ overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               {cleanupTab === 'instant' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div
-                    style={{
-                      backgroundColor: 'rgba(212, 168, 106, 0.08)',
-                      border: '1px solid rgba(212, 168, 106, 0.25)',
-                      borderRadius: 8,
-                      padding: '10px 14px',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 10,
-                      fontSize: 12,
-                      color: 'var(--text-main)',
-                      lineHeight: 1.5
-                    }}
-                  >
-                    <Info size={16} style={{ color: 'var(--accent-gold, #D4A86A)', flexShrink: 0, marginTop: 2 }} />
-                    <div>
-                      <span>
-                        Hệ thống sẽ tổng hợp và dọn dẹp các hạng mục được chọn. <strong>Chính sách an toàn dữ liệu:</strong> Mọi hình ảnh đang hiển thị trong Tour 360, hiện vật, bản đồ và ảnh mới tải lên dưới 24 giờ đều được bảo toàn nguyên vẹn.
-                      </span>
-                    </div>
+                <>
+                  <div style={{
+                    padding: '10px 12px',
+                    backgroundColor: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    fontSize: 12,
+                    color: 'var(--text-muted)',
+                    lineHeight: 1.5
+                  }}>
+                    Lưu ý an toàn: Hệ thống chỉ dọn dẹp các tệp tạm và bộ nhớ đệm dư thừa. Tất cả hình ảnh trong gian phòng 360, hiện vật, bản đồ và ảnh mới tạo dưới 24 giờ luôn được bảo lưu an toàn.
                   </div>
 
                   {/* Checklist Options */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {/* Mục 1: Docker VPS */}
-                    <div
-                      onClick={() => !cleaningVpsDisk && setCleanDockerOpt(!cleanDockerOpt)}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {/* Mục 1: Docker BuildKit */}
+                    <label
                       style={{
-                        padding: '12px 14px',
-                        backgroundColor: cleanDockerOpt ? 'rgba(212, 168, 106, 0.08)' : 'var(--bg-subtle)',
-                        border: `1px solid ${cleanDockerOpt ? 'rgba(212, 168, 106, 0.35)' : 'var(--border-color)'}`,
-                        borderRadius: 8,
-                        cursor: cleaningVpsDisk ? 'default' : 'pointer',
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: 12,
-                        transition: 'all 0.15s ease'
+                        gap: 10,
+                        padding: '10px 12px',
+                        backgroundColor: cleanDockerOpt ? 'rgba(212, 168, 106, 0.05)' : 'var(--bg-subtle)',
+                        border: `1px solid ${cleanDockerOpt ? 'rgba(212, 168, 106, 0.35)' : 'var(--border-color)'}`,
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        cursor: cleaningVpsDisk ? 'default' : 'pointer'
                       }}
                     >
-                      <div style={{ color: cleanDockerOpt ? 'var(--accent-gold, #D4A86A)' : 'var(--text-muted)', marginTop: 2 }}>
-                        {cleanDockerOpt ? <CheckSquare size={18} /> : <Square size={18} />}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <Layers size={15} style={{ color: 'var(--accent-gold, #D4A86A)' }} />
-                            <span>Docker BuildKit Cache & Container Images</span>
-                          </span>
-                          <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            Layer Cache VPS
-                          </span>
+                      <input
+                        type="checkbox"
+                        checked={cleanDockerOpt}
+                        onChange={(e) => !cleaningVpsDisk && setCleanDockerOpt(e.target.checked)}
+                        disabled={cleaningVpsDisk}
+                        style={{ marginTop: 3, accentColor: 'var(--accent-gold)' }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                          Docker Build Cache & Container Images
                         </div>
-                        <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          Dọn layer cache dư thừa sinh ra qua các lần deploy git pull & build, container đã dừng và dangling images. Không gián đoạn web đang chạy.
-                        </p>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                          Dọn dẹp các tầng cache từ các phiên build ứng dụng và container đã dừng trên VPS.
+                        </div>
                       </div>
-                    </div>
+                    </label>
 
-                    {/* Mục 2: Cloudinary Orphan Images */}
+                    {/* Mục 2: Cloudinary */}
                     <div
                       style={{
-                        padding: '12px 14px',
-                        backgroundColor: cleanCloudinaryOpt ? 'rgba(56, 189, 248, 0.08)' : 'var(--bg-subtle)',
-                        border: `1px solid ${cleanCloudinaryOpt ? 'rgba(56, 189, 248, 0.35)' : 'var(--border-color)'}`,
-                        borderRadius: 8,
-                        transition: 'all 0.15s ease'
+                        padding: '10px 12px',
+                        backgroundColor: cleanCloudinaryOpt ? 'rgba(212, 168, 106, 0.05)' : 'var(--bg-subtle)',
+                        border: `1px solid ${cleanCloudinaryOpt ? 'rgba(212, 168, 106, 0.35)' : 'var(--border-color)'}`,
+                        borderRadius: 'var(--radius-sm, 6px)'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                        <div
-                          onClick={() => !cleaningVpsDisk && setCleanCloudinaryOpt(!cleanCloudinaryOpt)}
-                          style={{ color: cleanCloudinaryOpt ? '#38BDF8' : 'var(--text-muted)', marginTop: 2, cursor: cleaningVpsDisk ? 'default' : 'pointer' }}
-                        >
-                          {cleanCloudinaryOpt ? <CheckSquare size={18} /> : <Square size={18} />}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                            <span
-                              onClick={() => !cleaningVpsDisk && setCleanCloudinaryOpt(!cleanCloudinaryOpt)}
-                              style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)', cursor: cleaningVpsDisk ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                            >
-                              <Cloud size={15} style={{ color: '#38BDF8' }} />
-                              <span>Tài nguyên ảnh không liên kết trên Cloudinary</span>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <input
+                          type="checkbox"
+                          checked={cleanCloudinaryOpt}
+                          onChange={(e) => !cleaningVpsDisk && setCleanCloudinaryOpt(e.target.checked)}
+                          disabled={cleaningVpsDisk}
+                          style={{ marginTop: 3, accentColor: 'var(--accent-gold)' }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                              Tài nguyên ảnh không liên kết trên Cloudinary
                             </span>
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePreviewCloudinary();
-                              }}
-                              disabled={previewingCloudinary}
-                              style={{
-                                background: 'rgba(56, 189, 248, 0.12)',
-                                border: '1px solid rgba(56, 189, 248, 0.35)',
-                                color: '#38BDF8',
-                                fontSize: 11,
-                                fontWeight: 600,
-                                padding: '3px 9px',
-                                borderRadius: 4,
-                                cursor: previewingCloudinary ? 'wait' : 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4
-                              }}
+                              onClick={handlePreviewCloudinary}
+                              disabled={previewingCloudinary || cleaningVpsDisk}
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '2px 8px', fontSize: 11 }}
                             >
-                              {previewingCloudinary ? <Loader2 size={11} className="spin" /> : <RefreshCw size={11} />}
-                              <span>{previewingCloudinary ? 'Đang quét...' : 'Quét kiểm tra trước'}</span>
+                              {previewingCloudinary ? 'Đang kiểm tra...' : 'Kiểm tra trước'}
                             </button>
                           </div>
-                          <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                            Đối chiếu toàn bộ CSDL (phòng 360, hiện vật, sơ đồ bản đồ, branding) để phát hiện các ảnh đã bị xóa khỏi bài viết nhưng còn tồn dư trên Cloudinary.
-                          </p>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                            Đối chiếu cơ sở dữ liệu để lọc các ảnh cũ đã xóa khỏi bài viết.
+                          </div>
 
-                          {/* Preview Badge Cloudinary */}
                           {cloudinaryPreview && (
-                            <div
-                              style={{
-                                marginTop: 8,
-                                padding: '8px 10px',
-                                backgroundColor: 'var(--bg-surface)',
-                                borderRadius: 6,
-                                border: '1px solid var(--border-color)',
-                                fontSize: 11.5,
-                                color: 'var(--text-main)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                flexWrap: 'wrap',
-                                gap: 6
-                              }}
-                            >
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                                <Activity size={12} style={{ color: '#38BDF8' }} />
-                                <span>Kết quả quét ({cloudinaryPreview.scannedCount} ảnh): <strong>{cloudinaryPreview.totalOrphaned} ảnh thừa</strong> (~{cloudinaryPreview.estimatedFreedMB} MB)</span>
-                              </span>
-                              <span style={{ color: cloudinaryPreview.totalOrphaned > 0 ? '#F59E0B' : '#10B981', fontWeight: 600 }}>
-                                {cloudinaryPreview.totalOrphaned > 0 ? 'Sẵn sàng dọn sạch' : 'Kho ảnh sạch sẽ'}
+                            <div style={{
+                              marginTop: 6,
+                              padding: '6px 8px',
+                              backgroundColor: 'var(--bg-surface)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 4,
+                              fontSize: 11.5,
+                              color: 'var(--text-main)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: 6
+                            }}>
+                              <span>Đã quét: {cloudinaryPreview.scannedCount} ảnh (Phát hiện {cloudinaryPreview.totalOrphaned} ảnh thừa ~{cloudinaryPreview.estimatedFreedMB} MB)</span>
+                              <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>
+                                {cloudinaryPreview.totalOrphaned > 0 ? 'Có thể dọn' : 'Đã sạch'}
                               </span>
                             </div>
                           )}
@@ -2879,355 +2743,250 @@ export const AdminSettingsPage: React.FC = () => {
                     </div>
 
                     {/* Mục 3: Mongo Bot Logs */}
-                    <div
-                      onClick={() => !cleaningVpsDisk && setCleanMongoBotOpt(!cleanMongoBotOpt)}
+                    <label
                       style={{
-                        padding: '12px 14px',
-                        backgroundColor: cleanMongoBotOpt ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-subtle)',
-                        border: `1px solid ${cleanMongoBotOpt ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-color)'}`,
-                        borderRadius: 8,
-                        cursor: cleaningVpsDisk ? 'default' : 'pointer',
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: 12,
-                        transition: 'all 0.15s ease'
+                        gap: 10,
+                        padding: '10px 12px',
+                        backgroundColor: cleanMongoBotOpt ? 'rgba(212, 168, 106, 0.05)' : 'var(--bg-subtle)',
+                        border: `1px solid ${cleanMongoBotOpt ? 'rgba(212, 168, 106, 0.35)' : 'var(--border-color)'}`,
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        cursor: cleaningVpsDisk ? 'default' : 'pointer'
                       }}
                     >
-                      <div style={{ color: cleanMongoBotOpt ? '#10B981' : 'var(--text-muted)', marginTop: 2 }}>
-                        {cleanMongoBotOpt ? <CheckSquare size={18} /> : <Square size={18} />}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <Database size={15} style={{ color: '#10B981' }} />
-                            <span>Nhật ký Bot Scanner 404 NoSQL (MongoDB)</span>
-                          </span>
-                          <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            MongoDB Access Logs
-                          </span>
+                      <input
+                        type="checkbox"
+                        checked={cleanMongoBotOpt}
+                        onChange={(e) => !cleaningVpsDisk && setCleanMongoBotOpt(e.target.checked)}
+                        disabled={cleaningVpsDisk}
+                        style={{ marginTop: 3, accentColor: 'var(--accent-gold)' }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                          Nhật ký Bot Scanner 404 NoSQL (MongoDB)
                         </div>
-                        <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          Dọn dẹp các bản ghi log truy vấn thăm dò lỗ hổng (.env, phpMyAdmin, wp-admin) từ bot tự động trên Internet, bảo toàn trọn vẹn nhật ký kiểm toán người dùng.
-                        </p>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                          Dọn các bản ghi log truy vấn thăm dò tự động trên Internet, bảo lưu nhật ký kiểm toán người dùng.
+                        </div>
                       </div>
-                    </div>
+                    </label>
 
                     {/* Mục 4: App Temp Cache */}
-                    <div
-                      onClick={() => !cleaningVpsDisk && setCleanAppTempOpt(!cleanAppTempOpt)}
+                    <label
                       style={{
-                        padding: '12px 14px',
-                        backgroundColor: cleanAppTempOpt ? 'rgba(212, 168, 106, 0.08)' : 'var(--bg-subtle)',
-                        border: `1px solid ${cleanAppTempOpt ? 'rgba(212, 168, 106, 0.35)' : 'var(--border-color)'}`,
-                        borderRadius: 8,
-                        cursor: cleaningVpsDisk ? 'default' : 'pointer',
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: 12,
-                        transition: 'all 0.15s ease'
+                        gap: 10,
+                        padding: '10px 12px',
+                        backgroundColor: cleanAppTempOpt ? 'rgba(212, 168, 106, 0.05)' : 'var(--bg-subtle)',
+                        border: `1px solid ${cleanAppTempOpt ? 'rgba(212, 168, 106, 0.35)' : 'var(--border-color)'}`,
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        cursor: cleaningVpsDisk ? 'default' : 'pointer'
                       }}
                     >
-                      <div style={{ color: cleanAppTempOpt ? 'var(--accent-gold, #D4A86A)' : 'var(--text-muted)', marginTop: 2 }}>
-                        {cleanAppTempOpt ? <CheckSquare size={18} /> : <Square size={18} />}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <Zap size={15} style={{ color: 'var(--accent-gold, #D4A86A)' }} />
-                            <span>Tệp tin tạm & Bộ nhớ đệm xử lý ảnh 360</span>
-                          </span>
-                          <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            Scratch & Temp Cache
-                          </span>
+                      <input
+                        type="checkbox"
+                        checked={cleanAppTempOpt}
+                        onChange={(e) => !cleaningVpsDisk && setCleanAppTempOpt(e.target.checked)}
+                        disabled={cleaningVpsDisk}
+                        style={{ marginTop: 3, accentColor: 'var(--accent-gold)' }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                          Bộ nhớ đệm & Tệp tạm thời gian xử lý ảnh 360
                         </div>
-                        <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          Dọn các file ảnh chunk tạm và thumbnail trong thư mục scratch/temp khi xử lý ghép toàn cảnh panorama.
-                        </p>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                          Dọn các tệp ảnh chunk tạm thời gian ghép toàn cảnh panorama trong thư mục hệ thống.
+                        </div>
                       </div>
-                    </div>
+                    </label>
                   </div>
 
-                  {/* Báo cáo kết quả sau khi dọn */}
+                  {/* Báo cáo kết quả */}
                   {cleanupReport && (
-                    <div
-                      style={{
-                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                        border: '1px solid rgba(16, 185, 129, 0.35)',
-                        borderRadius: 8,
-                        padding: '12px 14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#10B981', fontWeight: 600, fontSize: 12.5 }}>
-                        <CheckCircle2 size={16} />
-                        <span>Kết quả phiên dọn dẹp vừa hoàn tất:</span>
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-main)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginTop: 4 }}>
-                        <div>• Ổ cứng SSD VPS: <strong>{cleanupReport.dockerFreedSpace || 'Đã dọn cache'}</strong></div>
-                        <div>• Ảnh Cloudinary đã xóa: <strong>{cleanupReport.cloudinaryDeletedCount ?? 0} ảnh</strong></div>
-                        <div>• Log NoSQL MongoDB: <strong>{cleanupReport.mongoLogsCleaned ?? 0} bản ghi</strong></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* Tab 2: Lập lịch dọn rác định kỳ */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div
-                    style={{
-                      backgroundColor: 'rgba(212, 168, 106, 0.08)',
-                      border: '1px solid rgba(212, 168, 106, 0.25)',
-                      borderRadius: 8,
-                      padding: '12px 14px',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 10,
-                      fontSize: 12,
-                      color: 'var(--text-main)',
-                      lineHeight: 1.5
-                    }}
-                  >
-                    <Clock size={16} style={{ color: 'var(--accent-gold, #D4A86A)', flexShrink: 0, marginTop: 2 }} />
-                    <div>
-                      <span>
-                        Hệ thống tự động chạy tác vụ nền (Background Worker) vào ban đêm định kỳ theo lịch bạn cài đặt. <strong>Mọi dữ liệu thừa (BuildKit cache, ảnh mồ côi Cloudinary, bot 404 log) sẽ được dọn tự động mà không cần admin thao tác thủ công.</strong>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Cấu hình Lịch */}
-                  <div
-                    style={{
+                    <div style={{
+                      padding: '10px 12px',
                       backgroundColor: 'var(--bg-subtle)',
                       border: '1px solid var(--border-color)',
-                      borderRadius: 8,
-                      padding: '16px',
+                      borderRadius: 'var(--radius-sm, 6px)',
+                      fontSize: 12,
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 14
-                    }}
-                  >
+                      gap: 4
+                    }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Kết quả dọn dẹp vừa thực hiện:</div>
+                      <div style={{ color: 'var(--text-muted)' }}>• Dung lượng giải phóng VPS: {cleanupReport.dockerFreedSpace || 'Đã dọn cache'}</div>
+                      <div style={{ color: 'var(--text-muted)' }}>• Ảnh Cloudinary đã xóa: {cleanupReport.cloudinaryDeletedCount ?? 0} ảnh</div>
+                      <div style={{ color: 'var(--text-muted)' }}>• Nhật ký MongoDB đã dọn: {cleanupReport.mongoLogsCleaned ?? 0} bản ghi</div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Tab 2: Lập lịch định kỳ */
+                <>
+                  <div style={{
+                    padding: '10px 12px',
+                    backgroundColor: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    fontSize: 12,
+                    color: 'var(--text-muted)',
+                    lineHeight: 1.5
+                  }}>
+                    Tác vụ dọn dẹp sẽ tự động chạy ngầm theo lịch vào ban đêm để duy trì hiệu năng máy chủ mà không làm gián đoạn khách tham quan.
+                  </div>
+
+                  {/* Form Lịch */}
+                  <div style={{
+                    padding: '14px',
+                    backgroundColor: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12
+                  }}>
                     {/* Bật / Tắt */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid var(--border-color)' }}>
                       <div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--heading-color)', display: 'block' }}>
-                          Kích hoạt tự động dọn rác định kỳ
-                        </span>
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          Hệ thống sẽ chạy ngầm không gián đoạn khách đang tham quan
-                        </span>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                          Tự động dọn dẹp định kỳ
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          Hệ thống chạy ngầm không ảnh hưởng người dùng
+                        </div>
                       </div>
-                      <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                         <input
                           type="checkbox"
                           checked={cleanupSchedule.enabled}
                           onChange={(e) => setCleanupSchedule({ ...cleanupSchedule, enabled: e.target.checked })}
-                          style={{ opacity: 0, width: 0, height: 0 }}
+                          style={{ accentColor: 'var(--accent-gold)' }}
                         />
-                        <span
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            backgroundColor: cleanupSchedule.enabled ? '#10B981' : 'rgba(255, 255, 255, 0.2)',
-                            borderRadius: 24,
-                            transition: '0.2s',
-                            boxShadow: cleanupSchedule.enabled ? '0 0 8px rgba(16, 185, 129, 0.4)' : 'none'
-                          }}
-                        >
-                          <span
-                            style={{
-                              position: 'absolute',
-                              height: 18,
-                              width: 18,
-                              left: cleanupSchedule.enabled ? 22 : 3,
-                              bottom: 3,
-                              backgroundColor: '#FFF',
-                              borderRadius: '50%',
-                              transition: '0.2s'
-                            }}
-                          />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: cleanupSchedule.enabled ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                          {cleanupSchedule.enabled ? 'Bật' : 'Tắt'}
                         </span>
                       </label>
                     </div>
 
                     {/* Tần suất & Khung giờ */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
                           Tần suất dọn dẹp:
                         </label>
                         <select
                           value={cleanupSchedule.frequency}
                           onChange={(e) => setCleanupSchedule({ ...cleanupSchedule, frequency: e.target.value as 'daily' | 'weekly' })}
-                          style={{
-                            width: '100%',
-                            padding: '8px 10px',
-                            backgroundColor: 'var(--bg-surface)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: 6,
-                            color: 'var(--text-main)',
-                            fontSize: 12
-                          }}
+                          className="input-field"
+                          style={{ width: '100%', padding: '6px 10px', fontSize: 12 }}
                         >
                           <option value="daily">Hàng ngày (Khuyến nghị)</option>
-                          <option value="weekly">Hàng tuần (Vào Chủ Nhật)</option>
+                          <option value="weekly">Hàng tuần (Chủ Nhật)</option>
                         </select>
                       </div>
 
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                          Khung giờ thực hiện (Giờ thấp điểm):
+                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                          Khung giờ thực hiện:
                         </label>
                         <input
                           type="time"
                           value={cleanupSchedule.scheduleTime}
                           onChange={(e) => setCleanupSchedule({ ...cleanupSchedule, scheduleTime: e.target.value })}
-                          style={{
-                            width: '100%',
-                            padding: '7px 10px',
-                            backgroundColor: 'var(--bg-surface)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: 6,
-                            color: 'var(--text-main)',
-                            fontSize: 12
-                          }}
+                          className="input-field"
+                          style={{ width: '100%', padding: '5px 10px', fontSize: 12 }}
                         />
                       </div>
                     </div>
 
-                    {/* Các mục dọn định kỳ */}
+                    {/* Checkbox các mục */}
                     <div style={{ paddingTop: 8, borderTop: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>
-                        Các hạng mục tự động dọn:
-                      </span>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, fontSize: 12, color: 'var(--text-main)' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                        Hạng mục áp dụng dọn tự động:
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, fontSize: 12 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                           <input
                             type="checkbox"
                             checked={cleanupSchedule.cleanDocker}
                             onChange={(e) => setCleanupSchedule({ ...cleanupSchedule, cleanDocker: e.target.checked })}
+                            style={{ accentColor: 'var(--accent-gold)' }}
                           />
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <Layers size={13} style={{ color: 'var(--accent-gold, #D4A86A)' }} />
-                            <span>Docker Cache & Images VPS</span>
-                          </span>
+                          <span>Docker Cache & Images VPS</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                           <input
                             type="checkbox"
                             checked={cleanupSchedule.cleanCloudinary}
                             onChange={(e) => setCleanupSchedule({ ...cleanupSchedule, cleanCloudinary: e.target.checked })}
+                            style={{ accentColor: 'var(--accent-gold)' }}
                           />
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <Cloud size={13} style={{ color: '#38BDF8' }} />
-                            <span>Tài nguyên ảnh Cloudinary không dùng</span>
-                          </span>
+                          <span>Ảnh Cloudinary không liên kết</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                           <input
                             type="checkbox"
                             checked={cleanupSchedule.cleanMongoBotLogs}
                             onChange={(e) => setCleanupSchedule({ ...cleanupSchedule, cleanMongoBotLogs: e.target.checked })}
+                            style={{ accentColor: 'var(--accent-gold)' }}
                           />
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <Database size={13} style={{ color: '#10B981' }} />
-                            <span>Nhật ký Bot Scanner MongoDB</span>
-                          </span>
+                          <span>Nhật ký bot NoSQL MongoDB</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                           <input
                             type="checkbox"
                             checked={cleanupSchedule.cleanAppTemp}
                             onChange={(e) => setCleanupSchedule({ ...cleanupSchedule, cleanAppTemp: e.target.checked })}
+                            style={{ accentColor: 'var(--accent-gold)' }}
                           />
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <Zap size={13} style={{ color: 'var(--accent-gold, #D4A86A)' }} />
-                            <span>Bộ đệm & Tệp tạm thời gian xử lý</span>
-                          </span>
+                          <span>Bộ nhớ đệm & Tệp tạm ứng dụng</span>
                         </label>
                       </div>
                     </div>
 
-                    {/* Lần chạy gần nhất */}
                     {cleanupSchedule.lastRunAt && (
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', paddingTop: 6, borderTop: '1px dashed var(--border-color)' }}>
-                        Lần chạy tự động gần nhất: <strong style={{ color: 'var(--heading-color)' }}>{new Date(cleanupSchedule.lastRunAt).toLocaleString('vi-VN')}</strong>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', paddingTop: 4 }}>
+                        Lần chạy gần nhất: {new Date(cleanupSchedule.lastRunAt).toLocaleString('vi-VN')}
                       </div>
                     )}
                   </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      onClick={handleSaveCleanupSchedule}
-                      disabled={savingSchedule}
-                      className="btn btn-primary btn-sm"
-                      style={{
-                        padding: '8px 18px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6
-                      }}
-                    >
-                      {savingSchedule ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
-                      <span>{savingSchedule ? 'Đang lưu cấu hình...' : 'Lưu cấu hình tự động'}</span>
-                    </button>
-                  </div>
-                </div>
+                </>
               )}
             </div>
 
             {/* Footer */}
-            {cleanupTab === 'instant' && (
-              <div
-                style={{
-                  padding: '12px 20px',
-                  borderTop: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-surface)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-end',
-                  gap: 10
-                }}
+            <div className="modal-footer" style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsCleanupModalOpen(false)}
+                disabled={cleaningVpsDisk || savingSchedule}
               >
-                <button
-                  type="button"
-                  onClick={() => setIsCleanupModalOpen(false)}
-                  disabled={cleaningVpsDisk}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-main)',
-                    borderRadius: 6,
-                    padding: '8px 16px',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: cleaningVpsDisk ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  Đóng
-                </button>
+                Đóng
+              </button>
 
+              {cleanupTab === 'instant' ? (
                 <button
                   type="button"
+                  className="btn btn-primary btn-sm"
                   onClick={handleExecuteSystemCleanup}
                   disabled={cleaningVpsDisk}
-                  className="btn btn-primary btn-sm"
-                  style={{
-                    padding: '8px 20px',
-                    cursor: cleaningVpsDisk ? 'wait' : 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 7
-                  }}
                 >
-                  {cleaningVpsDisk ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
-                  <span>{cleaningVpsDisk ? 'Đang dọn dẹp hệ thống...' : 'Bắt đầu dọn dẹp ngay'}</span>
+                  {cleaningVpsDisk ? 'Đang thực hiện...' : 'Bắt đầu dọn dẹp'}
                 </button>
-              </div>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSaveCleanupSchedule}
+                  disabled={savingSchedule}
+                >
+                  {savingSchedule ? 'Đang lưu...' : 'Lưu cấu hình'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
