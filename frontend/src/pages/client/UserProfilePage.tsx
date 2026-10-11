@@ -7,7 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
+import { api, API_BASE } from '../../services/api';
 import { UserProfile, UserTicket } from '../../types';
 import { ClientNavbar } from '../../components/client/ClientNavbar';
 import { ClientFooter } from '../../components/client/ClientFooter';
@@ -758,9 +758,21 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
               <div style={{ textAlign: 'center', background: '#0D111A', padding: '16px', borderRadius: '10px', marginBottom: 18 }}>
                 <div style={{ background: '#FFF', padding: '10px', borderRadius: '8px', display: 'inline-block' }}>
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(selectedTicket.qrCodeData || selectedTicket.ticketCode)}&bgcolor=FFFFFF&color=0A0D14`}
+                    src={
+                      selectedTicket.qrCodeData && selectedTicket.qrCodeData.startsWith('data:image/')
+                        ? selectedTicket.qrCodeData
+                        : selectedTicket.qrCodeData && (selectedTicket.qrCodeData.startsWith('http://') || selectedTicket.qrCodeData.startsWith('https://'))
+                        ? selectedTicket.qrCodeData
+                        : `${API_BASE}/tickets/qr/${encodeURIComponent(selectedTicket.ticketCode)}`
+                    }
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (!target.src.includes('qrserver.com')) {
+                        target.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(selectedTicket.ticketCode)}&bgcolor=FFFFFF&color=0A0D14`;
+                      }
+                    }}
                     alt={`Mã QR ${selectedTicket.ticketCode}`}
-                    style={{ width: 170, height: 170, display: 'block' }}
+                    style={{ width: 170, height: 170, display: 'block', objectFit: 'contain' }}
                   />
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 10 }}>

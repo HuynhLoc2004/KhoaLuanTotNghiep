@@ -978,7 +978,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                         src={
                           activePaymentModal.accountNumber && (activePaymentModal.bin || activePaymentModal.accountNumber)
                             ? `https://api.vietqr.io/image/${activePaymentModal.bin || '970422'}-${activePaymentModal.accountNumber}-compact2.png?amount=${activePaymentModal.totalAmount}&addInfo=${encodeURIComponent('DATVE ' + activePaymentModal.orderCode)}&accountName=${encodeURIComponent(activePaymentModal.accountName || '')}`
-                            : (activePaymentModal.qrCode?.startsWith('http')
+                            : (activePaymentModal.qrCode?.startsWith('data:') || activePaymentModal.qrCode?.startsWith('http')
                                 ? activePaymentModal.qrCode
                                 : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(activePaymentModal.qrCode || activePaymentModal.checkoutUrl || '')}`)
                         }

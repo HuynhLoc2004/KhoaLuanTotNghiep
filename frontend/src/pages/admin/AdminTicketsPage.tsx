@@ -12,7 +12,7 @@ import {
   Trash2,
   Clock
 } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, API_BASE } from '../../services/api';
 import {
   AdminTicketItem,
   AdminTicketStats,
@@ -1563,9 +1563,21 @@ export const AdminTicketsPage: React.FC = () => {
                 }}
               >
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(detailTicket.qrCodeData || detailTicket.ticketCode)}`}
+                  src={
+                    detailTicket.qrCodeData && detailTicket.qrCodeData.startsWith('data:image/')
+                      ? detailTicket.qrCodeData
+                      : detailTicket.qrCodeData && (detailTicket.qrCodeData.startsWith('http://') || detailTicket.qrCodeData.startsWith('https://'))
+                      ? detailTicket.qrCodeData
+                      : `${API_BASE}/tickets/qr/${encodeURIComponent(detailTicket.ticketCode)}`
+                  }
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.src.includes('qrserver.com')) {
+                      target.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(detailTicket.ticketCode)}`;
+                    }
+                  }}
                   alt="QR Code"
-                  style={{ width: 130, height: 130, display: 'block' }}
+                  style={{ width: 130, height: 130, display: 'block', objectFit: 'contain' }}
                 />
               </div>
               <div style={{ marginTop: 8, fontFamily: 'monospace', fontWeight: 600, fontSize: 13, color: 'var(--text-main)' }}>

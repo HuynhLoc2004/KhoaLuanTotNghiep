@@ -831,3 +831,71 @@ ticketsRouter.post('/webhook/payos', async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: 'Lỗi xử lý webhook', error: err.message });
   }
 });
+
+/**
+ * GET /api/tickets/qr/:ticketCode
+ * Lấy hoặc sinh trực tiếp ảnh mã QR PNG của vé tham quan
+ */
+ticketsRouter.get('/qr/:ticketCode', async (req: Request, res: Response) => {
+  try {
+    const ticketCode = String(req.params.ticketCode || '').trim();
+    if (!ticketCode) {
+      return res.status(400).send('Missing ticketCode');
+    }
+
+    let qrPayload: string = ticketCode;
+
+    // 1. Kiểm tra PostgreSQL xem đã có qr_code_data dạng data:image sẵn chưa
+    try {
+      const pgRes = await pgPool.query(
+        'SELECT qr_code_data FROM museum_tickets WHERE ticket_code = $1 LIMIT 1',
+        [ticketCode]
+      );
+      if (pgRes.rows.length > 0 && pgRes.rows[0].qr_code_data) {
+        const stored = pgRes.rows[0].qr_code_data;
+        if (stored.startsWith('data:image/')) {
+          const base64Data = stored.replace(/^data:image\/\w+;base64,/, '');
+          const imgBuffer = Buffer.from(base64Data, 'base64');
+          res.setHeader('Content-Type', 'image/png');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.send(imgBuffer);
+        } else {
+          qrPayload = stored;
+        }
+      }
+    } catch (pgErr: any) {
+      console.warn('[Ticket QR PG lookup warning]:', pgErr.message);
+    }
+
+    // 2. Kiểm tra MongoDB Mirror nếu chưa có
+    try {
+      const mongoTicket = await Ticket.findOne({ ticketCode }).lean();
+      if (mongoTicket && mongoTicket.qrCodeData) {
+        if (mongoTicket.qrCodeData.startsWith('data:image/')) {
+          const base64Data = mongoTicket.qrCodeData.replace(/^data:image\/\w+;base64,/, '');
+          const imgBuffer = Buffer.from(base64Data, 'base64');
+          res.setHeader('Content-Type', 'image/png');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.send(imgBuffer);
+        } else {
+          qrPayload = mongoTicket.qrCodeData;
+        }
+      }
+    } catch {}
+
+    // 3. Tự sinh ảnh PNG chất lượng cao bằng thư viện qrcode
+    const buffer = await QRCode.toBuffer(qrPayload, {
+      margin: 1,
+      width: 280,
+      color: { dark: '#0A0D14', light: '#FFFFFF' },
+      errorCorrectionLevel: 'M'
+    });
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.send(buffer);
+  } catch (err: any) {
+    console.error('[Ticket QR GET Error]:', err.message);
+    res.status(500).send('Error generating QR image');
+  }
+});
