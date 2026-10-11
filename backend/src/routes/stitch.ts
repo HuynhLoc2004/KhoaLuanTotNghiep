@@ -1052,18 +1052,26 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
 
     // Tra cứu danh sách các gian phòng đang sử dụng ảnh để hiển thị liên kết
     const roomUsageMap = new Map<string, string[]>();
+    const registerRoomUsage = (filename: string, roomLabel: string) => {
+      const list = roomUsageMap.get(filename) || [];
+      if (!list.includes(roomLabel)) list.push(roomLabel);
+      roomUsageMap.set(filename, list);
+    };
+
     try {
       const pgRooms = await pgPool.query('SELECT id, code, name, panorama_url, thumbnail_url FROM rooms;');
       for (const r of pgRooms.rows) {
         const rName = (r.name || r.code || '').trim();
         const pUrl = (r.panorama_url || '').toLowerCase();
         const tUrl = (r.thumbnail_url || '').toLowerCase();
+        const pBase = path.basename(decodeURIComponent(pUrl.split('?')[0])).toLowerCase();
+        const tBase = path.basename(decodeURIComponent(tUrl.split('?')[0])).toLowerCase();
+
         for (const p of dbPanos) {
           const fn = (p.filename || '').toLowerCase();
-          if (fn && (pUrl.includes(fn) || tUrl.includes(fn))) {
-            const list = roomUsageMap.get(p.filename) || [];
-            if (!list.includes(rName)) list.push(rName);
-            roomUsageMap.set(p.filename, list);
+          const pPanoUrl = (p.panoramaUrl || '').toLowerCase();
+          if (fn && (pUrl.includes(fn) || tUrl.includes(fn) || pBase === fn || tBase === fn || (pPanoUrl && pUrl.includes(pPanoUrl)))) {
+            registerRoomUsage(p.filename, rName);
           }
         }
       }
@@ -1075,17 +1083,23 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
         const rName = ((r as any).name || (r as any).code || '').trim();
         const pUrl = ((r as any).panoramaUrl || '').toLowerCase();
         const tUrl = ((r as any).thumbnailUrl || '').toLowerCase();
+        const pBase = path.basename(decodeURIComponent(pUrl.split('?')[0])).toLowerCase();
+        const tBase = path.basename(decodeURIComponent(tUrl.split('?')[0])).toLowerCase();
         const scenes = (r as any).scenes || [];
+
         for (const p of dbPanos) {
           const fn = (p.filename || '').toLowerCase();
-          let matched = fn && (pUrl.includes(fn) || tUrl.includes(fn));
+          const pPanoUrl = (p.panoramaUrl || '').toLowerCase();
+          let matched = Boolean(fn && (pUrl.includes(fn) || tUrl.includes(fn) || pBase === fn || tBase === fn || (pPanoUrl && pUrl.includes(pPanoUrl))));
           if (!matched && Array.isArray(scenes)) {
-            matched = scenes.some((s: any) => (s?.panoramaUrl || '').toLowerCase().includes(fn));
+            matched = scenes.some((s: any) => {
+              const sUrl = (s?.panoramaUrl || '').toLowerCase();
+              const sBase = path.basename(decodeURIComponent(sUrl.split('?')[0])).toLowerCase();
+              return sUrl.includes(fn) || sBase === fn;
+            });
           }
           if (matched) {
-            const list = roomUsageMap.get(p.filename) || [];
-            if (!list.includes(rName)) list.push(rName);
-            roomUsageMap.set(p.filename, list);
+            registerRoomUsage(p.filename, rName);
           }
         }
       }

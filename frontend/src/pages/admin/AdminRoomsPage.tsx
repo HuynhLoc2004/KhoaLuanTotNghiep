@@ -2446,7 +2446,14 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
             setShowNewModal(false);
           }}
           initialPanoramaUrl={selectedPanoForNewRoom}
-          panoramas={panoramas}
+          panoramas={panoramas.map((p) => ({
+            filename: p.filename,
+            url: p.url,
+            thumbnailUrl: p.url,
+            date: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : undefined,
+            usedInRooms: p.usedInRooms || [],
+            isUsed: Boolean(p.isUsed || (p.usedInRooms && p.usedInRooms.length > 0))
+          }))}
         />
       )}
 

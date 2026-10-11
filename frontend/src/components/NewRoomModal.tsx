@@ -1,15 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { X, Upload, Loader2, Image as ImageIcon, Layers } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  X,
+  Upload,
+  Loader2,
+  Image as ImageIcon,
+  Layers,
+  Search,
+  ChevronDown,
+  Check,
+  Globe,
+  CheckCircle2,
+  Eye
+} from 'lucide-react';
 import { MuseumRoom, TopicItem } from '../types';
 import { api } from '../services/api';
 import { TopicManagementModal } from './TopicManagementModal';
 import { useClientTranslation } from '../context/ClientTranslationContext';
 
+export interface PanoramaItemOption {
+  filename: string;
+  url: string;
+  thumbnailUrl?: string;
+  date?: string;
+  title?: string;
+  usedInRooms?: string[];
+  isUsed?: boolean;
+}
+
 interface NewRoomModalProps {
   onClose: () => void;
   onCreated: (room: MuseumRoom) => void;
   initialPanoramaUrl?: string;
-  panoramas?: Array<{ filename: string; url: string; date?: string; title?: string }>;
+  panoramas?: PanoramaItemOption[];
 }
 
 export const NewRoomModal: React.FC<NewRoomModalProps> = ({
@@ -29,6 +51,12 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Bộ chọn trực quan không gian 360°
+  const [isPanoDropdownOpen, setIsPanoDropdownOpen] = useState(false);
+  const [panoFilterTab, setPanoFilterTab] = useState<'unused' | 'all' | 'used'>('unused');
+  const [panoSearch, setPanoSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -53,6 +81,54 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [loading, onClose]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsPanoDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Phân loại danh sách không gian chưa dùng và đã dùng
+  const unusedPanos = useMemo(() => {
+    return panoramas.filter((p) => !p.isUsed && (!p.usedInRooms || p.usedInRooms.length === 0));
+  }, [panoramas]);
+
+  const usedPanos = useMemo(() => {
+    return panoramas.filter((p) => p.isUsed || (p.usedInRooms && p.usedInRooms.length > 0));
+  }, [panoramas]);
+
+  // Nếu không có ảnh nào chưa dùng, tự động chuyển sang tab "Tất cả"
+  useEffect(() => {
+    if (panoramas.length > 0 && unusedPanos.length === 0 && panoFilterTab === 'unused') {
+      setPanoFilterTab('all');
+    }
+  }, [panoramas.length, unusedPanos.length]);
+
+  const filteredPanos = useMemo(() => {
+    let list = panoramas;
+    if (panoFilterTab === 'unused') list = unusedPanos;
+    else if (panoFilterTab === 'used') list = usedPanos;
+
+    if (panoSearch.trim()) {
+      const q = panoSearch.toLowerCase().trim();
+      list = list.filter(
+        (p) =>
+          p.filename.toLowerCase().includes(q) ||
+          (p.title && p.title.toLowerCase().includes(q)) ||
+          (p.usedInRooms && p.usedInRooms.some((r) => r.toLowerCase().includes(q)))
+      );
+    }
+    return list;
+  }, [panoramas, panoFilterTab, unusedPanos, usedPanos, panoSearch]);
+
+  const selectedPano = useMemo(() => {
+    return panoramas.find((p) => p.url === panoramaUrl);
+  }, [panoramas, panoramaUrl]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -111,44 +187,108 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
   return (
     <div
       className="modal-backdrop"
-      style={{ zIndex: 1200 }}
+      style={{
+        zIndex: 1200,
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.78)',
+        backdropFilter: 'blur(5px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '12px'
+      }}
+      onClick={handleClose}
     >
       <div
         className="modal-card"
         style={{
-          maxWidth: 540,
-          width: 'min(540px, 94vw)',
-          maxHeight: 'min(90vh, 760px)',
+          maxWidth: 580,
+          width: '100%',
+          maxHeight: '92vh',
+          height: 'auto',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          backgroundColor: '#1E293B',
+          borderRadius: 14,
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          overflow: 'hidden',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-header">
-          <h2 className="modal-title" style={{ fontSize: '17px', margin: 0 }}>
-            {t('rooms.addNewRoomTitle', 'Thêm gian phòng trưng bày mới')}
-          </h2>
+        {/* Sticky Header with responsive touch-friendly close button */}
+        <div
+          className="modal-header"
+          style={{
+            padding: '14px 18px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexShrink: 0,
+            backgroundColor: '#1E293B'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Globe size={18} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+            <h2 className="modal-title" style={{ fontSize: '16px', margin: 0, fontWeight: 600, color: '#F8FAFC' }}>
+              {t('rooms.addNewRoomTitle', 'Thêm gian phòng trưng bày mới')}
+            </h2>
+          </div>
           <button
             type="button"
             className="modal-close-btn"
             onClick={handleClose}
             disabled={loading}
             aria-label={t('common.close', 'Đóng')}
+            style={{
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: 'none',
+              borderRadius: 8,
+              color: '#94a3b8',
+              cursor: 'pointer'
+            }}
           >
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Scrollable Form Body */}
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden'
+          }}
+        >
+          <div
+            className="modal-body"
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '16px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14
+            }}
+          >
             {error && (
               <div
                 style={{
-                  background: 'var(--error-bg)',
-                  color: 'var(--error)',
-                  border: '1px solid var(--error-border)',
+                  background: 'var(--error-bg, rgba(239, 68, 68, 0.15))',
+                  color: 'var(--error, #ef4444)',
+                  border: '1px solid var(--error-border, rgba(239, 68, 68, 0.35))',
                   padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
+                  borderRadius: 'var(--radius-sm, 6px)',
                   fontSize: 12.5
                 }}
               >
@@ -156,7 +296,8 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
+            {/* Mã phòng & Tên gian - Tự co giãn theo màn hình điện thoại */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
               <div className="form-group">
                 <label className="form-label">{t('rooms.roomCode', 'Mã phòng')} *</label>
                 <input
@@ -182,6 +323,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
               </div>
             </div>
 
+            {/* Chuyên đề trưng bày */}
             <div className="form-group">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <label className="form-label" style={{ margin: 0 }}>{t('rooms.exhibitionTopic', 'Chuyên đề trưng bày')} *</label>
@@ -209,6 +351,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
               </select>
             </div>
 
+            {/* Giới thiệu tổng quan */}
             <div className="form-group">
               <label className="form-label">{t('rooms.generalIntro', 'Giới thiệu tổng quan')}</label>
               <textarea
@@ -221,6 +364,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
               />
             </div>
 
+            {/* Nguồn ảnh toàn cảnh 360° */}
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>{t('rooms.panoramaLabel', 'Ảnh toàn cảnh 360° hoặc Video Tour')} *</span>
@@ -231,27 +375,238 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                 )}
               </label>
 
-              {/* Tùy chọn 1: Chọn từ kho ảnh 360° đã ghép nối sẵn */}
+              {/* TÙY CHỌN 1: BỘ CHỌN TRỰC QUAN TỪ THƯ VIỆN KHO 360 (CÓ ẢNH & LỌC ĐÃ DÙNG) */}
               {panoramas && panoramas.length > 0 && (
-                <div style={{ marginBottom: 10 }}>
-                  <select
-                    className="form-control"
-                    style={{ fontSize: '12.5px', background: 'var(--bg-subtle)' }}
-                    value={panoramas.some((p) => p.url === panoramaUrl) ? panoramaUrl : ''}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setPanoramaUrl(e.target.value);
-                        setError(null);
-                      }
+                <div style={{ marginBottom: 10, position: 'relative' }} ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsPanoDropdownOpen(!isPanoDropdownOpen)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'rgba(15, 23, 42, 0.65)',
+                      border: isPanoDropdownOpen
+                        ? '1px solid var(--accent-gold, #d4a86a)'
+                        : '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: 'var(--radius-sm, 8px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      color: '#F8FAFC',
+                      textAlign: 'left',
+                      gap: 10
                     }}
                   >
-                    <option value="">-- {t('rooms.selectFromExistingPano', 'Chọn ảnh toàn cảnh có sẵn trong Kho 360°')} ({panoramas.length}) --</option>
-                    {panoramas.map((p, idx) => (
-                      <option key={p.filename || idx} value={p.url}>
-                        {p.filename} {p.date ? `(${p.date})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    {selectedPano ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                        <img
+                          src={selectedPano.thumbnailUrl || selectedPano.url}
+                          alt={selectedPano.filename}
+                          style={{
+                            width: 44,
+                            height: 30,
+                            borderRadius: 4,
+                            objectFit: 'cover',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            flexShrink: 0
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: '12.5px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {selectedPano.filename}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px', color: '#94a3b8' }}>
+                            {selectedPano.date && <span>{selectedPano.date}</span>}
+                            {selectedPano.isUsed || (selectedPano.usedInRooms && selectedPano.usedInRooms.length > 0) ? (
+                              <span style={{ color: '#60a5fa' }}>• Đã dùng: {selectedPano.usedInRooms?.join(', ')}</span>
+                            ) : (
+                              <span style={{ color: '#10b981', fontWeight: 600 }}>• ⭐ Chưa gán phòng</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#94a3b8', fontSize: '12px' }}>
+                        <ImageIcon size={15} style={{ color: 'var(--accent-gold)' }} />
+                        <span>-- Chọn ảnh từ Kho 360° ({unusedPanos.length} chưa dùng / {panoramas.length} tổng) --</span>
+                      </div>
+                    )}
+                    <ChevronDown
+                      size={16}
+                      style={{
+                        color: '#94a3b8',
+                        flexShrink: 0,
+                        transform: isPanoDropdownOpen ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 0.2s'
+                      }}
+                    />
+                  </button>
+
+                  {/* Popover Menu danh sách ảnh 360 kèm bộ lọc */}
+                  {isPanoDropdownOpen && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 4px)',
+                        left: 0,
+                        right: 0,
+                        zIndex: 60,
+                        backgroundColor: '#1E293B',
+                        border: '1px solid rgba(212, 168, 106, 0.45)',
+                        borderRadius: 8,
+                        boxShadow: '0 16px 32px rgba(0,0,0,0.7)',
+                        padding: '10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                        maxHeight: '340px'
+                      }}
+                    >
+                      {/* Tabs lọc */}
+                      <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.35)', padding: 3, borderRadius: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => setPanoFilterTab('unused')}
+                          style={{
+                            flex: 1,
+                            padding: '5px 6px',
+                            fontSize: '11px',
+                            fontWeight: panoFilterTab === 'unused' ? 600 : 400,
+                            borderRadius: 4,
+                            border: 'none',
+                            background: panoFilterTab === 'unused' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
+                            color: panoFilterTab === 'unused' ? '#000' : '#cbd5e1',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Chưa gán ({unusedPanos.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPanoFilterTab('all')}
+                          style={{
+                            flex: 1,
+                            padding: '5px 6px',
+                            fontSize: '11px',
+                            fontWeight: panoFilterTab === 'all' ? 600 : 400,
+                            borderRadius: 4,
+                            border: 'none',
+                            background: panoFilterTab === 'all' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
+                            color: panoFilterTab === 'all' ? '#000' : '#cbd5e1',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Tất cả ({panoramas.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPanoFilterTab('used')}
+                          style={{
+                            flex: 1,
+                            padding: '5px 6px',
+                            fontSize: '11px',
+                            fontWeight: panoFilterTab === 'used' ? 600 : 400,
+                            borderRadius: 4,
+                            border: 'none',
+                            background: panoFilterTab === 'used' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
+                            color: panoFilterTab === 'used' ? '#000' : '#cbd5e1',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Đã gán ({usedPanos.length})
+                        </button>
+                      </div>
+
+                      {/* Ô tìm kiếm nhanh */}
+                      <div style={{ position: 'relative' }}>
+                        <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                        <input
+                          type="text"
+                          value={panoSearch}
+                          onChange={(e) => setPanoSearch(e.target.value)}
+                          placeholder="Tìm theo tên file hoặc gian phòng..."
+                          style={{
+                            width: '100%',
+                            padding: '5px 8px 5px 28px',
+                            fontSize: '11.5px',
+                            background: 'rgba(15, 23, 42, 0.7)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: 4,
+                            color: '#F8FAFC'
+                          }}
+                        />
+                      </div>
+
+                      {/* Danh sách các không gian kèm ảnh hiển thị trực quan */}
+                      <div style={{ overflowY: 'auto', maxHeight: '200px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {filteredPanos.length === 0 ? (
+                          <div style={{ padding: '20px', textAlign: 'center', fontSize: '11.5px', color: '#94a3b8' }}>
+                            Không tìm thấy ảnh 360° nào phù hợp với bộ lọc này
+                          </div>
+                        ) : (
+                          filteredPanos.map((p) => {
+                            const isSelected = p.url === panoramaUrl;
+                            const isUsed = p.isUsed || (p.usedInRooms && p.usedInRooms.length > 0);
+                            return (
+                              <div
+                                key={p.filename}
+                                onClick={() => {
+                                  setPanoramaUrl(p.url);
+                                  setError(null);
+                                  setIsPanoDropdownOpen(false);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                  padding: '7px 9px',
+                                  borderRadius: 6,
+                                  cursor: 'pointer',
+                                  background: isSelected ? 'rgba(212, 168, 106, 0.2)' : 'rgba(255,255,255,0.03)',
+                                  border: isSelected ? '1px solid rgba(212, 168, 106, 0.5)' : '1px solid transparent',
+                                  transition: 'all 0.15s'
+                                }}
+                              >
+                                <img
+                                  src={p.thumbnailUrl || p.url}
+                                  alt={p.filename}
+                                  style={{
+                                    width: 52,
+                                    height: 34,
+                                    borderRadius: 4,
+                                    objectFit: 'cover',
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    flexShrink: 0
+                                  }}
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {p.filename}
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10.5px', marginTop: 2 }}>
+                                    {isUsed ? (
+                                      <span style={{ color: '#60a5fa', fontWeight: 500 }}>Đã dùng: {p.usedInRooms?.join(', ')}</span>
+                                    ) : (
+                                      <span style={{ color: '#10b981', fontWeight: 600 }}>⭐ Chưa gán phòng</span>
+                                    )}
+                                    {p.date && <span style={{ color: '#64748b' }}>• {p.date}</span>}
+                                  </div>
+                                </div>
+                                {isSelected && <Check size={14} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -262,7 +617,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                   className="form-control"
                   value={panoramaUrl}
                   onChange={(e) => setPanoramaUrl(e.target.value)}
-                  placeholder="Dán URL ảnh 360° hoặc video tour (.mp4, .webm) hoặc tải file bên phải..."
+                  placeholder="Dán URL ảnh 360° hoặc tải tệp bên phải..."
                   style={{ fontSize: 12.5, flex: 1 }}
                   required
                 />
@@ -280,7 +635,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                   }}
                 >
                   <Upload size={14} />
-                  <span>{uploading ? t('common.uploading', 'Đang tải...') : 'Tải Ảnh / Video'}</span>
+                  <span>{uploading ? t('common.uploading', 'Đang tải...') : 'Tải tệp'}</span>
                   <input
                     type="file"
                     accept="image/*,video/*"
@@ -300,7 +655,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
 
               {/* Preview ảnh hoặc video nhỏ nếu đã có link */}
               {panoramaUrl && (
-                <div style={{ position: 'relative', height: 110, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: '#0F172A', marginTop: 8 }}>
+                <div style={{ position: 'relative', height: 110, borderRadius: 'var(--radius-md, 8px)', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: '#0F172A', marginTop: 8 }}>
                   {panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? (
                     <video
                       src={panoramaUrl}
@@ -317,8 +672,9 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   )}
-                  <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(15, 23, 42, 0.8)', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>
-                    {panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? 'Xem trước Video Tour' : t('rooms.preview360Spherical', 'Xem trước ảnh cầu 360°')}
+                  <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(15, 23, 42, 0.85)', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Eye size={12} />
+                    <span>{panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? 'Xem trước Video Tour' : t('rooms.preview360Spherical', 'Xem trước ảnh cầu 360°')}</span>
                   </div>
                   <button
                     type="button"
@@ -333,7 +689,19 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
             </div>
           </div>
 
-          <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          {/* Sticky Footer */}
+          <div
+            className="modal-footer"
+            style={{
+              padding: '12px 18px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 10,
+              flexShrink: 0,
+              backgroundColor: '#1E293B'
+            }}
+          >
             <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
               {t('common.cancel', 'Hủy bỏ')}
             </button>

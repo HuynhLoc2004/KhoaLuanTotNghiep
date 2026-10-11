@@ -25,6 +25,7 @@ import {
   Video,
   Film,
   X,
+  CheckCircle2,
   Layout
 } from 'lucide-react';
 import { NewRoomModal } from '../components/NewRoomModal';
@@ -907,7 +908,28 @@ export const PocStitchingPage: React.FC = () => {
   const failedCount = 0;
   const totalFrames = verifiedFrames.length + batchFiles.length;
 
-  const paginatedHistory = historyList.slice(
+  // Bộ lọc thư viện không gian: tất cả / chưa gán phòng / đã gán phòng
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'unused' | 'used'>('all');
+
+  const usedHistoryCount = React.useMemo(() => {
+    return historyList.filter((item) => item.isUsed || (item.usedInRooms && item.usedInRooms.length > 0)).length;
+  }, [historyList]);
+
+  const unusedHistoryCount = React.useMemo(() => {
+    return Math.max(0, historyList.length - usedHistoryCount);
+  }, [historyList.length, usedHistoryCount]);
+
+  const filteredHistoryList = React.useMemo(() => {
+    if (historyFilter === 'unused') {
+      return historyList.filter((item) => !item.isUsed && (!item.usedInRooms || item.usedInRooms.length === 0));
+    }
+    if (historyFilter === 'used') {
+      return historyList.filter((item) => item.isUsed || (item.usedInRooms && item.usedInRooms.length > 0));
+    }
+    return historyList;
+  }, [historyList, historyFilter]);
+
+  const paginatedHistory = filteredHistoryList.slice(
     (historyPage - 1) * historyPageSize,
     historyPage * historyPageSize
   );
@@ -1640,12 +1662,64 @@ export const PocStitchingPage: React.FC = () => {
 
             {/* Bottom Section: Library & History */}
             <div className="panel" style={{ marginTop: 8 }}>
-              <div className="panel-header">
+              <div className="panel-header" style={{ flexWrap: 'wrap', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <History size={16} style={{ color: 'var(--primary)' }} />
                   <h3 className="panel-title">
                     {t('stitching.libraryTitle', 'Thư viện không gian 360° đã tạo')} ({historyList.length})
                   </h3>
+                </div>
+
+                {/* Tabs lọc: Tất cả / Chưa gán phòng / Đã gán phòng */}
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '3px 4px', borderRadius: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => { setHistoryFilter('all'); setHistoryPage(1); }}
+                    style={{
+                      padding: '4px 9px',
+                      fontSize: '11px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: historyFilter === 'all' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
+                      color: historyFilter === 'all' ? '#000' : 'var(--text-muted)',
+                      fontWeight: historyFilter === 'all' ? 600 : 400,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Tất cả ({historyList.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setHistoryFilter('unused'); setHistoryPage(1); }}
+                    style={{
+                      padding: '4px 9px',
+                      fontSize: '11px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: historyFilter === 'unused' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
+                      color: historyFilter === 'unused' ? '#000' : 'var(--text-muted)',
+                      fontWeight: historyFilter === 'unused' ? 600 : 400,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ⭐ Chưa gán phòng ({unusedHistoryCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setHistoryFilter('used'); setHistoryPage(1); }}
+                    style={{
+                      padding: '4px 9px',
+                      fontSize: '11px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: historyFilter === 'used' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
+                      color: historyFilter === 'used' ? '#000' : 'var(--text-muted)',
+                      fontWeight: historyFilter === 'used' ? 600 : 400,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Đã gán phòng ({usedHistoryCount})
+                  </button>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1693,120 +1767,240 @@ export const PocStitchingPage: React.FC = () => {
                 ) : (
                   <>
                     <div className="studio-history-grid">
-                      {paginatedHistory.map((item, idx) => (
-                        <div key={item.filename || idx} className="studio-history-card">
-                          <div
-                            className="studio-history-thumb studio-history-preview"
-                            style={{
-                              position: 'relative',
-                              width: '100%',
-                              height: '180px',
-                              maxHeight: '200px',
-                              aspectRatio: '16 / 9',
-                              overflow: 'hidden',
-                              backgroundColor: '#120b07',
-                              cursor: 'pointer'
-                            }}
-                            onClick={() => handleSelectHistoryPano(item)}
-                            title={t('stitching.clickToViewPano', 'Nhấp để xem ảnh toàn cảnh 360° này')}
-                          >
-                            <img
-                              src={item.url}
-                              alt={item.filename}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                display: 'block'
-                              }}
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
+                      {paginatedHistory.map((item, idx) => {
+                        const isAssigned = Boolean(item.isUsed || (item.usedInRooms && item.usedInRooms.length > 0));
+                        return (
+                          <div key={item.filename || idx} className="studio-history-card">
                             <div
-                              className="studio-history-badge"
+                              className="studio-history-thumb studio-history-preview"
                               style={{
-                                background: item.views && item.views.length > 1
-                                  ? 'linear-gradient(135deg, rgba(212, 168, 106, 0.95), rgba(184, 134, 11, 0.95))'
-                                  : undefined,
-                                color: item.views && item.views.length > 1 ? '#000' : '#fff',
-                                fontWeight: item.views && item.views.length > 1 ? 700 : 500
+                                position: 'relative',
+                                width: '100%',
+                                height: '180px',
+                                maxHeight: '200px',
+                                aspectRatio: '16 / 9',
+                                overflow: 'hidden',
+                                backgroundColor: '#120b07',
+                                cursor: 'pointer'
                               }}
+                              onClick={() => handleSelectHistoryPano(item)}
+                              title={t('stitching.clickToViewPano', 'Nhấp để xem ảnh toàn cảnh 360° này')}
                             >
-                              {item.views && item.views.length > 1
-                                ? `🏛️ Gian phòng (${item.views.length} góc nhìn)`
-                                : '4K Equirectangular 360°'}
-                            </div>
-                            <div className="studio-history-overlay-hint">
-                              <Eye size={13} />
-                              <span>{t('stitching.rotateView', 'Xoay xem 360°')}</span>
-                            </div>
-                          </div>
+                              <img
+                                src={item.url}
+                                alt={item.filename}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  display: 'block'
+                                }}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
 
-                          <div className="studio-history-body">
-                            <div className="studio-history-name" title={item.filename}>
-                              {item.filename}
-                            </div>
-                            {item.views && item.views.length > 1 && (
-                              <div style={{ fontSize: '11px', color: 'var(--accent-gold, #d4a86a)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, fontWeight: 500 }}>
-                                <Sparkles size={11} />
-                                <span>Tour đa góc nhìn ({item.views.length} góc sắc nét nguyên bản)</span>
-                              </div>
-                            )}
+                              {/* Badge hiển thị trạng thái gán gian phòng nổi bật */}
+                              {isAssigned ? (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    left: 8,
+                                    background: 'rgba(16, 185, 129, 0.94)',
+                                    color: '#fff',
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    zIndex: 3,
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                                    backdropFilter: 'blur(4px)'
+                                  }}
+                                  title={`Đã gán cho gian phòng: ${item.usedInRooms?.join(', ')}`}
+                                >
+                                  <CheckCircle2 size={12} />
+                                  <span>Đã gán phòng</span>
+                                </div>
+                              ) : (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    left: 8,
+                                    background: 'rgba(15, 23, 42, 0.88)',
+                                    color: '#cbd5e1',
+                                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    fontSize: '11px',
+                                    fontWeight: 500,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    zIndex: 3,
+                                    backdropFilter: 'blur(4px)'
+                                  }}
+                                >
+                                  <span>⚪ Chưa gán phòng</span>
+                                </div>
+                              )}
 
-                            <div className="studio-history-meta">
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Clock size={12} />
-                                {new Date(item.createdAt).toLocaleDateString('vi-VN')}
-                              </span>
-                              <span>{(item.size / (1024 * 1024)).toFixed(2)} MB</span>
-                            </div>
-
-                            <div className="studio-history-actions">
-                              <button
-                                type="button"
-                                className="btn btn-primary btn-sm"
-                                onClick={() => handleSelectHistoryPano(item)}
-                                style={{ flex: 1, justifyContent: 'center', fontWeight: 600, gap: 5 }}
+                              <div
+                                className="studio-history-badge"
+                                style={{
+                                  background: item.views && item.views.length > 1
+                                    ? 'linear-gradient(135deg, rgba(212, 168, 106, 0.95), rgba(184, 134, 11, 0.95))'
+                                    : undefined,
+                                  color: item.views && item.views.length > 1 ? '#000' : '#fff',
+                                  fontWeight: item.views && item.views.length > 1 ? 700 : 500
+                                }}
                               >
+                                {item.views && item.views.length > 1
+                                  ? `🏛️ Gian phòng (${item.views.length} góc)`
+                                  : '4K Equirectangular 360°'}
+                              </div>
+                              <div className="studio-history-overlay-hint">
                                 <Eye size={13} />
-                                <span>{t('common.view', 'Xem')}</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => handleCopyHistoryUrl(item.url)}
-                                title="Sao chép link ảnh 360"
-                                aria-label="Sao chép link ảnh 360 độ"
-                              >
-                                {copiedHistoryUrl === item.url ? <Check size={13} style={{ color: 'var(--success)' }} /> : <Copy size={13} />}
-                              </button>
-
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => handleDeleteHistoryPano(item.filename, item.usedInRooms)}
-                                title={item.usedInRooms?.length ? `Đang sử dụng trong gian phòng "${item.usedInRooms.join(', ')}"` : "Xóa khỏi máy chủ"}
-                                style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                            {item.usedInRooms && item.usedInRooms.length > 0 && (
-                              <div style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 500, marginTop: 4 }}>
-                                Đang sử dụng trong: {item.usedInRooms.join(', ')}
+                                <span>{t('stitching.rotateView', 'Xoay xem 360°')}</span>
                               </div>
-                            )}
+                            </div>
+
+                            <div className="studio-history-body">
+                              <div className="studio-history-name" title={item.filename}>
+                                {item.filename}
+                              </div>
+                              {item.views && item.views.length > 1 && (
+                                <div style={{ fontSize: '11px', color: 'var(--accent-gold, #d4a86a)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, fontWeight: 500 }}>
+                                  <Sparkles size={11} />
+                                  <span>Tour đa góc nhìn ({item.views.length} góc sắc nét nguyên bản)</span>
+                                </div>
+                              )}
+
+                              {/* Hiển thị chi tiết trạng thái gian phòng */}
+                              {isAssigned ? (
+                                <div
+                                  style={{
+                                    padding: '5px 8px',
+                                    background: 'rgba(16, 185, 129, 0.1)',
+                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                    borderRadius: 6,
+                                    fontSize: '11px',
+                                    color: '#34d399',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    margin: '6px 0'
+                                  }}
+                                  title={`Đang sử dụng trong gian phòng: ${item.usedInRooms?.join(', ')}`}
+                                >
+                                  <CheckCircle2 size={12} style={{ flexShrink: 0 }} />
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    Đã gán: <strong>{item.usedInRooms?.join(', ')}</strong>
+                                  </span>
+                                </div>
+                              ) : (
+                                <div
+                                  style={{
+                                    padding: '5px 8px',
+                                    background: 'rgba(212, 168, 106, 0.08)',
+                                    border: '1px solid rgba(212, 168, 106, 0.22)',
+                                    borderRadius: 6,
+                                    fontSize: '11px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    margin: '6px 0',
+                                    gap: 6
+                                  }}
+                                >
+                                  <span style={{ color: '#94a3b8' }}>Chưa tạo gian phòng</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setStitchResult({
+                                        panoramaUrl: normalizePanoUrl(item.url),
+                                        filename: item.filename,
+                                        width: item.width || 4096,
+                                        height: item.height || 2048,
+                                        aspectRatio: '2:1',
+                                        message: `Gian phòng: ${item.title || item.filename}`
+                                      });
+                                      setShowCreateRoomModal(true);
+                                    }}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--accent-gold, #d4a86a)',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      padding: 0,
+                                      fontSize: '11px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 3
+                                    }}
+                                    title="Tạo gian phòng mới ngay từ không gian này"
+                                  >
+                                    <Plus size={12} />
+                                    <span>Tạo phòng</span>
+                                  </button>
+                                </div>
+                              )}
+
+                              <div className="studio-history-meta">
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Clock size={12} />
+                                  {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                                </span>
+                                <span>{(item.size / (1024 * 1024)).toFixed(2)} MB</span>
+                              </div>
+
+                              <div className="studio-history-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => handleSelectHistoryPano(item)}
+                                  style={{ flex: 1, justifyContent: 'center', fontWeight: 600, gap: 5 }}
+                                >
+                                  <Eye size={13} />
+                                  <span>{t('common.view', 'Xem')}</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => handleCopyHistoryUrl(item.url)}
+                                  title="Sao chép link ảnh 360"
+                                  aria-label="Sao chép link ảnh 360 độ"
+                                >
+                                  {copiedHistoryUrl === item.url ? <Check size={13} style={{ color: 'var(--success)' }} /> : <Copy size={13} />}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => handleDeleteHistoryPano(item.filename, item.usedInRooms)}
+                                  title={item.usedInRooms?.length ? `Đang sử dụng trong gian phòng "${item.usedInRooms.join(', ')}"` : "Xóa khỏi máy chủ"}
+                                  style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* PHÂN TRANG CHUẨN GRID CỦA HỆ THỐNG: 6 - 9 - 12 - 18 - 24 */}
                     <Pagination
                       currentPage={historyPage}
-                      totalItems={historyList.length}
+                      totalItems={filteredHistoryList.length}
                       pageSize={historyPageSize}
                       onPageChange={setHistoryPage}
                       onPageSizeChange={(newSize) => {
@@ -1884,14 +2078,24 @@ export const PocStitchingPage: React.FC = () => {
           onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
         />
 
-        {/* Modal Tạo Gian Phòng Trực Tiếp Từ Ảnh 360 Vừa Ghép Xong */}
-        {showCreateRoomModal && stitchResult && (
+        {/* Modal Tạo Gian Phòng Trực Tiếp Từ Ảnh 360 Vừa Ghép Xong hoặc từ Thư Viện */}
+        {showCreateRoomModal && (
           <NewRoomModal
-            initialPanoramaUrl={stitchResult.panoramaUrl}
+            initialPanoramaUrl={stitchResult?.panoramaUrl}
+            panoramas={historyList.map((h) => ({
+              filename: h.filename,
+              url: normalizePanoUrl(h.url),
+              thumbnailUrl: normalizePanoUrl(h.thumbnailUrl || h.url),
+              date: new Date(h.createdAt).toLocaleDateString('vi-VN'),
+              title: h.title,
+              usedInRooms: h.usedInRooms || [],
+              isUsed: Boolean(h.isUsed || (h.usedInRooms && h.usedInRooms.length > 0))
+            }))}
             onClose={() => setShowCreateRoomModal(false)}
             onCreated={(newRoom) => {
               setShowCreateRoomModal(false);
               showToast(`Đã tạo gian phòng di sản mới: ${newRoom.name}!`, 'success');
+              fetchHistory(true);
             }}
           />
         )}
