@@ -37,7 +37,10 @@ import {
   CheckCircle2,
   Bot,
   HardDrive,
-  AlertTriangle
+  AlertTriangle,
+  Copy,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { AdminAIAssistantSettingsTab } from '../../components/admin/AdminAIAssistantSettingsTab';
 
@@ -85,6 +88,8 @@ export const AdminSettingsPage: React.FC = () => {
   const [pinging, setPinging] = useState(false);
   const [pingLatency, setPingLatency] = useState<number | null>(null);
   const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
+  const [showSsdCleanupGuide, setShowSsdCleanupGuide] = useState<boolean>(false);
+  const [copiedSsdCommand, setCopiedSsdCommand] = useState<boolean>(false);
 
   const [maintenance, setMaintenance] = useState<MaintenanceStatus>({
     enabled: false,
@@ -1826,10 +1831,9 @@ export const AdminSettingsPage: React.FC = () => {
                 key={idx}
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 10,
-                  padding: '9px 12px',
+                  flexDirection: 'column',
+                  gap: 8,
+                  padding: '10px 12px',
                   marginTop: 12,
                   borderRadius: 6,
                   backgroundColor: 'rgba(239, 68, 68, 0.05)',
@@ -1837,30 +1841,150 @@ export const AdminSettingsPage: React.FC = () => {
                   fontSize: 12
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <AlertTriangle size={14} style={{ color: '#EF4444', flexShrink: 0 }} />
-                  <div>
-                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                      Khuyến nghị: Mở rộng {rec.componentName}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: 11.5, marginLeft: 6 }}>
-                      ({rec.currentValue} → Đề xuất: {rec.recommendedValue})
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <AlertTriangle size={14} style={{ color: '#EF4444', flexShrink: 0 }} />
+                    <div>
+                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                        Khuyến nghị: Mở rộng {rec.componentName}
+                      </span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 11.5, marginLeft: 6 }}>
+                        ({rec.currentValue} → Đề xuất: {rec.recommendedValue})
+                      </span>
+                    </div>
                   </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      padding: '2px 8px',
+                      borderRadius: 3,
+                      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                      color: '#EF4444',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {rec.neededAmount}
+                  </span>
                 </div>
-                <span
-                  style={{
-                    fontSize: 11,
-                    padding: '2px 8px',
-                    borderRadius: 3,
-                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                    color: '#EF4444',
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {rec.neededAmount}
-                </span>
+
+                {/* Hướng dẫn dọn dẹp SSD an toàn */}
+                {rec.component === 'DISK' && (
+                  <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px dashed rgba(239, 68, 68, 0.2)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowSsdCleanupGuide(!showSsdCleanupGuide)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--accent-gold, #D4A86A)',
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}
+                    >
+                      <Sparkles size={12} />
+                      <span>{showSsdCleanupGuide ? 'Thu gọn đề xuất dọn dẹp' : '💡 Đề xuất các mục cần xóa để giải phóng SSD (Không tốn tiền nâng cấp)'}</span>
+                      {showSsdCleanupGuide ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+
+                    {showSsdCleanupGuide && (
+                      <div style={{
+                        marginTop: 10,
+                        backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 6,
+                        padding: '12px 14px'
+                      }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 8 }}>
+                          Các mục chiếm dung lượng lớn có thể xóa an toàn trên VPS:
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11.5, color: 'var(--text-main)', lineHeight: 1.45 }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                            <span style={{ color: '#22C55E', fontWeight: 700 }}>•</span>
+                            <div>
+                              <strong>1. Docker Build Cache & Images cũ (Ước tính: ~12 - 20 GB):</strong><br />
+                              <span style={{ color: 'var(--text-muted)' }}>Mỗi lần build lại tạo ra các layer cache thừa. Xóa mục này hoàn toàn an toàn, không ảnh hưởng container đang chạy.</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                            <span style={{ color: '#22C55E', fontWeight: 700 }}>•</span>
+                            <div>
+                              <strong>2. Nhật ký hệ điều hành Systemd Journal (Ước tính: ~2 - 4 GB):</strong><br />
+                              <span style={{ color: 'var(--text-muted)' }}>Log hệ điều hành Ubuntu tích tụ lâu ngày, có thể thu gọn về 100MB.</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                            <span style={{ color: '#22C55E', fontWeight: 700 }}>•</span>
+                            <div>
+                              <strong>3. Bộ nhớ đệm gói cài đặt APT (Ước tính: ~1 - 2 GB):</strong><br />
+                              <span style={{ color: 'var(--text-muted)' }}>Các file cài đặt .deb tạm của hệ điều hành.</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                            <span style={{ color: '#22C55E', fontWeight: 700 }}>•</span>
+                            <div>
+                              <strong>4. Nhật ký bot dò quét MongoDB (Ước tính: ~0.5 - 2 GB):</strong><br />
+                              <span style={{ color: 'var(--text-muted)' }}>Vào menu <em>Nhật ký & Giám sát</em> → bấm <em>Lưu trữ & Dọn dẹp</em> để nén đóng gói và dọn dẹp các truy vấn rác.</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Lệnh thực thi 1-chạm */}
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
+                              Lệnh dọn dẹp một chạm chạy trên terminal VPS:
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText('docker system prune -f && docker builder prune -a -f && journalctl --vacuum-size=100M && apt clean && apt autoremove -y');
+                                setCopiedSsdCommand(true);
+                                setTimeout(() => setCopiedSsdCommand(false), 2500);
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 4,
+                                color: copiedSsdCommand ? '#22C55E' : 'var(--text-main)',
+                                fontSize: 10.5,
+                                padding: '2px 8px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              {copiedSsdCommand ? <Check size={11} /> : <Copy size={11} />}
+                              <span>{copiedSsdCommand ? 'Đã sao chép' : 'Sao chép lệnh'}</span>
+                            </button>
+                          </div>
+                          <code style={{
+                            display: 'block',
+                            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                            padding: '6px 8px',
+                            borderRadius: 4,
+                            fontSize: 10.5,
+                            fontFamily: 'monospace',
+                            color: '#FBBF24',
+                            wordBreak: 'break-all'
+                          }}>
+                            docker system prune -f && docker builder prune -a -f && journalctl --vacuum-size=100M && apt clean && apt autoremove -y
+                          </code>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
