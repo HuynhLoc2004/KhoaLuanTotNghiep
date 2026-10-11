@@ -3,7 +3,7 @@ import path from 'path';
 import http from 'http';
 import { cloudinary } from './cloudinary.js';
 import { systemLogger } from './systemLogger.js';
-import { logAudit } from '../db/postgres.js';
+import { logAudit, pgPool } from '../db/postgres.js';
 import { RoomModel } from '../models/Room.js';
 import { PanoramaModel } from '../models/Panorama.js';
 import { ArtifactModel } from '../models/Artifact.js';
@@ -111,7 +111,48 @@ function callDockerSocketApi(method: string, apiPath: string): Promise<any> {
 }
 
 /**
+ * Trích xuất public_id linh hoạt từ bất kỳ định dạng URL Cloudinary nào
+ * (Bất kể thay đổi domain, IP, cloud_name, phiên bản /v.../, tham số biến đổi c_, w_, hoặc thư mục con)
+ */
+function extractCloudinaryPublicId(urlOrStr: string): string | null {
+  if (!urlOrStr) return null;
+  const str = String(urlOrStr).trim();
+  const cleanUrl = str.split('?')[0].split('#')[0];
+  const uploadIndex = cleanUrl.indexOf('/image/upload/');
+  if (uploadIndex !== -1) {
+    const afterUpload = cleanUrl.substring(uploadIndex + '/image/upload/'.length);
+    const parts = afterUpload.split('/');
+    let startIndex = 0;
+    while (startIndex < parts.length) {
+      const part = parts[startIndex];
+      if (/^v\d+$/i.test(part) || /^[a-z]_[a-z0-9_-]+(?:,[a-z]_[a-z0-9_-]+)*$/i.test(part) || part.includes(',')) {
+        startIndex++;
+      } else {
+        break;
+      }
+    }
+    const publicIdWithExt = parts.slice(startIndex).join('/');
+    if (publicIdWithExt) {
+      return decodeURIComponent(publicIdWithExt.replace(/\.[a-zA-Z0-9]+$/, ''));
+    }
+  }
+
+  // Khớp regex dự phòng
+  const m = str.match(/\/image\/upload\/(?:[^\/]+\/)*(?:v\d+\/)?([^?#\s]+?)(?:\.[a-zA-Z0-9]+)?$/i);
+  if (m && m[1]) {
+    return decodeURIComponent(m[1]);
+  }
+
+  // Nếu là public_id trực tiếp (không bắt đầu bằng http://, https://, hoặc /)
+  if (!str.startsWith('http://') && !str.startsWith('https://') && !str.startsWith('/')) {
+    return str.replace(/\.[a-zA-Z0-9]+$/, '');
+  }
+  return null;
+}
+
+/**
  * Trích xuất toàn bộ URL và public_id hình ảnh đang thực sự được dùng trong CSDL
+ * (Quét đồng thời PostgreSQL + MongoDB ở mọi bảng: Room, 360 Scene, Hotspot, Panorama, Artifact, FloorPlan, Branding, User)
  */
 async function getAllActiveImageReferences(): Promise<Set<string>> {
   const refs = new Set<string>();
@@ -121,12 +162,23 @@ async function getAllActiveImageReferences(): Promise<Set<string>> {
     if (typeof val === 'string' && val.trim().length > 0) {
       const trimmed = val.trim();
       refs.add(trimmed);
-      // Trích xuất public_id trong URL Cloudinary
-      // VD: https://res.cloudinary.com/djkif9ubs/image/upload/v1728639234/museum/panoramas_360/sample_1.jpg -> museum/panoramas_360/sample_1
-      const m = trimmed.match(/museum\/[^?#\s]+/);
-      if (m) {
-        const cleanId = m[0].replace(/\.[^/.]+$/, '');
-        refs.add(cleanId);
+      refs.add(trimmed.toLowerCase());
+
+      const pubId = extractCloudinaryPublicId(trimmed);
+      if (pubId) {
+        refs.add(pubId);
+        refs.add(pubId.toLowerCase());
+        const baseName = pubId.split('/').pop();
+        if (baseName) {
+          refs.add(baseName);
+          refs.add(baseName.toLowerCase());
+        }
+      }
+
+      // Lưu dấu ấn số nếu có (ví dụ 1791604501379)
+      const numMatch = trimmed.match(/\d{10,}/)?.[0];
+      if (numMatch) {
+        refs.add(numMatch);
       }
     } else if (Array.isArray(val)) {
       val.forEach(addIfStr);
@@ -136,6 +188,43 @@ async function getAllActiveImageReferences(): Promise<Set<string>> {
   };
 
   try {
+    // 1. Quét CSDL PostgreSQL (Primary Relational Database: rooms, artifacts, floor_plans)
+    try {
+      const [pgRooms, pgArtifacts, pgFloorPlans] = await Promise.all([
+        pgPool.query('SELECT panorama_url, thumbnail_url, audio_url FROM rooms;').catch(() => ({ rows: [] })),
+        pgPool.query('SELECT images, thumbnail_url, model_3d_url, audio_narration_url, qr_code_url FROM artifacts;').catch(() => ({ rows: [] })),
+        pgPool.query('SELECT image_url FROM floor_plans;').catch(() => ({ rows: [] }))
+      ]);
+
+      for (const row of pgRooms.rows) {
+        addIfStr(row.panorama_url);
+        addIfStr(row.thumbnail_url);
+        addIfStr(row.audio_url);
+      }
+      for (const row of pgArtifacts.rows) {
+        addIfStr(row.thumbnail_url);
+        addIfStr(row.model_3d_url);
+        addIfStr(row.audio_narration_url);
+        addIfStr(row.qr_code_url);
+        if (Array.isArray(row.images)) {
+          row.images.forEach(addIfStr);
+        } else if (typeof row.images === 'string') {
+          try {
+            const parsed = JSON.parse(row.images);
+            if (Array.isArray(parsed)) parsed.forEach(addIfStr);
+          } catch {
+            addIfStr(row.images);
+          }
+        }
+      }
+      for (const row of pgFloorPlans.rows) {
+        addIfStr(row.image_url);
+      }
+    } catch (pgErr: any) {
+      console.warn('[Scheduled Cleanup] Lỗi quét PostgreSQL:', pgErr?.message);
+    }
+
+    // 2. Quét CSDL MongoDB (Toàn bộ Collections)
     const [rooms, panos, artifacts, floorPlans, brandings, users, topics] = await Promise.all([
       RoomModel.find({}).lean(),
       PanoramaModel.find({}).lean(),
@@ -148,26 +237,52 @@ async function getAllActiveImageReferences(): Promise<Set<string>> {
 
     (rooms as any[]).forEach((r: any) => {
       addIfStr(r.thumbnail);
+      addIfStr(r.thumbnailUrl);
+      addIfStr(r.panoramaUrl);
       addIfStr(r.coverImage);
       addIfStr(r.floorPlan);
+      if (Array.isArray(r.scenes)) {
+        r.scenes.forEach((s: any) => {
+          addIfStr(s?.panoramaUrl);
+          addIfStr(s?.url);
+          addIfStr(s?.thumbnailUrl);
+        });
+      }
+      if (Array.isArray(r.hotspots)) {
+        r.hotspots.forEach((h: any) => {
+          addIfStr(h?.image);
+          addIfStr(h?.imageUrl);
+          addIfStr(h?.audioUrl);
+        });
+      }
     });
 
     (panos as any[]).forEach((p: any) => {
       addIfStr(p.url);
+      addIfStr(p.panoramaUrl);
       addIfStr(p.cloudinaryUrl);
       addIfStr(p.thumbnailUrl);
+      addIfStr(p.localUrl);
       addIfStr(p.cubemapUrls);
+      if (Array.isArray(p.views)) {
+        p.views.forEach((v: any) => addIfStr(v?.url));
+      }
     });
 
     (artifacts as any[]).forEach((a: any) => {
       addIfStr(a.thumbnail);
+      addIfStr(a.thumbnailUrl);
       addIfStr(a.images);
       addIfStr(a.modelUrl);
+      addIfStr(a.audioUrl);
     });
 
     (floorPlans as any[]).forEach((fp: any) => {
       addIfStr(fp.imageUrl);
       addIfStr(fp.thumbnailUrl);
+      if (Array.isArray(fp.nodes)) {
+        fp.nodes.forEach((n: any) => addIfStr(n?.panoramaUrl));
+      }
     });
 
     (brandings as any[]).forEach((b: any) => {
@@ -185,7 +300,7 @@ async function getAllActiveImageReferences(): Promise<Set<string>> {
       addIfStr(t.icon);
       addIfStr(t.thumbnail);
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Scheduled Cleanup] Lỗi nạp active image references:', err);
   }
 
@@ -194,6 +309,7 @@ async function getAllActiveImageReferences(): Promise<Set<string>> {
 
 /**
  * Quét các ảnh mồ côi (không còn liên kết trong DB) trên Cloudinary
+ * Tự động thích ứng linh hoạt theo CLOUDINARY_ROOT_FOLDER trong .env
  */
 export async function scanOrphanedCloudinaryImages(maxInspect = 500): Promise<{
   totalScanned: number;
@@ -204,34 +320,55 @@ export async function scanOrphanedCloudinaryImages(maxInspect = 500): Promise<{
   let totalScanned = 0;
 
   try {
-    // Quét folder gốc 'museum' trên Cloudinary
-    const res = await cloudinary.api.resources({
+    const rootFolder = (process.env.CLOUDINARY_ROOT_FOLDER || '').trim().replace(/^\/+|\/+$/g, '');
+    const searchOptions: any = {
       type: 'upload',
-      prefix: 'museum/',
       max_results: maxInspect
-    });
+    };
+    if (rootFolder) {
+      searchOptions.prefix = `${rootFolder}/`;
+    }
 
+    const res = await cloudinary.api.resources(searchOptions);
     const resources = res.resources || [];
     totalScanned = resources.length;
     const now = Date.now();
     const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // Bảo lưu an toàn ảnh tạo trong 24h qua
 
     for (const r of resources) {
-      const publicId = r.public_id;
-      const secureUrl = r.secure_url;
+      const publicId = String(r.public_id || '');
+      const secureUrl = String(r.secure_url || '');
       const createdAtMs = new Date(r.created_at).getTime();
 
-      // Nếu ảnh mới tải lên dưới 24h -> bỏ qua không xóa để tránh xung đột
+      // Nếu ảnh mới tải lên dưới 24h -> luôn bảo lưu an toàn
       if (now - createdAtMs < GRACE_PERIOD_MS) {
         continue;
       }
 
       let isUsed = false;
-      if (activeRefs.has(publicId) || activeRefs.has(secureUrl)) {
+      const cleanPubId = publicId.toLowerCase();
+      const pubIdBase = (publicId.split('/').pop() || '').toLowerCase();
+      const numMatch = publicId.match(/\d{10,}/)?.[0];
+
+      if (
+        activeRefs.has(publicId) ||
+        activeRefs.has(cleanPubId) ||
+        activeRefs.has(secureUrl) ||
+        activeRefs.has(secureUrl.toLowerCase())
+      ) {
         isUsed = true;
       } else {
         for (const ref of activeRefs) {
-          if (ref.includes(publicId) || secureUrl.includes(ref)) {
+          const lowerRef = ref.toLowerCase();
+          if (lowerRef === cleanPubId || lowerRef.includes(cleanPubId) || cleanPubId.includes(lowerRef)) {
+            isUsed = true;
+            break;
+          }
+          if (pubIdBase && pubIdBase.length > 5 && (lowerRef.includes(pubIdBase) || lowerRef.endsWith(pubIdBase))) {
+            isUsed = true;
+            break;
+          }
+          if (numMatch && lowerRef.includes(numMatch)) {
             isUsed = true;
             break;
           }
