@@ -2681,10 +2681,10 @@ export const AdminSettingsPage: React.FC = () => {
                       />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                          Docker Build Cache & Container Images
+                          Docker Build Cache, Ảnh container cũ & Log hệ điều hành VPS
                         </div>
                         <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
-                          Dọn dẹp các tầng cache từ các phiên build ứng dụng và container đã dừng trên VPS.
+                          Dọn dẹp sâu các tầng build cache, ảnh container cũ không dùng và log hệ thống Linux để giải phóng ổ SSD.
                         </div>
                       </div>
                     </label>

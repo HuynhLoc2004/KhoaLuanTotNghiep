@@ -79,17 +79,24 @@ export async function updateScheduledCleanupConfig(patch: Partial<AutoCleanupCon
 /**
  * Gọi Docker Engine API qua Unix domain socket
  */
-function callDockerSocketApi(method: string, apiPath: string): Promise<any> {
+function callDockerSocketApi(method: string, apiPath: string, body?: any): Promise<any> {
   return new Promise((resolve, reject) => {
     const socketPath = '/var/run/docker.sock';
     if (!fs.existsSync(socketPath)) {
       return reject(new Error('DOCKER_SOCKET_NOT_FOUND'));
     }
+    const headers: Record<string, string> = { 'Host': 'localhost' };
+    let payload = '';
+    if (body !== undefined) {
+      payload = typeof body === 'string' ? body : JSON.stringify(body);
+      headers['Content-Type'] = 'application/json';
+      headers['Content-Length'] = Buffer.byteLength(payload).toString();
+    }
     const req = http.request({
       socketPath,
       path: apiPath,
       method,
-      headers: { 'Host': 'localhost' }
+      headers
     }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -106,8 +113,48 @@ function callDockerSocketApi(method: string, apiPath: string): Promise<any> {
       req.destroy();
       reject(new Error('DOCKER_API_TIMEOUT'));
     });
+    if (payload) {
+      req.write(payload);
+    }
     req.end();
   });
+}
+
+/**
+ * Tự động dọn dẹp log hệ điều hành Linux ngoài Host VPS (journalctl) và apt cache qua Docker Socket
+ */
+async function cleanHostLogsAndAptCache(): Promise<boolean> {
+  try {
+    const images = await callDockerSocketApi('GET', '/images/json');
+    if (!Array.isArray(images) || images.length === 0) return false;
+    const targetImage = images[0]?.Id || images[0]?.RepoTags?.[0];
+    if (!targetImage) return false;
+
+    const createRes = await callDockerSocketApi('POST', '/containers/create', {
+      Image: targetImage,
+      Cmd: [
+        'sh',
+        '-c',
+        'rm -rf /host-log/journal/* 2>/dev/null; rm -rf /host-apt/*.deb /host-apt/partial/* 2>/dev/null; sync'
+      ],
+      HostConfig: {
+        AutoRemove: true,
+        Binds: [
+          '/var/log:/host-log',
+          '/var/cache/apt/archives:/host-apt'
+        ]
+      }
+    });
+
+    if (createRes?.Id) {
+      await callDockerSocketApi('POST', `/containers/${createRes.Id}/start`);
+      return true;
+    }
+    return false;
+  } catch (err: any) {
+    console.warn('[Cleanup Engine] Host logs/apt prune cảnh báo:', err?.message);
+    return false;
+  }
 }
 
 /**
@@ -466,16 +513,20 @@ export async function executeComprehensiveCleanup(options: {
   let mongoLogsDeletedCount = 0;
   let tempFilesCount = 0;
 
-  // 1. Docker BuildKit Cache & Dangling Images Prune
+  // 1. Docker BuildKit Cache, Unused Images & Host OS System Logs
   if (doDocker && fs.existsSync('/var/run/docker.sock')) {
     try {
       await Promise.allSettled([
         callDockerSocketApi('POST', '/build/prune?all=true&keep-storage=0'),
-        callDockerSocketApi('POST', '/images/prune?filters=%7B%22dangling%22%3A%5B%22true%22%5D%7D'),
+        callDockerSocketApi('POST', '/images/prune?filters=%7B%22dangling%22%3A%5B%22false%22%5D%7D'),
         callDockerSocketApi('POST', '/containers/prune')
       ]);
+
+      // Dọn dẹp log hệ điều hành Linux (journalctl) và APT cache ngoài Host
+      await cleanHostLogsAndAptCache();
+
       dockerCleaned = true;
-      actionsTaken.push('Đã giải phóng BuildKit Cache & Docker Images cũ');
+      actionsTaken.push('Đã giải phóng BuildKit Cache, Docker Images cũ & Log hệ điều hành VPS');
       actionsTaken.push('Đã dọn dẹp các container đã dừng');
     } catch (dockerErr: any) {
       console.warn('[Cleanup Engine] Docker prune cảnh báo:', dockerErr?.message);
