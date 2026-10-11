@@ -333,6 +333,45 @@ export interface MaintenanceStatus {
   remainingMinutes?: number;
 }
 
+export interface VpsRecommendation {
+  component: 'RAM' | 'CPU' | 'DISK';
+  componentName: string;
+  status: 'HEALTHY' | 'WARNING' | 'CRITICAL';
+  currentValue: string;
+  recommendedValue: string;
+  neededAmount: string;
+  reason: string;
+  priority: 'HIGH' | 'MEDIUM';
+}
+
+export interface SmartAdvisory {
+  overallHealth: 'OPTIMAL' | 'WARNING' | 'CRITICAL';
+  needsUpgrade: boolean;
+  headline: string;
+  summary: string;
+  recommendations: VpsRecommendation[];
+}
+
+export interface HostMetrics {
+  osUptimeSeconds: number;
+  totalMemMb: number;
+  usedMemMb: number;
+  freeMemMb: number;
+  memUsagePercent: number;
+  totalMemGb: number;
+  usedMemGb: number;
+  freeMemGb: number;
+  cpuCores: number;
+  cpuModel: string;
+  cpuUsagePercent: number;
+  loadAvg: number[];
+  diskTotalGb: number;
+  diskUsedGb: number;
+  diskFreeGb: number;
+  diskUsagePercent: number;
+  smartAdvisory: SmartAdvisory;
+}
+
 export interface SystemInfo {
   serverTime: string;
   uptimeSeconds: number;
@@ -341,6 +380,7 @@ export interface SystemInfo {
   arch: string;
   memoryRssMb: number;
   memoryHeapUsedMb: number;
+  hostMetrics?: HostMetrics;
   redisConnected: boolean;
   environment: string;
   database?: {

@@ -35,7 +35,9 @@ import {
   Lock,
   Loader2,
   CheckCircle2,
-  Bot
+  Bot,
+  HardDrive,
+  AlertTriangle
 } from 'lucide-react';
 import { AdminAIAssistantSettingsTab } from '../../components/admin/AdminAIAssistantSettingsTab';
 
@@ -1124,7 +1126,7 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Card 3: Hạ tầng Máy chủ */}
+          {/* Card 3: Hạ tầng Máy chủ (VPS) */}
           <div className="settings-metric-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500 }}>
@@ -1135,8 +1137,10 @@ export const AdminSettingsPage: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                  color: '#22C55E',
+                  backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
+                    ? 'rgba(239, 68, 68, 0.12)'
+                    : 'rgba(34, 197, 94, 0.12)',
+                  color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -1148,18 +1152,22 @@ export const AdminSettingsPage: React.FC = () => {
             <div>
               <div
                 style={{
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: 600,
                   color: 'var(--text-main)',
                   marginBottom: 4
                 }}
               >
-                {sysInfo ? `RAM: ${sysInfo.memoryRssMb} MB` : t('settings.operatingStable', 'Vận hành ổn định')}
+                {sysInfo?.hostMetrics
+                  ? `RAM: ${sysInfo.hostMetrics.usedMemGb}/${sysInfo.hostMetrics.totalMemGb} GB (${sysInfo.hostMetrics.memUsagePercent}%)`
+                  : sysInfo ? `RAM: ${sysInfo.memoryRssMb} MB` : t('settings.operatingStable', 'Vận hành ổn định')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {sysInfo?.uptimeSeconds
-                  ? `Uptime: ${formatUptime(sysInfo.uptimeSeconds)} • Ping ${pingLatency !== null ? `${pingLatency}ms` : '<10ms'}`
-                  : `${t('settings.vpsAddressLabel', 'Tên miền / IP:')} ${sysInfo?.publicIp || 'museumhcm.duckdns.org'}`}
+                {sysInfo?.hostMetrics
+                  ? `CPU: ${sysInfo.hostMetrics.cpuCores} vCPU (${sysInfo.hostMetrics.cpuUsagePercent}%) • Ổ SSD: ${sysInfo.hostMetrics.diskUsedGb}/${sysInfo.hostMetrics.diskTotalGb} GB`
+                  : sysInfo?.uptimeSeconds
+                    ? `Uptime: ${formatUptime(sysInfo.uptimeSeconds)} • Ping ${pingLatency !== null ? `${pingLatency}ms` : '<10ms'}`
+                    : `${t('settings.vpsAddressLabel', 'Tên miền / IP:')} ${sysInfo?.publicIp || 'museumhcm.duckdns.org'}`}
               </div>
             </div>
           </div>
@@ -1662,6 +1670,226 @@ export const AdminSettingsPage: React.FC = () => {
                     <span>{t('settings.viewFullscreen', 'Mở xem toàn màn hình')}</span>
                     <ExternalLink size={12} />
                   </a>
+                </div>
+              </div>
+
+              {/* Box Đo đạc Tài nguyên VPS & Đề xuất Nâng cấp Thông minh */}
+              <div className="settings-card" style={{ padding: '20px 22px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Server size={16} style={{ color: 'var(--accent-gold)' }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                      Tài nguyên VPS & Đề xuất Nâng cấp
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontSize: 11,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
+                        ? 'rgba(239, 68, 68, 0.12)'
+                        : 'rgba(34, 197, 94, 0.12)',
+                      color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E',
+                      fontWeight: 600
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E'
+                      }}
+                    />
+                    {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? 'Cảnh báo quá tải' : 'Vận hành tối ưu'}
+                  </span>
+                </div>
+
+                {/* 3 Thanh đo tài nguyên phần cứng thực tế */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
+                  {/* 1. RAM */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Layers size={13} />
+                        <span>Bộ nhớ RAM (Host)</span>
+                      </span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                        {sysInfo?.hostMetrics
+                          ? `${sysInfo.hostMetrics.usedMemGb} / ${sysInfo.hostMetrics.totalMemGb} GB (${sysInfo.hostMetrics.memUsagePercent}%)`
+                          : sysInfo ? `${sysInfo.memoryRssMb} MB` : '—'}
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.memUsagePercent || 25))}%`,
+                          backgroundColor:
+                            (sysInfo?.hostMetrics?.memUsagePercent || 0) > 85
+                              ? '#EF4444'
+                              : (sysInfo?.hostMetrics?.memUsagePercent || 0) > 70
+                                ? '#F59E0B'
+                                : '#22C55E',
+                          borderRadius: 3,
+                          transition: 'width 0.4s ease'
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                      <span>Trống: {sysInfo?.hostMetrics?.freeMemGb ? `${sysInfo.hostMetrics.freeMemGb} GB` : '—'}</span>
+                      <span>Tiến trình Node.js: {sysInfo?.memoryRssMb || 0} MB</span>
+                    </div>
+                  </div>
+
+                  {/* 2. CPU */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Cpu size={13} />
+                        <span>Bộ vi xử lý vCPU</span>
+                      </span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                        {sysInfo?.hostMetrics
+                          ? `${sysInfo.hostMetrics.cpuCores} Cores (${sysInfo.hostMetrics.cpuUsagePercent}% tải)`
+                          : '—'}
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.cpuUsagePercent || 15))}%`,
+                          backgroundColor:
+                            (sysInfo?.hostMetrics?.cpuUsagePercent || 0) > 85
+                              ? '#EF4444'
+                              : (sysInfo?.hostMetrics?.cpuUsagePercent || 0) > 70
+                                ? '#F59E0B'
+                                : '#22C55E',
+                          borderRadius: 3,
+                          transition: 'width 0.4s ease'
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {sysInfo?.hostMetrics?.cpuModel || 'vCPU Standard'}
+                    </div>
+                  </div>
+
+                  {/* 3. DISK */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <HardDrive size={13} />
+                        <span>Ổ cứng lưu trữ SSD</span>
+                      </span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                        {sysInfo?.hostMetrics
+                          ? `${sysInfo.hostMetrics.diskUsedGb} / ${sysInfo.hostMetrics.diskTotalGb} GB (${sysInfo.hostMetrics.diskUsagePercent}%)`
+                          : '—'}
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.diskUsagePercent || 30))}%`,
+                          backgroundColor:
+                            (sysInfo?.hostMetrics?.diskUsagePercent || 0) > 85
+                              ? '#EF4444'
+                              : (sysInfo?.hostMetrics?.diskUsagePercent || 0) > 70
+                                ? '#F59E0B'
+                                : '#22C55E',
+                          borderRadius: 3,
+                          transition: 'width 0.4s ease'
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                      <span>Còn trống: {sysInfo?.hostMetrics?.diskFreeGb ? `${sysInfo.hostMetrics.diskFreeGb} GB` : '—'}</span>
+                      <span>Hệ thống tập tin: Root (/)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hộp Đề xuất Nâng cấp Thông minh */}
+                <div
+                  style={{
+                    backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
+                      ? 'rgba(239, 68, 68, 0.05)'
+                      : 'rgba(34, 197, 94, 0.05)',
+                    border: '1px solid ' + (sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
+                      ? 'rgba(239, 68, 68, 0.25)'
+                      : 'rgba(34, 197, 94, 0.25)'),
+                    borderRadius: 6,
+                    padding: '12px 14px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? (
+                      <AlertTriangle size={18} style={{ color: '#EF4444', flexShrink: 0, marginTop: 2 }} />
+                    ) : (
+                      <ShieldCheck size={18} style={{ color: '#22C55E', flexShrink: 0, marginTop: 2 }} />
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E',
+                          marginBottom: 4
+                        }}
+                      >
+                        {sysInfo?.hostMetrics?.smartAdvisory?.headline || 'Hạ tầng VPS vận hành tối ưu'}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? 10 : 0 }}>
+                        {sysInfo?.hostMetrics?.smartAdvisory?.summary || 'Mọi chỉ số đều ở ngưỡng an toàn. Chưa cần nâng cấp thêm.'}
+                      </div>
+
+                      {/* Danh sách đề xuất cụ thể (chỉ xuất hiện khi có thành phần cần nâng cấp) */}
+                      {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade && sysInfo.hostMetrics.smartAdvisory.recommendations?.map((rec, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            backgroundColor: 'var(--bg-card)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 4,
+                            padding: '8px 10px',
+                            marginTop: 6,
+                            fontSize: 11.5
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                              Đề xuất: {rec.componentName}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                padding: '1px 6px',
+                                borderRadius: 3,
+                                backgroundColor: rec.priority === 'HIGH' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                color: rec.priority === 'HIGH' ? '#EF4444' : '#F59E0B',
+                                fontWeight: 600
+                              }}
+                            >
+                              Nâng {rec.neededAmount}
+                            </span>
+                          </div>
+                          <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>
+                            Hiện tại: <strong>{rec.currentValue}</strong> ➔ Khuyến nghị: <strong>{rec.recommendedValue}</strong>
+                          </div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: 11, fontStyle: 'italic' }}>
+                            {rec.reason}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
