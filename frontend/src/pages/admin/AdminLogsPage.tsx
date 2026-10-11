@@ -37,7 +37,7 @@ export const AdminLogsPage: React.FC = () => {
 
   // State bộ lọc
   const [page, setPage] = useState<number>(1);
-  const limit = 20;
+  const [limit, setLimit] = useState<number>(10);
   const [totalCount, setTotalCount] = useState<number>(0);
 
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -233,23 +233,43 @@ export const AdminLogsPage: React.FC = () => {
     }
   };
 
-  // Badge nhãn chữ chuẩn, không chèn icon rườm rà
+  // Render Mức độ tinh tế theo chuẩn admin (dot + text trung tính)
   const renderLevelBadge = (level: LogLevel) => {
     switch (level) {
       case 'ERROR':
-        return <span className="log-badge-text log-badge-error">LỖI</span>;
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#EF4444', display: 'inline-block' }} />
+            <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Lỗi</span>
+          </span>
+        );
       case 'WARN':
-        return <span className="log-badge-text log-badge-warn">CẢNH BÁO</span>;
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#F59E0B', display: 'inline-block' }} />
+            <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Cảnh báo</span>
+          </span>
+        );
       case 'SUCCESS':
-        return <span className="log-badge-text log-badge-success">THÀNH CÔNG</span>;
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22C55E', display: 'inline-block' }} />
+            <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Thành công</span>
+          </span>
+        );
       case 'INFO':
       default:
-        return <span className="log-badge-text log-badge-info">THÔNG TIN</span>;
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--text-muted)', display: 'inline-block' }} />
+            <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Thông tin</span>
+          </span>
+        );
     }
   };
 
   return (
-    <div className="admin-logs-page">
+    <div className="admin-content admin-logs-page" style={{ padding: '24px 28px' }}>
       {/* Toast thông báo */}
       {toastMessage && (
         <div className={`admin-toast admin-toast-${toastMessage.type}`}>
@@ -272,11 +292,19 @@ export const AdminLogsPage: React.FC = () => {
         <div className="admin-logs-actions">
           <button
             type="button"
-            className={`btn btn-sm ${isLiveStreaming ? 'btn-live-active' : 'btn-secondary'}`}
+            className="btn btn-secondary btn-sm"
             onClick={() => setIsLiveStreaming(!isLiveStreaming)}
             title={isLiveStreaming ? 'Tự động nhận log mới qua SSE' : 'Bật nhận log tự động'}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <Radio size={13} className={isLiveStreaming ? 'pulse-live' : ''} />
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: isLiveStreaming ? '#22C55E' : 'var(--text-muted)'
+              }}
+            />
             <span>{isLiveStreaming ? 'Trực tiếp (SSE)' : 'Tạm dừng'}</span>
           </button>
 
@@ -289,6 +317,7 @@ export const AdminLogsPage: React.FC = () => {
             }}
             disabled={refreshing}
             title="Làm mới danh sách nhật ký"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <RefreshCw size={13} className={refreshing ? 'spin' : ''} />
             <span>Làm mới</span>
@@ -300,6 +329,7 @@ export const AdminLogsPage: React.FC = () => {
             onClick={handleExportJson}
             disabled={exporting}
             title="Tải tệp JSON nhật ký về máy tính an toàn"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <Download size={13} />
             <span>{exporting ? 'Đang xuất...' : 'Xuất JSON'}</span>
@@ -307,9 +337,10 @@ export const AdminLogsPage: React.FC = () => {
 
           <button
             type="button"
-            className="btn btn-outline-danger btn-sm"
+            className="btn btn-secondary btn-sm"
             onClick={() => setIsCleanupModalOpen(true)}
             title="Dọn dẹp nhật ký cũ giải phóng bộ nhớ"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <Trash2 size={13} />
             <span>Dọn dẹp</span>
@@ -469,6 +500,7 @@ export const AdminLogsPage: React.FC = () => {
                 {logs.map((log) => {
                   const modLabel = MODULE_LABELS[log.module] || log.module;
                   const isErr = log.level === 'ERROR';
+                  const cleanIp = (log.ipAddress || '').replace(/^::ffff:/, '') || '127.0.0.1';
 
                   return (
                     <tr
@@ -483,68 +515,71 @@ export const AdminLogsPage: React.FC = () => {
                       <td>{renderLevelBadge(log.level)}</td>
 
                       {/* Cột 2: Phân hệ */}
-                      <td>
-                        <span className="log-module-tag">{modLabel}</span>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                        {modLabel}
                       </td>
 
                       {/* Cột 3: Thời gian */}
-                      <td>
-                        <span className="log-time-text">{formatDateTime(log.createdAt)}</span>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {formatDateTime(log.createdAt)}
                       </td>
 
                       {/* Cột 4: Thông điệp & Endpoint */}
                       <td>
-                        <div className="log-action-text">{log.message}</div>
-                        <div className="log-sub-info">
-                          {log.method && <span className={`method-badge method-${log.method}`}>{log.method}</span>}
-                          {log.path && <span className="log-path-code">{log.path}</span>}
-                          {log.error && (
-                            <span className="log-error-pill" title={log.error.message}>
-                              Lỗi: {log.error.name || 'Error'}
-                            </span>
-                          )}
+                        <div style={{ color: 'var(--text-main)', fontWeight: 500, fontSize: 12.5 }}>
+                          {log.message}
                         </div>
+                        {log.error && (
+                          <div style={{ color: '#EF4444', fontSize: 11, marginTop: 2 }}>
+                            {log.error.name ? `${log.error.name}: ` : ''}{log.error.message}
+                          </div>
+                        )}
                       </td>
 
                       {/* Cột 5: Mã HTTP */}
-                      <td>
+                      <td style={{ fontSize: 12 }}>
                         {log.statusCode ? (
                           <span
-                            className={`log-status-pill ${
-                              log.statusCode >= 500
-                                ? 'status-5xx'
-                                : log.statusCode >= 400
-                                ? 'status-4xx'
-                                : 'status-2xx'
-                            }`}
+                            style={{
+                              fontFamily: 'monospace',
+                              fontWeight: 600,
+                              color: log.statusCode >= 500 ? '#EF4444' : log.statusCode >= 400 ? '#F59E0B' : '#22C55E'
+                            }}
                           >
                             {log.statusCode}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
                         )}
                         {log.durationMs !== undefined && log.durationMs > 0 && (
-                          <span className="log-duration-text">{log.durationMs}ms</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4, fontFamily: 'monospace' }}>
+                            {log.durationMs}ms
+                          </span>
                         )}
                       </td>
 
                       {/* Cột 6: Tác nhân */}
                       <td>
-                        <div className="log-actor-name">{log.username || 'Hệ thống'}</div>
-                        <div className="log-actor-ip">{log.ipAddress || '127.0.0.1'}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-main)' }}>
+                          {log.username || 'Khách vãng lai'}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                          {cleanIp}
+                        </div>
                       </td>
 
                       {/* Cột 7: Thao tác */}
                       <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
-                          className="btn-inspect-log"
+                          className="btn btn-secondary btn-sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedLog(log);
                             setActiveDetailTab(log.error ? 'error' : 'overview');
                           }}
                           title="Xem chi tiết bản ghi"
+                          style={{ padding: '3px 7px' }}
                         >
                           <ChevronRight size={13} />
                         </button>
@@ -557,19 +592,23 @@ export const AdminLogsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Phân trang */}
-        <div className="logs-pagination-footer">
-          <div className="logs-count-info">
-            Hiển thị <strong>{logs.length}</strong> / <strong>{totalCount}</strong> bản ghi
+        {/* 5. PHÂN TRANG CHUẨN CỦA HỆ THỐNG QUẢN TRỊ ADMIN */}
+        {totalCount > 0 && (
+          <div style={{ padding: '8px 16px' }}>
+            <Pagination
+              currentPage={page}
+              totalItems={totalCount}
+              pageSize={limit}
+              onPageChange={(p) => setPage(p)}
+              onPageSizeChange={(newLimit) => {
+                setLimit(newLimit);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemLabel="bản ghi"
+            />
           </div>
-          <Pagination
-            currentPage={page}
-            totalItems={totalCount}
-            pageSize={limit}
-            onPageChange={(p) => setPage(p)}
-            itemLabel="bản ghi"
-          />
-        </div>
+        )}
       </div>
 
       {/* 5. MODAL PHÂN TÍCH LOG TỪNG PHẦN (LOG INSPECTOR) */}
