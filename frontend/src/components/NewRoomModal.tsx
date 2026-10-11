@@ -209,11 +209,11 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
           height: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: '#1E293B',
-          borderRadius: 14,
-          border: '1px solid rgba(255, 255, 255, 0.12)',
+          backgroundColor: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-lg, 12px)',
+          border: '1px solid var(--border-color)',
           overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+          boxShadow: 'var(--shadow-lg)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -222,17 +222,17 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
           className="modal-header"
           style={{
             padding: '14px 18px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexShrink: 0,
-            backgroundColor: '#1E293B'
+            backgroundColor: 'var(--bg-surface)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Globe size={18} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
-            <h2 className="modal-title" style={{ fontSize: '16px', margin: 0, fontWeight: 600, color: '#F8FAFC' }}>
+            <Globe size={18} style={{ color: 'var(--accent-gold)' }} />
+            <h2 className="modal-title" style={{ fontSize: '16px', margin: 0, fontWeight: 600, color: 'var(--heading-color)' }}>
               {t('rooms.addNewRoomTitle', 'Thêm gian phòng trưng bày mới')}
             </h2>
           </div>
@@ -242,18 +242,6 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
             onClick={handleClose}
             disabled={loading}
             aria-label={t('common.close', 'Đóng')}
-            style={{
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: 'none',
-              borderRadius: 8,
-              color: '#94a3b8',
-              cursor: 'pointer'
-            }}
           >
             <X size={18} />
           </button>
@@ -384,16 +372,16 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                     style={{
                       width: '100%',
                       padding: '8px 12px',
-                      background: 'rgba(15, 23, 42, 0.65)',
+                      background: 'var(--bg-subtle)',
                       border: isPanoDropdownOpen
-                        ? '1px solid var(--accent-gold, #d4a86a)'
-                        : '1px solid rgba(255, 255, 255, 0.15)',
-                      borderRadius: 'var(--radius-sm, 8px)',
+                        ? '1px solid var(--accent-gold)'
+                        : '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-sm, 6px)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       cursor: 'pointer',
-                      color: '#F8FAFC',
+                      color: 'var(--text-main)',
                       textAlign: 'left',
                       gap: 10
                     }}
@@ -408,7 +396,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                             height: 30,
                             borderRadius: 4,
                             objectFit: 'cover',
-                            border: '1px solid rgba(255,255,255,0.2)',
+                            border: '1px solid var(--border-color)',
                             flexShrink: 0
                           }}
                           onError={(e) => {
@@ -416,21 +404,21 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                           }}
                         />
                         <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: '12.5px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {selectedPano.filename}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px', color: '#94a3b8' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px', color: 'var(--text-muted)' }}>
                             {selectedPano.date && <span>{selectedPano.date}</span>}
                             {selectedPano.isUsed || (selectedPano.usedInRooms && selectedPano.usedInRooms.length > 0) ? (
-                              <span style={{ color: '#60a5fa' }}>• Đã dùng: {selectedPano.usedInRooms?.join(', ')}</span>
+                              <span style={{ color: 'var(--text-muted)' }}>• Đã dùng: {selectedPano.usedInRooms?.join(', ')}</span>
                             ) : (
-                              <span style={{ color: '#10b981', fontWeight: 600 }}>• ⭐ Chưa gán phòng</span>
+                              <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>• Chưa gán phòng</span>
                             )}
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#94a3b8', fontSize: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '12px' }}>
                         <ImageIcon size={15} style={{ color: 'var(--accent-gold)' }} />
                         <span>-- Chọn ảnh từ Kho 360° ({unusedPanos.length} chưa dùng / {panoramas.length} tổng) --</span>
                       </div>
@@ -438,7 +426,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                     <ChevronDown
                       size={16}
                       style={{
-                        color: '#94a3b8',
+                        color: 'var(--text-muted)',
                         flexShrink: 0,
                         transform: isPanoDropdownOpen ? 'rotate(180deg)' : 'none',
                         transition: 'transform 0.2s'
@@ -455,10 +443,10 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                         left: 0,
                         right: 0,
                         zIndex: 60,
-                        backgroundColor: '#1E293B',
-                        border: '1px solid rgba(212, 168, 106, 0.45)',
-                        borderRadius: 8,
-                        boxShadow: '0 16px 32px rgba(0,0,0,0.7)',
+                        backgroundColor: 'var(--bg-surface)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm, 6px)',
+                        boxShadow: 'var(--shadow-lg)',
                         padding: '10px',
                         display: 'flex',
                         flexDirection: 'column',
@@ -467,7 +455,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                       }}
                     >
                       {/* Tabs lọc */}
-                      <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.35)', padding: 3, borderRadius: 6 }}>
+                      <div style={{ display: 'flex', gap: 4, background: 'var(--bg-subtle)', padding: 3, borderRadius: 6 }}>
                         <button
                           type="button"
                           onClick={() => setPanoFilterTab('unused')}
@@ -478,8 +466,8 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                             fontWeight: panoFilterTab === 'unused' ? 600 : 400,
                             borderRadius: 4,
                             border: 'none',
-                            background: panoFilterTab === 'unused' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
-                            color: panoFilterTab === 'unused' ? '#000' : '#cbd5e1',
+                            background: panoFilterTab === 'unused' ? 'var(--accent-gold)' : 'transparent',
+                            color: panoFilterTab === 'unused' ? '#000' : 'var(--text-muted)',
                             cursor: 'pointer'
                           }}
                         >
@@ -495,8 +483,8 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                             fontWeight: panoFilterTab === 'all' ? 600 : 400,
                             borderRadius: 4,
                             border: 'none',
-                            background: panoFilterTab === 'all' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
-                            color: panoFilterTab === 'all' ? '#000' : '#cbd5e1',
+                            background: panoFilterTab === 'all' ? 'var(--accent-gold)' : 'transparent',
+                            color: panoFilterTab === 'all' ? '#000' : 'var(--text-muted)',
                             cursor: 'pointer'
                           }}
                         >
@@ -512,8 +500,8 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                             fontWeight: panoFilterTab === 'used' ? 600 : 400,
                             borderRadius: 4,
                             border: 'none',
-                            background: panoFilterTab === 'used' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
-                            color: panoFilterTab === 'used' ? '#000' : '#cbd5e1',
+                            background: panoFilterTab === 'used' ? 'var(--accent-gold)' : 'transparent',
+                            color: panoFilterTab === 'used' ? '#000' : 'var(--text-muted)',
                             cursor: 'pointer'
                           }}
                         >
@@ -523,7 +511,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
 
                       {/* Ô tìm kiếm nhanh */}
                       <div style={{ position: 'relative' }}>
-                        <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                        <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                         <input
                           type="text"
                           value={panoSearch}
@@ -533,10 +521,10 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                             width: '100%',
                             padding: '5px 8px 5px 28px',
                             fontSize: '11.5px',
-                            background: 'rgba(15, 23, 42, 0.7)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            background: 'var(--bg-subtle)',
+                            border: '1px solid var(--border-color)',
                             borderRadius: 4,
-                            color: '#F8FAFC'
+                            color: 'var(--text-main)'
                           }}
                         />
                       </div>
@@ -544,7 +532,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                       {/* Danh sách các không gian kèm ảnh hiển thị trực quan */}
                       <div style={{ overflowY: 'auto', maxHeight: '200px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {filteredPanos.length === 0 ? (
-                          <div style={{ padding: '20px', textAlign: 'center', fontSize: '11.5px', color: '#94a3b8' }}>
+                          <div style={{ padding: '20px', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-muted)' }}>
                             Không tìm thấy ảnh 360° nào phù hợp với bộ lọc này
                           </div>
                         ) : (
@@ -566,8 +554,8 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                                   padding: '7px 9px',
                                   borderRadius: 6,
                                   cursor: 'pointer',
-                                  background: isSelected ? 'rgba(212, 168, 106, 0.2)' : 'rgba(255,255,255,0.03)',
-                                  border: isSelected ? '1px solid rgba(212, 168, 106, 0.5)' : '1px solid transparent',
+                                  background: isSelected ? 'rgba(212, 168, 106, 0.15)' : 'transparent',
+                                  border: isSelected ? '1px solid rgba(212, 168, 106, 0.4)' : '1px solid transparent',
                                   transition: 'all 0.15s'
                                 }}
                               >
@@ -579,7 +567,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                                     height: 34,
                                     borderRadius: 4,
                                     objectFit: 'cover',
-                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    border: '1px solid var(--border-color)',
                                     flexShrink: 0
                                   }}
                                   onError={(e) => {
@@ -587,16 +575,16 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                                   }}
                                 />
                                 <div style={{ minWidth: 0, flex: 1 }}>
-                                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {p.filename}
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10.5px', marginTop: 2 }}>
                                     {isUsed ? (
-                                      <span style={{ color: '#60a5fa', fontWeight: 500 }}>Đã dùng: {p.usedInRooms?.join(', ')}</span>
+                                      <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Đã dùng: {p.usedInRooms?.join(', ')}</span>
                                     ) : (
-                                      <span style={{ color: '#10b981', fontWeight: 600 }}>⭐ Chưa gán phòng</span>
+                                      <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>Chưa gán phòng</span>
                                     )}
-                                    {p.date && <span style={{ color: '#64748b' }}>• {p.date}</span>}
+                                    {p.date && <span style={{ color: 'var(--text-muted)' }}>• {p.date}</span>}
                                   </div>
                                 </div>
                                 {isSelected && <Check size={14} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />}
@@ -655,7 +643,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
 
               {/* Preview ảnh hoặc video nhỏ nếu đã có link */}
               {panoramaUrl && (
-                <div style={{ position: 'relative', height: 110, borderRadius: 'var(--radius-md, 8px)', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: '#0F172A', marginTop: 8 }}>
+                <div style={{ position: 'relative', height: 110, borderRadius: 'var(--radius-md, 8px)', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-subtle)', marginTop: 8 }}>
                   {panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? (
                     <video
                       src={panoramaUrl}
@@ -672,7 +660,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   )}
-                  <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(15, 23, 42, 0.85)', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ position: 'absolute', bottom: 6, left: 8, background: 'rgba(22, 18, 14, 0.85)', color: 'var(--text-main)', padding: '2px 8px', borderRadius: 4, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, border: '1px solid var(--border-color)' }}>
                     <Eye size={12} />
                     <span>{panoramaUrl.endsWith('.mp4') || panoramaUrl.endsWith('.webm') || panoramaUrl.endsWith('.mov') || panoramaUrl.includes('/video/upload/') ? 'Xem trước Video Tour' : t('rooms.preview360Spherical', 'Xem trước ảnh cầu 360°')}</span>
                   </div>
@@ -694,12 +682,12 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
             className="modal-footer"
             style={{
               padding: '12px 18px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              borderTop: '1px solid var(--border-color)',
               display: 'flex',
               justifyContent: 'flex-end',
               gap: 10,
               flexShrink: 0,
-              backgroundColor: '#1E293B'
+              backgroundColor: 'var(--bg-surface)'
             }}
           >
             <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
