@@ -26,7 +26,8 @@ import {
   Film,
   X,
   CheckCircle2,
-  Layout
+  Layout,
+  Building2
 } from 'lucide-react';
 import { NewRoomModal } from '../components/NewRoomModal';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
@@ -1776,52 +1777,28 @@ export const PocStitchingPage: React.FC = () => {
                 </div>
 
                 {/* Tabs lọc: Tất cả / Chưa gán phòng / Đã gán phòng */}
-                <div style={{ display: 'flex', gap: 4, alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '3px 4px', borderRadius: 8 }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={() => { setHistoryFilter('all'); setHistoryPage(1); }}
-                    style={{
-                      padding: '4px 9px',
-                      fontSize: '11px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: historyFilter === 'all' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
-                      color: historyFilter === 'all' ? '#000' : 'var(--text-muted)',
-                      fontWeight: historyFilter === 'all' ? 600 : 400,
-                      cursor: 'pointer'
-                    }}
+                    className={`btn btn-sm ${historyFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '4px 10px', fontSize: '11.5px' }}
                   >
                     Tất cả ({historyList.length})
                   </button>
                   <button
                     type="button"
                     onClick={() => { setHistoryFilter('unused'); setHistoryPage(1); }}
-                    style={{
-                      padding: '4px 9px',
-                      fontSize: '11px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: historyFilter === 'unused' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
-                      color: historyFilter === 'unused' ? '#000' : 'var(--text-muted)',
-                      fontWeight: historyFilter === 'unused' ? 600 : 400,
-                      cursor: 'pointer'
-                    }}
+                    className={`btn btn-sm ${historyFilter === 'unused' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '4px 10px', fontSize: '11.5px' }}
                   >
-                    ⭐ Chưa gán phòng ({unusedHistoryCount})
+                    Chưa gán phòng ({unusedHistoryCount})
                   </button>
                   <button
                     type="button"
                     onClick={() => { setHistoryFilter('used'); setHistoryPage(1); }}
-                    style={{
-                      padding: '4px 9px',
-                      fontSize: '11px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: historyFilter === 'used' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
-                      color: historyFilter === 'used' ? '#000' : 'var(--text-muted)',
-                      fontWeight: historyFilter === 'used' ? 600 : 400,
-                      cursor: 'pointer'
-                    }}
+                    className={`btn btn-sm ${historyFilter === 'used' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '4px 10px', fontSize: '11.5px' }}
                   >
                     Đã gán phòng ({usedHistoryCount})
                   </button>
@@ -1906,69 +1883,50 @@ export const PocStitchingPage: React.FC = () => {
                                 }}
                               />
 
-                              {/* Badge hiển thị trạng thái gán gian phòng nổi bật */}
-                              {isAssigned ? (
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    left: 8,
-                                    background: 'rgba(16, 185, 129, 0.94)',
-                                    color: '#fff',
-                                    padding: '3px 8px',
-                                    borderRadius: 6,
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    zIndex: 3,
-                                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                                    backdropFilter: 'blur(4px)'
-                                  }}
-                                  title={`Đã gán cho gian phòng: ${assignedRooms.join(', ')}`}
-                                >
-                                  <CheckCircle2 size={12} />
-                                  <span>Đã gán phòng</span>
-                                </div>
-                              ) : (
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    left: 8,
-                                    background: 'rgba(15, 23, 42, 0.88)',
-                                    color: '#cbd5e1',
-                                    border: '1px solid rgba(255, 255, 255, 0.18)',
-                                    padding: '3px 8px',
-                                    borderRadius: 6,
-                                    fontSize: '11px',
-                                    fontWeight: 500,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    zIndex: 3,
-                                    backdropFilter: 'blur(4px)'
-                                  }}
-                                >
-                                  <span>⚪ Chưa gán phòng</span>
-                                </div>
-                              )}
-
+                              {/* Nhãn loại ảnh (Góc trên trái - kính trầm chuẩn heritage) */}
                               <div
-                                className="studio-history-badge"
                                 style={{
-                                  background: item.views && item.views.length > 1
-                                    ? 'linear-gradient(135deg, rgba(212, 168, 106, 0.95), rgba(184, 134, 11, 0.95))'
-                                    : undefined,
-                                  color: item.views && item.views.length > 1 ? '#000' : '#fff',
-                                  fontWeight: item.views && item.views.length > 1 ? 700 : 500
+                                  position: 'absolute',
+                                  top: 8,
+                                  left: 8,
+                                  background: 'rgba(22, 18, 14, 0.85)',
+                                  color: 'var(--text-main, #EDE5DF)',
+                                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                                  padding: '3px 8px',
+                                  borderRadius: 'var(--radius-sm, 5px)',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  backdropFilter: 'blur(4px)',
+                                  zIndex: 2,
+                                  letterSpacing: '0.2px'
                                 }}
                               >
                                 {item.views && item.views.length > 1
-                                  ? `🏛️ Gian phòng (${item.views.length} góc)`
-                                  : '4K Equirectangular 360°'}
+                                  ? `Tour ${item.views.length} góc nhìn`
+                                  : 'Toàn cảnh 360°'}
                               </div>
+
+                              {/* Nhãn trạng thái gán phòng (Góc trên phải - phân tách riêng, không đè lên nhãn trái) */}
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: 8,
+                                  right: 8,
+                                  background: 'rgba(22, 18, 14, 0.85)',
+                                  color: isAssigned ? 'var(--accent-gold, #D4A86A)' : 'var(--text-muted, #A3978C)',
+                                  border: isAssigned ? '1px solid rgba(212, 168, 106, 0.35)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                  padding: '3px 8px',
+                                  borderRadius: 'var(--radius-sm, 5px)',
+                                  fontSize: '10.5px',
+                                  fontWeight: 500,
+                                  backdropFilter: 'blur(4px)',
+                                  zIndex: 2
+                                }}
+                                title={isAssigned ? `Đã gán cho gian phòng: ${assignedRooms.join(', ')}` : 'Chưa liên kết gian phòng nào'}
+                              >
+                                {isAssigned ? 'Đã gán phòng' : 'Chưa gán phòng'}
+                              </div>
+
                               <div className="studio-history-overlay-hint">
                                 <Eye size={13} />
                                 <span>{t('stitching.rotateView', 'Xoay xem 360°')}</span>
@@ -1991,7 +1949,7 @@ export const PocStitchingPage: React.FC = () => {
                               <div
                                 style={{
                                   fontSize: '10.5px',
-                                  color: '#64748b',
+                                  color: 'var(--text-muted)',
                                   fontFamily: 'monospace',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -2005,40 +1963,40 @@ export const PocStitchingPage: React.FC = () => {
                               {item.views && item.views.length > 1 && (
                                 <div style={{ fontSize: '11px', color: 'var(--accent-gold, #d4a86a)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, fontWeight: 500 }}>
                                   <Sparkles size={11} />
-                                  <span>Tour đa góc nhìn ({item.views.length} góc sắc nét nguyên bản)</span>
+                                  <span>Tour đa góc nhìn ({item.views.length} góc)</span>
                                 </div>
                               )}
 
-                              {/* Hiển thị chi tiết trạng thái gian phòng */}
+                              {/* Hiển thị chi tiết trạng thái gian phòng (Màu sắc chuẩn Di Sản, không màu mè AI) */}
                               {isAssigned ? (
                                 <div
                                   style={{
-                                    padding: '5px 8px',
-                                    background: 'rgba(16, 185, 129, 0.1)',
-                                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                                    borderRadius: 6,
-                                    fontSize: '11px',
-                                    color: '#34d399',
+                                    padding: '6px 10px',
+                                    background: 'var(--bg-subtle)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 'var(--radius-sm, 6px)',
+                                    fontSize: '11.5px',
+                                    color: 'var(--text-main)',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 5,
+                                    gap: 6,
                                     margin: '6px 0'
                                   }}
                                   title={`Đang sử dụng trong gian phòng: ${assignedRooms.join(', ')}`}
                                 >
-                                  <CheckCircle2 size={12} style={{ flexShrink: 0 }} />
+                                  <Building2 size={12} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
                                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    Đã gán: <strong>{assignedRooms.join(', ') || 'Đang sử dụng'}</strong>
+                                    Gian phòng: <strong style={{ color: 'var(--text-main)' }}>{assignedRooms.join(', ') || 'Đang sử dụng'}</strong>
                                   </span>
                                 </div>
                               ) : (
                                 <div
                                   style={{
-                                    padding: '5px 8px',
-                                    background: 'rgba(212, 168, 106, 0.08)',
-                                    border: '1px solid rgba(212, 168, 106, 0.22)',
-                                    borderRadius: 6,
-                                    fontSize: '11px',
+                                    padding: '6px 10px',
+                                    background: 'var(--bg-subtle)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 'var(--radius-sm, 6px)',
+                                    fontSize: '11.5px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
@@ -2046,7 +2004,7 @@ export const PocStitchingPage: React.FC = () => {
                                     gap: 6
                                   }}
                                 >
-                                  <span style={{ color: '#94a3b8' }}>Chưa tạo gian phòng</span>
+                                  <span style={{ color: 'var(--text-muted)' }}>Chưa liên kết gian phòng</span>
                                   <button
                                     type="button"
                                     onClick={(e) => {
@@ -2061,13 +2019,9 @@ export const PocStitchingPage: React.FC = () => {
                                       });
                                       setShowCreateRoomModal(true);
                                     }}
+                                    className="btn btn-secondary btn-sm"
                                     style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      color: 'var(--accent-gold, #d4a86a)',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                      padding: 0,
+                                      padding: '2px 8px',
                                       fontSize: '11px',
                                       display: 'flex',
                                       alignItems: 'center',
@@ -2075,7 +2029,7 @@ export const PocStitchingPage: React.FC = () => {
                                     }}
                                     title="Tạo gian phòng mới ngay từ không gian này"
                                   >
-                                    <Plus size={12} />
+                                    <Plus size={11} />
                                     <span>Tạo phòng</span>
                                   </button>
                                 </div>
