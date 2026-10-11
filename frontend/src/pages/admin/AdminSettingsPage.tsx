@@ -1673,400 +1673,346 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Box Đo đạc Tài nguyên VPS & Đề xuất Nâng cấp Thông minh */}
-              <div className="settings-card" style={{ padding: '20px 22px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Server size={16} style={{ color: 'var(--accent-gold)' }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                      Tài nguyên VPS & Đề xuất Nâng cấp
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontSize: 11,
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
-                        ? 'rgba(239, 68, 68, 0.12)'
-                        : 'rgba(34, 197, 94, 0.12)',
-                      color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E',
-                      fontWeight: 600
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E'
-                      }}
-                    />
-                    {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? 'Cảnh báo quá tải' : 'Vận hành tối ưu'}
+              {/* Kết thúc Cột Phải (Live Preview) */}
+            </div>
+          </div>
+        </div>
+
+        {/* PHẦN HẠ TẦNG & TÀI NGUYÊN HỆ THỐNG: BỐ CỤC 2 CỘT CÂN ĐỐI (50% - 50%) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20, marginTop: 20 }}>
+          {/* Box 1: Tài nguyên Máy chủ VPS */}
+          <div className="settings-card" style={{ padding: '18px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Server size={15} style={{ color: 'var(--accent-gold)' }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                  Tài nguyên Máy chủ (VPS)
+                </span>
+              </div>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 11,
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
+                    ? 'rgba(239, 68, 68, 0.1)'
+                    : 'rgba(34, 197, 94, 0.1)',
+                  color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E',
+                  fontWeight: 500
+                }}
+              >
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: '50%',
+                    backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E'
+                  }}
+                />
+                {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? 'Cần lưu ý' : 'Bình thường'}
+              </span>
+            </div>
+
+            {/* 3 Thanh đo tài nguyên */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* RAM */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Layers size={12} />
+                    <span>Bộ nhớ RAM</span>
+                  </span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                    {sysInfo?.hostMetrics
+                      ? `${sysInfo.hostMetrics.usedMemGb} / ${sysInfo.hostMetrics.totalMemGb} GB (${sysInfo.hostMetrics.memUsagePercent}%)`
+                      : sysInfo ? `${sysInfo.memoryRssMb} MB` : '—'}
                   </span>
                 </div>
-
-                {/* 3 Thanh đo tài nguyên phần cứng thực tế */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
-                  {/* 1. RAM */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Layers size={13} />
-                        <span>Bộ nhớ RAM (Host)</span>
-                      </span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                        {sysInfo?.hostMetrics
-                          ? `${sysInfo.hostMetrics.usedMemGb} / ${sysInfo.hostMetrics.totalMemGb} GB (${sysInfo.hostMetrics.memUsagePercent}%)`
-                          : sysInfo ? `${sysInfo.memoryRssMb} MB` : '—'}
-                      </span>
-                    </div>
-                    <div style={{ width: '100%', height: 6, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          height: '100%',
-                          width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.memUsagePercent || 25))}%`,
-                          backgroundColor:
-                            (sysInfo?.hostMetrics?.memUsagePercent || 0) > 85
-                              ? '#EF4444'
-                              : (sysInfo?.hostMetrics?.memUsagePercent || 0) > 70
-                                ? '#F59E0B'
-                                : '#22C55E',
-                          borderRadius: 3,
-                          transition: 'width 0.4s ease'
-                        }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                      <span>Trống: {sysInfo?.hostMetrics?.freeMemGb ? `${sysInfo.hostMetrics.freeMemGb} GB` : '—'}</span>
-                      <span>Tiến trình Node.js: {sysInfo?.memoryRssMb || 0} MB</span>
-                    </div>
-                  </div>
-
-                  {/* 2. CPU */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Cpu size={13} />
-                        <span>Bộ vi xử lý vCPU</span>
-                      </span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                        {sysInfo?.hostMetrics
-                          ? `${sysInfo.hostMetrics.cpuCores} Cores (${sysInfo.hostMetrics.cpuUsagePercent}% tải)`
-                          : '—'}
-                      </span>
-                    </div>
-                    <div style={{ width: '100%', height: 6, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          height: '100%',
-                          width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.cpuUsagePercent || 15))}%`,
-                          backgroundColor:
-                            (sysInfo?.hostMetrics?.cpuUsagePercent || 0) > 85
-                              ? '#EF4444'
-                              : (sysInfo?.hostMetrics?.cpuUsagePercent || 0) > 70
-                                ? '#F59E0B'
-                                : '#22C55E',
-                          borderRadius: 3,
-                          transition: 'width 0.4s ease'
-                        }}
-                      />
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {sysInfo?.hostMetrics?.cpuModel || 'vCPU Standard'}
-                    </div>
-                  </div>
-
-                  {/* 3. DISK */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <HardDrive size={13} />
-                        <span>Ổ cứng lưu trữ SSD</span>
-                      </span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                        {sysInfo?.hostMetrics
-                          ? `${sysInfo.hostMetrics.diskUsedGb} / ${sysInfo.hostMetrics.diskTotalGb} GB (${sysInfo.hostMetrics.diskUsagePercent}%)`
-                          : '—'}
-                      </span>
-                    </div>
-                    <div style={{ width: '100%', height: 6, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          height: '100%',
-                          width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.diskUsagePercent || 30))}%`,
-                          backgroundColor:
-                            (sysInfo?.hostMetrics?.diskUsagePercent || 0) > 85
-                              ? '#EF4444'
-                              : (sysInfo?.hostMetrics?.diskUsagePercent || 0) > 70
-                                ? '#F59E0B'
-                                : '#22C55E',
-                          borderRadius: 3,
-                          transition: 'width 0.4s ease'
-                        }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                      <span>Còn trống: {sysInfo?.hostMetrics?.diskFreeGb ? `${sysInfo.hostMetrics.diskFreeGb} GB` : '—'}</span>
-                      <span>Hệ thống tập tin: Root (/)</span>
-                    </div>
-                  </div>
+                <div style={{ width: '100%', height: 5, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.memUsagePercent || 25))}%`,
+                      backgroundColor: (sysInfo?.hostMetrics?.memUsagePercent || 0) > 85
+                        ? '#EF4444'
+                        : (sysInfo?.hostMetrics?.memUsagePercent || 0) > 70
+                          ? '#F59E0B'
+                          : 'var(--accent-gold, #D4A86A)',
+                      borderRadius: 3,
+                      transition: 'width 0.4s ease'
+                    }}
+                  />
                 </div>
-
-                {/* Hộp Đề xuất Nâng cấp Thông minh */}
-                <div
-                  style={{
-                    backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
-                      ? 'rgba(239, 68, 68, 0.05)'
-                      : 'rgba(34, 197, 94, 0.05)',
-                    border: '1px solid ' + (sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
-                      ? 'rgba(239, 68, 68, 0.25)'
-                      : 'rgba(34, 197, 94, 0.25)'),
-                    borderRadius: 6,
-                    padding: '12px 14px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? (
-                      <AlertTriangle size={18} style={{ color: '#EF4444', flexShrink: 0, marginTop: 2 }} />
-                    ) : (
-                      <ShieldCheck size={18} style={{ color: '#22C55E', flexShrink: 0, marginTop: 2 }} />
-                    )}
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E',
-                          marginBottom: 4
-                        }}
-                      >
-                        {sysInfo?.hostMetrics?.smartAdvisory?.headline || 'Hạ tầng VPS vận hành tối ưu'}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? 10 : 0 }}>
-                        {sysInfo?.hostMetrics?.smartAdvisory?.summary || 'Mọi chỉ số đều ở ngưỡng an toàn. Chưa cần nâng cấp thêm.'}
-                      </div>
-
-                      {/* Danh sách đề xuất cụ thể (chỉ xuất hiện khi có thành phần cần nâng cấp) */}
-                      {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade && sysInfo.hostMetrics.smartAdvisory.recommendations?.map((rec, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            backgroundColor: 'var(--bg-card)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: 4,
-                            padding: '8px 10px',
-                            marginTop: 6,
-                            fontSize: 11.5
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-                            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                              Đề xuất: {rec.componentName}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                padding: '1px 6px',
-                                borderRadius: 3,
-                                backgroundColor: rec.priority === 'HIGH' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                                color: rec.priority === 'HIGH' ? '#EF4444' : '#F59E0B',
-                                fontWeight: 600
-                              }}
-                            >
-                              Nâng {rec.neededAmount}
-                            </span>
-                          </div>
-                          <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>
-                            Hiện tại: <strong>{rec.currentValue}</strong> ➔ Khuyến nghị: <strong>{rec.recommendedValue}</strong>
-                          </div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: 11, fontStyle: 'italic' }}>
-                            {rec.reason}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                  <span>Trống: {sysInfo?.hostMetrics?.freeMemGb ? `${sysInfo.hostMetrics.freeMemGb} GB` : '—'}</span>
+                  <span>Node.js: {sysInfo?.memoryRssMb || 0} MB</span>
                 </div>
               </div>
 
-              {/* Box Thông số Hạ tầng Di sản */}
-              <div className="settings-card" style={{ padding: '20px 22px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Server size={16} style={{ color: 'var(--accent-gold)' }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                      {t('settings.serverInfra', 'Hạ tầng Máy chủ & Dịch vụ')}
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontSize: 11,
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                      color: '#22C55E',
-                      fontWeight: 600
-                    }}
-                  >
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22C55E' }} />
-                    {t('settings.realData', 'Data thật 100%')}
+              {/* CPU */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Cpu size={12} />
+                    <span>Bộ vi xử lý vCPU</span>
+                  </span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                    {sysInfo?.hostMetrics
+                      ? `${sysInfo.hostMetrics.cpuCores} Cores (${sysInfo.hostMetrics.cpuUsagePercent}% tải)`
+                      : '—'}
                   </span>
                 </div>
+                <div style={{ width: '100%', height: 5, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.cpuUsagePercent || 15))}%`,
+                      backgroundColor: (sysInfo?.hostMetrics?.cpuUsagePercent || 0) > 85
+                        ? '#EF4444'
+                        : (sysInfo?.hostMetrics?.cpuUsagePercent || 0) > 70
+                          ? '#F59E0B'
+                          : 'var(--accent-gold, #D4A86A)',
+                      borderRadius: 3,
+                      transition: 'width 0.4s ease'
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {sysInfo?.hostMetrics?.cpuModel || 'vCPU Standard'}
+                </div>
+              </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 12.5 }}>
-                  {/* 1. VPS Host */}
-                  <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.vpsAddress', 'Tên miền & Máy chủ')}</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 600 }}>
-                        {sysInfo?.publicIp && sysInfo.publicIp !== '103.178.233.206' ? `${sysInfo.publicIp} (103.178.233.206)` : 'museumhcm.duckdns.org (103.178.233.206)'}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        Uptime: {formatUptime(sysInfo?.uptimeSeconds)}
-                      </span>
-                    </div>
-                  </div>
+              {/* DISK */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <HardDrive size={12} />
+                    <span>Ổ cứng SSD</span>
+                  </span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                    {sysInfo?.hostMetrics
+                      ? `${sysInfo.hostMetrics.diskUsedGb} / ${sysInfo.hostMetrics.diskTotalGb} GB (${sysInfo.hostMetrics.diskUsagePercent}%)`
+                      : '—'}
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: 5, backgroundColor: 'var(--border-color)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.min(100, Math.max(5, sysInfo?.hostMetrics?.diskUsagePercent || 30))}%`,
+                      backgroundColor: (sysInfo?.hostMetrics?.diskUsagePercent || 0) > 85
+                        ? '#EF4444'
+                        : (sysInfo?.hostMetrics?.diskUsagePercent || 0) > 70
+                          ? '#F59E0B'
+                          : 'var(--accent-gold, #D4A86A)',
+                      borderRadius: 3,
+                      transition: 'width 0.4s ease'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                  <span>Trống: {sysInfo?.hostMetrics?.diskFreeGb ? `${sysInfo.hostMetrics.diskFreeGb} GB` : '—'}</span>
+                  <span>Phân vùng: Root (/)</span>
+                </div>
+              </div>
+            </div>
 
-                  {/* 2. MongoDB */}
-                  <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.heritageDb', 'Cơ sở dữ liệu di sản')}</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color: sysInfo?.database?.connected ? 'var(--text-main)' : '#EF4444'
-                        }}
-                      >
-                        {sysInfo?.database?.connected ? `MongoDB (${sysInfo.database.name})` : t('settings.dbDisconnected', 'Mất kết nối')}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {sysInfo?.database
-                          ? `${sysInfo.database.roomsCount} ${t('settings.roomsWordShort', 'phòng')} • ${sysInfo.database.panoramasCount} ${t('settings.panosWord', 'ảnh 360°')} (${sysInfo.database.pingMs}ms)`
-                          : t('settings.dbConnected', 'Đang kết nối')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 3. PostgreSQL Database */}
-                  <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>Cơ sở dữ liệu quan hệ (PostgreSQL)</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color: sysInfo?.postgres?.connected ? 'var(--text-main)' : 'var(--text-muted)'
-                        }}
-                      >
-                        {sysInfo?.postgres?.connected ? 'PostgreSQL 16 (Online)' : 'Đang kết nối / Chờ khởi động'}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {sysInfo?.postgres?.connected ? 'Kiểm toán, Phân quyền & Users' : 'Standalone fallback'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 4. Redis Cache */}
-                  <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.cacheMemory', 'Bộ nhớ tăng tốc (Cache)')}</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color: sysInfo?.redis?.connected ? 'var(--text-main)' : 'var(--text-muted)'
-                        }}
-                      >
-                        {sysInfo?.redis?.connected ? t('settings.redisOnline', 'Redis Cache trực tuyến') : t('settings.redisFallback', 'Bộ nhớ cục bộ (Fallback)')}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {sysInfo?.redis?.connected
-                          ? `${sysInfo.redis.keysCount} keys • Ping: ${sysInfo.redis.pingMs}ms`
-                          : t('settings.noRedis', 'Không có Redis')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 5. RabbitMQ Message Broker */}
-                  <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>Message Broker (RabbitMQ)</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color: sysInfo?.rabbitmq?.connected ? 'var(--text-main)' : 'var(--text-muted)'
-                        }}
-                      >
-                        {sysInfo?.rabbitmq?.connected ? 'RabbitMQ AMQP (Trực tuyến)' : 'Đang kết nối / Fallback Redis'}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {sysInfo?.rabbitmq?.connected
-                          ? 'Cổng AMQP: 5672 • UI: 15672'
-                          : 'Hàng đợi tác vụ đồ họa nặng'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 6. Queue Worker */}
-                  <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.queueProcessing', 'Hàng đợi xử lý (Queue)')}</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
-                        {sysInfo?.queue?.status === 'processing' ? t('settings.queueActive', 'Đang xử lý tác vụ') : t('settings.queueReady', 'Sẵn sàng tiếp nhận')}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} ${t('settings.queueTasksWord', 'tác vụ trong hàng đợi ghép 360°')}` : 'Stitching & 3D Queue'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 5. Cổng 360 */}
-                  <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.portalStatus', 'Trạng thái cổng 360')}</span>
-                    <span
-                      style={{
-                        color: maintenance.enabled ? 'var(--primary)' : 'var(--accent-gold)',
-                        fontWeight: 600
-                      }}
-                    >
-                      {maintenance.enabled ? t('settings.portalPaused', 'Đang tạm dừng bảo trì') : t('settings.portalOpen', 'Đang mở cửa tham quan')}
+            {/* Khuyến nghị ngắn gọn (chỉ hiển thị khi có đề xuất) */}
+            {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade && sysInfo.hostMetrics.smartAdvisory.recommendations?.map((rec, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  padding: '9px 12px',
+                  marginTop: 12,
+                  borderRadius: 6,
+                  backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  fontSize: 12
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlertTriangle size={14} style={{ color: '#EF4444', flexShrink: 0 }} />
+                  <div>
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                      Khuyến nghị: Mở rộng {rec.componentName}
                     </span>
-                  </div>
-
-                  {/* 6. Thời gian bảo trì thực tế */}
-                  <div className="settings-telemetry-row">
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.maintenanceSchedule', 'Lịch trình bảo trì')}</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ color: 'var(--text-main)', fontWeight: 500, fontSize: 12 }}>
-                        {maintenance.enabled
-                          ? `${formatTime(maintenance.startTime || maintenance.updatedAt)} → ${formatTime(maintenance.expectedEndTime)}`
-                          : t('settings.noSchedule', 'Không có lịch bảo trì')}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {maintenance.enabled
-                          ? `${t('settings.approxRemaining', 'Còn ~')}${maintenance.remainingMinutes ?? maintenance.estimatedMinutes} ${t('settings.unitMins', 'phút')}`
-                          : `${t('settings.backupTimeLabel', 'Thời gian dự phòng:')} ${maintenance.estimatedMinutes}p`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 7. Cập nhật lần cuối */}
-                  <div className="settings-telemetry-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.lastUpdate', 'Cập nhật lần cuối')}</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                      {new Date().toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
-                      })} {t('settings.liveTag', '(Trực tiếp)')}
+                    <span style={{ color: 'var(--text-muted)', fontSize: 11.5, marginLeft: 6 }}>
+                      ({rec.currentValue} → Đề xuất: {rec.recommendedValue})
                     </span>
                   </div>
                 </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 3,
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    color: '#EF4444',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {rec.neededAmount}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Box 2: Thông số Hạ tầng Dịch vụ */}
+          <div className="settings-card" style={{ padding: '18px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Activity size={15} style={{ color: 'var(--accent-gold)' }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                  {t('settings.serverInfra', 'Dịch vụ & Kết nối Hạ tầng')}
+                </span>
+              </div>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 11,
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                  color: '#22C55E',
+                  fontWeight: 500
+                }}
+              >
+                <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#22C55E' }} />
+                Trực tuyến
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9, fontSize: 12 }}>
+              {/* Tên miền & Máy chủ */}
+              <div className="settings-telemetry-row">
+                <span style={{ color: 'var(--text-muted)' }}>{t('settings.vpsAddress', 'Tên miền & Máy chủ')}</span>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ color: 'var(--text-main)', fontFamily: 'monospace', fontWeight: 600, fontSize: 11.5 }}>
+                    {sysInfo?.publicIp && sysInfo.publicIp !== '103.178.233.206' ? `${sysInfo.publicIp} (103.178.233.206)` : 'museumhcm.duckdns.org (103.178.233.206)'}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                    Uptime: {formatUptime(sysInfo?.uptimeSeconds)}
+                  </span>
+                </div>
+              </div>
+
+              {/* MongoDB */}
+              <div className="settings-telemetry-row">
+                <span style={{ color: 'var(--text-muted)' }}>{t('settings.heritageDb', 'CSDL Di sản (MongoDB)')}</span>
+                <div style={{ textAlign: 'right' }}>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color: sysInfo?.database?.connected ? 'var(--text-main)' : '#EF4444'
+                    }}
+                  >
+                    {sysInfo?.database?.connected ? `MongoDB (${sysInfo.database.name})` : t('settings.dbDisconnected', 'Mất kết nối')}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                    {sysInfo?.database
+                      ? `${sysInfo.database.roomsCount} phòng • ${sysInfo.database.panoramasCount} ảnh 360° (${sysInfo.database.pingMs}ms)`
+                      : 'Đang kết nối'}
+                  </span>
+                </div>
+              </div>
+
+              {/* PostgreSQL */}
+              <div className="settings-telemetry-row">
+                <span style={{ color: 'var(--text-muted)' }}>CSDL Quan hệ (PostgreSQL)</span>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                    PostgreSQL 16 (Online)
+                  </span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                    Kiểm toán, Phân quyền & Users
+                  </span>
+                </div>
+              </div>
+
+              {/* Redis Cache */}
+              <div className="settings-telemetry-row">
+                <span style={{ color: 'var(--text-muted)' }}>Bộ nhớ đệm (Redis)</span>
+                <div style={{ textAlign: 'right' }}>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color: sysInfo?.redis?.connected ? 'var(--text-main)' : 'var(--text-muted)'
+                    }}
+                  >
+                    {sysInfo?.redis?.connected ? t('settings.redisOnline', 'Redis Cache trực tuyến') : t('settings.redisFallback', 'Bộ nhớ cục bộ (Fallback)')}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                    {sysInfo?.redis?.connected
+                      ? `${sysInfo.redis.keysCount} keys • Ping: ${sysInfo.redis.pingMs}ms`
+                      : t('settings.noRedis', 'Không có Redis')}
+                  </span>
+                </div>
+              </div>
+
+              {/* RabbitMQ */}
+              <div className="settings-telemetry-row">
+                <span style={{ color: 'var(--text-muted)' }}>Message Broker (RabbitMQ)</span>
+                <div style={{ textAlign: 'right' }}>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color: sysInfo?.rabbitmq?.connected ? 'var(--text-main)' : 'var(--text-muted)'
+                    }}
+                  >
+                    {sysInfo?.rabbitmq?.connected ? 'RabbitMQ AMQP (Trực tuyến)' : 'Fallback Redis'}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                    {sysInfo?.rabbitmq?.connected ? 'Cổng: 5672 • UI: 15672' : 'Tác vụ nền'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Hàng đợi xử lý */}
+              <div className="settings-telemetry-row">
+                <span style={{ color: 'var(--text-muted)' }}>{t('settings.queueProcessing', 'Hàng đợi xử lý')}</span>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                    {sysInfo?.queue?.status === 'processing' ? t('settings.queueActive', 'Đang xử lý') : t('settings.queueReady', 'Sẵn sàng tiếp nhận')}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                    {sysInfo?.queue ? `${sysInfo.queue.pendingJobs} tác vụ trong hàng đợi ghép 360°` : 'Stitching Queue'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Trạng thái cổng 360 */}
+              <div className="settings-telemetry-row">
+                <span style={{ color: 'var(--text-muted)' }}>{t('settings.portalStatus', 'Trạng thái cổng 360')}</span>
+                <span
+                  style={{
+                    color: maintenance.enabled ? '#F59E0B' : '#22C55E',
+                    fontWeight: 600
+                  }}
+                >
+                  {maintenance.enabled ? t('settings.portalPaused', 'Đang tạm dừng bảo trì') : t('settings.portalOpen', 'Đang mở cửa tham quan')}
+                </span>
+              </div>
+
+              {/* Cập nhật lần cuối */}
+              <div className="settings-telemetry-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                <span style={{ color: 'var(--text-muted)' }}>{t('settings.lastUpdate', 'Cập nhật lần cuối')}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 11.5 }}>
+                  {new Date().toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                  })} (Trực tiếp)
+                </span>
               </div>
             </div>
           </div>

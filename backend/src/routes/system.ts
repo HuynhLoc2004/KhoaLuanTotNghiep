@@ -351,12 +351,12 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
       const neededAdd = nextRamGb - Math.round(currentGb);
       recommendations.push({
         component: 'RAM',
-        componentName: 'Bộ nhớ RAM máy chủ',
+        componentName: 'RAM',
         status: ramStatus,
-        currentValue: `${totalMemGb} GB (Đang dùng ${memUsagePercent}%, chỉ còn trống ${freeMemMb} MB)`,
-        recommendedValue: `${nextRamGb} GB RAM`,
-        neededAmount: `+${neededAdd} GB RAM`,
-        reason: 'Bộ nhớ RAM đang chạm ngưỡng báo động. Cần mở rộng để tránh nguy cơ Linux OOM Killer đột ngột đóng tiến trình MongoDB/Node.js khi có nhiều khách truy cập tour 360° đồng thời.',
+        currentValue: `${totalMemGb} GB (${memUsagePercent}%)`,
+        recommendedValue: `${nextRamGb} GB`,
+        neededAmount: `+${neededAdd} GB`,
+        reason: 'Bộ nhớ RAM tiệm cận ngưỡng tải, khuyến nghị mở rộng để duy trì ổn định.',
         priority: ramStatus === 'CRITICAL' ? 'HIGH' : 'MEDIUM'
       });
     }
@@ -374,12 +374,12 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
       const neededCores = nextCores - cpuCores;
       recommendations.push({
         component: 'CPU',
-        componentName: 'Bộ vi xử lý (vCPU Cores)',
+        componentName: 'vCPU',
         status: cpuStatus,
-        currentValue: `${cpuCores} vCPU (Tải trung bình: ${cpuUsagePercent}%)`,
+        currentValue: `${cpuCores} vCPU (${cpuUsagePercent}% tải)`,
         recommendedValue: `${nextCores} vCPU`,
-        neededAmount: `+${neededCores} vCPU`,
-        reason: 'Bộ xử lý CPU có dấu hiệu quá tải. Cần nâng thêm vCPU để tăng tốc giải mã hình ảnh panorama và xử lý đa luồng cho các yêu cầu tham quan ảo.',
+        neededAmount: `+${neededCores} Core`,
+        reason: 'Tải CPU cao, khuyến nghị tăng số nhân xử lý đa luồng.',
         priority: cpuStatus === 'CRITICAL' ? 'HIGH' : 'MEDIUM'
       });
     }
@@ -397,12 +397,12 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
       const nextTotalDisk = Math.round(diskTotalGb + expandGb);
       recommendations.push({
         component: 'DISK',
-        componentName: 'Dung lượng ổ cứng SSD',
+        componentName: 'Ổ cứng SSD',
         status: diskStatus,
-        currentValue: `${diskTotalGb} GB (Đã dùng ${diskUsedGb} GB, còn trống ${diskFreeGb} GB)`,
-        recommendedValue: `${nextTotalDisk} GB SSD`,
-        neededAmount: `+${expandGb} GB SSD`,
-        reason: 'Ổ đĩa sắp hết dung lượng. Cần mở rộng thêm để đảm bảo đủ không gian lưu trữ ảnh panorama 360° mới và sao lưu cơ sở dữ liệu định kỳ.',
+        currentValue: `${diskTotalGb} GB (Đã dùng ${diskUsedGb} GB)`,
+        recommendedValue: `${nextTotalDisk} GB`,
+        neededAmount: `+${expandGb} GB`,
+        reason: 'Dung lượng ổ đĩa sắp đầy, cần mở rộng để lưu trữ dữ liệu.',
         priority: diskStatus === 'CRITICAL' ? 'HIGH' : 'MEDIUM'
       });
     }
@@ -416,11 +416,11 @@ systemRouter.get('/info', authenticate, requireAdmin, async (req: AuthRequest, r
       overallHealth,
       needsUpgrade,
       headline: needsUpgrade
-        ? `Phát hiện ${recommendations.length} tài nguyên VPS có dấu hiệu quá tải`
-        : 'Hạ tầng VPS vận hành tối ưu — Chưa cần nâng cấp',
+        ? 'Khuyến nghị mở rộng tài nguyên'
+        : 'Tài nguyên máy chủ ổn định',
       summary: needsUpgrade
-        ? 'Đề xuất nâng cấp thông minh: Chỉ mở rộng chính xác thành phần chạm ngưỡng báo động bên dưới. Các thành phần còn lại vẫn đáp ứng tốt và không cần nâng cấp thêm để tối ưu chi phí.'
-        : 'Mọi thông số RAM, CPU và Ổ đĩa SSD đều ở ngưỡng an toàn (< 70%). Hệ thống khuyến nghị duy trì cấu hình hiện tại để tối ưu hóa ngân sách vận hành cho Bảo tàng.',
+        ? 'Một số thông số chạm ngưỡng cảnh báo, nên bổ sung theo danh sách bên dưới.'
+        : 'Các chỉ số phần cứng đều trong ngưỡng an toàn.',
       recommendations
     };
 
