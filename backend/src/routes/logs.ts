@@ -1,7 +1,18 @@
 import { Router, Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 import { SystemLogModel, LogLevel, LogModule } from '../models/SystemLog.js';
+import { ArchivedLogPackageModel } from '../models/ArchivedLogPackage.js';
 import { authenticate, requireAdmin, AuthRequest } from './auth.js';
 import { systemLogger } from '../services/systemLogger.js';
+
+const ARCHIVE_DIR = path.join(process.cwd(), 'storage', 'log_archives');
+function ensureArchiveDir() {
+  if (!fs.existsSync(ARCHIVE_DIR)) {
+    fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
+  }
+}
 
 export const logsRouter = Router();
 
@@ -165,37 +176,313 @@ logsRouter.get('/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/system/logs/cleanup
- * Dọn dẹp nhật ký cũ hoặc giải phóng dung lượng
+ * Helper: Tạo filter dọn dẹp theo phân loại an toàn
  */
-logsRouter.delete('/cleanup', async (req: Request, res: Response) => {
+function buildPruneFilter(options: {
+  cleanType: string;
+  olderThanDays: number;
+  preserveErrors?: boolean;
+  preserveAdminAudit?: boolean;
+}) {
+  const days = Math.max(1, parseInt(String(options.olderThanDays), 10) || 7);
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  const filter: any = { createdAt: { $lt: cutoffDate } };
+
+  if (options.cleanType === 'BOT_SCANS_ONLY') {
+    // Chỉ các request 404 từ khách vãng lai dò quét cổng
+    filter.statusCode = 404;
+    filter.role = { $nin: ['ADMIN', 'STAFF'] };
+  } else if (options.cleanType === 'ROUTINE_INFO') {
+    // Chỉ log INFO & SUCCESS bình thường cũ
+    filter.level = { $in: ['INFO', 'SUCCESS'] };
+    filter.role = { $nin: ['ADMIN', 'STAFF'] };
+  } else {
+    // FULL_PRUNE_WITH_TRACE_PRESERVED (Mặc định)
+    // Dọn toàn bộ nhưng bảo vệ tuyệt đối ERROR và Admin Audit
+    if (options.preserveErrors !== false) {
+      filter.level = { $ne: 'ERROR' };
+      filter.statusCode = { $lt: 500 };
+    }
+    if (options.preserveAdminAudit !== false) {
+      filter.role = { $nin: ['ADMIN', 'STAFF'] };
+      filter.module = { $nin: ['AUTH', 'SYSTEM', 'TICKETS'] };
+    }
+  }
+
+  return { filter, cutoffDate };
+}
+
+/**
+ * GET /api/system/logs/cleanup/preview
+ * Dự báo trước số bản ghi có thể dọn an toàn & các bản ghi được bảo vệ tuyệt đối
+ */
+logsRouter.get('/cleanup/preview', async (req: Request, res: Response) => {
   try {
-    const { olderThanDays = 30, keepErrorsOnly = false } = req.body;
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - parseInt(olderThanDays, 10));
+    const cleanType = (req.query.cleanType as string) || 'BOT_SCANS_ONLY';
+    const olderThanDays = parseInt(req.query.olderThanDays as string, 10) || 7;
+    const preserveErrors = req.query.preserveErrors !== 'false';
+    const preserveAdminAudit = req.query.preserveAdminAudit !== 'false';
 
-    const deleteFilter: any = {
-      createdAt: { $lt: cutoffDate }
-    };
+    const { filter } = buildPruneFilter({
+      cleanType,
+      olderThanDays,
+      preserveErrors,
+      preserveAdminAudit
+    });
 
-    if (keepErrorsOnly) {
-      deleteFilter.level = { $ne: 'ERROR' };
+    const [candidateCount, totalLogsCount, protectedErrorsCount, protectedAdminAuditCount] = await Promise.all([
+      SystemLogModel.countDocuments(filter),
+      SystemLogModel.countDocuments(),
+      SystemLogModel.countDocuments({ level: 'ERROR' }),
+      SystemLogModel.countDocuments({ role: { $in: ['ADMIN', 'STAFF'] } })
+    ]);
+
+    const estimatedFreeMb = Number(((candidateCount * 0.75) / 1024).toFixed(2));
+
+    res.json({
+      success: true,
+      preview: {
+        cleanType,
+        olderThanDays,
+        candidateCount,
+        totalLogsCount,
+        protectedErrorsCount,
+        protectedAdminAuditCount,
+        estimatedFreeMb
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi dự báo dọn dẹp: ' + (err.message || '') });
+  }
+});
+
+/**
+ * POST /api/system/logs/cleanup/archive-and-prune
+ * Đóng gói nén sao lưu theo Ngày-Tháng-Năm và dọn dẹp an toàn các bản ghi
+ */
+logsRouter.post('/cleanup/archive-and-prune', async (req: Request, res: Response) => {
+  try {
+    const {
+      cleanType = 'BOT_SCANS_ONLY',
+      olderThanDays = 7,
+      preserveErrors = true,
+      preserveAdminAudit = true,
+      backupBeforeDelete = true
+    } = req.body;
+
+    const { filter, cutoffDate } = buildPruneFilter({
+      cleanType,
+      olderThanDays,
+      preserveErrors,
+      preserveAdminAudit
+    });
+
+    const logsToArchive = await SystemLogModel.find(filter).lean();
+    if (logsToArchive.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Không có bản ghi nào phù hợp điều kiện để dọn dẹp.',
+        deletedCount: 0
+      });
     }
 
-    const result = await SystemLogModel.deleteMany(deleteFilter);
+    let archivedPackage: any = null;
 
-    await systemLogger.info('SYSTEM', 'CLEANUP_LOGS', `Đã dọn dẹp ${result.deletedCount} bản ghi nhật ký cũ`, {
+    if (backupBeforeDelete) {
+      ensureArchiveDir();
+      const now = new Date();
+      const dateTag = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const fileName = `logs_archive_${cleanType.toLowerCase()}_${dateTag}.json.gz`;
+      const filePath = path.join(ARCHIVE_DIR, fileName);
+
+      // Nén Gzip JSON
+      const jsonBuffer = Buffer.from(JSON.stringify(logsToArchive, null, 2), 'utf-8');
+      const gzBuffer = zlib.gzipSync(jsonBuffer);
+      fs.writeFileSync(filePath, gzBuffer);
+
+      archivedPackage = await ArchivedLogPackageModel.create({
+        packageId: `archive_${Date.now()}`,
+        fileName,
+        filePath,
+        recordCount: logsToArchive.length,
+        fileSizeBytes: gzBuffer.length,
+        category: cleanType,
+        olderThanDays,
+        dateFrom: logsToArchive[logsToArchive.length - 1]?.createdAt,
+        dateTo: logsToArchive[0]?.createdAt,
+        archivedBy: (req as any).user?.username || 'Admin'
+      });
+    }
+
+    // Xoá bản ghi khỏi MongoDB
+    const deleteResult = await SystemLogModel.deleteMany(filter);
+
+    await systemLogger.info('SYSTEM', 'CLEANUP_LOGS', `Đã dọn dẹp & lưu trữ ${deleteResult.deletedCount} bản ghi nhật ký`, {
       req,
-      details: { olderThanDays, keepErrorsOnly, deletedCount: result.deletedCount }
+      details: {
+        cleanType,
+        olderThanDays,
+        deletedCount: deleteResult.deletedCount,
+        archivedPackageId: archivedPackage?.packageId
+      }
     });
 
     res.json({
       success: true,
-      message: `Đã dọn dẹp ${result.deletedCount} bản ghi nhật ký cũ hơn ${olderThanDays} ngày`,
+      message: `Đã dọn dẹp và đóng gói lưu trữ an toàn ${deleteResult.deletedCount} bản ghi`,
+      deletedCount: deleteResult.deletedCount,
+      package: archivedPackage
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi dọn dẹp và lưu trữ: ' + (err.message || '') });
+  }
+});
+
+/**
+ * DELETE /api/system/logs/cleanup (Tương thích ngược)
+ */
+logsRouter.delete('/cleanup', async (req: Request, res: Response) => {
+  try {
+    const { olderThanDays = 30, keepErrorsOnly = true } = req.body;
+    const cleanType = keepErrorsOnly ? 'FULL_PRUNE_WITH_TRACE_PRESERVED' : 'ROUTINE_INFO';
+
+    const { filter } = buildPruneFilter({
+      cleanType,
+      olderThanDays,
+      preserveErrors: keepErrorsOnly,
+      preserveAdminAudit: true
+    });
+
+    const result = await SystemLogModel.deleteMany(filter);
+
+    res.json({
+      success: true,
+      message: `Đã dọn dẹp ${result.deletedCount} bản ghi`,
       deletedCount: result.deletedCount
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, message: 'Lỗi dọn dẹp nhật ký: ' + (err.message || '') });
+    res.status(500).json({ success: false, message: 'Lỗi dọn dẹp: ' + (err.message || '') });
+  }
+});
+
+/**
+ * GET /api/system/logs/archives
+ * Lấy danh sách các gói lưu trữ đã tạo để xem hoặc khôi phục
+ */
+logsRouter.get('/archives', async (req: Request, res: Response) => {
+  try {
+    const packages = await ArchivedLogPackageModel.find()
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ success: true, packages });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi lấy danh sách gói lưu trữ: ' + (err.message || '') });
+  }
+});
+
+/**
+ * POST /api/system/logs/archives/:id/restore
+ * Khôi phục bản ghi từ gói lưu trữ trở lại MongoDB NoSQL
+ */
+logsRouter.post('/archives/:id/restore', async (req: Request, res: Response) => {
+  try {
+    const pkg = await ArchivedLogPackageModel.findById(req.params.id);
+    if (!pkg) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy gói lưu trữ' });
+    }
+
+    if (!fs.existsSync(pkg.filePath)) {
+      return res.status(404).json({ success: false, message: 'Tệp gói lưu trữ không còn tồn tại trên máy chủ' });
+    }
+
+    // Đọc và giải nén Gzip
+    const gzBuffer = fs.readFileSync(pkg.filePath);
+    const jsonStr = zlib.gunzipSync(gzBuffer).toString('utf-8');
+    const logs: any[] = JSON.parse(jsonStr);
+
+    if (!Array.isArray(logs) || logs.length === 0) {
+      return res.status(400).json({ success: false, message: 'Gói lưu trữ không có dữ liệu để khôi phục' });
+    }
+
+    // Khôi phục vào MongoDB bằng bulkWrite với upsert để không bị lỗi duplicate key
+    const bulkOps = logs.map((l) => ({
+      updateOne: {
+        filter: { _id: l._id },
+        update: { $set: l },
+        upsert: true
+      }
+    }));
+
+    // Chia batch 500
+    const chunkSize = 500;
+    for (let i = 0; i < bulkOps.length; i += chunkSize) {
+      const chunk = bulkOps.slice(i, i + chunkSize);
+      await SystemLogModel.bulkWrite(chunk, { ordered: false });
+    }
+
+    pkg.restoredAt = new Date();
+    await pkg.save();
+
+    await systemLogger.info('SYSTEM', 'RESTORE_LOGS', `Đã khôi phục ${logs.length} bản ghi nhật ký từ gói ${pkg.fileName}`, {
+      req,
+      details: { packageId: pkg.packageId, recordCount: logs.length }
+    });
+
+    res.json({
+      success: true,
+      message: `Khôi phục thành công ${logs.length} bản ghi từ gói lưu trữ vào cơ sở dữ liệu MongoDB`,
+      restoredCount: logs.length
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi khôi phục nhật ký: ' + (err.message || '') });
+  }
+});
+
+/**
+ * GET /api/system/logs/archives/:id/download
+ * Tải file nén JSON/GZ về máy tính lưu trữ lạnh
+ */
+logsRouter.get('/archives/:id/download', async (req: Request, res: Response) => {
+  try {
+    const pkg = await ArchivedLogPackageModel.findById(req.params.id);
+    if (!pkg || !fs.existsSync(pkg.filePath)) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tệp gói lưu trữ' });
+    }
+
+    res.setHeader('Content-Type', 'application/gzip');
+    res.setHeader('Content-Disposition', `attachment; filename="${pkg.fileName}"`);
+    fs.createReadStream(pkg.filePath).pipe(res);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi tải tệp: ' + (err.message || '') });
+  }
+});
+
+/**
+ * DELETE /api/system/logs/archives/:id
+ * Xoá vĩnh viễn gói lưu trữ
+ */
+logsRouter.delete('/archives/:id', async (req: Request, res: Response) => {
+  try {
+    const pkg = await ArchivedLogPackageModel.findById(req.params.id);
+    if (!pkg) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy gói lưu trữ' });
+    }
+
+    if (fs.existsSync(pkg.filePath)) {
+      try {
+        fs.unlinkSync(pkg.filePath);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    await ArchivedLogPackageModel.findByIdAndDelete(req.params.id);
+
+    res.json({ success: true, message: 'Đã xóa gói lưu trữ' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi xóa gói lưu trữ: ' + (err.message || '') });
   }
 });
 

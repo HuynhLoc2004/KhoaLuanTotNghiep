@@ -1347,6 +1347,83 @@ export const api = {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  },
+
+  async previewCleanupLogs(params: { cleanType: string; olderThanDays: number; preserveErrors?: boolean; preserveAdminAudit?: boolean }): Promise<any> {
+    const q = new URLSearchParams({
+      cleanType: params.cleanType,
+      olderThanDays: String(params.olderThanDays),
+      preserveErrors: String(params.preserveErrors !== false),
+      preserveAdminAudit: String(params.preserveAdminAudit !== false)
+    });
+    const res = await fetch(`${API_BASE}/system/logs/cleanup/preview?${q.toString()}`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể lấy dự báo dọn dẹp');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi dự báo dọn dẹp');
+    return json;
+  },
+
+  async archiveAndPruneLogs(data: {
+    cleanType: string;
+    olderThanDays: number;
+    preserveErrors?: boolean;
+    preserveAdminAudit?: boolean;
+    backupBeforeDelete?: boolean;
+  }): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/logs/cleanup/archive-and-prune`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(data)
+    });
+    const json = await safeJson(res, 'Không thể dọn dẹp & lưu trữ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi dọn dẹp & lưu trữ');
+    return json;
+  },
+
+  async getLogArchives(): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/logs/archives`, {
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể tải danh sách gói lưu trữ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải danh sách gói lưu trữ');
+    return json;
+  },
+
+  async restoreLogArchive(id: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/logs/archives/${id}/restore`, {
+      method: 'POST',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể khôi phục gói lưu trữ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi khôi phục gói lưu trữ');
+    return json;
+  },
+
+  async downloadLogArchive(id: string, filename: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/system/logs/archives/${id}/download`, {
+      headers: getAuthHeaders(true)
+    });
+    if (!res.ok) throw new Error('Không thể tải tệp gói lưu trữ');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `archive_logs_${Date.now()}.json.gz`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
+
+  async deleteLogArchive(id: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/logs/archives/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể xóa gói lưu trữ');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi xóa gói lưu trữ');
+    return json;
   }
 };
 

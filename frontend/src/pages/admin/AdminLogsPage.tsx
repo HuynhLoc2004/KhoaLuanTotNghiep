@@ -9,7 +9,13 @@ import {
   Copy,
   Check,
   X,
-  Radio
+  Radio,
+  Archive,
+  RotateCcw,
+  ShieldCheck,
+  AlertTriangle,
+  HardDrive,
+  CheckCircle2
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { SystemLogItem, SystemLogStats, LogLevel } from '../../types';
@@ -55,12 +61,28 @@ export const AdminLogsPage: React.FC = () => {
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'error' | 'context' | 'payload'>('overview');
 
-  // Modal dọn dẹp log
+  // Modal Dọn dẹp & Lưu trữ / Khôi phục
   const [isCleanupModalOpen, setIsCleanupModalOpen] = useState<boolean>(false);
-  const [cleanupDays, setCleanupDays] = useState<number>(30);
-  const [keepErrorsOnly, setKeepErrorsOnly] = useState<boolean>(true);
+  const [cleanupModalTab, setCleanupModalTab] = useState<'clean' | 'archives'>('clean');
+  const [cleanType, setCleanType] = useState<'BOT_SCANS_ONLY' | 'ROUTINE_INFO' | 'FULL_PRUNE_WITH_TRACE_PRESERVED'>('BOT_SCANS_ONLY');
+  const [cleanupDays, setCleanupDays] = useState<number>(3);
+  const [backupBeforeDelete, setBackupBeforeDelete] = useState<boolean>(true);
+  const [previewData, setPreviewData] = useState<{
+    candidateCount: number;
+    totalLogsCount: number;
+    protectedErrorsCount: number;
+    protectedAdminAuditCount: number;
+    estimatedFreeMb: number;
+  } | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
   const [cleaningUp, setCleaningUp] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
+
+  // Danh sách gói lưu trữ & khôi phục
+  const [archivesList, setArchivesList] = useState<any[]>([]);
+  const [loadingArchives, setLoadingArchives] = useState<boolean>(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [deletingArchiveId, setDeletingArchiveId] = useState<string | null>(null);
 
   // Toast thông báo
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -196,22 +218,143 @@ export const AdminLogsPage: React.FC = () => {
     }
   };
 
-  // Xử lý dọn dẹp log
-  const handleExecuteCleanup = async () => {
+  // Định dạng kích thước tệp
+  const formatBytes = (bytes?: number) => {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  };
+
+  const getCategoryLabel = (cat: string) => {
+    switch (cat) {
+      case 'BOT_SCANS_ONLY':
+        return 'Chỉ bot dò quét 404 & request rác';
+      case 'ROUTINE_INFO':
+        return 'Nhật ký thường nhật cũ (INFO / SUCCESS)';
+      case 'FULL_PRUNE_WITH_TRACE_PRESERVED':
+        return 'Toàn diện (Bảo lưu Sự cố & Admin)';
+      default:
+        return cat;
+    }
+  };
+
+  // Tải dự báo dọn dẹp trước khi thực hiện
+  const fetchCleanupPreview = useCallback(async (type = cleanType, days = cleanupDays) => {
+    setLoadingPreview(true);
+    try {
+      const res = await api.previewCleanupLogs({
+        cleanType: type,
+        olderThanDays: days,
+        preserveErrors: true,
+        preserveAdminAudit: true
+      });
+      if (res.success && res.data) {
+        setPreviewData(res.data);
+      }
+    } catch (err: any) {
+      console.error('Lỗi tải dự báo dọn dẹp:', err);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }, [cleanType, cleanupDays]);
+
+  // Tải danh sách các gói nén đã lưu trữ
+  const fetchArchivesList = useCallback(async () => {
+    setLoadingArchives(true);
+    try {
+      const res = await api.getLogArchives();
+      if (res.success && res.data) {
+        setArchivesList(res.data);
+      }
+    } catch (err: any) {
+      console.error('Lỗi tải danh sách gói lưu trữ:', err);
+    } finally {
+      setLoadingArchives(false);
+    }
+  }, []);
+
+  const handleOpenCleanupModal = () => {
+    setIsCleanupModalOpen(true);
+    setCleanupModalTab('clean');
+    fetchCleanupPreview(cleanType, cleanupDays);
+    fetchArchivesList();
+  };
+
+  // Xử lý dọn dẹp & nén đóng gói lưu trữ
+  const handleExecuteArchiveAndPrune = async () => {
+    if (!previewData || previewData.candidateCount === 0) {
+      showToast('Không có bản ghi nào phù hợp điều kiện để dọn dẹp', 'info');
+      return;
+    }
     setCleaningUp(true);
     try {
-      const res = await api.cleanupSystemLogs({
+      const res = await api.archiveAndPruneLogs({
+        cleanType,
         olderThanDays: cleanupDays,
-        keepErrorsOnly
+        preserveErrors: true,
+        preserveAdminAudit: true,
+        backupBeforeDelete
       });
-      showToast(res.message || 'Dọn dẹp nhật ký thành công', 'success');
-      setIsCleanupModalOpen(false);
+      showToast(res.message || 'Đã dọn dẹp & lưu trữ an toàn!', 'success');
       fetchLogs();
       fetchStats();
+      fetchCleanupPreview(cleanType, cleanupDays);
+      fetchArchivesList();
+      if (backupBeforeDelete) {
+        setCleanupModalTab('archives');
+      }
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi dọn dẹp nhật ký', 'error');
     } finally {
       setCleaningUp(false);
+    }
+  };
+
+  // Khôi phục dữ liệu từ gói nén vào MongoDB
+  const handleRestoreArchive = async (archiveId: string, archiveName: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn khôi phục dữ liệu từ gói "${archiveName}" trở lại vào MongoDB?`)) {
+      return;
+    }
+    setRestoringId(archiveId);
+    try {
+      const res = await api.restoreLogArchive(archiveId);
+      showToast(res.message || 'Khôi phục nhật ký thành công!', 'success');
+      fetchLogs();
+      fetchStats();
+      fetchArchivesList();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khôi phục gói lưu trữ', 'error');
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  // Tải tệp nén gzip về máy
+  const handleDownloadArchive = async (archiveId: string, fileName: string) => {
+    try {
+      await api.downloadLogArchive(archiveId, fileName);
+      showToast(`Đang tải tệp ${fileName}`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi tải tệp lưu trữ', 'error');
+    }
+  };
+
+  // Xóa gói lưu trữ khỏi đĩa VPS
+  const handleDeleteArchive = async (archiveId: string) => {
+    if (!window.confirm('Bạn có chắc muốn xóa vĩnh viễn tệp nén này khỏi VPS? Thao tác này không thể hoàn tác.')) {
+      return;
+    }
+    setDeletingArchiveId(archiveId);
+    try {
+      const res = await api.deleteLogArchive(archiveId);
+      showToast(res.message || 'Đã xóa gói lưu trữ', 'success');
+      fetchArchivesList();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi xóa gói lưu trữ', 'error');
+    } finally {
+      setDeletingArchiveId(null);
     }
   };
 
@@ -338,12 +481,12 @@ export const AdminLogsPage: React.FC = () => {
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => setIsCleanupModalOpen(true)}
-            title="Dọn dẹp nhật ký cũ giải phóng bộ nhớ"
+            onClick={handleOpenCleanupModal}
+            title="Dọn dẹp & Lưu trữ nhật ký an toàn"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <Trash2 size={13} />
-            <span>Dọn dẹp</span>
+            <Archive size={13} />
+            <span>Lưu trữ & Dọn dẹp</span>
           </button>
         </div>
       </div>
@@ -866,74 +1009,453 @@ export const AdminLogsPage: React.FC = () => {
         </div>
       )}
 
-      {/* 6. MODAL DỌN DẸP NHẬT KÝ */}
+      {/* 6. MODAL QUẢN LÝ LƯU TRỮ & DỌN DẸP NHẬT KÝ (NOSQL MONGODB) */}
       {isCleanupModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsCleanupModalOpen(false)}>
           <div
-            className="modal-card panel"
+            className="log-inspector-modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 440, width: '90%' }}
+            style={{ maxWidth: 720, width: '94%', maxHeight: '88vh' }}
           >
-            <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--heading-color)' }}>
-                Dọn dẹp nhật ký hệ thống
-              </h3>
+            {/* Header */}
+            <div className="inspector-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <Archive size={17} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Quản lý Lưu trữ & Dọn dẹp Nhật ký (NoSQL MongoDB)
+                </span>
+              </div>
               <button
                 type="button"
                 className="btn-close-modal"
                 onClick={() => setIsCleanupModalOpen(false)}
+                title="Đóng modal"
               >
                 <X size={15} />
               </button>
             </div>
 
-            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
-              Xóa các bản ghi nhật ký cũ hơn khoảng thời gian chỉ định để giải phóng dung lượng lưu trữ cơ sở dữ liệu.
-            </p>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, marginBottom: 5 }}>
-                Khoảng thời gian dọn dẹp:
-              </label>
-              <select
-                className="form-control"
-                value={cleanupDays}
-                onChange={(e) => setCleanupDays(parseInt(e.target.value, 10))}
+            {/* Tabs */}
+            <div className="inspector-nav-tabs">
+              <button
+                type="button"
+                className={`inspector-tab ${cleanupModalTab === 'clean' ? 'active' : ''}`}
+                onClick={() => {
+                  setCleanupModalTab('clean');
+                  fetchCleanupPreview(cleanType, cleanupDays);
+                }}
               >
-                <option value={7}>Cũ hơn 7 ngày</option>
-                <option value={14}>Cũ hơn 14 ngày</option>
-                <option value={30}>Cũ hơn 30 ngày (Khuyên dùng)</option>
-                <option value={60}>Cũ hơn 60 ngày</option>
-                <option value={90}>Cũ hơn 90 ngày</option>
-              </select>
+                <Trash2 size={13} style={{ marginRight: 6, display: 'inline', verticalAlign: '-1px' }} />
+                <span>Đề xuất dọn dẹp an toàn</span>
+              </button>
+              <button
+                type="button"
+                className={`inspector-tab ${cleanupModalTab === 'archives' ? 'active' : ''}`}
+                onClick={() => {
+                  setCleanupModalTab('archives');
+                  fetchArchivesList();
+                }}
+              >
+                <RotateCcw size={13} style={{ marginRight: 6, display: 'inline', verticalAlign: '-1px' }} />
+                <span>Lịch sử Lưu trữ & Khôi phục (Restore)</span>
+                {archivesList.length > 0 && (
+                  <span style={{
+                    marginLeft: 6,
+                    background: 'rgba(212, 168, 106, 0.2)',
+                    color: 'var(--primary)',
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: 10
+                  }}>
+                    {archivesList.length}
+                  </span>
+                )}
+              </button>
             </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: 'pointer', marginBottom: 18 }}>
-              <input
-                type="checkbox"
-                checked={keepErrorsOnly}
-                onChange={(e) => setKeepErrorsOnly(e.target.checked)}
-              />
-              <span>Giữ lại tất cả các bản ghi có lỗi (ERROR)</span>
-            </label>
+            {/* Modal Body */}
+            <div className="inspector-body" style={{ padding: '18px 22px' }}>
+              {/* TAB 1: ĐỀ XUẤT DỌN DẸP */}
+              {cleanupModalTab === 'clean' && (
+                <div>
+                  <div style={{
+                    background: 'rgba(212, 168, 106, 0.06)',
+                    border: '1px solid rgba(212, 168, 106, 0.2)',
+                    borderRadius: 7,
+                    padding: '10px 14px',
+                    fontSize: 12.5,
+                    color: 'var(--text-main)',
+                    lineHeight: 1.5,
+                    marginBottom: 16
+                  }}>
+                    <strong style={{ color: 'var(--primary)' }}>Chiến lược dọn dẹp an toàn: </strong>
+                    Hệ thống tự động đề xuất phân loại bản ghi để giải phóng bộ nhớ RAM và đĩa cứng cho VPS mà
+                    <strong> không mất đi vết tra cứu (audit trace)</strong>. Bạn có thể khôi phục (restore) lại các bản ghi đã xóa bất cứ lúc nào.
+                  </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setIsCleanupModalOpen(false)}
-                disabled={cleaningUp}
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger btn-sm"
-                onClick={handleExecuteCleanup}
-                disabled={cleaningUp}
-              >
-                {cleaningUp ? 'Đang dọn...' : 'Xác nhận xóa'}
-              </button>
+                  {/* Chọn nhóm đề xuất */}
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 6 }}>
+                      Chọn đối tượng dọn dẹp đề xuất:
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <label style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                        padding: '10px 12px',
+                        borderRadius: 6,
+                        border: cleanType === 'BOT_SCANS_ONLY' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                        background: cleanType === 'BOT_SCANS_ONLY' ? 'rgba(212, 168, 106, 0.08)' : 'rgba(0, 0, 0, 0.1)',
+                        cursor: 'pointer'
+                      }}>
+                        <input
+                          type="radio"
+                          name="cleanType"
+                          checked={cleanType === 'BOT_SCANS_ONLY'}
+                          onChange={() => {
+                            setCleanType('BOT_SCANS_ONLY');
+                            fetchCleanupPreview('BOT_SCANS_ONLY', cleanupDays);
+                          }}
+                          style={{ marginTop: 2 }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                              Chỉ dọn bot dò quét 404 & request rác
+                            </span>
+                            <span style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              background: 'rgba(34, 197, 94, 0.15)',
+                              color: '#22C55E',
+                              padding: '1px 6px',
+                              borderRadius: 4
+                            }}>
+                              Khuyên dùng (An toàn 100%)
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                            Lọc sạch các request dò quét tự động từ Internet (như <code>/service-account.json</code>, <code>/.env</code>, <code>/pdown</code>,...).
+                            Bảo toàn 100% hoạt động của khách tham quan và nhân sự bảo tàng.
+                          </div>
+                        </div>
+                      </label>
+
+                      <label style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                        padding: '10px 12px',
+                        borderRadius: 6,
+                        border: cleanType === 'ROUTINE_INFO' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                        background: cleanType === 'ROUTINE_INFO' ? 'rgba(212, 168, 106, 0.08)' : 'rgba(0, 0, 0, 0.1)',
+                        cursor: 'pointer'
+                      }}>
+                        <input
+                          type="radio"
+                          name="cleanType"
+                          checked={cleanType === 'ROUTINE_INFO'}
+                          onChange={() => {
+                            setCleanType('ROUTINE_INFO');
+                            fetchCleanupPreview('ROUTINE_INFO', cleanupDays);
+                          }}
+                          style={{ marginTop: 2 }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                            Dọn nhật ký thông thường cũ (INFO / SUCCESS)
+                          </span>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                            Dọn các lượt xem trang và gọi API định kỳ đã cũ. <strong>Bảo lưu tuyệt đối</strong> toàn bộ Sự cố (ERROR) và Hành động Quản trị.
+                          </div>
+                        </div>
+                      </label>
+
+                      <label style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                        padding: '10px 12px',
+                        borderRadius: 6,
+                        border: cleanType === 'FULL_PRUNE_WITH_TRACE_PRESERVED' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                        background: cleanType === 'FULL_PRUNE_WITH_TRACE_PRESERVED' ? 'rgba(212, 168, 106, 0.08)' : 'rgba(0, 0, 0, 0.1)',
+                        cursor: 'pointer'
+                      }}>
+                        <input
+                          type="radio"
+                          name="cleanType"
+                          checked={cleanType === 'FULL_PRUNE_WITH_TRACE_PRESERVED'}
+                          onChange={() => {
+                            setCleanType('FULL_PRUNE_WITH_TRACE_PRESERVED');
+                            fetchCleanupPreview('FULL_PRUNE_WITH_TRACE_PRESERVED', cleanupDays);
+                          }}
+                          style={{ marginTop: 2 }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                            Dọn dẹp toàn diện (Bảo lưu Sự cố & Hành động Admin)
+                          </span>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                            Dọn toàn bộ log cũ ngoại trừ Lỗi hệ thống và Nhật ký nhân sự quản trị.
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Khoảng thời gian */}
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 5 }}>
+                      Khoảng thời gian cần dọn dẹp:
+                    </label>
+                    <select
+                      className="form-control"
+                      value={cleanupDays}
+                      onChange={(e) => {
+                        const days = parseInt(e.target.value, 10);
+                        setCleanupDays(days);
+                        fetchCleanupPreview(cleanType, days);
+                      }}
+                      style={{ fontSize: 12.5 }}
+                    >
+                      <option value={3}>Cũ hơn 3 ngày (Khuyên dùng cho bot rác)</option>
+                      <option value={7}>Cũ hơn 7 ngày</option>
+                      <option value={14}>Cũ hơn 14 ngày</option>
+                      <option value={30}>Cũ hơn 30 ngày</option>
+                      <option value={60}>Cũ hơn 60 ngày</option>
+                      <option value={90}>Cũ hơn 90 ngày</option>
+                    </select>
+                  </div>
+
+                  {/* Dự báo an toàn (Preview Card) */}
+                  <div style={{
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 7,
+                    padding: '12px 14px',
+                    marginBottom: 16
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <ShieldCheck size={14} style={{ color: '#22C55E' }} />
+                        Dự báo an toàn & Tài nguyên giải phóng:
+                      </span>
+                      {loadingPreview && (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Đang tính toán...</span>
+                      )}
+                    </div>
+
+                    {previewData && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px 10px', borderRadius: 5 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Bản ghi sẽ dọn:</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#EF4444' }}>
+                            {previewData.candidateCount.toLocaleString('vi-VN')} bản ghi
+                          </span>
+                          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>
+                            ~{previewData.estimatedFreeMb} MB giải phóng
+                          </span>
+                        </div>
+
+                        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px 10px', borderRadius: 5 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Bảo lưu an toàn (Không xóa):</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#22C55E', display: 'block' }}>
+                            {previewData.protectedErrorsCount} Sự cố / Lỗi
+                          </span>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {previewData.protectedAdminAuditCount} Tác vụ Admin
+                          </span>
+                        </div>
+
+                        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px 10px', borderRadius: 5 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Tổng bản ghi trong DB:</span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--heading-color)' }}>
+                            {previewData.totalLogsCount.toLocaleString('vi-VN')}
+                          </span>
+                          <span style={{ fontSize: 10.5, color: '#22C55E', display: 'block', marginTop: 1 }}>
+                            Giảm tải RAM working-set
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tùy chọn đóng gói sao lưu */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: 'pointer', marginBottom: 18 }}>
+                    <input
+                      type="checkbox"
+                      checked={backupBeforeDelete}
+                      onChange={(e) => setBackupBeforeDelete(e.target.checked)}
+                    />
+                    <span>
+                      <strong>Tự động đóng gói nén sao lưu (.json.gz)</strong> trước khi xóa để có thể <strong>Khôi phục (Restore)</strong> bất cứ lúc nào
+                    </span>
+                  </label>
+
+                  {/* Action buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setIsCleanupModalOpen(false)}
+                      disabled={cleaningUp}
+                    >
+                      Đóng
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      onClick={handleExecuteArchiveAndPrune}
+                      disabled={cleaningUp || !previewData || previewData.candidateCount === 0}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Trash2 size={13} />
+                      <span>{cleaningUp ? 'Đang dọn & đóng gói...' : `Dọn dẹp ${previewData ? previewData.candidateCount : 0} bản ghi`}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: LỊCH SỬ LƯU TRỮ & KHÔI PHỤC */}
+              {cleanupModalTab === 'archives' && (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+                      Các gói nhật ký được nén (.json.gz) lưu trữ tại máy chủ. Bạn có thể khôi phục lại bất kỳ gói nào vào MongoDB chỉ với 1 click.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs"
+                      onClick={fetchArchivesList}
+                      disabled={loadingArchives}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <RefreshCw size={11} className={loadingArchives ? 'spin' : ''} />
+                      <span>Làm mới</span>
+                    </button>
+                  </div>
+
+                  {loadingArchives && (
+                    <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-muted)' }}>
+                      Đang tải danh sách gói lưu trữ...
+                    </div>
+                  )}
+
+                  {!loadingArchives && archivesList.length === 0 && (
+                    <div style={{
+                      padding: '36px 20px',
+                      textAlign: 'center',
+                      background: 'rgba(0, 0, 0, 0.15)',
+                      borderRadius: 8,
+                      border: '1px dashed var(--border-color)'
+                    }}>
+                      <Archive size={30} style={{ color: 'var(--text-muted)', marginBottom: 8, opacity: 0.5 }} />
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--heading-color)', marginBottom: 4 }}>
+                        Chưa có gói lưu trữ nào
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto' }}>
+                        Khi bạn thực hiện dọn dẹp ở tab "Đề xuất dọn dẹp" và chọn sao lưu, các gói nén sẽ xuất hiện tại đây để bạn có thể Khôi phục hoặc Tải về.
+                      </div>
+                    </div>
+                  )}
+
+                  {!loadingArchives && archivesList.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 380, overflowY: 'auto' }}>
+                      {archivesList.map((pkg: any) => (
+                        <div
+                          key={pkg._id}
+                          style={{
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 7,
+                            padding: '12px 14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: 10
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 260 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                                {pkg.fileName}
+                              </span>
+                              {pkg.restoredAt && (
+                                <span style={{
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  background: 'rgba(34, 197, 94, 0.15)',
+                                  color: '#22C55E',
+                                  padding: '1px 6px',
+                                  borderRadius: 4
+                                }}>
+                                  Đã khôi phục
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                              <span>Phân loại: <strong>{getCategoryLabel(pkg.category)}</strong></span>
+                              <span>Số lượng: <strong style={{ color: 'var(--primary)' }}>{pkg.recordCount?.toLocaleString('vi-VN')} bản ghi</strong></span>
+                              <span>Kích thước nén: <strong>{formatBytes(pkg.fileSizeBytes)}</strong></span>
+                              <span>Tạo lúc: {formatDateTime(pkg.createdAt)}</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-xs"
+                              onClick={() => handleRestoreArchive(pkg._id, pkg.fileName)}
+                              disabled={restoringId === pkg._id}
+                              title="Khôi phục dữ liệu từ gói này trở lại vào MongoDB"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                              <RotateCcw size={11} className={restoringId === pkg._id ? 'spin' : ''} />
+                              <span>{restoringId === pkg._id ? 'Đang nạp...' : 'Khôi phục'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-xs"
+                              onClick={() => handleDownloadArchive(pkg._id, pkg.fileName)}
+                              title="Tải tệp nén .json.gz về máy tính"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                              <Download size={11} />
+                              <span>Tải file</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-xs"
+                              onClick={() => handleDeleteArchive(pkg._id)}
+                              disabled={deletingArchiveId === pkg._id}
+                              title="Xóa vĩnh viễn tệp nén khỏi VPS"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#EF4444' }}
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setIsCleanupModalOpen(false)}
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
