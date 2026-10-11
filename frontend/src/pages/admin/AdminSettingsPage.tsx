@@ -269,8 +269,14 @@ export const AdminSettingsPage: React.FC = () => {
       setPreviewingCloudinary(true);
       const res = await api.previewCloudinaryCleanup();
       if (res.success && res.preview) {
-        setCloudinaryPreview(res.preview);
-        showToast(`Đã quét Cloudinary: Phát hiện ${res.preview.totalOrphaned} ảnh thừa (${res.preview.estimatedFreedMB} MB)`, 'info');
+        const previewData = {
+          scannedCount: res.preview.scannedCount ?? res.preview.totalScanned ?? 0,
+          totalOrphaned: res.preview.totalOrphaned ?? res.preview.orphanedList?.length ?? 0,
+          estimatedFreedMB: res.preview.estimatedFreedMB ?? (res.preview.orphanedList ? Number(((res.preview.orphanedList.reduce((acc: number, x: any) => acc + (x.bytes || 0), 0)) / (1024 * 1024)).toFixed(2)) : 0),
+          sampleOrphans: res.preview.sampleOrphans ?? (res.preview.orphanedList ? res.preview.orphanedList.slice(0, 10).map((x: any) => x.public_id) : [])
+        };
+        setCloudinaryPreview(previewData);
+        showToast(`Đã quét Cloudinary: Phát hiện ${previewData.totalOrphaned} ảnh thừa (~${previewData.estimatedFreedMB} MB)`, 'info');
       }
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi quét ảnh Cloudinary', 'error');
@@ -2586,7 +2592,9 @@ export const AdminSettingsPage: React.FC = () => {
             style={{
               maxWidth: 600,
               width: 'min(600px, 94vw)',
-              maxHeight: 'min(90vh, 760px)',
+              height: 'min(640px, 88vh)',
+              minHeight: 'min(560px, 82vh)',
+              maxHeight: 'min(760px, 92vh)',
               display: 'flex',
               flexDirection: 'column'
             }}
@@ -2634,7 +2642,7 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="modal-body" style={{ overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="modal-body" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               {cleanupTab === 'instant' ? (
                 <>
                   <div style={{

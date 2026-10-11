@@ -848,7 +848,15 @@ systemRouter.put('/cleanup/schedule', authenticate, requireAdmin, async (req: Re
  */
 systemRouter.get('/cleanup/cloudinary-preview', authenticate, requireAdmin, async (_req: Request, res: Response) => {
   try {
-    const preview = await scanOrphanedCloudinaryImages(300);
+    const raw = await scanOrphanedCloudinaryImages(300);
+    const totalBytes = (raw.orphanedList || []).reduce((acc, x) => acc + (x.bytes || 0), 0);
+    const estimatedFreedMB = Number((totalBytes / (1024 * 1024)).toFixed(2));
+    const preview = {
+      scannedCount: raw.totalScanned || 0,
+      totalOrphaned: (raw.orphanedList || []).length,
+      estimatedFreedMB,
+      sampleOrphans: (raw.orphanedList || []).slice(0, 10).map((x) => x.public_id)
+    };
     res.json({ success: true, preview });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi quét ảnh Cloudinary: ' + err.message });
