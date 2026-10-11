@@ -737,7 +737,7 @@ export const AdminLogsPage: React.FC = () => {
 
         {/* 5. PHÂN TRANG CHUẨN CỦA HỆ THỐNG QUẢN TRỊ ADMIN */}
         {totalCount > 0 && (
-          <div style={{ padding: '8px 16px' }}>
+          <div className="logs-pagination-footer">
             <Pagination
               currentPage={page}
               totalItems={totalCount}
