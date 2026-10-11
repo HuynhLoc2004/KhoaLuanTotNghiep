@@ -1680,11 +1680,8 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
               </div>
             ) : (
               <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                  gap: '20px'
-                }}
+                className="rooms-grid"
+                style={{ padding: 0 }}
               >
                 {paginatedPanos.map((item, idx) => (
                   <div

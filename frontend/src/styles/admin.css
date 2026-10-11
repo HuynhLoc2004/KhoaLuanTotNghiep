@@ -859,9 +859,15 @@
 
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   padding: 16px 20px;
+}
+
+@media (max-width: 1080px) {
+  .rooms-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -3133,13 +3139,19 @@
   margin-bottom: 20px;
 }
 
-/* History Grid - Bố cục dạng Lưới Responsive Chuẩn Dashboard */
+/* History Grid - Bố cục dạng Lưới 3 Cột Chuẩn Dashboard theo phân trang */
 .studio-history-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   width: 100%;
   max-width: 100%;
+}
+
+@media (max-width: 1080px) {
+  .studio-history-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
