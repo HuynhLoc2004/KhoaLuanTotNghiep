@@ -31,7 +31,8 @@ import {
 import { NewRoomModal } from '../components/NewRoomModal';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { SpatialRoomViewer } from '../components/SpatialRoomViewer';
-import { API_BASE } from '../services/api';
+import { api, API_BASE } from '../services/api';
+import { MuseumRoom } from '../types';
 import { useToast } from '../components/Toast';
 import { ShootingGuideModal } from '../components/ShootingGuideModal';
 import { WebcamCaptureModal } from '../components/WebcamCaptureModal';
@@ -133,6 +134,7 @@ export const PocStitchingPage: React.FC = () => {
   const [stitchResult, setStitchResult] = useState<StitchResult | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [historyList, setHistoryList] = useState<StitchedHistoryItem[]>([]);
+  const [rooms, setRooms] = useState<MuseumRoom[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [copiedHistoryUrl, setCopiedHistoryUrl] = useState<string | null>(null);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
@@ -198,21 +200,31 @@ export const PocStitchingPage: React.FC = () => {
   const fetchHistory = async (isManualRefresh = false) => {
     try {
       setLoadingHistory(true);
-      // Gửi tham số chống cache để đảm bảo nhận 100% dữ liệu thực tế mới nhất từ đĩa cứng & DB
-      const res = await fetch(`${API_BASE}/stitch/history?_t=${Date.now()}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
+      // Gửi tham số chống cache để đảm bảo nhận 100% dữ liệu thực tế mới nhất từ đĩa cứng & DB song song với danh sách phòng
+      const [historyPromise, roomsPromise] = await Promise.allSettled([
+        fetch(`${API_BASE}/stitch/history?_t=${Date.now()}`, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        }).then((r) => r.json()),
+        api.getRooms()
+      ]);
+
+      if (roomsPromise.status === 'fulfilled' && Array.isArray(roomsPromise.value)) {
+        setRooms(roomsPromise.value);
+      }
+
+      if (historyPromise.status === 'fulfilled') {
+        const data = historyPromise.value;
+        if (data.success && Array.isArray(data.panoramas)) {
+          setHistoryList(data.panoramas);
+          if (isManualRefresh) {
+            showToast(`Đã đồng bộ dữ liệu thật: ${data.panoramas.length} ảnh 360° sẵn sàng`, 'success');
+          }
+        } else if (isManualRefresh) {
+          showToast('Không thể tải danh sách ảnh 360° từ máy chủ.', 'error');
         }
-      });
-      const data = await res.json();
-      if (data.success && Array.isArray(data.panoramas)) {
-        setHistoryList(data.panoramas);
-        if (isManualRefresh) {
-          showToast(`Đã đồng bộ dữ liệu thật: ${data.panoramas.length} ảnh 360° sẵn sàng`, 'success');
-        }
-      } else if (isManualRefresh) {
-        showToast('Không thể tải danh sách ảnh 360° từ máy chủ.', 'error');
       }
     } catch (err: any) {
       console.warn('Lỗi tải lịch sử ảnh 360:', err);
@@ -911,9 +923,88 @@ export const PocStitchingPage: React.FC = () => {
   // Bộ lọc thư viện không gian: tất cả / chưa gán phòng / đã gán phòng
   const [historyFilter, setHistoryFilter] = useState<'all' | 'unused' | 'used'>('all');
 
+  // Hàm đối chiếu chuẩn xác ảnh 360° với các phòng thực tế đang tồn tại trong hệ thống
+  const getAssignedRooms = React.useCallback(
+    (item: StitchedHistoryItem): string[] => {
+      const list: string[] = [];
+      if (Array.isArray(item.usedInRooms)) {
+        for (const r of item.usedInRooms) {
+          if (r && !list.includes(r)) list.push(r);
+        }
+      }
+
+      if (rooms && rooms.length > 0) {
+        const fn = (item.filename || '').trim().toLowerCase();
+        const fnNoExt = fn.replace(/\.[^/.]+$/, '');
+        const fnNumeric = fn.match(/\d{10,}/)?.[0];
+        const itemUrl = (item.url || '').toLowerCase();
+
+        for (const r of rooms) {
+          const rName = (r.name || r.code || '').trim();
+          const rScenes = (r as any).scenes || [];
+          const rUrls = [
+            r.panoramaUrl,
+            r.thumbnailUrl,
+            ...(Array.isArray(rScenes) ? rScenes.map((s: any) => s.panoramaUrl || s.url) : [])
+          ]
+            .filter(Boolean)
+            .map((u) => String(u).toLowerCase());
+
+          let matched = false;
+          for (const rUrl of rUrls) {
+            if (!rUrl) continue;
+            const rBase = rUrl.split('/').pop()?.split('?')[0] || '';
+            const rBaseNoExt = rBase.replace(/\.[^/.]+$/, '');
+            const rNumeric = rUrl.match(/\d{10,}/)?.[0];
+
+            if (fn && rUrl.includes(fn)) {
+              matched = true;
+              break;
+            }
+            if (fnNoExt && fnNoExt.length > 5 && rUrl.includes(fnNoExt)) {
+              matched = true;
+              break;
+            }
+            if (rBase && fn && rBase === fn) {
+              matched = true;
+              break;
+            }
+            if (rBaseNoExt && fnNoExt && rBaseNoExt === fnNoExt) {
+              matched = true;
+              break;
+            }
+            if (fnNumeric && rNumeric && fnNumeric === rNumeric) {
+              matched = true;
+              break;
+            }
+            if (itemUrl && (itemUrl === rUrl || rUrl.includes(itemUrl) || itemUrl.includes(rUrl))) {
+              matched = true;
+              break;
+            }
+          }
+
+          if (matched && rName && !list.includes(rName)) {
+            list.push(rName);
+          }
+        }
+      }
+
+      return list;
+    },
+    [rooms]
+  );
+
+  const isItemAssigned = React.useCallback(
+    (item: StitchedHistoryItem): boolean => {
+      if (item.isUsed) return true;
+      return getAssignedRooms(item).length > 0;
+    },
+    [getAssignedRooms]
+  );
+
   const usedHistoryCount = React.useMemo(() => {
-    return historyList.filter((item) => item.isUsed || (item.usedInRooms && item.usedInRooms.length > 0)).length;
-  }, [historyList]);
+    return historyList.filter((item) => isItemAssigned(item)).length;
+  }, [historyList, isItemAssigned]);
 
   const unusedHistoryCount = React.useMemo(() => {
     return Math.max(0, historyList.length - usedHistoryCount);
@@ -921,13 +1012,13 @@ export const PocStitchingPage: React.FC = () => {
 
   const filteredHistoryList = React.useMemo(() => {
     if (historyFilter === 'unused') {
-      return historyList.filter((item) => !item.isUsed && (!item.usedInRooms || item.usedInRooms.length === 0));
+      return historyList.filter((item) => !isItemAssigned(item));
     }
     if (historyFilter === 'used') {
-      return historyList.filter((item) => item.isUsed || (item.usedInRooms && item.usedInRooms.length > 0));
+      return historyList.filter((item) => isItemAssigned(item));
     }
     return historyList;
-  }, [historyList, historyFilter]);
+  }, [historyList, historyFilter, isItemAssigned]);
 
   const paginatedHistory = filteredHistoryList.slice(
     (historyPage - 1) * historyPageSize,
@@ -1766,9 +1857,10 @@ export const PocStitchingPage: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="studio-history-grid">
+                    <div className="studio-history-grid" style={{ minHeight: '380px' }}>
                       {paginatedHistory.map((item, idx) => {
-                        const isAssigned = Boolean(item.isUsed || (item.usedInRooms && item.usedInRooms.length > 0));
+                        const assignedRooms = getAssignedRooms(item);
+                        const isAssigned = isItemAssigned(item) || assignedRooms.length > 0;
                         return (
                           <div key={item.filename || idx} className="studio-history-card">
                             <div
@@ -1820,7 +1912,7 @@ export const PocStitchingPage: React.FC = () => {
                                     boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
                                     backdropFilter: 'blur(4px)'
                                   }}
-                                  title={`Đã gán cho gian phòng: ${item.usedInRooms?.join(', ')}`}
+                                  title={`Đã gán cho gian phòng: ${assignedRooms.join(', ')}`}
                                 >
                                   <CheckCircle2 size={12} />
                                   <span>Đã gán phòng</span>
@@ -1895,11 +1987,11 @@ export const PocStitchingPage: React.FC = () => {
                                     gap: 5,
                                     margin: '6px 0'
                                   }}
-                                  title={`Đang sử dụng trong gian phòng: ${item.usedInRooms?.join(', ')}`}
+                                  title={`Đang sử dụng trong gian phòng: ${assignedRooms.join(', ')}`}
                                 >
                                   <CheckCircle2 size={12} style={{ flexShrink: 0 }} />
                                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    Đã gán: <strong>{item.usedInRooms?.join(', ')}</strong>
+                                    Đã gán: <strong>{assignedRooms.join(', ') || 'Đang sử dụng'}</strong>
                                   </span>
                                 </div>
                               ) : (
@@ -1984,8 +2076,8 @@ export const PocStitchingPage: React.FC = () => {
                                 <button
                                   type="button"
                                   className="btn btn-secondary btn-sm"
-                                  onClick={() => handleDeleteHistoryPano(item.filename, item.usedInRooms)}
-                                  title={item.usedInRooms?.length ? `Đang sử dụng trong gian phòng "${item.usedInRooms.join(', ')}"` : "Xóa khỏi máy chủ"}
+                                  onClick={() => handleDeleteHistoryPano(item.filename, assignedRooms)}
+                                  title={assignedRooms.length ? `Đang sử dụng trong gian phòng "${assignedRooms.join(', ')}"` : "Xóa khỏi máy chủ"}
                                   style={{ color: 'var(--error)', borderColor: 'var(--error-border)' }}
                                 >
                                   <Trash2 size={13} />

@@ -1050,6 +1050,60 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
       dbPanos.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch {}
 
+    // Hàm kiểm tra so khớp ảnh 360 với gian phòng hỗ trợ đa định dạng (Cloudinary, R2, Local, Timestamp)
+    const isPanoMatchedWithRoom = (p: any, r: any): boolean => {
+      const fn = String(p.filename || '').trim().toLowerCase();
+      const fnNoExt = fn.replace(/\.[^/.]+$/, '');
+      const fnNumeric = fn.match(/\d{10,}/)?.[0];
+
+      const pUrls = [
+        String(p.panoramaUrl || '').toLowerCase(),
+        String(p.thumbnailUrl || '').toLowerCase(),
+        String(p.cloudinaryUrl || '').toLowerCase(),
+        String(p.r2Url || '').toLowerCase(),
+        String(p.localUrl || '').toLowerCase(),
+        String(p.url || '').toLowerCase()
+      ].filter(Boolean);
+
+      const rUrls = [
+        String(r.panorama_url || (r as any).panoramaUrl || '').toLowerCase(),
+        String(r.thumbnail_url || (r as any).thumbnailUrl || '').toLowerCase()
+      ].filter(Boolean);
+
+      const scenes = (r as any).scenes || [];
+      if (Array.isArray(scenes)) {
+        for (const s of scenes) {
+          if (s?.panoramaUrl) rUrls.push(String(s.panoramaUrl).toLowerCase());
+          if (s?.url) rUrls.push(String(s.url).toLowerCase());
+        }
+      }
+
+      for (const rUrl of rUrls) {
+        if (!rUrl) continue;
+        const rBase = path.basename(decodeURIComponent(rUrl.split('?')[0])).toLowerCase();
+        const rBaseNoExt = rBase.replace(/\.[^/.]+$/, '');
+        const rNumeric = rUrl.match(/\d{10,}/)?.[0];
+
+        // 1. So khớp theo tên file chính xác hoặc tên không đuôi
+        if (fn && rUrl.includes(fn)) return true;
+        if (fnNoExt && fnNoExt.length > 5 && rUrl.includes(fnNoExt)) return true;
+        if (rBase && fn && rBase === fn) return true;
+        if (rBaseNoExt && fnNoExt && rBaseNoExt === fnNoExt) return true;
+
+        // 2. So khớp theo dấu ấn số timestamp (ví dụ 1791604586606)
+        if (fnNumeric && rNumeric && fnNumeric === rNumeric) return true;
+
+        // 3. So khớp trực tiếp URL
+        for (const pUrl of pUrls) {
+          if (pUrl && (pUrl === rUrl || rUrl.includes(pUrl) || pUrl.includes(rUrl))) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    };
+
     // Tra cứu danh sách các gian phòng đang sử dụng ảnh để hiển thị liên kết
     const roomUsageMap = new Map<string, string[]>();
     const registerRoomUsage = (filename: string, roomLabel: string) => {
@@ -1062,48 +1116,29 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
       const pgRooms = await pgPool.query('SELECT id, code, name, panorama_url, thumbnail_url FROM rooms;');
       for (const r of pgRooms.rows) {
         const rName = (r.name || r.code || '').trim();
-        const pUrl = (r.panorama_url || '').toLowerCase();
-        const tUrl = (r.thumbnail_url || '').toLowerCase();
-        const pBase = path.basename(decodeURIComponent(pUrl.split('?')[0])).toLowerCase();
-        const tBase = path.basename(decodeURIComponent(tUrl.split('?')[0])).toLowerCase();
-
         for (const p of dbPanos) {
-          const fn = (p.filename || '').toLowerCase();
-          const pPanoUrl = (p.panoramaUrl || '').toLowerCase();
-          if (fn && (pUrl.includes(fn) || tUrl.includes(fn) || pBase === fn || tBase === fn || (pPanoUrl && pUrl.includes(pPanoUrl)))) {
+          if (isPanoMatchedWithRoom(p, r)) {
             registerRoomUsage(p.filename, rName);
           }
         }
       }
-    } catch {}
+    } catch (pgErr: any) {
+      console.warn('[Stitch Match PG Warning]:', pgErr.message);
+    }
 
     try {
       const mongoRooms = await RoomModel.find({}).select('id code name panoramaUrl thumbnailUrl scenes').lean();
       for (const r of mongoRooms) {
         const rName = ((r as any).name || (r as any).code || '').trim();
-        const pUrl = ((r as any).panoramaUrl || '').toLowerCase();
-        const tUrl = ((r as any).thumbnailUrl || '').toLowerCase();
-        const pBase = path.basename(decodeURIComponent(pUrl.split('?')[0])).toLowerCase();
-        const tBase = path.basename(decodeURIComponent(tUrl.split('?')[0])).toLowerCase();
-        const scenes = (r as any).scenes || [];
-
         for (const p of dbPanos) {
-          const fn = (p.filename || '').toLowerCase();
-          const pPanoUrl = (p.panoramaUrl || '').toLowerCase();
-          let matched = Boolean(fn && (pUrl.includes(fn) || tUrl.includes(fn) || pBase === fn || tBase === fn || (pPanoUrl && pUrl.includes(pPanoUrl))));
-          if (!matched && Array.isArray(scenes)) {
-            matched = scenes.some((s: any) => {
-              const sUrl = (s?.panoramaUrl || '').toLowerCase();
-              const sBase = path.basename(decodeURIComponent(sUrl.split('?')[0])).toLowerCase();
-              return sUrl.includes(fn) || sBase === fn;
-            });
-          }
-          if (matched) {
+          if (isPanoMatchedWithRoom(p, r)) {
             registerRoomUsage(p.filename, rName);
           }
         }
       }
-    } catch {}
+    } catch (mErr: any) {
+      console.warn('[Stitch Match Mongo Warning]:', mErr.message);
+    }
 
     // 5. Định dạng kết quả trả về kèm thông tin liên kết phòng
     const panoramas = dbPanos.map((p: any) => {
@@ -1147,16 +1182,25 @@ async function checkPanoramaUsage(filename: string): Promise<{ inUse: boolean; r
   const rooms: string[] = [];
   const floorPlans: string[] = [];
   const cleanName = path.basename(filename).toLowerCase();
+  const nameWithoutExt = cleanName.replace(/\.[^/.]+$/, '');
+  const numericSignature = cleanName.match(/\d{10,}/)?.[0];
 
   // 1. Kiểm tra trong PostgreSQL (Primary Database)
   try {
     const pgRes = await pgPool.query(
-      `SELECT name, code FROM rooms WHERE LOWER(panorama_url) LIKE $1 OR LOWER(thumbnail_url) LIKE $1;`,
-      [`%${cleanName}%`]
+      `SELECT name, code, panorama_url, thumbnail_url FROM rooms;`
     );
     for (const r of pgRes.rows) {
       const roomName = (r.name || r.code || '').trim();
-      if (roomName && !rooms.includes(roomName)) {
+      const pUrl = (r.panorama_url || '').toLowerCase();
+      const tUrl = (r.thumbnail_url || '').toLowerCase();
+
+      const isMatch =
+        (cleanName && (pUrl.includes(cleanName) || tUrl.includes(cleanName))) ||
+        (nameWithoutExt && nameWithoutExt.length > 5 && (pUrl.includes(nameWithoutExt) || tUrl.includes(nameWithoutExt))) ||
+        (numericSignature && (pUrl.includes(numericSignature) || tUrl.includes(numericSignature)));
+
+      if (isMatch && roomName && !rooms.includes(roomName)) {
         rooms.push(roomName);
       }
     }
@@ -1166,17 +1210,28 @@ async function checkPanoramaUsage(filename: string): Promise<{ inUse: boolean; r
 
   // 2. Kiểm tra trong MongoDB (Mirror Database)
   try {
-    const mongoRooms = await RoomModel.find({
-      $or: [
-        { panoramaUrl: { $regex: cleanName, $options: 'i' } },
-        { thumbnailUrl: { $regex: cleanName, $options: 'i' } },
-        { 'scenes.panoramaUrl': { $regex: cleanName, $options: 'i' } }
-      ]
-    }).select('name code').lean();
-
+    const mongoRooms = await RoomModel.find({}).select('name code panoramaUrl thumbnailUrl scenes').lean();
     for (const r of mongoRooms) {
       const roomName = ((r as any).name || (r as any).code || '').trim();
-      if (roomName && !rooms.includes(roomName)) {
+      const pUrl = ((r as any).panoramaUrl || '').toLowerCase();
+      const tUrl = ((r as any).thumbnailUrl || '').toLowerCase();
+      const scenes = (r as any).scenes || [];
+
+      let isMatch =
+        (cleanName && (pUrl.includes(cleanName) || tUrl.includes(cleanName))) ||
+        (nameWithoutExt && nameWithoutExt.length > 5 && (pUrl.includes(nameWithoutExt) || tUrl.includes(nameWithoutExt))) ||
+        (numericSignature && (pUrl.includes(numericSignature) || tUrl.includes(numericSignature)));
+
+      if (!isMatch && Array.isArray(scenes)) {
+        isMatch = scenes.some((s: any) => {
+          const sUrl = (s?.panoramaUrl || s?.url || '').toLowerCase();
+          return (cleanName && sUrl.includes(cleanName)) ||
+                 (nameWithoutExt && nameWithoutExt.length > 5 && sUrl.includes(nameWithoutExt)) ||
+                 (numericSignature && sUrl.includes(numericSignature));
+        });
+      }
+
+      if (isMatch && roomName && !rooms.includes(roomName)) {
         rooms.push(roomName);
       }
     }
@@ -1186,13 +1241,19 @@ async function checkPanoramaUsage(filename: string): Promise<{ inUse: boolean; r
 
   // 3. Kiểm tra trong FloorPlanMap (Bản đồ tầng)
   try {
-    const fpList = await FloorPlanMapModel.find({
-      'nodes.panoramaUrl': { $regex: cleanName, $options: 'i' }
-    }).select('name title').lean();
-
+    const fpList = await FloorPlanMapModel.find({}).select('name title nodes').lean();
     for (const fp of fpList) {
       const fpName = ((fp as any).name || (fp as any).title || '').trim();
-      if (fpName && !floorPlans.includes(fpName)) {
+      const nodes = (fp as any).nodes || [];
+
+      const isMatch = Array.isArray(nodes) && nodes.some((node: any) => {
+        const nUrl = (node?.panoramaUrl || '').toLowerCase();
+        return (cleanName && nUrl.includes(cleanName)) ||
+               (nameWithoutExt && nameWithoutExt.length > 5 && nUrl.includes(nameWithoutExt)) ||
+               (numericSignature && nUrl.includes(numericSignature));
+      });
+
+      if (isMatch && fpName && !floorPlans.includes(fpName)) {
         floorPlans.push(fpName);
       }
     }
