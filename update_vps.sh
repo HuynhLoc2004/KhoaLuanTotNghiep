@@ -5,6 +5,10 @@
 # ==============================================================================
 set -e
 
+# Tắt BuildKit trên Ubuntu 18.04 kernel 4.15 để tránh lỗi treo daemon/socket deadlock
+export DOCKER_BUILDKIT=0
+export COMPOSE_DOCKER_CLI_BUILD=0
+
 # Tự động nạp môi trường NVM & Node.js
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
