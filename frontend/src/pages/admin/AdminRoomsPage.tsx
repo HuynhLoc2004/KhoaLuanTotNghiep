@@ -44,6 +44,7 @@ import { useToast } from '../../components/Toast';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { formatPanoTitle } from '../../utils/formatPanoTitle';
 
 interface AdminRoomsPageProps {
   rooms: MuseumRoom[];
@@ -1705,7 +1706,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                         overflow: 'hidden',
                         cursor: 'pointer'
                       }}
-                      onClick={() => setPreviewPanoUrl({ url: item.url, title: item.filename })}
+                      onClick={() => setPreviewPanoUrl({ url: item.url, title: formatPanoTitle(item.filename, undefined, item.usedInRooms, item.createdAt) })}
                       title="Bấm để xoay xem toàn cảnh 360°"
                     >
                       <div
@@ -1786,11 +1787,24 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
                           fontSize: '13px',
                           fontWeight: 700,
                           color: 'var(--text-main)',
-                          wordBreak: 'break-all',
                           lineHeight: 1.4
                         }}
                       >
-                        {item.filename}
+                        {formatPanoTitle(item.filename, undefined, item.usedInRooms, item.createdAt)}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '10.5px',
+                          color: '#64748b',
+                          fontFamily: 'monospace',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          marginTop: 2
+                        }}
+                        title={item.filename}
+                      >
+                        Tệp: {item.filename}
                       </div>
 
                       <div

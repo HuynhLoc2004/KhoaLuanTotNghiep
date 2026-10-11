@@ -41,6 +41,7 @@ import { copyTextToClipboard } from '../utils/clipboard';
 import { supportsNativeCameraCapture } from '../utils/device';
 import { useClientTranslation } from '../context/ClientTranslationContext';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { formatPanoTitle } from '../utils/formatPanoTitle';
 
 /** Cấu hình hỗ trợ số lượng ảnh linh hoạt từ 3 ảnh đến 100+ ảnh */
 const FRAME_RECOMMENDED_MIN = 12;
@@ -100,6 +101,8 @@ interface StitchResult {
   cloudinaryUrl?: string;
   r2Url?: string;
   filename: string;
+  title?: string;
+  assignedRooms?: string[];
   width: number;
   height: number;
   aspectRatio: string | number;
@@ -272,15 +275,20 @@ export const PocStitchingPage: React.FC = () => {
       ...v,
       url: normalizePanoUrl(v.url)
     }));
+    const assignedList = getAssignedRooms(item);
+    const displayTitle = formatPanoTitle(item.filename, item.title, assignedList, item.createdAt);
+
     setStitchResult({
       id: item.id,
       panoramaUrl: normalizedUrl,
       filename: item.filename,
+      title: displayTitle,
+      assignedRooms: assignedList,
       width: item.width || 2048,
       height: item.height || 1024,
       aspectRatio: '2:1',
       views: normalizedViews,
-      message: `Đang xem gian phòng: ${item.title || item.filename}`
+      message: `Đang xem: ${displayTitle}`
     });
     setActiveViewUrl(normalizedUrl);
     setViewerMode('pano360');
@@ -1609,10 +1617,16 @@ export const PocStitchingPage: React.FC = () => {
               <div className="studio-viewer-col" ref={viewerSectionRef}>
                 <div className="studio-card">
                   <div className="studio-card-header" style={{ flexWrap: 'wrap', gap: 10 }}>
-                    <span className="studio-card-title" style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={stitchResult ? stitchResult.filename : t('stitching.previewTitle', 'Trình xem trước không gian 360°')}>
+                    <span
+                      className="studio-card-title"
+                      style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      title={stitchResult ? (stitchResult.title || formatPanoTitle(stitchResult.filename, undefined, stitchResult.assignedRooms)) : t('stitching.previewTitle', 'Trình xem trước không gian 360°')}
+                    >
                       <Globe size={16} style={{ flexShrink: 0 }} />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {stitchResult ? stitchResult.filename : t('stitching.previewTitle', 'Trình xem trước không gian 360°')}
+                        {stitchResult
+                          ? (stitchResult.title || formatPanoTitle(stitchResult.filename, undefined, stitchResult.assignedRooms))
+                          : t('stitching.previewTitle', 'Trình xem trước không gian 360°')}
                       </span>
                     </span>
 
@@ -1706,7 +1720,7 @@ export const PocStitchingPage: React.FC = () => {
                         <Pannellum360Viewer
                           key={stitchResult.panoramaUrl}
                           panoramaUrl={stitchResult.panoramaUrl}
-                          title={stitchResult.filename}
+                          title={stitchResult.title || formatPanoTitle(stitchResult.filename, undefined, stitchResult.assignedRooms)}
                           autoStartLittlePlanet={false}
                           initialPitch={0}
                           imageWidth={stitchResult.width}
@@ -1962,8 +1976,31 @@ export const PocStitchingPage: React.FC = () => {
                             </div>
 
                             <div className="studio-history-body">
-                              <div className="studio-history-name" title={item.filename}>
-                                {item.filename}
+                              <div
+                                className="studio-history-name"
+                                title={item.filename}
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: 'var(--text-main)',
+                                  lineHeight: 1.4
+                                }}
+                              >
+                                {formatPanoTitle(item.filename, item.title, assignedRooms, item.createdAt)}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '10.5px',
+                                  color: '#64748b',
+                                  fontFamily: 'monospace',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  marginTop: 1
+                                }}
+                                title={item.filename}
+                              >
+                                Tệp: {item.filename}
                               </div>
                               {item.views && item.views.length > 1 && (
                                 <div style={{ fontSize: '11px', color: 'var(--accent-gold, #d4a86a)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, fontWeight: 500 }}>

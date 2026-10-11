@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { API_BASE } from '../services/api';
 import { useSystemBranding } from '../context/SystemBrandingContext';
+import { formatPanoTitle } from '../utils/formatPanoTitle';
 
 declare global {
   interface Window {
@@ -75,7 +76,10 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   imageHeight,
 }) => {
   const { branding } = useSystemBranding();
-  const effectiveTitle = title || (branding ? `Toàn cảnh 360° ${branding.museumName}` : 'Toàn cảnh 360°');
+  const cleanTitle = title
+    ? formatPanoTitle(title)
+    : (branding ? `Toàn cảnh 360° ${branding.museumName}` : 'Toàn cảnh 360°');
+  const effectiveTitle = cleanTitle;
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const containerId = useRef(`pannellum-container-${Math.random().toString(36).substring(2, 9)}`);
@@ -918,7 +922,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       )}
 
       {/* Top Banner (Chỉ hiện khi có title được cung cấp) */}
-      {Boolean(title && title.trim().length > 0) && (
+      {Boolean(cleanTitle && cleanTitle.trim().length > 0) && (
         <div
           className="top-title-banner"
           style={{
@@ -943,7 +947,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           }}
         >
           <span>🏛️</span>
-          <span>{title}</span>
+          <span>{cleanTitle}</span>
         </div>
       )}
 
