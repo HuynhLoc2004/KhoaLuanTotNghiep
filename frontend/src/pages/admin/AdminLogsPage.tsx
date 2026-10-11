@@ -317,36 +317,32 @@ export const AdminLogsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. BĂNG CHỈ SỐ KPI TỐI GIẢN (KHÔNG DÙNG ICON/CARD LÒE LOẸT) */}
+      {/* 2. BĂNG CHỈ SỐ KPI TỐI GIẢN (ĐỒNG BỘ CHUẨN MỰC, KHÔNG MÀU MÈ) */}
       <div className="logs-summary-bar">
         <div className="summary-item">
           <span className="summary-label">Tổng bản ghi</span>
           <span className="summary-value">{stats ? stats.total.toLocaleString('vi-VN') : totalCount}</span>
-          <span className="summary-hint">Toàn bộ hoạt động</span>
         </div>
 
-        <div className="summary-item summary-item-error">
+        <div className="summary-item">
           <span className="summary-label">Sự cố / Lỗi</span>
-          <span className="summary-value text-danger">
+          <span className="summary-value">
             {stats ? stats.errorCount.toLocaleString('vi-VN') : 0}
           </span>
-          <span className="summary-hint">Tỷ lệ lỗi: {stats ? stats.errorRate : 0}%</span>
         </div>
 
         <div className="summary-item">
           <span className="summary-label">Cảnh báo</span>
-          <span className="summary-value text-warn">
+          <span className="summary-value">
             {stats ? stats.warnCount.toLocaleString('vi-VN') : 0}
           </span>
-          <span className="summary-hint">Cần theo dõi</span>
         </div>
 
         <div className="summary-item">
           <span className="summary-label">Bình thường</span>
-          <span className="summary-value text-success">
+          <span className="summary-value">
             {stats ? (stats.infoCount + stats.successCount).toLocaleString('vi-VN') : 0}
           </span>
-          <span className="summary-hint">Hoạt động ổn định</span>
         </div>
       </div>
 

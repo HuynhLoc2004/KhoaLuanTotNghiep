@@ -283,10 +283,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           className={`nav-item ${currentTab === 'logs' ? 'active' : ''}`}
           onClick={() => handleItemClick('logs')}
-          title="Nhật ký và giám sát toàn diện hoạt động, lỗi hệ thống NoSQL"
+          title="Nhật ký và giám sát toàn diện hoạt động, lỗi hệ thống"
         >
           <ScrollText size={16} />
-          <span className="nav-item-text">{t('nav.logs', 'Nhật ký & Giám sát (NoSQL)')}</span>
+          <span className="nav-item-text">{t('nav.logs', 'Nhật ký & Giám sát')}</span>
         </button>
       </nav>
 
