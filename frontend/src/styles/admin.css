@@ -5807,10 +5807,9 @@ select option {
    ============================================================================== */
 
 .admin-logs-page {
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  padding: 24px 28px !important;
+  display: block !important;
+  min-height: 100%;
 }
 
 /* Header */
@@ -5820,6 +5819,7 @@ select option {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
+  margin-bottom: 18px;
 }
 
 .admin-logs-title {
@@ -5852,16 +5852,19 @@ select option {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 16px;
+  overflow: visible;
+  margin-bottom: 18px;
 }
 
 .summary-item {
-  padding: 14px 20px;
+  padding: 16px 20px;
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+  min-height: 76px;
+  box-sizing: border-box;
 }
 
 .summary-item:last-child {
@@ -5874,6 +5877,7 @@ select option {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height: 1.2;
 }
 
 .summary-value {
@@ -5948,6 +5952,7 @@ select option {
   border-radius: 8px;
   overflow: hidden;
   position: relative;
+  margin-bottom: 24px;
 }
 
 .logs-table-loader-bar {

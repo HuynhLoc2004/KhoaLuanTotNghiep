@@ -37,7 +37,7 @@ export const AdminLogsPage: React.FC = () => {
 
   // State bộ lọc
   const [page, setPage] = useState<number>(1);
-  const [limit, setLimit] = useState<number>(10);
+  const [limit, setLimit] = useState<number>(6);
   const [totalCount, setTotalCount] = useState<number>(0);
 
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -604,7 +604,7 @@ export const AdminLogsPage: React.FC = () => {
                 setLimit(newLimit);
                 setPage(1);
               }}
-              pageSizeOptions={[10, 20, 50, 100]}
+              pageSizeOptions={[6, 9, 12, 18, 24]}
               itemLabel="bản ghi"
             />
           </div>
