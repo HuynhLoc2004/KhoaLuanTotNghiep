@@ -54,6 +54,11 @@ if [ -n "$COMPOSE_CMD" ] && [ -f "docker-compose.yml" ]; then
     echo "Phát hiện môi trường Docker. Đang thực thi: $COMPOSE_CMD up -d --build..."
     $COMPOSE_CMD up -d --build
     
+    # Tự động dọn dẹp Build Cache & Image cũ thừa để giải phóng SSD VPS ngay sau khi build
+    echo "Đang dọn dẹp BuildKit Cache & Image cũ để giải phóng SSD..."
+    docker builder prune -f 2>/dev/null || true
+    docker image prune -f 2>/dev/null || true
+    
     # Bật lại cờ bảo trì trong container mới vừa build xong (để đợi backend khởi động xong hoàn toàn)
     docker exec museum_frontend touch /usr/share/nginx/html/maintenance.flag 2>/dev/null || true
 else

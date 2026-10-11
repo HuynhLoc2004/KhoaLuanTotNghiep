@@ -123,6 +123,7 @@ services:
       - uploads_data:/app/backend/public/uploads
       - ./maintenance_flag:/app/maintenance_flag
       - ./stitching_worker:/app/stitching_worker
+      - /var/run/docker.sock:/var/run/docker.sock
     logging:
       driver: "json-file"
       options:

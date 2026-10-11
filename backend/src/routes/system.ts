@@ -2,8 +2,40 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import http from 'http';
 import mongoose from 'mongoose';
 import { authenticate, requireAdmin, AuthRequest } from './auth.js';
+
+function callDockerSocketApi(method: string, apiPath: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const socketPath = '/var/run/docker.sock';
+    if (!fs.existsSync(socketPath)) {
+      return reject(new Error('DOCKER_SOCKET_NOT_FOUND'));
+    }
+    const req = http.request({
+      socketPath,
+      path: apiPath,
+      method,
+      headers: { 'Host': 'localhost' }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch {
+          resolve(data);
+        }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(60000, () => {
+      req.destroy();
+      reject(new Error('DOCKER_API_TIMEOUT'));
+    });
+    req.end();
+  });
+}
 import { redisClient, cacheGet, cacheSet, cacheDel, getRedisStatus, getQueueLength } from '../services/redis.js';
 import { RoomModel } from '../models/Room.js';
 import { PanoramaModel } from '../models/Panorama.js';
@@ -777,5 +809,128 @@ systemRouter.post('/audit-logs/sync', authenticate, requireAdmin, async (req: Re
     });
   }
 });
+
+/**
+ * POST /api/system/cleanup-vps-disk
+ * Kích hoạt dọn dẹp ổ cứng VPS trực tiếp từ Dashboard:
+ * 1. Prune Docker BuildKit Cache & Dangling Images qua unix socket
+ * 2. Prune Dead Containers
+ * 3. Xóa các tệp tạm/cache của ứng dụng
+ * 4. Dọn log rác bot scanner 404 cũ
+ */
+systemRouter.post('/cleanup-vps-disk', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const getDiskStats = () => {
+      try {
+        const checkPath = process.platform === 'win32' ? process.cwd().substring(0, 3) : '/';
+        const stat = (fs as any).statfsSync(checkPath);
+        const bsize = stat.bsize || 4096;
+        const totalB = Number(stat.blocks) * bsize;
+        const freeB = Number(stat.bavail ?? stat.bfree) * bsize;
+        const usedB = totalB - freeB;
+        return {
+          totalGb: +(totalB / (1024 * 1024 * 1024)).toFixed(1),
+          usedGb: +(usedB / (1024 * 1024 * 1024)).toFixed(1),
+          freeGb: +(freeB / (1024 * 1024 * 1024)).toFixed(1),
+          percent: Math.min(100, Math.max(0, Math.round((usedB / totalB) * 100)))
+        };
+      } catch {
+        return null;
+      }
+    };
+
+    const beforeStats = getDiskStats();
+    let dockerCleaned = false;
+    const actionsTaken: string[] = [];
+
+    // 1. Thử gọi Docker Socket nếu có
+    if (fs.existsSync('/var/run/docker.sock')) {
+      try {
+        await Promise.allSettled([
+          callDockerSocketApi('POST', '/build/prune?all=true&keep-storage=0'),
+          callDockerSocketApi('POST', '/images/prune?filters=%7B%22dangling%22%3A%5B%22true%22%5D%7D'),
+          callDockerSocketApi('POST', '/containers/prune')
+        ]);
+        dockerCleaned = true;
+        actionsTaken.push('Đã giải phóng BuildKit Cache và image Docker cũ');
+        actionsTaken.push('Đã dọn dẹp các container đã dừng');
+      } catch (dockerErr: any) {
+        console.warn('Docker socket error during prune:', dockerErr?.message);
+      }
+    }
+
+    // 2. Dọn rác MongoDB log bot 404 cũ hơn 3 ngày
+    try {
+      const SystemLogModel = (await import('../models/SystemLog.js')).SystemLogModel;
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      const botUrls = ['/service-account.json', '/.env', '/pdown', '/api/mcp', '/login', '/api/v1/version', '/api/.env'];
+      const deleteResult = await SystemLogModel.deleteMany({
+        $or: [
+          { path: { $in: botUrls }, statusCode: 404 },
+          { level: 'INFO', createdAt: { $lt: threeDaysAgo } }
+        ]
+      });
+      if (deleteResult.deletedCount > 0) {
+        actionsTaken.push(`Đã dọn ${deleteResult.deletedCount} log bot scanner rác trong MongoDB`);
+      }
+    } catch {
+      // ignore
+    }
+
+    // 3. Dọn thư mục tạm (temp)
+    const tempDirs = [
+      path.join(process.cwd(), 'scratch'),
+      path.join(process.cwd(), 'storage', 'temp'),
+      path.join(process.cwd(), 'public', 'uploads', 'temp')
+    ];
+    let tempFilesCount = 0;
+    for (const d of tempDirs) {
+      if (fs.existsSync(d)) {
+        try {
+          const files = fs.readdirSync(d);
+          for (const f of files) {
+            const fp = path.join(d, f);
+            try {
+              if (fs.statSync(fp).isFile()) {
+                fs.unlinkSync(fp);
+                tempFilesCount++;
+              }
+            } catch {}
+          }
+        } catch {}
+      }
+    }
+    if (tempFilesCount > 0) {
+      actionsTaken.push(`Đã dọn ${tempFilesCount} tệp tạm/cache ứng dụng`);
+    }
+
+    const afterStats = getDiskStats();
+    const freedGb = (beforeStats && afterStats) ? Math.max(0, +(beforeStats.usedGb - afterStats.usedGb).toFixed(1)) : 0;
+
+    await logAudit('VPS_DISK_CLEANUP', 'SYSTEM', {
+      userId: (req as any).user?.id || 'admin',
+      username: (req as any).user?.username || 'Admin',
+      details: { freedGb, beforeStats, afterStats, dockerCleaned, actionsTaken }
+    });
+
+    res.json({
+      success: true,
+      message: dockerCleaned
+        ? `Đã dọn dẹp Build Cache & Docker thành công! Giải phóng ~${freedGb > 0 ? freedGb : 'nhiều'} GB ổ cứng.`
+        : 'Đã dọn dẹp bộ nhớ đệm và nhật ký bot MongoDB thành công!',
+      freedGb,
+      dockerCleaned,
+      actionsTaken,
+      beforeStats,
+      afterStats
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi dọn dẹp ổ cứng VPS: ' + (err.message || '')
+    });
+  }
+});
+
 
 

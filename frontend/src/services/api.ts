@@ -1424,6 +1424,16 @@ export const api = {
     const json = await safeJson(res, 'Không thể xóa gói lưu trữ');
     if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi xóa gói lưu trữ');
     return json;
+  },
+
+  async cleanupVpsDisk(): Promise<any> {
+    const res = await fetch(`${API_BASE}/system/cleanup-vps-disk`, {
+      method: 'POST',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể dọn dẹp ổ cứng VPS');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi dọn dẹp ổ cứng VPS');
+    return json;
   }
 };
 

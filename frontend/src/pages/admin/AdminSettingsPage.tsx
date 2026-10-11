@@ -90,6 +90,7 @@ export const AdminSettingsPage: React.FC = () => {
   const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
   const [showSsdCleanupGuide, setShowSsdCleanupGuide] = useState<boolean>(false);
   const [copiedSsdCommand, setCopiedSsdCommand] = useState<boolean>(false);
+  const [cleaningVpsDisk, setCleaningVpsDisk] = useState<boolean>(false);
 
   const [maintenance, setMaintenance] = useState<MaintenanceStatus>({
     enabled: false,
@@ -197,6 +198,22 @@ export const AdminSettingsPage: React.FC = () => {
       console.error('Lỗi nạp dữ liệu cấu hình:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCleanVpsDiskFromDashboard = async () => {
+    if (!window.confirm('Hệ thống sẽ tiến hành dọn dẹp BuildKit Cache, các Docker image cũ không dùng, các container đã dừng và log rác MongoDB trên VPS. Bạn có muốn thực hiện ngay?')) {
+      return;
+    }
+    setCleaningVpsDisk(true);
+    try {
+      const res = await api.cleanupVpsDisk();
+      showToast(res.message || 'Dọn dẹp ổ cứng VPS thành công!', 'success');
+      await fetchData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi dọn dẹp ổ cứng VPS', 'error');
+    } finally {
+      setCleaningVpsDisk(false);
     }
   };
 
@@ -1841,7 +1858,7 @@ export const AdminSettingsPage: React.FC = () => {
                   fontSize: 12
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <AlertTriangle size={14} style={{ color: '#EF4444', flexShrink: 0 }} />
                     <div>
@@ -1853,19 +1870,44 @@ export const AdminSettingsPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      padding: '2px 8px',
-                      borderRadius: 3,
-                      backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                      color: '#EF4444',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {rec.neededAmount}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {rec.component === 'DISK' && (
+                      <button
+                        type="button"
+                        onClick={handleCleanVpsDiskFromDashboard}
+                        disabled={cleaningVpsDisk}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          color: '#EF4444',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: '3px 9px',
+                          borderRadius: 4,
+                          cursor: cleaningVpsDisk ? 'wait' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        {cleaningVpsDisk ? <Loader2 size={11} className="spin" /> : <Trash2 size={11} />}
+                        <span>{cleaningVpsDisk ? 'Đang dọn...' : 'Dọn SSD từ Dashboard'}</span>
+                      </button>
+                    )}
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: '2px 8px',
+                        borderRadius: 3,
+                        backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                        color: '#EF4444',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {rec.neededAmount}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Hướng dẫn dọn dẹp SSD an toàn */}
@@ -1938,11 +1980,44 @@ export const AdminSettingsPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Lệnh thực thi 1-chạm */}
-                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        {/* Thao tác dọn dẹp 1-chạm & Nút bấm Dashboard */}
+                        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                            <div>
+                              <span style={{ fontSize: 11.5, color: 'var(--heading-color)', fontWeight: 600, display: 'block' }}>
+                                Thao tác dọn dẹp trực tiếp từ Dashboard:
+                              </span>
+                              <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+                                Hệ thống tự động kích hoạt dọn BuildKit Cache, Docker image rác và log rác MongoDB
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleCleanVpsDiskFromDashboard}
+                              disabled={cleaningVpsDisk}
+                              style={{
+                                background: 'linear-gradient(135deg, #EF4444, #B91C1C)',
+                                border: 'none',
+                                borderRadius: 5,
+                                color: '#FFF',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: '6px 14px',
+                                cursor: cleaningVpsDisk ? 'wait' : 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)'
+                              }}
+                            >
+                              {cleaningVpsDisk ? <Loader2 size={12} className="spin" /> : <Trash2 size={12} />}
+                              <span>{cleaningVpsDisk ? 'Đang dọn dẹp VPS...' : '🚀 Dọn dẹp ổ cứng VPS ngay từ Dashboard'}</span>
+                            </button>
+                          </div>
+
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
-                              Lệnh dọn dẹp một chạm chạy trên terminal VPS:
+                            <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+                              Hoặc chạy lệnh thủ công trên terminal VPS:
                             </span>
                             <button
                               type="button"
