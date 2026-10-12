@@ -721,23 +721,33 @@ export async function executeComprehensiveCleanup(options: {
     }
   }
 
-  // 4. Temporary Application Files
+  // 4. Temporary Application Files & 360 Stitching Raw Chunks
   if (doTemp) {
     const tempDirs = [
       path.join(process.cwd(), 'scratch'),
       path.join(process.cwd(), 'storage', 'temp'),
-      path.join(process.cwd(), 'public', 'uploads', 'temp')
+      path.join(process.cwd(), 'public', 'uploads', 'temp'),
+      path.join(process.cwd(), 'public', 'uploads', 'temp_raw')
     ];
+    const halfHourAgo = Date.now() - 30 * 60 * 1000;
+
     for (const d of tempDirs) {
       if (fs.existsSync(d)) {
         try {
-          const files = fs.readdirSync(d);
-          for (const f of files) {
-            const fp = path.join(d, f);
+          const items = fs.readdirSync(d);
+          for (const item of items) {
+            const fp = path.join(d, item);
             try {
-              if (fs.statSync(fp).isFile()) {
-                fs.unlinkSync(fp);
-                tempFilesCount++;
+              const stat = fs.statSync(fp);
+              // Tránh xóa nhầm job đang xử lý ngay lúc này (< 30 phút)
+              if (stat.mtimeMs < halfHourAgo || !item.startsWith('job_')) {
+                if (stat.isDirectory()) {
+                  fs.rmSync(fp, { recursive: true, force: true });
+                  tempFilesCount++;
+                } else if (stat.isFile()) {
+                  fs.unlinkSync(fp);
+                  tempFilesCount++;
+                }
               }
             } catch {}
           }
@@ -745,7 +755,7 @@ export async function executeComprehensiveCleanup(options: {
       }
     }
     if (tempFilesCount > 0) {
-      actionsTaken.push(`Đã dọn ${tempFilesCount} tệp tạm/cache ứng dụng`);
+      actionsTaken.push(`Đã dọn ${tempFilesCount} tệp tạm & thư mục frame ghép ảnh 360°`);
     }
   }
 
