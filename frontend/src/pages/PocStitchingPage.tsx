@@ -1617,7 +1617,7 @@ export const PocStitchingPage: React.FC = () => {
               {/* Right Column: 360 Viewer Canvas */}
               <div className="studio-viewer-col" ref={viewerSectionRef}>
                 <div className="studio-card">
-                  <div className="studio-card-header" style={{ flexWrap: 'wrap', gap: 10 }}>
+                  <div className="studio-card-header studio-preview-header">
                     <span
                       className="studio-card-title"
                       style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -1632,12 +1632,12 @@ export const PocStitchingPage: React.FC = () => {
                     </span>
 
                     {stitchResult && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                      <div className="studio-header-actions-scrollable">
                         <button
                           type="button"
                           className="btn btn-primary btn-sm"
                           onClick={() => setShowCreateRoomModal(true)}
-                          style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
+                          style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
                           title="Tạo ngay một gian phòng trưng bày mới trong bảo tàng từ ảnh này"
                         >
                           <Plus size={14} />
@@ -1658,7 +1658,7 @@ export const PocStitchingPage: React.FC = () => {
                             showToast('Đã sao chép link ảnh', 'success');
                             setTimeout(() => setCopiedUrl(false), 2000);
                           }}
-                          style={{ whiteSpace: 'nowrap' }}
+                          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                         >
                           {copiedUrl ? <Check size={13} /> : <Copy size={13} />}
                           <span>{copiedUrl ? 'Đã chép' : 'Sao chép link'}</span>
@@ -1669,7 +1669,7 @@ export const PocStitchingPage: React.FC = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn btn-secondary btn-sm"
-                          style={{ whiteSpace: 'nowrap' }}
+                          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                         >
                           <ExternalLink size={13} />
                           <span>Mở ảnh gốc</span>
