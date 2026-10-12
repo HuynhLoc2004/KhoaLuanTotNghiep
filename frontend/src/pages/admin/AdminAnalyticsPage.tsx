@@ -836,7 +836,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-content" style={{ padding: '20px 24px', maxWidth: 1440, margin: '0 auto' }}>
+    <div className="admin-content" style={{ padding: '24px 28px' }}>
       {/* 1. HEADER & THAO TÁC TRANG CHUẨN ADMIN (KHÔNG CHẤM ĐỎ, NÚT CHUẨN ADMIN) */}
       <div
         style={{
