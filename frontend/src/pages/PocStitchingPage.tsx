@@ -692,9 +692,147 @@ export const PocStitchingPage: React.FC = () => {
     showToast(`Đã chọn video: "${file.name}". Bấm "Xác nhận & Bắt đầu" để tạo ảnh 360°.`, 'info');
   };
 
+  // Quản lý Screen Wake Lock để màn hình điện thoại không bị tự động tắt/ngủ khi đang xử lý
+  const wakeLockRef = useRef<any>(null);
+
+  const requestWakeLock = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator && !wakeLockRef.current) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        wakeLockRef.current.addEventListener('release', () => {
+          wakeLockRef.current = null;
+        });
+      }
+    } catch (_) {}
+  };
+
+  const releaseWakeLock = () => {
+    try {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    } catch (_) {}
+  };
+
+  // Cơ chế thăm dò tự động (Polling): Đảm bảo tiến trình ghép ảnh không bị hủy khi tắt màn hình điện thoại hoặc chuyển tab
+  const pollStitchJobStatus = async (jobId: string, shouldOpenRoom = false) => {
+    let attempts = 0;
+    const maxAttempts = 60; // 60 * 2.5s = 150s
+    setIsProcessing(true);
+    setErrorMsg(null);
+    setVideoProcessingText('Đang duy trì kết nối & tiếp tục tạo không gian phòng...');
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        const res = await fetch(`${API_BASE}/stitch/status/${encodeURIComponent(jobId)}`, {
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.success) {
+            if (json.status === 'completed' && json.data) {
+              // Hoàn tất thành công!
+              setCurrentStep(5);
+              const resData = {
+                ...json.data,
+                panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
+              };
+              setStitchResult(resData);
+              setActiveViewUrl(resData.panoramaUrl);
+              setViewerMode('pano360');
+              setPendingVideoFile(null);
+              fetchHistory();
+              try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+              releaseWakeLock();
+              setIsProcessing(false);
+              setVideoProcessingText(null);
+              showToast('Đã tạo không gian căn phòng thành công!', 'success');
+              if (shouldOpenRoom) {
+                setShowCreateRoomModal(true);
+              }
+              setTimeout(() => {
+                viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 350);
+              return;
+            } else if (json.status === 'failed') {
+              throw new Error(json.error || json.message || 'Quá trình ghép không gian phòng thất bại.');
+            } else if (json.status === 'processing') {
+              setCurrentStep((prev) => (prev < 4 ? Math.max(prev, 3) : prev));
+              if (json.message) {
+                setVideoProcessingText(json.message);
+              }
+            }
+          }
+        }
+      } catch (pollErr: any) {
+        if (attempts >= maxAttempts) {
+          throw pollErr;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
+
+    throw new Error('Đang tiếp tục xử lý trên máy chủ. Bạn có thể kiểm tra lại trong Thư viện gian phòng sau ít phút.');
+  };
+
+  // Tự động kiểm tra và khôi phục tiến trình khi mở lại màn hình điện thoại hoặc quay lại tab trình duyệt
+  React.useEffect(() => {
+    const checkAndResumeActiveJob = () => {
+      try {
+        const savedJobStr = localStorage.getItem('active_stitching_job');
+        if (!savedJobStr) return;
+        const savedJob = JSON.parse(savedJobStr);
+        if (savedJob && savedJob.jobId && Date.now() - savedJob.startedAt < 10 * 60 * 1000) {
+          console.log('[Stitch Recovery] Phát hiện tiến trình đang chạy dở dang, tự động khôi phục:', savedJob.jobId);
+          showToast('Đang tiếp tục đồng bộ tiến trình tạo không gian phòng...', 'info');
+          requestWakeLock();
+          pollStitchJobStatus(savedJob.jobId, savedJob.shouldOpenRoom).catch((err) => {
+            console.warn('[Stitch Recovery Error]:', err);
+            try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+            releaseWakeLock();
+            setIsProcessing(false);
+            setCurrentStep(0);
+          });
+        } else {
+          try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+        }
+      } catch (_) {
+        try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+      }
+    };
+
+    checkAndResumeActiveJob();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkAndResumeActiveJob();
+        if (isProcessing) {
+          requestWakeLock();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, []);
+
   // Thực thi tải video lên máy chủ và tạo không gian 360° sau khi đã bấm xác nhận
   const handleExecuteVideoStitch = async () => {
     if (!pendingVideoFile) return;
+
+    const jobId = `video_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    try {
+      localStorage.setItem('active_stitching_job', JSON.stringify({ jobId, shouldOpenRoom: false, startedAt: Date.now() }));
+    } catch (_) {}
+    requestWakeLock();
 
     try {
       setIsProcessing(true);
@@ -720,6 +858,7 @@ export const PocStitchingPage: React.FC = () => {
 
       const formData = new FormData();
       formData.append('video', pendingVideoFile);
+      formData.append('jobId', jobId);
 
       const res = await fetch(`${API_BASE}/stitch/video`, {
         method: 'POST',
@@ -744,6 +883,8 @@ export const PocStitchingPage: React.FC = () => {
       setActiveViewUrl(resData.panoramaUrl);
       setViewerMode('pano360');
       setPendingVideoFile(null);
+      try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+      releaseWakeLock();
       fetchHistory();
       showToast(json.message || 'Tạo không gian 360° từ video thành công!', 'success');
 
@@ -751,10 +892,17 @@ export const PocStitchingPage: React.FC = () => {
         viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 300);
     } catch (err: any) {
-      console.error('[Video Stitch Error]:', err);
-      showToast(err.message || 'Lỗi khi tạo không gian từ video', 'error');
-      setErrorMsg(err.message);
-      setCurrentStep(0);
+      console.warn('[Video Stitch Error, attempting polling recovery]:', err);
+      try {
+        await pollStitchJobStatus(jobId, false);
+      } catch (pollErr: any) {
+        console.error('[Video Stitch Polling Error]:', pollErr);
+        showToast(pollErr.message || err.message || 'Lỗi khi tạo không gian từ video', 'error');
+        setErrorMsg(pollErr.message || err.message);
+        try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+        releaseWakeLock();
+        setCurrentStep(0);
+      }
     } finally {
       setIsProcessing(false);
       setVideoProcessingText(null);
@@ -763,6 +911,12 @@ export const PocStitchingPage: React.FC = () => {
 
   // Tạo căn phòng trực tiếp từ 1 góc ảnh đã chọn (100% giữ nguyên góc chụp, không méo hình, không lặp lại)
   const handleCreateRoomFromSingleFrame = async (frame: VerifiedFrame) => {
+    const jobId = `single_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    try {
+      localStorage.setItem('active_stitching_job', JSON.stringify({ jobId, shouldOpenRoom: true, startedAt: Date.now() }));
+    } catch (_) {}
+    requestWakeLock();
+
     try {
       setSingleCreatingId(frame.id);
       setIsProcessing(true);
@@ -771,6 +925,7 @@ export const PocStitchingPage: React.FC = () => {
 
       const formData = new FormData();
       formData.append('mode', 'spatial');
+      formData.append('jobId', jobId);
 
       if (frame.serverPath) {
         formData.append('serverPaths', JSON.stringify([frame.serverPath]));
@@ -788,6 +943,7 @@ export const PocStitchingPage: React.FC = () => {
         throw new Error(json?.message || 'Không thể tạo không gian phòng từ ảnh này.');
       }
 
+      setCurrentStep(5);
       const resData = {
         ...json.data,
         panoramaUrl: normalizePanoUrl(json.data.panoramaUrl)
@@ -795,6 +951,8 @@ export const PocStitchingPage: React.FC = () => {
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
       setViewerMode('pano360');
+      try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+      releaseWakeLock();
       fetchHistory();
       showToast('Đã tạo không gian thành công! Vui lòng đặt tên và lưu gian phòng.', 'success');
       setShowCreateRoomModal(true);
@@ -803,8 +961,15 @@ export const PocStitchingPage: React.FC = () => {
         viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 300);
     } catch (err: any) {
-      console.error('[Single Frame Room Error]:', err);
-      showToast(err.message || 'Lỗi khi tạo phòng từ ảnh này', 'error');
+      console.warn('[Single Frame Room Error, attempting polling recovery]:', err);
+      try {
+        await pollStitchJobStatus(jobId, true);
+      } catch (pollErr: any) {
+        console.error('[Single Frame Polling Error]:', pollErr);
+        showToast(pollErr.message || err.message || 'Lỗi khi tạo phòng từ ảnh này', 'error');
+        try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+        releaseWakeLock();
+      }
     } finally {
       setSingleCreatingId(null);
       setIsProcessing(false);
@@ -822,12 +987,19 @@ export const PocStitchingPage: React.FC = () => {
       return;
     }
 
+    const jobId = `stitch_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    try {
+      localStorage.setItem('active_stitching_job', JSON.stringify({ jobId, shouldOpenRoom, startedAt: Date.now() }));
+    } catch (_) {}
+    requestWakeLock();
+
     setIsProcessing(true);
     setErrorMsg(null);
     setCurrentStep(1);
 
     const formData = new FormData();
     formData.append('mode', 'spatial');
+    formData.append('jobId', jobId);
 
     let targetFrames = framesToStitch;
     if (framesToStitch.length > 120) {
@@ -891,6 +1063,8 @@ export const PocStitchingPage: React.FC = () => {
       setStitchResult(resData);
       setActiveViewUrl(resData.panoramaUrl);
       setViewerMode('pano360');
+      try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+      releaseWakeLock();
       fetchHistory();
       showToast('Đã tạo không gian căn phòng thành công!', 'success');
 
@@ -902,9 +1076,17 @@ export const PocStitchingPage: React.FC = () => {
         viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 350);
     } catch (err: any) {
-      console.error('[Stitch Error]:', err);
-      setErrorMsg(err.message || 'Lỗi kết nối máy chủ khi tạo căn phòng.');
-      setCurrentStep(0);
+      console.warn('[Stitch Error, switching to polling recovery]:', err);
+      // Khi ngắt kết nối mạng do tắt màn hình hoặc chuyển tab -> Tiếp tục thăm dò tiến trình từ máy chủ thay vì hủy!
+      try {
+        await pollStitchJobStatus(jobId, shouldOpenRoom);
+      } catch (pollErr: any) {
+        console.error('[Stitch Polling Error]:', pollErr);
+        setErrorMsg(pollErr.message || err.message || 'Lỗi kết nối máy chủ khi tạo căn phòng.');
+        try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+        releaseWakeLock();
+        setCurrentStep(0);
+      }
     } finally {
       setIsProcessing(false);
     }

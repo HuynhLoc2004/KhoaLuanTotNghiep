@@ -166,6 +166,51 @@ export interface RoomSceneView {
   isPrimary: boolean;
 }
 
+export interface StitchJobStatus {
+  jobId: string;
+  status: 'processing' | 'completed' | 'failed';
+  progress?: number;
+  message?: string;
+  data?: any;
+  error?: string;
+  createdAt: number;
+  completedAt?: number;
+}
+
+const activeStitchJobs = new Map<string, StitchJobStatus>();
+
+function cleanupOldJobs() {
+  const now = Date.now();
+  for (const [id, job] of activeStitchJobs.entries()) {
+    if (now - job.createdAt > 30 * 60 * 1000) {
+      activeStitchJobs.delete(id);
+    }
+  }
+}
+
+export function updateStitchJob(
+  jobId: string | null | undefined,
+  status: 'processing' | 'completed' | 'failed',
+  progress?: number,
+  message?: string,
+  data?: any,
+  error?: string
+) {
+  if (!jobId) return;
+  cleanupOldJobs();
+  const existing = activeStitchJobs.get(jobId);
+  activeStitchJobs.set(jobId, {
+    jobId,
+    status,
+    progress: progress !== undefined ? progress : existing?.progress || 0,
+    message: message || existing?.message || '',
+    data: data !== undefined ? data : existing?.data,
+    error: error !== undefined ? error : existing?.error,
+    createdAt: existing?.createdAt || Date.now(),
+    completedAt: status === 'completed' || status === 'failed' ? Date.now() : existing?.completedAt
+  });
+}
+
 /**
  * Helper lưu trữ, đồng bộ và phản hồi ảnh không gian phòng 360° chuẩn quốc tế.
  * Luôn đảm bảo 1 căn phòng = 1 ảnh đại diện duy nhất = 1 card duy nhất trong thư viện.
@@ -180,7 +225,8 @@ async function finalizePanoramaAndRespond(
   imagePathsCount: number,
   engineName: string,
   customMessage?: string,
-  views?: RoomSceneView[]
+  views?: RoomSceneView[],
+  jobId?: string | null
 ) {
   const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
   const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '103-170-233-206.sslip.io';
@@ -258,6 +304,7 @@ async function finalizePanoramaAndRespond(
           viewsCount: roomViews.length,
           views: roomViews,
           hfov: 180,
+          jobId: jobId || undefined,
           enhancedAt: new Date()
         }
       },
@@ -267,23 +314,31 @@ async function finalizePanoramaAndRespond(
     console.error('[Stitch API MongoDB Save Error]:', dbErr.message);
   }
 
-  return res.json({
-    success: true,
-    data: {
-      id: panoDoc?.id || `pano-${Date.now()}`,
-      panoramaUrl: finalPanoramaUrl,
-      cloudinaryUrl: cloudinaryUrl,
-      r2Url: cloudR2Url,
-      localUrl: `${baseUrl}/uploads/${outFilename}`,
-      filename: outFilename,
-      width,
-      height,
-      aspectRatio: (width && height) ? Number((width / height).toFixed(2)) : 1.77,
-      inputFramesCount: imagePathsCount,
-      views: roomViews,
-      message: customMessage || `Đã ghép thành công không gian phòng từ ${imagePathsCount} góc ảnh chi tiết.`
-    }
-  });
+  const responsePayload = {
+    id: panoDoc?.id || `pano-${Date.now()}`,
+    panoramaUrl: finalPanoramaUrl,
+    cloudinaryUrl: cloudinaryUrl,
+    r2Url: cloudR2Url,
+    localUrl: `${baseUrl}/uploads/${outFilename}`,
+    filename: outFilename,
+    width,
+    height,
+    aspectRatio: (width && height) ? Number((width / height).toFixed(2)) : 1.77,
+    inputFramesCount: imagePathsCount,
+    views: roomViews,
+    message: customMessage || `Đã ghép thành công không gian phòng từ ${imagePathsCount} góc ảnh chi tiết.`
+  };
+
+  if (jobId) {
+    updateStitchJob(jobId, 'completed', 100, 'Tạo không gian phòng thành công', responsePayload);
+  }
+
+  if (!res.headersSent) {
+    return res.json({
+      success: true,
+      data: responsePayload
+    });
+  }
 }
 
 /**
@@ -342,7 +397,8 @@ async function stitchMultiViewRoom(
   imagePaths: string[],
   outputPath: string,
   outFilename: string,
-  primaryIndex = 0
+  primaryIndex = 0,
+  jobId?: string | null
 ) {
   const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
   const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '103-170-233-206.sslip.io';
@@ -457,7 +513,8 @@ async function stitchMultiViewRoom(
     validPaths.length,
     'Interactive Spatial Museum Room (Không Gian Phòng Đa Góc Nhìn)',
     `Đã tạo thành công không gian gian phòng bảo tàng gồm ${views.length} góc nhìn sắc nét nguyên bản.`,
-    views
+    views,
+    jobId
   );
 }
 
@@ -559,10 +616,15 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
 
   const primaryIdx = req.body.primaryIndex ? parseInt(String(req.body.primaryIndex), 10) : 0;
+  const jobId = req.body.jobId ? String(req.body.jobId).trim() : null;
+
+  if (jobId) {
+    updateStitchJob(jobId, 'processing', 20, 'Đang phân tích và xử lý không gian phòng...');
+  }
 
   // Trường hợp 1: Chỉ có 1 ảnh -> Tối ưu sắc nét nguyên bản và trả về tức thì
   if (imagePaths.length === 1) {
-    return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
+    return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx, jobId);
   }
 
   // Trường hợp 2: Chùm 2+ ảnh -> Ghép thành không gian phòng bảo tàng chuẩn (Planar Architectural Scans)
@@ -596,7 +658,7 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
       try { if (fs.existsSync(tempJsonFile)) fs.unlinkSync(tempJsonFile); } catch (_) {}
       if (!res.headersSent) {
         // Fallback an toàn sang multi-view nếu timeout
-        return stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
+        return stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx, jobId);
       }
     }
   }, 60000);
@@ -672,16 +734,20 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
           imagePaths.length,
           'Planar Architectural Stitching Engine',
           parsedResult.message || `Đã ghép thành công không gian kiến trúc phòng từ ${imagePaths.length} ảnh sắc nét chuẩn bảo tàng, không lặp hình.`,
-          views
+          views,
+          jobId
         );
       } else {
         console.warn('[Stitch API] Python Worker không hội tụ, kích hoạt cơ chế hiển thị góc phòng đa góc dự phòng...');
-        return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
+        return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx, jobId);
       }
     } catch (err: any) {
       console.error('[Stitch API Exception]:', err);
+      if (jobId) {
+        updateStitchJob(jobId, 'failed', 0, undefined, undefined, err.message);
+      }
       if (!res.headersSent) {
-        return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx);
+        return await stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx, jobId);
       }
     }
   });
@@ -705,6 +771,11 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
   const outputPath = path.join(UPLOAD_ROOT, outFilename);
   const keyframesCount = req.body.keyframes ? String(req.body.keyframes) : '0';
   const targetWidth = req.body.width ? String(req.body.width) : '0';
+  const jobId = req.body.jobId ? String(req.body.jobId).trim() : null;
+
+  if (jobId) {
+    updateStitchJob(jobId, 'processing', 15, 'Đang đọc và trích xuất khung hình từ video...');
+  }
 
   console.log(`[Stitch Video API] Bắt đầu Phương án A: ${keyframesCount === '0' ? 'Tự động tính góc thích ứng' : `Cắt ${keyframesCount} góc`} từ video (${req.file.originalname})...`);
 
@@ -728,6 +799,9 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
       console.error('[Stitch Video API] Quá thời gian xử lý video (120s). Hủy tiến trình...');
       isClosed = true;
       try { pyProcess.kill('SIGKILL'); } catch (kErr) { console.warn(kErr); }
+      if (jobId) {
+        updateStitchJob(jobId, 'failed', 0, undefined, undefined, 'Timeout xử lý video (120s)');
+      }
       if (!res.headersSent) {
         return res.status(504).json({
           success: false,
@@ -761,6 +835,9 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
     try {
       if (!stdoutData.trim()) {
         console.error('[Stitch Video API] Worker stdout rỗng. Stderr:', stderrData);
+        if (jobId) {
+          updateStitchJob(jobId, 'failed', 0, undefined, undefined, 'Không nhận được kết quả phân tích video từ Python OpenCV');
+        }
         return res.status(500).json({
           success: false,
           error: 'ERR_WORKER_EMPTY_RESPONSE',
@@ -847,6 +924,7 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
                 processingTimeSec: result.processingTimeSec,
                 keyframesExtracted: result.keyframesExtracted || 18,
                 waveCorrection: true,
+                jobId: jobId || undefined,
                 enhancedAt: new Date()
               }
             },
@@ -858,29 +936,40 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
         }
 
         console.log(`[Stitch Video API] Phương án A hoàn tất! URL: ${finalPanoramaUrl}`);
-        return res.json({
-          success: true,
-          data: {
-            id: panoDoc?.id || `pano-${Date.now()}`,
-            panoramaUrl: finalPanoramaUrl,
-            cloudinaryUrl: cloudinaryUrl,
-            r2Url: cloudR2Url,
-            localUrl: `${baseUrl}/uploads/${outFilename}`,
-            filename: outFilename,
-            width: result.width,
-            height: result.height,
-            aspectRatio: result.aspectRatio || 2.0,
-            haov: result.haov || 360,
-            vaov: result.vaov || 180,
-            inputFramesCount: result.keyframesExtracted || 18,
-            keyframesExtracted: result.keyframesExtracted || 18,
-            processingTimeSec: result.processingTimeSec,
-            videoDurationSec: result.videoDurationSec,
-            message: result.message
-          }
-        });
+        const videoResponsePayload = {
+          id: panoDoc?.id || `pano-${Date.now()}`,
+          panoramaUrl: finalPanoramaUrl,
+          cloudinaryUrl: cloudinaryUrl,
+          r2Url: cloudR2Url,
+          localUrl: `${baseUrl}/uploads/${outFilename}`,
+          filename: outFilename,
+          width: result.width,
+          height: result.height,
+          aspectRatio: result.aspectRatio || 2.0,
+          haov: result.haov || 360,
+          vaov: result.vaov || 180,
+          inputFramesCount: result.keyframesExtracted || 18,
+          keyframesExtracted: result.keyframesExtracted || 18,
+          processingTimeSec: result.processingTimeSec,
+          videoDurationSec: result.videoDurationSec,
+          message: result.message
+        };
+
+        if (jobId) {
+          updateStitchJob(jobId, 'completed', 100, 'Tạo không gian 360° từ video thành công', videoResponsePayload);
+        }
+
+        if (!res.headersSent) {
+          return res.json({
+            success: true,
+            data: videoResponsePayload
+          });
+        }
       } else {
         console.error(`[Stitch Video API] Lỗi worker: ${result.error}`);
+        if (jobId) {
+          updateStitchJob(jobId, 'failed', 0, undefined, undefined, result.error || result.detail);
+        }
         return res.status(400).json({
           success: false,
           error: result.error,
@@ -889,6 +978,9 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
       }
     } catch (parseErr: any) {
       console.error('[Stitch Video API] Lỗi parse kết quả:', parseErr, stdoutData, stderrData);
+      if (jobId) {
+        updateStitchJob(jobId, 'failed', 0, undefined, undefined, parseErr.message);
+      }
       return res.status(500).json({
         success: false,
         message: 'Lỗi định dạng phản hồi từ Python OpenCV worker',
@@ -899,10 +991,71 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
 
   pyProcess.on('error', (procErr) => {
     console.error('[Stitch Video API] Lỗi khởi chạy tiến trình Python:', procErr);
+    if (jobId) {
+      updateStitchJob(jobId, 'failed', 0, undefined, undefined, procErr.message);
+    }
     res.status(500).json({
       success: false,
       message: `Không thể khởi chạy worker Python: ${procErr.message}`
     });
+  });
+});
+
+/**
+ * GET /api/stitch/status/:jobId
+ * Truy vấn trạng thái tiến trình ghép không gian phòng (hỗ trợ khôi phục tiến trình khi tắt màn hình hoặc chuyển tab)
+ */
+stitchRouter.get('/status/:jobId', async (req: Request, res: Response) => {
+  const jobId = String(req.params.jobId || '').trim();
+  if (!jobId) {
+    return res.status(400).json({ success: false, message: 'Thiếu jobId' });
+  }
+
+  // 1. Kiểm tra trong in-memory Map
+  const inMemoryJob = activeStitchJobs.get(jobId);
+  if (inMemoryJob) {
+    return res.json({
+      success: true,
+      ...inMemoryJob
+    });
+  }
+
+  // 2. Tra cứu MongoDB (khi tiến trình đã hoàn tất và lưu vào DB)
+  try {
+    const doc = await PanoramaModel.findOne({ 'metadata.jobId': jobId }).lean();
+    if (doc) {
+      const views = (doc.metadata as any)?.views || [];
+      return res.json({
+        success: true,
+        jobId,
+        status: 'completed',
+        progress: 100,
+        message: 'Hoàn tất ghép không gian phòng',
+        data: {
+          id: doc.id,
+          panoramaUrl: doc.panoramaUrl,
+          cloudinaryUrl: doc.cloudinaryUrl,
+          r2Url: doc.r2Url,
+          localUrl: doc.localUrl,
+          filename: doc.filename,
+          width: doc.width,
+          height: doc.height,
+          aspectRatio: doc.aspectRatio,
+          views: views,
+          message: 'Tạo không gian phòng bảo tàng thành công.'
+        }
+      });
+    }
+  } catch (dbErr: any) {
+    console.warn('[Stitch Status API DB Query Warning]:', dbErr.message);
+  }
+
+  // 3. Không tìm thấy
+  return res.json({
+    success: true,
+    jobId,
+    status: 'unknown',
+    message: 'Không tìm thấy tiến trình này hoặc đã hoàn tất trước đó.'
   });
 });
 
