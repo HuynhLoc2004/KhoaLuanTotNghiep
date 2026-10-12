@@ -2855,22 +2855,33 @@ export const AdminSettingsPage: React.FC = () => {
                         )}
                       </div>
                       <div style={{ color: 'var(--text-muted)' }}>• Ảnh Cloudinary đã xóa: {cleanupReport.cloudinaryDeletedCount ?? 0} ảnh</div>
-                      <div style={{ color: 'var(--text-muted)' }}>• Nhật ký MongoDB đã dọn: {cleanupReport.mongoLogsCleaned ?? 0} bản ghi</div>
+                      <div style={{ color: 'var(--text-muted)' }}>• Nhật ký MongoDB đã dọn: {cleanupReport.mongoLogsDeletedCount ?? cleanupReport.mongoLogsCleaned ?? 0} bản ghi</div>
+                      {cleanupReport.actionsTaken && cleanupReport.actionsTaken.length > 0 && (
+                        <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {cleanupReport.actionsTaken.map((act: string, idx: number) => (
+                            <div key={idx} style={{ color: '#10b981', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <span>✓</span> <span>{act}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {cleanupReport.cliOutput && (
-                        <div style={{ marginTop: 4 }}>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Chi tiết tiến trình Docker:</div>
+                        <div style={{ marginTop: 6 }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Chi tiết tiến trình Docker & Hệ thống:</div>
                           <pre style={{
                             margin: 0,
-                            padding: '6px 8px',
-                            backgroundColor: 'var(--bg-surface)',
+                            padding: '8px 10px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.45)',
                             border: '1px solid var(--border-color)',
                             borderRadius: 4,
                             fontSize: 10.5,
-                            maxHeight: 110,
+                            maxHeight: 140,
                             overflow: 'auto',
-                            color: 'var(--text-main)',
-                            lineHeight: 1.35,
-                            fontFamily: 'monospace'
+                            color: '#E2E8F0',
+                            lineHeight: 1.4,
+                            fontFamily: 'monospace',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-all'
                           }}>
                             {cleanupReport.cliOutput}
                           </pre>

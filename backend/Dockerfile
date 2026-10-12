@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     && curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-26.1.4.tgz | tar -xz -C /usr/local/bin --strip-components=1 docker/docker \
+    && chmod +x /usr/local/bin/docker \
     && mkdir -p /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins \
     && curl -fsSL https://github.com/docker/buildx/releases/download/v0.14.1/buildx-v0.14.1.linux-amd64 -o /usr/local/lib/docker/cli-plugins/docker-buildx \
     && chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx \

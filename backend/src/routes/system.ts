@@ -874,6 +874,8 @@ systemRouter.get('/cleanup/cloudinary-preview', authenticate, requireAdmin, asyn
  */
 systemRouter.post('/cleanup-vps-disk', authenticate, requireAdmin, async (req: Request, res: Response) => {
   try {
+    const adminUser = (req as any).user?.username || 'Admin';
+    console.log(`[API System] 🔔 Nhận yêu cầu dọn dẹp SSD từ Admin: ${adminUser}`);
     const { cleanDocker, cleanCloudinary, cleanMongoBotLogs, cleanAppTemp } = req.body || {};
     const result = await executeComprehensiveCleanup({
       cleanDocker,
@@ -887,8 +889,10 @@ systemRouter.post('/cleanup-vps-disk', authenticate, requireAdmin, async (req: R
       }
     });
 
+    console.log(`[API System] ✅ Hoàn tất dọn dẹp cho Admin ${adminUser}, gửi phản hồi về Dashboard.`);
     res.json(result);
   } catch (err: any) {
+    console.error('[API System] ❌ Lỗi xử lý dọn dẹp hệ thống:', err);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi dọn dẹp hệ thống: ' + (err.message || '')

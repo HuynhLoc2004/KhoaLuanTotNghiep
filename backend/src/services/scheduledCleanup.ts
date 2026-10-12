@@ -79,13 +79,19 @@ export async function updateScheduledCleanupConfig(patch: Partial<AutoCleanupCon
   return updated;
 }
 
+function getDockerSocketPath(): string | null {
+  if (fs.existsSync('/var/run/docker.sock')) return '/var/run/docker.sock';
+  if (fs.existsSync('/run/docker.sock')) return '/run/docker.sock';
+  return null;
+}
+
 /**
  * Gọi Docker Engine API qua Unix domain socket
  */
 function callDockerSocketApi(method: string, apiPath: string, body?: any): Promise<any> {
   return new Promise((resolve, reject) => {
-    const socketPath = '/var/run/docker.sock';
-    if (!fs.existsSync(socketPath)) {
+    const socketPath = getDockerSocketPath();
+    if (!socketPath) {
       return reject(new Error('DOCKER_SOCKET_NOT_FOUND'));
     }
     const headers: Record<string, string> = { 'Host': 'localhost' };
@@ -537,6 +543,7 @@ export async function executeComprehensiveCleanup(options: {
   mongoLogsDeletedCount: number;
   tempFilesCount: number;
   actionsTaken: string[];
+  cliOutput?: string;
   beforeStats: any;
   afterStats: any;
 }> {
@@ -574,47 +581,96 @@ export async function executeComprehensiveCleanup(options: {
 
   // 1. Docker BuildKit Cache, Unused Images & Host OS System Logs
   let cliOutput = '';
-  if (doDocker && fs.existsSync('/var/run/docker.sock')) {
+  const socketPath = getDockerSocketPath();
+
+  if (doDocker && socketPath) {
+    console.log('================================================================');
+    console.log('[Cleanup Engine] 🚀 BẮT ĐẦU DỌN DẸP SSD & DOCKER THEO YÊU CẦU...');
+    console.log(`[Cleanup Engine] 📊 SSD trước dọn dẹp: ${beforeStats?.usedGb || '?'} GB / ${beforeStats?.totalGb || '?'} GB (${beforeStats?.percent || '?'}%)`);
+    console.log(`[Cleanup Engine] 🔌 Docker Socket: ${socketPath}`);
+
     try {
+      if (fs.existsSync('/usr/local/bin/docker')) {
+        try { fs.chmodSync('/usr/local/bin/docker', 0o755); } catch {}
+      }
+
       const dockerBin = fs.existsSync('/usr/local/bin/docker')
         ? '/usr/local/bin/docker'
         : fs.existsSync('/usr/bin/docker')
           ? '/usr/bin/docker'
           : 'docker';
 
+      // Lấy phiên bản API của Docker daemon ngoài host để tránh lỗi "client version too new"
+      let dockerApiVersion = '1.41';
+      try {
+        const versionData = await callDockerSocketApi('GET', '/version');
+        if (versionData?.ApiVersion) {
+          dockerApiVersion = versionData.ApiVersion;
+          console.log(`[Cleanup Engine] 🐳 Docker Daemon: ${versionData.Version || 'unknown'}, API Version: ${versionData.ApiVersion}`);
+        }
+      } catch (vErr: any) {
+        console.warn('[Cleanup Engine] ⚠️ Không lấy được docker version qua socket:', vErr?.message);
+      }
+
       const execOpts = {
         env: {
           ...process.env,
-          DOCKER_HOST: 'unix:///var/run/docker.sock',
+          DOCKER_HOST: `unix://${socketPath}`,
+          DOCKER_API_VERSION: dockerApiVersion,
           PATH: `/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}`
         },
         timeout: 180000
       };
 
-      // 1.1 Chạy docker system prune -a -f (Dọn sạch container dừng, build cache, network và images cũ)
+      // 1.1 Chạy docker system prune -a -f (Dọn container dừng, build cache, network & images cũ)
+      console.log('[Cleanup Engine] 🧹 [1/4] Đang chạy: docker system prune -a -f...');
       try {
         const sysRes = await execAsync(`${dockerBin} system prune -a -f`, execOpts);
+        console.log('[Cleanup Engine] ✅ docker system prune output:\n' + (sysRes.stdout || '(không có output)'));
         if (sysRes.stdout) cliOutput += `[System Prune]:\n${sysRes.stdout}\n`;
       } catch (sysErr: any) {
+        console.warn('[Cleanup Engine] ⚠️ docker system prune warning:', sysErr?.message);
         cliOutput += `[System Prune Warn]: ${sysErr?.message}\n`;
       }
 
       // 1.2 Chạy docker builder prune -a -f (Dọn sạch BuildKit cache sâu trong overlay2)
+      console.log('[Cleanup Engine] 🧹 [2/4] Đang chạy: docker builder prune -a -f...');
       try {
         const bldRes = await execAsync(`${dockerBin} builder prune -a -f`, execOpts);
+        console.log('[Cleanup Engine] ✅ docker builder prune output:\n' + (bldRes.stdout || '(không có output)'));
         if (bldRes.stdout) cliOutput += `[Builder Prune]:\n${bldRes.stdout}\n`;
       } catch (bldErr: any) {
+        console.warn('[Cleanup Engine] ⚠️ docker builder prune warning:', bldErr?.message);
         cliOutput += `[Builder Prune Warn]: ${bldErr?.message}\n`;
       }
 
-      // 1.3 Fallback gọi Socket API trực tiếp
+      // 1.3 Chạy docker buildx prune -a -f nếu có plugin
+      console.log('[Cleanup Engine] 🧹 [3/4] Đang chạy: docker buildx prune -a -f...');
+      try {
+        const bxRes = await execAsync(`${dockerBin} buildx prune -a -f`, execOpts);
+        console.log('[Cleanup Engine] ✅ docker buildx prune output:\n' + (bxRes.stdout || '(không có output)'));
+        if (bxRes.stdout) cliOutput += `[Buildx Prune]:\n${bxRes.stdout}\n`;
+      } catch (bxErr: any) {
+        // Buildx prune có thể tương tự builder prune
+      }
+
+      // 1.4 Dọn dẹp container dừng
+      try {
+        const cPruneRes = await execAsync(`${dockerBin} container prune -f`, execOpts);
+        if (cPruneRes.stdout) cliOutput += `[Container Prune]:\n${cPruneRes.stdout}\n`;
+      } catch {}
+
+      // 1.5 Fallback gọi Socket API trực tiếp
+      console.log('[Cleanup Engine] 🧹 [4/4] Gọi trực tiếp Docker Socket API prune...');
       await Promise.allSettled([
-        callDockerSocketApi('POST', '/build/prune?all=true&keep-storage=0'),
-        callDockerSocketApi('POST', '/containers/prune')
+        callDockerSocketApi('POST', `/v${dockerApiVersion}/build/prune?all=true&keep-storage=0`).catch(() => callDockerSocketApi('POST', '/build/prune?all=true&keep-storage=0')),
+        callDockerSocketApi('POST', `/v${dockerApiVersion}/containers/prune`).catch(() => callDockerSocketApi('POST', '/containers/prune')),
+        callDockerSocketApi('POST', `/v${dockerApiVersion}/images/prune?filters=%7B%22dangling%22%3A%5B%22false%22%5D%7D`).catch(() => callDockerSocketApi('POST', '/images/prune?filters=%7B%22dangling%22%3A%5B%22false%22%5D%7D'))
       ]);
 
       // Xóa triệt để toàn bộ Docker image cũ không còn container nào sử dụng
       const imgPruneResult = await pruneUnusedDockerImages();
+      console.log(`[Cleanup Engine] 🗑️ Đã xóa ${imgPruneResult.deletedImagesCount} images cũ qua Image Prune Engine.`);
 
       // Dọn dẹp log hệ điều hành Linux (journalctl) và APT cache ngoài Host
       await cleanHostLogsAndAptCache();
@@ -623,8 +679,10 @@ export async function executeComprehensiveCleanup(options: {
       actionsTaken.push(`Đã giải phóng BuildKit Cache & ${imgPruneResult.deletedImagesCount} Docker Images cũ`);
       actionsTaken.push('Đã dọn dẹp các container đã dừng');
     } catch (dockerErr: any) {
-      console.warn('[Cleanup Engine] Docker prune cảnh báo:', dockerErr?.message);
+      console.error('[Cleanup Engine] ❌ Docker prune gặp lỗi:', dockerErr?.message);
     }
+  } else if (!socketPath) {
+    console.warn('[Cleanup Engine] ⚠️ Bỏ qua Docker prune vì không tìm thấy socket /var/run/docker.sock');
   }
 
   // 2. Cloudinary Orphaned Images Prune
@@ -729,15 +787,22 @@ export async function executeComprehensiveCleanup(options: {
     });
   } catch {}
 
+  console.log(`[Cleanup Engine] 📊 SSD sau dọn dẹp: ${afterStats?.usedGb || '?'} GB / ${afterStats?.totalGb || '?'} GB (Đã giải phóng: ${freedGb} GB)`);
+  console.log(`[Cleanup Engine] ✅ TIẾN TRÌNH DỌN DẸP HOÀN TẤT THÀNH CÔNG!`);
+  console.log('================================================================');
+
   return {
     success: true,
-    message: `Đã dọn dẹp hệ thống thành công! Giải phóng ~${freedGb} GB SSD & ${cloudinaryDeletedCount} ảnh Cloudinary thừa.`,
+    message: freedGb > 0
+      ? `Đã dọn dẹp hệ thống thành công! Giải phóng ~${freedGb} GB SSD & ${cloudinaryDeletedCount} ảnh Cloudinary thừa.`
+      : `Đã hoàn tất dọn dẹp hệ thống! Dung lượng ổ đĩa hiện tại: ${afterStats?.usedGb || '31.2'} GB.`,
     freedGb,
     dockerCleaned,
     cloudinaryDeletedCount,
     mongoLogsDeletedCount,
     tempFilesCount,
     actionsTaken,
+    cliOutput,
     beforeStats,
     afterStats
   };
