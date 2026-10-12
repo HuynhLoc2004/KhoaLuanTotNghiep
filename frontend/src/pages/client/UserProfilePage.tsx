@@ -653,36 +653,41 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
           </>
         )}
 
-        {/* Modal Trượt Xuống Xem Chi Tiết Vé (Clean, Chuẩn Quy Tắc, Responsive) */}
+        {/* Modal Xem Chi Tiết Vé (Căn giữa hoàn hảo, Responsive đa màn hình) */}
         {selectedTicket && (
           <div
+            className="user-ticket-modal-overlay"
             style={{
               position: 'fixed',
               inset: 0,
               zIndex: 9999,
-              background: 'rgba(0, 0, 0, 0.75)',
-              backdropFilter: 'blur(4px)',
+              background: 'rgba(5, 7, 12, 0.82)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
               display: 'flex',
-              alignItems: 'flex-start',
+              alignItems: 'center',
               justifyContent: 'center',
-              padding: '40px 16px',
+              padding: '16px',
               overflowY: 'auto',
               boxSizing: 'border-box'
             }}
             onClick={() => setSelectedTicket(null)}
           >
             <div
+              className="user-ticket-modal-card"
               style={{
+                margin: 'auto',
                 background: '#151A26',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: '14px',
+                borderRadius: '16px',
                 padding: '24px',
                 maxWidth: 420,
                 width: '100%',
                 position: 'relative',
-                boxShadow: '0 16px 40px rgba(0, 0, 0, 0.6)',
-                animation: 'modalSlideDown 0.25s ease-out',
-                boxSizing: 'border-box'
+                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75)',
+                boxSizing: 'border-box',
+                maxHeight: 'calc(100dvh - 32px)',
+                overflowY: 'auto'
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -691,6 +696,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 type="button"
                 onClick={() => setSelectedTicket(null)}
                 aria-label="Đóng chi tiết vé"
+                className="user-ticket-modal-close"
                 style={{
                   position: 'absolute',
                   top: 16,
@@ -699,64 +705,65 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   height: 32,
                   borderRadius: '50%',
                   background: 'rgba(255, 255, 255, 0.06)',
-                  border: 'none',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
                   color: '#CBD5E1',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  zIndex: 10
+                  zIndex: 10,
+                  transition: 'all 0.2s ease'
                 }}
               >
                 <X size={18} />
               </button>
 
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ fontSize: '0.78rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ marginBottom: 18, paddingRight: 36 }}>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
                   Chi tiết vé tham quan
                 </div>
-                <h3 style={{ fontSize: '1.15rem', color: '#FFF', margin: '4px 0 0 0', fontWeight: 600 }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#FFF', margin: '4px 0 0 0', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.5px' }}>
                   {selectedTicket.ticketCode}
                 </h3>
               </div>
 
               {/* Thông tin vé dạng danh sách tối giản */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.85rem', marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <span style={{ color: '#94A3B8' }}>Họ tên khách:</span>
-                  <span style={{ color: '#FFF', fontWeight: 500 }}>{selectedTicket.userName || profile?.fullName}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.86rem', marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, paddingBottom: 7, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <span style={{ color: '#94A3B8', flexShrink: 0 }}>Họ tên khách:</span>
+                  <span style={{ color: '#FFF', fontWeight: 500, textAlign: 'right', wordBreak: 'break-word' }}>{selectedTicket.userName || profile?.fullName}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <span style={{ color: '#94A3B8' }}>Loại vé:</span>
-                  <span style={{ color: '#FFF', fontWeight: 500 }}>{selectedTicket.ticketTitle}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, paddingBottom: 7, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <span style={{ color: '#94A3B8', flexShrink: 0 }}>Loại vé:</span>
+                  <span style={{ color: '#FFF', fontWeight: 500, textAlign: 'right' }}>{selectedTicket.ticketTitle}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <span style={{ color: '#94A3B8' }}>Ngày tham quan:</span>
-                  <span style={{ color: '#FFF', fontWeight: 500 }}>{selectedTicket.visitDate}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, paddingBottom: 7, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <span style={{ color: '#94A3B8', flexShrink: 0 }}>Ngày tham quan:</span>
+                  <span style={{ color: '#FFF', fontWeight: 500, textAlign: 'right' }}>{selectedTicket.visitDate}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <span style={{ color: '#94A3B8' }}>Khung giờ:</span>
-                  <span style={{ color: '#FFF', fontWeight: 500 }}>{selectedTicket.timeSlot}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, paddingBottom: 7, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <span style={{ color: '#94A3B8', flexShrink: 0 }}>Khung giờ:</span>
+                  <span style={{ color: '#FFF', fontWeight: 500, textAlign: 'right' }}>{selectedTicket.timeSlot}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <span style={{ color: '#94A3B8' }}>Số lượng:</span>
-                  <span style={{ color: '#FFF', fontWeight: 500 }}>{selectedTicket.quantity} người</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, paddingBottom: 7, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <span style={{ color: '#94A3B8', flexShrink: 0 }}>Số lượng:</span>
+                  <span style={{ color: '#FFF', fontWeight: 500, textAlign: 'right' }}>{selectedTicket.quantity} người</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <span style={{ color: '#94A3B8' }}>Tổng tiền:</span>
-                  <span style={{ color: '#FFF', fontWeight: 600 }}>{(selectedTicket.totalAmount || 0).toLocaleString('vi-VN')} đ</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, paddingBottom: 7, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <span style={{ color: '#94A3B8', flexShrink: 0 }}>Tổng tiền:</span>
+                  <span style={{ color: '#FFF', fontWeight: 600, textAlign: 'right' }}>{(selectedTicket.totalAmount || 0).toLocaleString('vi-VN')} đ</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 6 }}>
-                  <span style={{ color: '#94A3B8' }}>Trạng thái:</span>
-                  <span style={{ color: getTicketStatusInfo(selectedTicket).isDimmed ? '#94A3B8' : 'var(--c-gold, #D4AF37)', fontWeight: 600 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingBottom: 4 }}>
+                  <span style={{ color: '#94A3B8', flexShrink: 0 }}>Trạng thái:</span>
+                  <span style={{ color: getTicketStatusInfo(selectedTicket).isDimmed ? '#94A3B8' : 'var(--c-gold, #D4AF37)', fontWeight: 600, textAlign: 'right' }}>
                     {getTicketStatusInfo(selectedTicket).label}
                   </span>
                 </div>
               </div>
 
               {/* Mã QR soát vé */}
-              <div style={{ textAlign: 'center', background: '#0D111A', padding: '16px', borderRadius: '10px', marginBottom: 18 }}>
-                <div style={{ background: '#FFF', padding: '10px', borderRadius: '8px', display: 'inline-block' }}>
+              <div style={{ textAlign: 'center', background: '#0D111A', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', marginBottom: 18 }}>
+                <div style={{ background: '#FFF', padding: '10px', borderRadius: '10px', display: 'inline-block', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)' }}>
                   <img
                     src={
                       selectedTicket.qrCodeData && selectedTicket.qrCodeData.startsWith('data:image/')
@@ -772,7 +779,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       }
                     }}
                     alt={`Mã QR ${selectedTicket.ticketCode}`}
-                    style={{ width: 170, height: 170, display: 'block', objectFit: 'contain' }}
+                    style={{ width: '100%', maxWidth: 160, aspectRatio: '1 / 1', display: 'block', objectFit: 'contain' }}
                   />
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 10 }}>
@@ -788,14 +795,17 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   style={{
                     width: '100%',
                     padding: '9px 16px',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     background: 'transparent',
                     border: '1px solid rgba(239, 68, 68, 0.4)',
                     color: '#EF4444',
                     fontSize: '0.85rem',
                     cursor: 'pointer',
-                    fontWeight: 500
+                    fontWeight: 500,
+                    transition: 'all 0.2s ease'
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   Hủy vé tham quan này
                 </button>
@@ -808,14 +818,32 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
       <ClientFooter onNavigatePage={onNavigatePage} />
 
       <style>{`
-        @keyframes modalSlideDown {
-          from {
+        @keyframes ticketModalPop {
+          0% {
             opacity: 0;
-            transform: translateY(-20px);
+            transform: scale(0.96) translateY(8px);
           }
-          to {
+          100% {
             opacity: 1;
-            transform: translateY(0);
+            transform: scale(1) translateY(0);
+          }
+        }
+        .user-ticket-modal-card {
+          animation: ticketModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .user-ticket-modal-close:hover {
+          background: rgba(255, 255, 255, 0.12) !important;
+          color: #FFF !important;
+          transform: scale(1.05);
+        }
+        @media (max-width: 480px) {
+          .user-ticket-modal-overlay {
+            padding: 12px !important;
+          }
+          .user-ticket-modal-card {
+            padding: 18px 16px !important;
+            border-radius: 14px !important;
+            max-height: calc(100dvh - 24px) !important;
           }
         }
       `}</style>
