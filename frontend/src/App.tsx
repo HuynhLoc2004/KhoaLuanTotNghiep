@@ -28,6 +28,7 @@ import { AdminShowcasePage } from './pages/admin/AdminShowcasePage';
 import { AdminGuideCMSPage } from './pages/admin/AdminGuideCMSPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminTicketsPage } from './pages/admin/AdminTicketsPage';
+import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 import { ClientTranslationProvider, useClientTranslation } from './context/ClientTranslationContext';
 import { ClientHomePage } from './pages/client/ClientHomePage';
 import { ClientTourView } from './pages/client/ClientTourView';
@@ -1040,6 +1041,8 @@ const AppContent: React.FC = () => {
           <AdminUsersPage />
         ) : currentTab === 'tickets' ? (
           <AdminTicketsPage />
+        ) : currentTab === 'analytics' ? (
+          <AdminAnalyticsPage />
         ) : currentTab === 'settings' ? (
           <AdminSettingsPage />
         ) : currentTab === 'logs' ? (
@@ -1048,7 +1051,7 @@ const AppContent: React.FC = () => {
           <div className="admin-content">
             <div className="panel" style={{ padding: 40, textAlign: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--primary)' }}>
-                {currentTab === 'analytics' && t('app.analyticsFallbackTitle', 'Báo cáo & Thống kê lượt tham quan Tour 360')}
+                {t('app.fallbackTitle', 'Tính năng đang được cập nhật')}
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                 {t('app.fallbackDesc', 'Chức năng này đang liên kết trực tiếp với dữ liệu Tour 360 hiện hành của Bảo tàng.')}

@@ -24,6 +24,7 @@ import { profileRouter } from './routes/profile.js';
 import { splatRouter } from './routes/splat.js';
 import { aiRouter } from './routes/ai.js';
 import { logsRouter } from './routes/logs.js';
+import { analyticsRouter } from './routes/analytics.js';
 import { systemLogger } from './services/systemLogger.js';
 import { seedDefaultLanguages } from './models/Language.js';
 import { seedDefaultRoles } from './models/Role.js';
@@ -168,6 +169,7 @@ app.use('/api/profile', profileRouter);
 app.use('/api/splat', splatRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/system/logs', logsRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // Middleware tự động ghi nhận các tác vụ quản trị và lỗi hệ thống vào NoSQL MongoDB
 app.use((req, res, next) => {

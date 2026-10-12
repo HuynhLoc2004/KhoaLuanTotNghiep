@@ -1,4 +1,4 @@
-import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload, TicketTypeItem, TicketTimeSlotItem, TicketCatalogData, TicketCheckoutPayload, TicketCheckoutResponse, AdminOrderItem, AdminOrdersResponse, NavigationResult, FloorPlanNavSettings, FloorPlanNavLog, SystemLogItem, SystemLogStats } from '../types';
+import { MuseumRoom, Hotspot, TopicItem, AuthUser, RoleItem, SendOtpResponse, AuthResponse, MaintenanceStatus, SystemBranding, Artifact, FloorPlanMap, UserItem, UserListResponse, AdminTicketListResponse, AISettings, AIChatResponse, AITopicOption, UserProfile, UserTicket, BookTicketPayload, TicketTypeItem, TicketTimeSlotItem, TicketCatalogData, TicketCheckoutPayload, TicketCheckoutResponse, AdminOrderItem, AdminOrdersResponse, NavigationResult, FloorPlanNavSettings, FloorPlanNavLog, SystemLogItem, SystemLogStats, AnalyticsResponse, AnalyticsData } from '../types';
 
 export const API_ROOT = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
@@ -1476,6 +1476,25 @@ export const api = {
     });
     const json = await safeJson(res, 'Không thể quét ảnh thừa Cloudinary');
     if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi quét ảnh thừa Cloudinary');
+    return json;
+  },
+
+  async getAnalytics(params?: {
+    timeRange?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<AnalyticsResponse> {
+    const q = new URLSearchParams();
+    if (params?.timeRange) q.append('timeRange', params.timeRange);
+    if (params?.startDate) q.append('startDate', params.startDate);
+    if (params?.endDate) q.append('endDate', params.endDate);
+    q.append('_t', String(Date.now()));
+
+    const res = await fetch(`${API_BASE}/analytics?${q.toString()}`, {
+      headers: getAuthHeaders()
+    });
+    const json = await safeJson(res, 'Không thể tải dữ liệu báo cáo thống kê');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi tải dữ liệu báo cáo thống kê');
     return json;
   }
 };

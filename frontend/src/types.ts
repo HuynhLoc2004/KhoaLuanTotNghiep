@@ -819,5 +819,114 @@ export interface AdminOrdersResponse {
   };
 }
 
+export interface AnalyticsKPIs {
+  totalRevenue: number;
+  totalTicketsSold: number;
+  totalTicketsUsed: number;
+  activeTickets: number;
+  cancelledTickets: number;
+  checkinRate: number;
+  totalRooms: number;
+  totalHotspots: number;
+  totalArtifacts: number;
+  total3DArtifacts: number;
+  totalUsers: number;
+  totalSystemLogs: number;
+}
+
+export interface AnalyticsTimelineItem {
+  dateLabel: string;
+  revenue: number;
+  tickets: number;
+  checkins: number;
+}
+
+export interface AnalyticsTicketTypeBreakdown {
+  typeCode: string;
+  title: string;
+  count: number;
+  revenue: number;
+  percentage: number;
+}
+
+export interface AnalyticsPaymentMethodBreakdown {
+  method: string;
+  count: number;
+  revenue: number;
+  percentage: number;
+}
+
+export interface AnalyticsRoomItem {
+  id: string;
+  code: string;
+  name: string;
+  period: string;
+  category?: string;
+  hotspotsCount: number;
+  qrScanCount: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface AnalyticsPeriodSummary {
+  period: string;
+  count: number;
+}
+
+export interface AnalyticsCategorySummary {
+  category: string;
+  count: number;
+}
+
+export interface AnalyticsRecentTicket {
+  id: string;
+  ticketCode: string;
+  userName: string;
+  userEmail: string;
+  userPhone?: string;
+  ticketType: string;
+  ticketTitle: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  visitDate: string;
+  timeSlot: string;
+  status: string;
+  paymentMethod: string;
+  createdAt: string;
+}
+
+export interface AnalyticsArtifactItem {
+  id: string;
+  code: string;
+  name: string;
+  period: string;
+  category: string;
+  has3D: boolean;
+  status: string;
+  createdAt: string;
+}
+
+export interface AnalyticsData {
+  timeRange: string;
+  startDate: string;
+  endDate: string;
+  kpis: AnalyticsKPIs;
+  timeline: AnalyticsTimelineItem[];
+  ticketsByType: AnalyticsTicketTypeBreakdown[];
+  paymentMethods: AnalyticsPaymentMethodBreakdown[];
+  rooms: AnalyticsRoomItem[];
+  artifacts: AnalyticsArtifactItem[];
+  artifactsByPeriod: AnalyticsPeriodSummary[];
+  artifactsByCategory: AnalyticsCategorySummary[];
+  recentTickets: AnalyticsRecentTicket[];
+}
+
+export interface AnalyticsResponse {
+  success: boolean;
+  data: AnalyticsData;
+  message?: string;
+}
+
 
 
