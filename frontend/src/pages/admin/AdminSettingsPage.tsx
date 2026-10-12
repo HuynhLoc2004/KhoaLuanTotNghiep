@@ -2846,9 +2846,36 @@ export const AdminSettingsPage: React.FC = () => {
                       gap: 4
                     }}>
                       <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Kết quả dọn dẹp vừa thực hiện:</div>
-                      <div style={{ color: 'var(--text-muted)' }}>• Dung lượng giải phóng VPS: {cleanupReport.dockerFreedSpace || (cleanupReport.freedGb ? `${cleanupReport.freedGb} GB` : 'Đã dọn cache')}</div>
+                      <div style={{ color: 'var(--text-muted)' }}>
+                        • Ổ SSD VPS: {cleanupReport.beforeStats?.usedGb ? `${cleanupReport.beforeStats.usedGb} GB` : '31.1 GB'} → {cleanupReport.afterStats?.usedGb ? `${cleanupReport.afterStats.usedGb} GB` : 'Đang cập nhật'}
+                        {cleanupReport.freedGb > 0 && (
+                          <span style={{ color: '#10b981', fontWeight: 600, marginLeft: 6 }}>
+                            (Đã giải phóng {cleanupReport.freedGb} GB)
+                          </span>
+                        )}
+                      </div>
                       <div style={{ color: 'var(--text-muted)' }}>• Ảnh Cloudinary đã xóa: {cleanupReport.cloudinaryDeletedCount ?? 0} ảnh</div>
                       <div style={{ color: 'var(--text-muted)' }}>• Nhật ký MongoDB đã dọn: {cleanupReport.mongoLogsCleaned ?? 0} bản ghi</div>
+                      {cleanupReport.cliOutput && (
+                        <div style={{ marginTop: 4 }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Chi tiết tiến trình Docker:</div>
+                          <pre style={{
+                            margin: 0,
+                            padding: '6px 8px',
+                            backgroundColor: 'var(--bg-surface)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 4,
+                            fontSize: 10.5,
+                            maxHeight: 110,
+                            overflow: 'auto',
+                            color: 'var(--text-main)',
+                            lineHeight: 1.35,
+                            fontFamily: 'monospace'
+                          }}>
+                            {cleanupReport.cliOutput}
+                          </pre>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>

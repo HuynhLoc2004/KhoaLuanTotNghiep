@@ -17,7 +17,7 @@ RUN npm run build
 # ==============================================================================
 FROM node:20-bookworm-slim
 
-# Cài đặt Python 3, pip, thư viện hệ thống cho OpenCV, công cụ mã nguồn mở Hugin CLI và Docker client CLI
+# Cài đặt Python 3, pip, thư viện hệ thống cho OpenCV, công cụ mã nguồn mở Hugin CLI và Docker client CLI + Buildx
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
@@ -29,6 +29,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     && curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-26.1.4.tgz | tar -xz -C /usr/local/bin --strip-components=1 docker/docker \
+    && mkdir -p /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins \
+    && curl -fsSL https://github.com/docker/buildx/releases/download/v0.14.1/buildx-v0.14.1.linux-amd64 -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && cp /usr/local/lib/docker/cli-plugins/docker-buildx /root/.docker/cli-plugins/docker-buildx \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 

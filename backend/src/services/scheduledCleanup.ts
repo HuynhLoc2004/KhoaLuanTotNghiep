@@ -573,17 +573,41 @@ export async function executeComprehensiveCleanup(options: {
   let tempFilesCount = 0;
 
   // 1. Docker BuildKit Cache, Unused Images & Host OS System Logs
+  let cliOutput = '';
   if (doDocker && fs.existsSync('/var/run/docker.sock')) {
     try {
-      // 1.0 Chạy dọn dẹp BuildKit Cache sâu qua Docker CLI (tương đương lệnh host)
+      const dockerBin = fs.existsSync('/usr/local/bin/docker')
+        ? '/usr/local/bin/docker'
+        : fs.existsSync('/usr/bin/docker')
+          ? '/usr/bin/docker'
+          : 'docker';
+
+      const execOpts = {
+        env: {
+          ...process.env,
+          DOCKER_HOST: 'unix:///var/run/docker.sock',
+          PATH: `/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}`
+        },
+        timeout: 180000
+      };
+
+      // 1.1 Chạy docker system prune -a -f (Dọn sạch container dừng, build cache, network và images cũ)
       try {
-        await execAsync('docker builder prune -a -f');
-        await execAsync('docker image prune -a -f');
-        await execAsync('docker container prune -f');
-      } catch {
-        // Fallback qua socket API bên dưới
+        const sysRes = await execAsync(`${dockerBin} system prune -a -f`, execOpts);
+        if (sysRes.stdout) cliOutput += `[System Prune]:\n${sysRes.stdout}\n`;
+      } catch (sysErr: any) {
+        cliOutput += `[System Prune Warn]: ${sysErr?.message}\n`;
       }
 
+      // 1.2 Chạy docker builder prune -a -f (Dọn sạch BuildKit cache sâu trong overlay2)
+      try {
+        const bldRes = await execAsync(`${dockerBin} builder prune -a -f`, execOpts);
+        if (bldRes.stdout) cliOutput += `[Builder Prune]:\n${bldRes.stdout}\n`;
+      } catch (bldErr: any) {
+        cliOutput += `[Builder Prune Warn]: ${bldErr?.message}\n`;
+      }
+
+      // 1.3 Fallback gọi Socket API trực tiếp
       await Promise.allSettled([
         callDockerSocketApi('POST', '/build/prune?all=true&keep-storage=0'),
         callDockerSocketApi('POST', '/containers/prune')
@@ -676,7 +700,10 @@ export async function executeComprehensiveCleanup(options: {
     cloudinaryDeletedCount,
     mongoLogsDeletedCount,
     tempFilesCount,
-    actionsTaken
+    actionsTaken,
+    cliOutput,
+    beforeStats,
+    afterStats
   };
 
   // Cập nhật trạng thái lần chạy gần nhất
