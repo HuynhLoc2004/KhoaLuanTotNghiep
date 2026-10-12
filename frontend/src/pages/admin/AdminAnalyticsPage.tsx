@@ -1,32 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  BarChart3,
   RefreshCw,
   Download,
-  Calendar,
-  Search,
-  Filter,
-  DollarSign,
-  Ticket,
-  CheckCircle2,
-  Compass,
-  Box,
-  Users,
-  Activity,
-  Layers,
-  Sparkles,
-  QrCode,
-  ArrowUpRight,
-  ShieldCheck,
-  TrendingUp,
-  CreditCard,
-  Tag,
-  Clock,
-  Eye,
-  Building2,
-  FileSpreadsheet,
-  Check,
-  AlertCircle
+  Search
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { api } from '../../services/api';
@@ -394,7 +370,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   const { t, currentLang } = useClientTranslation();
   const { showToast } = useToast();
 
-  // Tab con nghiệp vụ
+  // Tab con nghiệp vụ (Tối giản chuẩn Admin, không icon lòe loẹt)
   const [subTab, setSubTab] = useState<'overview' | 'tickets' | 'rooms' | 'artifacts'>('overview');
 
   // Bộ lọc thời gian chuẩn
@@ -584,9 +560,7 @@ export const AdminAnalyticsPage: React.FC = () => {
 
       const wb = XLSX.utils.book_new();
 
-      // ======================================================
       // SHEET 1: TỔNG QUAN & KPI HỆ THỐNG
-      // ======================================================
       const nowStr = new Date().toLocaleString('vi-VN');
       const timeRangeLabel =
         timeRange === 'today'
@@ -626,9 +600,7 @@ export const AdminAnalyticsPage: React.FC = () => {
       wsKpi['!cols'] = [{ wch: 38 }, { wch: 22 }, { wch: 16 }, { wch: 42 }];
       XLSX.utils.book_append_sheet(wb, wsKpi, dict.sheetKpi);
 
-      // ======================================================
       // SHEET 2: DOANH THU & GIAO DỊCH VÉ
-      // ======================================================
       const ticketHeaders = [
         dict.tCode,
         dict.tCustomer,
@@ -694,9 +666,7 @@ export const AdminAnalyticsPage: React.FC = () => {
       ];
       XLSX.utils.book_append_sheet(wb, wsTickets, dict.sheetTickets);
 
-      // ======================================================
       // SHEET 3: GIAN PHÒNG TOUR 360°
-      // ======================================================
       const roomHeaders = [
         dict.rCode,
         dict.rName,
@@ -743,9 +713,7 @@ export const AdminAnalyticsPage: React.FC = () => {
       ];
       XLSX.utils.book_append_sheet(wb, wsRooms, dict.sheetRooms);
 
-      // ======================================================
       // SHEET 4: HIỆN VẬT DI SẢN & TỶ LỆ 3D
-      // ======================================================
       const artifactHeaders = [
         dict.aCode,
         dict.aName,
@@ -831,53 +799,67 @@ export const AdminAnalyticsPage: React.FC = () => {
       ? Number(((kpis.total3DArtifacts / kpis.totalArtifacts) * 100).toFixed(1))
       : 0;
 
-  // Tính toán các chỉ số cho biểu đồ
   const timelineData = analytics?.timeline || [];
   const maxRevenue = useMemo(() => {
     return Math.max(...timelineData.map((t) => t.revenue), 100000);
   }, [timelineData]);
 
-  const maxTickets = useMemo(() => {
-    return Math.max(...timelineData.map((t) => t.tickets), 5);
-  }, [timelineData]);
+  // Trạng thái vé: dot màu chuẩn hệ thống
+  const renderStatusDot = (status: string) => {
+    let dotColor = '#64748B';
+    let text = 'Chưa sử dụng';
+    if (status === 'paid') {
+      dotColor = '#22C55E';
+      text = 'Chưa sử dụng';
+    } else if (status === 'used') {
+      dotColor = '#64748B';
+      text = 'Đã vào cổng';
+    } else if (status === 'cancelled') {
+      dotColor = '#EF4444';
+      text = 'Đã hủy';
+    }
+
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: dotColor,
+            display: 'inline-block'
+          }}
+        />
+        <span style={{ color: 'var(--text-main)' }}>{text}</span>
+      </div>
+    );
+  };
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px', maxWidth: 1440, margin: '0 auto' }}>
-      {/* 1. HEADER & THAO TÁC TRANG CHUẨN CAO CẤP */}
+    <div className="admin-content" style={{ padding: '20px 24px', maxWidth: 1440, margin: '0 auto' }}>
+      {/* 1. HEADER & THAO TÁC TRANG CHUẨN ADMIN (KHÔNG CHẤM ĐỎ, NÚT CHUẨN ADMIN) */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 16,
-          marginBottom: 22
+          gap: 12,
+          marginBottom: 16
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: 'var(--primary)',
-                display: 'inline-block'
-              }}
-            />
-            <h1
-              style={{
-                fontSize: 20,
-                fontWeight: 700,
-                color: 'var(--heading-color)',
-                margin: 0,
-                letterSpacing: '-0.02em'
-              }}
-            >
-              {t('analytics.title', 'Báo cáo & Thống kê')}
-            </h1>
-          </div>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, margin: 0 }}>
+          <h1
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: 'var(--heading-color)',
+              margin: 0
+            }}
+          >
+            {t('analytics.title', 'Báo cáo & Thống kê')}
+          </h1>
+          <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, margin: 0 }}>
             {t(
               'analytics.subtitle',
               'Báo cáo tổng hợp số liệu thực tế vé tham quan, doanh thu, không gian Tour 360° và hiện vật di sản'
@@ -885,86 +867,58 @@ export const AdminAnalyticsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Thanh công cụ lọc thời gian & Tác vụ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* Bộ chọn mốc thời gian dạng Pill Button tinh gọn */}
-          <div
+        {/* Bộ lọc thời gian chuẩn Dropdown & Nút bấm */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            className="form-control"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
+              fontSize: 12.5,
+              padding: '6px 12px',
+              borderRadius: 6,
               background: 'var(--bg-card)',
+              color: 'var(--text-main)',
               border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              padding: 3,
-              gap: 2
+              cursor: 'pointer'
             }}
           >
-            {[
-              { id: 'today', label: t('analytics.timeRange.today', 'Hôm nay') },
-              { id: 'week', label: t('analytics.timeRange.week', '7 ngày qua') },
-              { id: 'month', label: t('analytics.timeRange.month', 'Tháng này') },
-              { id: 'year', label: t('analytics.timeRange.year', 'Năm nay') },
-              { id: 'all', label: t('analytics.timeRange.all', 'Tất cả') },
-              { id: 'custom', label: t('analytics.timeRange.custom', 'Tùy chỉnh') }
-            ].map((pill) => (
-              <button
-                key={pill.id}
-                type="button"
-                onClick={() => setTimeRange(pill.id)}
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  background: timeRange === pill.id ? 'var(--primary)' : 'transparent',
-                  color: timeRange === pill.id ? '#FFF8F0' : 'var(--text-muted)',
-                  fontSize: 12,
-                  fontWeight: timeRange === pill.id ? 600 : 500,
-                  padding: '5px 11px',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {pill.label}
-              </button>
-            ))}
-          </div>
+            <option value="today">{t('analytics.timeRange.today', 'Hôm nay')}</option>
+            <option value="week">{t('analytics.timeRange.week', '7 ngày qua')}</option>
+            <option value="month">{t('analytics.timeRange.month', 'Tháng này')}</option>
+            <option value="year">{t('analytics.timeRange.year', 'Năm nay')}</option>
+            <option value="all">{t('analytics.timeRange.all', 'Tất cả thời gian')}</option>
+            <option value="custom">{t('analytics.timeRange.custom', 'Tùy chỉnh khoảng ngày')}</option>
+          </select>
 
-          {/* Ô chọn ngày tùy chỉnh khi kích hoạt */}
+          {/* Ô chọn ngày tùy chỉnh khi chọn custom */}
           {timeRange === 'custom' && (
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 8,
-                padding: '4px 8px'
-              }}
-            >
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <input
                 type="date"
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
+                className="form-control"
                 style={{
                   fontSize: 12,
-                  padding: '3px 6px',
-                  borderRadius: 4,
-                  background: 'transparent',
+                  padding: '5px 8px',
+                  borderRadius: 6,
+                  background: 'var(--bg-card)',
                   color: 'var(--text-main)',
                   border: '1px solid var(--border-color)'
                 }}
               />
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>→</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>-</span>
               <input
                 type="date"
                 value={customEnd}
                 onChange={(e) => setCustomEnd(e.target.value)}
+                className="form-control"
                 style={{
                   fontSize: 12,
-                  padding: '3px 6px',
-                  borderRadius: 4,
-                  background: 'transparent',
+                  padding: '5px 8px',
+                  borderRadius: 6,
+                  background: 'var(--bg-card)',
                   color: 'var(--text-main)',
                   border: '1px solid var(--border-color)'
                 }}
@@ -973,26 +927,21 @@ export const AdminAnalyticsPage: React.FC = () => {
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={handleApplyCustomDate}
-                style={{ padding: '3px 8px', fontSize: 11.5 }}
+                style={{ padding: '5px 10px', fontSize: 12 }}
               >
                 {t('analytics.apply', 'Áp dụng')}
               </button>
             </div>
           )}
 
-          {/* Nút Xuất file Excel Đa ngôn ngữ */}
+          {/* Nút Xuất Excel: chuẩn btn-primary hệ thống */}
           <button
             type="button"
             className="btn btn-primary btn-sm"
             onClick={handleExportExcel}
             disabled={isExporting || isLoading}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: '0 2px 8px rgba(139, 37, 34, 0.25)'
-            }}
-            title="Xuất tệp Excel đa ngôn ngữ đồng bộ dữ liệu thực tế"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            title="Xuất file Excel đồng bộ ngôn ngữ hiện tại của Quản trị viên"
           >
             <Download size={14} />
             <span>
@@ -1002,7 +951,7 @@ export const AdminAnalyticsPage: React.FC = () => {
             </span>
           </button>
 
-          {/* Nút Làm mới */}
+          {/* Nút Làm mới: chuẩn btn-secondary hệ thống */}
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -1016,22 +965,21 @@ export const AdminAnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. CHUYỂN ĐỔI SUB-TAB CHUẨN ADMIN */}
+      {/* 2. CHUYỂN ĐỔI TAB CON TỐI GIẢN (KHÔNG ICON, ĐÚNG CHUẨN ADMIN) */}
       <div
         style={{
           display: 'flex',
           gap: 4,
           borderBottom: '1px solid var(--border-color)',
-          marginBottom: 20
+          marginBottom: 18
         }}
       >
         {[
-          { id: 'overview', icon: BarChart3, label: t('analytics.tabOverview', 'Tổng quan & Xu hướng') },
-          { id: 'tickets', icon: Ticket, label: t('analytics.tabTickets', 'Doanh thu & Giao dịch vé') },
-          { id: 'rooms', icon: Compass, label: t('analytics.tabRooms', 'Gian phòng Tour 360°') },
-          { id: 'artifacts', icon: Box, label: t('analytics.tabArtifacts', 'Cổ vật & Bảo vật 3D') }
+          { id: 'overview', label: t('analytics.tabOverview', 'Tổng quan & Xu hướng') },
+          { id: 'tickets', label: t('analytics.tabTickets', 'Doanh thu & Giao dịch vé') },
+          { id: 'rooms', label: t('analytics.tabRooms', 'Gian phòng Tour 360°') },
+          { id: 'artifacts', label: t('analytics.tabArtifacts', 'Cổ vật & Bảo vật 3D') }
         ].map((tab) => {
-          const IconComponent = tab.icon;
           const isActive = subTab === tab.id;
           return (
             <button
@@ -1039,274 +987,116 @@ export const AdminAnalyticsPage: React.FC = () => {
               type="button"
               onClick={() => setSubTab(tab.id as any)}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                padding: '9px 18px',
+                padding: '8px 16px',
                 fontSize: 13,
                 fontWeight: isActive ? 600 : 500,
                 color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
                 border: 'none',
-                borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                borderBottom: isActive ? '2px solid var(--text-main)' : '2px solid transparent',
                 background: 'transparent',
                 cursor: 'pointer',
                 marginBottom: -1,
                 transition: 'all 0.15s ease'
               }}
             >
-              <IconComponent size={15} style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }} />
-              <span>{tab.label}</span>
+              {tab.label}
             </button>
           );
         })}
       </div>
 
-      {/* 3. LƯỚI CARD KPI CÂN XỨNG & ĐẲNG CẤP (6 THẺ ĐỒNG ĐỀU, KHÔNG BAO GIỜ BỊ RỚT LẺ) */}
+      {/* 3. DÃY THẺ KPI TỐI GIẢN (CHIA 2 HÀNG 3 CỘT CÂN ĐỐI 100%, KHÔNG ICON MÀU MÈ) */}
       <div
         style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 8,
+          marginBottom: 18,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 14,
-          marginBottom: 22
+          gridTemplateColumns: 'repeat(3, 1fr)'
         }}
       >
-        {/* KPI 1: Doanh thu bán vé */}
-        <div
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 10,
-            padding: '16px 18px',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {t('analytics.kpiRevenue', 'Doanh thu bán vé')}
-            </span>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 7,
-                background: 'rgba(139, 37, 34, 0.15)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <DollarSign size={16} />
-            </div>
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {t('analytics.kpiRevenue', 'Doanh thu bán vé')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--heading-color)', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
             {formatVND(kpis.totalRevenue)}
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            Thực thu từ giao dịch trực tuyến
-          </div>
         </div>
 
-        {/* KPI 2: Vé đã phát hành */}
-        <div
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 10,
-            padding: '16px 18px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {t('analytics.kpiTicketsSold', 'Vé đã phát hành')}
-            </span>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 7,
-                background: 'rgba(59, 130, 246, 0.15)',
-                color: '#3B82F6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Ticket size={16} />
-            </div>
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {t('analytics.kpiTicketsSold', 'Vé đã phát hành')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--heading-color)', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
             {kpis.totalTicketsSold.toLocaleString()}
           </div>
-          <div style={{ fontSize: 11.5, color: '#3B82F6', marginTop: 4 }}>
-            {kpis.activeTickets} vé hợp lệ đang kích hoạt
-          </div>
         </div>
 
-        {/* KPI 3: Lượt vào cổng & Tỷ lệ check-in */}
-        <div
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 10,
-            padding: '16px 18px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {t('analytics.kpiCheckinRate', 'Tỷ lệ vào cổng')}
-            </span>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 7,
-                background: 'rgba(34, 197, 94, 0.15)',
-                color: '#22C55E',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <CheckCircle2 size={16} />
-            </div>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {t('analytics.kpiCheckinRate', 'Tỷ lệ vào cổng')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#22C55E', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
             {kpis.checkinRate}%
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            {kpis.totalTicketsUsed} / {kpis.totalTicketsSold} vé đã soát vào cổng
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
+              ({kpis.totalTicketsUsed} / {kpis.totalTicketsSold} vé)
+            </span>
           </div>
         </div>
 
-        {/* KPI 4: Gian phòng Tour 360° */}
-        <div
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 10,
-            padding: '16px 18px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {t('analytics.kpiRooms', 'Gian phòng 360°')}
-            </span>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 7,
-                background: 'rgba(6, 182, 212, 0.15)',
-                color: '#06B6D4',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Compass size={16} />
-            </div>
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {t('analytics.kpiRooms', 'Gian phòng 360°')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--heading-color)', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
             {kpis.totalRooms}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            {kpis.totalHotspots} điểm ghim Hotspots tương tác
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
+              ({kpis.totalHotspots} hotspots)
+            </span>
           </div>
         </div>
 
-        {/* KPI 5: Cổ vật & Số hóa 3D */}
-        <div
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 10,
-            padding: '16px 18px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {t('analytics.kpi3DArtifacts', 'Số hóa 3D thực tế')}
-            </span>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 7,
-                background: 'rgba(234, 179, 8, 0.15)',
-                color: '#EAB308',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Box size={16} />
-            </div>
+        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {t('analytics.kpi3DArtifacts', 'Số hóa 3D thực tế')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#EAB308', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
             {kpis.total3DArtifacts}
-            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)', marginLeft: 6 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
               / {kpis.totalArtifacts} ({rate3D}%)
             </span>
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            Mô hình 3D tương tác xoay 360°
-          </div>
         </div>
 
-        {/* KPI 6: Tài khoản người dùng */}
-        <div
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 10,
-            padding: '16px 18px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {t('analytics.kpiUsers', 'Tài khoản & Nhật ký')}
-            </span>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 7,
-                background: 'rgba(168, 85, 247, 0.15)',
-                color: '#A855F7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Users size={16} />
-            </div>
+        <div style={{ padding: '14px 20px' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {t('analytics.kpiUsers', 'Tài khoản người dùng')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--heading-color)', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
             {kpis.totalUsers}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            {kpis.totalSystemLogs} sự kiện giám sát hệ thống
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
+              ({kpis.totalSystemLogs} nhật ký)
+            </span>
           </div>
         </div>
       </div>
 
       {/* ========================================================
-          TAB 1: TỔNG QUAN & BIỂU ĐỒ DIỄN BIẾN EXECUTIVE
+          TAB 1: TỔNG QUAN & BIỂU ĐỒ DIỄN BIẾN
           ======================================================== */}
       {subTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* 1. KHUNG BIỂU ĐỒ DIỄN BIẾN CHUẨN ĐỒ HỌA CAO CẤP */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* 1. KHUNG BIỂU ĐỒ CHUỖI THỜI GIAN ĐỀU ĐẶN */}
           <div
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
-              padding: '20px 24px'
+              borderRadius: 8,
+              padding: '16px 20px'
             }}
           >
-            {/* Header Biểu đồ */}
             <div
               style={{
                 display: 'flex',
@@ -1314,113 +1104,105 @@ export const AdminAnalyticsPage: React.FC = () => {
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: 12,
-                marginBottom: 20
+                marginBottom: 16
               }}
             >
               <div>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
                   {t('analytics.timelineTitle', 'Biểu đồ diễn biến doanh thu & lượt tham quan')}
                 </h3>
-                <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                  Theo dõi xu hướng biến động doanh thu vé và lưu lượng khách theo mốc thời gian thực tế
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                  Diễn biến doanh thu thực tế và lưu lượng vé phát hành theo mốc thời gian
                 </p>
               </div>
 
-              {/* Chú thích dữ liệu */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--primary)' }} />
-                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Doanh thu (VNĐ)</span>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--primary)' }} />
+                  <span style={{ color: 'var(--text-main)' }}>Doanh thu (VNĐ)</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 12, height: 12, borderRadius: 3, background: '#22C55E' }} />
-                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Lượt vé bán</span>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: '#64748B' }} />
+                  <span style={{ color: 'var(--text-muted)' }}>Lượt vé bán</span>
                 </div>
               </div>
             </div>
 
-            {/* Nội dung biểu đồ chuyên nghiệp với Tooltip & Trục tọa độ */}
             {timelineData.length > 0 ? (
               <div style={{ position: 'relative', width: '100%' }}>
-                {/* Tooltip nổi khi hover */}
                 {hoveredPoint && (
                   <div
                     style={{
                       position: 'absolute',
-                      top: 10,
-                      right: 16,
+                      top: 4,
+                      right: 12,
                       background: 'rgba(20, 23, 31, 0.95)',
-                      border: '1px solid var(--primary)',
-                      borderRadius: 8,
-                      padding: '8px 14px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 6,
+                      padding: '6px 12px',
                       zIndex: 10,
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-                      pointerEvents: 'none'
+                      pointerEvents: 'none',
+                      fontSize: 12
                     }}
                   >
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 4 }}>
-                      Thời gian: <strong style={{ color: 'var(--text-main)' }}>{hoveredPoint.dateLabel}</strong>
+                    <div style={{ color: 'var(--text-muted)' }}>
+                      Ngày: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{hoveredPoint.dateLabel}</span>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
+                    <div style={{ color: 'var(--text-main)', fontWeight: 600, marginTop: 2 }}>
                       Doanh thu: {formatVND(hoveredPoint.revenue)}
                     </div>
-                    <div style={{ fontSize: 12, color: '#22C55E', marginTop: 2 }}>
-                      Vé bán: {hoveredPoint.tickets} vé • Đã soát: {hoveredPoint.checkins} lượt
+                    <div style={{ color: 'var(--text-muted)', marginTop: 2 }}>
+                      Vé bán: {hoveredPoint.tickets} • Soát vào: {hoveredPoint.checkins}
                     </div>
                   </div>
                 )}
 
-                {/* Biểu đồ dạng Bar/Column với đường lưới chuẩn Grid */}
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 10 }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6 }}>
                   <div
                     style={{
-                      minWidth: Math.max(timelineData.length * 48, 640),
-                      height: 240,
+                      minWidth: Math.max(timelineData.length * 42, 600),
+                      height: 220,
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'flex-end',
                       position: 'relative'
                     }}
                   >
-                    {/* Các đường lưới ngang phụ trợ (Grid lines) */}
                     <div
                       style={{
                         position: 'absolute',
                         top: 0,
                         left: 0,
                         right: 0,
-                        bottom: 30,
+                        bottom: 28,
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                         pointerEvents: 'none',
-                        opacity: 0.15
+                        opacity: 0.12
                       }}
                     >
-                      <div style={{ borderTop: '1px dashed #fff', width: '100%' }} />
                       <div style={{ borderTop: '1px dashed #fff', width: '100%' }} />
                       <div style={{ borderTop: '1px dashed #fff', width: '100%' }} />
                       <div style={{ borderTop: '1px dashed #fff', width: '100%' }} />
                     </div>
 
-                    {/* Dãy cột dữ liệu thực tế */}
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'flex-end',
-                        gap: 10,
-                        height: 200,
+                        gap: 8,
+                        height: 180,
                         zIndex: 1,
                         borderBottom: '1px solid var(--border-color)',
-                        paddingBottom: 6
+                        paddingBottom: 4
                       }}
                     >
                       {timelineData.map((item, idx) => {
                         const revPercent =
                           item.revenue > 0
-                            ? Math.max(Math.round((item.revenue / maxRevenue) * 160), 12)
-                            : 4;
-
+                            ? Math.max(Math.round((item.revenue / maxRevenue) * 140), 10)
+                            : 3;
                         const isHovered = hoveredPoint?.dateLabel === item.dateLabel;
 
                         return (
@@ -1438,50 +1220,35 @@ export const AdminAnalyticsPage: React.FC = () => {
                               cursor: 'pointer'
                             }}
                           >
-                            {/* Nhãn doanh thu trên đầu cột nếu có giá trị */}
                             {item.revenue > 0 && (
                               <div
                                 style={{
                                   fontSize: 10,
-                                  fontWeight: 600,
-                                  color: 'var(--primary)',
-                                  marginBottom: 4,
+                                  color: 'var(--text-muted)',
+                                  marginBottom: 3,
                                   whiteSpace: 'nowrap'
                                 }}
                               >
-                                {item.revenue >= 1000000
-                                  ? `${(item.revenue / 1000000).toFixed(1)}M`
-                                  : item.revenue >= 1000
-                                  ? `${(item.revenue / 1000).toFixed(0)}k`
-                                  : item.revenue}
+                                {item.revenue >= 1000 ? `${(item.revenue / 1000).toFixed(0)}k` : item.revenue}
                               </div>
                             )}
 
-                            {/* Cột thể hiện doanh thu */}
                             <div
                               style={{
                                 width: '100%',
-                                maxWidth: 28,
+                                maxWidth: 20,
                                 height: `${revPercent}px`,
-                                background:
-                                  item.revenue > 0
-                                    ? isHovered
-                                      ? '#D4AF37'
-                                      : 'linear-gradient(180deg, var(--primary) 0%, rgba(139, 37, 34, 0.7) 100%)'
-                                    : 'rgba(255, 255, 255, 0.05)',
-                                borderRadius: '4px 4px 0 0',
-                                transition: 'all 0.2s ease',
-                                transform: isHovered ? 'scaleY(1.03)' : 'scaleY(1)',
-                                transformOrigin: 'bottom'
+                                background: item.revenue > 0 ? 'var(--primary)' : 'rgba(255, 255, 255, 0.05)',
+                                borderRadius: '2px 2px 0 0',
+                                opacity: isHovered ? 1 : 0.85,
+                                transition: 'all 0.15s ease'
                               }}
                             />
 
-                            {/* Nhãn ngày/giờ dưới chân cột */}
                             <div
                               style={{
                                 fontSize: 10.5,
                                 color: isHovered ? 'var(--text-main)' : 'var(--text-muted)',
-                                fontWeight: isHovered ? 600 : 400,
                                 marginTop: 6,
                                 whiteSpace: 'nowrap'
                               }}
@@ -1496,70 +1263,49 @@ export const AdminAnalyticsPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+              <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)', fontSize: 13 }}>
                 {t('analytics.noData', 'Không có dữ liệu trong khoảng thời gian này')}
               </div>
             )}
           </div>
 
-          {/* 2. HAI CARD PHÂN BỔ THỊ PHẦN: LOẠI VÉ & PHƯƠNG THỨC THANH TOÁN */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 16 }}>
+          {/* 2. HAI KHUNG PHÂN BỔ: LOẠI VÉ & KÊNH THANH TOÁN (TỐI GIẢN CHUẨN ADMIN) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
             {/* Phân bổ theo loại vé */}
             <div
               style={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
-                borderRadius: 10,
-                padding: '18px 20px'
+                borderRadius: 8,
+                padding: '16px 20px',
+                minHeight: 180
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Tag size={16} style={{ color: 'var(--primary)' }} />
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                    {t('analytics.byTypeTitle', 'Phân bổ theo loại vé')}
-                  </h3>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <h3 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
+                  {t('analytics.byTypeTitle', 'Phân bổ theo loại vé')}
+                </h3>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   {analytics?.ticketsByType?.length || 0} phân loại
                 </span>
               </div>
 
               {analytics?.ticketsByType && analytics.ticketsByType.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {analytics.ticketsByType.map((tItem, i) => (
                     <div key={i}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                        <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
-                          {tItem.title || tItem.typeCode}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
+                        <span style={{ color: 'var(--text-main)' }}>{tItem.title || tItem.typeCode}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          {tItem.count} vé • {formatVND(tItem.revenue)} ({tItem.percentage}%)
                         </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                            {tItem.count} vé
-                          </span>
-                          <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
-                            {formatVND(tItem.revenue)}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              color: 'var(--primary)',
-                              background: 'rgba(139, 37, 34, 0.12)',
-                              padding: '1px 6px',
-                              borderRadius: 4
-                            }}
-                          >
-                            {tItem.percentage}%
-                          </span>
-                        </div>
                       </div>
                       <div
                         style={{
                           width: '100%',
-                          height: 7,
+                          height: 5,
                           background: 'rgba(255, 255, 255, 0.08)',
-                          borderRadius: 4,
+                          borderRadius: 3,
                           overflow: 'hidden'
                         }}
                       >
@@ -1567,8 +1313,8 @@ export const AdminAnalyticsPage: React.FC = () => {
                           style={{
                             width: `${Math.min(tItem.percentage, 100)}%`,
                             height: '100%',
-                            background: 'linear-gradient(90deg, var(--primary) 0%, #D4AF37 100%)',
-                            borderRadius: 4
+                            background: 'var(--primary)',
+                            borderRadius: 3
                           }}
                         />
                       </div>
@@ -1576,7 +1322,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>
                   {t('analytics.noData', 'Chưa có giao dịch theo loại vé')}
                 </div>
               )}
@@ -1587,57 +1333,36 @@ export const AdminAnalyticsPage: React.FC = () => {
               style={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
-                borderRadius: 10,
-                padding: '18px 20px'
+                borderRadius: 8,
+                padding: '16px 20px',
+                minHeight: 180
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CreditCard size={16} style={{ color: '#22C55E' }} />
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                    {t('analytics.byPaymentTitle', 'Phương thức thanh toán')}
-                  </h3>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <h3 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
+                  {t('analytics.byPaymentTitle', 'Phương thức thanh toán')}
+                </h3>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   {analytics?.paymentMethods?.length || 0} cổng kết nối
                 </span>
               </div>
 
               {analytics?.paymentMethods && analytics.paymentMethods.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {analytics.paymentMethods.map((pItem, i) => (
                     <div key={i}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                        <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
-                          {pItem.method}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
+                        <span style={{ color: 'var(--text-main)' }}>{pItem.method}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          {pItem.count} đơn • {formatVND(pItem.revenue)} ({pItem.percentage}%)
                         </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                            {pItem.count} đơn
-                          </span>
-                          <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
-                            {formatVND(pItem.revenue)}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              color: '#22C55E',
-                              background: 'rgba(34, 197, 94, 0.12)',
-                              padding: '1px 6px',
-                              borderRadius: 4
-                            }}
-                          >
-                            {pItem.percentage}%
-                          </span>
-                        </div>
                       </div>
                       <div
                         style={{
                           width: '100%',
-                          height: 7,
+                          height: 5,
                           background: 'rgba(255, 255, 255, 0.08)',
-                          borderRadius: 4,
+                          borderRadius: 3,
                           overflow: 'hidden'
                         }}
                       >
@@ -1645,8 +1370,8 @@ export const AdminAnalyticsPage: React.FC = () => {
                           style={{
                             width: `${Math.min(pItem.percentage, 100)}%`,
                             height: '100%',
-                            background: 'linear-gradient(90deg, #22C55E 0%, #4ADE80 100%)',
-                            borderRadius: 4
+                            background: '#22C55E',
+                            borderRadius: 3
                           }}
                         />
                       </div>
@@ -1654,28 +1379,29 @@ export const AdminAnalyticsPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>
                   {t('analytics.noData', 'Chưa có dữ liệu kênh thanh toán')}
                 </div>
               )}
             </div>
           </div>
 
-          {/* 3. NHẬT KÝ GIAO DỊCH VÉ GẦN ĐÂY TRONG KỲ (MINI-TABLE TRỰC QUAN TRÊN TRANG TỔNG QUAN) */}
+          {/* 3. BẢNG GIAO DỊCH VÉ GẦN ĐÂY CÓ CHIỀU CAO CỐ ĐỊNH */}
           <div
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
-              padding: '18px 20px'
+              borderRadius: 8,
+              overflow: 'hidden',
+              minHeight: 280,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Clock size={16} style={{ color: 'var(--primary)' }} />
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
-                  Giao dịch vé mới nhất trong kỳ
-                </h3>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                Giao dịch vé mới nhất trong kỳ
               </div>
               <button
                 type="button"
@@ -1683,81 +1409,55 @@ export const AdminAnalyticsPage: React.FC = () => {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: 'var(--primary)',
+                  color: 'var(--text-main)',
                   fontSize: 12.5,
-                  fontWeight: 600,
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
+                  textDecoration: 'underline'
                 }}
               >
-                <span>Xem tất cả giao dịch</span>
-                <ArrowUpRight size={13} />
+                Xem tất cả giao dịch
               </button>
             </div>
 
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', flex: 1 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 12.5 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '8px 12px' }}>Mã vé</th>
-                    <th style={{ padding: '8px 12px' }}>Khách tham quan</th>
-                    <th style={{ padding: '8px 12px' }}>Loại vé</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'right' }}>Số tiền</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>Trạng thái</th>
-                    <th style={{ padding: '8px 12px' }}>Thời gian mua</th>
+                  <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase' }}>
+                    <th style={{ padding: '9px 16px', width: '16%' }}>Mã vé</th>
+                    <th style={{ padding: '9px 16px', width: '28%' }}>Khách tham quan</th>
+                    <th style={{ padding: '9px 16px', width: '20%' }}>Loại vé</th>
+                    <th style={{ padding: '9px 16px', width: '14%', textAlign: 'right' }}>Tổng tiền</th>
+                    <th style={{ padding: '9px 16px', width: '12%' }}>Trạng thái</th>
+                    <th style={{ padding: '9px 16px', width: '10%' }}>Thời gian</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTickets.slice(0, 5).map((tItem) => (
-                    <tr key={tItem.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>
+                  {filteredTickets.slice(0, 4).map((tItem) => (
+                    <tr key={tItem.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '10px 16px', fontFamily: 'monospace', color: 'var(--text-main)' }}>
                         {tItem.ticketCode}
                       </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-main)', fontWeight: 500 }}>
+                      <td style={{ padding: '10px 16px', color: 'var(--text-main)' }}>
                         {tItem.userName}
                       </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>
+                      <td style={{ padding: '10px 16px', color: 'var(--text-muted)' }}>
                         {tItem.ticketTitle || tItem.ticketType}
                       </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
+                      <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                         {formatVND(tItem.totalAmount)}
                       </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            background:
-                              tItem.status === 'paid'
-                                ? 'rgba(34, 197, 94, 0.12)'
-                                : tItem.status === 'used'
-                                ? 'rgba(100, 116, 139, 0.12)'
-                                : 'rgba(239, 68, 68, 0.12)',
-                            color:
-                              tItem.status === 'paid'
-                                ? '#22C55E'
-                                : tItem.status === 'used'
-                                ? '#64748B'
-                                : '#EF4444'
-                          }}
-                        >
-                          {tItem.status === 'paid' ? 'Hợp lệ' : tItem.status === 'used' ? 'Đã vào cổng' : 'Đã hủy'}
-                        </span>
+                      <td style={{ padding: '10px 16px' }}>
+                        {renderStatusDot(tItem.status)}
                       </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 11.5 }}>
-                        {formatDateTime(tItem.createdAt)}
+                      <td style={{ padding: '10px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
+                        {formatDate(tItem.createdAt)}
                       </td>
                     </tr>
                   ))}
                   {filteredTickets.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
-                        Chưa có giao dịch vé nào trong khoảng thời gian này
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
+                        Chưa có giao dịch vé nào trong kỳ này
                       </td>
                     </tr>
                   )}
@@ -1769,7 +1469,7 @@ export const AdminAnalyticsPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          TAB 2: DOANH THU & GIAO DỊCH VÉ CHI TIẾT
+          TAB 2: DOANH THU & GIAO DỊCH VÉ CHI TIẾT (CỐ ĐỊNH CHIỀU CAO)
           ======================================================== */}
       {subTab === 'tickets' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1778,7 +1478,7 @@ export const AdminAnalyticsPage: React.FC = () => {
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
+              borderRadius: 8,
               padding: '12px 16px',
               display: 'flex',
               alignItems: 'center',
@@ -1800,7 +1500,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                     setTicketSearch(e.target.value);
                     setTicketsPage(1);
                   }}
-                  placeholder={t('analytics.searchPlaceholder', 'Tìm kiếm mã vé, tên khách, email, điện thoại...')}
+                  placeholder={t('analytics.searchPlaceholder', 'Tìm kiếm mã vé, tên khách hàng...')}
                   className="form-control"
                   style={{
                     width: '100%',
@@ -1833,7 +1533,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                 }}
               >
                 <option value="all">{t('analytics.allStatus', 'Tất cả trạng thái')}</option>
-                <option value="paid">{t('analytics.statusPaid', 'Chưa sử dụng (Hợp lệ)')}</option>
+                <option value="paid">{t('analytics.statusPaid', 'Chưa sử dụng')}</option>
                 <option value="used">{t('analytics.statusUsed', 'Đã vào cổng')}</option>
                 <option value="cancelled">{t('analytics.statusCancelled', 'Đã hủy')}</option>
               </select>
@@ -1844,16 +1544,20 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Bảng danh sách vé */}
+          {/* Bảng danh sách vé với chiều cao cố định minHeight 440px không bị co giật */}
           <div
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
-              overflow: 'hidden'
+              borderRadius: 8,
+              overflow: 'hidden',
+              minHeight: 440,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
             }}
           >
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', flex: 1 }}>
               <table style={{ minWidth: 860, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr
@@ -1866,98 +1570,74 @@ export const AdminAnalyticsPage: React.FC = () => {
                       letterSpacing: '0.03em'
                     }}
                   >
-                    <th style={{ padding: '10px 16px', width: '14%' }}>Mã vé</th>
-                    <th style={{ padding: '10px 16px', width: '22%' }}>Khách tham quan</th>
+                    <th style={{ padding: '10px 16px', width: '15%' }}>Mã vé</th>
+                    <th style={{ padding: '10px 16px', width: '25%' }}>Khách tham quan</th>
                     <th style={{ padding: '10px 16px', width: '16%' }}>Loại vé</th>
-                    <th style={{ padding: '10px 16px', width: '14%' }}>Ngày tham quan</th>
-                    <th style={{ padding: '10px 16px', width: '14%', textAlign: 'right' }}>Tổng tiền</th>
+                    <th style={{ padding: '10px 16px', width: '15%' }}>Ngày tham quan</th>
+                    <th style={{ padding: '10px 16px', width: '12%', textAlign: 'right' }}>Tổng tiền</th>
                     <th style={{ padding: '10px 16px', width: '10%' }}>Trạng thái</th>
-                    <th style={{ padding: '10px 16px', width: '10%' }}>Thanh toán</th>
+                    <th style={{ padding: '10px 16px', width: '7%' }}>Thanh toán</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
                         <RefreshCw size={18} className="spin" style={{ margin: '0 auto 8px', display: 'block' }} />
                         <span>{t('analytics.loading', 'Đang nạp dữ liệu thống kê thực tế...')}</span>
                       </td>
                     </tr>
                   ) : paginatedTickets.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
-                        {t('analytics.noData', 'Không có giao dịch vé nào phù hợp')}
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
+                        {t('analytics.noData', 'Không có giao dịch vé nào')}
                       </td>
                     </tr>
                   ) : (
-                    paginatedTickets.map((tItem) => {
-                      let dotColor = '#64748B';
-                      let statusText = 'Chưa sử dụng';
-                      if (tItem.status === 'paid') {
-                        dotColor = '#22C55E';
-                        statusText = 'Hợp lệ';
-                      } else if (tItem.status === 'used') {
-                        dotColor = '#64748B';
-                        statusText = 'Đã vào cổng';
-                      } else if (tItem.status === 'cancelled') {
-                        dotColor = '#EF4444';
-                        statusText = 'Đã hủy';
-                      }
-
-                      return (
-                        <tr
-                          key={tItem.id}
-                          style={{
-                            borderBottom: '1px solid var(--border-color)',
-                            transition: 'background 0.15s ease'
-                          }}
-                        >
-                          <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>
-                            {tItem.ticketCode}
-                          </td>
-                          <td style={{ padding: '12px 16px' }}>
-                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{tItem.userName}</div>
+                    paginatedTickets.map((tItem) => (
+                      <tr
+                        key={tItem.id}
+                        style={{
+                          borderBottom: '1px solid var(--border-color)',
+                          transition: 'background 0.15s ease'
+                        }}
+                      >
+                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: 'var(--text-main)' }}>
+                          {tItem.ticketCode}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ color: 'var(--text-main)', fontWeight: 500 }}>{tItem.userName}</div>
+                          {tItem.userEmail && (
                             <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                              {tItem.userEmail || tItem.userPhone || '—'}
+                              {tItem.userEmail}
                             </div>
-                          </td>
-                          <td style={{ padding: '12px 16px', color: 'var(--text-main)' }}>
-                            {tItem.ticketTitle || tItem.ticketType}
-                          </td>
-                          <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 12.5 }}>
-                            {formatDate(tItem.visitDate)}
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tItem.timeSlot || '08:00 - 17:00'}</div>
-                          </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
-                            {formatVND(tItem.totalAmount)}
-                          </td>
-                          <td style={{ padding: '12px 16px' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                              <span
-                                style={{
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: '50%',
-                                  background: dotColor,
-                                  display: 'inline-block'
-                                }}
-                              />
-                              <span style={{ color: 'var(--text-main)' }}>{statusText}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
-                            {tItem.paymentMethod || 'PayOS'}
-                          </td>
-                        </tr>
-                      );
-                    })
+                          )}
+                        </td>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-main)' }}>
+                          {tItem.ticketTitle || tItem.ticketType}
+                        </td>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 12.5 }}>
+                          {formatDate(tItem.visitDate)}
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tItem.timeSlot || '08:00 - 17:00'}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
+                          {formatVND(tItem.totalAmount)}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          {renderStatusDot(tItem.status)}
+                        </td>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
+                          {tItem.paymentMethod || 'PayOS'}
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
             </div>
 
-            {/* Phân trang chuẩn hệ thống */}
-            <div style={{ borderTop: '1px solid var(--border-color)' }}>
+            {/* Phân trang cố định dưới chân khung bảng */}
+            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
               <Pagination
                 currentPage={ticketsPage}
                 totalItems={filteredTickets.length}
@@ -1975,16 +1655,15 @@ export const AdminAnalyticsPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          TAB 3: GIAN PHÒNG TOUR 360° & TƯƠNG TÁC
+          TAB 3: GIAN PHÒNG TOUR 360° (CỐ ĐỊNH CHIỀU CAO)
           ======================================================== */}
       {subTab === 'rooms' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Thanh tìm kiếm phòng */}
           <div
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
+              borderRadius: 8,
               padding: '12px 16px',
               display: 'flex',
               alignItems: 'center',
@@ -2005,7 +1684,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                   setRoomSearch(e.target.value);
                   setRoomsPage(1);
                 }}
-                placeholder={t('rooms.searchPlaceholder', 'Tìm kiếm tên phòng, mã phòng, thời kỳ...')}
+                placeholder={t('rooms.searchPlaceholder', 'Tìm kiếm tên phòng, mã phòng...')}
                 className="form-control"
                 style={{
                   width: '100%',
@@ -2026,16 +1705,19 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Bảng danh sách phòng Tour 360 */}
           <div
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
-              overflow: 'hidden'
+              borderRadius: 8,
+              overflow: 'hidden',
+              minHeight: 440,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
             }}
           >
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', flex: 1 }}>
               <table style={{ minWidth: 800, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr
@@ -2048,18 +1730,18 @@ export const AdminAnalyticsPage: React.FC = () => {
                       letterSpacing: '0.03em'
                     }}
                   >
-                    <th style={{ padding: '10px 16px', width: '12%' }}>Mã phòng</th>
+                    <th style={{ padding: '10px 16px', width: '14%' }}>Mã phòng</th>
                     <th style={{ padding: '10px 16px', width: '32%' }}>Tên gian phòng 360°</th>
                     <th style={{ padding: '10px 16px', width: '24%' }}>Thời kỳ lịch sử</th>
                     <th style={{ padding: '10px 16px', width: '12%', textAlign: 'center' }}>Hotspots</th>
-                    <th style={{ padding: '10px 16px', width: '12%', textAlign: 'center' }}>Quét QR</th>
+                    <th style={{ padding: '10px 16px', width: '10%', textAlign: 'center' }}>Quét QR</th>
                     <th style={{ padding: '10px 16px', width: '8%', textAlign: 'center' }}>Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedRooms.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
                         {t('analytics.noData', 'Không tìm thấy gian phòng nào')}
                       </td>
                     </tr>
@@ -2072,35 +1754,36 @@ export const AdminAnalyticsPage: React.FC = () => {
                           transition: 'background 0.15s ease'
                         }}
                       >
-                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>
+                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: 'var(--text-main)' }}>
                           {room.code || '—'}
                         </td>
-                        <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-main)' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 500, color: 'var(--text-main)' }}>
                           {room.name}
                         </td>
                         <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>
                           {room.period || '—'}
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: 'var(--text-main)' }}>
+                        <td style={{ padding: '12px 16px', textAlign: 'center', color: 'var(--text-main)' }}>
                           {room.hotspotsCount}
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#22C55E' }}>
+                        <td style={{ padding: '12px 16px', textAlign: 'center', color: 'var(--text-main)' }}>
                           {room.qrScanCount || 0}
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              padding: '2px 8px',
-                              borderRadius: 4,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              background: room.active ? 'rgba(34, 197, 94, 0.12)' : 'rgba(100, 116, 139, 0.12)',
-                              color: room.active ? '#22C55E' : '#64748B'
-                            }}
-                          >
-                            {room.active ? 'Mở cửa' : 'Tạm ẩn'}
-                          </span>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: room.active ? '#22C55E' : '#64748B',
+                                display: 'inline-block'
+                              }}
+                            />
+                            <span style={{ color: 'var(--text-main)' }}>
+                              {room.active ? 'Mở cửa' : 'Tạm ẩn'}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -2109,8 +1792,7 @@ export const AdminAnalyticsPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Phân trang chuẩn hệ thống */}
-            <div style={{ borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
               <Pagination
                 currentPage={roomsPage}
                 totalItems={filteredRooms.length}
@@ -2128,81 +1810,109 @@ export const AdminAnalyticsPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          TAB 4: CỔ VẬT & BẢO VẬT 3D
+          TAB 4: CỔ VẬT & BẢO VẬT 3D (CỐ ĐỊNH CHIỀU CAO & BẢNG CHUẨN MỰC)
           ======================================================== */}
       {subTab === 'artifacts' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Thẻ tóm tắt phân loại & thời kỳ */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
-            {/* Phân bố theo thời kỳ */}
+          {/* Hai bảng tóm tắt thời kỳ & phân loại: định dạng BẢNG chuẩn, cùng chiều cao */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
+            {/* Phân bố theo thời kỳ lịch sử */}
             <div
               style={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
-                borderRadius: 10,
-                padding: '18px 20px'
+                borderRadius: 8,
+                overflow: 'hidden',
+                minHeight: 220,
+                display: 'flex',
+                flexDirection: 'column'
               }}
             >
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 14px 0' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', fontWeight: 600, fontSize: 13, color: 'var(--heading-color)' }}>
                 {t('analytics.artifactsPeriodTitle', 'Phân bố hiện vật theo thời kỳ lịch sử')}
-              </h3>
-
-              {analytics?.artifactsByPeriod && analytics.artifactsByPeriod.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                  {analytics.artifactsByPeriod.map((p, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{p.period}</span>
-                      <span style={{ color: 'var(--text-muted)' }}>
-                        <strong style={{ color: 'var(--heading-color)' }}>{p.count}</strong> hiện vật
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>
-                  {t('analytics.noData', 'Chưa có phân bố thời kỳ')}
-                </div>
-              )}
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '8px 16px' }}>Thời kỳ lịch sử</th>
+                      <th style={{ padding: '8px 16px', textAlign: 'right' }}>Số hiện vật</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics?.artifactsByPeriod && analytics.artifactsByPeriod.length > 0 ? (
+                      analytics.artifactsByPeriod.map((p, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '9px 16px', color: 'var(--text-main)' }}>{p.period}</td>
+                          <td style={{ padding: '9px 16px', textAlign: 'right', color: 'var(--text-muted)' }}>
+                            <strong style={{ color: 'var(--text-main)' }}>{p.count}</strong> hiện vật
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={2} style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+                          Chưa có dữ liệu thời kỳ
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            {/* Phân loại cổ vật */}
+            {/* Phân loại cổ vật theo danh mục */}
             <div
               style={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
-                borderRadius: 10,
-                padding: '18px 20px'
+                borderRadius: 8,
+                overflow: 'hidden',
+                minHeight: 220,
+                display: 'flex',
+                flexDirection: 'column'
               }}
             >
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 14px 0' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', fontWeight: 600, fontSize: 13, color: 'var(--heading-color)' }}>
                 {t('analytics.artifactsCategoryTitle', 'Phân loại cổ vật theo danh mục')}
-              </h3>
-
-              {analytics?.artifactsByCategory && analytics.artifactsByCategory.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                  {analytics.artifactsByCategory.map((c, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{c.category}</span>
-                      <span style={{ color: 'var(--text-muted)' }}>
-                        <strong style={{ color: 'var(--heading-color)' }}>{c.count}</strong> hiện vật
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>
-                  {t('analytics.noData', 'Chưa có phân loại danh mục')}
-                </div>
-              )}
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '8px 16px' }}>Danh mục phân loại</th>
+                      <th style={{ padding: '8px 16px', textAlign: 'right' }}>Số hiện vật</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics?.artifactsByCategory && analytics.artifactsByCategory.length > 0 ? (
+                      analytics.artifactsByCategory.map((c, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '9px 16px', color: 'var(--text-main)' }}>{c.category}</td>
+                          <td style={{ padding: '9px 16px', textAlign: 'right', color: 'var(--text-muted)' }}>
+                            <strong style={{ color: 'var(--text-main)' }}>{c.count}</strong> hiện vật
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={2} style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+                          Chưa có dữ liệu danh mục
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          {/* Bộ lọc hiện vật */}
+          {/* Thanh tìm kiếm hiện vật */}
           <div
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
+              borderRadius: 8,
               padding: '12px 16px',
               display: 'flex',
               alignItems: 'center',
@@ -2223,7 +1933,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                   setArtifactSearch(e.target.value);
                   setArtifactsPage(1);
                 }}
-                placeholder={t('analytics.searchPlaceholder', 'Tìm kiếm mã, tên hiện vật, phân loại...')}
+                placeholder={t('analytics.searchPlaceholder', 'Tìm kiếm mã hiện vật, tên hiện vật...')}
                 className="form-control"
                 style={{
                   width: '100%',
@@ -2244,16 +1954,20 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Bảng danh sách hiện vật di sản */}
+          {/* Bảng danh sách hiện vật có chiều cao cố định minHeight 440px */}
           <div
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              borderRadius: 10,
-              overflow: 'hidden'
+              borderRadius: 8,
+              overflow: 'hidden',
+              minHeight: 440,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
             }}
           >
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', flex: 1 }}>
               <table style={{ minWidth: 840, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr
@@ -2266,17 +1980,17 @@ export const AdminAnalyticsPage: React.FC = () => {
                       letterSpacing: '0.03em'
                     }}
                   >
-                    <th style={{ padding: '10px 16px', width: '14%' }}>Mã hiện vật</th>
-                    <th style={{ padding: '10px 16px', width: '32%' }}>Tên hiện vật di sản</th>
+                    <th style={{ padding: '10px 16px', width: '15%' }}>Mã hiện vật</th>
+                    <th style={{ padding: '10px 16px', width: '35%' }}>Tên hiện vật di sản</th>
                     <th style={{ padding: '10px 16px', width: '22%' }}>Thời kỳ lịch sử</th>
-                    <th style={{ padding: '10px 16px', width: '18%' }}>Phân loại</th>
-                    <th style={{ padding: '10px 16px', width: '14%', textAlign: 'center' }}>Số hóa 3D</th>
+                    <th style={{ padding: '10px 16px', width: '16%' }}>Phân loại</th>
+                    <th style={{ padding: '10px 16px', width: '12%', textAlign: 'center' }}>Mô hình 3D</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedArtifacts.length === 0 ? (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
                         {t('analytics.noData', 'Không tìm thấy hiện vật nào')}
                       </td>
                     </tr>
@@ -2289,32 +2003,33 @@ export const AdminAnalyticsPage: React.FC = () => {
                           transition: 'background 0.15s ease'
                         }}
                       >
-                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>
+                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: 'var(--text-main)' }}>
                           {a.code || '—'}
                         </td>
-                        <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-main)' }}>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-main)', fontWeight: 500 }}>
                           {a.name}
                         </td>
                         <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 12.5 }}>
                           {a.period || '—'}
                         </td>
-                        <td style={{ padding: '12px 16px', color: 'var(--text-main)' }}>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>
                           {a.category || 'Cổ vật di sản'}
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              padding: '2px 8px',
-                              borderRadius: 4,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              background: a.has3D ? 'rgba(234, 179, 8, 0.12)' : 'rgba(100, 116, 139, 0.12)',
-                              color: a.has3D ? '#EAB308' : '#64748B'
-                            }}
-                          >
-                            {a.has3D ? 'Mô hình 3D' : 'Ảnh 2D'}
-                          </span>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: a.has3D ? '#22C55E' : '#64748B',
+                                display: 'inline-block'
+                              }}
+                            />
+                            <span style={{ color: 'var(--text-main)' }}>
+                              {a.has3D ? 'Có mô hình 3D' : 'Ảnh 2D'}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -2323,8 +2038,7 @@ export const AdminAnalyticsPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Phân trang chuẩn hệ thống */}
-            <div style={{ borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
               <Pagination
                 currentPage={artifactsPage}
                 totalItems={filteredArtifacts.length}
