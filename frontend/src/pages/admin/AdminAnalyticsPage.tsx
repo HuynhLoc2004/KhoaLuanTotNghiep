@@ -4,7 +4,7 @@ import {
   Download,
   Search
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { api } from '../../services/api';
 import {
   AnalyticsData,
@@ -20,6 +20,8 @@ import { Pagination } from '../../components/Pagination';
 // Bản dịch xuất Excel đồng bộ theo 5 ngôn ngữ hệ thống
 const EXCEL_I18N: Record<string, any> = {
   vi: {
+    stt: 'STT',
+    totalLabel: 'TỔNG CỘNG',
     sheetKpi: '1. Tổng quan & Chỉ số',
     sheetTickets: '2. Doanh thu & Chi tiết vé',
     sheetRooms: '3. Gian phòng Tour 360°',
@@ -89,6 +91,8 @@ const EXCEL_I18N: Record<string, any> = {
     no3D: 'Chưa có 3D (Ảnh 2D)'
   },
   en: {
+    stt: 'No.',
+    totalLabel: 'TOTAL',
     sheetKpi: '1. Overview & KPIs',
     sheetTickets: '2. Revenue & Ticket Orders',
     sheetRooms: '3. 360 Rooms & Hotspots',
@@ -158,6 +162,8 @@ const EXCEL_I18N: Record<string, any> = {
     no3D: '2D Image Only'
   },
   fr: {
+    stt: 'N°',
+    totalLabel: 'TOTAL',
     sheetKpi: '1. Aperçu & Indicateurs',
     sheetTickets: '2. Billetterie & Revenus',
     sheetRooms: '3. Salles 360° & Hotspots',
@@ -227,6 +233,8 @@ const EXCEL_I18N: Record<string, any> = {
     no3D: 'Photo 2D uniquement'
   },
   zh: {
+    stt: '序号',
+    totalLabel: '合计',
     sheetKpi: '1. 总体指标与概览',
     sheetTickets: '2. 门票收入与明细',
     sheetRooms: '3. 360全景展厅与热点',
@@ -296,6 +304,8 @@ const EXCEL_I18N: Record<string, any> = {
     no3D: '仅2D平版图像'
   },
   ja: {
+    stt: '番号',
+    totalLabel: '合計',
     sheetKpi: '1. 総合指標と概要',
     sheetTickets: '2. 売上とチケット明細',
     sheetRooms: '3. 360度展示室とスポット',
@@ -539,7 +549,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   }, [filteredArtifacts, artifactsPage, artifactsLimit]);
 
   // ========================================================
-  // XUẤT FILE EXCEL ĐỒNG BỘ ĐA NGÔN NGỮ (SHEETJS)
+  // XUẤT FILE EXCEL ĐỒNG BỘ ĐA NGÔN NGỮ CHUẨN ĐỊNH DẠNG (XLSX-JS-STYLE)
   // ========================================================
   const handleExportExcel = () => {
     if (!analytics) {
@@ -560,7 +570,6 @@ export const AdminAnalyticsPage: React.FC = () => {
 
       const wb = XLSX.utils.book_new();
 
-      // SHEET 1: TỔNG QUAN & KPI HỆ THỐNG
       const nowStr = new Date().toLocaleString('vi-VN');
       const timeRangeLabel =
         timeRange === 'today'
@@ -575,33 +584,141 @@ export const AdminAnalyticsPage: React.FC = () => {
           ? `${formatDate(analytics.startDate)} - ${formatDate(analytics.endDate)}`
           : t('analytics.timeRange.all', 'Tất cả');
 
+      // Helper áp dụng style chuẩn bảo tàng (màu sắc, borders, căn lề, độ cao hàng)
+      const applyWorksheetStyles = (
+        ws: any,
+        totalRows: number,
+        totalCols: number,
+        colAlignments: ('left' | 'center' | 'right')[],
+        hasTotalRow = false
+      ) => {
+        // Chiều cao từng hàng
+        const rowHeights: { hpt: number }[] = [];
+        rowHeights[0] = { hpt: 32 }; // Tiêu đề lớn
+        rowHeights[1] = { hpt: 20 }; // Thông tin kỳ & thời gian
+        rowHeights[2] = { hpt: 10 }; // Dòng đệm trống
+        rowHeights[3] = { hpt: 26 }; // Header bảng
+        for (let r = 4; r < totalRows; r++) {
+          rowHeights[r] = { hpt: 22 };
+        }
+        if (hasTotalRow && totalRows > 4) {
+          rowHeights[totalRows - 1] = { hpt: 26 };
+        }
+        ws['!rows'] = rowHeights;
+
+        // Merge tiêu đề & subtitle
+        ws['!merges'] = [
+          { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+          { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } }
+        ];
+
+        const borderThin = {
+          top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        };
+
+        const borderHeader = {
+          top: { style: 'thin', color: { rgb: '8B5A2B' } },
+          bottom: { style: 'medium', color: { rgb: '5C3D1E' } },
+          left: { style: 'thin', color: { rgb: 'A06D3B' } },
+          right: { style: 'thin', color: { rgb: 'A06D3B' } }
+        };
+
+        const borderTotal = {
+          top: { style: 'thin', color: { rgb: 'D97706' } },
+          bottom: { style: 'double', color: { rgb: '92400E' } },
+          left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        };
+
+        for (let r = 0; r < totalRows; r++) {
+          for (let c = 0; c < totalCols; c++) {
+            const cellRef = XLSX.utils.encode_cell({ r, c });
+            if (!ws[cellRef]) {
+              ws[cellRef] = { t: 's', v: '' };
+            }
+
+            if (r === 0) {
+              // Tiêu đề chính
+              ws[cellRef].s = {
+                font: { name: 'Segoe UI', sz: 13, bold: true, color: { rgb: '78350F' } },
+                fill: { fgColor: { rgb: 'FDF8F0' } },
+                alignment: { horizontal: 'center', vertical: 'center' }
+              };
+            } else if (r === 1) {
+              // Subtitle
+              ws[cellRef].s = {
+                font: { name: 'Segoe UI', sz: 9.5, italic: true, color: { rgb: '64748B' } },
+                fill: { fgColor: { rgb: 'FDF8F0' } },
+                alignment: { horizontal: 'center', vertical: 'center' }
+              };
+            } else if (r === 2) {
+              // Hàng trống
+              ws[cellRef].s = {
+                fill: { fgColor: { rgb: 'FFFFFF' } }
+              };
+            } else if (r === 3) {
+              // Header cột
+              ws[cellRef].s = {
+                font: { name: 'Segoe UI', sz: 10.5, bold: true, color: { rgb: 'FFFFFF' } },
+                fill: { fgColor: { rgb: '8B5A2B' } },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                border: borderHeader
+              };
+            } else if (hasTotalRow && r === totalRows - 1) {
+              // Hàng tổng cộng
+              ws[cellRef].s = {
+                font: { name: 'Segoe UI', sz: 10.5, bold: true, color: { rgb: '92400E' } },
+                fill: { fgColor: { rgb: 'FEF3C7' } },
+                alignment: { horizontal: colAlignments[c] || 'left', vertical: 'center' },
+                border: borderTotal
+              };
+            } else {
+              // Hàng dữ liệu
+              const isEven = r % 2 === 0;
+              const bgRgb = isEven ? 'FFFFFF' : 'F8FAFC';
+              ws[cellRef].s = {
+                font: { name: 'Segoe UI', sz: 10, color: { rgb: '1E293B' } },
+                fill: { fgColor: { rgb: bgRgb } },
+                alignment: { horizontal: colAlignments[c] || 'left', vertical: 'center', wrapText: true },
+                border: borderThin
+              };
+            }
+          }
+        }
+      };
+
+      // SHEET 1: TỔNG QUAN & KPI HỆ THỐNG
       const kpiRows: any[][] = [
         [dict.reportTitle],
-        [`${dict.exportTime} ${nowStr}`],
-        [`${dict.periodLabel} ${timeRangeLabel}`],
+        [`${dict.exportTime} ${nowStr}   |   ${dict.periodLabel} ${timeRangeLabel}`],
         [],
-        [dict.colMetric, dict.colValue, dict.colUnit, dict.colNote],
-        [dict.rev, kpis.totalRevenue, dict.vnd, 'Doanh thu thực nhận từ vé tham quan'],
-        [dict.ticketsSold, kpis.totalTicketsSold, dict.ticketUnit, 'Số lượng vé đã giao dịch thành công'],
-        [dict.ticketsUsed, kpis.totalTicketsUsed, dict.ticketUnit, 'Số vé đã quét mã QR vào cửa'],
-        [dict.activeTickets, kpis.activeTickets, dict.ticketUnit, 'Vé còn giá trị chưa vào cổng'],
-        [dict.cancelledTickets, kpis.cancelledTickets, dict.ticketUnit, 'Vé đã hủy hoặc hoàn trả'],
-        [dict.checkinRate, `${kpis.checkinRate}%`, dict.percent, 'Tỷ lệ khách đến thực tế'],
-        [dict.totalRooms, kpis.totalRooms, dict.roomUnit, 'Gian phòng số hóa 360°'],
-        [dict.totalHotspots, kpis.totalHotspots, dict.hotspotUnit, 'Điểm ghim hiện vật tương tác'],
-        [dict.totalArtifacts, kpis.totalArtifacts, dict.artifactUnit, 'Kho tư liệu hiện vật số hóa'],
-        [dict.total3D, kpis.total3DArtifacts, dict.artifactUnit, 'Cổ vật có mô hình 3D tương tác'],
-        [dict.rate3D, `${rate3D}%`, dict.percent, 'Tỷ lệ chuyển đổi số 3D'],
-        [dict.totalUsers, kpis.totalUsers, dict.userUnit, 'Tài khoản du khách và quản trị'],
-        [dict.totalLogs, kpis.totalSystemLogs, dict.logUnit, 'Lượt tương tác và kiểm soát hệ thống']
+        [dict.stt, dict.colMetric, dict.colValue, dict.colNote],
+        [1, dict.rev, `${kpis.totalRevenue.toLocaleString('vi-VN')} ${dict.vnd}`, 'Doanh thu thực nhận từ vé tham quan'],
+        [2, dict.ticketsSold, `${kpis.totalTicketsSold.toLocaleString('vi-VN')} ${dict.ticketUnit}`, 'Số lượng vé đã giao dịch thành công'],
+        [3, dict.ticketsUsed, `${kpis.totalTicketsUsed.toLocaleString('vi-VN')} ${dict.ticketUnit}`, 'Số vé đã quét mã QR vào cửa'],
+        [4, dict.activeTickets, `${kpis.activeTickets.toLocaleString('vi-VN')} ${dict.ticketUnit}`, 'Vé còn giá trị chưa vào cổng'],
+        [5, dict.cancelledTickets, `${kpis.cancelledTickets.toLocaleString('vi-VN')} ${dict.ticketUnit}`, 'Vé đã hủy hoặc hoàn trả'],
+        [6, dict.checkinRate, `${kpis.checkinRate}%`, 'Tỷ lệ khách đến tham quan thực tế'],
+        [7, dict.totalRooms, `${kpis.totalRooms.toLocaleString('vi-VN')} ${dict.roomUnit}`, 'Gian phòng số hóa không gian 360°'],
+        [8, dict.totalHotspots, `${kpis.totalHotspots.toLocaleString('vi-VN')} ${dict.hotspotUnit}`, 'Điểm ghim hiện vật tương tác trong gian phòng'],
+        [9, dict.totalArtifacts, `${kpis.totalArtifacts.toLocaleString('vi-VN')} ${dict.artifactUnit}`, 'Kho tư liệu hiện vật số hóa'],
+        [10, dict.total3D, `${kpis.total3DArtifacts.toLocaleString('vi-VN')} ${dict.artifactUnit}`, 'Cổ vật có mô hình 3D tương tác xoay 360°'],
+        [11, dict.rate3D, `${rate3D}%`, 'Tỷ lệ chuyển đổi số mô hình 3D hiện vật'],
+        [12, dict.totalUsers, `${kpis.totalUsers.toLocaleString('vi-VN')} ${dict.userUnit}`, 'Tài khoản du khách và ban quản trị'],
+        [13, dict.totalLogs, `${kpis.totalSystemLogs.toLocaleString('vi-VN')} ${dict.logUnit}`, 'Lượt tương tác và kiểm soát bảo mật hệ thống']
       ];
 
       const wsKpi = XLSX.utils.aoa_to_sheet(kpiRows);
-      wsKpi['!cols'] = [{ wch: 38 }, { wch: 22 }, { wch: 16 }, { wch: 42 }];
+      wsKpi['!cols'] = [{ wch: 8 }, { wch: 38 }, { wch: 24 }, { wch: 48 }];
+      applyWorksheetStyles(wsKpi, kpiRows.length, 4, ['center', 'left', 'center', 'left']);
       XLSX.utils.book_append_sheet(wb, wsKpi, dict.sheetKpi);
 
       // SHEET 2: DOANH THU & GIAO DỊCH VÉ
       const ticketHeaders = [
+        dict.stt,
         dict.tCode,
         dict.tCustomer,
         dict.tEmail,
@@ -619,26 +736,39 @@ export const AdminAnalyticsPage: React.FC = () => {
 
       const ticketRows: any[][] = [
         [dict.reportTitle],
-        [`${dict.periodLabel} ${timeRangeLabel}`],
+        [`${dict.exportTime} ${nowStr}   |   ${dict.periodLabel} ${timeRangeLabel}   |   Tổng: ${analytics.recentTickets?.length || 0} vé`],
         [],
         ticketHeaders
       ];
 
+      let sumQty = 0;
+      let sumRev = 0;
+
       if (analytics.recentTickets && analytics.recentTickets.length > 0) {
-        analytics.recentTickets.forEach((tItem) => {
+        analytics.recentTickets.forEach((tItem, idx) => {
           let statusText = dict.statusPaid;
           if (tItem.status === 'used') statusText = dict.statusUsed;
           else if (tItem.status === 'cancelled') statusText = dict.statusCancelled;
 
+          const qty = tItem.quantity || 1;
+          const price = tItem.unitPrice || 0;
+          const total = tItem.totalAmount || (qty * price);
+
+          if (tItem.status !== 'cancelled') {
+            sumQty += qty;
+            sumRev += total;
+          }
+
           ticketRows.push([
+            idx + 1,
             tItem.ticketCode || '—',
             tItem.userName || '—',
             tItem.userEmail || '—',
             tItem.userPhone || '—',
             tItem.ticketTitle || tItem.ticketType || 'Vé tham quan',
-            tItem.quantity || 1,
-            tItem.unitPrice || 0,
-            tItem.totalAmount || 0,
+            qty,
+            `${price.toLocaleString('vi-VN')} ₫`,
+            `${total.toLocaleString('vi-VN')} ₫`,
             formatDate(tItem.visitDate),
             tItem.timeSlot || 'Cả ngày',
             statusText,
@@ -646,28 +776,55 @@ export const AdminAnalyticsPage: React.FC = () => {
             formatDateTime(tItem.createdAt)
           ]);
         });
+
+        // Dòng tổng kết doanh thu
+        ticketRows.push([
+          dict.totalLabel,
+          '',
+          '',
+          '',
+          '',
+          '',
+          sumQty,
+          '',
+          `${sumRev.toLocaleString('vi-VN')} ₫`,
+          '',
+          '',
+          '',
+          '',
+          ''
+        ]);
       }
 
       const wsTickets = XLSX.utils.aoa_to_sheet(ticketRows);
       wsTickets['!cols'] = [
-        { wch: 18 },
-        { wch: 22 },
-        { wch: 26 },
-        { wch: 16 },
-        { wch: 24 },
-        { wch: 10 },
-        { wch: 16 },
-        { wch: 18 },
-        { wch: 15 },
-        { wch: 16 },
-        { wch: 20 },
-        { wch: 18 },
-        { wch: 20 }
+        { wch: 8 },  // STT
+        { wch: 18 }, // Mã vé
+        { wch: 24 }, // Khách tham quan
+        { wch: 26 }, // Email
+        { wch: 15 }, // SĐT
+        { wch: 22 }, // Loại vé
+        { wch: 10 }, // Số lượng
+        { wch: 16 }, // Đơn giá
+        { wch: 18 }, // Tổng tiền
+        { wch: 14 }, // Ngày tham quan
+        { wch: 16 }, // Khung giờ
+        { wch: 20 }, // Trạng thái
+        { wch: 18 }, // Phương thức
+        { wch: 20 }  // Thời gian đặt
       ];
+      applyWorksheetStyles(
+        wsTickets,
+        ticketRows.length,
+        14,
+        ['center', 'center', 'left', 'left', 'center', 'left', 'center', 'right', 'right', 'center', 'center', 'center', 'center', 'center'],
+        Boolean(analytics.recentTickets && analytics.recentTickets.length > 0)
+      );
       XLSX.utils.book_append_sheet(wb, wsTickets, dict.sheetTickets);
 
       // SHEET 3: GIAN PHÒNG TOUR 360°
       const roomHeaders = [
+        dict.stt,
         dict.rCode,
         dict.rName,
         dict.rPeriod,
@@ -680,14 +837,15 @@ export const AdminAnalyticsPage: React.FC = () => {
 
       const roomRows: any[][] = [
         [dict.reportTitle],
-        [`${dict.periodLabel} ${timeRangeLabel}`],
+        [`${dict.exportTime} ${nowStr}   |   ${dict.periodLabel} ${timeRangeLabel}   |   Tổng: ${analytics.rooms?.length || 0} gian phòng`],
         [],
         roomHeaders
       ];
 
       if (analytics.rooms && analytics.rooms.length > 0) {
-        analytics.rooms.forEach((r) => {
+        analytics.rooms.forEach((r, idx) => {
           roomRows.push([
+            idx + 1,
             r.code || '—',
             r.name || '—',
             r.period || '—',
@@ -702,19 +860,27 @@ export const AdminAnalyticsPage: React.FC = () => {
 
       const wsRooms = XLSX.utils.aoa_to_sheet(roomRows);
       wsRooms['!cols'] = [
-        { wch: 14 },
-        { wch: 32 },
-        { wch: 30 },
-        { wch: 20 },
-        { wch: 18 },
-        { wch: 20 },
-        { wch: 18 },
-        { wch: 20 }
+        { wch: 8 },  // STT
+        { wch: 15 }, // Mã phòng
+        { wch: 34 }, // Tên phòng
+        { wch: 28 }, // Thời kỳ
+        { wch: 20 }, // Chủ đề
+        { wch: 16 }, // Hotspots
+        { wch: 20 }, // Lượt quét QR
+        { wch: 18 }, // Trạng thái
+        { wch: 20 }  // Thời gian tạo
       ];
+      applyWorksheetStyles(
+        wsRooms,
+        roomRows.length,
+        9,
+        ['center', 'center', 'left', 'left', 'left', 'center', 'center', 'center', 'center']
+      );
       XLSX.utils.book_append_sheet(wb, wsRooms, dict.sheetRooms);
 
       // SHEET 4: HIỆN VẬT DI SẢN & TỶ LỆ 3D
       const artifactHeaders = [
+        dict.stt,
         dict.aCode,
         dict.aName,
         dict.aPeriod,
@@ -726,14 +892,15 @@ export const AdminAnalyticsPage: React.FC = () => {
 
       const artifactRows: any[][] = [
         [dict.reportTitle],
-        [`${dict.periodLabel} ${timeRangeLabel}`],
+        [`${dict.exportTime} ${nowStr}   |   ${dict.periodLabel} ${timeRangeLabel}   |   Tổng: ${analytics.artifacts?.length || 0} hiện vật`],
         [],
         artifactHeaders
       ];
 
       if (analytics.artifacts && analytics.artifacts.length > 0) {
-        analytics.artifacts.forEach((a) => {
+        analytics.artifacts.forEach((a, idx) => {
           artifactRows.push([
+            idx + 1,
             a.code || '—',
             a.name || '—',
             a.period || '—',
@@ -747,14 +914,21 @@ export const AdminAnalyticsPage: React.FC = () => {
 
       const wsArtifacts = XLSX.utils.aoa_to_sheet(artifactRows);
       wsArtifacts['!cols'] = [
-        { wch: 16 },
-        { wch: 36 },
-        { wch: 30 },
-        { wch: 22 },
-        { wch: 22 },
-        { wch: 16 },
-        { wch: 20 }
+        { wch: 8 },  // STT
+        { wch: 16 }, // Mã hiện vật
+        { wch: 36 }, // Tên hiện vật
+        { wch: 28 }, // Thời kỳ
+        { wch: 20 }, // Phân loại
+        { wch: 24 }, // Mô hình 3D
+        { wch: 18 }, // Trạng thái
+        { wch: 20 }  // Thời gian tạo
       ];
+      applyWorksheetStyles(
+        wsArtifacts,
+        artifactRows.length,
+        8,
+        ['center', 'center', 'left', 'left', 'left', 'center', 'center', 'center']
+      );
       XLSX.utils.book_append_sheet(wb, wsArtifacts, dict.sheetArtifacts);
 
       // Lưu file với tên theo ngôn ngữ
