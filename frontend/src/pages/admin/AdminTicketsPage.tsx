@@ -11,7 +11,8 @@ import {
   Edit2,
   Trash2,
   Clock,
-  QrCode
+  QrCode,
+  Tag
 } from 'lucide-react';
 import { api, API_BASE } from '../../services/api';
 import {
@@ -1526,56 +1527,50 @@ export const AdminTicketsPage: React.FC = () => {
           MODALS
           ======================================================== */}
 
-      {/* MODAL CHI TIẾT VÉ */}
+      {/* MODAL CHI TIẾT VÉ (CHUẨN ADMIN HERITAGE & RESPONSIVE) */}
       {detailTicket && (
         <div
-          className="modal-backdrop"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 1050,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16
-          }}
+          className="admin-ticket-dialog-overlay"
           onClick={() => setDetailTicket(null)}
         >
           <div
-            className="modal-content"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              width: '100%',
-              maxWidth: 460,
-              padding: '20px 24px',
-              position: 'relative'
-            }}
+            className="admin-ticket-dialog-card"
+            style={{ maxWidth: 480 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 10, marginBottom: 14 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                Chi tiết vé #{detailTicket.ticketCode}
-              </h3>
+            <div className="admin-ticket-dialog-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="admin-ticket-dialog-icon">
+                  <QrCode size={20} color="#D4AF37" />
+                </div>
+                <div>
+                  <h3 className="admin-ticket-dialog-title">
+                    Chi tiết vé tham quan
+                  </h3>
+                  <p className="admin-ticket-dialog-subtitle" style={{ fontFamily: 'monospace' }}>
+                    #{detailTicket.ticketCode}
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
+                className="admin-ticket-dialog-close"
                 onClick={() => setDetailTicket(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
+                aria-label="Đóng"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             </div>
 
             {/* Mã QR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0 14px', borderBottom: '1px solid var(--border-color)', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px', background: '#0D111A', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)', marginBottom: 16 }}>
               <div
                 style={{
                   background: '#FFFFFF',
                   padding: 10,
-                  borderRadius: 6,
-                  display: 'inline-flex'
+                  borderRadius: 10,
+                  display: 'inline-flex',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)'
                 }}
               >
                 <img
@@ -1593,187 +1588,204 @@ export const AdminTicketsPage: React.FC = () => {
                     }
                   }}
                   alt="QR Code"
-                  style={{ width: 130, height: 130, display: 'block', objectFit: 'contain' }}
+                  style={{ width: 140, height: 140, display: 'block', objectFit: 'contain' }}
                 />
               </div>
-              <div style={{ marginTop: 8, fontFamily: 'monospace', fontWeight: 600, fontSize: 13, color: 'var(--text-main)' }}>
+              <div style={{ marginTop: 10, fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: '#F8FAFC', letterSpacing: '0.5px' }}>
                 {detailTicket.ticketCode}
               </div>
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: 6 }}>
                 {renderStatusBadge(detailTicket.status)}
               </div>
             </div>
 
             {/* Bảng chi tiết */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, fontSize: 12.5 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Khách tham quan:</span>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{detailTicket.userName || 'Khách vãng lai'}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9, fontSize: '0.86rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 6 }}>
+                <span style={{ color: '#94A3B8' }}>Khách tham quan:</span>
+                <span style={{ fontWeight: 600, color: '#F8FAFC' }}>{detailTicket.userName || 'Khách vãng lai'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Email:</span>
-                <span style={{ color: 'var(--text-main)' }}>{detailTicket.userEmail || '—'}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 6 }}>
+                <span style={{ color: '#94A3B8' }}>Email:</span>
+                <span style={{ color: '#E2E8F0' }}>{detailTicket.userEmail || '—'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Số điện thoại:</span>
-                <span style={{ color: 'var(--text-main)' }}>{detailTicket.userPhone || '—'}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 6 }}>
+                <span style={{ color: '#94A3B8' }}>Số điện thoại:</span>
+                <span style={{ color: '#E2E8F0' }}>{detailTicket.userPhone || '—'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Loại vé:</span>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{getTicketTypeLabel(detailTicket.ticketType)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 6 }}>
+                <span style={{ color: '#94A3B8' }}>Loại vé:</span>
+                <span style={{ fontWeight: 600, color: '#F8FAFC' }}>{getTicketTypeLabel(detailTicket.ticketType)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Ngày tham quan:</span>
-                <span style={{ color: 'var(--text-main)' }}>{formatDate(detailTicket.visitDate)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 6 }}>
+                <span style={{ color: '#94A3B8' }}>Ngày tham quan:</span>
+                <span style={{ color: '#E2E8F0' }}>{formatDate(detailTicket.visitDate)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-color)', paddingBottom: 5 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Khung giờ:</span>
-                <span style={{ color: 'var(--text-main)' }}>{detailTicket.timeSlot || 'Cả ngày'}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 6 }}>
+                <span style={{ color: '#94A3B8' }}>Khung giờ:</span>
+                <span style={{ color: '#E2E8F0' }}>{detailTicket.timeSlot || 'Cả ngày'}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 2 }}>
-                <span style={{ color: 'var(--text-muted)' }}>Tổng tiền:</span>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 2 }}>
+                <span style={{ color: '#94A3B8' }}>Tổng tiền:</span>
+                <span style={{ fontWeight: 700, color: '#D4AF37', fontSize: '0.95rem' }}>
                   {formatVND(detailTicket.totalAmount)}
                 </span>
               </div>
             </div>
 
             {/* Nút hành động */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16, borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
+            <div className="admin-ticket-dialog-footer">
+              <button
+                type="button"
+                className="admin-ticket-btn-cancel"
+                onClick={() => setDetailTicket(null)}
+              >
+                Đóng
+              </button>
               {detailTicket.status === 'paid' && (
                 <button
                   type="button"
-                  className="btn btn-primary btn-sm"
+                  className="admin-ticket-btn-submit"
                   onClick={() => {
                     setCheckinTarget(detailTicket);
                   }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  <CheckCircle size={13} />
+                  <CheckCircle size={15} />
                   <span>Soát vé vào cổng</span>
                 </button>
               )}
-
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setDetailTicket(null)}
-              >
-                Đóng
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL THÊM / SỬA LOẠI VÉ (CÓ VALIDATION & THIẾT KẾ GỌN GÀNG) */}
+      {/* MODAL THÊM / SỬA LOẠI VÉ (CHUẨN ADMIN HERITAGE & RESPONSIVE TOÀN DIỆN) */}
       {isTypeModalOpen && editingType && (
         <div
-          className="modal-backdrop"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 1050,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16
-          }}
+          className="admin-ticket-dialog-overlay"
           onClick={() => setIsTypeModalOpen(false)}
         >
           <div
-            className="modal-content"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              width: '100%',
-              maxWidth: 460,
-              padding: '20px 24px',
-              position: 'relative'
-            }}
+            className="admin-ticket-dialog-card"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 10, marginBottom: 14 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)' }}>
-                {editingType.id ? 'Chỉnh sửa loại vé' : 'Thêm loại vé mới'}
-              </h3>
+            {/* Header Dialog */}
+            <div className="admin-ticket-dialog-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="admin-ticket-dialog-icon">
+                  <Tag size={20} color="#D4AF37" />
+                </div>
+                <div>
+                  <h3 className="admin-ticket-dialog-title">
+                    {editingType.id ? 'Chỉnh sửa loại vé tham quan' : 'Thêm loại vé tham quan mới'}
+                  </h3>
+                  <p className="admin-ticket-dialog-subtitle">
+                    {editingType.id ? 'Cập nhật tên, mức giá và điều kiện bán của loại vé' : 'Tạo mới loại vé phục vụ bán vé và quản lý lượt khách'}
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
+                className="admin-ticket-dialog-close"
                 onClick={() => setIsTypeModalOpen(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
+                aria-label="Đóng"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleSaveTicketType} noValidate>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Mã loại vé *
-                  </label>
-                  <input
-                    type="text"
-                    value={editingType.code || ''}
-                    disabled={Boolean(editingType.id)}
-                    placeholder="standard"
-                    onChange={(e) => {
-                      setEditingType({ ...editingType, code: e.target.value.toLowerCase().trim() });
-                      if (typeErrors.code) setTypeErrors({ ...typeErrors, code: undefined });
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      background: 'var(--bg-main)',
-                      border: `1px solid ${typeErrors.code ? '#EF4444' : 'var(--border-color)'}`,
-                      borderRadius: 6,
-                      color: 'var(--text-main)',
-                      fontSize: 13,
-                      opacity: editingType.id ? 0.6 : 1
-                    }}
-                  />
-                  {typeErrors.code && (
-                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
-                      {typeErrors.code}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Hàng 1: Mã loại vé & Thứ tự hiển thị (2 cột trên desktop) */}
+                <div className="admin-ticket-grid-2col">
+                  <div>
+                    <label className="admin-ticket-label">
+                      <span>Mã loại vé <strong style={{ color: '#EF4444' }}>*</strong></span>
+                      {Boolean(editingType.id) && (
+                        <span className="admin-ticket-pill-muted">Mã hệ thống</span>
+                      )}
+                    </label>
+                    <input
+                      type="text"
+                      value={editingType.code || ''}
+                      disabled={Boolean(editingType.id)}
+                      placeholder="vd: standard, student, vip..."
+                      onChange={(e) => {
+                        setEditingType({ ...editingType, code: e.target.value.toLowerCase().trim() });
+                        if (typeErrors.code) setTypeErrors({ ...typeErrors, code: undefined });
+                      }}
+                      className={`admin-ticket-input ${typeErrors.code ? 'is-error' : ''}`}
+                      style={{
+                        opacity: editingType.id ? 0.7 : 1,
+                        cursor: editingType.id ? 'not-allowed' : 'text',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                    {typeErrors.code ? (
+                      <span className="admin-ticket-error-text">
+                        {typeErrors.code}
+                      </span>
+                    ) : (
+                      <span className="admin-ticket-hint-text">
+                        Chữ thường không dấu, dùng để định danh vé (vd: standard)
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="admin-ticket-label">
+                      <span>Thứ tự hiển thị</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editingType.displayOrder || 1}
+                      onChange={(e) => setEditingType({ ...editingType, displayOrder: Number(e.target.value) })}
+                      className="admin-ticket-input"
+                    />
+                    <span className="admin-ticket-hint-text">
+                      Ưu tiên sắp xếp trên bảng giá vé
                     </span>
-                  )}
+                  </div>
                 </div>
 
+                {/* Hàng 2: Tên loại vé */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Tên loại vé *
+                  <label className="admin-ticket-label">
+                    <span>Tên loại vé <strong style={{ color: '#EF4444' }}>*</strong></span>
                   </label>
                   <input
                     type="text"
                     value={editingType.name || ''}
-                    placeholder="Vé Người Lớn"
+                    placeholder="Ví dụ: Vé Người Lớn (Tiêu Chuẩn)"
                     onChange={(e) => {
                       setEditingType({ ...editingType, name: e.target.value });
                       if (typeErrors.name) setTypeErrors({ ...typeErrors, name: undefined });
                     }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      background: 'var(--bg-main)',
-                      border: `1px solid ${typeErrors.name ? '#EF4444' : 'var(--border-color)'}`,
-                      borderRadius: 6,
-                      color: 'var(--text-main)',
-                      fontSize: 13
-                    }}
+                    className={`admin-ticket-input ${typeErrors.name ? 'is-error' : ''}`}
                   />
-                  {typeErrors.name && (
-                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                  {typeErrors.name ? (
+                    <span className="admin-ticket-error-text">
                       {typeErrors.name}
+                    </span>
+                  ) : (
+                    <span className="admin-ticket-hint-text">
+                      Tên loại vé hiển thị trực tiếp cho khách mua vé và trên cuống vé
                     </span>
                   )}
                 </div>
 
+                {/* Hàng 3: Giá vé (có preview tiền tệ sống động) */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Giá vé (VNĐ) *
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <label className="admin-ticket-label" style={{ marginBottom: 0 }}>
+                      <span>Giá vé (VNĐ) <strong style={{ color: '#EF4444' }}>*</strong></span>
+                    </label>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#D4AF37', background: 'rgba(212, 175, 55, 0.1)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+                      = {(Number(editingType.price) || 0).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -1783,89 +1795,64 @@ export const AdminTicketsPage: React.FC = () => {
                       setEditingType({ ...editingType, price: Number(e.target.value) });
                       if (typeErrors.price) setTypeErrors({ ...typeErrors, price: undefined });
                     }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      background: 'var(--bg-main)',
-                      border: `1px solid ${typeErrors.price ? '#EF4444' : 'var(--border-color)'}`,
-                      borderRadius: 6,
-                      color: 'var(--text-main)',
-                      fontSize: 13
-                    }}
+                    className={`admin-ticket-input ${typeErrors.price ? 'is-error' : ''}`}
                   />
                   {typeErrors.price && (
-                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                    <span className="admin-ticket-error-text">
                       {typeErrors.price}
                     </span>
                   )}
                 </div>
 
+                {/* Hàng 4: Quy định đối tượng áp dụng */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Quy định đối tượng áp dụng
+                  <label className="admin-ticket-label">
+                    <span>Quy định đối tượng áp dụng</span>
                   </label>
                   <input
                     type="text"
                     value={editingType.description || ''}
-                    placeholder="Khách tham quan từ 16 đến 59 tuổi"
+                    placeholder="Khách tham quan công dân Việt Nam và quốc tế từ 16 đến 59 tuổi"
                     onChange={(e) => setEditingType({ ...editingType, description: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      background: 'var(--bg-main)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 6,
-                      color: 'var(--text-main)',
-                      fontSize: 13
-                    }}
+                    className="admin-ticket-input"
                   />
+                  <span className="admin-ticket-hint-text">
+                    Ghi chú hiển thị trên giao diện đặt vé để khách chọn đúng đối tượng
+                  </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                  <div style={{ width: 100 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                      Thứ tự
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={editingType.displayOrder || 1}
-                      onChange={(e) => setEditingType({ ...editingType, displayOrder: Number(e.target.value) })}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        background: 'var(--bg-main)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 6,
-                        color: 'var(--text-main)',
-                        fontSize: 13
-                      }}
-                    />
+                {/* Hàng 5: Toggle Switch Đang mở bán */}
+                <div
+                  className="admin-ticket-switch-card"
+                  onClick={() => setEditingType({ ...editingType, isActive: editingType.isActive === false })}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#F8FAFC' }}>
+                      Trạng thái mở bán trực tuyến
+                    </div>
+                    <div style={{ fontSize: 11.5, color: '#94A3B8', marginTop: 2 }}>
+                      {editingType.isActive !== false ? 'Cho phép khách tham quan đặt mua loại vé này' : 'Tạm dừng mở bán (không xuất hiện trên trang đặt vé)'}
+                    </div>
                   </div>
-
-                  <div style={{ marginTop: 20 }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
-                      <input
-                        type="checkbox"
-                        checked={editingType.isActive !== false}
-                        onChange={(e) => setEditingType({ ...editingType, isActive: e.target.checked })}
-                      />
-                      <span>Đang mở bán</span>
-                    </label>
+                  <div
+                    className={`admin-ticket-toggle ${editingType.isActive !== false ? 'active' : ''}`}
+                  >
+                    <span className="admin-ticket-toggle-knob" />
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18, borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
+              {/* Nút hành động */}
+              <div className="admin-ticket-dialog-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
+                  className="admin-ticket-btn-cancel"
                   onClick={() => setIsTypeModalOpen(false)}
                 >
                   Hủy bỏ
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm">
-                  Lưu loại vé
+                <button type="submit" className="admin-ticket-btn-submit">
+                  {editingType.id ? 'Lưu loại vé' : 'Tạo loại vé mới'}
                 </button>
               </div>
             </form>
@@ -1873,59 +1860,51 @@ export const AdminTicketsPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL THÊM / SỬA KHUNG GIỜ (CÓ VALIDATION & GỌN GÀNG) */}
+      {/* MODAL THÊM / SỬA KHUNG GIỜ (CHUẨN ADMIN HERITAGE & RESPONSIVE) */}
       {isSlotModalOpen && editingSlot && (
         <div
-          className="modal-backdrop"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 1050,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16
-          }}
+          className="admin-ticket-dialog-overlay"
           onClick={() => setIsSlotModalOpen(false)}
         >
           <div
-            className="modal-content"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              width: '100%',
-              maxWidth: 440,
-              padding: '20px 24px',
-              position: 'relative'
-            }}
+            className="admin-ticket-dialog-card"
+            style={{ maxWidth: 520 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: 10, marginBottom: 14 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Clock size={16} />
-                <span>{editingSlot.id ? 'Chỉnh sửa Giờ Mở Cửa & Khung Giờ' : 'Thêm Giờ Mở Cửa & Khung Giờ Mới'}</span>
-              </h3>
+            <div className="admin-ticket-dialog-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="admin-ticket-dialog-icon">
+                  <Clock size={20} color="#D4AF37" />
+                </div>
+                <div>
+                  <h3 className="admin-ticket-dialog-title">
+                    {editingSlot.id ? 'Chỉnh sửa Giờ Mở Cửa & Khung Giờ' : 'Thêm Giờ Mở Cửa & Khung Giờ Mới'}
+                  </h3>
+                  <p className="admin-ticket-dialog-subtitle">
+                    Thiết lập khoảng thời gian mở cửa, giới hạn số lượng và lịch đón khách
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
+                className="admin-ticket-dialog-close"
                 onClick={() => setIsSlotModalOpen(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
+                aria-label="Đóng"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleSaveSlot} noValidate>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* Thiết lập Giờ mở cửa & Giờ đóng cửa */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
-                    Khoảng thời gian mở cửa đón khách *
+                  <label className="admin-ticket-label">
+                    <span>Khoảng thời gian mở cửa đón khách <strong style={{ color: '#EF4444' }}>*</strong></span>
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div className="admin-ticket-grid-2col">
                     <div>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>
+                      <span className="admin-ticket-hint-text" style={{ marginBottom: 4 }}>
                         Giờ mở cửa (Bắt đầu)
                       </span>
                       <input
@@ -1936,20 +1915,12 @@ export const AdminTicketsPage: React.FC = () => {
                           setEditingSlot({ ...editingSlot, openTime });
                           if (slotErrors.timeRange) setSlotErrors({ ...slotErrors, timeRange: undefined });
                         }}
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          background: 'var(--bg-main)',
-                          border: `1px solid ${slotErrors.timeRange ? '#EF4444' : 'var(--border-color)'}`,
-                          borderRadius: 6,
-                          color: 'var(--text-main)',
-                          fontSize: 13,
-                          colorScheme: 'dark'
-                        }}
+                        className={`admin-ticket-input ${slotErrors.timeRange ? 'is-error' : ''}`}
+                        style={{ colorScheme: 'dark' }}
                       />
                     </div>
                     <div>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>
+                      <span className="admin-ticket-hint-text" style={{ marginBottom: 4 }}>
                         Giờ đóng cửa (Kết thúc)
                       </span>
                       <input
@@ -1960,30 +1931,21 @@ export const AdminTicketsPage: React.FC = () => {
                           setEditingSlot({ ...editingSlot, closeTime });
                           if (slotErrors.timeRange) setSlotErrors({ ...slotErrors, timeRange: undefined });
                         }}
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          background: 'var(--bg-main)',
-                          border: `1px solid ${slotErrors.timeRange ? '#EF4444' : 'var(--border-color)'}`,
-                          borderRadius: 6,
-                          color: 'var(--text-main)',
-                          fontSize: 13,
-                          colorScheme: 'dark'
-                        }}
+                        className={`admin-ticket-input ${slotErrors.timeRange ? 'is-error' : ''}`}
+                        style={{ colorScheme: 'dark' }}
                       />
                     </div>
                   </div>
                   {slotErrors.timeRange && (
-                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 4 }}>
+                    <span className="admin-ticket-error-text">
                       {slotErrors.timeRange}
                     </span>
                   )}
                   {/* Preset Buttons */}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: 11, padding: '3px 8px' }}
+                      className="admin-ticket-preset-btn"
                       onClick={() => {
                         setEditingSlot({
                           ...editingSlot,
@@ -1998,8 +1960,7 @@ export const AdminTicketsPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: 11, padding: '3px 8px' }}
+                      className="admin-ticket-preset-btn"
                       onClick={() => {
                         setEditingSlot({
                           ...editingSlot,
@@ -2014,8 +1975,7 @@ export const AdminTicketsPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: 11, padding: '3px 8px' }}
+                      className="admin-ticket-preset-btn"
                       onClick={() => {
                         setEditingSlot({
                           ...editingSlot,
@@ -2032,8 +1992,8 @@ export const AdminTicketsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Tên / Mô tả khung giờ đón tiếp
+                  <label className="admin-ticket-label">
+                    <span>Tên / Mô tả khung giờ đón tiếp</span>
                   </label>
                   <input
                     type="text"
@@ -2043,24 +2003,16 @@ export const AdminTicketsPage: React.FC = () => {
                       setEditingSlot({ ...editingSlot, slotName: e.target.value });
                       if (slotErrors.slotName) setSlotErrors({ ...slotErrors, slotName: undefined });
                     }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      background: 'var(--bg-main)',
-                      border: `1px solid ${slotErrors.slotName ? '#EF4444' : 'var(--border-color)'}`,
-                      borderRadius: 6,
-                      color: 'var(--text-main)',
-                      fontSize: 13
-                    }}
+                    className={`admin-ticket-input ${slotErrors.slotName ? 'is-error' : ''}`}
                   />
-                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', marginTop: 3 }}>
+                  <span className="admin-ticket-hint-text">
                     Để trống sẽ tự động đặt tên theo giờ mở - đóng cửa ({editingSlot.openTime || '08:00'} - {editingSlot.closeTime || '17:00'}).
                   </span>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Sức chứa tối đa trong ngày/ca (người) *
+                  <label className="admin-ticket-label">
+                    <span>Sức chứa tối đa trong ngày/ca (người) <strong style={{ color: '#EF4444' }}>*</strong></span>
                   </label>
                   <input
                     type="number"
@@ -2070,45 +2022,46 @@ export const AdminTicketsPage: React.FC = () => {
                       setEditingSlot({ ...editingSlot, maxCapacity: Number(e.target.value) });
                       if (slotErrors.maxCapacity) setSlotErrors({ ...slotErrors, maxCapacity: undefined });
                     }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      background: 'var(--bg-main)',
-                      border: `1px solid ${slotErrors.maxCapacity ? '#EF4444' : 'var(--border-color)'}`,
-                      borderRadius: 6,
-                      color: 'var(--text-main)',
-                      fontSize: 13
-                    }}
+                    className={`admin-ticket-input ${slotErrors.maxCapacity ? 'is-error' : ''}`}
                   />
                   {slotErrors.maxCapacity && (
-                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                    <span className="admin-ticket-error-text">
                       {slotErrors.maxCapacity}
                     </span>
                   )}
                 </div>
 
-                <div style={{ marginTop: 2 }}>
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
-                    <input
-                      type="checkbox"
-                      checked={editingSlot.isActive !== false}
-                      onChange={(e) => setEditingSlot({ ...editingSlot, isActive: e.target.checked })}
-                    />
-                    <span>Đang mở cửa đón khách (Bật để khách có thể mua vé)</span>
-                  </label>
+                {/* Switch Trạng thái mở cửa đón khách */}
+                <div
+                  className="admin-ticket-switch-card"
+                  onClick={() => setEditingSlot({ ...editingSlot, isActive: editingSlot.isActive === false })}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#F8FAFC' }}>
+                      Đang mở cửa đón khách
+                    </div>
+                    <div style={{ fontSize: 11.5, color: '#94A3B8', marginTop: 2 }}>
+                      {editingSlot.isActive !== false ? 'Bật để khách có thể chọn khung giờ này khi mua vé' : 'Tạm dừng nhận khách vào khung giờ này'}
+                    </div>
+                  </div>
+                  <div
+                    className={`admin-ticket-toggle ${editingSlot.isActive !== false ? 'active' : ''}`}
+                  >
+                    <span className="admin-ticket-toggle-knob" />
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18, borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
+              <div className="admin-ticket-dialog-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
+                  className="admin-ticket-btn-cancel"
                   onClick={() => setIsSlotModalOpen(false)}
                 >
                   Hủy bỏ
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm">
-                  Lưu thiết lập
+                <button type="submit" className="admin-ticket-btn-submit">
+                  {editingSlot.id ? 'Lưu thiết lập' : 'Tạo khung giờ mới'}
                 </button>
               </div>
             </form>
@@ -2169,6 +2122,306 @@ export const AdminTicketsPage: React.FC = () => {
           fetchTickets(pagination.page, pagination.limit);
         }}
       />
+
+      <style>{`
+        /* Dialog Overlay & Card */
+        .admin-ticket-dialog-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(4, 7, 13, 0.82);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 1050;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          overflow-y: auto;
+          box-sizing: border-box;
+        }
+
+        .admin-ticket-dialog-card {
+          margin: auto;
+          background: linear-gradient(180deg, #181E2B 0%, #131722 100%);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 16px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(212, 175, 55, 0.12);
+          padding: 24px 28px;
+          width: 100%;
+          max-width: 520px;
+          box-sizing: border-box;
+          max-height: calc(100dvh - 32px);
+          overflow-y: auto;
+          animation: adminModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes adminModalPop {
+          0% {
+            opacity: 0;
+            transform: scale(0.96) translateY(8px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        .admin-ticket-dialog-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding-bottom: 16px;
+          margin-bottom: 20px;
+        }
+
+        .admin-ticket-dialog-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: rgba(212, 175, 55, 0.12);
+          border: 1px solid rgba(212, 175, 55, 0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .admin-ticket-dialog-title {
+          font-size: 1.08rem;
+          font-weight: 700;
+          margin: 0;
+          color: #F8FAFC;
+          letter-spacing: -0.2px;
+        }
+
+        .admin-ticket-dialog-subtitle {
+          font-size: 0.78rem;
+          color: #94A3B8;
+          margin: 3px 0 0 0;
+          line-height: 1.4;
+        }
+
+        .admin-ticket-dialog-close {
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: #94A3B8;
+          cursor: pointer;
+          padding: 0;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+
+        .admin-ticket-dialog-close:hover {
+          background: rgba(255, 255, 255, 0.12);
+          color: #FFF;
+          transform: scale(1.05);
+        }
+
+        .admin-ticket-grid-2col {
+          display: grid;
+          grid-template-columns: 1.2fr 1fr;
+          gap: 14px;
+        }
+
+        .admin-ticket-label {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #CBD5E1;
+          margin-bottom: 6px;
+        }
+
+        .admin-ticket-pill-muted {
+          font-size: 0.72rem;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #94A3B8;
+          padding: 1px 6px;
+          border-radius: 4px;
+          font-weight: 500;
+        }
+
+        .admin-ticket-input {
+          width: 100%;
+          padding: 10px 14px;
+          background: #0D111A;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 8px;
+          color: #F8FAFC;
+          font-size: 0.88rem;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+        }
+
+        .admin-ticket-input:focus {
+          border-color: #D4AF37;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+          background: #101522;
+        }
+
+        .admin-ticket-input.is-error {
+          border-color: #EF4444;
+          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+
+        .admin-ticket-error-text {
+          font-size: 0.75rem;
+          color: #F87171;
+          display: block;
+          margin-top: 4px;
+          font-weight: 500;
+        }
+
+        .admin-ticket-hint-text {
+          font-size: 0.74rem;
+          color: #64748B;
+          display: block;
+          margin-top: 4px;
+          line-height: 1.35;
+        }
+
+        .admin-ticket-preset-btn {
+          font-size: 0.74rem;
+          padding: 4px 10px;
+          border-radius: 6px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #CBD5E1;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .admin-ticket-preset-btn:hover {
+          background: rgba(212, 175, 55, 0.15);
+          border-color: rgba(212, 175, 55, 0.35);
+          color: #D4AF37;
+        }
+
+        .admin-ticket-switch-card {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 10px;
+          padding: 12px 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          cursor: pointer;
+          user-select: none;
+          transition: all 0.2s ease;
+        }
+
+        .admin-ticket-switch-card:hover {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        .admin-ticket-toggle {
+          width: 44px;
+          height: 24px;
+          border-radius: 12px;
+          background: #334155;
+          position: relative;
+          transition: background-color 0.25s ease;
+          flex-shrink: 0;
+        }
+
+        .admin-ticket-toggle.active {
+          background: #D4AF37;
+        }
+
+        .admin-ticket-toggle-knob {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #FFFFFF;
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .admin-ticket-toggle.active .admin-ticket-toggle-knob {
+          transform: translateX(20px);
+        }
+
+        .admin-ticket-dialog-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 22px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          padding-top: 16px;
+        }
+
+        .admin-ticket-btn-cancel {
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #CBD5E1;
+          border-radius: 8px;
+          padding: 9px 18px;
+          font-size: 0.86rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .admin-ticket-btn-cancel:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #FFF;
+        }
+
+        .admin-ticket-btn-submit {
+          background: linear-gradient(135deg, #D4AF37 0%, #C59F2D 100%);
+          border: none;
+          color: #0A0D14;
+          border-radius: 8px;
+          padding: 9px 22px;
+          font-size: 0.86rem;
+          font-weight: 600;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+          transition: all 0.2s ease;
+        }
+
+        .admin-ticket-btn-submit:hover {
+          background: linear-gradient(135deg, #E0BE4D 0%, #D4AF37 100%);
+          box-shadow: 0 6px 18px rgba(212, 175, 55, 0.4);
+          transform: translateY(-1px);
+        }
+
+        @media (max-width: 540px) {
+          .admin-ticket-dialog-card {
+            padding: 18px 16px;
+            border-radius: 14px;
+            max-height: calc(100dvh - 20px);
+          }
+          .admin-ticket-grid-2col {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .admin-ticket-dialog-footer {
+            flex-direction: column-reverse;
+            gap: 8px;
+          }
+          .admin-ticket-btn-cancel,
+          .admin-ticket-btn-submit {
+            width: 100%;
+            text-align: center;
+            padding: 11px 16px;
+          }
+        }
+      `}</style>
     </div>
   );
 };
