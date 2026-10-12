@@ -2058,10 +2058,21 @@ export const PocStitchingPage: React.FC = () => {
                                   width: '100%',
                                   height: '100%',
                                   objectFit: 'cover',
+                                  transform: 'scale(1.25)',
+                                  transformOrigin: 'center center',
                                   display: 'block'
                                 }}
                                 onError={(e) => {
                                   (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  pointerEvents: 'none',
+                                  background: 'linear-gradient(180deg, rgba(18, 11, 7, 0.55) 0%, transparent 22%, transparent 78%, rgba(18, 11, 7, 0.65) 100%)',
+                                  zIndex: 1
                                 }}
                               />
 

@@ -140,7 +140,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
   }, [paginatedRooms]);
 
   const getRoomThumb = (room: MuseumRoom) => {
-    const raw = room.panoramaUrl || room.thumbnailUrl;
+    const raw = room.thumbnailUrl || room.panoramaUrl;
     if (!raw) return '';
     return raw.startsWith('http')
       ? raw
@@ -428,7 +428,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                         title={`Bấm để vào tham quan 360° ${title}`}
                       >
                         {thumb ? (
-                          <img src={thumb} alt={title} className="client-gallery-img" loading="lazy" />
+                          <img src={thumb} alt={title} className="client-gallery-img client-room-gallery-img" loading="lazy" />
                         ) : (
                           <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
                             <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>

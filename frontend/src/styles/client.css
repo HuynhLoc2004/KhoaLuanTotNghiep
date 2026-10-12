@@ -4877,21 +4877,39 @@ html {
   background: #090C14;
 }
 
+.client-room-teaser-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 12, 20, 0.55) 0%,
+    transparent 25%,
+    transparent 75%,
+    rgba(8, 12, 20, 0.65) 100%
+  );
+  z-index: 2;
+}
+
 .client-room-teaser-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: scale(1.2);
+  transform-origin: center center;
   transition: transform 0.6s ease;
 }
 
 .client-room-featured-teaser:hover .client-room-teaser-img {
-  transform: scale(1.03);
+  transform: scale(1.26);
 }
 
 .client-room-teaser-badge {
   position: absolute;
   top: 16px;
   left: 16px;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -4968,21 +4986,43 @@ html {
   background: #090C14;
 }
 
+.client-room-gallery-media:not(.has-placeholder)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 12, 20, 0.68) 0%,
+    rgba(8, 12, 20, 0.22) 18%,
+    transparent 32%,
+    transparent 66%,
+    rgba(8, 12, 20, 0.25) 82%,
+    rgba(8, 12, 20, 0.75) 100%
+  );
+  z-index: 2;
+  transition: opacity 0.4s ease;
+}
+
 .client-room-gallery-media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transform: scale(1.28);
+  transform-origin: center center;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
 }
 
 .client-room-gallery-card:hover .client-room-gallery-media img {
-  transform: scale(1.05);
+  transform: scale(1.36);
+  filter: brightness(1.05);
 }
 
 .client-room-gallery-badge {
   position: absolute;
   top: 12px;
   left: 12px;
+  z-index: 3;
   background: rgba(10, 14, 22, 0.88);
   border: 1px solid rgba(212, 168, 106, 0.35);
   color: #FDE68A;
@@ -6184,6 +6224,25 @@ html {
   cursor: pointer;
 }
 
+/* Lớp phủ điện ảnh (Cinematic Vignette) cho card phòng 360°: Che mờ viền trần/sàn (zenith/nadir) bị góc khuất cầu và làm nổi bật các huy hiệu 360° */
+.client-gallery-card .client-gallery-media:not(.has-placeholder)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 12, 20, 0.68) 0%,
+    rgba(8, 12, 20, 0.22) 18%,
+    transparent 32%,
+    transparent 66%,
+    rgba(8, 12, 20, 0.25) 82%,
+    rgba(8, 12, 20, 0.75) 100%
+  );
+  z-index: 2;
+  transition: opacity 0.4s ease;
+}
+
 .client-gallery-img {
   width: 100%;
   height: 100%;
@@ -6192,7 +6251,18 @@ html {
   transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s ease;
 }
 
-.client-gallery-card:hover .client-gallery-img {
+/* Ảnh đại diện 360° Gian phòng: Safe-zone Zoom (scale 1.28) để tự động cắt giấu phần trần nhà và sàn nhà (zenith/nadir) bị góc khuất mờ, lấy trọn vẹn không gian kiến trúc sắc nét ở tầm mắt */
+.client-room-gallery-img {
+  transform: scale(1.28);
+  transform-origin: center center;
+}
+
+.client-gallery-card:hover .client-room-gallery-img {
+  transform: scale(1.36);
+  filter: brightness(1.05);
+}
+
+.client-gallery-card:hover .client-gallery-img:not(.client-room-gallery-img) {
   transform: scale(1.06);
   filter: brightness(1.04);
 }
@@ -6247,9 +6317,10 @@ html {
   position: absolute;
   bottom: 12px;
   right: 12px;
+  z-index: 3;
   padding: 4px 10px;
   border-radius: var(--c-radius-pill);
-  background: rgba(10, 14, 22, 0.82);
+  background: rgba(10, 14, 22, 0.85);
   backdrop-filter: blur(8px);
   color: #FAF7F2;
   font-size: 0.74rem;
