@@ -47,6 +47,59 @@ function calculateDateRange(timeRange: string, customStart?: string, customEnd?:
   return { start, end };
 }
 
+function fillTimelineBuckets(
+  timeRange: string,
+  start: Date,
+  end: Date,
+  rawItems: { dateLabel: string; tickets: number; checkins: number; revenue: number }[]
+) {
+  const map = new Map<string, { tickets: number; checkins: number; revenue: number }>();
+  rawItems.forEach((item) => {
+    map.set(item.dateLabel, {
+      tickets: item.tickets,
+      checkins: item.checkins,
+      revenue: item.revenue
+    });
+  });
+
+  const filled: { dateLabel: string; tickets: number; checkins: number; revenue: number }[] = [];
+
+  if (timeRange === 'today') {
+    for (let h = 8; h <= 17; h++) {
+      const label = `${String(h).padStart(2, '0')}:00`;
+      const val = map.get(label) || { tickets: 0, checkins: 0, revenue: 0 };
+      filled.push({ dateLabel: label, ...val });
+    }
+  } else if (timeRange === 'week' || timeRange === 'month' || timeRange === 'custom') {
+    const cur = new Date(start);
+    cur.setHours(0, 0, 0, 0);
+    const stop = new Date(end);
+    stop.setHours(23, 59, 59, 999);
+
+    while (cur <= stop) {
+      const yyyy = cur.getFullYear();
+      const mm = String(cur.getMonth() + 1).padStart(2, '0');
+      const dd = String(cur.getDate()).padStart(2, '0');
+      const label = `${yyyy}-${mm}-${dd}`;
+      const val = map.get(label) || { tickets: 0, checkins: 0, revenue: 0 };
+      filled.push({ dateLabel: label, ...val });
+      cur.setDate(cur.getDate() + 1);
+    }
+  } else if (timeRange === 'year') {
+    const yyyy = start.getFullYear();
+    for (let m = 1; m <= 12; m++) {
+      const mm = String(m).padStart(2, '0');
+      const label = `${yyyy}-${mm}`;
+      const val = map.get(label) || { tickets: 0, checkins: 0, revenue: 0 };
+      filled.push({ dateLabel: label, ...val });
+    }
+  } else {
+    return rawItems;
+  }
+
+  return filled;
+}
+
 /**
  * GET /api/analytics
  * Thống kê tổng hợp toàn diện bám sát dữ liệu thực tế 100% của hệ thống bảo tàng & Tour 360°
@@ -119,12 +172,14 @@ analyticsRouter.get('/', async (req: AuthRequest, res: Response) => {
         [start, end]
       );
 
-      timeline = timelineRes.rows.map((r: any) => ({
+      const rawTimeline = timelineRes.rows.map((r: any) => ({
         dateLabel: r.date_label,
         tickets: parseInt(r.tickets, 10) || 0,
         checkins: parseInt(r.checkins, 10) || 0,
         revenue: parseInt(r.revenue, 10) || 0
       }));
+
+      timeline = fillTimelineBuckets(timeRange, start, end, rawTimeline);
 
       // 1.3 Phân bổ theo loại vé (Tickets by Type)
       const typeRes = await pgPool.query(
@@ -232,12 +287,14 @@ analyticsRouter.get('/', async (req: AuthRequest, res: Response) => {
         dateMap.set(key, cur);
       });
 
-      timeline = Array.from(dateMap.entries())
+      const rawMongoTimeline = Array.from(dateMap.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([dateLabel, val]) => ({
           dateLabel,
           ...val
         }));
+
+      timeline = fillTimelineBuckets(timeRange, start, end, rawMongoTimeline);
 
       recentTickets = mongoTickets.slice(0, 20).map((t) => ({
         id: t._id,
