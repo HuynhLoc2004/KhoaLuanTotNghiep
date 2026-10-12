@@ -482,7 +482,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   };
 
   return (
-    <div className="admin-content" style={{ paddingBottom: 100 }}>
+    <div className="admin-content" style={{ padding: '24px 28px', paddingBottom: 100 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG QUẢN TRỊ */}
       <div className="admin-cms-page-header">
         <div className="admin-cms-header-info">

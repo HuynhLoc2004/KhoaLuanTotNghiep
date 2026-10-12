@@ -288,7 +288,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
   };
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px', maxWidth: 1400, margin: '0 auto' }}>
+    <div className="admin-content" style={{ padding: '24px 28px' }}>
       {/* Header trang cấu hình */}
       <div
         style={{

@@ -1103,7 +1103,7 @@ export const AdminArtifactsPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-content">
+    <div className="admin-content" style={{ padding: '24px 28px' }}>
       {/* Tiêu đề trang chuẩn mực bảo tàng */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
         <div>

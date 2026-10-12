@@ -949,7 +949,7 @@ export const AdminRoomsPage: React.FC<AdminRoomsPageProps> = ({
   };
 
   return (
-    <div className="admin-content">
+    <div className="admin-content" style={{ padding: '24px 28px' }}>
       {/* BĂNG THỐNG KÊ DI SẢN: Thiết kế độc bản, trang trọng, xóa bỏ hoàn toàn phong cách AI SaaS */}
       <div className="heritage-stats-banner">
         {/* Mục 1: Không gian Gian phòng Tour 360 */}

@@ -1217,7 +1217,7 @@ export const PocStitchingPage: React.FC = () => {
   );
 
   return (
-    <div className="admin-content poc-stitching-page">
+    <div className="admin-content poc-stitching-page" style={{ padding: '24px 28px' }}>
       <div className="studio-layout">
         {/* Top Header */}
         <div className="studio-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>

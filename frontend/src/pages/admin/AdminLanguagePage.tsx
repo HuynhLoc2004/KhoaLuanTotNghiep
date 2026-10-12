@@ -388,7 +388,7 @@ export const AdminLanguagePage: React.FC = () => {
   const activePercent = languages.length > 0 ? Math.round((activeCount / languages.length) * 100) : 0;
 
   return (
-    <div className="admin-content" style={{ overscrollBehaviorY: 'contain' }}>
+    <div className="admin-content" style={{ padding: '24px 28px', overscrollBehaviorY: 'contain' }}>
       <div className="lang-management-page">
         {/* HEADER SECTION */}
         <div className="lang-header-row">

@@ -2802,8 +2802,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 1440px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -3963,9 +3961,8 @@
    Language Registry & Voice AI Management Styles
    ========================================================================== */
 .lang-management-page {
-  padding: 24px;
-  max-width: 1280px;
-  margin: 0 auto;
+  padding: 0;
+  width: 100%;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -3974,7 +3971,7 @@
 
 @media (max-width: 768px) {
   .lang-management-page {
-    padding: 14px 12px;
+    padding: 0;
     gap: 16px;
   }
 }
@@ -5398,11 +5395,9 @@
 }
 
 .settings-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
   padding-bottom: 40px;
   box-sizing: border-box;
-  width: 100%;
 }
 
 /* Header bar */

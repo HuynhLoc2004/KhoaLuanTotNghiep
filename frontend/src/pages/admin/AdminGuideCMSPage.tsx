@@ -498,7 +498,7 @@ export const AdminGuideCMSPage: React.FC = () => {
   ] as const;
 
   return (
-    <div className="admin-content" style={{ paddingBottom: 60 }}>
+    <div className="admin-content" style={{ padding: '24px 28px', paddingBottom: 60 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG QUẢN TRỊ TRANG CẨM NANG & SƠ ĐỒ */}
       <div
         className="settings-header"
