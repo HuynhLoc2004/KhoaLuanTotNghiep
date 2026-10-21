@@ -555,12 +555,23 @@ export async function initPostgresTables(): Promise<boolean> {
       const slotCheck = await client.query('SELECT COUNT(*) FROM ticket_time_slots;');
       if (parseInt(slotCheck.rows[0].count, 10) === 0) {
         await client.query(`
-          INSERT INTO ticket_time_slots (id, slot_name, max_capacity, is_active, display_order)
+          INSERT INTO ticket_time_slots (id, slot_name, open_time, close_time, max_capacity, is_active, display_order)
           VALUES
-          ('slot_morning', 'Buổi sáng: 08:00 - 11:30', 300, true, 1),
-          ('slot_afternoon', 'Buổi chiều: 13:30 - 17:00', 300, true, 2);
+          ('slot_morning', 'Buổi sáng: 08:00 - 11:30', '08:00', '11:30', 300, true, 1),
+          ('slot_afternoon', 'Buổi chiều: 13:30 - 17:00', '13:30', '17:00', 300, true, 2);
         `);
         console.log('[PostgreSQL] Đã khởi tạo 2 khung giờ tham quan chuẩn.');
+      } else {
+        // Đồng bộ chuẩn hóa giờ mở/đóng cửa cho các khung giờ mặc định
+        await client.query(`
+          UPDATE ticket_time_slots 
+          SET open_time = '08:00', close_time = '11:30' 
+          WHERE id = 'slot_morning' AND (open_time IS NULL OR close_time = '17:00' OR open_time = '');
+
+          UPDATE ticket_time_slots 
+          SET open_time = '13:30', close_time = '17:00' 
+          WHERE id = 'slot_afternoon' AND (open_time IS NULL OR open_time = '08:00' OR open_time = '');
+        `).catch(() => {});
       }
 
       return true;

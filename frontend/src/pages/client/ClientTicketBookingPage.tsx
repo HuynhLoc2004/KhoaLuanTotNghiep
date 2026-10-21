@@ -44,6 +44,17 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
 
   const [ticketTypes, setTicketTypes] = useState<TicketTypeItem[]>([]);
   const [timeSlots, setTimeSlots] = useState<TicketTimeSlotItem[]>([]);
+  const [operatingHours, setOperatingHours] = useState<{
+    days?: string;
+    morning?: string;
+    afternoon?: string;
+    closedNote?: string;
+  }>({
+    days: 'Từ Thứ Ba đến Chủ Nhật hàng tuần',
+    morning: '08:00 – 11:30',
+    afternoon: '13:30 – 17:00',
+    closedNote: 'Đóng cửa định kỳ vào Thứ Hai để thực hiện công tác bảo quản và trị liệu hiện vật.'
+  });
   const [isLoadingCatalog, setIsLoadingCatalog] = useState<boolean>(true);
 
   // Dữ liệu đặt vé
@@ -58,6 +69,10 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
   const [customerName, setCustomerName] = useState<string>('');
   const [customerEmail, setCustomerEmail] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [touched, setTouched] = useState<{ name?: boolean; email?: boolean; phone?: boolean }>({});
+
+  // Cờ theo dõi khi người dùng bấm thanh toán nhưng chưa đăng nhập
+  const pendingCheckoutRef = useRef<boolean>(false);
 
   // Checkout & PayOS Modal State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -67,16 +82,52 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
 
   const pollingTimerRef = useRef<any>(null);
 
-  // Tự động điền nếu người dùng đã đăng nhập
+  // Khôi phục booking draft từ sessionStorage (nếu có) khi người dùng quay lại trang
+  useEffect(() => {
+    try {
+      const draft = sessionStorage.getItem('pending_booking_draft');
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed.visitDate) setVisitDate(parsed.visitDate);
+        if (parsed.selectedSlot) setSelectedSlot(parsed.selectedSlot);
+        if (parsed.ticketQuantities) setTicketQuantities(parsed.ticketQuantities);
+        if (parsed.customerName) setCustomerName(parsed.customerName);
+        if (parsed.customerEmail) setCustomerEmail(parsed.customerEmail);
+        if (parsed.customerPhone) setCustomerPhone(parsed.customerPhone);
+      }
+    } catch {}
+  }, []);
+
+  // Xử lý khi trạng thái đăng nhập thay đổi
   useEffect(() => {
     if (user) {
+      // Tự động điền thông tin tài khoản nếu form đang trống
       if (!customerName) setCustomerName(user.fullName || user.username || '');
       if (!customerEmail) setCustomerEmail(user.email || '');
       if (!customerPhone && (user as any).phone) setCustomerPhone((user as any).phone);
+
+      // Nếu người dùng vừa đăng nhập sau khi bấm thanh toán
+      if (pendingCheckoutRef.current) {
+        pendingCheckoutRef.current = false;
+        showToast('Đăng nhập thành công! Đang chuyển tiếp tới cổng thanh toán...', 'success');
+        const finalName = customerName || user.fullName || user.username || '';
+        const finalEmail = customerEmail || user.email || '';
+        const finalPhone = customerPhone || (user as any).phone || '';
+        if (finalName && finalEmail && finalPhone) {
+          executeCheckout(finalName, finalEmail, finalPhone);
+        }
+      }
+    } else {
+      // Khi người dùng đăng xuất (user === null), dọn sạch dữ liệu cũ để tránh cho thanh toán nhầm tài khoản
+      setCustomerName('');
+      setCustomerEmail('');
+      setCustomerPhone('');
+      setTouched({});
+      pendingCheckoutRef.current = false;
     }
   }, [user]);
 
-  // Tải danh mục loại vé & khung giờ thật từ API Backend
+  // Tải danh mục loại vé & khung giờ thật từ API Backend (Bỏ qua cache bằng timestamp)
   const loadCatalog = async () => {
     try {
       setIsLoadingCatalog(true);
@@ -84,11 +135,15 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
       if (res && res.ticketTypes) {
         setTicketTypes(res.ticketTypes);
       }
-      if (res && res.timeSlots) {
+      if (res && res.timeSlots && res.timeSlots.length > 0) {
         setTimeSlots(res.timeSlots);
-        if (res.timeSlots.length > 0 && !selectedSlot) {
-          setSelectedSlot(res.timeSlots[0].slotName);
-        }
+        setSelectedSlot((prev) => {
+          const exists = res.timeSlots.some((s) => s.slotName === prev);
+          return exists ? prev : res.timeSlots[0].slotName;
+        });
+      }
+      if (res && (res as any).operatingHours) {
+        setOperatingHours((res as any).operatingHours);
       }
     } catch (err: any) {
       showToast(err.message || 'Không thể tải bảng giá vé', 'error');
@@ -116,9 +171,9 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
     return acc + (type.price || 0) * qty;
   }, 0);
 
-  // Kiểm tra tính hợp lệ của biểu mẫu
+  // Kiểm tra tính hợp lệ của biểu mẫu (Chuẩn hệ thống, số điện thoại VN 10-11 số)
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
-  const isPhoneValid = /^[0-9]{9,12}$/.test(customerPhone.trim().replace(/\s+/g, ''));
+  const isPhoneValid = /^(0|\+84)[0-9]{9,10}$/.test(customerPhone.trim().replace(/[\s.-]/g, '')) || /^[0-9]{10,11}$/.test(customerPhone.trim().replace(/[\s.-]/g, ''));
   const isNameValid = customerName.trim().length >= 2;
   const isFormComplete =
     totalTicketsCount > 0 &&
@@ -128,23 +183,8 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
     Boolean(visitDate) &&
     Boolean(selectedSlot);
 
-  // Xử lý tạo đơn hàng PayOS
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!isFormComplete) {
-      if (totalTicketsCount === 0) {
-        showToast('Vui lòng chọn ít nhất 1 vé tham quan', 'warning');
-      } else if (!isNameValid) {
-        showToast('Vui lòng nhập họ và tên hợp lệ', 'warning');
-      } else if (!isPhoneValid) {
-        showToast('Vui lòng nhập số điện thoại hợp lệ (9 - 12 chữ số)', 'warning');
-      } else if (!isEmailValid) {
-        showToast('Vui lòng nhập địa chỉ email hợp lệ để nhận vé', 'warning');
-      }
-      return;
-    }
-
+  // Hàm thực thi gửi đơn hàng checkout lên Backend
+  const executeCheckout = async (name: string, email: string, phone: string) => {
     const items = Object.entries(ticketQuantities)
       .filter(([_, qty]) => qty > 0)
       .map(([ticketTypeCode, quantity]) => ({
@@ -152,16 +192,26 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
         quantity
       }));
 
+    if (items.length === 0) {
+      showToast('Vui lòng chọn ít nhất 1 vé tham quan', 'warning');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const res = await api.checkoutTickets({
-        customerName: customerName.trim(),
-        customerEmail: customerEmail.trim(),
-        customerPhone: customerPhone.trim(),
+        customerName: name.trim(),
+        customerEmail: email.trim(),
+        customerPhone: phone.trim(),
         visitDate,
         timeSlot: selectedSlot,
         items
       });
+
+      // Dọn sạch booking draft khi khởi tạo thành công
+      try {
+        sessionStorage.removeItem('pending_booking_draft');
+      } catch {}
 
       // Nếu PayOS trả về checkoutUrl, lập tức chuyển hướng tới trang thanh toán PayOS
       if (res && res.checkoutUrl) {
@@ -180,6 +230,48 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Xử lý tạo đơn hàng PayOS (Bắt buộc kiểm tra đăng nhập)
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 1. Kiểm tra validation form
+    if (!isFormComplete) {
+      setTouched({ name: true, email: true, phone: true });
+      if (totalTicketsCount === 0) {
+        showToast('Vui lòng chọn ít nhất 1 vé tham quan', 'warning');
+      } else if (!isNameValid) {
+        showToast('Vui lòng nhập họ và tên hợp lệ (tối thiểu 2 ký tự)', 'warning');
+      } else if (!isPhoneValid) {
+        showToast('Vui lòng nhập số điện thoại hợp lệ (10 - 11 chữ số)', 'warning');
+      } else if (!isEmailValid) {
+        showToast('Vui lòng nhập địa chỉ email hợp lệ để nhận vé', 'warning');
+      }
+      return;
+    }
+
+    // 2. Nghiệp vụ bắt buộc: Khách hàng phải đăng nhập tài khoản trước khi chuyển qua thanh toán
+    if (!user) {
+      pendingCheckoutRef.current = true;
+      try {
+        sessionStorage.setItem('pending_booking_draft', JSON.stringify({
+          visitDate,
+          selectedSlot,
+          ticketQuantities,
+          customerName,
+          customerEmail,
+          customerPhone
+        }));
+      } catch {}
+
+      showToast('Quý khách vui lòng đăng nhập tài khoản để tiếp tục thanh toán và lưu lịch sử vé.', 'info');
+      onOpenLoginModal();
+      return;
+    }
+
+    // 3. Nếu đã đăng nhập, tiến hành gọi API thanh toán
+    await executeCheckout(customerName, customerEmail, customerPhone);
   };
 
   // Lắng nghe đếm ngược 15 phút & Polling kiểm tra trạng thái thanh toán PayOS
@@ -329,20 +421,13 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                 {/* CỘT TRÁI (1.6fr): LỊCH, VÉ VÀ THÔNG TIN KHÁCH */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* 1. LỊCH THAM QUAN & KHUNG GIỜ */}
-                  <div
-                    style={{
-                      background: 'var(--c-bg-card, #131824)',
-                      border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
-                      borderRadius: '10px',
-                      padding: '20px 24px'
-                    }}
-                  >
+                  <div className="client-booking-card">
                     <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Calendar size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
                       <span>Thời gian tham quan</span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                    <div className="client-booking-form-grid">
                       <div>
                         <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', marginBottom: 6 }}>
                           Ngày tham quan <span style={{ color: '#EF4444' }}>*</span>
@@ -353,17 +438,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           value={visitDate}
                           onChange={(e) => setVisitDate(e.target.value)}
                           required
-                          style={{
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '6px',
-                            background: '#0D111A',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
-                            color: '#F8FAFC',
-                            fontSize: '0.86rem',
-                            colorScheme: 'dark',
-                            boxSizing: 'border-box'
-                          }}
+                          className="client-booking-input"
                         />
                       </div>
 
@@ -375,17 +450,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           value={selectedSlot}
                           onChange={(e) => setSelectedSlot(e.target.value)}
                           required
-                          style={{
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '6px',
-                            background: '#0D111A',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
-                            color: '#F8FAFC',
-                            fontSize: '0.86rem',
-                            colorScheme: 'dark',
-                            boxSizing: 'border-box'
-                          }}
+                          className="client-booking-input"
                         >
                           {timeSlots.map((slot) => {
                             const timeText = slot.openTime && slot.closeTime ? `${slot.openTime} – ${slot.closeTime}` : '';
@@ -401,102 +466,95 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                             );
                           })}
                         </select>
-                        <span style={{ display: 'block', fontSize: '0.74rem', color: '#94A3B8', marginTop: 4 }}>
-                          Bảo tàng mở cửa đón khách mọi khung giờ trong ngày theo lịch trên. Quý khách có thể mua vé và đến tham quan tự do trong khoảng giờ này.
-                        </span>
+                      </div>
+
+                      <div className="client-booking-full-width" style={{ marginTop: 2 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: '0.75rem', color: '#94A3B8', lineHeight: 1.45 }}>
+                          <Info size={14} style={{ color: 'var(--c-gold, #D4AF37)', flexShrink: 0, marginTop: 2 }} />
+                          <span>
+                            Lịch mở cửa đón khách: <strong>{operatingHours.days || 'Thứ 3 – Chủ Nhật'}</strong> (Sáng: {operatingHours.morning || '08:00 – 11:30'} | Chiều: {operatingHours.afternoon || '13:30 – 17:00'}). Quý khách có thể mua vé và đến tham quan tự do trong khung giờ đã chọn.
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* 2. CHỌN LOẠI VÉ */}
-                  <div
-                    style={{
-                      background: 'var(--c-bg-card, #131824)',
-                      border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
-                      borderRadius: '10px',
-                      padding: '20px 24px'
-                    }}
-                  >
-                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CreditCard size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
-                      <span>Chọn loại vé</span>
+                  <div className="client-booking-card">
+                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <CreditCard size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                        <span>Chọn loại vé</span>
+                      </div>
+                      <span style={{ fontSize: '0.76rem', color: '#94A3B8' }}>
+                        Đã chọn: <strong style={{ color: 'var(--c-gold, #D4AF37)' }}>{totalTicketsCount}</strong> vé
+                      </span>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {ticketTypes.map((type) => {
                         const qty = ticketQuantities[type.code] || 0;
+                        const isSelected = qty > 0;
 
                         return (
                           <div
                             key={type.id || type.code}
-                            style={{
-                              background: qty > 0 ? 'rgba(212, 175, 55, 0.05)' : '#0D111A',
-                              border: qty > 0 ? '1px solid rgba(212, 175, 55, 0.35)' : '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '12px 18px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: 16
-                            }}
+                            className={`client-ticket-item-card ${isSelected ? 'is-selected' : ''}`}
                           >
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 600, color: '#F8FAFC', fontSize: '0.92rem' }}>
-                                {type.name}
+                            <div className="client-ticket-info-group">
+                              <div className="client-ticket-title-row">
+                                <span className="client-ticket-title">{type.name}</span>
                               </div>
                               {type.description && (
-                                <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 3 }}>
+                                <div className="client-ticket-desc">
                                   {type.description}
+                                </div>
+                              )}
+                              {type.benefits && type.benefits.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                                  {type.benefits.map((b: string, i: number) => (
+                                    <span
+                                      key={i}
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        background: 'rgba(255, 255, 255, 0.04)',
+                                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                                        borderRadius: 4,
+                                        padding: '2px 7px',
+                                        color: '#CBD5E1'
+                                      }}
+                                    >
+                                      ✓ {b}
+                                    </span>
+                                  ))}
                                 </div>
                               )}
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                              <div style={{ fontWeight: 600, color: '#F8FAFC', fontSize: '0.95rem', minWidth: 90, textAlign: 'right' }}>
+                            <div className="client-ticket-actions-group">
+                              <div className="client-ticket-price">
                                 {formatVND(type.price)}
                               </div>
 
                               {/* Bộ tăng giảm số lượng gọn gàng */}
-                              <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 5, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                              <div className="client-ticket-stepper">
                                 <button
                                   type="button"
+                                  className="client-ticket-stepper-btn"
                                   onClick={() => handleQuantityChange(type.code, -1)}
                                   disabled={qty === 0}
-                                  style={{
-                                    width: 30,
-                                    height: 30,
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: qty > 0 ? '#F8FAFC' : '#475569',
-                                    cursor: qty > 0 ? 'pointer' : 'not-allowed',
-                                    fontSize: '1.1rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: 0
-                                  }}
+                                  aria-label="Giảm số lượng"
                                 >
                                   −
                                 </button>
-                                <span style={{ width: 32, textAlign: 'center', fontSize: '0.88rem', fontWeight: 600, color: '#F8FAFC' }}>
+                                <span className="client-ticket-stepper-val">
                                   {qty}
                                 </span>
                                 <button
                                   type="button"
+                                  className="client-ticket-stepper-btn"
                                   onClick={() => handleQuantityChange(type.code, 1)}
-                                  style={{
-                                    width: 30,
-                                    height: 30,
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: '#F8FAFC',
-                                    cursor: 'pointer',
-                                    fontSize: '1.1rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: 0
-                                  }}
+                                  aria-label="Tăng số lượng"
                                 >
                                   +
                                 </button>
@@ -509,41 +567,53 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                   </div>
 
                   {/* 3. THÔNG TIN KHÁCH NHẬN VÉ */}
-                  <div
-                    style={{
-                      background: 'var(--c-bg-card, #131824)',
-                      border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
-                      borderRadius: '10px',
-                      padding: '20px 24px'
-                    }}
-                  >
-                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <User size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
-                      <span>Thông tin người nhận vé</span>
+                  <div className="client-booking-card">
+                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <User size={16} style={{ color: 'var(--c-gold, #D4AF37)' }} />
+                        <span>Thông tin người nhận vé</span>
+                      </div>
+                      {user ? (
+                        <span style={{ fontSize: '0.74rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <CheckCircle size={13} /> Đã liên kết tài khoản
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={onOpenLoginModal}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--c-gold, #D4AF37)',
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          Đăng nhập ngay
+                        </button>
+                      )}
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-                      <div style={{ gridColumn: 'span 2' }}>
+                    <div className="client-booking-form-grid">
+                      <div className="client-booking-full-width">
                         <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', marginBottom: 5 }}>
-                          Họ và tên người đại diện <span style={{ color: '#EF4444' }}>*</span>
+                          Họ và tên người nhận vé <span style={{ color: '#EF4444' }}>*</span>
                         </label>
                         <input
                           type="text"
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
+                          onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
                           placeholder="Ví dụ: Nguyễn Văn A"
                           required
-                          style={{
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '6px',
-                            background: '#0D111A',
-                            border: isNameValid || !customerName ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(239, 68, 68, 0.5)',
-                            color: '#F8FAFC',
-                            fontSize: '0.86rem',
-                            boxSizing: 'border-box'
-                          }}
+                          className={`client-booking-input ${touched.name && !isNameValid ? 'is-invalid' : isNameValid && customerName ? 'is-valid' : ''}`}
                         />
+                        {touched.name && !isNameValid && (
+                          <span className="client-booking-error-text">
+                            Vui lòng nhập họ và tên hợp lệ (tối thiểu 2 ký tự)
+                          </span>
+                        )}
                       </div>
 
                       <div>
@@ -554,19 +624,16 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           type="tel"
                           value={customerPhone}
                           onChange={(e) => setCustomerPhone(e.target.value)}
+                          onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
                           placeholder="Ví dụ: 0912345678"
                           required
-                          style={{
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '6px',
-                            background: '#0D111A',
-                            border: customerPhone && !isPhoneValid ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255, 255, 255, 0.12)',
-                            color: '#F8FAFC',
-                            fontSize: '0.86rem',
-                            boxSizing: 'border-box'
-                          }}
+                          className={`client-booking-input ${touched.phone && !isPhoneValid ? 'is-invalid' : isPhoneValid && customerPhone ? 'is-valid' : ''}`}
                         />
+                        {touched.phone && !isPhoneValid && (
+                          <span className="client-booking-error-text">
+                            Số điện thoại chưa hợp lệ (10 - 11 chữ số)
+                          </span>
+                        )}
                       </div>
 
                       <div>
@@ -577,19 +644,16 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                           type="email"
                           value={customerEmail}
                           onChange={(e) => setCustomerEmail(e.target.value)}
+                          onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
                           placeholder="name@example.com"
                           required
-                          style={{
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '6px',
-                            background: '#0D111A',
-                            border: customerEmail && !isEmailValid ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255, 255, 255, 0.12)',
-                            color: '#F8FAFC',
-                            fontSize: '0.86rem',
-                            boxSizing: 'border-box'
-                          }}
+                          className={`client-booking-input ${touched.email && !isEmailValid ? 'is-invalid' : isEmailValid && customerEmail ? 'is-valid' : ''}`}
                         />
+                        {touched.email && !isEmailValid && (
+                          <span className="client-booking-error-text">
+                            Email chưa đúng định dạng (Ví dụ: name@example.com)
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -597,18 +661,32 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
 
                 {/* CỘT PHẢI (STICKY): TÓM TẮT ĐƠN HÀNG */}
                 <div
+                  className="client-booking-card"
                   style={{
-                    background: 'var(--c-bg-card, #131824)',
-                    border: '1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08))',
-                    borderRadius: '10px',
-                    padding: '22px 24px',
                     position: 'sticky',
                     top: 100
                   }}
                 >
-                  <div style={{ fontSize: '0.98rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 16 }}>
+                  <div style={{ fontSize: '0.98rem', fontWeight: 600, color: '#F8FAFC', marginBottom: 14 }}>
                     Tóm tắt đơn hàng
                   </div>
+
+                  {/* Trạng thái tài khoản người dùng */}
+                  {user ? (
+                    <div className="client-booking-auth-badge is-logged-in">
+                      <ShieldCheck size={16} />
+                      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Tài khoản: <strong>{user.fullName || user.email}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="client-booking-auth-badge is-guest">
+                      <AlertCircle size={16} />
+                      <div style={{ flex: 1 }}>
+                        Chưa đăng nhập. Cần đăng nhập để hoàn tất thanh toán.
+                      </div>
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: '0.84rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 8 }}>
@@ -618,7 +696,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 8 }}>
                       <span style={{ color: '#94A3B8' }}>Khung giờ:</span>
-                      <span style={{ color: '#F8FAFC', fontWeight: 500 }}>{selectedSlot}</span>
+                      <span style={{ color: '#F8FAFC', fontWeight: 500, textAlign: 'right', maxWidth: '60%' }}>{selectedSlot}</span>
                     </div>
 
                     {/* Chi tiết từng loại vé đã chọn */}
@@ -682,7 +760,12 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                       {isSubmitting ? (
                         <>
                           <RefreshCw size={15} className="spin" />
-                          <span>Đang tạo mã thanh toán...</span>
+                          <span>Đang xử lý đơn hàng...</span>
+                        </>
+                      ) : !user ? (
+                        <>
+                          <User size={15} />
+                          <span>Đăng nhập để thanh toán VietQR</span>
                         </>
                       ) : (
                         <>
@@ -692,11 +775,15 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                       )}
                     </button>
 
-                    {!isFormComplete && (
+                    {!isFormComplete ? (
                       <div style={{ fontSize: '0.76rem', color: '#94A3B8', textAlign: 'center', marginTop: 4 }}>
-                        Vui lòng chọn vé và điền đầy đủ thông tin để thanh toán.
+                        Vui lòng chọn ít nhất 1 vé và điền đầy đủ thông tin hợp lệ.
                       </div>
-                    )}
+                    ) : !user ? (
+                      <div style={{ fontSize: '0.76rem', color: '#FBBF24', textAlign: 'center', marginTop: 4 }}>
+                        Hệ thống sẽ mở hộp thoại đăng nhập để liên kết mã vé với tài khoản của bạn.
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -768,7 +855,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
                   }}
                 >
                   <li>
-                    <strong style={{ color: '#F1F5F9' }}>Thời gian đón tiếp:</strong> Mở cửa từ Thứ Ba đến Chủ Nhật hàng tuần (Sáng: 08:00 – 11:30 | Chiều: 13:30 – 17:00). Đóng cửa định kỳ vào Thứ Hai để thực hiện công tác bảo quản và trị liệu hiện vật.
+                    <strong style={{ color: '#F1F5F9' }}>Thời gian đón tiếp:</strong> Mở cửa {operatingHours.days || 'từ Thứ Ba đến Chủ Nhật hàng tuần'} (Sáng: {operatingHours.morning || '08:00 – 11:30'} | Chiều: {operatingHours.afternoon || '13:30 – 17:00'}). {operatingHours.closedNote || 'Đóng cửa định kỳ vào Thứ Hai để thực hiện công tác bảo quản và trị liệu hiện vật.'}
                   </li>
                   <li>
                     <strong style={{ color: '#F1F5F9' }}>Trang phục & Tác phong:</strong> Quý khách vui lòng mặc trang phục lịch sự, kín đáo; giữ gìn trật tự chung, nói khẽ, không hút thuốc lá và không vứt rác bừa bãi trong khuôn viên bảo tàng.

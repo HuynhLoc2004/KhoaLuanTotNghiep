@@ -8336,3 +8336,227 @@ html {
     gap: 20px;
   }
 }
+
+/* --- CLIENT TICKET BOOKING PAGE RESPONSIVE COMPONENTS --- */
+.client-booking-card {
+  background: var(--c-bg-card, #131824);
+  border: 1px solid var(--c-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  padding: 22px 24px;
+}
+
+@media (max-width: 640px) {
+  .client-booking-card {
+    padding: 16px 14px;
+    border-radius: 8px;
+  }
+}
+
+.client-ticket-item-card {
+  background: #0D111A;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 14px 18px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.client-ticket-item-card.is-selected {
+  background: rgba(212, 175, 55, 0.05);
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.client-ticket-info-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.client-ticket-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.client-ticket-title {
+  font-weight: 600;
+  color: #F8FAFC;
+  font-size: 0.93rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.client-ticket-desc {
+  font-size: 0.78rem;
+  color: #94A3B8;
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.client-ticket-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.client-ticket-price {
+  font-weight: 700;
+  color: var(--c-gold, #D4AF37);
+  font-size: 1rem;
+  min-width: 85px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.client-ticket-stepper {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  user-select: none;
+}
+
+.client-ticket-stepper-btn {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: #F8FAFC;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  padding: 0;
+}
+
+.client-ticket-stepper-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+}
+
+.client-ticket-stepper-btn:disabled {
+  color: #475569;
+  cursor: not-allowed;
+}
+
+.client-ticket-stepper-val {
+  width: 34px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+/* RESPONSIVE CHO MÀN HÌNH NHỎ (HÌNH 2: Pixel 9 / iPhone / Android) */
+@media (max-width: 640px) {
+  .client-ticket-item-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 13px 14px;
+  }
+
+  .client-ticket-actions-group {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    padding-top: 10px;
+    margin-top: 2px;
+    gap: 12px;
+  }
+
+  .client-ticket-price {
+    text-align: left;
+    min-width: unset;
+    font-size: 0.98rem;
+  }
+
+  .client-booking-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .client-booking-full-width-mobile {
+    grid-column: span 1 !important;
+  }
+}
+
+.client-booking-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.client-booking-full-width {
+  grid-column: span 2;
+}
+
+.client-booking-input {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: 6px;
+  background: #0D111A;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #F8FAFC;
+  font-size: 0.86rem;
+  color-scheme: dark;
+  box-sizing: border-box;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.client-booking-input:focus {
+  outline: none;
+  border-color: var(--c-gold, #D4AF37);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.client-booking-input.is-invalid {
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  background: rgba(239, 68, 68, 0.03);
+}
+
+.client-booking-input.is-valid {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+}
+
+.client-booking-error-text {
+  display: block;
+  font-size: 0.74rem;
+  color: #F87171;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.client-booking-auth-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
+
+.client-booking-auth-badge.is-logged-in {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #34D399;
+}
+
+.client-booking-auth-badge.is-guest {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #FBBF24;
+}
+

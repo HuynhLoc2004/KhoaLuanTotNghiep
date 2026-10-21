@@ -23,17 +23,26 @@ const TICKETS_CATALOG_TTL_SEC = 300; // 5 phút
  * Lấy danh mục giá vé và khung giờ tham quan đang hoạt động
  * Tối ưu hóa với bộ nhớ đệm Redis tốc độ cao
  */
-ticketsRouter.get('/catalog', async (_req: Request, res: Response) => {
+ticketsRouter.get('/catalog', async (req: Request, res: Response) => {
   try {
-    // 1. Kiểm tra cache Redis
-    const cachedData = await cacheGet<{ ticketTypes: any[]; timeSlots: any[] }>(TICKETS_CATALOG_CACHE_KEY);
-    if (cachedData) {
-      return res.json({ success: true, data: cachedData, source: 'cache' });
+    // 1. Kiểm tra cache Redis (cho phép bỏ qua cache nếu client gửi tham số thời gian thực _t)
+    const bypassCache = Boolean(req.query._t) || req.headers['cache-control'] === 'no-cache';
+    if (!bypassCache) {
+      const cachedData = await cacheGet<{ ticketTypes: any[]; timeSlots: any[]; operatingHours?: any }>(TICKETS_CATALOG_CACHE_KEY);
+      if (cachedData) {
+        return res.json({ success: true, data: cachedData, source: 'cache' });
+      }
     }
 
     // 2. Truy vấn PostgreSQL Primary
     let ticketTypes: any[] = [];
     let timeSlots: any[] = [];
+    let operatingHours: any = {
+      days: 'Từ Thứ Ba đến Chủ Nhật hàng tuần',
+      morning: '08:00 – 11:30',
+      afternoon: '13:30 – 17:00',
+      closedNote: 'Đóng cửa định kỳ vào Thứ Hai để thực hiện công tác bảo quản và trị liệu hiện vật.'
+    };
 
     try {
       const typesRes = await pgPool.query(
@@ -58,17 +67,46 @@ ticketsRouter.get('/catalog', async (_req: Request, res: Response) => {
         `SELECT id, slot_name, open_time, close_time, max_capacity, is_active, display_order 
          FROM ticket_time_slots 
          WHERE is_active = true 
-         ORDER BY display_order ASC, created_at ASC;`
+         ORDER BY display_order ASC, open_time ASC, created_at ASC;`
       );
-      timeSlots = slotsRes.rows.map((r: any) => ({
-        id: r.id,
-        slotName: r.slot_name,
-        openTime: r.open_time || '08:00',
-        closeTime: r.close_time || '17:00',
-        maxCapacity: r.max_capacity,
-        isActive: r.is_active,
-        displayOrder: r.display_order
-      }));
+      timeSlots = slotsRes.rows.map((r: any) => {
+        let openTime = r.open_time;
+        let closeTime = r.close_time;
+        // Tự động phân tích giờ nếu open_time/close_time bị rỗng hoặc mặc định 08:00 - 17:00 nhưng slot_name có chứa mốc giờ
+        if ((!openTime || !closeTime || (openTime === '08:00' && closeTime === '17:00')) && r.slot_name) {
+          const match = r.slot_name.match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/);
+          if (match) {
+            openTime = match[1];
+            closeTime = match[2];
+          }
+        }
+        return {
+          id: r.id,
+          slotName: r.slot_name,
+          openTime: openTime || '08:00',
+          closeTime: closeTime || '17:00',
+          maxCapacity: r.max_capacity,
+          isActive: r.is_active,
+          displayOrder: r.display_order
+        };
+      });
+
+      // Lấy cấu hình giờ mở cửa từ system_branding
+      const brandingRes = await pgPool.query(
+        `SELECT guide_opening_days, guide_morning_hours, guide_afternoon_hours, guide_closed_note 
+         FROM system_branding 
+         ORDER BY updated_at DESC LIMIT 1;`
+      ).catch(() => ({ rows: [] }));
+
+      if (brandingRes.rows.length > 0) {
+        const b = brandingRes.rows[0];
+        operatingHours = {
+          days: b.guide_opening_days || operatingHours.days,
+          morning: b.guide_morning_hours || operatingHours.morning,
+          afternoon: b.guide_afternoon_hours || operatingHours.afternoon,
+          closedNote: b.guide_closed_note || operatingHours.closedNote
+        };
+      }
     } catch (pgErr: any) {
       console.warn('[Tickets Catalog PG Warning]:', pgErr.message);
     }
@@ -102,10 +140,10 @@ ticketsRouter.get('/catalog', async (_req: Request, res: Response) => {
       }));
     }
 
-    const payload = { ticketTypes, timeSlots };
+    const payload = { ticketTypes, timeSlots, operatingHours };
 
-    // Lưu vào Redis cache
-    await cacheSet(TICKETS_CATALOG_CACHE_KEY, payload, TICKETS_CATALOG_TTL_SEC);
+    // Lưu vào Redis cache với TTL ngắn để đảm bảo quản trị viên đổi giờ là client nhận được ngay
+    await cacheSet(TICKETS_CATALOG_CACHE_KEY, payload, 30);
 
     return res.json({ success: true, data: payload, source: 'database' });
   } catch (err: any) {
@@ -261,6 +299,15 @@ ticketsRouter.post('/checkout', async (req: Request, res: Response) => {
           userId = uRes.rows[0].id;
         }
       } catch {}
+    }
+
+    // Bắt buộc đăng nhập: Khách hàng phải có tài khoản để bảo tàng quản lý vé và tra cứu
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        requiresLogin: true,
+        message: 'Quý khách vui lòng đăng nhập tài khoản bảo tàng để hoàn tất đặt vé và lưu vé điện tử vào tài khoản.'
+      });
     }
 
     // 5. URL trả về sau khi người dùng thanh toán hoặc hủy trên PayOS

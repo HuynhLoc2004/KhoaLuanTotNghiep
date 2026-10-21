@@ -743,6 +743,12 @@ export interface TicketTimeSlotItem {
 export interface TicketCatalogData {
   ticketTypes: TicketTypeItem[];
   timeSlots: TicketTimeSlotItem[];
+  operatingHours?: {
+    days?: string;
+    morning?: string;
+    afternoon?: string;
+    closedNote?: string;
+  };
 }
 
 export interface TicketCheckoutItem {
