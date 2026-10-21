@@ -823,22 +823,50 @@
   font-size: 10px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .heritage-stats-banner {
     grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1px;
+    margin-bottom: 16px;
+  }
+  /* For 3-item stat banners (e.g., on AdminLanguagePage), span the 3rd item across both columns */
+  .heritage-stats-banner > .heritage-stat-col:nth-child(3):last-child {
+    grid-column: 1 / -1;
   }
   .heritage-stat-col {
     padding: 10px 12px !important;
   }
   .heritage-stat-number {
-    font-size: 17px !important;
+    font-size: 18px !important;
   }
   .heritage-stat-title {
     font-size: 11.5px !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+  .heritage-stat-sub {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .heritage-stat-col {
+    padding: 8px 10px !important;
+  }
+  .heritage-stat-number {
+    font-size: 16px !important;
+  }
+  .heritage-stat-title {
+    font-size: 11px !important;
   }
   .heritage-stat-sub {
     font-size: 10px !important;
-    line-height: 1.3 !important;
   }
 }
 
@@ -4028,6 +4056,13 @@
   gap: 12px;
 }
 
+.lang-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .lang-header-icon-badge {
   width: 42px;
   height: 42px;
@@ -4188,6 +4223,16 @@
   100% { height: 18px; }
 }
 
+.lang-audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: min(100%, 240px);
+  flex-wrap: wrap;
+}
+
 /* Toolbar (Search & Filter) */
 .lang-toolbar-card {
   background: var(--bg-surface);
@@ -4270,6 +4315,11 @@
 
 .lang-filter-select:focus {
   border-color: var(--accent-gold);
+}
+
+.lang-toolbar-count {
+  font-size: 12.5px;
+  color: var(--text-muted);
 }
 
 /* Data Table Container */
@@ -4440,11 +4490,133 @@
 }
 
 @media (max-width: 768px) {
+  .lang-management-page {
+    padding: 0;
+    gap: 14px;
+  }
+
+  .lang-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .lang-header-title-group {
+    gap: 10px;
+  }
+
+  .lang-header-icon-badge {
+    width: 38px;
+    height: 38px;
+  }
+
+  .lang-header-title {
+    font-size: 18px;
+  }
+
+  .lang-header-desc {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .lang-header-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .lang-header-actions .btn {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
+
+  /* Audio player banner */
+  .lang-audio-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .lang-audio-banner-left {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .lang-audio-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .lang-audio-controls audio {
+    flex: 1 1 auto;
+    max-width: calc(100% - 60px) !important;
+  }
+
+  /* Toolbar */
+  .lang-toolbar-card {
+    padding: 12px !important;
+    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lang-toolbar-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .lang-search-wrapper {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .lang-filter-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .lang-toolbar-count {
+    font-size: 11.5px;
+    text-align: right;
+  }
+
+  /* Table Container to Mobile Cards */
+  .lang-table-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
   .lang-table-scroll {
     display: none;
   }
+
   .lang-mobile-list {
     display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0;
+  }
+
+  .lang-mobile-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    gap: 10px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Boxed pagination when inside transparent card on mobile */
+  .lang-table-card .pagination-container {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-top: 10px;
+    box-shadow: var(--shadow-sm);
   }
 }
 

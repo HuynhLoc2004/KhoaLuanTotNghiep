@@ -388,7 +388,7 @@ export const AdminLanguagePage: React.FC = () => {
   const activePercent = languages.length > 0 ? Math.round((activeCount / languages.length) * 100) : 0;
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px', overscrollBehaviorY: 'contain' }}>
+    <div className="admin-content admin-language-page" style={{ padding: '24px 28px', overscrollBehaviorY: 'contain' }}>
       <div className="lang-management-page">
         {/* HEADER SECTION */}
         <div className="lang-header-row">
@@ -406,7 +406,7 @@ export const AdminLanguagePage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div className="lang-header-actions">
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -522,7 +522,7 @@ export const AdminLanguagePage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, justifyContent: 'flex-end', minWidth: 'min(100%, 240px)', flexWrap: 'wrap' }}>
+            <div className="lang-audio-controls">
               <audio
                 controls
                 autoPlay
@@ -583,7 +583,7 @@ export const AdminLanguagePage: React.FC = () => {
             </select>
           </div>
 
-          <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+          <div className="lang-toolbar-count">
             {t('langPage.found', 'Tìm thấy')} <strong>{filteredLanguages.length}</strong> / <strong>{languages.length}</strong> {t('langPage.statActiveUnit', 'ngôn ngữ')}
           </div>
         </div>
