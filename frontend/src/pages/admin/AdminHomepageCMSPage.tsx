@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { api } from '../../services/api';
+import { api, API_ROOT } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { SystemBranding, HeaderMenuItem, HeaderSubMenuItem, MuseumRoom, Artifact } from '../../types';
 import { useSystemBranding, DEFAULT_HEADER_MENU } from '../../context/SystemBrandingContext';
@@ -55,6 +55,24 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   const { showToast } = useToast();
   const { branding, updateBranding, refreshBranding } = useSystemBranding();
   const { t } = useClientTranslation();
+
+  const getMediaUrl = (path?: string) => {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `${API_ROOT}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
+
+  const handleImagePreviewError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    img.style.display = 'none';
+    const parent = img.parentElement;
+    if (parent && !parent.querySelector('.img-error-fallback')) {
+      const fallback = document.createElement('div');
+      fallback.className = 'img-error-fallback';
+      fallback.style.cssText = 'padding: 18px 12px; text-align: center; color: var(--text-muted); font-size: 12px; background: rgba(0,0,0,0.25); border-radius: 6px; border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; gap: 6px;';
+      fallback.innerHTML = '<span>⚠️ Không thể tải ảnh / Liên kết không khả dụng</span>';
+      parent.appendChild(fallback);
+    }
+  };
 
   const [form, setForm] = useState<SystemBranding>(branding);
   const [isSaving, setIsSaving] = useState(false);
@@ -710,7 +728,12 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 }}
               >
                 {form.logoUrl ? (
-                  <img src={form.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <img
+                    src={getMediaUrl(form.logoUrl)}
+                    alt="Logo"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    onError={handleImagePreviewError}
+                  />
                 ) : (
                   <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-main)' }}>
                     {form.emblemText || 'BT'}
@@ -1439,7 +1462,12 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
               {form.heroBannerUrl && (
                 <div style={{ position: 'relative', width: '100%', maxHeight: 220, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                  <img src={form.heroBannerUrl} alt="Hero Banner Preview" style={{ width: '100%', height: 220, objectFit: 'cover' }} />
+                  <img
+                    src={getMediaUrl(form.heroBannerUrl)}
+                    alt="Hero Banner Preview"
+                    style={{ width: '100%', height: 220, objectFit: 'cover' }}
+                    onError={handleImagePreviewError}
+                  />
                   <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', padding: '3px 8px', borderRadius: 4, fontSize: 11, color: '#FFF' }}>
                     Ảnh xem trước banner
                   </div>
@@ -1603,12 +1631,10 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               {form.introImageUrl && (
                 <div style={{ position: 'relative', width: '100%', maxHeight: 200, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                   <img
-                    src={form.introImageUrl}
+                    src={getMediaUrl(form.introImageUrl)}
                     alt="Intro Architecture"
                     style={{ width: '100%', height: 200, objectFit: 'cover' }}
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
+                    onError={handleImagePreviewError}
                   />
                 </div>
               )}
@@ -1810,9 +1836,10 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               {form.roomsShowcaseImageUrl && (
                 <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <img
-                    src={form.roomsShowcaseImageUrl}
+                    src={getMediaUrl(form.roomsShowcaseImageUrl)}
                     alt="Rooms Showcase Preview"
                     style={{ height: 60, width: 100, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border-color)' }}
+                    onError={handleImagePreviewError}
                   />
                   <button
                     type="button"
@@ -2034,9 +2061,10 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               {form.artifactsShowcaseImageUrl && (
                 <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <img
-                    src={form.artifactsShowcaseImageUrl}
+                    src={getMediaUrl(form.artifactsShowcaseImageUrl)}
                     alt="Artifacts Showcase Preview"
                     style={{ height: 60, width: 60, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border-color)', background: '#000' }}
+                    onError={handleImagePreviewError}
                   />
                   <button
                     type="button"

@@ -117,7 +117,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
         className="modal-card"
         style={{
           maxWidth: 760,
-          width: 'min(760px, 94vw)',
+          width: '100%',
           maxHeight: 'min(90vh, 800px)',
           display: 'flex',
           flexDirection: 'column'
@@ -203,7 +203,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
               <div className="form-group">
                 <label className="form-label">Mã phòng</label>
                 <input
@@ -227,7 +227,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
               <div className="form-group">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <label className="form-label" style={{ margin: 0 }}>Chuyên đề trưng bày *</label>
@@ -284,16 +284,17 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
 
             <div className="form-group">
               <label className="form-label">Đường dẫn ảnh Panorama 360 (Equirectangular 2:1)</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <input
                   type="url"
                   className="form-control"
                   value={panoramaUrl}
                   onChange={(e) => setPanoramaUrl(e.target.value)}
                   placeholder="https://... hoặc tải file bên phải"
+                  style={{ flex: '1 1 200px' }}
                   required
                 />
-                <label className="btn btn-secondary" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <label className="btn btn-secondary" style={{ cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   <Upload size={14} />
                   <span>{uploading ? 'Đang tải...' : 'Tải ảnh/video mới'}</span>
                   <input

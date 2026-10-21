@@ -189,7 +189,7 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
         className="modal-card"
         style={{
           maxWidth: 680,
-          width: 'min(680px, 94vw)',
+          width: '100%',
           maxHeight: 'min(90vh, 760px)',
           display: 'flex',
           flexDirection: 'column'
@@ -237,14 +237,14 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
               <span>Tạo thêm Chuyên đề trưng bày mới</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr auto', gap: 10, alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
               <input
                 type="text"
                 className="form-control"
                 placeholder="Tên chuyên đề mới *"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                style={{ fontSize: '13px' }}
+                style={{ flex: '1 1 180px', fontSize: '13px' }}
                 disabled={isCreating}
               />
               <input
@@ -253,14 +253,14 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
                 placeholder="Mô tả tóm tắt (tùy chọn)..."
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                style={{ fontSize: '13px' }}
+                style={{ flex: '1.5 1 200px', fontSize: '13px' }}
                 disabled={isCreating}
               />
               <button
                 type="submit"
                 className="btn btn-primary"
                 disabled={isCreating || !newName.trim()}
-                style={{ padding: '8px 14px', whiteSpace: 'nowrap' }}
+                style={{ padding: '8px 14px', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 {isCreating ? <RotateCw size={14} className="spin" /> : <Plus size={14} />}
                 <span>Thêm</span>
@@ -310,13 +310,13 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
                     >
                       {isEditing ? (
                         /* Đang sửa */
-                        <div style={{ display: 'flex', flex: 1, gap: 8, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flex: 1, flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                           <input
                             type="text"
                             className="form-control"
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            style={{ flex: 1, fontSize: '13px' }}
+                            style={{ flex: '1 1 140px', fontSize: '13px' }}
                             autoFocus
                           />
                           <input
@@ -325,28 +325,30 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
                             value={editDesc}
                             onChange={(e) => setEditDesc(e.target.value)}
                             placeholder="Mô tả..."
-                            style={{ flex: 1.5, fontSize: '13px' }}
+                            style={{ flex: '1.5 1 160px', fontSize: '13px' }}
                           />
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={() => handleSaveEdit(t.id)}
-                            disabled={isUpdating || !editName.trim()}
-                            title="Lưu thay đổi"
-                            style={{ padding: '6px 12px' }}
-                          >
-                            {isUpdating ? <RotateCw size={13} className="spin" /> : <Check size={13} />}
-                            <span>Lưu</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={handleCancelEdit}
-                            title="Hủy sửa"
-                            style={{ padding: '6px 10px' }}
-                          >
-                            <X size={13} />
-                          </button>
+                          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleSaveEdit(t.id)}
+                              disabled={isUpdating || !editName.trim()}
+                              title="Lưu thay đổi"
+                              style={{ padding: '6px 12px' }}
+                            >
+                              {isUpdating ? <RotateCw size={13} className="spin" /> : <Check size={13} />}
+                              <span>Lưu</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={handleCancelEdit}
+                              title="Hủy sửa"
+                              style={{ padding: '6px 10px' }}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         /* Chế độ xem */

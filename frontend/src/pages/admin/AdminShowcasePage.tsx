@@ -508,7 +508,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           </div>
 
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1.4fr) minmax(300px, 1fr)', gap: 20 }}>
+            <div className="admin-showcase-split-grid">
               {/* Cột trái: Bộ chọn gian phòng */}
               <div>
                 {/* Chế độ chọn */}
@@ -758,6 +758,9 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                           src={getMediaUrl(form.roomsShowcaseImageUrl || selectedRoom.thumbnailUrl || selectedRoom.panoramaUrl)}
                           alt=""
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
                         />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
@@ -871,7 +874,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           </div>
 
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 1.25fr) minmax(320px, 1fr)', gap: 20 }}>
+            <div className="admin-showcase-split-grid">
               {/* Cột trái: Bộ chọn & sắp xếp cổ vật */}
               <div>
                 {/* Chế độ chọn */}
@@ -1251,6 +1254,9 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                             src={getMediaUrl(form.artifactsShowcaseImageUrl || showcaseArtifacts[0].thumbnailUrl || (showcaseArtifacts[0].images && showcaseArtifacts[0].images[0]))}
                             alt=""
                             style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
                           />
                         ) : (
                           <Box size={32} style={{ color: 'var(--text-muted)' }} />
@@ -1473,7 +1479,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           </div>
 
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1.4fr) minmax(300px, 1fr)', gap: 20 }}>
+            <div className="admin-showcase-split-grid">
               {/* Cột trái: Cài đặt thông tin khối kiến trúc */}
               <div>
                 <div style={{ marginBottom: 14 }}>
@@ -1535,7 +1541,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 5 }}>
                       Dòng nhãn phụ (Tag):

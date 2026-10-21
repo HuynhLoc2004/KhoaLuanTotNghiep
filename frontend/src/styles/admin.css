@@ -823,12 +823,22 @@
   font-size: 10px;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .heritage-stats-banner {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
   .heritage-stat-col {
-    padding: 12px 14px;
+    padding: 10px 12px !important;
+  }
+  .heritage-stat-number {
+    font-size: 17px !important;
+  }
+  .heritage-stat-title {
+    font-size: 11.5px !important;
+  }
+  .heritage-stat-sub {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
   }
 }
 
@@ -2358,12 +2368,20 @@
     max-width: 100% !important;
   }
 
-  /* Modal Responsiveness */
+  /* Modal Responsiveness - Center perfectly without horizontal skew */
+  .modal-backdrop {
+    padding: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
   .modal-card {
+    width: 100% !important;
     max-width: calc(100vw - 20px) !important;
-    max-height: 92vh !important;
+    max-height: calc(100dvh - 20px) !important;
     overflow-y: auto !important;
-    margin: 10px !important;
+    margin: auto !important;
     border-radius: 12px !important;
   }
 
@@ -2383,8 +2401,13 @@
   }
 
   .modal-footer .btn {
-    flex: 1;
+    flex: 1 1 120px;
     justify-content: center;
+  }
+
+  /* Admin Content Mobile Padding Override */
+  .admin-content {
+    padding: 14px 12px !important;
   }
 }
 
@@ -2392,6 +2415,20 @@
 @media (max-width: 480px) {
   .admin-header {
     padding: 0 10px;
+  }
+
+  .admin-content {
+    padding: 10px 8px !important;
+  }
+
+  .modal-backdrop {
+    padding: 6px !important;
+  }
+
+  .modal-card {
+    max-width: calc(100vw - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    margin: auto !important;
   }
 
   .status-badge-text {
@@ -5904,8 +5941,39 @@ select option {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  overflow: visible;
+  overflow: hidden;
   margin-bottom: 18px;
+}
+
+@media (max-width: 640px) {
+  .logs-summary-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    background: transparent !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+  .logs-summary-bar .summary-item {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    background: var(--bg-card) !important;
+    padding: 12px 14px !important;
+    min-height: 60px !important;
+  }
+}
+
+/* Split Grid for Admin Showcase & Settings Sections */
+.admin-showcase-split-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.4fr) minmax(300px, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .admin-showcase-split-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
 }
 
 .summary-item {
@@ -6009,12 +6077,25 @@ select option {
   flex-direction: column;
   min-height: 480px;
 }
+.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 
 .logs-panel .table-responsive {
   flex: 1;
   min-height: 400px;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.logs-panel .table-responsive table {
+  min-width: 600px;
 }
 
 .logs-panel .logs-pagination-footer {

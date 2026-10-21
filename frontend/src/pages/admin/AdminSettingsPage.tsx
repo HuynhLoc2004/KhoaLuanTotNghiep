@@ -1820,7 +1820,7 @@ export const AdminSettingsPage: React.FC = () => {
         </div>
 
         {/* PHẦN HẠ TẦNG & TÀI NGUYÊN HỆ THỐNG: BỐ CỤC 2 CỘT CÂN ĐỐI (50% - 50%) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20, marginTop: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginTop: 20 }}>
           {/* Box 1: Tài nguyên Máy chủ VPS */}
           <div className="settings-card" style={{ padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
