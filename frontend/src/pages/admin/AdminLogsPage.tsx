@@ -381,30 +381,30 @@ export const AdminLogsPage: React.FC = () => {
     switch (level) {
       case 'ERROR':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#EF4444', display: 'inline-block' }} />
-            <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Lỗi</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, whiteSpace: 'nowrap' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#EF4444', display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ color: '#EF4444', fontWeight: 600 }}>Lỗi</span>
           </span>
         );
       case 'WARN':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#F59E0B', display: 'inline-block' }} />
-            <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Cảnh báo</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, whiteSpace: 'nowrap' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#F59E0B', display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ color: '#F59E0B', fontWeight: 600 }}>Cảnh báo</span>
           </span>
         );
       case 'SUCCESS':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22C55E', display: 'inline-block' }} />
-            <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>Thành công</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, whiteSpace: 'nowrap' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22C55E', display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ color: '#22C55E', fontWeight: 600 }}>Thành công</span>
           </span>
         );
       case 'INFO':
       default:
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--text-muted)', display: 'inline-block' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, whiteSpace: 'nowrap' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--text-muted)', display: 'inline-block', flexShrink: 0 }} />
             <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Thông tin</span>
           </span>
         );
@@ -627,7 +627,8 @@ export const AdminLogsPage: React.FC = () => {
           </div>
         ) : (
           <div className={`table-responsive ${loading ? 'table-loading-active' : ''}`}>
-            <table className="logs-table">
+            {/* 1. BẢNG DÀNH CHO MÀN HÌNH DESKTOP / TABLET LỚN (> 768px) */}
+            <table className="logs-table logs-desktop-table">
               <thead>
                 <tr>
                   <th style={{ width: 100 }}>MỨC ĐỘ</th>
@@ -732,6 +733,66 @@ export const AdminLogsPage: React.FC = () => {
                 })}
               </tbody>
             </table>
+
+            {/* 2. DANH SÁCH THẺ DÀNH CHO MÀN HÌNH ĐIỆN THOẠI (<= 768px, RÕ RÀNG, DỄ ĐỌC, KHÔNG BỊ CO NGHẸT) */}
+            <div className="logs-mobile-list">
+              {logs.map((log) => {
+                const modLabel = MODULE_LABELS[log.module] || log.module;
+                const isErr = log.level === 'ERROR';
+                const cleanIp = (log.ipAddress || '').replace(/^::ffff:/, '') || '127.0.0.1';
+
+                return (
+                  <div
+                    key={log._id}
+                    className={`log-mobile-card ${isErr ? 'log-mobile-card-error' : ''}`}
+                    onClick={() => {
+                      setSelectedLog(log);
+                      setActiveDetailTab(log.error ? 'error' : 'overview');
+                    }}
+                  >
+                    <div className="log-mobile-header">
+                      <div className="log-mobile-tags">
+                        {renderLevelBadge(log.level)}
+                        <span className="log-module-tag">{modLabel}</span>
+                        {log.statusCode && (
+                          <span
+                            className={`log-status-pill status-${
+                              log.statusCode >= 500 ? '5xx' : log.statusCode >= 400 ? '4xx' : '2xx'
+                            }`}
+                          >
+                            {log.statusCode}
+                          </span>
+                        )}
+                        {log.durationMs !== undefined && log.durationMs > 0 && (
+                          <span className="log-duration-text">{log.durationMs}ms</span>
+                        )}
+                      </div>
+                      <span className="log-mobile-time">{formatDateTime(log.createdAt)}</span>
+                    </div>
+
+                    <div className="log-mobile-body">
+                      <div className="log-mobile-message">{log.message}</div>
+                      {log.error && (
+                        <div className="log-mobile-error">
+                          {log.error.name ? `${log.error.name}: ` : ''}{log.error.message}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="log-mobile-footer">
+                      <div className="log-mobile-actor">
+                        <span className="log-mobile-username">{log.username || 'Khách vãng lai'}</span>
+                        <span className="log-mobile-ip">• {cleanIp}</span>
+                      </div>
+                      <div className="log-mobile-action">
+                        <span>Chi tiết</span>
+                        <ChevronRight size={13} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

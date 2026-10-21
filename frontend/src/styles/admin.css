@@ -6580,3 +6580,170 @@ select option {
   justify-content: space-between;
   background: rgba(0, 0, 0, 0.12);
 }
+
+/* ==========================================================================
+   MOBILE LOGS VIEW (RESPONSIVE CARDS THAY THẾ BẢNG TABLE TRÊN MÀN HÌNH NHỎ)
+   ========================================================================== */
+.logs-desktop-table {
+  display: table;
+  width: 100%;
+}
+
+.logs-mobile-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Ẩn bảng table truyền thống để tránh bị co dẹp cột trên mobile */
+  .logs-desktop-table {
+    display: none !important;
+  }
+
+  /* Hiển thị danh sách card siêu thoáng, sắc nét */
+  .logs-mobile-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .log-mobile-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .log-mobile-card:hover,
+  .log-mobile-card:active {
+    background: var(--bg-subtle);
+    border-color: var(--accent-gold);
+    transform: translateY(-1px);
+  }
+
+  .log-mobile-card-error {
+    background: rgba(239, 68, 68, 0.04);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  .log-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .log-mobile-tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .log-mobile-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+    white-space: nowrap;
+    margin-left: auto;
+  }
+
+  .log-mobile-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .log-mobile-message {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--heading-color);
+    line-height: 1.45;
+    word-break: break-all;
+    font-family: Consolas, Monaco, monospace;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .log-mobile-error {
+    color: #EF4444;
+    font-size: 11.5px;
+    background: rgba(239, 68, 68, 0.08);
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    word-break: break-all;
+    font-family: monospace;
+  }
+
+  .log-mobile-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px dashed rgba(255, 255, 255, 0.07);
+    padding-top: 8px;
+    margin-top: 2px;
+  }
+
+  .log-mobile-actor {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+  }
+
+  .log-mobile-username {
+    font-weight: 500;
+    color: var(--text-main);
+  }
+
+  .log-mobile-ip {
+    color: var(--text-muted);
+    font-family: monospace;
+    font-size: 11px;
+  }
+
+  .log-mobile-action {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11.5px;
+    color: var(--accent-gold);
+    font-weight: 600;
+  }
+
+  /* Bộ lọc Logs Filter Bar trên mobile */
+  .logs-filter-bar {
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
+
+  .filter-search-box {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  .filter-select {
+    flex: 1 1 calc(50% - 4px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    font-size: 12px !important;
+    padding: 7px 8px !important;
+  }
+
+  .logs-filter-bar button {
+    flex: 1 1 100% !important;
+    justify-content: center;
+    padding: 8px !important;
+  }
+}
