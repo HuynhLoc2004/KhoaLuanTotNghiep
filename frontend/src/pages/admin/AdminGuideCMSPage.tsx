@@ -591,28 +591,26 @@ export const AdminGuideCMSPage: React.FC = () => {
 
       {/* 3. NỘI DUNG TỪNG PHÂN MỤC */}
       <section className="guide-section-card">
-        {/* Header phân mục hiện tại */}
-        <div className="guide-section-header">
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
-              {guideSubTab === 'info' && '1. Giới Thiệu Chung & Tiêu Đề Trang Cẩm Nang'}
-              {guideSubTab === 'floorplan' && '2. Sơ Đồ Mặt Bằng & Bản Đồ Kiến Trúc'}
-              {guideSubTab === 'mapping' && '3. Gán Gian Phòng 360° & Thuyết Minh Vào Sơ Đồ'}
-              {guideSubTab === 'hours' && '4. Thời Gian Hoạt Động & Biểu Phí Vé Niêm Yết'}
-              {guideSubTab === 'transit' && '5. Vị Trí, Chỉ Dẫn Di Chuyển & Google Maps'}
-              {guideSubTab === 'rules' && '6. Tiện Ích Phục Vụ & Nội Quy Tham Quan Văn Minh'}
-            </h2>
-            <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-              {guideSubTab === 'info' && 'Cấu hình tiêu đề chính, thẻ định danh, đoạn văn giới thiệu và nút điều hướng của trang cẩm nang.'}
-              {guideSubTab === 'floorplan' && 'Tải lên hình ảnh sơ đồ mặt bằng kiến trúc bảo tàng, định vị các cánh trưng bày phục vụ khách thực địa.'}
-              {guideSubTab === 'mapping' && 'Liên kết từng vị trí phòng trên sơ đồ với gian phòng 360° thực tế và file thuyết minh giọng nói.'}
-              {guideSubTab === 'hours' && 'Cập nhật khung giờ đón khách ca sáng/chiều, các ngày mở cửa trong tuần và bảng giá vé các đối tượng.'}
-              {guideSubTab === 'transit' && 'Địa chỉ thực tế, số điện thoại đường dây nóng, tuyến xe buýt, bãi xe và mã nhúng bản đồ trực tiếp.'}
-              {guideSubTab === 'rules' && 'Thiết lập 4 quy tắc văn minh và tiện ích trải nghiệm (mã QR hiện vật, thuyết minh audio guide, bảo quản).'}
-            </span>
-          </div>
+        {/* Header phân mục hiện tại (Ẩn khi ở tab mapping vì trang gán phòng đã có sẵn header chuyên dụng) */}
+        {guideSubTab !== 'mapping' && (
+          <div className="guide-section-header">
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
+                {guideSubTab === 'info' && '1. Giới Thiệu Chung & Tiêu Đề Trang Cẩm Nang'}
+                {guideSubTab === 'floorplan' && '2. Sơ Đồ Mặt Bằng & Bản Đồ Kiến Trúc'}
+                {guideSubTab === 'hours' && '4. Thời Gian Hoạt Động & Biểu Phí Vé Niêm Yết'}
+                {guideSubTab === 'transit' && '5. Vị Trí, Chỉ Dẫn Di Chuyển & Google Maps'}
+                {guideSubTab === 'rules' && '6. Tiện Ích Phục Vụ & Nội Quy Tham Quan Văn Minh'}
+              </h2>
+              <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                {guideSubTab === 'info' && 'Cấu hình tiêu đề chính, thẻ định danh, đoạn văn giới thiệu và nút điều hướng của trang cẩm nang.'}
+                {guideSubTab === 'floorplan' && 'Tải lên hình ảnh sơ đồ mặt bằng kiến trúc bảo tàng, định vị các cánh trưng bày phục vụ khách thực địa.'}
+                {guideSubTab === 'hours' && 'Cập nhật khung giờ đón khách ca sáng/chiều, các ngày mở cửa trong tuần và bảng giá vé các đối tượng.'}
+                {guideSubTab === 'transit' && 'Địa chỉ thực tế, số điện thoại đường dây nóng, tuyến xe buýt, bãi xe và mã nhúng bản đồ trực tiếp.'}
+                {guideSubTab === 'rules' && 'Thiết lập 4 quy tắc văn minh và tiện ích trải nghiệm (mã QR hiện vật, thuyết minh audio guide, bảo quản).'}
+              </span>
+            </div>
 
-          {guideSubTab !== 'mapping' && (
             <button
               type="button"
               className="btn btn-primary btn-sm"
@@ -628,8 +626,8 @@ export const AdminGuideCMSPage: React.FC = () => {
               <Save size={14} />
               <span>Lưu phân mục này</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* PHÂN MỤC 1: GIỚI THIỆU CHUNG & TIÊU ĐỀ TRANG CẨM NANG */}
         {guideSubTab === 'info' && (

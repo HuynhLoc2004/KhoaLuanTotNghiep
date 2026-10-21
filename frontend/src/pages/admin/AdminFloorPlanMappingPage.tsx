@@ -375,59 +375,44 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG TỐI GIẢN */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          padding: '12px 16px',
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 10
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="mapping-header-banner">
+        <div className="mapping-header-top">
           {onBackToGuide && (
             <button
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={onBackToGuide}
               title="Quay lại danh sách phân mục cẩm nang"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
             >
               <ArrowLeft size={13} />
               <span>Quay lại Cẩm nang</span>
             </button>
           )}
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: 0 }}>
+          <div className="mapping-title-block">
+            <div className="mapping-title-row">
+              <h2 className="mapping-title">
                 Gán Gian Phòng 360° Vào Vị Trí Sơ Đồ
               </h2>
               <span
+                className="mapping-progress-pill"
                 style={{
                   background: stats.mapped === stats.total ? 'rgba(34, 197, 94, 0.15)' : 'rgba(212, 168, 106, 0.15)',
                   color: stats.mapped === stats.total ? '#22C55E' : '#D4A86A',
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  padding: '2px 8px',
-                  borderRadius: 12,
                   border: `1px solid ${stats.mapped === stats.total ? 'rgba(34, 197, 94, 0.3)' : 'rgba(212, 168, 106, 0.3)'}`
                 }}
               >
                 Tiến độ: {stats.mapped}/{stats.total} phòng ({stats.percent}%)
               </span>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>
+            <p className="mapping-subtitle">
               Bấm chọn phòng trên sơ đồ hoặc danh sách bên dưới, chọn không gian 360° tương ứng rồi bấm Lưu.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="mapping-header-actions">
           <a
             href="/?page=guide"
             target="_blank"
@@ -454,34 +439,11 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
       </div>
 
       {/* 1b. THANH CHUYỂN PHÂN HỆ: GÁN PHÒNG 360° HOẶC CẤU HÌNH TRỢ LÝ VOICE AI */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 6,
-          background: 'var(--bg-surface)',
-          padding: '4px',
-          borderRadius: 8,
-          border: '1px solid var(--border-color)',
-          width: 'fit-content'
-        }}
-      >
+      <div className="admin-mapping-tabs-bar">
         <button
           type="button"
           onClick={() => setMainTab('mapping')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 7,
-            padding: '7px 16px',
-            borderRadius: 6,
-            border: 'none',
-            fontSize: 12.5,
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            background: mainTab === 'mapping' ? 'rgba(212, 168, 106, 0.18)' : 'transparent',
-            color: mainTab === 'mapping' ? '#D4A86A' : 'var(--text-muted)'
-          }}
+          className={`admin-mapping-tab-btn ${mainTab === 'mapping' ? 'active' : ''}`}
         >
           <Layers size={14} />
           <span>Gán Gian Phòng 360° Vào Sơ Đồ</span>
@@ -493,20 +455,7 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
             setMainTab('navigator');
             fetchNavSettingsAndLogs();
           }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 7,
-            padding: '7px 16px',
-            borderRadius: 6,
-            border: 'none',
-            fontSize: 12.5,
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            background: mainTab === 'navigator' ? 'rgba(212, 168, 106, 0.18)' : 'transparent',
-            color: mainTab === 'navigator' ? '#D4A86A' : 'var(--text-muted)'
-          }}
+          className={`admin-mapping-tab-btn ${mainTab === 'navigator' ? 'active' : ''}`}
         >
           <Route size={14} />
           <span>Trợ Lý Dẫn Đường & Giọng Nói Voice AI</span>
@@ -1032,7 +981,7 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
               </div>
 
               {/* Form chọn điểm đi, điểm đến và ngôn ngữ */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="nav-test-form-grid">
                 <div>
                   <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 4 }}>
                     📍 Điểm xuất phát:
@@ -1070,8 +1019,8 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ flex: 1 }}>
+              <div className="nav-test-action-row">
+                <div className="nav-test-lang-field">
                   <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 4 }}>
                     Ngôn ngữ thử nghiệm:
                   </label>
@@ -1089,10 +1038,10 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
                   </select>
                 </div>
 
-                <div style={{ alignSelf: 'flex-end' }}>
+                <div className="nav-test-btn-wrapper">
                   <button
                     type="button"
-                    className="btn btn-primary btn-sm"
+                    className="btn btn-primary btn-sm nav-test-submit-btn"
                     onClick={handleRunTestNavigation}
                     disabled={testLoading}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontWeight: 600 }}
@@ -1132,10 +1081,10 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
                     gap: 10
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11, background: 'rgba(212, 168, 106, 0.15)', color: '#D4A86A', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
-                        Khoảng cách: ~{Math.round(testResult.totalDistance)}m
+                        Khoảng cách: ~{Number.isFinite(testResult.totalDistance) ? Math.round(testResult.totalDistance) : 0}m
                       </span>
                       <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.15)', color: '#22C55E', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
                         {testResult.steps.length} chặng
@@ -1182,7 +1131,7 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
                           borderRadius: 4
                         }}
                       >
-                        <strong>Chặng {idx + 1}:</strong> {st.instruction} (~{Math.round(st.distance)}m)
+                        <strong>Chặng {idx + 1}:</strong> {st.instruction} (~{Number.isFinite(st.distance) ? Math.round(st.distance) : 0}m)
                       </div>
                     ))}
                   </div>
@@ -1236,43 +1185,37 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
                 Chưa có lượt tìm đường nào được ghi nhận trên sơ đồ này.
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <div className="nav-logs-table-wrapper">
+                <table className="nav-logs-table">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 600 }}>Thời gian</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 600 }}>Điểm xuất phát</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 600 }}>Điểm đến</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 600 }}>Ngôn ngữ</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 600 }}>Số chặng</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 600 }}>Khoảng cách</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 600 }}>Chỉ dẫn Voice AI</th>
+                    <tr>
+                      <th style={{ width: 130 }}>Thời gian</th>
+                      <th>Điểm xuất phát</th>
+                      <th>Điểm đến</th>
+                      <th style={{ width: 70, textAlign: 'center' }}>Ngôn ngữ</th>
+                      <th style={{ width: 90 }}>Số chặng</th>
+                      <th style={{ width: 100 }}>Khoảng cách</th>
+                      <th style={{ minWidth: 200 }}>Chỉ dẫn Voice AI</th>
                     </tr>
                   </thead>
                   <tbody>
                     {navLogs.map((log) => {
                       const dateStr = log.createdAt ? new Date(log.createdAt).toLocaleString('vi-VN') : 'Vừa xong';
                       return (
-                        <tr
-                          key={log.id}
-                          style={{
-                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                            transition: 'background 0.12s ease'
-                          }}
-                        >
-                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        <tr key={log.id}>
+                          <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                             {dateStr}
                           </td>
-                          <td style={{ padding: '8px 10px', color: 'var(--heading-color)', fontWeight: 600 }}>
+                          <td style={{ color: 'var(--heading-color)', fontWeight: 600 }}>
                             {log.startNodeName}
                           </td>
-                          <td style={{ padding: '8px 10px', color: '#D4A86A', fontWeight: 600 }}>
+                          <td style={{ color: '#D4A86A', fontWeight: 600 }}>
                             {log.endNodeName}
                           </td>
-                          <td style={{ padding: '8px 10px' }}>
+                          <td style={{ textAlign: 'center' }}>
                             <span
                               style={{
-                                padding: '1px 6px',
+                                padding: '2px 7px',
                                 borderRadius: 3,
                                 background: 'rgba(212, 168, 106, 0.15)',
                                 color: '#D4A86A',
@@ -1283,15 +1226,14 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
                               {(log.lang || 'vi').toUpperCase()}
                             </span>
                           </td>
-                          <td style={{ padding: '8px 10px', color: 'var(--heading-color)' }}>
+                          <td style={{ color: 'var(--heading-color)' }}>
                             {log.stepCount} chặng
                           </td>
-                          <td style={{ padding: '8px 10px', color: 'var(--heading-color)', fontWeight: 600 }}>
-                            ~{Math.round(log.totalDistance)}m
+                          <td style={{ color: 'var(--heading-color)', fontWeight: 600 }}>
+                            ~{Number.isFinite(log.totalDistance) ? Math.round(log.totalDistance) : 0}m
                           </td>
                           <td
                             style={{
-                              padding: '8px 10px',
                               color: 'var(--text-muted)',
                               maxWidth: 320,
                               whiteSpace: 'nowrap',
