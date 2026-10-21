@@ -537,7 +537,7 @@ export async function initPostgresTables(): Promise<boolean> {
         console.log('[PostgreSQL] Đã khởi tạo tài khoản quản trị mặc định (admin) trong PostgreSQL.');
       }
 
-      // Khởi tạo các loại vé mẫu chuẩn bảo tàng nếu bảng trống
+      // Khởi tạo các loại vé mẫu chuẩn bảo tàng nếu bảng trống (Chỉ 3 loại vé thực tế của bảo tàng)
       const ticketTypeCheck = await client.query('SELECT COUNT(*) FROM ticket_types;');
       if (parseInt(ticketTypeCheck.rows[0].count, 10) === 0) {
         await client.query(`
@@ -545,11 +545,13 @@ export async function initPostgresTables(): Promise<boolean> {
           VALUES
           ('tt_standard', 'standard', 'Vé Người Lớn', 30000, 30000, 'Khách tham quan từ 16 đến 59 tuổi', '[]', true, 1),
           ('tt_student', 'student', 'Vé Học Sinh - Sinh Viên', 15000, 15000, 'Xuất trình thẻ học sinh hoặc sinh viên tại cổng', '[]', true, 2),
-          ('tt_senior', 'senior', 'Vé Trẻ Em & Người Cao Tuổi', 15000, 15000, 'Dành cho trẻ em hoặc người từ 60 tuổi trở lên', '[]', true, 3),
-          ('tt_vip', 'vip', 'Vé VIP Có Thuyết Minh', 100000, 100000, 'Bao gồm hướng dẫn viên đi cùng đoàn', '[]', true, 4);
+          ('tt_senior', 'senior', 'Vé Trẻ Em & Người Cao Tuổi', 15000, 15000, 'Dành cho trẻ em hoặc người từ 60 tuổi trở lên', '[]', true, 3);
         `);
-        console.log('[PostgreSQL] Đã khởi tạo 4 loại vé tham quan mẫu chuẩn.');
+        console.log('[PostgreSQL] Đã khởi tạo 3 loại vé tham quan mẫu chuẩn.');
       }
+
+      // Xóa bỏ hoàn toàn gói vé VIP mẫu không thuộc bảng giá bảo tàng
+      await client.query(`DELETE FROM ticket_types WHERE code = 'vip' OR id = 'tt_vip';`).catch(() => {});
 
       // Khởi tạo các khung giờ tham quan nếu bảng trống
       const slotCheck = await client.query('SELECT COUNT(*) FROM ticket_time_slots;');

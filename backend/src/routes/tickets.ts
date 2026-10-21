@@ -48,7 +48,7 @@ ticketsRouter.get('/catalog', async (req: Request, res: Response) => {
       const typesRes = await pgPool.query(
         `SELECT id, code, name, price, original_price, description, benefits, is_active, display_order 
          FROM ticket_types 
-         WHERE is_active = true 
+         WHERE is_active = true AND code != 'vip' AND id != 'tt_vip'
          ORDER BY display_order ASC, price ASC;`
       );
       ticketTypes = typesRes.rows.map((r: any) => ({
@@ -113,7 +113,7 @@ ticketsRouter.get('/catalog', async (req: Request, res: Response) => {
 
     // 3. Fallback MongoDB nếu bảng rỗng
     if (ticketTypes.length === 0) {
-      const mongoTypes = await TicketType.find({ isActive: true }).sort({ displayOrder: 1, price: 1 }).lean();
+      const mongoTypes = await TicketType.find({ isActive: true, code: { $ne: 'vip' } }).sort({ displayOrder: 1, price: 1 }).lean();
       ticketTypes = mongoTypes.map((t: any) => ({
         id: t._id.toString(),
         code: t.code,
