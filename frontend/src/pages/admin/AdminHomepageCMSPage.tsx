@@ -1582,11 +1582,34 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   <Upload size={14} />
                   <span>{uploadingIntroImage ? 'Đang tải lên...' : 'Tải ảnh kiến trúc lên'}</span>
                 </button>
+                {form.introImageUrl && (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={async () => {
+                      handleChange('introImageUrl', '');
+                      await updateBranding({ ...form, introImageUrl: '' });
+                      setIsDirty(false);
+                      showToast('Đã xóa ảnh kiến trúc và tự động đồng bộ sang trang chủ!', 'info');
+                    }}
+                    title="Xóa ảnh và đồng bộ trang chủ"
+                    style={{ color: '#EF4444' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
 
               {form.introImageUrl && (
                 <div style={{ position: 'relative', width: '100%', maxHeight: 200, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                  <img src={form.introImageUrl} alt="Intro Architecture" style={{ width: '100%', height: 200, objectFit: 'cover' }} />
+                  <img
+                    src={form.introImageUrl}
+                    alt="Intro Architecture"
+                    style={{ width: '100%', height: 200, objectFit: 'cover' }}
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
                 </div>
               )}
             </div>

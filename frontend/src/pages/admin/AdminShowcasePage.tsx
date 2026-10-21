@@ -103,7 +103,9 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
       setUploadingIntro(true);
       const res = await api.uploadBrandingImage(file);
       handleChange('introImageUrl', res.url);
-      showToast('Đã tải lên ảnh kiến trúc thành công.', 'success');
+      await updateBranding({ ...form, introImageUrl: res.url });
+      setIsDirty(false);
+      showToast('Đã tải ảnh kiến trúc và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tải ảnh kiến trúc', 'error');
     } finally {
@@ -120,7 +122,9 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
       setUploadingRoomShowcase(true);
       const res = await api.uploadBrandingImage(file);
       handleChange('roomsShowcaseImageUrl', res.url);
-      showToast('Đã tải lên ảnh bìa gian phòng thành công.', 'success');
+      await updateBranding({ ...form, roomsShowcaseImageUrl: res.url });
+      setIsDirty(false);
+      showToast('Đã tải ảnh bìa gian phòng và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tải ảnh bìa gian phòng', 'error');
     } finally {
@@ -137,7 +141,9 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
       setUploadingArtifactShowcase(true);
       const res = await api.uploadBrandingImage(file);
       handleChange('artifactsShowcaseImageUrl', res.url);
-      showToast('Đã tải lên ảnh bìa cổ vật thành công.', 'success');
+      await updateBranding({ ...form, artifactsShowcaseImageUrl: res.url });
+      setIsDirty(false);
+      showToast('Đã tải ảnh bìa cổ vật và tự động đồng bộ sang trang chủ!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tải ảnh bìa cổ vật', 'error');
     } finally {
@@ -1511,8 +1517,13 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                       <button
                         type="button"
                         className="btn btn-outline btn-sm"
-                        onClick={() => handleChange('introImageUrl', '')}
-                        title="Xóa ảnh"
+                        onClick={async () => {
+                          handleChange('introImageUrl', '');
+                          await updateBranding({ ...form, introImageUrl: '' });
+                          setIsDirty(false);
+                          showToast('Đã xóa ảnh kiến trúc và tự động đồng bộ sang trang chủ!', 'info');
+                        }}
+                        title="Xóa ảnh và đồng bộ trang chủ"
                         style={{ color: '#EF4444' }}
                       >
                         <Trash2 size={13} />
@@ -1623,6 +1634,9 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                       src={getMediaUrl(form.introImageUrl)}
                       alt="Kiến trúc Bảo tàng"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
                     />
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: 6, padding: 16, textAlign: 'center' }}>

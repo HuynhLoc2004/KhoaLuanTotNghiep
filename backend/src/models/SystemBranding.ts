@@ -691,6 +691,17 @@ export async function getSystemBrandingConfig(): Promise<any> {
       branding.headerMenuItems = DEFAULT_HEADER_MENU;
     }
 
+    // Tu dong don dep link anh 404 da bi xoa tren Cloudinary de trang chu luon hien thi dep mat
+    const DEAD_INTRO_URL = 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790989776/museum/branding_assets/pano_1790989770164_anh_1_dsy1um.jpg';
+    if (branding.introImageUrl === DEAD_INTRO_URL) {
+      branding.introImageUrl = branding.heroBannerUrl || '';
+      try {
+        await SystemBranding.updateOne({}, { $set: { introImageUrl: branding.introImageUrl } });
+        const { pgPool } = await import('../db/postgres.js');
+        await pgPool.query('UPDATE system_branding SET intro_image_url = $1;', [branding.introImageUrl]);
+      } catch {}
+    }
+
     try {
       await cacheSet(REDIS_BRANDING_KEY, branding, 86400); // 24h
     } catch {}

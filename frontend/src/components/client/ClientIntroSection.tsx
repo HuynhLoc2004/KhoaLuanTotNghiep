@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Landmark } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { API_ROOT } from '../../services/api';
 
 interface ClientIntroSectionProps {
   roomCount?: number;
@@ -17,19 +18,47 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
 }) => {
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(false);
+
+  const getMediaUrl = (path?: string) => {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `${API_ROOT}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
+
+  // Reset trang thai loi khi admin thay doi URL anh trong CSDL / CMS
+  useEffect(() => {
+    setLoadFailed(false);
+    setUsingFallback(false);
+  }, [branding.introImageUrl]);
+
+  const rawTargetUrl = !usingFallback ? (branding.introImageUrl || '') : (branding.heroBannerUrl || '');
+  const activeImageUrl = getMediaUrl(rawTargetUrl);
+
+  const handleImageError = () => {
+    if (!usingFallback && branding.heroBannerUrl && branding.heroBannerUrl !== branding.introImageUrl) {
+      // Tu dong chuyen sang anh kien truc chuan cua bao tang
+      setUsingFallback(true);
+    } else {
+      setLoadFailed(true);
+    }
+  };
+
+  const hasImage = Boolean(activeImageUrl && !loadFailed);
 
   return (
     <section id="intro" className="client-section client-section-alt">
       <div className="client-container">
         <div className="client-intro-feature-card reveal-on-scroll">
           {/* CỘT ẢNH: KIẾN TRÚC BẢO TÀNG TINH TẾ */}
-          <div className={`client-intro-media ${!branding.introImageUrl ? 'has-placeholder' : ''}`}>
-            {branding.introImageUrl ? (
+          <div className={`client-intro-media ${!hasImage ? 'has-placeholder' : ''}`}>
+            {hasImage ? (
               <img
-                src={branding.introImageUrl}
+                src={activeImageUrl}
                 alt={branding.introTitle || branding.museumName || 'Kiến trúc Bảo tàng Lịch sử'}
                 className="client-intro-img"
                 loading="lazy"
+                onError={handleImageError}
               />
             ) : (
               <div className="client-media-placeholder">
