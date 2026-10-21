@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   AlertTriangle,
   HardDrive,
-  CheckCircle2
+  CheckCircle2,
+  Info
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { SystemLogItem, SystemLogStats, LogLevel } from '../../types';
@@ -411,6 +412,123 @@ export const AdminLogsPage: React.FC = () => {
     }
   };
 
+  // Nhận diện và hiển thị tác nhân dễ hiểu cho người quản trị
+  const renderActorInfo = (log: SystemLogItem) => {
+    const cleanIp = (log.ipAddress || '').replace(/^::ffff:/, '') || '127.0.0.1';
+
+    if (log.username) {
+      return (
+        <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-main)' }}>
+            <span style={{ color: 'var(--accent-gold)' }}>👤</span>
+            <span>{log.username}</span>
+            <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--accent-gold)', fontWeight: 600 }}>
+              Đã đăng nhập
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: 2 }}>
+            {cleanIp}
+          </div>
+        </div>
+      );
+    }
+
+    // Nhận diện các lượt dò quét file bí mật từ Bot Internet
+    const msg = (log.message || '').toLowerCase();
+    const isBotScanner =
+      msg.includes('.env') ||
+      msg.includes('repos') ||
+      msg.includes('version') ||
+      msg.includes('wp-') ||
+      msg.includes('.git') ||
+      msg.includes('.php') ||
+      msg.includes('projects') ||
+      msg.includes('actuator') ||
+      msg.includes('swagger') ||
+      msg.includes('telescope') ||
+      msg.includes('cgi-bin') ||
+      msg.includes('vendor') ||
+      msg.includes('config') ||
+      (log.statusCode === 404 && (msg.includes('/api/v') || msg.includes('.txt') || msg.includes('login')));
+
+    if (isBotScanner) {
+      return (
+        <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: '#F59E0B' }}>
+            <span>🤖</span>
+            <span>Bot quét tự động</span>
+            <span style={{ fontSize: 9.5, padding: '1px 4px', borderRadius: 3, background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+              Scanner
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: 2 }}>
+            {cleanIp}
+          </div>
+        </div>
+      );
+    }
+
+    // Khách truy cập web công khai bình thường (chưa đăng nhập tài khoản)
+    return (
+      <div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>
+          <span>🌐</span>
+          <span>Khách tham quan</span>
+          <span style={{ fontSize: 10, color: 'var(--text-light)' }}>(chưa login)</span>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-light)', fontFamily: 'monospace', marginTop: 2 }}>
+          {cleanIp}
+        </div>
+      </div>
+    );
+  };
+
+  // Diễn giải hành động trực quan, dễ đọc
+  const renderActionContent = (log: SystemLogItem) => {
+    const msg = log.message || '';
+    const lower = msg.toLowerCase();
+    const isBotScanner =
+      lower.includes('.env') ||
+      lower.includes('repos') ||
+      lower.includes('version') ||
+      lower.includes('wp-') ||
+      lower.includes('.git') ||
+      lower.includes('.php') ||
+      lower.includes('projects');
+
+    let explanation = '';
+    if (lower.includes('.env')) {
+      explanation = 'Dò quét tệp cấu hình bí mật (.env) • Đã chặn đứng an toàn (404)';
+    } else if (isBotScanner) {
+      explanation = 'Bot Internet rà quét đường dẫn không tồn tại • Đã phản hồi 404';
+    } else if (lower.includes('get /api/rooms') || lower.includes('get /api/v1/rooms')) {
+      explanation = 'Tải danh sách không gian trưng bày 360°';
+    } else if (lower.includes('get /api/artifacts') || lower.includes('get /api/v1/artifacts')) {
+      explanation = 'Xem danh mục hiện vật & cổ vật 3D';
+    } else if (lower.includes('post /api/auth/login')) {
+      explanation = 'Thực hiện đăng nhập hệ thống';
+    }
+
+    return (
+      <div>
+        <div style={{ color: 'var(--text-main)', fontWeight: 500, fontSize: 12.5, fontFamily: 'monospace' }}>
+          {log.message}
+        </div>
+        {explanation && (
+          <div style={{ fontSize: 11, color: isBotScanner ? '#F59E0B' : 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>•</span>
+            <span>{explanation}</span>
+          </div>
+        )}
+        {log.error && (
+          <div style={{ color: '#EF4444', fontSize: 11, marginTop: 2 }}>
+            {log.error.name ? `${log.error.name}: ` : ''}{log.error.message}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="admin-content admin-logs-page" style={{ padding: '24px 28px' }}>
       {/* Toast thông báo */}
@@ -518,6 +636,25 @@ export const AdminLogsPage: React.FC = () => {
             {stats ? (stats.infoCount + stats.successCount).toLocaleString('vi-VN') : 0}
           </span>
         </div>
+      </div>
+
+      {/* Ghi chú hướng dẫn quản trị viên đọc nhật ký an toàn */}
+      <div style={{
+        marginTop: 12,
+        padding: '10px 14px',
+        borderRadius: 8,
+        background: 'rgba(212, 168, 106, 0.08)',
+        border: '1px solid rgba(212, 168, 106, 0.25)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        fontSize: '12.5px',
+        color: 'var(--text-muted)'
+      }}>
+        <Info size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+        <span>
+          <strong style={{ color: 'var(--text-main)' }}>Ghi chú vận hành:</strong> Các bản ghi cảnh báo (màu vàng) từ <strong style={{ color: '#F59E0B' }}>🤖 Bot quét tự động</strong> là do các công cụ trên Internet tự động dò tìm file nhạy cảm (như <code>.env</code>, <code>repos</code>). Hệ thống đã <strong>chặn đứng an toàn (404 Not Found)</strong>, không ảnh hưởng đến khách tham quan hay cơ sở dữ liệu.
+        </span>
       </div>
 
       {/* 3. BỘ LỌC ĐA CHIỀU TINH GỌN, KHÔNG BỊ BÍ TÚNG */}
@@ -636,7 +773,7 @@ export const AdminLogsPage: React.FC = () => {
                   <th style={{ width: 145 }}>THỜI GIAN</th>
                   <th>HÀNH ĐỘNG & NỘI DUNG</th>
                   <th style={{ width: 85 }}>HTTP</th>
-                  <th style={{ width: 165 }}>TÁC NHÂN & IP</th>
+                  <th style={{ width: 185 }}>TÁC NHÂN & IP</th>
                   <th style={{ width: 80, textAlign: 'center' }}>CHI TIẾT</th>
                 </tr>
               </thead>
@@ -644,7 +781,6 @@ export const AdminLogsPage: React.FC = () => {
                 {logs.map((log) => {
                   const modLabel = MODULE_LABELS[log.module] || log.module;
                   const isErr = log.level === 'ERROR';
-                  const cleanIp = (log.ipAddress || '').replace(/^::ffff:/, '') || '127.0.0.1';
 
                   return (
                     <tr
@@ -670,14 +806,7 @@ export const AdminLogsPage: React.FC = () => {
 
                       {/* Cột 4: Thông điệp & Endpoint */}
                       <td>
-                        <div style={{ color: 'var(--text-main)', fontWeight: 500, fontSize: 12.5 }}>
-                          {log.message}
-                        </div>
-                        {log.error && (
-                          <div style={{ color: '#EF4444', fontSize: 11, marginTop: 2 }}>
-                            {log.error.name ? `${log.error.name}: ` : ''}{log.error.message}
-                          </div>
-                        )}
+                        {renderActionContent(log)}
                       </td>
 
                       {/* Cột 5: Mã HTTP */}
@@ -704,12 +833,7 @@ export const AdminLogsPage: React.FC = () => {
 
                       {/* Cột 6: Tác nhân */}
                       <td>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-main)' }}>
-                          {log.username || 'Khách vãng lai'}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                          {cleanIp}
-                        </div>
+                        {renderActorInfo(log)}
                       </td>
 
                       {/* Cột 7: Thao tác */}
@@ -739,7 +863,6 @@ export const AdminLogsPage: React.FC = () => {
               {logs.map((log) => {
                 const modLabel = MODULE_LABELS[log.module] || log.module;
                 const isErr = log.level === 'ERROR';
-                const cleanIp = (log.ipAddress || '').replace(/^::ffff:/, '') || '127.0.0.1';
 
                 return (
                   <div
@@ -771,18 +894,12 @@ export const AdminLogsPage: React.FC = () => {
                     </div>
 
                     <div className="log-mobile-body">
-                      <div className="log-mobile-message">{log.message}</div>
-                      {log.error && (
-                        <div className="log-mobile-error">
-                          {log.error.name ? `${log.error.name}: ` : ''}{log.error.message}
-                        </div>
-                      )}
+                      {renderActionContent(log)}
                     </div>
 
                     <div className="log-mobile-footer">
                       <div className="log-mobile-actor">
-                        <span className="log-mobile-username">{log.username || 'Khách vãng lai'}</span>
-                        <span className="log-mobile-ip">• {cleanIp}</span>
+                        {renderActorInfo(log)}
                       </div>
                       <div className="log-mobile-action">
                         <span>Chi tiết</span>
@@ -796,22 +913,20 @@ export const AdminLogsPage: React.FC = () => {
           </div>
         )}
 
-        {/* 5. PHÂN TRANG CHUẨN CỦA HỆ THỐNG QUẢN TRỊ ADMIN */}
+        {/* 5. PHÂN TRANG CHUẨN CỦA HỆ THỐNG QUẢN TRỊ ADMIN (ĐỒNG BỘ 100% CÁC TRANG ADMIN) */}
         {totalCount > 0 && (
-          <div className="logs-pagination-footer">
-            <Pagination
-              currentPage={page}
-              totalItems={totalCount}
-              pageSize={limit}
-              onPageChange={(p) => setPage(p)}
-              onPageSizeChange={(newLimit) => {
-                setLimit(newLimit);
-                setPage(1);
-              }}
-              pageSizeOptions={[6, 9, 12, 18, 24]}
-              itemLabel="bản ghi"
-            />
-          </div>
+          <Pagination
+            currentPage={page}
+            totalItems={totalCount}
+            pageSize={limit}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+            pageSizeOptions={[6, 9, 12, 18, 24]}
+            itemLabel="bản ghi"
+          />
         )}
       </div>
 

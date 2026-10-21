@@ -6098,9 +6098,10 @@ select option {
   min-width: 600px;
 }
 
-.logs-panel .logs-pagination-footer {
+.logs-panel .pagination-container {
   margin-top: auto;
   border-top: 1px solid var(--border-color);
+  width: 100%;
 }
 
 .logs-table-loader-bar {
