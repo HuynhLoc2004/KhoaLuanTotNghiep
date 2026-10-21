@@ -498,19 +498,9 @@ export const AdminGuideCMSPage: React.FC = () => {
   ] as const;
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px', paddingBottom: 60 }}>
+    <div className="admin-content admin-guide-cms-page" style={{ padding: '24px 28px', paddingBottom: 60 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG QUẢN TRỊ TRANG CẨM NANG & SƠ ĐỒ */}
-      <div
-        className="settings-header"
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-          marginBottom: 16
-        }}
-      >
+      <div className="settings-header admin-guide-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div
             style={{
@@ -538,7 +528,7 @@ export const AdminGuideCMSPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div className="admin-guide-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <a
             href="/?page=guide"
             target="_blank"
@@ -550,7 +540,6 @@ export const AdminGuideCMSPage: React.FC = () => {
             <span>{t('cms.viewVisitorPage', 'Xem trang khách')}</span>
             <ExternalLink size={12} style={{ opacity: 0.6 }} />
           </a>
-
 
           <button
             type="button"
@@ -566,19 +555,7 @@ export const AdminGuideCMSPage: React.FC = () => {
       </div>
 
       {/* 2. THANH SUB-TABS PHẲNG, TỐI GIẢN CHUẨN DASHBOARD ADMIN */}
-      <div
-        style={{
-          background: 'var(--bg-surface)',
-          padding: '6px 8px',
-          borderRadius: 8,
-          border: '1px solid var(--border-color)',
-          marginBottom: 18,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          overflowX: 'auto'
-        }}
-      >
+      <div className="guide-subtabs-bar">
         {GUIDE_SUBTABS.map((tab) => {
           const isActive = guideSubTab === tab.id;
           const TabIcon = tab.icon;
@@ -613,17 +590,9 @@ export const AdminGuideCMSPage: React.FC = () => {
       </div>
 
       {/* 3. NỘI DUNG TỪNG PHÂN MỤC */}
-      <section
-        style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 14,
-          padding: 24,
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-        }}
-      >
+      <section className="guide-section-card">
         {/* Header phân mục hiện tại */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 16 }}>
+        <div className="guide-section-header">
           <div>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--heading-color)', margin: '0 0 4px 0' }}>
               {guideSubTab === 'info' && '1. Giới Thiệu Chung & Tiêu Đề Trang Cẩm Nang'}
@@ -654,7 +623,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                 guideSubTab === 'transit' ? 'Vị trí & Google Maps' : 'Tiện ích & Quy định'
               )}
               disabled={isSaving}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
             >
               <Save size={14} />
               <span>Lưu phân mục này</span>
@@ -665,7 +634,7 @@ export const AdminGuideCMSPage: React.FC = () => {
         {/* PHÂN MỤC 1: GIỚI THIỆU CHUNG & TIÊU ĐỀ TRANG CẨM NANG */}
         {guideSubTab === 'info' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                   Thẻ định danh (Tagline pill)
@@ -1213,7 +1182,7 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                   Địa chỉ thực địa bảo tàng
@@ -1338,7 +1307,7 @@ export const AdminGuideCMSPage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
               {/* Mục 1 */}
               <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
