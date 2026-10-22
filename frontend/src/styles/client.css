@@ -1530,6 +1530,89 @@ html {
   flex-shrink: 0;
 }
 
+/* Nút chỉ báo cuộn xuống nảy nảy (Bouncing Scroll Down Indicator) */
+.client-hero-scroll-btn {
+  position: absolute;
+  bottom: clamp(14px, 2.8vh, 32px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  color: #F3E0A3;
+  transition: all 0.25s ease;
+  user-select: none;
+  text-decoration: none;
+}
+
+.client-hero-scroll-btn:hover {
+  color: #FFFFFF;
+}
+
+.client-hero-scroll-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(243, 224, 163, 0.85);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.client-hero-scroll-btn:hover .client-hero-scroll-label {
+  color: #FFFFFF;
+}
+
+.client-hero-scroll-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(10, 14, 22, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  animation: heroBounce 2s infinite ease-in-out;
+  transition: all 0.25s ease;
+}
+
+.client-hero-scroll-btn:hover .client-hero-scroll-icon-wrap {
+  border-color: rgba(212, 175, 55, 0.8);
+  background: rgba(212, 175, 55, 0.2);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35);
+  transform: scale(1.08);
+}
+
+.client-hero-scroll-arrow {
+  color: #F3E0A3;
+  transition: color 0.2s ease;
+}
+
+.client-hero-scroll-btn:hover .client-hero-scroll-arrow {
+  color: #FFFFFF;
+}
+
+@keyframes heroBounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(7px);
+  }
+  60% {
+    transform: translateY(3.5px);
+  }
+}
+
 /* RESPONSIVE HERO CHO ĐIỆN THOẠI: THOÁNG ĐÃNG, NỔI BẬT NỀN BẢO TÀNG, KHÔNG BỊ BẾ TẮC */
 @media (max-width: 768px) {
   .client-hero {

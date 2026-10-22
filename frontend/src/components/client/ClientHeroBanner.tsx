@@ -179,6 +179,30 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 3. NÚT CHỈ BÁO CUỘN XUỐNG NẨY NẨY (SCROLL DOWN BOUNCING INDICATOR) */}
+      <button
+        type="button"
+        className="client-hero-scroll-btn"
+        onClick={() => {
+          const nextSection = document.getElementById('intro');
+          if (nextSection) {
+            nextSection.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            window.scrollTo({
+              top: window.innerHeight,
+              behavior: 'smooth'
+            });
+          }
+        }}
+        title={t('Cuộn xuống khám phá', 'Cuộn xuống khám phá')}
+        aria-label={t('Cuộn xuống khám phá', 'Cuộn xuống khám phá')}
+      >
+        <span className="client-hero-scroll-label">{t('Cuộn xuống', 'Cuộn xuống')}</span>
+        <div className="client-hero-scroll-icon-wrap">
+          <ChevronDown size={18} className="client-hero-scroll-arrow" />
+        </div>
+      </button>
     </section>
   );
 };

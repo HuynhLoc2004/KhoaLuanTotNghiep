@@ -23,6 +23,18 @@ export interface UniversalPhraseItem {
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
   // --- ĐỒNG BỘ CHUẨN XÁC NỘI DUNG ADMIN & CLIENT (TRÁNH LỖI DỊCH MÁY GOOGLE) ---
+  'Cuộn xuống': {
+    en: 'Scroll down',
+    fr: 'Faire défiler',
+    zh: '向下滚动',
+    ja: 'スクロール'
+  },
+  'Cuộn xuống khám phá': {
+    en: 'Scroll down to explore',
+    fr: 'Faire défiler pour explorer',
+    zh: '向下滚动以探索',
+    ja: 'スクロールして探索'
+  },
   'Xem Trang chủ Khách': {
     en: 'View Visitor Homepage',
     fr: "Voir la page d'accueil des visiteurs",
