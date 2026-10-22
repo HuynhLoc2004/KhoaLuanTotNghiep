@@ -300,6 +300,91 @@ const UI_STRINGS: Record<string, {
   }
 };
 
+export const AUTHENTIC_HERITAGE_ROOMS_MAP: Record<string, { x: number; y: number; width: number; height: number; num: number; name: string; period: string }> = {
+  'node_p_01': { x: 33.9, y: 66.1, width: 17.1, height: 8.7, num: 1, name: 'Thời Nguyên thủy', period: 'Thời kỳ tiền sử & sơ sử' },
+  'node_p_02': { x: 24.8, y: 66.1, width: 9.0, height: 8.7, num: 2, name: 'Thời dựng nước và giữ nước', period: 'Hùng Vương - An Dương Vương' },
+  'node_p_03': { x: 24.8, y: 56.1, width: 9.0, height: 10.0, num: 3, name: 'Thời Ngô - Đinh - Tiền Lê', period: 'Thế kỷ X - Độc lập tự chủ' },
+  'node_p_04': { x: 24.8, y: 47.4, width: 9.0, height: 8.7, num: 4, name: 'Thời Lý', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt' },
+  'node_p_05': { x: 33.9, y: 47.4, width: 18.1, height: 8.7, num: 5, name: 'Thời Trần - Hồ', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông' },
+  'node_p_06': { x: 33.9, y: 15.5, width: 7.1, height: 27.4, num: 6, name: 'Văn hóa Champa', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa' },
+  'node_p_07': { x: 41.0, y: 5.8, width: 31.3, height: 13.2, num: 7, name: 'Văn hóa Óc Eo', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ' },
+  'node_p_08': { x: 72.3, y: 8.1, width: 8.4, height: 7.4, num: 8, name: 'Điêu khắc đá Campuchia', period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ' },
+  'node_p_09': { x: 73.5, y: 15.5, width: 7.1, height: 16.5, num: 9, name: 'Thời Lê - Mạc, Trịnh - Nguyễn', period: 'Thế kỷ XV - XVIII: Hậu Lê và phân tranh' },
+  'node_p_10': { x: 73.5, y: 31.9, width: 7.1, height: 11.0, num: 10, name: 'Thời Tây Sơn', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn' },
+  'node_p_11': { x: 80.6, y: 21.9, width: 6.5, height: 21.0, num: 11, name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ' },
+  'node_p_12': { x: 61.9, y: 47.4, width: 18.1, height: 8.7, num: 12, name: 'Thời Nguyễn', period: '1802 - 1945: Triều đại phong kiến cuối cùng' },
+  'node_p_13': { x: 80.0, y: 47.4, width: 9.4, height: 8.7, num: 13, name: 'Sưu tập Dương Hà', period: 'Cổ vật quý hiếm do gia đình Dương Hà hiến tặng' },
+  'node_p_14': { x: 80.0, y: 56.1, width: 9.4, height: 10.0, num: 14, name: 'Thương mại hàng hải - Gốm sứ', period: 'Thế kỷ XIV - XVIII: Gốm sứ tàu đắm biển Đông' },
+  'node_p_15': { x: 89.4, y: 56.1, width: 7.1, height: 9.4, num: 15, name: 'Cổ vật tàu đắm biển Đông', period: 'Di vật từ những con tàu đắm ngoài khơi' },
+  'node_p_16': { x: 80.6, y: 66.1, width: 8.7, height: 8.7, num: 16, name: 'Sưu tập Vương Hồng Sển', period: 'Đồ cổ, gốm sứ độc bản học giả Vương Hồng Sển' },
+  'node_p_17': { x: 61.9, y: 66.1, width: 18.7, height: 8.7, num: 17, name: 'Dân tộc phía Nam Việt Nam', period: 'Bản sắc văn hóa các dân tộc phương Nam' },
+  'node_p_18': { x: 51.9, y: 41.9, width: 10.0, height: 10.6, num: 18, name: 'Tượng Phật giáo Châu Á', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á' },
+  'node_sanh': { x: 48.7, y: 52.6, width: 16.5, height: 12.9, num: 103, name: 'Sảnh Bát Giác', period: 'Trung tâm phân luồng & đón tiếp' },
+  'node_san_vuon': { x: 41.0, y: 19.0, width: 32.6, height: 22.9, num: 104, name: 'Sân vườn nội viện', period: 'Khuôn viên xanh & Hồ rối nước' },
+  'node_cong_1': { x: 51.0, y: 74.8, width: 11.6, height: 13.5, num: 101, name: 'Cổng 1 (Nguyễn Bỉnh Khiêm)', period: 'Cổng chính vào bảo tàng' },
+  'node_cong_2': { x: 9.4, y: 22.6, width: 8.1, height: 11.6, num: 102, name: 'Cổng 2 (Thảo Cầm Viên)', period: 'Cổng phụ Tây Bắc' }
+};
+
+export const AUTHENTIC_HERITAGE_ROOMS_LIST = [
+  { num: 1, id: 'node_p_01', code: 'P-01', nameVi: 'Thời Nguyên thủy', nameEn: 'Prehistoric period', period: 'Thời kỳ tiền sử & sơ sử' },
+  { num: 2, id: 'node_p_02', code: 'P-02', nameVi: 'Thời dựng nước và giữ nước', nameEn: 'The first period of founding and struggling for independence', period: 'Hùng Vương - An Dương Vương' },
+  { num: 3, id: 'node_p_03', code: 'P-03', nameVi: 'Thời Ngô - Đinh - Tiền Lê', nameEn: 'Ngo - Dinh - Earlier Le dynasties', period: 'Thế kỷ X - Độc lập tự chủ' },
+  { num: 4, id: 'node_p_04', code: 'P-04', nameVi: 'Thời Lý', nameEn: 'Ly dynasty', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt' },
+  { num: 5, id: 'node_p_05', code: 'P-05', nameVi: 'Thời Trần - Hồ', nameEn: 'Tran - Ho dynasties', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông' },
+  { num: 6, id: 'node_p_06', code: 'P-06', nameVi: 'Văn hóa Champa', nameEn: 'Champa culture', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa' },
+  { num: 7, id: 'node_p_07', code: 'P-07', nameVi: 'Văn hóa Óc Eo', nameEn: 'Oc Eo culture', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ' },
+  { num: 8, id: 'node_p_08', code: 'P-08', nameVi: 'Điêu khắc đá Campuchia', nameEn: 'Stone sculpture of Cambodia', period: 'Thế kỷ IX - XIII: Nghệ thuật Khmer cổ' },
+  { num: 9, id: 'node_p_09', code: 'P-09', nameVi: 'Thời Lê - Mạc, Trịnh - Nguyễn', nameEn: 'Later Le - Mac - Trinh - Nguyen dynasties', period: 'Thế kỷ XV - XVIII: Hậu Lê và phân tranh' },
+  { num: 10, id: 'node_p_10', code: 'P-10', nameVi: 'Thời Tây Sơn', nameEn: 'Tay Son dynasty', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn' },
+  { num: 11, id: 'node_p_11', code: 'P-11', nameVi: 'Súng Thần công - Đại bác', nameEn: 'Cannons & Artilleries', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ' },
+  { num: 12, id: 'node_p_12', code: 'P-12', nameVi: 'Thời Nguyễn', nameEn: 'Nguyen dynasty', period: '1802 - 1945: Triều đại phong kiến cuối cùng' },
+  { num: 13, id: 'node_p_13', code: 'P-13', nameVi: 'Sưu tập Dương Hà', nameEn: 'Duong Ha collection', period: 'Cổ vật quý hiếm do gia đình hiến tặng' },
+  { num: 14, id: 'node_p_14', code: 'P-14', nameVi: 'Thương mại hàng hải - Gốm sứ', nameEn: 'Maritime trade - Shipwrecked ceramics', period: 'Thế kỷ XIV - XVIII: Gốm sứ thương mại' },
+  { num: 15, id: 'node_p_15', code: 'P-15', nameVi: 'Cổ vật tàu đắm biển Đông', nameEn: 'Shipwrecked ceramics in Vietnam waters', period: 'Di vật từ những con tàu đắm ngoài khơi' },
+  { num: 16, id: 'node_p_16', code: 'P-16', nameVi: 'Sưu tập Vương Hồng Sển', nameEn: 'Vuong Hong Sen collection', period: 'Đồ cổ, gốm sứ độc bản của học giả' },
+  { num: 17, id: 'node_p_17', code: 'P-17', nameVi: 'Dân tộc phía Nam Việt Nam', nameEn: 'Minority cultures from Southern provinces', period: 'Bản sắc văn hóa các dân tộc phương Nam' },
+  { num: 18, id: 'node_p_18', code: 'P-18', nameVi: 'Tượng Phật giáo Châu Á', nameEn: 'Buddhist statues of Asian countries', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á' }
+];
+
+export const AUTHENTIC_TOUR_FLOW_ARROWS = [
+  // Cổng 1 vào Phòng 1
+  { x1: 56.8, y1: 74.0, x2: 45.0, y2: 70.4 },
+  // Phòng 1 -> Phòng 2
+  { x1: 33.9, y1: 70.4, x2: 32.2, y2: 70.4 },
+  // Phòng 2 -> Phòng 3
+  { x1: 29.3, y1: 66.1, x2: 29.3, y2: 64.0 },
+  // Phòng 3 -> Phòng 4
+  { x1: 29.3, y1: 56.1, x2: 29.3, y2: 54.0 },
+  // Phòng 4 -> Phòng 5
+  { x1: 33.8, y1: 51.7, x2: 35.8, y2: 51.7 },
+  // Phòng 5 -> Phòng 6
+  { x1: 37.4, y1: 47.4, x2: 37.4, y2: 45.0 },
+  // Cổng 2 -> Phòng 6
+  { x1: 17.5, y1: 28.4, x2: 33.8, y2: 28.4 },
+  // Phòng 6 -> Phòng 7
+  { x1: 37.4, y1: 15.5, x2: 40.5, y2: 12.4 },
+  // Phòng 7 -> Phòng 8
+  { x1: 72.3, y1: 12.4, x2: 74.5, y2: 12.4 },
+  // Phòng 8 -> Phòng 9
+  { x1: 76.5, y1: 15.5, x2: 76.5, y2: 17.5 },
+  // Phòng 9 -> Phòng 10
+  { x1: 77.0, y1: 32.0, x2: 77.0, y2: 34.0 },
+  // Phòng 10 -> Phòng 12
+  { x1: 77.0, y1: 42.9, x2: 74.0, y2: 47.4 },
+  // Phòng 12 -> Phòng 13
+  { x1: 80.0, y1: 51.7, x2: 82.0, y2: 51.7 },
+  // Phòng 13 -> Phòng 14
+  { x1: 84.7, y1: 56.1, x2: 84.7, y2: 58.0 },
+  // Phòng 14 -> Phòng 15
+  { x1: 89.4, y1: 61.1, x2: 91.0, y2: 61.1 },
+  // Phòng 14 -> Phòng 16
+  { x1: 84.7, y1: 66.1, x2: 84.7, y2: 68.0 },
+  // Phòng 16 -> Phòng 17
+  { x1: 80.6, y1: 70.4, x2: 78.5, y2: 70.4 },
+  // Sảnh Bát Giác <-> Phòng 18
+  { x1: 56.9, y1: 52.6, x2: 56.9, y2: 50.0 }
+];
+
 export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = ({
   floorPlan,
   onSelectRoom360,
@@ -685,90 +770,6 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     return clean.slice(0, 15) + '…';
   };
 
-  const AUTHENTIC_HERITAGE_ROOMS_MAP: Record<string, { x: number; y: number; width: number; height: number; num: number; name: string; period: string }> = {
-    'node_p_01': { x: 33.9, y: 66.1, width: 17.1, height: 8.7, num: 1, name: 'Thời Nguyên thủy', period: 'Thời kỳ tiền sử & sơ sử' },
-    'node_p_02': { x: 24.8, y: 66.1, width: 9.0, height: 8.7, num: 2, name: 'Thời dựng nước và giữ nước', period: 'Hùng Vương - An Dương Vương' },
-    'node_p_03': { x: 24.8, y: 56.1, width: 9.0, height: 10.0, num: 3, name: 'Thời Ngô - Đinh - Tiền Lê', period: 'Thế kỷ X - Độc lập tự chủ' },
-    'node_p_04': { x: 24.8, y: 47.4, width: 9.0, height: 8.7, num: 4, name: 'Thời Lý', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt' },
-    'node_p_05': { x: 33.9, y: 47.4, width: 18.1, height: 8.7, num: 5, name: 'Thời Trần - Hồ', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông' },
-    'node_p_06': { x: 33.9, y: 15.5, width: 7.1, height: 27.4, num: 6, name: 'Văn hóa Champa', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa' },
-    'node_p_07': { x: 41.0, y: 5.8, width: 31.3, height: 13.2, num: 7, name: 'Văn hóa Óc Eo', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ' },
-    'node_p_08': { x: 72.3, y: 8.1, width: 8.4, height: 7.4, num: 8, name: 'Điêu khắc đá Campuchia', period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ' },
-    'node_p_09': { x: 73.5, y: 15.5, width: 7.1, height: 16.5, num: 9, name: 'Thời Lê - Mạc, Trịnh - Nguyễn', period: 'Thế kỷ XV - XVIII: Hậu Lê và phân tranh' },
-    'node_p_10': { x: 73.5, y: 31.9, width: 7.1, height: 11.0, num: 10, name: 'Thời Tây Sơn', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn' },
-    'node_p_11': { x: 80.6, y: 21.9, width: 6.5, height: 21.0, num: 11, name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ' },
-    'node_p_12': { x: 61.9, y: 47.4, width: 18.1, height: 8.7, num: 12, name: 'Thời Nguyễn', period: '1802 - 1945: Triều đại phong kiến cuối cùng' },
-    'node_p_13': { x: 80.0, y: 47.4, width: 9.4, height: 8.7, num: 13, name: 'Sưu tập Dương Hà', period: 'Cổ vật quý hiếm do gia đình Dương Hà hiến tặng' },
-    'node_p_14': { x: 80.0, y: 56.1, width: 9.4, height: 10.0, num: 14, name: 'Thương mại hàng hải - Gốm sứ', period: 'Thế kỷ XIV - XVIII: Gốm sứ tàu đắm biển Đông' },
-    'node_p_15': { x: 89.4, y: 56.1, width: 7.1, height: 9.4, num: 15, name: 'Cổ vật tàu đắm biển Đông', period: 'Di vật từ những con tàu đắm ngoài khơi' },
-    'node_p_16': { x: 80.6, y: 66.1, width: 8.7, height: 8.7, num: 16, name: 'Sưu tập Vương Hồng Sển', period: 'Đồ cổ, gốm sứ độc bản học giả Vương Hồng Sển' },
-    'node_p_17': { x: 61.9, y: 66.1, width: 18.7, height: 8.7, num: 17, name: 'Dân tộc phía Nam Việt Nam', period: 'Bản sắc văn hóa các dân tộc phương Nam' },
-    'node_p_18': { x: 51.9, y: 41.9, width: 10.0, height: 10.6, num: 18, name: 'Tượng Phật giáo Châu Á', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á' },
-    'node_sanh': { x: 48.7, y: 52.6, width: 16.5, height: 12.9, num: 103, name: 'Sảnh Bát Giác', period: 'Trung tâm phân luồng & đón tiếp' },
-    'node_san_vuon': { x: 41.0, y: 19.0, width: 32.6, height: 22.9, num: 104, name: 'Sân vườn nội viện', period: 'Khuôn viên xanh & Hồ rối nước' },
-    'node_cong_1': { x: 51.0, y: 74.8, width: 11.6, height: 13.5, num: 101, name: 'Cổng 1 (Nguyễn Bỉnh Khiêm)', period: 'Cổng chính vào bảo tàng' },
-    'node_cong_2': { x: 9.4, y: 22.6, width: 8.1, height: 11.6, num: 102, name: 'Cổng 2 (Thảo Cầm Viên)', period: 'Cổng phụ Tây Bắc' }
-  };
-
-  const AUTHENTIC_HERITAGE_ROOMS_LIST = [
-    { num: 1, id: 'node_p_01', code: 'P-01', nameVi: 'Thời Nguyên thủy', nameEn: 'Prehistoric period', period: 'Thời kỳ tiền sử & sơ sử' },
-    { num: 2, id: 'node_p_02', code: 'P-02', nameVi: 'Thời dựng nước và giữ nước', nameEn: 'The first period of founding and struggling for independence', period: 'Hùng Vương - An Dương Vương' },
-    { num: 3, id: 'node_p_03', code: 'P-03', nameVi: 'Thời Ngô - Đinh - Tiền Lê', nameEn: 'Ngo - Dinh - Earlier Le dynasties', period: 'Thế kỷ X - Độc lập tự chủ' },
-    { num: 4, id: 'node_p_04', code: 'P-04', nameVi: 'Thời Lý', nameEn: 'Ly dynasty', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt' },
-    { num: 5, id: 'node_p_05', code: 'P-05', nameVi: 'Thời Trần - Hồ', nameEn: 'Tran - Ho dynasties', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông' },
-    { num: 6, id: 'node_p_06', code: 'P-06', nameVi: 'Văn hóa Champa', nameEn: 'Champa culture', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa' },
-    { num: 7, id: 'node_p_07', code: 'P-07', nameVi: 'Văn hóa Óc Eo', nameEn: 'Oc Eo culture', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ' },
-    { num: 8, id: 'node_p_08', code: 'P-08', nameVi: 'Điêu khắc đá Campuchia', nameEn: 'Stone sculpture of Cambodia', period: 'Thế kỷ IX - XIII: Nghệ thuật Khmer cổ' },
-    { num: 9, id: 'node_p_09', code: 'P-09', nameVi: 'Thời Lê - Mạc, Trịnh - Nguyễn', nameEn: 'Later Le - Mac - Trinh - Nguyen dynasties', period: 'Thế kỷ XV - XVIII: Hậu Lê và phân tranh' },
-    { num: 10, id: 'node_p_10', code: 'P-10', nameVi: 'Thời Tây Sơn', nameEn: 'Tay Son dynasty', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn' },
-    { num: 11, id: 'node_p_11', code: 'P-11', nameVi: 'Súng Thần công - Đại bác', nameEn: 'Cannons & Artilleries', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ' },
-    { num: 12, id: 'node_p_12', code: 'P-12', nameVi: 'Thời Nguyễn', nameEn: 'Nguyen dynasty', period: '1802 - 1945: Triều đại phong kiến cuối cùng' },
-    { num: 13, id: 'node_p_13', code: 'P-13', nameVi: 'Sưu tập Dương Hà', nameEn: 'Duong Ha collection', period: 'Cổ vật quý hiếm do gia đình hiến tặng' },
-    { num: 14, id: 'node_p_14', code: 'P-14', nameVi: 'Thương mại hàng hải - Gốm sứ', nameEn: 'Maritime trade - Shipwrecked ceramics', period: 'Thế kỷ XIV - XVIII: Gốm sứ thương mại' },
-    { num: 15, id: 'node_p_15', code: 'P-15', nameVi: 'Cổ vật tàu đắm biển Đông', nameEn: 'Shipwrecked ceramics in Vietnam waters', period: 'Di vật từ những con tàu đắm ngoài khơi' },
-    { num: 16, id: 'node_p_16', code: 'P-16', nameVi: 'Sưu tập Vương Hồng Sển', nameEn: 'Vuong Hong Sen collection', period: 'Đồ cổ, gốm sứ độc bản của học giả' },
-    { num: 17, id: 'node_p_17', code: 'P-17', nameVi: 'Dân tộc phía Nam Việt Nam', nameEn: 'Minority cultures from Southern provinces', period: 'Bản sắc văn hóa các dân tộc phương Nam' },
-    { num: 18, id: 'node_p_18', code: 'P-18', nameVi: 'Tượng Phật giáo Châu Á', nameEn: 'Buddhist statues of Asian countries', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á' }
-  ];
-
-  const AUTHENTIC_TOUR_FLOW_ARROWS = [
-    // Cổng 1 vào Phòng 1
-    { x1: 56.8, y1: 74.0, x2: 45.0, y2: 70.4 },
-    // Phòng 1 -> Phòng 2
-    { x1: 33.9, y1: 70.4, x2: 32.2, y2: 70.4 },
-    // Phòng 2 -> Phòng 3
-    { x1: 29.3, y1: 66.1, x2: 29.3, y2: 64.0 },
-    // Phòng 3 -> Phòng 4
-    { x1: 29.3, y1: 56.1, x2: 29.3, y2: 54.0 },
-    // Phòng 4 -> Phòng 5
-    { x1: 33.8, y1: 51.7, x2: 35.8, y2: 51.7 },
-    // Phòng 5 -> Phòng 6
-    { x1: 37.4, y1: 47.4, x2: 37.4, y2: 45.0 },
-    // Cổng 2 -> Phòng 6
-    { x1: 17.5, y1: 28.4, x2: 33.8, y2: 28.4 },
-    // Phòng 6 -> Phòng 7
-    { x1: 37.4, y1: 15.5, x2: 40.5, y2: 12.4 },
-    // Phòng 7 -> Phòng 8
-    { x1: 72.3, y1: 12.4, x2: 74.5, y2: 12.4 },
-    // Phòng 8 -> Phòng 9
-    { x1: 76.5, y1: 15.5, x2: 76.5, y2: 17.5 },
-    // Phòng 9 -> Phòng 10
-    { x1: 77.0, y1: 32.0, x2: 77.0, y2: 34.0 },
-    // Phòng 10 -> Phòng 12
-    { x1: 77.0, y1: 42.9, x2: 74.0, y2: 47.4 },
-    // Phòng 12 -> Phòng 13
-    { x1: 80.0, y1: 51.7, x2: 82.0, y2: 51.7 },
-    // Phòng 13 -> Phòng 14
-    { x1: 84.7, y1: 56.1, x2: 84.7, y2: 58.0 },
-    // Phòng 14 -> Phòng 15
-    { x1: 89.4, y1: 61.1, x2: 91.0, y2: 61.1 },
-    // Phòng 14 -> Phòng 16
-    { x1: 84.7, y1: 66.1, x2: 84.7, y2: 68.0 },
-    // Phòng 16 -> Phòng 17
-    { x1: 80.6, y1: 70.4, x2: 78.5, y2: 70.4 },
-    // Sảnh Bát Giác <-> Phòng 18
-    { x1: 56.9, y1: 52.6, x2: 56.9, y2: 50.0 }
-  ];
 
   const getNodeBox = (node: FloorPlanNode) => {
     const normId = (node.id || '').toLowerCase().replace(/-/g, '_');
