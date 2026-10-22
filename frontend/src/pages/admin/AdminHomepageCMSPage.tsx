@@ -36,7 +36,8 @@ import {
   ArrowDown,
   FolderPlus,
   ListPlus,
-  CornerDownRight
+  CornerDownRight,
+  GraduationCap
 } from 'lucide-react';
 import { HOMEPAGE_SECTIONS } from '../../constants/homepageSections';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -436,7 +437,15 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           guideRule3Desc: 'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
           guideRule4Title: 'Trang phục & Văn minh tham quan',
           guideRule4Desc: 'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.',
-          footerCopyrightText: ''
+          footerCopyrightText: '',
+          footerThesisEnabled: true,
+          footerThesisTitle: 'Đề tài Khóa luận Tốt nghiệp',
+          footerThesisTopic: 'Hệ thống Tour 360 Không gian Di sản & Số hóa Hiện vật 3D',
+          footerStudentName: 'Huỳnh Tấn Lộc',
+          footerStudentId: '',
+          footerInstructorName: '',
+          footerUniversity: '',
+          footerThesisNote: ''
         });
         showToast('Đã khôi phục nội dung mẫu. Nhấn "Lưu tất cả" để áp dụng lên trang chủ.', 'info');
         setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
@@ -2330,6 +2339,138 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                 Hệ thống tự động thêm biểu tượng © và năm hiện hành {new Date().getFullYear()} vào trước dòng này.
               </span>
+            </div>
+
+            {/* KHỐI QUẢN LÝ THÔNG TIN KHÓA LUẬN TỐT NGHIỆP DƯỚI TAGLINE */}
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                marginTop: 10,
+                padding: 16,
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-color)',
+                borderLeft: '4px solid var(--primary)',
+                borderRadius: 8
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <GraduationCap size={18} style={{ color: 'var(--primary)' }} />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--heading-color)' }}>
+                      Thông Tin Khóa Luận Tốt Nghiệp (Chân Trang)
+                    </h4>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                      Hiển thị ngay dưới Khẩu hiệu (Tagline) tại cột thương hiệu của Footer phía Client.
+                    </span>
+                  </div>
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.footerThesisEnabled !== false}
+                    onChange={(e) => handleChange('footerThesisEnabled', e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: 'var(--primary)' }}
+                  />
+                  <span>Bật hiển thị ở Footer</span>
+                </label>
+              </div>
+
+              {form.footerThesisEnabled !== false && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginTop: 10 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Tiêu đề khối (Badge Title)
+                    </label>
+                    <input
+                      type="text"
+                      value={form.footerThesisTitle ?? ''}
+                      onChange={(e) => handleChange('footerThesisTitle', e.target.value)}
+                      placeholder="VD: Đề tài Khóa luận Tốt nghiệp"
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Tên đề tài nghiên cứu (Thesis Topic)
+                    </label>
+                    <input
+                      type="text"
+                      value={form.footerThesisTopic ?? ''}
+                      onChange={(e) => handleChange('footerThesisTopic', e.target.value)}
+                      placeholder="VD: Hệ thống Tour 360 Không gian Di sản & Số hóa Hiện vật 3D"
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Sinh viên thực hiện
+                    </label>
+                    <input
+                      type="text"
+                      value={form.footerStudentName ?? ''}
+                      onChange={(e) => handleChange('footerStudentName', e.target.value)}
+                      placeholder="VD: Huỳnh Tấn Lộc"
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Mã số sinh viên (MSSV)
+                    </label>
+                    <input
+                      type="text"
+                      value={form.footerStudentId ?? ''}
+                      onChange={(e) => handleChange('footerStudentId', e.target.value)}
+                      placeholder="VD: 2004xxxx (Tùy chọn)"
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Giảng viên hướng dẫn
+                    </label>
+                    <input
+                      type="text"
+                      value={form.footerInstructorName ?? ''}
+                      onChange={(e) => handleChange('footerInstructorName', e.target.value)}
+                      placeholder="VD: ThS. Nguyễn Văn A / TS. Trần Văn B"
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Trường / Khoa / Đơn vị đào tạo
+                    </label>
+                    <input
+                      type="text"
+                      value={form.footerUniversity ?? ''}
+                      onChange={(e) => handleChange('footerUniversity', e.target.value)}
+                      placeholder="VD: Khoa Công nghệ Thông tin"
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
+                      Ghi chú bổ sung / Niên khóa
+                    </label>
+                    <input
+                      type="text"
+                      value={form.footerThesisNote ?? ''}
+                      onChange={(e) => handleChange('footerThesisNote', e.target.value)}
+                      placeholder="VD: Niên khóa 2026 • Bảo vệ Đề án Tốt nghiệp Đại học"
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             {renderSectionNavFooter(7, 'Phần 8: Chân trang & Liên hệ')}
           </div>

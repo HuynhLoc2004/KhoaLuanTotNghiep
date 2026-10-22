@@ -711,6 +711,14 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       guideRule4Desc: req.body.guideRule4Desc !== undefined ? String(req.body.guideRule4Desc).trim() : current.guideRule4Desc,
       // Footer
       footerCopyrightText: req.body.footerCopyrightText !== undefined ? String(req.body.footerCopyrightText).trim() : current.footerCopyrightText,
+      footerThesisEnabled: req.body.footerThesisEnabled !== undefined ? Boolean(req.body.footerThesisEnabled) : (current.footerThesisEnabled ?? true),
+      footerThesisTitle: req.body.footerThesisTitle !== undefined ? String(req.body.footerThesisTitle).trim() : current.footerThesisTitle,
+      footerThesisTopic: req.body.footerThesisTopic !== undefined ? String(req.body.footerThesisTopic).trim() : current.footerThesisTopic,
+      footerStudentName: req.body.footerStudentName !== undefined ? String(req.body.footerStudentName).trim() : current.footerStudentName,
+      footerStudentId: req.body.footerStudentId !== undefined ? String(req.body.footerStudentId).trim() : current.footerStudentId,
+      footerInstructorName: req.body.footerInstructorName !== undefined ? String(req.body.footerInstructorName).trim() : current.footerInstructorName,
+      footerUniversity: req.body.footerUniversity !== undefined ? String(req.body.footerUniversity).trim() : current.footerUniversity,
+      footerThesisNote: req.body.footerThesisNote !== undefined ? String(req.body.footerThesisNote).trim() : current.footerThesisNote,
       updatedBy: req.user?.username || 'admin'
     };
 

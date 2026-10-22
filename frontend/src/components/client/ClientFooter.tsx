@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, GraduationCap } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -61,6 +61,51 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
                   'Bảo tồn và lan tỏa các giá trị di sản lịch sử văn hóa dân tộc thông qua trải nghiệm thực tế ảo 360° và số hóa hiện vật tương tác.'
               )}
             </p>
+
+            {/* Khối thông tin Đề tài Khóa Luận Tốt Nghiệp (Quản lý và đồng bộ trực tiếp từ Admin) */}
+            {branding.footerThesisEnabled !== false && (branding.footerThesisTitle || branding.footerThesisTopic || branding.footerStudentName) && (
+              <div className="client-footer-thesis-box">
+                {branding.footerThesisTitle && (
+                  <div className="client-footer-thesis-badge">
+                    <GraduationCap size={13} />
+                    <span>{branding.footerThesisTitle}</span>
+                  </div>
+                )}
+                {branding.footerThesisTopic && (
+                  <div className="client-footer-thesis-topic">
+                    {branding.footerThesisTopic}
+                  </div>
+                )}
+                <div className="client-footer-thesis-meta">
+                  {branding.footerStudentName && (
+                    <div className="client-footer-thesis-meta-item">
+                      <span className="client-footer-thesis-meta-lbl">Sinh viên thực hiện:</span>
+                      <strong className="client-footer-thesis-meta-val">
+                        {branding.footerStudentName}
+                        {branding.footerStudentId ? ` (${branding.footerStudentId})` : ''}
+                      </strong>
+                    </div>
+                  )}
+                  {branding.footerInstructorName && (
+                    <div className="client-footer-thesis-meta-item">
+                      <span className="client-footer-thesis-meta-lbl">Giảng viên hướng dẫn:</span>
+                      <strong className="client-footer-thesis-meta-val">{branding.footerInstructorName}</strong>
+                    </div>
+                  )}
+                  {branding.footerUniversity && (
+                    <div className="client-footer-thesis-meta-item">
+                      <span className="client-footer-thesis-meta-lbl">Đơn vị:</span>
+                      <span>{branding.footerUniversity}</span>
+                    </div>
+                  )}
+                  {branding.footerThesisNote && (
+                    <div className="client-footer-thesis-note">
+                      {branding.footerThesisNote}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cột 2: Khám phá di sản ảo (Đồng bộ động từ Menu Admin) */}

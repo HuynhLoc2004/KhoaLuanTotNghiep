@@ -113,8 +113,15 @@ export const DEFAULT_BRANDING_STATE: SystemBranding = {
   guideRule3Title: 'Bảo quản di sản & Hiện vật',
   guideRule3Desc: 'Vui lòng không chạm tay vào hiện vật, không sử dụng đèn flash khi chụp ảnh tại các gian trưng bày cổ vật nhạy cảm.',
   guideRule4Title: 'Trang phục & Văn minh tham quan',
-  guideRule4Desc: 'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.',
-  footerCopyrightText: ''
+  footerCopyrightText: '',
+  footerThesisEnabled: true,
+  footerThesisTitle: 'Đề tài Khóa luận Tốt nghiệp',
+  footerThesisTopic: 'Hệ thống Tour 360 Không gian Di sản & Số hóa Hiện vật 3D',
+  footerStudentName: 'Huỳnh Tấn Lộc',
+  footerStudentId: '',
+  footerInstructorName: '',
+  footerUniversity: '',
+  footerThesisNote: ''
 };
 
 interface SystemBrandingContextType {

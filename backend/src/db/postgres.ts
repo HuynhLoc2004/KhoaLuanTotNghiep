@@ -499,6 +499,14 @@ export async function initPostgresTables(): Promise<boolean> {
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS guide_rule4_title VARCHAR(256);
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS guide_rule4_desc TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_copyright_text TEXT;
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_thesis_enabled BOOLEAN DEFAULT true;
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_thesis_title TEXT;
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_thesis_topic TEXT;
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_student_name TEXT;
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_student_id TEXT;
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_instructor_name TEXT;
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_university TEXT;
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS footer_thesis_note TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS data JSONB DEFAULT '{}';
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 

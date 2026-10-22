@@ -505,6 +505,14 @@ export interface SystemBranding {
   guideRule4Desc?: string;
   // Footer
   footerCopyrightText?: string;
+  footerThesisEnabled?: boolean;
+  footerThesisTitle?: string;
+  footerThesisTopic?: string;
+  footerStudentName?: string;
+  footerStudentId?: string;
+  footerInstructorName?: string;
+  footerUniversity?: string;
+  footerThesisNote?: string;
   updatedAt?: string;
   updatedBy?: string;
 }

@@ -92,6 +92,14 @@ export interface ISystemBranding extends Document {
   guideRule4Desc?: string;
   // Footer
   footerCopyrightText?: string;
+  footerThesisEnabled?: boolean;
+  footerThesisTitle?: string;
+  footerThesisTopic?: string;
+  footerStudentName?: string;
+  footerStudentId?: string;
+  footerInstructorName?: string;
+  footerUniversity?: string;
+  footerThesisNote?: string;
   updatedAt: Date;
   updatedBy: string;
 }
@@ -456,6 +464,45 @@ const SystemBrandingSchema = new Schema<ISystemBranding>(
       trim: true,
       default: ''
     },
+    footerThesisEnabled: {
+      type: Boolean,
+      default: true
+    },
+    footerThesisTitle: {
+      type: String,
+      trim: true,
+      default: 'Đề tài Khóa luận Tốt nghiệp'
+    },
+    footerThesisTopic: {
+      type: String,
+      trim: true,
+      default: 'Hệ thống Tour 360 Không gian Di sản & Số hóa Hiện vật 3D'
+    },
+    footerStudentName: {
+      type: String,
+      trim: true,
+      default: 'Huỳnh Tấn Lộc'
+    },
+    footerStudentId: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    footerInstructorName: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    footerUniversity: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    footerThesisNote: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     updatedBy: {
       type: String,
       default: 'Hệ thống'
@@ -573,6 +620,14 @@ export const DEFAULT_BRANDING = {
   guideRule4Title: 'Trang phục & Văn minh tham quan',
   guideRule4Desc: 'Trang phục lịch sự, giữ trật tự chung trong không gian trưng bày. Trẻ em dưới 12 tuổi cần có người lớn đi kèm.',
   footerCopyrightText: '',
+  footerThesisEnabled: true,
+  footerThesisTitle: 'Đề tài Khóa luận Tốt nghiệp',
+  footerThesisTopic: 'Hệ thống Tour 360 Không gian Di sản & Số hóa Hiện vật 3D',
+  footerStudentName: 'Huỳnh Tấn Lộc',
+  footerStudentId: '',
+  footerInstructorName: '',
+  footerUniversity: '',
+  footerThesisNote: '',
   updatedBy: 'Hệ thống'
 };
 
@@ -669,7 +724,15 @@ export async function getSystemBrandingConfig(): Promise<any> {
             guideRule3Desc: pgData.guideRule3Desc || DEFAULT_BRANDING.guideRule3Desc,
             guideRule4Title: pgData.guideRule4Title || DEFAULT_BRANDING.guideRule4Title,
             guideRule4Desc: pgData.guideRule4Desc || DEFAULT_BRANDING.guideRule4Desc,
-            footerCopyrightText: pgData.footerCopyrightText || ''
+            footerCopyrightText: pgData.footerCopyrightText || '',
+            footerThesisEnabled: pgData.footerThesisEnabled !== undefined ? pgData.footerThesisEnabled : DEFAULT_BRANDING.footerThesisEnabled,
+            footerThesisTitle: pgData.footerThesisTitle || DEFAULT_BRANDING.footerThesisTitle,
+            footerThesisTopic: pgData.footerThesisTopic || DEFAULT_BRANDING.footerThesisTopic,
+            footerStudentName: pgData.footerStudentName || DEFAULT_BRANDING.footerStudentName,
+            footerStudentId: pgData.footerStudentId || DEFAULT_BRANDING.footerStudentId,
+            footerInstructorName: pgData.footerInstructorName || DEFAULT_BRANDING.footerInstructorName,
+            footerUniversity: pgData.footerUniversity || DEFAULT_BRANDING.footerUniversity,
+            footerThesisNote: pgData.footerThesisNote || DEFAULT_BRANDING.footerThesisNote
           };
           await SystemBranding.updateOne({}, { $set: merged }, { upsert: true });
           branding = await SystemBranding.findOne().lean();

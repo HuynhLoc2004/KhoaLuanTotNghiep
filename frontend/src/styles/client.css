@@ -3461,6 +3461,102 @@ html {
   color: #5A6272;
 }
 
+/* Khối thông tin Đề tài Khóa Luận Tốt Nghiệp (Quản trị từ Admin CMS) */
+.client-footer-thesis-box {
+  margin-top: 14px;
+  padding: 11px 13px;
+  background: rgba(212, 175, 55, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-left: 3px solid #D4AF37;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 420px;
+  box-sizing: border-box;
+}
+
+[data-client-theme="light"] .client-footer-thesis-box {
+  background: rgba(130, 21, 25, 0.04);
+  border: 1px solid rgba(130, 21, 25, 0.16);
+  border-left: 3px solid #821519;
+}
+
+.client-footer-thesis-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #D4AF37;
+  margin-bottom: 5px;
+}
+
+[data-client-theme="light"] .client-footer-thesis-badge {
+  color: #821519;
+}
+
+.client-footer-thesis-topic {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #FAF8F5;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+[data-client-theme="light"] .client-footer-thesis-topic {
+  color: #111622;
+}
+
+.client-footer-thesis-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.8rem;
+  color: #A09B8F;
+}
+
+[data-client-theme="light"] .client-footer-thesis-meta {
+  color: #5A6272;
+}
+
+.client-footer-thesis-meta-item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.client-footer-thesis-meta-lbl {
+  color: #8C867A;
+  font-size: 0.76rem;
+}
+
+[data-client-theme="light"] .client-footer-thesis-meta-lbl {
+  color: #727B8E;
+}
+
+.client-footer-thesis-meta-val {
+  color: #E2DDD5;
+  font-weight: 600;
+}
+
+[data-client-theme="light"] .client-footer-thesis-meta-val {
+  color: #1E293B;
+}
+
+.client-footer-thesis-note {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #8C867A;
+  font-style: italic;
+}
+
+[data-client-theme="light"] .client-footer-thesis-note {
+  color: #64748B;
+}
+
 .client-footer-col-title {
   font-size: 0.74rem;
   font-weight: 600;
