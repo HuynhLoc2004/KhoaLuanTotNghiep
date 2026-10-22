@@ -7719,7 +7719,7 @@ html {
 }
 
 /* =========================================================================
-   RESPONSIVE CHO CLIENT TOUR VIEW 360 TRÊN ĐIỆN THOẠI
+   RESPONSIVE CHO CLIENT TOUR VIEW 360 TRÊN MỌI THIẾT BỊ
    ========================================================================= */
 .client-tour-header {
   position: absolute;
@@ -7734,6 +7734,38 @@ html {
   pointer-events: none;
 }
 
+.client-tour-title-desktop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.client-tour-title-mobile {
+  display: none;
+}
+
+.voice-text-full {
+  display: inline;
+}
+
+.voice-text-short {
+  display: none;
+}
+
+/* Ẩn triệt để thông điệp watermark / about của Pannellum khi click chuột phải */
+.pnlm-about-msg,
+.pnlm-about-msg * {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 @media (max-width: 768px) {
   .client-tour-header {
     top: 10px;
@@ -7741,9 +7773,7 @@ html {
     right: 10px;
     gap: 8px;
   }
-  .client-tour-title-pill {
-    display: none !important;
-  }
+
   .client-tour-back-btn span {
     display: none !important;
   }
@@ -7754,14 +7784,93 @@ html {
     height: 36px !important;
     min-width: 36px !important;
     justify-content: center !important;
+    flex-shrink: 0 !important;
   }
-  .client-tour-room-btn {
-    max-width: 140px !important;
-    padding: 6px 10px !important;
-    font-size: 11px !important;
+
+  /* Chuyển title pill thành pill chọn phòng ở giữa */
+  .client-tour-title-pill {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 6px 12px !important;
+    height: 36px !important;
+    border-radius: 20px !important;
   }
+
+  .client-tour-title-desktop {
+    display: none !important;
+  }
+
+  .client-tour-title-mobile {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    width: 100% !important;
+  }
+
+  .client-tour-title-mobile span {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    flex: 1 !important;
+    text-align: left !important;
+  }
+
   .client-tour-actions {
     gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Ẩn nút chọn phòng bên phải vì đã hợp nhất vào nút trung tâm */
+  .client-tour-room-btn-desktop,
+  .client-tour-room-wrapper {
+    display: none !important;
+  }
+
+  /* Nút nghe thuyết minh Voice AI rút gọn trên mobile */
+  .voice-text-full {
+    display: none !important;
+  }
+
+  .voice-text-short {
+    display: inline !important;
+  }
+
+  .client-tour-voice-btn {
+    padding: 5px 8px !important;
+  }
+
+  /* Dropdown danh sách phòng trên mobile */
+  .client-tour-room-dropdown-menu {
+    position: fixed !important;
+    top: 54px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: 420px !important;
+    margin: 0 auto !important;
+    max-height: 65vh !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .client-tour-header {
+    gap: 4px !important;
+    top: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+  }
+
+  /* Trên màn hình siêu nhỏ, ẩn luôn chữ "Nghe" chỉ giữ lại icon âm thanh để tối ưu diện tích */
+  .voice-text-short {
+    display: none !important;
+  }
+
+  .client-tour-voice-btn {
+    padding: 6px 8px !important;
   }
 }
 

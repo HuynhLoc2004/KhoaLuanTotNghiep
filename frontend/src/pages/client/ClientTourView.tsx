@@ -50,16 +50,23 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
   const [voiceToast, setVoiceToast] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const titlePillRef = useRef<HTMLButtonElement>(null);
   const roomDropdownRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (roomDropdownRef.current && !roomDropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        roomDropdownRef.current &&
+        !roomDropdownRef.current.contains(target) &&
+        titlePillRef.current &&
+        !titlePillRef.current.contains(target)
+      ) {
         setIsRoomDropdownOpen(false);
       }
-      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target as Node)) {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(target)) {
         setIsLangDropdownOpen(false);
       }
     };
@@ -272,71 +279,99 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
           </button>
         </div>
 
-        {/* THÔNG TIN GIAN PHÒNG HIỆN TẠI (CHỈ DUY NHẤT 1 VỊ TRÍ TRUNG TÂM, KHÔNG LẶP LẠI) */}
-        <div
+        {/* THÔNG TIN GIAN PHÒNG HIỆN TẠI (TRÊN MOBILE BIẾN THÀNH NÚT ĐỔI PHÒNG NHANH CÓ ICON & CHEVRON) */}
+        <button
+          ref={titlePillRef}
+          type="button"
           className="client-tour-title-pill"
+          onClick={() => setIsRoomDropdownOpen((prev) => !prev)}
+          title="Nhấp để chuyển gian phòng"
           style={{
             pointerEvents: 'auto',
             background: 'rgba(15, 18, 24, 0.88)',
             backdropFilter: 'blur(14px)',
             WebkitBackdropFilter: 'blur(14px)',
             border: '1px solid rgba(212, 168, 106, 0.25)',
-            padding: '7px 20px',
+            padding: '6px 16px',
             borderRadius: 30,
             textAlign: 'center',
             color: '#FFFFFF',
-            maxWidth: '42vw',
+            cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            gap: 2
+            justifyContent: 'center',
+            gap: 6,
+            transition: 'all 0.2s ease',
+            outline: 'none'
           }}
         >
-          <div
-            style={{
-              fontSize: '13.5px',
-              fontWeight: 600,
-              letterSpacing: '0.01em',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '100%'
-            }}
-            title={title}
-          >
-            {title}
+          {/* Hiển thị Desktop: Tiêu đề + Niên đại */}
+          <div className="client-tour-title-desktop">
+            <div
+              style={{
+                fontSize: '13.5px',
+                fontWeight: 600,
+                letterSpacing: '0.01em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%'
+              }}
+              title={title}
+            >
+              {title}
+            </div>
+            <div
+              style={{
+                fontSize: '11px',
+                color: '#D4A86A',
+                letterSpacing: '0.02em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+                opacity: 0.9
+              }}
+            >
+              {currentRoom.code ? `${currentRoom.code} • ` : ''}{period}
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: '11px',
-              color: '#D4A86A',
-              letterSpacing: '0.02em',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '100%',
-              opacity: 0.9
-            }}
-          >
-            {currentRoom.code ? `${currentRoom.code} • ` : ''}{period}
+
+          {/* Hiển thị Mobile: Gọn gàng trên 1 dòng có icon la bàn và mũi tên */}
+          <div className="client-tour-title-mobile">
+            <Compass size={13} style={{ color: '#D4A86A', flexShrink: 0 }} />
+            <span>
+              {currentRoom.code ? `[${currentRoom.code}] ` : ''}{sanitizeMuseumText(currentRoom.name)}
+            </span>
+            <ChevronDown
+              size={12}
+              style={{
+                color: '#D4A86A',
+                opacity: 0.8,
+                flexShrink: 0,
+                transform: isRoomDropdownOpen ? 'rotate(180deg)' : 'none',
+                transition: 'transform 0.2s ease'
+              }}
+            />
           </div>
-        </div>
+        </button>
 
         {/* CỤM NÚT ĐIỀU HƯỚNG BÊN PHẢI: THUYẾT MINH AI + BỘ CHỌN PHÒNG TÙY BIẾN + INFO */}
         <div className="client-tour-actions" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
 
           {/* 1. NÚT NGHE GIỚI THIỆU VOICE AI & CHUYỂN ĐỔI NGÔN NGỮ ĐỒNG BỘ */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(15, 18, 24, 0.88)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(212, 168, 106, 0.3)', borderRadius: 30, padding: '3px 4px', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(15, 18, 24, 0.88)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(212, 168, 106, 0.3)', borderRadius: 30, padding: '3px 4px', boxShadow: '0 4px 16px rgba(0,0,0,0.35)', flexShrink: 0 }}>
             {/* Nút Play/Pause Audio Giới thiệu */}
             <button
               type="button"
+              className="client-tour-voice-btn"
               onClick={toggleVoicePlayback}
               title={isPlayingVoice ? 'Tạm dừng nghe giới thiệu' : 'Bật giọng đọc giới thiệu gian phòng'}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 7,
+                gap: 6,
                 padding: '5px 12px',
                 borderRadius: 24,
                 border: 'none',
@@ -345,30 +380,34 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
             >
               {isPlayingVoice ? (
                 <>
-                  <Pause size={13} style={{ fill: '#F59E0B' }} />
+                  <Pause size={13} style={{ fill: '#F59E0B', flexShrink: 0 }} />
                   {/* Hiệu ứng sóng âm thanh tinh tế */}
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, height: 12 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, height: 12, flexShrink: 0 }}>
                     <span style={{ width: 2, height: 8, background: '#F59E0B', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out' }} />
                     <span style={{ width: 2, height: 12, background: '#F59E0B', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out 0.2s' }} />
                     <span style={{ width: 2, height: 6, background: '#F59E0B', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out 0.4s' }} />
                   </span>
-                  <span>{t('tour.voicePlaying', 'Đang giới thiệu...')}</span>
+                  <span className="voice-text-full">{t('tour.voicePlaying', 'Đang giới thiệu...')}</span>
+                  <span className="voice-text-short">{t('tour.voicePlayingShort', 'Đang đọc')}</span>
                 </>
               ) : (
                 <>
-                  <Volume2 size={14} style={{ color: '#D4A86A' }} />
-                  <span>{t('tour.voiceAi', 'Nghe giới thiệu')}</span>
+                  <Volume2 size={14} style={{ color: '#D4A86A', flexShrink: 0 }} />
+                  <span className="voice-text-full">{t('tour.voiceAi', 'Nghe giới thiệu')}</span>
+                  <span className="voice-text-short">{t('tour.voiceAiShort', 'Nghe')}</span>
                 </>
               )}
             </button>
 
             {/* Vạch ngăn mảnh */}
-            <div style={{ width: 1, height: 16, background: 'rgba(255, 255, 255, 0.15)', margin: '0 2px' }} />
+            <div style={{ width: 1, height: 16, background: 'rgba(255, 255, 255, 0.15)', margin: '0 2px', flexShrink: 0 }} />
 
             {/* Menu thả chuyển ngôn ngữ thuyết minh ngay tại nút */}
             <div ref={langDropdownRef} style={{ position: 'relative' }}>
@@ -465,11 +504,11 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             </div>
           </div>
 
-          {/* 2. BỘ CHỌN PHÒNG TÙY BIẾN CAO CẤP (THAY THẾ SELECT NGUYÊN THỦY LỖI FONT, ĐỨT NÉT) */}
-          <div ref={roomDropdownRef} style={{ position: 'relative' }}>
+          {/* 2. BỘ CHỌN PHÒNG TÙY BIẾN CAO CẤP (Ẩn trên mobile vì đã có nút chọn phòng trung tâm) */}
+          <div ref={roomDropdownRef} className="client-tour-room-wrapper" style={{ position: 'relative' }}>
             <button
               type="button"
-              className="client-tour-room-btn"
+              className="client-tour-room-btn client-tour-room-btn-desktop"
               onClick={() => setIsRoomDropdownOpen((prev) => !prev)}
               style={{
                 display: 'inline-flex',
@@ -521,6 +560,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             {/* Menu thả danh sách tất cả các gian phòng 360 */}
             {isRoomDropdownOpen && (
               <div
+                className="client-tour-room-dropdown-menu"
                 style={{
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
@@ -535,7 +575,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   borderRadius: 14,
                   padding: '8px',
                   boxShadow: '0 16px 40px rgba(0, 0, 0, 0.65)',
-                  zIndex: 200,
+                  zIndex: 250,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 4
@@ -703,6 +743,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             key={currentRoom.id}
             panoramaUrl={currentRoom.panoramaUrl}
             title=""
+            showTitle={false}
             autoStartLittlePlanet={false}
             hotspots={pannellumHotspots}
             onHotspotClick={(hs) => {

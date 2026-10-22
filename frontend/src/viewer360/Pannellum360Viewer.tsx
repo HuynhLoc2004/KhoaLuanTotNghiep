@@ -24,6 +24,7 @@ export interface PannellumHotSpot {
 interface Pannellum360ViewerProps {
   panoramaUrl: string;
   title?: string;
+  showTitle?: boolean;
   autoStartLittlePlanet?: boolean;
   hotspots?: PannellumHotSpot[];
   onHotspotClick?: (hotspot: PannellumHotSpot) => void;
@@ -52,6 +53,7 @@ interface Pannellum360ViewerProps {
 export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   panoramaUrl,
   title,
+  showTitle,
   autoStartLittlePlanet = true,
   hotspots = [],
   onHotspotClick,
@@ -76,6 +78,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   imageHeight,
 }) => {
   const { branding } = useSystemBranding();
+  const hasValidTitle = Boolean(title && title.trim().length > 0);
+  const effectiveShowTitle = showTitle !== undefined ? showTitle : hasValidTitle;
   const cleanTitle = title
     ? formatPanoTitle(title)
     : (branding ? `Toàn cảnh 360° ${branding.museumName}` : 'Toàn cảnh 360°');
@@ -85,6 +89,22 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   const containerId = useRef(`pannellum-container-${Math.random().toString(36).substring(2, 9)}`);
   const hasIntroducedRef = useRef<string | null>(null);
   const introTimerRef = useRef<any>(null);
+
+  // Ngăn chặn hoàn toàn popup "Pannellum 2.5.6" và context menu mặc định của thư viện khi click chuột phải
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    el.addEventListener('contextmenu', handleContextMenu, true);
+    return () => {
+      el.removeEventListener('contextmenu', handleContextMenu, true);
+    };
+  }, []);
 
   const isPinModeRef = useRef(isPinMode);
   useEffect(() => {
@@ -773,6 +793,19 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           cursor: crosshair !important;
         }
 
+        /* Ẩn triệt để thông điệp About Pannellum và các nhãn thư viện mặc định */
+        .pnlm-about-msg,
+        .pnlm-about-msg * {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+
         @media (max-width: 600px) {
           .glass-toolbar {
             padding: 5px 8px !important;
@@ -921,8 +954,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         </div>
       )}
 
-      {/* Top Banner (Chỉ hiện khi có title được cung cấp) */}
-      {Boolean(cleanTitle && cleanTitle.trim().length > 0) && (
+      {/* Top Banner (Chỉ hiện khi effectiveShowTitle là true và cleanTitle có nội dung) */}
+      {effectiveShowTitle && Boolean(cleanTitle && cleanTitle.trim().length > 0) && (
         <div
           className="top-title-banner"
           style={{
