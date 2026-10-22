@@ -466,17 +466,21 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
       <style>{`
         .admin-mapping-grid {
           display: grid;
-          grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+          grid-template-columns: minmax(0, 1.55fr) minmax(280px, 360px);
           gap: 16px;
           align-items: start;
+          width: 100%;
+          box-sizing: border-box;
         }
         .admin-nav-grid {
           display: grid;
-          grid-template-columns: minmax(340px, 1fr) minmax(360px, 1.2fr);
+          grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.2fr);
           gap: 16px;
           align-items: start;
+          width: 100%;
+          box-sizing: border-box;
         }
-        @media (max-width: 960px) {
+        @media (max-width: 1024px) {
           .admin-mapping-grid,
           .admin-nav-grid {
             grid-template-columns: 1fr !important;
@@ -519,12 +523,13 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
           </div>
 
           {/* Vùng sơ đồ InteractiveFloorPlanMap (ẩn panel chi tiết thừa để sơ đồ rộng rãi) */}
-          <div style={{ padding: 10 }}>
+          <div style={{ padding: 10, width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
             {previewFloorPlan && (
               <InteractiveFloorPlanMap
                 floorPlan={previewFloorPlan}
                 clientTheme="dark"
                 hideSidePanel={true}
+                hideLegend={true}
                 selectedNodeId={selectedNode?.id}
                 onNodeSelect={(nodeId) => setSelectedNodeId(nodeId)}
                 rooms={allRooms}

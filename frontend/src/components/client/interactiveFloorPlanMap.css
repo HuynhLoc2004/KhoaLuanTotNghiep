@@ -462,6 +462,9 @@
   color: #FFFFFF;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .ifp-heritage-legend-header {
@@ -473,6 +476,8 @@
   padding-bottom: 10px;
   margin-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ifp-heritage-legend-title {
@@ -502,17 +507,13 @@
 
 .ifp-heritage-legend-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-@media (max-width: 900px) {
-  .ifp-heritage-legend-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .ifp-heritage-legend-grid {
     grid-template-columns: 1fr;
   }
@@ -528,6 +529,8 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .ifp-heritage-legend-item:hover {
