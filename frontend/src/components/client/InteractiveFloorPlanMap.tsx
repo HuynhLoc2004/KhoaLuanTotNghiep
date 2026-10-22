@@ -1234,7 +1234,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
         </div>
 
         {/* Nút Xem Ảnh Gốc & Badge Thống Kê */}
-        <div className="ifp-header-badges" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="ifp-header-badges" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {resolvedFloorPlanImageUrl && (
             <button
               type="button"
@@ -1318,7 +1318,9 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
             boxShadow: '0 4px 18px rgba(0, 0, 0, 0.16)',
             cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            aspectRatio: '1 / 1',
+            alignSelf: 'start'
           }}
         >
           <svg
@@ -1722,8 +1724,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     onMouseEnter={() => setHoveredNodeId(node.id)}
                     onMouseLeave={() => setHoveredNodeId(null)}
                     style={{
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      cursor: 'pointer'
                     }}
                   >
                     {/* Thân phòng với màu giấy kiến trúc ngà ấm chuẩn theo Poster gốc */}
