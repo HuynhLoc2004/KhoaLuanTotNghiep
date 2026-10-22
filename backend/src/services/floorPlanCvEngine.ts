@@ -793,39 +793,37 @@ interface IHeritageRoomPreset {
 }
 
 const HERITAGE_MUSEUM_HCM_ROOMS: IHeritageRoomPreset[] = [
-  // --- CÁNH NAM: Dãy dưới cùng (Trục Y: 76.0%) ---
-  { num: 1, code: 'P-01', name: 'Thời Nguyên thủy', period: 'Thời kỳ tiền sử & sơ sử', category: 'Tiền sử Việt Nam', x: 26.0, y: 76.0, width: 15.0, height: 7.5, isEntrance: true },
-  { num: 2, code: 'P-02', name: 'Thời dựng nước và giữ nước', period: 'Thời đại Hùng Vương - An Dương Vương', category: 'Khởi nguyên dân tộc', x: 8.0, y: 76.0, width: 14.0, height: 7.5 },
-  { num: 17, code: 'P-17', name: 'Dân tộc phía Nam Việt Nam', period: 'Bản sắc văn hóa các dân tộc phương Nam', category: 'Dân tộc học', x: 59.0, y: 76.0, width: 15.0, height: 7.5 },
-  { num: 16, code: 'P-16', name: 'Sưu tập Vương Hồng Sển', period: 'Đồ cổ, gốm sứ độc bản học giả Vương Hồng Sển', category: 'Sưu tập tư nhân', x: 78.0, y: 76.0, width: 12.0, height: 7.5 },
+  // --- CÁNH TRƯỚC (NAM): Dãy dưới cùng ---
+  { num: 1, code: 'P-01', name: 'Thời Nguyên thủy', period: 'Thời kỳ tiền sử & sơ sử', category: 'Tiền sử Việt Nam', x: 33.9, y: 66.1, width: 17.1, height: 8.7, isEntrance: true },
+  { num: 2, code: 'P-02', name: 'Thời dựng nước và giữ nước', period: 'Thời đại Hùng Vương - An Dương Vương', category: 'Khởi nguyên dân tộc', x: 24.8, y: 66.1, width: 9.0, height: 8.7 },
+  { num: 17, code: 'P-17', name: 'Dân tộc phía Nam Việt Nam', period: 'Bản sắc văn hóa các dân tộc phương Nam', category: 'Dân tộc học', x: 61.9, y: 66.1, width: 18.7, height: 8.7 },
+  { num: 16, code: 'P-16', name: 'Sưu tập Vương Hồng Sển', period: 'Đồ cổ, gốm sứ độc bản học giả Vương Hồng Sển', category: 'Sưu tập tư nhân', x: 80.6, y: 66.1, width: 8.7, height: 8.7 },
 
-  // --- CÁNH NAM: Dãy giữa (Trục Y: 63.0%) ---
-  { num: 3, code: 'P-03', name: 'Thời Ngô - Đinh - Tiền Lê', period: 'Thế kỷ X - Độc lập tự chủ', category: 'Độc lập tự chủ', x: 8.0, y: 63.0, width: 14.0, height: 7.5 },
-  { num: 14, code: 'P-14', name: 'Thương mại hàng hải - Gốm sứ', period: 'Thế kỷ XIV - XVIII: Gốm sứ tàu đắm biển Đông', category: 'Hàng hải cổ vật', x: 78.0, y: 63.0, width: 12.0, height: 7.5 },
-  { num: 15, code: 'P-15', name: 'Cổ vật tàu đắm biển Đông', period: 'Di vật từ những con tàu đắm ngoài khơi', category: 'Hàng hải cổ vật', x: 93.0, y: 63.0, width: 6.0, height: 7.5 },
+  // --- CÁNH TÂY: Cột Tây Nam & Dãy giữa ---
+  { num: 3, code: 'P-03', name: 'Thời Ngô - Đinh - Tiền Lê', period: 'Thế kỷ X - Độc lập tự chủ', category: 'Độc lập tự chủ', x: 24.8, y: 56.1, width: 9.0, height: 10.0 },
+  { num: 4, code: 'P-04', name: 'Thời Lý', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt', category: 'Vương triều Lý', x: 24.8, y: 47.4, width: 9.0, height: 8.7 },
+  { num: 5, code: 'P-05', name: 'Thời Trần - Hồ', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông', category: 'Vương triều Trần - Hồ', x: 33.9, y: 47.4, width: 18.1, height: 8.7 },
 
-  // --- CÁNH NAM: Dãy trên (Trục Y: 50.0%) ---
-  { num: 4, code: 'P-04', name: 'Thời Lý', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt', category: 'Vương triều Lý', x: 8.0, y: 50.0, width: 14.0, height: 7.5 },
-  { num: 5, code: 'P-05', name: 'Thời Trần - Hồ', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông', category: 'Vương triều Trần - Hồ', x: 26.0, y: 50.0, width: 15.0, height: 7.5 },
-  { num: 18, code: 'P-18', name: 'Tượng Phật giáo Châu Á', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á', category: 'Mỹ thuật tôn giáo', x: 45.0, y: 50.0, width: 10.0, height: 7.5 },
-  { num: 12, code: 'P-12', name: 'Thời Nguyễn', period: '1802 - 1945: Triều đại phong kiến cuối cùng', category: 'Triều Nguyễn', x: 59.0, y: 50.0, width: 15.0, height: 7.5 },
-  { num: 13, code: 'P-13', name: 'Sưu tập Dương Hà', period: 'Cổ vật quý hiếm do gia đình Dương Hà hiến tặng', category: 'Sưu tập tư nhân', x: 78.0, y: 50.0, width: 12.0, height: 7.5 },
+  // --- CÁNH BẮC: Cột phía Tây, Dãy đỉnh & Cột phía Đông ---
+  { num: 6, code: 'P-06', name: 'Văn hóa Champa', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa', category: 'Di sản miền Trung', x: 33.9, y: 15.5, width: 7.1, height: 27.4 },
+  { num: 7, code: 'P-07', name: 'Văn hóa Óc Eo', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ', category: 'Văn minh Phù Nam', x: 41.0, y: 5.8, width: 31.3, height: 13.2 },
+  { num: 8, code: 'P-08', name: 'Điêu khắc đá Campuchia', period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ', category: 'Nghệ thuật Châu Á', x: 72.3, y: 8.1, width: 8.4, height: 7.4 },
+  { num: 9, code: 'P-09', name: 'Thời Lê - Mạc, Trịnh - Nguyễn', period: 'Thế kỷ XV - XVIII: Thời kỳ Hậu Lê và phân tranh', category: 'Thời kỳ Hậu Lê', x: 73.5, y: 15.5, width: 7.1, height: 16.5 },
+  { num: 10, code: 'P-10', name: 'Thời Tây Sơn', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn', category: 'Triều đại Tây Sơn', x: 73.5, y: 31.9, width: 7.1, height: 11.0 },
+  { num: 11, code: 'P-11', name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ', category: 'Vũ khí di sản', x: 80.6, y: 21.9, width: 6.5, height: 21.0 },
 
-  // --- CÁNH BẮC: Cột phía Tây & Dãy đỉnh Bắc ---
-  { num: 6, code: 'P-06', name: 'Văn hóa Champa', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa', category: 'Di sản miền Trung', x: 26.0, y: 21.0, width: 13.0, height: 21.0 },
-  { num: 7, code: 'P-07', name: 'Văn hóa Óc Eo', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ', category: 'Văn minh Phù Nam', x: 26.0, y: 7.0, width: 44.0, height: 10.0 },
+  // --- CÁNH ĐÔNG: Dãy giữa & Cột Đông Nam ---
+  { num: 12, code: 'P-12', name: 'Thời Nguyễn', period: '1802 - 1945: Triều đại phong kiến cuối cùng', category: 'Triều Nguyễn', x: 61.9, y: 47.4, width: 18.1, height: 8.7 },
+  { num: 13, code: 'P-13', name: 'Sưu tập Dương Hà', period: 'Cổ vật quý hiếm do gia đình Dương Hà hiến tặng', category: 'Sưu tập tư nhân', x: 80.0, y: 47.4, width: 9.4, height: 8.7 },
+  { num: 14, code: 'P-14', name: 'Thương mại hàng hải - Gốm sứ', period: 'Thế kỷ XIV - XVIII: Gốm sứ tàu đắm biển Đông', category: 'Hàng hải cổ vật', x: 80.0, y: 56.1, width: 9.4, height: 10.0 },
+  { num: 15, code: 'P-15', name: 'Cổ vật tàu đắm biển Đông', period: 'Di vật từ những con tàu đắm ngoài khơi', category: 'Hàng hải cổ vật', x: 89.4, y: 56.1, width: 7.1, height: 9.4 },
 
-  // --- CÁNH BẮC: Cột phía Đông (Trục X: 74.0%) ---
-  { num: 8, code: 'P-08', name: 'Điêu khắc đá Campuchia', period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ', category: 'Nghệ thuật Châu Á', x: 74.0, y: 7.0, width: 12.0, height: 10.0 },
-  { num: 9, code: 'P-09', name: 'Thời Lê - Mạc, Trịnh - Nguyễn', period: 'Thế kỷ XV - XVIII: Thời kỳ Hậu Lê và phân tranh', category: 'Thời kỳ Hậu Lê', x: 74.0, y: 21.0, width: 12.0, height: 9.5 },
-  { num: 10, code: 'P-10', name: 'Thời Tây Sơn', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn', category: 'Triều đại Tây Sơn', x: 74.0, y: 34.0, width: 12.0, height: 9.5 },
-  { num: 11, code: 'P-11', name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ', category: 'Vũ khí di sản', x: 90.0, y: 34.0, width: 7.5, height: 9.5 },
-
-  // --- CÁC ĐIỂM TIỆN ÍCH, CỔNG RA VÀO & KHÔNG GIAN ĐẶC BIỆT ---
-  { num: 101, code: 'CONG-1', name: 'Cổng 1 (Lối vào & Ra chính)', period: 'Cổng chính Nguyễn Bỉnh Khiêm', category: 'Cổng ra vào', x: 46.0, y: 87.0, width: 8.0, height: 6.0, isEntrance: true },
-  { num: 102, code: 'CONG-2', name: 'Cổng 2 (Lối ra phụ & Thảo Cầm Viên)', period: 'Cổng phụ Tây Bắc', category: 'Cổng ra vào', x: 9.0, y: 28.0, width: 12.0, height: 8.0, isEntrance: true },
-  { num: 103, code: 'SANH', name: 'Sảnh Bát Giác (Khu vực đón tiếp)', period: 'Trung tâm phân luồng', category: 'Sảnh trung tâm', x: 45.0, y: 62.0, width: 10.0, height: 9.0, isEntrance: false },
-  { num: 104, code: 'SAN-VUON', name: 'Sân vườn nội viện', period: 'Khuôn viên xanh & Hồ rối nước', category: 'Khuôn viên ngoài trời', x: 42.0, y: 21.0, width: 29.0, height: 18.0, isEntrance: false }
+  // --- KHU TRUNG TÂM & TIỆN ÍCH ---
+  { num: 18, code: 'P-18', name: 'Tượng Phật giáo Châu Á', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á', category: 'Mỹ thuật tôn giáo', x: 51.9, y: 41.9, width: 10.0, height: 10.6 },
+  { num: 103, code: 'SANH', name: 'Sảnh Bát Giác (Khu vực đón tiếp)', period: 'Trung tâm phân luồng', category: 'Sảnh trung tâm', x: 48.7, y: 52.6, width: 16.5, height: 12.9, isEntrance: false },
+  { num: 104, code: 'SAN-VUON', name: 'Sân vườn nội viện', period: 'Khuôn viên xanh & Hồ rối nước', category: 'Khuôn viên ngoài trời', x: 41.0, y: 19.0, width: 32.6, height: 22.9, isEntrance: false },
+  { num: 101, code: 'CONG-1', name: 'Cổng 1 (Lối vào & Ra chính)', period: 'Cổng chính Nguyễn Bỉnh Khiêm', category: 'Cổng ra vào', x: 51.0, y: 74.8, width: 11.6, height: 13.5, isEntrance: true },
+  { num: 102, code: 'CONG-2', name: 'Cổng 2 (Lối ra phụ & Thảo Cầm Viên)', period: 'Cổng phụ Tây Bắc', category: 'Cổng ra vào', x: 9.4, y: 22.6, width: 8.1, height: 11.6, isEntrance: true }
 ];
 
 const HERITAGE_MUSEUM_HCM_EDGES_CONFIG: { from: number; to: number; dir: ICvDetectedEdge['direction']; compDir: ICvDetectedEdge['compassDirection']; label: string }[] = [

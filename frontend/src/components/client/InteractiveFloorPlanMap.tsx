@@ -438,6 +438,38 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     );
   }, [floorPlan.nodes]);
 
+  // Bộ 18 gian phòng chuẩn hóa theo kiến trúc bản gốc poster hình 2
+  const displayRooms = useMemo(() => {
+    return AUTHENTIC_HERITAGE_ROOMS_LIST.map((hr) => {
+      const matched = floorPlan.nodes?.find(
+        (n) =>
+          n.id === hr.id ||
+          (n.code && n.code.toUpperCase() === hr.code) ||
+          (n.code && n.code.match(/\d+/) && parseInt(n.code.match(/\d+/)![0], 10) === hr.num)
+      );
+      if (matched) {
+        return {
+          ...matched,
+          heritageNum: hr.num,
+          heritageNameVi: hr.nameVi,
+          heritageNameEn: hr.nameEn,
+          heritagePeriod: hr.period
+        };
+      }
+      return {
+        id: hr.id,
+        code: hr.code,
+        name: hr.nameVi,
+        period: hr.period,
+        category: 'Trưng bày cố định',
+        heritageNum: hr.num,
+        heritageNameVi: hr.nameVi,
+        heritageNameEn: hr.nameEn,
+        heritagePeriod: hr.period
+      } as any;
+    });
+  }, [floorPlan.nodes]);
+
   // Tab: 'details' or 'navigator'
   const [sideTab, setSideTab] = useState<'details' | 'navigator'>('details');
 
@@ -653,7 +685,114 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     return clean.slice(0, 15) + '…';
   };
 
+  const AUTHENTIC_HERITAGE_ROOMS_MAP: Record<string, { x: number; y: number; width: number; height: number; num: number; name: string; period: string }> = {
+    'node_p_01': { x: 33.9, y: 66.1, width: 17.1, height: 8.7, num: 1, name: 'Thời Nguyên thủy', period: 'Thời kỳ tiền sử & sơ sử' },
+    'node_p_02': { x: 24.8, y: 66.1, width: 9.0, height: 8.7, num: 2, name: 'Thời dựng nước và giữ nước', period: 'Hùng Vương - An Dương Vương' },
+    'node_p_03': { x: 24.8, y: 56.1, width: 9.0, height: 10.0, num: 3, name: 'Thời Ngô - Đinh - Tiền Lê', period: 'Thế kỷ X - Độc lập tự chủ' },
+    'node_p_04': { x: 24.8, y: 47.4, width: 9.0, height: 8.7, num: 4, name: 'Thời Lý', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt' },
+    'node_p_05': { x: 33.9, y: 47.4, width: 18.1, height: 8.7, num: 5, name: 'Thời Trần - Hồ', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông' },
+    'node_p_06': { x: 33.9, y: 15.5, width: 7.1, height: 27.4, num: 6, name: 'Văn hóa Champa', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa' },
+    'node_p_07': { x: 41.0, y: 5.8, width: 31.3, height: 13.2, num: 7, name: 'Văn hóa Óc Eo', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ' },
+    'node_p_08': { x: 72.3, y: 8.1, width: 8.4, height: 7.4, num: 8, name: 'Điêu khắc đá Campuchia', period: 'Thế kỷ IX - XIII: Nghệ thuật điêu khắc Khmer cổ' },
+    'node_p_09': { x: 73.5, y: 15.5, width: 7.1, height: 16.5, num: 9, name: 'Thời Lê - Mạc, Trịnh - Nguyễn', period: 'Thế kỷ XV - XVIII: Hậu Lê và phân tranh' },
+    'node_p_10': { x: 73.5, y: 31.9, width: 7.1, height: 11.0, num: 10, name: 'Thời Tây Sơn', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn' },
+    'node_p_11': { x: 80.6, y: 21.9, width: 6.5, height: 21.0, num: 11, name: 'Súng Thần công - Đại bác', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ' },
+    'node_p_12': { x: 61.9, y: 47.4, width: 18.1, height: 8.7, num: 12, name: 'Thời Nguyễn', period: '1802 - 1945: Triều đại phong kiến cuối cùng' },
+    'node_p_13': { x: 80.0, y: 47.4, width: 9.4, height: 8.7, num: 13, name: 'Sưu tập Dương Hà', period: 'Cổ vật quý hiếm do gia đình Dương Hà hiến tặng' },
+    'node_p_14': { x: 80.0, y: 56.1, width: 9.4, height: 10.0, num: 14, name: 'Thương mại hàng hải - Gốm sứ', period: 'Thế kỷ XIV - XVIII: Gốm sứ tàu đắm biển Đông' },
+    'node_p_15': { x: 89.4, y: 56.1, width: 7.1, height: 9.4, num: 15, name: 'Cổ vật tàu đắm biển Đông', period: 'Di vật từ những con tàu đắm ngoài khơi' },
+    'node_p_16': { x: 80.6, y: 66.1, width: 8.7, height: 8.7, num: 16, name: 'Sưu tập Vương Hồng Sển', period: 'Đồ cổ, gốm sứ độc bản học giả Vương Hồng Sển' },
+    'node_p_17': { x: 61.9, y: 66.1, width: 18.7, height: 8.7, num: 17, name: 'Dân tộc phía Nam Việt Nam', period: 'Bản sắc văn hóa các dân tộc phương Nam' },
+    'node_p_18': { x: 51.9, y: 41.9, width: 10.0, height: 10.6, num: 18, name: 'Tượng Phật giáo Châu Á', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á' },
+    'node_sanh': { x: 48.7, y: 52.6, width: 16.5, height: 12.9, num: 103, name: 'Sảnh Bát Giác', period: 'Trung tâm phân luồng & đón tiếp' },
+    'node_san_vuon': { x: 41.0, y: 19.0, width: 32.6, height: 22.9, num: 104, name: 'Sân vườn nội viện', period: 'Khuôn viên xanh & Hồ rối nước' },
+    'node_cong_1': { x: 51.0, y: 74.8, width: 11.6, height: 13.5, num: 101, name: 'Cổng 1 (Nguyễn Bỉnh Khiêm)', period: 'Cổng chính vào bảo tàng' },
+    'node_cong_2': { x: 9.4, y: 22.6, width: 8.1, height: 11.6, num: 102, name: 'Cổng 2 (Thảo Cầm Viên)', period: 'Cổng phụ Tây Bắc' }
+  };
+
+  const AUTHENTIC_HERITAGE_ROOMS_LIST = [
+    { num: 1, id: 'node_p_01', code: 'P-01', nameVi: 'Thời Nguyên thủy', nameEn: 'Prehistoric period', period: 'Thời kỳ tiền sử & sơ sử' },
+    { num: 2, id: 'node_p_02', code: 'P-02', nameVi: 'Thời dựng nước và giữ nước', nameEn: 'The first period of founding and struggling for independence', period: 'Hùng Vương - An Dương Vương' },
+    { num: 3, id: 'node_p_03', code: 'P-03', nameVi: 'Thời Ngô - Đinh - Tiền Lê', nameEn: 'Ngo - Dinh - Earlier Le dynasties', period: 'Thế kỷ X - Độc lập tự chủ' },
+    { num: 4, id: 'node_p_04', code: 'P-04', nameVi: 'Thời Lý', nameEn: 'Ly dynasty', period: 'Thế kỷ XI - XIII: Văn minh Đại Việt' },
+    { num: 5, id: 'node_p_05', code: 'P-05', nameVi: 'Thời Trần - Hồ', nameEn: 'Tran - Ho dynasties', period: 'Thế kỷ XIII - XV: Ba lần đại thắng Nguyên Mông' },
+    { num: 6, id: 'node_p_06', code: 'P-06', nameVi: 'Văn hóa Champa', nameEn: 'Champa culture', period: 'Thế kỷ II - XVII: Di sản văn hóa Chămpa' },
+    { num: 7, id: 'node_p_07', code: 'P-07', nameVi: 'Văn hóa Óc Eo', nameEn: 'Oc Eo culture', period: 'Thế kỷ I - VII: Vương quốc Phù Nam cổ' },
+    { num: 8, id: 'node_p_08', code: 'P-08', nameVi: 'Điêu khắc đá Campuchia', nameEn: 'Stone sculpture of Cambodia', period: 'Thế kỷ IX - XIII: Nghệ thuật Khmer cổ' },
+    { num: 9, id: 'node_p_09', code: 'P-09', nameVi: 'Thời Lê - Mạc, Trịnh - Nguyễn', nameEn: 'Later Le - Mac - Trinh - Nguyen dynasties', period: 'Thế kỷ XV - XVIII: Hậu Lê và phân tranh' },
+    { num: 10, id: 'node_p_10', code: 'P-10', nameVi: 'Thời Tây Sơn', nameEn: 'Tay Son dynasty', period: '1778 - 1802: Phong trào khởi nghĩa Tây Sơn' },
+    { num: 11, id: 'node_p_11', code: 'P-11', nameVi: 'Súng Thần công - Đại bác', nameEn: 'Cannons & Artilleries', period: 'Thế kỷ XVIII - XIX: Vũ khí quân sự cổ' },
+    { num: 12, id: 'node_p_12', code: 'P-12', nameVi: 'Thời Nguyễn', nameEn: 'Nguyen dynasty', period: '1802 - 1945: Triều đại phong kiến cuối cùng' },
+    { num: 13, id: 'node_p_13', code: 'P-13', nameVi: 'Sưu tập Dương Hà', nameEn: 'Duong Ha collection', period: 'Cổ vật quý hiếm do gia đình hiến tặng' },
+    { num: 14, id: 'node_p_14', code: 'P-14', nameVi: 'Thương mại hàng hải - Gốm sứ', nameEn: 'Maritime trade - Shipwrecked ceramics', period: 'Thế kỷ XIV - XVIII: Gốm sứ thương mại' },
+    { num: 15, id: 'node_p_15', code: 'P-15', nameVi: 'Cổ vật tàu đắm biển Đông', nameEn: 'Shipwrecked ceramics in Vietnam waters', period: 'Di vật từ những con tàu đắm ngoài khơi' },
+    { num: 16, id: 'node_p_16', code: 'P-16', nameVi: 'Sưu tập Vương Hồng Sển', nameEn: 'Vuong Hong Sen collection', period: 'Đồ cổ, gốm sứ độc bản của học giả' },
+    { num: 17, id: 'node_p_17', code: 'P-17', nameVi: 'Dân tộc phía Nam Việt Nam', nameEn: 'Minority cultures from Southern provinces', period: 'Bản sắc văn hóa các dân tộc phương Nam' },
+    { num: 18, id: 'node_p_18', code: 'P-18', nameVi: 'Tượng Phật giáo Châu Á', nameEn: 'Buddhist statues of Asian countries', period: 'Nghệ thuật Phật giáo các quốc gia Châu Á' }
+  ];
+
+  const AUTHENTIC_TOUR_FLOW_ARROWS = [
+    // Cổng 1 vào Phòng 1
+    { x1: 56.8, y1: 74.0, x2: 45.0, y2: 70.4 },
+    // Phòng 1 -> Phòng 2
+    { x1: 33.9, y1: 70.4, x2: 32.2, y2: 70.4 },
+    // Phòng 2 -> Phòng 3
+    { x1: 29.3, y1: 66.1, x2: 29.3, y2: 64.0 },
+    // Phòng 3 -> Phòng 4
+    { x1: 29.3, y1: 56.1, x2: 29.3, y2: 54.0 },
+    // Phòng 4 -> Phòng 5
+    { x1: 33.8, y1: 51.7, x2: 35.8, y2: 51.7 },
+    // Phòng 5 -> Phòng 6
+    { x1: 37.4, y1: 47.4, x2: 37.4, y2: 45.0 },
+    // Cổng 2 -> Phòng 6
+    { x1: 17.5, y1: 28.4, x2: 33.8, y2: 28.4 },
+    // Phòng 6 -> Phòng 7
+    { x1: 37.4, y1: 15.5, x2: 40.5, y2: 12.4 },
+    // Phòng 7 -> Phòng 8
+    { x1: 72.3, y1: 12.4, x2: 74.5, y2: 12.4 },
+    // Phòng 8 -> Phòng 9
+    { x1: 76.5, y1: 15.5, x2: 76.5, y2: 17.5 },
+    // Phòng 9 -> Phòng 10
+    { x1: 77.0, y1: 32.0, x2: 77.0, y2: 34.0 },
+    // Phòng 10 -> Phòng 12
+    { x1: 77.0, y1: 42.9, x2: 74.0, y2: 47.4 },
+    // Phòng 12 -> Phòng 13
+    { x1: 80.0, y1: 51.7, x2: 82.0, y2: 51.7 },
+    // Phòng 13 -> Phòng 14
+    { x1: 84.7, y1: 56.1, x2: 84.7, y2: 58.0 },
+    // Phòng 14 -> Phòng 15
+    { x1: 89.4, y1: 61.1, x2: 91.0, y2: 61.1 },
+    // Phòng 14 -> Phòng 16
+    { x1: 84.7, y1: 66.1, x2: 84.7, y2: 68.0 },
+    // Phòng 16 -> Phòng 17
+    { x1: 80.6, y1: 70.4, x2: 78.5, y2: 70.4 },
+    // Sảnh Bát Giác <-> Phòng 18
+    { x1: 56.9, y1: 52.6, x2: 56.9, y2: 50.0 }
+  ];
+
   const getNodeBox = (node: FloorPlanNode) => {
+    const normId = (node.id || '').toLowerCase().replace(/-/g, '_');
+    const codeMatch = node.code?.match(/\d+/);
+    const num = codeMatch ? parseInt(codeMatch[0], 10) : 0;
+    const numKey = num >= 1 && num <= 18 ? `node_p_${num < 10 ? '0' + num : num}` : '';
+
+    const matched =
+      AUTHENTIC_HERITAGE_ROOMS_MAP[normId] ||
+      (numKey ? AUTHENTIC_HERITAGE_ROOMS_MAP[numKey] : null) ||
+      (normId.includes('cong_1') ? AUTHENTIC_HERITAGE_ROOMS_MAP['node_cong_1'] : null) ||
+      (normId.includes('cong_2') ? AUTHENTIC_HERITAGE_ROOMS_MAP['node_cong_2'] : null) ||
+      (normId.includes('sanh') ? AUTHENTIC_HERITAGE_ROOMS_MAP['node_sanh'] : null) ||
+      (normId.includes('san_vuon') ? AUTHENTIC_HERITAGE_ROOMS_MAP['node_san_vuon'] : null);
+
+    if (matched) {
+      return {
+        x: matched.x,
+        y: matched.y,
+        width: matched.width,
+        height: matched.height
+      };
+    }
+
     const width = node.width && node.width > 0 ? node.width : 14;
     const height = node.height && node.height > 0 ? node.height : 7.5;
     const x = typeof node.x === 'number' ? node.x : 0;
@@ -719,10 +858,11 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
       const box = getNodeBox(n);
       return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
     }
-    if (nodeId === 'node_cong_1' || nodeId === 'CONG-1') return { x: 50, y: 90 };
-    if (nodeId === 'node_cong_2' || nodeId === 'CONG-2') return { x: 15, y: 32 };
-    if (nodeId === 'node_sanh' || nodeId === 'SANH') return { x: 50, y: 66.5 };
-    if (nodeId === 'node_san_vuon' || nodeId === 'SAN-VUON') return { x: 56.5, y: 30 };
+    const norm = (nodeId || '').toLowerCase().replace(/-/g, '_');
+    if (norm.includes('cong_1') || norm === 'cong_1' || norm === 'cong-1') return { x: 56.8, y: 81.5 };
+    if (norm.includes('cong_2') || norm === 'cong_2' || norm === 'cong-2') return { x: 13.4, y: 28.4 };
+    if (norm.includes('sanh') || norm === 'sanh') return { x: 56.9, y: 59.0 };
+    if (norm.includes('san_vuon') || norm === 'san_vuon' || norm === 'san-vuon') return { x: 57.3, y: 30.4 };
     return { x: 50, y: 50 };
   }, [floorPlan.nodes]);
 
@@ -820,116 +960,90 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 strokeWidth="0.2"
               />
             </pattern>
+            <pattern id="octagon-hatch-prev" width="2" height="2" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="2" stroke="rgba(212, 168, 106, 0.35)" strokeWidth="0.25" />
+            </pattern>
             <marker
               id="edge-arrow-prev"
               viewBox="0 0 10 10"
               refX="6"
               refY="5"
-              markerWidth="2.5"
-              markerHeight="2.5"
+              markerWidth="2.4"
+              markerHeight="2.4"
               orient="auto"
             >
-              <path d="M 0 1.5 L 7 5 L 0 8.5 Z" fill="rgba(212, 168, 106, 0.6)" />
+              <path d="M 0 1.8 L 7.5 5 L 0 8.2 Z" fill="#94A3B8" />
             </marker>
           </defs>
           <rect width="100" height="100" fill="url(#arch-grid-prev)" />
 
           <g>
-            {/* SÂN VƯỜN NỘI VIỆN */}
-            <g>
-              <rect
-                x="42"
-                y="21"
-                width="29"
-                height="18"
-                rx="2"
-                fill="rgba(34, 197, 94, 0.08)"
-                stroke="rgba(34, 197, 94, 0.22)"
+            {/* === LỚP 0: NỀN TẢNG KIẾN TRÚC MẶT BẰNG === */}
+            <rect x="23.5" y="64.5" width="67.0" height="11.5" rx="1.5" fill="#101726" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="0.4" />
+            <rect x="23.5" y="54.5" width="11.5" height="12.5" rx="1.2" fill="#101726" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="0.4" />
+            <rect x="78.5" y="54.5" width="19.0" height="12.5" rx="1.2" fill="#101726" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="0.4" />
+            <rect x="32.5" y="4.5" width="55.8" height="44.0" rx="1.5" fill="#101726" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="0.4" />
+
+            {/* === LỚP 1: SÂN VƯỜN NỘI VIỆN === */}
+            <rect x="41.0" y="19.0" width="32.6" height="22.9" rx="1.5" fill="#141D2C" stroke="#2D3A4F" strokeWidth="0.35" />
+            <rect x="47.2" y="23.2" width="20.2" height="11.8" rx="1.2" fill="#78B833" stroke="#5D9224" strokeWidth="0.3" />
+            <rect x="52.2" y="26.0" width="10.2" height="6.2" rx="0.8" fill="#3B82F6" fillOpacity="0.85" stroke="#1D4ED8" strokeWidth="0.25" />
+            <text x="57.3" y="21.5" textAnchor="middle" fill="#4ADE80" fontSize="1.0" fontWeight="700">
+              SÂN VƯỜN
+            </text>
+
+            {/* === LỚP 2: SẢNH BÁT GIÁC TRUNG TÂM === */}
+            <polygon
+              points="54.1,51.8 59.7,51.8 64.0,56.1 64.0,61.9 59.7,66.2 54.1,66.2 49.8,61.9 49.8,56.1"
+              fill="#221A12"
+              stroke="#D4A86A"
+              strokeWidth="0.45"
+            />
+            <polygon
+              points="54.1,51.8 59.7,51.8 64.0,56.1 64.0,61.9 59.7,66.2 54.1,66.2 49.8,61.9 49.8,56.1"
+              fill="url(#octagon-hatch-prev)"
+              opacity="0.7"
+            />
+            <text x="56.9" y="59.5" textAnchor="middle" fill="#E5C07B" fontSize="0.9" fontWeight="700">
+              SẢNH
+            </text>
+
+            {/* === LỚP 3: CỔNG 1 === */}
+            <rect x="53.4" y="80.6" width="1.6" height="3.0" rx="0.3" fill="#D94638" />
+            <rect x="58.6" y="80.6" width="1.6" height="3.0" rx="0.3" fill="#D94638" />
+            <rect x="63.8" y="78.8" width="4.0" height="4.0" rx="0.5" fill="#EA580C" stroke="#C2410C" strokeWidth="0.25" />
+            <circle cx="56.8" cy="74.5" r="1.6" fill="none" stroke="#DC2626" strokeWidth="0.4" />
+            <circle cx="56.8" cy="74.5" r="0.7" fill="#DC2626" />
+            <text x="56.8" y="89.5" textAnchor="middle" fill="#CBD5E1" fontSize="0.95" fontWeight="700">
+              CỔNG 1
+            </text>
+
+            {/* === LỚP 4: CỔNG 2 === */}
+            <rect x="9.4" y="22.6" width="8.1" height="11.6" rx="1.2" fill="#BA2227" stroke="#8C171C" strokeWidth="0.4" />
+            <text x="13.4" y="27.0" textAnchor="middle" fill="#FFFFFF" fontSize="0.8" fontWeight="700">
+              CỔNG 2
+            </text>
+            <rect x="11.4" y="35.5" width="4.0" height="4.0" rx="0.5" fill="#EA580C" stroke="#C2410C" strokeWidth="0.25" />
+
+            {/* === LỚP 5: MŨI TÊN HƯỚNG THAM QUAN === */}
+            {AUTHENTIC_TOUR_FLOW_ARROWS.map((arrow, aIdx) => (
+              <line
+                key={`tour_prev_${aIdx}`}
+                x1={arrow.x1}
+                y1={arrow.y1}
+                x2={arrow.x2}
+                y2={arrow.y2}
+                stroke="#64748B"
                 strokeWidth="0.3"
-                strokeDasharray="1, 1"
+                markerEnd="url(#edge-arrow-prev)"
+                opacity="0.8"
               />
-              <circle cx="56.5" cy="30" r="3.4" fill="rgba(34, 197, 94, 0.12)" />
-              <text x="56.5" y="29.8" textAnchor="middle" fill="#4ADE80" fontSize="1.1" fontWeight="600">
-                SÂN VƯỜN NỘI VIỆN
-              </text>
-              <text x="56.5" y="32.0" textAnchor="middle" fill="#86EFAC" fontSize="0.75" opacity="0.85">
-                Khuôn viên ngoài trời
-              </text>
-            </g>
+            ))}
 
-            {/* CỔNG 1 */}
-            <g>
-              <rect
-                x="46"
-                y="87"
-                width="8"
-                height="6"
-                rx="1.2"
-                fill="rgba(255, 255, 255, 0.05)"
-                stroke="rgba(255, 255, 255, 0.2)"
-                strokeWidth="0.3"
-              />
-              <text x="50" y="90.5" textAnchor="middle" fill="#CBD5E1" fontSize="1.1" fontWeight="600">
-                CỔNG 1
-              </text>
-              <line x1="50" y1="86.8" x2="50" y2="84.2" stroke="#D4A86A" strokeWidth="0.35" strokeDasharray="1, 0.8" />
-            </g>
-
-            {/* CỔNG 2 */}
-            <g>
-              <rect
-                x="9"
-                y="28"
-                width="12"
-                height="8"
-                rx="1.2"
-                fill="rgba(212, 168, 106, 0.06)"
-                stroke="rgba(212, 168, 106, 0.25)"
-                strokeWidth="0.3"
-              />
-              <text x="15" y="32.5" textAnchor="middle" fill="#D4A86A" fontSize="1.05" fontWeight="600">
-                CỔNG 2
-              </text>
-            </g>
-
-            {/* SẢNH BÁT GIÁC */}
-            <g>
-              <circle cx="50" cy="66.5" r="5.5" fill="rgba(212, 168, 106, 0.12)" stroke="#D4A86A" strokeWidth="0.4" strokeDasharray="1.2, 0.8" />
-              <text x="50" y="66.2" textAnchor="middle" fill="#D4A86A" fontSize="0.95" fontWeight="600">
-                SẢNH
-              </text>
-              <text x="50" y="68.0" textAnchor="middle" fill="#E2E8F0" fontSize="0.75">
-                Bát Giác
-              </text>
-            </g>
-
-            {/* EDGES */}
-            {sanitizedEdges.map((edge) => {
-              const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
-              const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
-              if (!nodeFrom || !nodeTo || edge.isReturn) return null;
-              const boxFrom = getNodeBox(nodeFrom);
-              const boxTo = getNodeBox(nodeTo);
-              const geom = getEdgeGeometry(boxFrom, boxTo);
-              return (
-                <line
-                  key={edge.id}
-                  x1={geom.x1}
-                  y1={geom.y1}
-                  x2={geom.x2}
-                  y2={geom.y2}
-                  stroke="rgba(212, 168, 106, 0.4)"
-                  strokeWidth={0.32}
-                  strokeDasharray="1.4, 1.4"
-                  markerEnd="url(#edge-arrow-prev)"
-                />
-              );
-            })}
-
-            {/* NODES */}
-            {floorPlan.nodes.map((node, nodeIdx) => {
+            {/* === LỚP 7: CÁC GIAN PHÒNG TRƯNG BÀY (18 GIAN THEO SƠ ĐỒ GỐC) === */}
+            {displayRooms.map((node, nodeIdx) => {
               const box = getNodeBox(node);
-              const roomNumber = getNodeDisplayNumber(node, nodeIdx);
+              const roomNumber = node.heritageNum || getNodeDisplayNumber(node, nodeIdx);
               const shortName = getShortNodeName(node.name);
               const isHovered = hoveredNodeId === node.id;
               return (
@@ -952,32 +1066,32 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     y={box.y}
                     width={box.width}
                     height={box.height}
-                    rx="1.5"
-                    fill={isHovered ? 'rgba(38, 50, 75, 0.95)' : 'rgba(16, 22, 34, 0.88)'}
-                    stroke={isHovered ? '#D4A86A' : (node.colorTag || '#D4A86A')}
-                    strokeWidth={isHovered ? '0.5' : '0.3'}
+                    rx="1.0"
+                    fill={isHovered ? '#1E293B' : '#151E2D'}
+                    stroke={isHovered ? '#D4A86A' : '#455570'}
+                    strokeWidth={isHovered ? 0.6 : 0.35}
                   />
                   <circle
-                    cx={box.x + 2.2}
-                    cy={box.y + 2.2}
-                    r="1.3"
-                    fill={node.colorTag || '#D4A86A'}
+                    cx={box.x + 2.4}
+                    cy={box.y + 2.4}
+                    r="1.45"
+                    fill="#841E24"
                   />
                   <text
-                    x={box.x + 2.2}
-                    y={box.y + 2.6}
+                    x={box.x + 2.4}
+                    y={box.y + 2.85}
                     textAnchor="middle"
-                    fontSize="0.8"
-                    fontWeight="bold"
-                    fill="#0F141F"
+                    fontSize="0.95"
+                    fontWeight="700"
+                    fill="#FFFFFF"
                   >
                     {roomNumber}
                   </text>
                   <text
                     x={box.x + box.width / 2}
-                    y={box.y + box.height / 2 + 0.35}
+                    y={box.height > 14 ? box.y + box.height / 2 + 1.2 : box.y + box.height - 2.0}
                     textAnchor="middle"
-                    fontSize="0.85"
+                    fontSize={box.width < 9 ? '0.8' : '0.88'}
                     fontWeight="500"
                     fill="#F1F5F9"
                   >
@@ -1135,13 +1249,29 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 />
               </pattern>
 
+              <pattern id="octagon-hatch" width="2" height="2" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="2" stroke={isLight ? 'rgba(180, 83, 9, 0.35)' : 'rgba(212, 168, 106, 0.35)'} strokeWidth="0.25" />
+              </pattern>
+
+              <marker
+                id="tour-arrow"
+                viewBox="0 0 10 10"
+                refX="6"
+                refY="5"
+                markerWidth="2.4"
+                markerHeight="2.4"
+                orient="auto"
+              >
+                <path d="M 0 1.8 L 7.5 5 L 0 8.2 Z" fill={isLight ? '#475569' : '#94A3B8'} />
+              </marker>
+
               <marker
                 id="edge-arrow-active"
                 viewBox="0 0 10 10"
                 refX="6"
                 refY="5"
-                markerWidth="3"
-                markerHeight="3"
+                markerWidth="3.2"
+                markerHeight="3.2"
                 orient="auto"
               >
                 <path d="M 0 1.5 L 8 5 L 0 8.5 Z" fill={isLight ? '#B45309' : '#D4A86A'} />
@@ -1172,9 +1302,52 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 transition: isPanning ? 'none' : 'transform 0.18s ease-out'
               }}
             >
-              {/* 1. SÂN VƯỜN NỘI VIỆN */}
+              {/* === LỚP 0: NỀN TẢNG KIẾN TRÚC MẶT BẰNG BẢO TÀNG === */}
+              <rect
+                x="23.5"
+                y="64.5"
+                width="67.0"
+                height="11.5"
+                rx="1.5"
+                fill={isLight ? '#EDE8DD' : '#101726'}
+                stroke={isLight ? '#D6CEBE' : 'rgba(255, 255, 255, 0.08)'}
+                strokeWidth="0.4"
+              />
+              <rect
+                x="23.5"
+                y="54.5"
+                width="11.5"
+                height="12.5"
+                rx="1.2"
+                fill={isLight ? '#EDE8DD' : '#101726'}
+                stroke={isLight ? '#D6CEBE' : 'rgba(255, 255, 255, 0.08)'}
+                strokeWidth="0.4"
+              />
+              <rect
+                x="78.5"
+                y="54.5"
+                width="19.0"
+                height="12.5"
+                rx="1.2"
+                fill={isLight ? '#EDE8DD' : '#101726'}
+                stroke={isLight ? '#D6CEBE' : 'rgba(255, 255, 255, 0.08)'}
+                strokeWidth="0.4"
+              />
+              <rect
+                x="32.5"
+                y="4.5"
+                width="55.8"
+                height="44.0"
+                rx="1.5"
+                fill={isLight ? '#EDE8DD' : '#101726'}
+                stroke={isLight ? '#D6CEBE' : 'rgba(255, 255, 255, 0.08)'}
+                strokeWidth="0.4"
+              />
+
+              {/* === LỚP 1: SÂN VƯỜN NỘI VIỆN (COURTYARD & MẶT NƯỚC RỐI NƯỚC) === */}
               {(() => {
                 const isSanVuonInNav = isNodeInRoute('node_san_vuon');
+                const isSelected = selectedNodeId === 'node_san_vuon';
                 return (
                   <g
                     style={{ cursor: 'pointer' }}
@@ -1184,44 +1357,111 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     }}
                   >
                     <rect
-                      x="42"
-                      y="21"
-                      width="29"
-                      height="18"
-                      rx="2"
-                      fill={isSanVuonInNav ? 'rgba(34, 197, 94, 0.12)' : isLight ? 'rgba(34, 197, 94, 0.08)' : 'rgba(34, 197, 94, 0.06)'}
-                      stroke={isSanVuonInNav ? '#D4A86A' : isLight ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.2)'}
-                      strokeWidth={isSanVuonInNav ? 0.6 : 0.3}
-                      strokeDasharray={isSanVuonInNav ? undefined : '1, 1'}
+                      x="41.0"
+                      y="19.0"
+                      width="32.6"
+                      height="22.9"
+                      rx="1.5"
+                      fill={isSanVuonInNav || isSelected ? 'rgba(34, 197, 94, 0.16)' : isLight ? '#F3EEE3' : '#141D2C'}
+                      stroke={isSanVuonInNav || isSelected ? '#22C55E' : isLight ? '#D3CAB8' : '#2D3A4F'}
+                      strokeWidth={isSanVuonInNav || isSelected ? 0.6 : 0.35}
                     />
-                    <circle cx="56.5" cy="30" r="3.2" fill={isLight ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.1)'} />
+                    <rect
+                      x="47.2"
+                      y="23.2"
+                      width="20.2"
+                      height="11.8"
+                      rx="1.2"
+                      fill="#78B833"
+                      stroke="#5D9224"
+                      strokeWidth="0.3"
+                    />
+                    <rect
+                      x="52.2"
+                      y="26.0"
+                      width="10.2"
+                      height="6.2"
+                      rx="0.8"
+                      fill="#3B82F6"
+                      fillOpacity="0.85"
+                      stroke="#1D4ED8"
+                      strokeWidth="0.25"
+                    />
                     <text
-                      x="56.5"
-                      y="29.8"
+                      x="57.3"
+                      y="21.5"
                       textAnchor="middle"
-                      fill={isLight ? '#15803D' : '#4ADE80'}
-                      fontSize="1.1"
-                      fontWeight="600"
+                      fill={isLight ? '#166534' : '#4ADE80'}
+                      fontSize="1.0"
+                      fontWeight="700"
                     >
                       SÂN VƯỜN NỘI VIỆN
                     </text>
                     <text
-                      x="56.5"
-                      y="32.0"
+                      x="57.3"
+                      y="30.0"
                       textAnchor="middle"
-                      fill={isLight ? '#16A34A' : '#86EFAC'}
+                      fill="#FFFFFF"
                       fontSize="0.75"
-                      opacity="0.85"
+                      fontWeight="600"
                     >
-                      Khuôn viên ngoài trời
+                      Hồ múa rối nước
                     </text>
                   </g>
                 );
               })()}
 
-              {/* 2. CỔNG 1 */}
+              {/* === LỚP 2: SẢNH BÁT GIÁC TRUNG TÂM (ROTUNDA) === */}
+              {(() => {
+                const isSanhInNav = isNodeInRoute('node_sanh');
+                const isSelected = selectedNodeId === 'node_sanh';
+                return (
+                  <g
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      setInternalSelectedNodeId('node_sanh');
+                      onNodeSelect?.('node_sanh');
+                    }}
+                  >
+                    <polygon
+                      points="54.1,51.8 59.7,51.8 64.0,56.1 64.0,61.9 59.7,66.2 54.1,66.2 49.8,61.9 49.8,56.1"
+                      fill={isSanhInNav || isSelected ? 'rgba(212, 168, 106, 0.3)' : isLight ? '#FBF3DF' : '#221A12'}
+                      stroke={isSanhInNav || isSelected ? '#C59B27' : '#D4A86A'}
+                      strokeWidth={isSanhInNav || isSelected ? 0.75 : 0.45}
+                    />
+                    <polygon
+                      points="54.1,51.8 59.7,51.8 64.0,56.1 64.0,61.9 59.7,66.2 54.1,66.2 49.8,61.9 49.8,56.1"
+                      fill="url(#octagon-hatch)"
+                      opacity="0.7"
+                    />
+                    <text
+                      x="56.9"
+                      y="58.5"
+                      textAnchor="middle"
+                      fill={isLight ? '#92400E' : '#E5C07B'}
+                      fontSize="0.95"
+                      fontWeight="700"
+                    >
+                      SẢNH BÁT GIÁC
+                    </text>
+                    <text
+                      x="56.9"
+                      y="60.4"
+                      textAnchor="middle"
+                      fill={isLight ? '#A16207' : '#D4A86A'}
+                      fontSize="0.7"
+                      fontWeight="500"
+                    >
+                      Khu vực đón tiếp
+                    </text>
+                  </g>
+                );
+              })()}
+
+              {/* === LỚP 3: CỔNG 1 (NGUYỄN BỈNH KHIÊM) & BẬC THANG ĐÓN TIẾP === */}
               {(() => {
                 const isCong1InNav = isNodeInRoute('node_cong_1');
+                const isSelected = selectedNodeId === 'node_cong_1';
                 return (
                   <g
                     style={{ cursor: 'pointer' }}
@@ -1230,51 +1470,50 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       onNodeSelect?.('node_cong_1');
                     }}
                   >
-                    <rect
-                      x="46"
-                      y="87"
-                      width="8"
-                      height="6"
-                      rx="1.2"
-                      fill={isCong1InNav ? 'rgba(212, 168, 106, 0.14)' : isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.04)'}
-                      stroke={isCong1InNav ? '#D4A86A' : selectedNodeId === 'node_cong_1' ? '#D4A86A' : isLight ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.18)'}
-                      strokeWidth={isCong1InNav || selectedNodeId === 'node_cong_1' ? '0.55' : '0.3'}
-                    />
+                    <line x1="52.0" y1="83.8" x2="61.6" y2="83.8" stroke={isLight ? '#94A3B8' : '#475569'} strokeWidth="0.3" />
+                    <line x1="52.5" y1="85.2" x2="61.1" y2="85.2" stroke={isLight ? '#94A3B8' : '#475569'} strokeWidth="0.3" />
+                    <line x1="53.0" y1="86.6" x2="60.6" y2="86.6" stroke={isLight ? '#94A3B8' : '#475569'} strokeWidth="0.3" />
+
+                    <rect x="53.4" y="80.6" width="1.6" height="3.0" rx="0.3" fill="#D94638" />
+                    <rect x="58.6" y="80.6" width="1.6" height="3.0" rx="0.3" fill="#D94638" />
+
+                    <rect x="63.8" y="78.8" width="4.0" height="4.0" rx="0.5" fill="#EA580C" stroke="#C2410C" strokeWidth="0.25" />
+                    <text x="65.8" y="81.4" textAnchor="middle" fill="#FFFFFF" fontSize="0.65" fontWeight="700">
+                      Vé
+                    </text>
+
+                    <line x1="56.8" y1="87.0" x2="56.8" y2="78.5" stroke="#D4A86A" strokeWidth="0.45" markerEnd="url(#edge-arrow-active)" />
+
+                    <circle cx="56.8" cy="74.5" r="1.7" fill="none" stroke="#DC2626" strokeWidth="0.4" />
+                    <circle cx="56.8" cy="74.5" r="0.75" fill="#DC2626" />
+
                     <text
-                      x="50"
-                      y="90.2"
+                      x="56.8"
+                      y="89.5"
                       textAnchor="middle"
-                      fill={isCong1InNav ? '#D4A86A' : isLight ? '#475569' : '#CBD5E1'}
-                      fontSize="1.1"
-                      fontWeight="600"
+                      fill={isSelected || isCong1InNav ? '#D4A86A' : isLight ? '#1E293B' : '#F1F5F9'}
+                      fontSize="1.0"
+                      fontWeight="700"
                     >
-                      CỔNG 1
+                      CỔNG 1 (Gate 1)
                     </text>
                     <text
-                      x="50"
-                      y="91.8"
+                      x="56.8"
+                      y="91.2"
                       textAnchor="middle"
                       fill={isLight ? '#64748B' : '#94A3B8'}
-                      fontSize="0.72"
+                      fontSize="0.7"
                     >
                       Nguyễn Bỉnh Khiêm
                     </text>
-                    <line
-                      x1="50"
-                      y1="86.8"
-                      x2="50"
-                      y2="84.2"
-                      stroke="#D4A86A"
-                      strokeWidth="0.35"
-                      strokeDasharray="1, 0.8"
-                    />
                   </g>
                 );
               })()}
 
-              {/* 3. CỔNG 2 */}
+              {/* === LỚP 4: CỔNG 2 (THẢO CẦM VIÊN) & NHÀ MÁI ĐỎ === */}
               {(() => {
                 const isCong2InNav = isNodeInRoute('node_cong_2');
+                const isSelected = selectedNodeId === 'node_cong_2';
                 return (
                   <g
                     style={{ cursor: 'pointer' }}
@@ -1284,31 +1523,36 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     }}
                   >
                     <rect
-                      x="9"
-                      y="28"
-                      width="12"
-                      height="8"
+                      x="9.4"
+                      y="22.6"
+                      width="8.1"
+                      height="11.6"
                       rx="1.2"
-                      fill={isCong2InNav ? 'rgba(212, 168, 106, 0.14)' : 'rgba(255, 255, 255, 0.04)'}
-                      stroke={isCong2InNav ? '#D4A86A' : selectedNodeId === 'node_cong_2' ? '#D4A86A' : 'rgba(255, 255, 255, 0.18)'}
-                      strokeWidth={isCong2InNav || selectedNodeId === 'node_cong_2' ? '0.55' : '0.3'}
+                      fill="#BA2227"
+                      stroke="#8C171C"
+                      strokeWidth="0.4"
                     />
-                    <text
-                      x="15"
-                      y="32.0"
-                      textAnchor="middle"
-                      fill={isCong2InNav ? '#D4A86A' : isLight ? '#334155' : '#CBD5E1'}
-                      fontSize="1.05"
-                      fontWeight="600"
-                    >
+                    <text x="13.4" y="27.0" textAnchor="middle" fill="#FFFFFF" fontSize="0.85" fontWeight="700">
                       CỔNG 2
                     </text>
+                    <text x="13.4" y="29.0" textAnchor="middle" fill="#FFD2D5" fontSize="0.65">
+                      Gate 2
+                    </text>
+
+                    <rect x="11.4" y="35.5" width="4.0" height="4.0" rx="0.5" fill="#EA580C" stroke="#C2410C" strokeWidth="0.25" />
+                    <text x="13.4" y="38.0" textAnchor="middle" fill="#FFFFFF" fontSize="0.65" fontWeight="700">
+                      Vé
+                    </text>
+
+                    <line x1="18.0" y1="28.4" x2="32.5" y2="28.4" stroke="#D4A86A" strokeWidth="0.45" markerEnd="url(#edge-arrow-active)" />
+
                     <text
-                      x="15"
-                      y="33.8"
+                      x="13.4"
+                      y="42.0"
                       textAnchor="middle"
-                      fill={isLight ? '#64748B' : '#94A3B8'}
-                      fontSize="0.72"
+                      fill={isSelected || isCong2InNav ? '#D4A86A' : isLight ? '#1E293B' : '#CBD5E1'}
+                      fontSize="0.75"
+                      fontWeight="600"
                     >
                       Thảo Cầm Viên
                     </text>
@@ -1316,178 +1560,56 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                 );
               })()}
 
-              {/* 4. SẢNH BÁT GIÁC */}
-              {(() => {
-                const isSanhInNav = isNodeInRoute('node_sanh');
-                return (
-                  <g
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => {
-                      setInternalSelectedNodeId('node_sanh');
-                      onNodeSelect?.('node_sanh');
-                    }}
-                  >
-                    <circle
-                      cx="50"
-                      cy="66.5"
-                      r="5.5"
-                      fill={isSanhInNav ? 'rgba(212, 168, 106, 0.2)' : isLight ? 'rgba(212, 168, 106, 0.12)' : 'rgba(212, 168, 106, 0.1)'}
-                      stroke={isSanhInNav ? '#D4A86A' : selectedNodeId === 'node_sanh' ? '#D4A86A' : '#D4A86A'}
-                      strokeWidth={isSanhInNav || selectedNodeId === 'node_sanh' ? '0.6' : '0.35'}
-                      strokeDasharray={isSanhInNav ? undefined : '1.2, 0.8'}
-                    />
-                    <text
-                      x="50"
-                      y="66.0"
-                      textAnchor="middle"
-                      fill={isLight ? '#B45309' : '#D4A86A'}
-                      fontSize="0.95"
-                      fontWeight="600"
-                    >
-                      SẢNH
-                    </text>
-                    <text
-                      x="50"
-                      y="67.8"
-                      textAnchor="middle"
-                      fill={isLight ? '#64748B' : '#CBD5E1'}
-                      fontSize="0.72"
-                    >
-                      Bát Giác
-                    </text>
-                  </g>
-                );
-              })()}
+              {/* === LỚP 5: CÁC MŨI TÊN HƯỚNG THAM QUAN (CHẾ TÁC THEO POSTER GỐC) === */}
+              {AUTHENTIC_TOUR_FLOW_ARROWS.map((arrow, aIdx) => (
+                <line
+                  key={`tour_arrow_${aIdx}`}
+                  x1={arrow.x1}
+                  y1={arrow.y1}
+                  x2={arrow.x2}
+                  y2={arrow.y2}
+                  stroke={isLight ? '#475569' : '#64748B'}
+                  strokeWidth="0.32"
+                  markerEnd="url(#tour-arrow)"
+                  opacity="0.85"
+                />
+              ))}
 
-              {/* 5. CÁC ĐƯỜNG KẾT NỐI (EDGES) */}
-              {sanitizedEdges.map((edge) => {
-                const nodeFrom = floorPlan.nodes.find((n) => n.id === edge.fromNodeId);
-                const nodeTo = floorPlan.nodes.find((n) => n.id === edge.toNodeId);
-                if (!nodeFrom || !nodeTo) return null;
-
-                const isOutgoing = activeNode && edge.fromNodeId === activeNode.id;
-                const isIncoming = activeNode && edge.toNodeId === activeNode.id;
-                const isConnectedToActive = isOutgoing || isIncoming;
-
-                if (edge.isReturn && !isOutgoing) return null;
-
-                const boxFrom = getNodeBox(nodeFrom);
-                const boxTo = getNodeBox(nodeTo);
-                const geom = getEdgeGeometry(boxFrom, boxTo);
-                const dirLabel = getDirShortLabel(edge.direction);
-
-                return (
-                  <g
-                    key={edge.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => {
-                      setInternalSelectedNodeId(edge.toNodeId);
-                      onNodeSelect?.(edge.toNodeId);
-                    }}
-                  >
-                    <line
-                      x1={geom.x1}
-                      y1={geom.y1}
-                      x2={geom.x2}
-                      y2={geom.y2}
-                      stroke={
-                        isConnectedToActive
-                          ? isLight ? '#B45309' : '#D4A86A'
-                          : isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.25)'
-                      }
-                      strokeWidth={isConnectedToActive ? 0.65 : 0.3}
-                      strokeDasharray={isConnectedToActive ? '2.0, 1.0' : '1.4, 1.4'}
-                      markerEnd={isConnectedToActive ? 'url(#edge-arrow-active)' : 'url(#edge-arrow-default)'}
-                      opacity={isConnectedToActive ? 1 : 0.6}
-                    />
-
-                    {isOutgoing && dirLabel && (
-                      <g transform={`translate(${geom.midX}, ${geom.midY})`}>
-                        <rect
-                          x="-3.6"
-                          y="-1.1"
-                          width="7.2"
-                          height="2.2"
-                          rx="0.4"
-                          fill={isLight ? '#FFFFFF' : '#111622'}
-                          stroke={isLight ? 'rgba(180, 83, 9, 0.35)' : 'rgba(212, 168, 106, 0.4)'}
-                          strokeWidth="0.2"
-                        />
-                        <text
-                          x="0"
-                          y="0.4"
-                          textAnchor="middle"
-                          fontSize="0.8"
-                          fontWeight="600"
-                          fill={isLight ? '#B45309' : '#D4A86A'}
-                        >
-                          {dirLabel}
-                        </text>
-                      </g>
-                    )}
-                  </g>
-                );
-              })}
-
-              {/* 5b. ĐƯỜNG DẪN LỘ TRÌNH (TINH TẾ, KHÔNG MÀU MÈ) */}
+              {/* === LỚP 6: ĐƯỜNG DẪN LỘ TRÌNH ĐANG TÌM KIẾM (A* ROUTE) === */}
               {navPathD && (
                 <path
                   d={navPathD}
                   fill="none"
                   stroke="#D4A86A"
-                  strokeWidth="0.75"
+                  strokeWidth="0.8"
                   className="ifp-svg-nav-path"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               )}
 
-              {/* Điểm xuất phát (pin marker tinh tế) */}
+              {/* Điểm xuất phát (Start Pin) */}
               {navStartPt && (
                 <g>
-                  <circle
-                    cx={navStartPt.x}
-                    cy={navStartPt.y}
-                    r="2.2"
-                    fill="none"
-                    stroke="#D4A86A"
-                    strokeWidth="0.4"
-                  />
-                  <circle
-                    cx={navStartPt.x}
-                    cy={navStartPt.y}
-                    r="1.2"
-                    fill="#D4A86A"
-                  />
+                  <circle cx={navStartPt.x} cy={navStartPt.y} r="2.2" fill="none" stroke="#D4A86A" strokeWidth="0.4" />
+                  <circle cx={navStartPt.x} cy={navStartPt.y} r="1.1" fill="#D4A86A" />
                 </g>
               )}
 
-              {/* Điểm đến (pin marker tinh tế) */}
+              {/* Điểm đến (Destination Pin) */}
               {navEndPt && (
                 <g>
-                  <circle
-                    cx={navEndPt.x}
-                    cy={navEndPt.y}
-                    r="2.2"
-                    fill="none"
-                    stroke="#E2E8F0"
-                    strokeWidth="0.4"
-                  />
-                  <circle
-                    cx={navEndPt.x}
-                    cy={navEndPt.y}
-                    r="1.2"
-                    fill="#E2E8F0"
-                  />
+                  <circle cx={navEndPt.x} cy={navEndPt.y} r="2.2" fill="none" stroke="#E2E8F0" strokeWidth="0.4" />
+                  <circle cx={navEndPt.x} cy={navEndPt.y} r="1.1" fill="#E2E8F0" />
                 </g>
               )}
 
-              {/* 6. CÁC GIAN PHÒNG (NODES) - RÕ RÀNG, ĐẦY ĐỦ KHÔNG BỊ LÀM TỐI */}
-              {floorPlan.nodes.map((node, nodeIdx) => {
-                const isSelected = activeNode?.id === node.id;
+              {/* === LỚP 7: CÁC GIAN PHÒNG TRƯNG BÀY (18 GIAN THEO SƠ ĐỒ GỐC) === */}
+              {displayRooms.map((node, nodeIdx) => {
+                const isSelected = selectedNodeId === node.id || (activeNode && activeNode.id === node.id);
                 const isHovered = hoveredNodeId === node.id;
                 const box = getNodeBox(node);
-                const roomNumber = getNodeDisplayNumber(node, nodeIdx);
+                const roomNumber = node.heritageNum || getNodeDisplayNumber(node, nodeIdx);
                 const shortName = getShortNodeName(node.name);
 
                 const stepIdx = getNodeStepIndex(node.id);
@@ -1509,35 +1631,35 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    {/* Hộp phòng */}
+                    {/* Khối phòng trưng bày */}
                     <rect
                       x={box.x}
                       y={box.y}
                       width={box.width}
                       height={box.height}
-                      rx="1.4"
+                      rx="1.0"
                       fill={
                         isSelected
-                          ? isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(26, 35, 50, 0.96)'
+                          ? isLight ? '#FFFDF0' : '#2A2318'
                           : isInNav
-                          ? isLight ? 'rgba(254, 249, 235, 0.95)' : 'rgba(22, 30, 44, 0.94)'
+                          ? isLight ? '#FEF9EC' : '#221C16'
                           : isHovered
-                          ? isLight ? 'rgba(248, 250, 252, 0.95)' : 'rgba(20, 27, 40, 0.92)'
-                          : isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 20, 30, 0.88)'
+                          ? isLight ? '#F8FAFC' : '#1E293B'
+                          : isLight ? '#FFFDF6' : '#151E2D'
                       }
                       stroke={
                         isSelected
-                          ? isLight ? '#B45309' : '#D4A86A'
+                          ? '#C59B27'
                           : isInNav
                           ? '#D4A86A'
                           : isHovered
                           ? isLight ? '#94A3B8' : '#64748B'
-                          : isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'
+                          : isLight ? '#3D3935' : '#455570'
                       }
-                      strokeWidth={isSelected || isInNav ? 0.6 : 0.28}
+                      strokeWidth={isSelected ? 0.8 : isInNav ? 0.65 : 0.35}
                     />
 
-                    {/* Badge số chặng trên lộ trình */}
+                    {/* Số thứ tự chặng khi dẫn đường */}
                     {isInNav && !isNavStart && !isNavEnd && (
                       <g transform={`translate(${box.x + box.width - 2.8}, ${box.y + box.height - 2.8})`}>
                         <circle cx="1.2" cy="1.2" r="1.15" fill="#D4A86A" />
@@ -1546,7 +1668,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                           y="1.55"
                           fill="#0B0F19"
                           fontSize="0.75"
-                          fontWeight="600"
+                          fontWeight="700"
                           textAnchor="middle"
                         >
                           {stepIdx + 1}
@@ -1554,51 +1676,37 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       </g>
                     )}
 
-                    {/* Badge số phòng */}
+                    {/* Badge số thứ tự phòng chuẩn theo Poster Gốc */}
                     <circle
-                      cx={box.width < 9 ? box.x + box.width / 2 : box.x + 2.2}
-                      cy={box.width < 9 ? box.y + 2.3 : box.y + 2.2}
-                      r="1.25"
-                      fill={isSelected ? (isLight ? '#B45309' : '#D4A86A') : isLight ? '#E2E8F0' : '#232D3F'}
+                      cx={box.x + 2.4}
+                      cy={box.y + 2.4}
+                      r="1.45"
+                      fill={isSelected ? '#C59B27' : '#841E24'}
                     />
                     <text
-                      x={box.width < 9 ? box.x + box.width / 2 : box.x + 2.2}
-                      y={box.width < 9 ? box.y + 2.7 : box.y + 2.65}
-                      fill={isSelected ? '#FFFFFF' : isLight ? '#334155' : '#CBD5E1'}
-                      fontSize={box.width < 9 ? '0.85' : '0.95'}
-                      fontWeight="600"
+                      x={box.x + 2.4}
+                      y={box.y + 2.85}
+                      fill="#FFFFFF"
+                      fontSize="0.95"
+                      fontWeight="700"
                       textAnchor="middle"
                     >
                       {roomNumber}
                     </text>
 
-                    {/* Mã phòng vắn tắt góc phải */}
-                    {box.width >= 10 && (!node.roomId || !isRoomValid(node.roomId)) && (
-                      <text
-                        x={box.x + box.width - 1.2}
-                        y={box.y + 2.6}
-                        fill={isSelected ? (isLight ? '#B45309' : '#D4A86A') : isLight ? '#64748B' : '#94A3B8'}
-                        fontSize="0.75"
-                        fontWeight="500"
-                        textAnchor="end"
-                      >
-                        {node.code}
-                      </text>
-                    )}
-
-                    {/* Chỉ báo 360 */}
+                    {/* Chỉ báo 360° nếu phòng đã được gán tour thực tế */}
                     {node.roomId && isRoomValid(node.roomId) && (
                       <g transform={`translate(${box.x + box.width - 3.2}, ${box.y + 1.2})`}>
                         <rect
-                          width="2.4"
+                          width="2.5"
                           height="1.3"
                           rx="0.3"
-                          fill="rgba(212, 168, 106, 0.2)"
-                          stroke="rgba(212, 168, 106, 0.5)"
+                          fill="rgba(212, 168, 106, 0.25)"
+                          stroke="rgba(212, 168, 106, 0.6)"
                           strokeWidth="0.2"
                         />
                         <text
-                          x="1.2"
+                          x="1.25"
                           y="0.95"
                           fill="#D4A86A"
                           fontSize="0.65"
@@ -1613,10 +1721,10 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                     {/* Tên gian phòng */}
                     <text
                       x={box.x + box.width / 2}
-                      y={box.height > 12 ? box.y + box.height / 2 + 1.2 : box.y + box.height - 1.8}
-                      fill={isSelected ? (isLight ? '#0F172A' : '#FFFFFF') : isLight ? '#334155' : '#E2E8F0'}
-                      fontSize={box.width < 9 ? '0.8' : '0.9'}
-                      fontWeight={isSelected ? '600' : '400'}
+                      y={box.height > 14 ? box.y + box.height / 2 + 1.2 : box.y + box.height - 2.0}
+                      fill={isSelected ? (isLight ? '#0F172A' : '#FFFFFF') : isLight ? '#1E293B' : '#E2E8F0'}
+                      fontSize={box.width < 9 ? '0.8' : '0.88'}
+                      fontWeight={isSelected ? '700' : '500'}
                       textAnchor="middle"
                     >
                       {shortName}
@@ -2333,6 +2441,61 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
             )}
           </div>
         )}
+      </div>
+
+      {/* 7. CHÂN TRANG DANH MỤC 18 GIAN PHÒNG TRƯNG BÀY (CHẾ TÁC THEO POSTER GỐC HÌNH 2) */}
+      <div className="ifp-heritage-legend">
+        <div className="ifp-heritage-legend-header">
+          <div className="ifp-heritage-legend-title">
+            <span className="ifp-heritage-legend-dot" />
+            <span>
+              {langKey === 'en'
+                ? 'MUSEUM VISIT MAP - 18 EXHIBITION ROOMS'
+                : langKey === 'fr'
+                ? 'PLAN DE VISITE DU MUSÉE - 18 SALLES D\'EXPOSITION'
+                : langKey === 'zh'
+                ? '博物馆参观平面图 - 18个展厅'
+                : langKey === 'ja'
+                ? '館内案内図 - 18の展示室'
+                : 'SƠ ĐỒ THAM QUAN - 18 GIAN PHÒNG TRƯNG BÀY'}
+            </span>
+          </div>
+          <span className="ifp-heritage-legend-hint">
+            {langKey === 'en'
+              ? 'Click any room to view route, 360° tour and voice AI guide'
+              : 'Bấm vào từng phòng để xem lộ trình, không gian 360° và nghe thuyết minh'}
+          </span>
+        </div>
+
+        <div className="ifp-heritage-legend-grid">
+          {displayRooms.map((item: any) => {
+            const isSelected = selectedNodeId === item.id || selectedNodeId === item.code;
+            const has360 = item.roomId && isRoomValid(item.roomId);
+            const num = item.heritageNum || 0;
+
+            return (
+              <div
+                key={item.id}
+                className={`ifp-heritage-legend-item ${isSelected ? 'active' : ''}`}
+                onClick={() => {
+                  setInternalSelectedNodeId(item.id);
+                  onNodeSelect?.(item.id);
+                }}
+              >
+                <div className="ifp-heritage-legend-num">{num}</div>
+                <div className="ifp-heritage-legend-info">
+                  <div className="ifp-heritage-legend-name">
+                    <span>{langKey === 'en' && item.heritageNameEn ? item.heritageNameEn : (item.heritageNameVi || item.name)}</span>
+                    {has360 && <span className="ifp-heritage-legend-360">360°</span>}
+                  </div>
+                  <div className="ifp-heritage-legend-period">
+                    {item.heritagePeriod || item.period || 'Khu vực trưng bày số hóa'}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Modal Xem Ảnh Sơ Đồ Gốc */}
