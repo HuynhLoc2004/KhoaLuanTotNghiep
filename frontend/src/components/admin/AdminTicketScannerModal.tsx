@@ -5,19 +5,17 @@ import {
   Camera,
   RefreshCw,
   Upload,
-  AlertTriangle,
-  CheckCircle2,
   QrCode,
   Zap,
   ZapOff,
-  User,
-  Calendar,
-  Clock,
-  Tag,
+  ArrowRight,
+  Keyboard,
   ShieldCheck,
   ShieldAlert,
-  ArrowRight,
-  Keyboard
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  FileImage
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -57,6 +55,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
 
   const [isScanning, setIsScanning] = useState<boolean>(true);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [isCheckingInManual, setIsCheckingInManual] = useState<boolean>(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
@@ -82,7 +81,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
     } catch {}
   };
 
-  // Âm thanh cảnh báo gian lận / lỗi
+  // Âm thanh cảnh báo lỗi
   const playErrorSound = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -104,7 +103,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
     } catch {}
   };
 
-  // Bật/tắt camera khi mở modal
+  // Bật/tắt camera khi mở modal hoặc chuyển tab
   useEffect(() => {
     if (!isOpen) {
       stopCamera();
@@ -119,6 +118,8 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
 
     if (scanMode === 'camera') {
       startCamera();
+    } else {
+      stopCamera();
     }
 
     return () => {
@@ -150,29 +151,28 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           facingMode: { ideal: facingMode },
           width: { ideal: 1280 },
           height: { ideal: 720 }
-        },
-        audio: false
+        }
       };
 
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
 
+      // Kiểm tra hỗ trợ đèn Flash (Torch)
+      const track = mediaStream.getVideoTracks()[0];
+      if (track) {
+        const capabilities = (track.getCapabilities && track.getCapabilities()) || {};
+        setHasTorch(Boolean((capabilities as any).torch));
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         videoRef.current.setAttribute('playsinline', 'true');
-        await videoRef.current.play();
-      }
-
-      // Kiểm tra hỗ trợ đèn Flash
-      const track = mediaStream.getVideoTracks()[0];
-      const capabilities = track.getCapabilities?.() as any;
-      if (capabilities && capabilities.torch) {
-        setHasTorch(true);
+        videoRef.current.play().catch(() => {});
       }
     } catch (err: any) {
-      console.warn('[QR Scanner Camera Error]:', err.message);
-      setCameraError('Không thể mở Camera (Có thể chưa cấp quyền hoặc camera đang bị ứng dụng khác chiếm giữ).');
+      console.warn('[Camera Access Error]:', err);
       setIsLiveCameraSupported(false);
+      setCameraError('Không thể mở Camera (chưa cấp quyền hoặc đang bận). Vui lòng dùng tab Nhập mã hoặc Tải ảnh.');
       setScanMode('manual');
     }
   };
@@ -188,65 +188,71 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
   const toggleTorch = async () => {
     if (!stream || !hasTorch) return;
     const track = stream.getVideoTracks()[0];
-    try {
-      const nextTorch = !isTorchOn;
-      await (track as any).applyConstraints({
-        advanced: [{ torch: nextTorch }]
-      });
-      setIsTorchOn(nextTorch);
-    } catch {}
+    if (track) {
+      try {
+        const nextState = !isTorchOn;
+        await (track as any).applyConstraints({
+          advanced: [{ torch: nextState }]
+        });
+        setIsTorchOn(nextState);
+      } catch (err) {
+        console.warn('Cannot toggle torch:', err);
+      }
+    }
   };
 
-  // Quét vòng lặp frame từ video camera bằng jsQR
+  // Vòng lặp giải mã Video stream bằng jsQR
   useEffect(() => {
     let animationFrameId: number;
 
-    const scanFrame = () => {
+    const tick = () => {
       if (
-        !isScanning ||
-        isVerifying ||
-        result ||
-        !videoRef.current ||
-        !canvasRef.current ||
-        videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA
+        isOpen &&
+        scanMode === 'camera' &&
+        isScanning &&
+        !result &&
+        !isVerifying &&
+        videoRef.current &&
+        videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA
       ) {
-        animationFrameId = requestAnimationFrame(scanFrame);
-        return;
-      }
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (canvas) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'dontInvert'
+            });
 
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-      if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'dontInvert'
-        });
-
-        if (code && code.data) {
-          handleQRCodeDetected(code.data);
-          return;
+            if (code && code.data && code.data.trim()) {
+              handleQRCodeDetected(code.data.trim());
+              return;
+            }
+          }
         }
       }
 
-      animationFrameId = requestAnimationFrame(scanFrame);
+      if (isOpen && scanMode === 'camera' && isScanning && !result) {
+        animationFrameId = requestAnimationFrame(tick);
+      }
     };
 
-    if (isOpen && isScanning && !result && scanMode === 'camera') {
-      animationFrameId = requestAnimationFrame(scanFrame);
+    if (isOpen && scanMode === 'camera' && isScanning && !result) {
+      animationFrameId = requestAnimationFrame(tick);
     }
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
-  }, [isOpen, isScanning, isVerifying, result, scanMode]);
+  }, [isOpen, scanMode, isScanning, result, isVerifying]);
 
-  // Xử lý khi bắt được dữ liệu QR
+  // Xử lý gửi mã QR lên API để đối chiếu kiểm tra
   const handleQRCodeDetected = async (rawData: string) => {
     if (isVerifying || !rawData.trim()) return;
     setIsScanning(false);
@@ -276,9 +282,8 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
     }
   };
 
-  // Quét qua file ảnh upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // Xử lý file ảnh upload
+  const processUploadedFile = (file: File) => {
     if (!file) return;
 
     const reader = new FileReader();
@@ -308,6 +313,12 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processUploadedFile(file);
     e.target.value = '';
   };
 
@@ -324,8 +335,37 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
     setIsScanning(true);
     setIsVerifying(false);
     setManualCode('');
-    if (manualInputRef.current) {
+    if (scanMode === 'manual' && manualInputRef.current) {
       manualInputRef.current.focus();
+    }
+  };
+
+  // Soát vé thủ công nếu người dùng bỏ tích 'Tự động duyệt vào cổng'
+  const handleManualCheckin = async () => {
+    if (!result?.ticket?.ticketCode || isCheckingInManual) return;
+    setIsCheckingInManual(true);
+    try {
+      const res = await api.adminCheckinTicket(result.ticket.ticketCode);
+      playSuccessSound();
+      setResult({
+        ...result,
+        valid: true,
+        reason: 'CHECKED_IN_SUCCESS',
+        message: res.message || `Đã soát vé thành công cho mã vé ${result.ticket.ticketCode}. Khách được phép vào cổng!`,
+        ticket: {
+          ...result.ticket,
+          status: 'used',
+          checkedInAt: new Date().toISOString()
+        }
+      });
+      if (onTicketCheckedIn) {
+        onTicketCheckedIn();
+      }
+    } catch (err: any) {
+      playErrorSound();
+      alert(err.message || 'Lỗi khi soát vé vào cổng');
+    } finally {
+      setIsCheckingInManual(false);
     }
   };
 
@@ -345,8 +385,8 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                background: 'rgba(212, 175, 55, 0.12)',
-                color: 'var(--accent-gold, #D4AF37)',
+                background: 'rgba(212, 168, 106, 0.12)',
+                color: '#D4A86A',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -356,17 +396,17 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
               <QrCode size={17} />
             </div>
             <div>
-              <h3 style={{ fontSize: 14.5, fontWeight: 600, margin: 0, color: 'var(--heading-color)' }}>
+              <h3 style={{ fontSize: 14.5, fontWeight: 600, margin: 0, color: '#F3F4F6' }}>
                 Soát vé tham quan qua mã QR
               </h3>
-              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0 }}>
+              <p style={{ fontSize: 11.5, color: '#9CA3AF', margin: 0 }}>
                 Hệ thống kiểm tra tính hợp lệ & chống gian lận
               </p>
             </div>
           </div>
 
           <button type="button" className="btn-close-modal" onClick={onClose} aria-label="Đóng">
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
@@ -402,7 +442,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
               className={`scanner-pill-btn ${scanMode === 'upload' ? 'active' : ''}`}
               onClick={() => {
                 setScanMode('upload');
-                fileInputRef.current?.click();
+                handleScanNext();
               }}
             >
               <Upload size={13} />
@@ -428,272 +468,324 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           </label>
         </div>
 
-        {/* Body Modal */}
+        {/* Body Modal (Cố định chiều cao và bố cục, triệt tiêu co rút) */}
         <div className="scanner-modal-body">
           {/* 1. MÀN HÌNH KẾT QUẢ SOÁT VÉ */}
           {result ? (
-            <div>
-              {/* Banner trạng thái tinh tế, không chói mắt */}
-              <div
-                className="scanner-status-banner"
-                style={{
-                  background: result.valid
-                    ? 'rgba(16, 185, 129, 0.08)'
-                    : result.reason === 'ALREADY_USED'
-                    ? 'rgba(239, 68, 68, 0.08)'
-                    : 'rgba(245, 158, 11, 0.08)',
-                  border: `1px solid ${
-                    result.valid
-                      ? 'rgba(16, 185, 129, 0.25)'
-                      : result.reason === 'ALREADY_USED'
-                      ? 'rgba(239, 68, 68, 0.25)'
-                      : 'rgba(245, 158, 11, 0.25)'
-                  }`
-                }}
-              >
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+              <div>
+                {/* Banner trạng thái chuẩn màu Admin */}
                 <div
-                  className="scanner-status-icon-wrap"
+                  className="scanner-status-banner"
                   style={{
                     background: result.valid
-                      ? 'rgba(16, 185, 129, 0.15)'
+                      ? 'rgba(16, 185, 129, 0.08)'
                       : result.reason === 'ALREADY_USED'
-                      ? 'rgba(239, 68, 68, 0.15)'
-                      : 'rgba(245, 158, 11, 0.15)',
-                    color: result.valid
-                      ? '#10B981'
-                      : result.reason === 'ALREADY_USED'
-                      ? '#EF4444'
-                      : '#F59E0B'
+                      ? 'rgba(239, 68, 68, 0.08)'
+                      : 'rgba(245, 158, 11, 0.08)',
+                    border: `1px solid ${
+                      result.valid
+                        ? 'rgba(16, 185, 129, 0.3)'
+                        : result.reason === 'ALREADY_USED'
+                        ? 'rgba(239, 68, 68, 0.3)'
+                        : 'rgba(245, 158, 11, 0.3)'
+                    }`
                   }}
                 >
-                  {result.valid ? (
-                    <ShieldCheck size={20} />
-                  ) : (
-                    <ShieldAlert size={20} />
-                  )}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
                   <div
+                    className="scanner-status-icon-wrap"
                     style={{
-                      fontSize: 14.5,
-                      fontWeight: 600,
+                      background: result.valid
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : result.reason === 'ALREADY_USED'
+                        ? 'rgba(239, 68, 68, 0.15)'
+                        : 'rgba(245, 158, 11, 0.15)',
                       color: result.valid
                         ? '#10B981'
                         : result.reason === 'ALREADY_USED'
                         ? '#EF4444'
-                        : '#F59E0B',
-                      marginBottom: 2
+                        : '#F59E0B'
                     }}
                   >
-                    {result.valid
-                      ? 'Vé hợp lệ — Đã soát vé vào cổng'
-                      : result.reason === 'ALREADY_USED'
-                      ? 'Vé đã được sử dụng trước đó'
-                      : result.reason === 'EXPIRED'
-                      ? 'Vé đã quá hạn sử dụng'
-                      : result.reason === 'FUTURE_DATE'
-                      ? 'Vé chưa đến ngày tham quan'
-                      : result.reason === 'CANCELLED'
-                      ? 'Vé đã bị hủy'
-                      : result.reason === 'UNPAID'
-                      ? 'Vé chưa thanh toán'
-                      : 'Vé không hợp lệ hoặc không tồn tại'}
+                    {result.valid ? (
+                      <CheckCircle2 size={19} />
+                    ) : result.reason === 'ALREADY_USED' ? (
+                      <XCircle size={19} />
+                    ) : (
+                      <AlertCircle size={19} />
+                    )}
                   </div>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                    {result.message?.replace(/^(VÉ ĐÃ QUÁ HẠN|VÉ HỢP LỆ|CẢNH BÁO|LỖI):\s*/i, '')}
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: result.valid
+                          ? '#10B981'
+                          : result.reason === 'ALREADY_USED'
+                          ? '#EF4444'
+                          : '#F59E0B',
+                        marginBottom: 3
+                      }}
+                    >
+                      {result.valid
+                        ? result.reason === 'CHECKED_IN_SUCCESS'
+                          ? 'Vé hợp lệ — Đã xác nhận vào cổng'
+                          : 'Vé hợp lệ — Sẵn sàng vào cổng'
+                        : result.reason === 'ALREADY_USED'
+                        ? 'Vé đã qua sử dụng'
+                        : result.reason === 'EXPIRED'
+                        ? 'Vé đã quá hạn sử dụng'
+                        : result.reason === 'FUTURE_DATE'
+                        ? 'Vé chưa đến ngày tham quan'
+                        : result.reason === 'CANCELLED'
+                        ? 'Vé đã bị hủy bỏ'
+                        : result.reason === 'UNPAID'
+                        ? 'Vé chưa thanh toán'
+                        : result.reason === 'VIETQR' || result.reason === 'ZALO' || result.reason === 'SOCIAL' || result.reason === 'EXTERNAL_URL'
+                        ? 'Mã QR không thuộc hệ thống vé'
+                        : result.reason === 'NOT_FOUND'
+                        ? 'Mã vé không tồn tại'
+                        : 'Mã QR không hợp lệ'}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#D1D5DB', lineHeight: 1.5 }}>
+                      {result.message}
+                    </div>
                   </div>
                 </div>
+
+                {/* Bảng thông tin chi tiết vé */}
+                {result.ticket && (
+                  <div className="scanner-ticket-card">
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+                      Thông tin vé tham quan
+                    </div>
+
+                    <div className="scanner-ticket-grid">
+                      <div className="scanner-grid-field">
+                        <span className="scanner-field-label">Mã vé</span>
+                        <span className="scanner-code-badge">
+                          {result.ticket.ticketCode}
+                        </span>
+                      </div>
+
+                      <div className="scanner-grid-field">
+                        <span className="scanner-field-label">Khách tham quan</span>
+                        <span className="scanner-field-value" style={{ fontWeight: 600 }}>
+                          {result.ticket.userName || 'Khách vãng lai'}
+                        </span>
+                        {result.ticket.userPhone && (
+                          <span style={{ fontSize: 11.5, color: '#9CA3AF' }}>{result.ticket.userPhone}</span>
+                        )}
+                      </div>
+
+                      <div className="scanner-grid-field">
+                        <span className="scanner-field-label">Loại vé</span>
+                        <span className="scanner-field-value">{result.ticket.ticketTitle}</span>
+                      </div>
+
+                      <div className="scanner-grid-field">
+                        <span className="scanner-field-label">Ngày tham quan</span>
+                        <span className="scanner-field-value" style={{ fontWeight: 500 }}>
+                          {result.ticket.visitDate || 'Trong ngày'}
+                        </span>
+                      </div>
+
+                      <div className="scanner-grid-field">
+                        <span className="scanner-field-label">Khung giờ</span>
+                        <span className="scanner-field-value">{result.ticket.timeSlot}</span>
+                      </div>
+
+                      <div className="scanner-grid-field">
+                        <span className="scanner-field-label">Trạng thái vé</span>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: result.ticket.status === 'used' ? '#EF4444' : '#10B981'
+                          }}
+                        >
+                          {result.ticket.status === 'used' ? 'Đã qua sử dụng' : 'Hợp lệ'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Bảng thông tin chi tiết vé */}
-              {result.ticket && (
-                <div className="scanner-ticket-card">
-                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
-                    Thông tin vé tham quan
-                  </div>
-
-                  <div className="scanner-ticket-grid">
-                    <div className="scanner-grid-field">
-                      <span className="scanner-field-label">Mã vé</span>
-                      <span className="scanner-code-badge">
-                        {result.ticket.ticketCode}
-                      </span>
-                    </div>
-
-                    <div className="scanner-grid-field">
-                      <span className="scanner-field-label">Khách tham quan</span>
-                      <span className="scanner-field-value" style={{ fontWeight: 600 }}>
-                        {result.ticket.userName || 'Khách vãng lai'}
-                      </span>
-                      {result.ticket.userPhone && (
-                        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{result.ticket.userPhone}</span>
-                      )}
-                    </div>
-
-                    <div className="scanner-grid-field">
-                      <span className="scanner-field-label">Loại vé</span>
-                      <span className="scanner-field-value">{result.ticket.ticketTitle}</span>
-                    </div>
-
-                    <div className="scanner-grid-field">
-                      <span className="scanner-field-label">Ngày tham quan</span>
-                      <span className="scanner-field-value" style={{ fontWeight: 500 }}>
-                        {result.ticket.visitDate || 'Trong ngày'}
-                      </span>
-                    </div>
-
-                    <div className="scanner-grid-field">
-                      <span className="scanner-field-label">Khung giờ</span>
-                      <span className="scanner-field-value">{result.ticket.timeSlot}</span>
-                    </div>
-
-                    <div className="scanner-grid-field">
-                      <span className="scanner-field-label">Số lượng & Thanh toán</span>
-                      <span className="scanner-field-value" style={{ fontWeight: 600 }}>
-                        {(result.ticket.totalAmount || 0).toLocaleString('vi-VN')} đ • {result.ticket.quantity || 1} người
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Nút tiếp tục quét vé kế tiếp */}
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleScanNext}
-                style={{
-                  width: '100%',
-                  height: 42,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  borderRadius: 8
-                }}
-              >
-                <span>Quét vé tiếp theo</span>
-                <ArrowRight size={15} />
-              </button>
-            </div>
-          ) : (
-            /* 2. KHU VỰC QUÉT LIVE HOẶC NHẬP MÃ */
-            <div>
-              {scanMode === 'camera' && (
-                <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: '#000' }}>
-                  <video
-                    ref={videoRef}
+              {/* Nút hành động */}
+              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                {result.valid && result.ticket?.status !== 'used' && (
+                  <button
+                    type="button"
+                    onClick={handleManualCheckin}
+                    disabled={isCheckingInManual}
                     style={{
-                      width: '100%',
-                      height: 270,
-                      maxHeight: '45vh',
-                      objectFit: 'cover',
-                      display: 'block'
-                    }}
-                  />
-                  <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-                  {/* Khung ngắm quét mã QR với hiệu ứng Laser */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: 180,
-                      height: 180,
-                      border: '2px solid rgba(212, 175, 55, 0.7)',
-                      borderRadius: 12,
-                      boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
-                      pointerEvents: 'none',
-                      overflow: 'hidden'
+                      flex: 1,
+                      height: 40,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderRadius: 6,
+                      background: '#10B981',
+                      border: 'none',
+                      color: '#FFFFFF',
+                      cursor: 'pointer'
                     }}
                   >
-                    {/* Tia laser quét */}
+                    <CheckCircle2 size={15} />
+                    <span>{isCheckingInManual ? 'Đang soát vé...' : 'Xác nhận vào cổng'}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleScanNext}
+                  style={{
+                    flex: 1,
+                    height: 40,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    borderRadius: 6,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>Quét vé tiếp theo</span>
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* 2. KHU VỰC CÁC TAB QUÉT */
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+              {/* Tab 1: Camera */}
+              {scanMode === 'camera' && (
+                <div className="scanner-camera-wrap">
+                  <div style={{ position: 'relative', width: '100%', height: 280, borderRadius: 8, overflow: 'hidden', background: '#000' }}>
+                    <video
+                      ref={videoRef}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
+                    />
+                    <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+                    {/* Khung ngắm quét mã QR với hiệu ứng Laser */}
                     <div
                       style={{
                         position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        height: 2,
-                        background: '#EF4444',
-                        boxShadow: '0 0 6px #EF4444',
-                        animation: 'scannerLaser 2s infinite ease-in-out'
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 170,
+                        height: 170,
+                        border: '2px solid rgba(212, 168, 106, 0.8)',
+                        borderRadius: 10,
+                        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
+                        pointerEvents: 'none',
+                        overflow: 'hidden'
                       }}
-                    />
-                  </div>
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          height: 2,
+                          background: '#EF4444',
+                          boxShadow: '0 0 6px #EF4444',
+                          animation: 'scannerLaser 2s infinite ease-in-out'
+                        }}
+                      />
+                    </div>
 
-                  {/* Nút điều khiển camera phụ */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 10,
-                      right: 10,
-                      display: 'flex',
-                      gap: 6,
-                      zIndex: 5
-                    }}
-                  >
-                    {hasTorch && (
+                    {/* Nút điều khiển camera phụ */}
+                    <div style={{ position: 'absolute', bottom: 10, right: 10, display: 'flex', gap: 6, zIndex: 5 }}>
+                      {hasTorch && (
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-secondary"
+                          onClick={toggleTorch}
+                          title={isTorchOn ? 'Tắt đèn Flash' : 'Bật đèn Flash'}
+                          style={{ background: 'rgba(0, 0, 0, 0.65)', color: isTorchOn ? '#D4A86A' : '#FFF' }}
+                        >
+                          {isTorchOn ? <Zap size={13} /> : <ZapOff size={13} />}
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         className="btn btn-xs btn-secondary"
-                        onClick={toggleTorch}
-                        title={isTorchOn ? 'Tắt đèn Flash' : 'Bật đèn Flash'}
-                        style={{ background: 'rgba(0, 0, 0, 0.65)', color: isTorchOn ? 'var(--accent-gold)' : '#FFF' }}
+                        onClick={() => setFacingMode(facingMode === 'environment' ? 'user' : 'environment')}
+                        title="Đổi camera trước/sau"
+                        style={{ background: 'rgba(0, 0, 0, 0.65)' }}
                       >
-                        {isTorchOn ? <Zap size={13} /> : <ZapOff size={13} />}
+                        <RefreshCw size={13} />
                       </button>
-                    )}
-
-                    <button
-                      type="button"
-                      className="btn btn-xs btn-secondary"
-                      onClick={() => setFacingMode(facingMode === 'environment' ? 'user' : 'environment')}
-                      title="Đổi camera trước/sau"
-                      style={{ background: 'rgba(0, 0, 0, 0.65)' }}
-                    >
-                      <RefreshCw size={13} />
-                    </button>
+                    </div>
                   </div>
+
+                  {!isVerifying && (
+                    <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: '#9CA3AF' }}>
+                      Hướng camera vào mã QR trên vé của khách tham quan để quét tự động.
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Chế độ nhập mã vé thủ công */}
+              {/* Tab 2: Nhập mã thủ công */}
               {scanMode === 'manual' && (
-                <form onSubmit={handleManualSubmit} style={{ padding: '8px 0' }}>
+                <form onSubmit={handleManualSubmit} className="scanner-manual-wrap">
+                  <div className="scanner-icon-circle">
+                    <Keyboard size={22} style={{ color: '#D4A86A' }} />
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#F3F4F6', marginBottom: 4 }}>
+                    Nhập mã vé hoặc quét mã vạch
+                  </div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 16, textAlign: 'center', maxWidth: 380 }}>
+                    Hỗ trợ nhập mã vé (VD: BTLS-2026-688D37) hoặc dùng đầu đọc súng quét barcode cắm cổng USB.
+                  </div>
+
                   {cameraError && (
                     <div
                       style={{
-                        padding: '10px 12px',
+                        padding: '8px 12px',
                         borderRadius: 6,
                         background: 'rgba(245, 158, 11, 0.08)',
                         border: '1px solid rgba(245, 158, 11, 0.25)',
                         color: '#F59E0B',
-                        fontSize: 12,
-                        marginBottom: 12
+                        fontSize: 11.5,
+                        marginBottom: 12,
+                        maxWidth: 420,
+                        textAlign: 'center'
                       }}
                     >
                       {cameraError}
                     </div>
                   )}
 
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, marginBottom: 8, color: 'var(--text-main)' }}>
-                    Nhập mã vé hoặc quét bằng máy đọc mã vạch (Barcode Scanner):
-                  </label>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <div style={{ width: '100%', maxWidth: 420, display: 'flex', gap: 8 }}>
                     <input
                       ref={manualInputRef}
                       type="text"
-                      placeholder="VD: BTLS-2026-688D37 hoặc dán nội dung QR..."
+                      placeholder="VD: BTLS-2026-688D37..."
                       className="form-control"
                       value={manualCode}
                       onChange={(e) => setManualCode(e.target.value)}
                       autoFocus
-                      style={{ fontSize: 13.5, fontFamily: 'monospace', flex: 1, minWidth: 200 }}
+                      style={{ fontSize: 13.5, fontFamily: 'monospace', flex: 1 }}
                     />
                     <button
                       type="submit"
@@ -704,41 +796,62 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                       {isVerifying ? 'Đang kiểm tra...' : 'Kiểm tra vé'}
                     </button>
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    💡 Hỗ trợ súng quét mã vạch USB/Bluetooth quét tự động.
-                  </div>
                 </form>
+              )}
+
+              {/* Tab 3: Tải ảnh QR lên */}
+              {scanMode === 'upload' && (
+                <div
+                  className="scanner-upload-dropzone"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const files = e.dataTransfer.files;
+                    if (files && files[0]) {
+                      processUploadedFile(files[0]);
+                    }
+                  }}
+                >
+                  <div className="scanner-icon-circle">
+                    <Upload size={22} style={{ color: '#D4A86A' }} />
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#F3F4F6', marginBottom: 4 }}>
+                    Tải ảnh mã QR vé tham quan
+                  </div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF', maxWidth: 360, textAlign: 'center', lineHeight: 1.5, marginBottom: 14 }}>
+                    Nhấp vào đây hoặc kéo thả ảnh chụp mã QR (JPG, PNG, WebP) để hệ thống nhận diện và đối chiếu.
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <FileImage size={13} />
+                    <span>Chọn ảnh từ thiết bị</span>
+                  </button>
+                </div>
               )}
 
               {/* Đang gửi dữ liệu kiểm tra */}
               {isVerifying && (
-                <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--primary)' }}>
-                  <RefreshCw size={18} className="spin" style={{ marginBottom: 6 }} />
-                  <div style={{ fontSize: 12.5, fontWeight: 500 }}>Đang kiểm tra vé và đối chiếu cơ sở dữ liệu...</div>
-                </div>
-              )}
-
-              {scanMode === 'camera' && !isVerifying && (
-                <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11.5, color: 'var(--text-muted)' }}>
-                  Hướng camera vào mã QR trên vé của khách tham quan.
+                <div style={{ textAlign: 'center', padding: '12px 0', color: '#D4A86A' }}>
+                  <RefreshCw size={17} className="spin" style={{ marginBottom: 4 }} />
+                  <div style={{ fontSize: 12, fontWeight: 500 }}>Đang kiểm tra vé và đối chiếu cơ sở dữ liệu...</div>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div
-          style={{
-            padding: '10px 18px',
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'rgba(0, 0, 0, 0.12)'
-          }}
-        >
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+        {/* Footer Modal */}
+        <div className="scanner-modal-footer">
+          <div style={{ fontSize: 11.5, color: '#9CA3AF' }}>
             Cổng soát vé Bảo tàng Lịch sử TP. Hồ Chí Minh
           </div>
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
@@ -754,36 +867,77 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           100% { top: 4px; opacity: 0.8; }
         }
 
+        .scanner-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1100;
+          padding: 16px;
+        }
+
+        /* Khung modal cố định kích thước 580x570px trên mọi tab */
         .scanner-modal-panel {
-          max-width: 580px;
-          width: 95%;
-          max-height: 92vh;
+          width: 580px;
+          max-width: 100%;
+          height: 570px;
+          max-height: calc(100vh - 32px);
           display: flex;
           flex-direction: column;
           padding: 0;
           overflow: hidden;
           border-radius: 12px;
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-          background: var(--bg-surface, #1e1e1e);
-          border: 1px solid var(--border-color);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+          background: #131722;
+          border: 1px solid rgba(212, 168, 106, 0.25);
         }
 
         .scanner-modal-header {
-          padding: 14px 18px;
-          border-bottom: 1px solid var(--border-color);
+          height: 60px;
+          flex-shrink: 0;
+          padding: 0 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: rgba(0, 0, 0, 0.2);
+          background: #0F1219;
+        }
+
+        /* Nút Close X chuẩn Admin Bảo Tàng */
+        .btn-close-modal {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          border-radius: 6px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.04);
+          color: #9CA3AF;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          outline: none;
+          padding: 0;
+        }
+        .btn-close-modal:hover {
+          background: rgba(239, 68, 68, 0.15);
+          border-color: rgba(239, 68, 68, 0.35);
+          color: #EF4444;
         }
 
         .scanner-control-bar {
+          height: 48px;
+          flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 8px 18px;
-          border-bottom: 1px solid var(--border-color);
-          background: rgba(0, 0, 0, 0.12);
+          padding: 0 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(0, 0, 0, 0.2);
           gap: 10px;
         }
 
@@ -800,11 +954,11 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          padding: 5px 11px;
+          padding: 5px 12px;
           border-radius: 6px;
           border: none;
           background: transparent;
-          color: var(--text-muted);
+          color: #9CA3AF;
           font-size: 12px;
           font-weight: 500;
           cursor: pointer;
@@ -813,13 +967,13 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
         }
 
         .scanner-pill-btn:hover {
-          color: var(--text-main);
+          color: #F3F4F6;
           background: rgba(255, 255, 255, 0.04);
         }
 
         .scanner-pill-btn.active {
-          background: var(--accent-gold, #D4AF37);
-          color: #121212;
+          background: #D4A86A;
+          color: #0F1219;
           font-weight: 600;
         }
 
@@ -828,7 +982,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           align-items: center;
           gap: 6px;
           font-size: 12px;
-          color: var(--text-muted);
+          color: #9CA3AF;
           cursor: pointer;
           white-space: nowrap;
           user-select: none;
@@ -837,16 +991,77 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
         }
 
         .scanner-auto-toggle input {
-          accent-color: var(--accent-gold, #D4AF37);
+          accent-color: #D4A86A;
           cursor: pointer;
           width: 14px;
           height: 14px;
         }
 
+        /* Thân Modal cố định kích thước, không co rút khi chuyển tab */
         .scanner-modal-body {
-          padding: 18px;
-          overflow-y: auto;
           flex: 1;
+          min-height: 0;
+          padding: 20px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          background: #11141D;
+        }
+
+        .scanner-modal-footer {
+          height: 50px;
+          flex-shrink: 0;
+          padding: 0 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #0F1219;
+        }
+
+        /* Các khối giao diện cho từng tab để chiếm trọn chiều cao */
+        .scanner-camera-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .scanner-manual-wrap {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .scanner-upload-dropzone {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border: 2px dashed rgba(212, 168, 106, 0.35);
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.02);
+          cursor: pointer;
+          padding: 24px 20px;
+          transition: all 0.2s ease;
+        }
+        .scanner-upload-dropzone:hover {
+          border-color: rgba(212, 168, 106, 0.65);
+          background: rgba(212, 168, 106, 0.04);
+        }
+
+        .scanner-icon-circle {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          background: rgba(212, 168, 106, 0.12);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
         }
 
         .scanner-status-banner {
@@ -870,16 +1085,16 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
 
         .scanner-ticket-card {
           background: rgba(255, 255, 255, 0.03);
-          border: 1px solid var(--border-color);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 8px;
-          padding: 14px 16px;
-          margin-bottom: 16px;
+          padding: 12px 16px;
+          margin-bottom: 12px;
         }
 
         .scanner-ticket-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 12px 16px;
+          gap: 10px 16px;
         }
 
         .scanner-grid-field {
@@ -892,22 +1107,22 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 0.3px;
-          color: var(--text-muted);
+          color: #9CA3AF;
           font-weight: 500;
         }
 
         .scanner-field-value {
           font-size: 13px;
-          color: var(--text-main);
+          color: #F3F4F6;
         }
 
         .scanner-code-badge {
           font-family: monospace;
           font-size: 13px;
           font-weight: 600;
-          color: var(--accent-gold, #D4AF37);
-          background: rgba(212, 175, 55, 0.08);
-          border: 1px solid rgba(212, 175, 55, 0.2);
+          color: #D4A86A;
+          background: rgba(212, 168, 106, 0.1);
+          border: 1px solid rgba(212, 168, 106, 0.25);
           padding: 2px 7px;
           border-radius: 4px;
           display: inline-block;
@@ -915,18 +1130,24 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
         }
 
         @media (max-width: 540px) {
+          .scanner-modal-backdrop {
+            padding: 8px;
+          }
           .scanner-modal-panel {
-            width: 96%;
-            max-height: 94vh;
+            width: 100%;
+            height: 94vh;
+            max-height: 600px;
             border-radius: 10px;
           }
           .scanner-modal-header {
-            padding: 12px 14px;
+            height: 54px;
+            padding: 0 14px;
           }
           .scanner-control-bar {
+            height: auto;
+            padding: 10px 14px;
             flex-direction: column;
             align-items: stretch;
-            padding: 8px 12px;
             gap: 8px;
           }
           .scanner-pill-group {
@@ -937,20 +1158,19 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           .scanner-pill-btn {
             justify-content: center;
             padding: 6px 4px;
-            font-size: 11px;
+            font-size: 11.5px;
             gap: 4px;
           }
-          .scanner-auto-toggle {
-            justify-content: flex-end;
-            font-size: 11.5px;
-            padding: 0;
-          }
           .scanner-modal-body {
-            padding: 14px 12px;
+            padding: 14px;
+          }
+          .scanner-modal-footer {
+            height: 46px;
+            padding: 0 14px;
           }
           .scanner-ticket-grid {
             grid-template-columns: 1fr;
-            gap: 10px;
+            gap: 8px;
           }
         }
       `}</style>

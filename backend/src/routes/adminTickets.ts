@@ -330,61 +330,153 @@ adminTicketsRouter.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 /**
- * Trích xuất mã vé thông minh từ chuỗi quét mã QR
- * Hỗ trợ: Mã thuần (BTLS-2026-XXXXXX), chuỗi JSON, URL có tham số ticket/code
+ * Giao thức phân tích & thẩm định tính hợp lệ của chuỗi mã QR
  */
-function parseTicketCodeFromQR(raw: string): string {
-  if (!raw) return '';
+interface QRParseResult {
+  isValidTicketFormat: boolean;
+  ticketCode: string;
+  alienType?: 'VIETQR' | 'ZALO' | 'SOCIAL' | 'EXTERNAL_URL' | 'WIFI' | 'VCARD' | 'UNKNOWN_FORMAT';
+  alienMessage?: string;
+}
+
+/**
+ * Trích xuất và kiểm duyệt mã QR chuyên sâu:
+ * - CHỈ chấp nhận mã QR vé thuộc hệ thống Bảo tàng Lịch sử (chuẩn BTLS-YYYY-XXXXXX, tk_..., JSON vé BTLS)
+ * - TỪ CHỐI & PHÁT HIỆN RÕ RÀNG mã QR thanh toán ngân hàng (VietQR), Zalo, Mạng xã hội, Wifi, Web ngoài...
+ */
+function parseTicketCodeFromQR(raw: string): QRParseResult {
+  if (!raw || typeof raw !== 'string') {
+    return {
+      isValidTicketFormat: false,
+      ticketCode: '',
+      alienType: 'UNKNOWN_FORMAT',
+      alienMessage: 'Dữ liệu quét mã QR rỗng hoặc không đọc được.'
+    };
+  }
   const trimmed = raw.trim();
 
-  // 1. Nếu là chuỗi JSON: {"ticket":"BTLS-2026-688D37",...}
+  // 1. Nhận diện QR Ngân hàng / VietQR / Chuyển khoản (Chuẩn EMVCo bắt đầu bằng 000201)
+  if (trimmed.startsWith('000201') || /vietqr\.net|napas|vnpay|zalopay\.vn|momo\.vn|payos/i.test(trimmed)) {
+    return {
+      isValidTicketFormat: false,
+      ticketCode: '',
+      alienType: 'VIETQR',
+      alienMessage: 'Mã QR thanh toán ngân hàng (VietQR / Ví điện tử). Cổng soát vé chỉ chấp nhận mã QR in trên vé tham quan do Bảo tàng phát hành.'
+    };
+  }
+
+  // 2. Nhận diện QR liên kết Zalo
+  if (/zalo\.me|zaloapp\.com/i.test(trimmed)) {
+    return {
+      isValidTicketFormat: false,
+      ticketCode: '',
+      alienType: 'ZALO',
+      alienMessage: 'Mã QR liên kết Zalo cá nhân / nhóm. Cổng soát vé chỉ chấp nhận mã QR in trên vé tham quan của Bảo tàng.'
+    };
+  }
+
+  // 3. Nhận diện liên kết mạng xã hội khác
+  if (/facebook\.com|fb\.me|m\.me|tiktok\.com|instagram\.com|t\.me/i.test(trimmed)) {
+    return {
+      isValidTicketFormat: false,
+      ticketCode: '',
+      alienType: 'SOCIAL',
+      alienMessage: 'Mã QR liên kết mạng xã hội. Vui lòng quét mã QR trên vé tham quan do Bảo tàng phát hành.'
+    };
+  }
+
+  // 4. Nhận diện Wifi hoặc danh bạ vCard
+  if (/^WIFI:/i.test(trimmed)) {
+    return {
+      isValidTicketFormat: false,
+      ticketCode: '',
+      alienType: 'WIFI',
+      alienMessage: 'Mã QR cấu hình Wi-Fi. Vui lòng quét mã QR trên vé tham quan.'
+    };
+  }
+  if (/^BEGIN:VCARD/i.test(trimmed)) {
+    return {
+      isValidTicketFormat: false,
+      ticketCode: '',
+      alienType: 'VCARD',
+      alienMessage: 'Mã QR danh bạ liên hệ (vCard). Vui lòng quét mã QR trên vé tham quan.'
+    };
+  }
+
+  // 5. Nếu là chuỗi JSON vé do hệ thống Bảo tàng sinh ra
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
     try {
       const parsed = JSON.parse(trimmed);
-      if (parsed.ticket) return String(parsed.ticket).trim().toUpperCase();
-      if (parsed.code) return String(parsed.code).trim().toUpperCase();
-      if (parsed.ticketCode) return String(parsed.ticketCode).trim().toUpperCase();
-      if (parsed.id) return String(parsed.id).trim();
+      const code = parsed.code || parsed.ticket || parsed.ticketCode || parsed.id;
+      if (code && typeof code === 'string') {
+        const cleanCode = code.trim().toUpperCase();
+        if (/^BTLS-\d{4}-[A-Z0-9]+$/i.test(cleanCode) || /^TK_\d+_[A-Z0-9]+$/i.test(cleanCode) || parsed.museum === 'BTLS_TPHCM') {
+          return { isValidTicketFormat: true, ticketCode: cleanCode };
+        }
+      }
+      return {
+        isValidTicketFormat: false,
+        ticketCode: '',
+        alienType: 'UNKNOWN_FORMAT',
+        alienMessage: 'Dữ liệu JSON trong mã QR không thuộc định dạng vé tham quan Bảo tàng.'
+      };
     } catch {}
   }
 
-  // 2. Nếu là URL có chứa tham số
-  try {
-    if (trimmed.includes('http://') || trimmed.includes('https://') || trimmed.includes('?')) {
-      const url = new URL(trimmed.startsWith('http') ? trimmed : `http://dummy.com/${trimmed}`);
+  // 6. Nếu là URL trang web
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const url = new URL(trimmed);
       const tParam = url.searchParams.get('ticket') || url.searchParams.get('ticketCode') || url.searchParams.get('code');
-      if (tParam) return tParam.trim().toUpperCase();
-      const pathParts = url.pathname.split('/').filter(Boolean);
-      const lastPart = pathParts[pathParts.length - 1];
-      if (lastPart && /BTLS-\d{4}-[A-Z0-9]+/i.test(lastPart)) {
-        return lastPart.trim().toUpperCase();
+      if (tParam && (/BTLS-\d{4}-[A-Z0-9]+/i.test(tParam) || /TK_\d+_[A-Z0-9]+/i.test(tParam))) {
+        return { isValidTicketFormat: true, ticketCode: tParam.trim().toUpperCase() };
       }
-    }
-  } catch {}
-
-  // 3. Regex trích xuất mã định dạng BTLS-YYYY-XXXXXX
-  const match = trimmed.match(/BTLS-\d{4}-[A-Z0-9]+/i);
-  if (match) {
-    return match[0].toUpperCase();
+      const matchInPath = url.pathname.match(/BTLS-\d{4}-[A-Z0-9]+/i) || url.pathname.match(/TK_\d+_[A-Z0-9]+/i);
+      if (matchInPath) {
+        return { isValidTicketFormat: true, ticketCode: matchInPath[0].toUpperCase() };
+      }
+      return {
+        isValidTicketFormat: false,
+        ticketCode: '',
+        alienType: 'EXTERNAL_URL',
+        alienMessage: `Liên kết website ngoài (${url.hostname}). Cổng soát vé chỉ chấp nhận mã QR vé tham quan của Bảo tàng.`
+      };
+    } catch {}
   }
 
-  return trimmed.toUpperCase();
+  // 7. Mã vé thuần chuẩn bảo tàng (VD: BTLS-2026-688D37 hoặc tk_...)
+  const btlsMatch = trimmed.match(/^BTLS-\d{4}-[A-Z0-9]+$/i);
+  if (btlsMatch) {
+    return { isValidTicketFormat: true, ticketCode: btlsMatch[0].toUpperCase() };
+  }
+  const tkMatch = trimmed.match(/^TK_\d+_[A-Z0-9]+$/i);
+  if (tkMatch) {
+    return { isValidTicketFormat: true, ticketCode: tkMatch[0].toUpperCase() };
+  }
+
+  // 8. Các trường hợp chuỗi ký tự bất kỳ không thuộc cấu trúc vé
+  return {
+    isValidTicketFormat: false,
+    ticketCode: '',
+    alienType: 'UNKNOWN_FORMAT',
+    alienMessage: 'Mã QR không thuộc hệ thống vé Bảo tàng (nội dung không khớp chuẩn mã vé BTLS).'
+  };
 }
 
 /**
  * POST /api/admin/tickets/verify-qr
  * Quét mã QR soát vé & Kiểm tra gian lận toàn diện:
- * - Giải mã chuỗi QR (hỗ trợ JSON, URL, mã code thuần)
+ * - Giải mã chuỗi QR (chỉ chấp nhận vé hệ thống, chặn VietQR, Zalo...)
  * - Kiểm tra trạng thái thanh toán
- * - Kiểm tra tình trạng sử dụng (phòng chống gian lận quay vòng vé)
- * - Kiểm tra hạn sử dụng & ngày tham quan (vé đúng ngày hôm nay không, quá hạn không)
- * - Tự động soát vé (nếu autoCheckin = true) hoặc kiểm tra tra cứu
+ * - Kiểm tra tình trạng sử dụng (vé đã vào cổng thì chuyển sang used, không được quét lại)
+ * - Kiểm tra hạn sử dụng & ngày tham quan
+ * - Tự động cập nhật vé sang 'used' (nếu autoCheckin = true)
  */
 adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) => {
   try {
     const { qrData, autoCheckin = true } = req.body;
     if (!qrData || typeof qrData !== 'string') {
-      return res.status(400).json({
+      return res.status(200).json({
         success: false,
         valid: false,
         reason: 'INVALID_INPUT',
@@ -392,20 +484,22 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
       });
     }
 
-    const ticketCode = parseTicketCodeFromQR(qrData);
-    if (!ticketCode) {
-      return res.status(400).json({
+    const parseResult = parseTicketCodeFromQR(qrData);
+    if (!parseResult.isValidTicketFormat || !parseResult.ticketCode) {
+      return res.status(200).json({
         success: false,
         valid: false,
-        reason: 'UNREADABLE_CODE',
-        message: 'Không thể nhận diện mã vé từ dữ liệu QR đã quét.'
+        reason: parseResult.alienType || 'INVALID_QR_TYPE',
+        message: parseResult.alienMessage || 'Mã QR không thuộc hệ thống vé Bảo tàng Lịch sử TP.HCM.'
       });
     }
+
+    const ticketCode = parseResult.ticketCode;
 
     // 1. Tìm vé trong PostgreSQL
     let ticket: any = null;
     const pgRes = await pgPool.query(
-      `SELECT * FROM museum_tickets WHERE ticket_code = $1 OR id = $1 LIMIT 1;`,
+      `SELECT * FROM museum_tickets WHERE UPPER(ticket_code) = UPPER($1) OR id = $1 LIMIT 1;`,
       [ticketCode]
     );
 
@@ -414,7 +508,11 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
     } else {
       // Fallback sang MongoDB
       const mongoDoc = await Ticket.findOne({
-        $or: [{ ticketCode }, { _id: ticketCode }, { id: ticketCode }]
+        $or: [
+          { ticketCode: { $regex: new RegExp(`^${ticketCode}$`, 'i') } },
+          { _id: ticketCode },
+          { id: ticketCode }
+        ]
       }).lean();
       if (mongoDoc) {
         ticket = {
@@ -438,13 +536,13 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
       }
     }
 
-    // 2. Không tìm thấy vé -> Cảnh báo vé giả mạo
+    // 2. Không tìm thấy vé trong hệ thống
     if (!ticket) {
-      return res.status(404).json({
+      return res.status(200).json({
         success: false,
         valid: false,
         reason: 'NOT_FOUND',
-        message: `MÃ VÉ KHÔNG TỒN TẠI: Mã [${ticketCode}] không có trong cơ sở dữ liệu bảo tàng. Cảnh báo vé giả mạo!`,
+        message: `Mã vé [${ticketCode}] không tồn tại trên hệ thống Bảo tàng. Vui lòng kiểm tra lại vé!`,
         ticketCode
       });
     }
@@ -465,16 +563,16 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
       checkedInAt: ticket.status === 'used' ? ticket.updated_at : null
     };
 
-    // 3. Kiểm tra gian lận vé đã sử dụng (ALREADY_USED)
+    // 3. Kiểm tra vé đã qua sử dụng (ALREADY_USED) - Ưu tiên hàng đầu chống tái sử dụng
     if (ticket.status === 'used') {
       const usedTime = ticket.updated_at
-        ? new Date(ticket.updated_at).toLocaleString('vi-VN')
+        ? new Date(ticket.updated_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
         : 'trước đó';
       return res.status(200).json({
         success: true,
         valid: false,
         reason: 'ALREADY_USED',
-        message: `CẢNH BÁO GIAN LẬN: Vé [${ticketCode}] đã được soát vé vào cổng lúc ${usedTime}! Không thể tái sử dụng.`,
+        message: `Vé [${ticketInfo.ticketCode}] đã qua sử dụng vào lúc ${usedTime}. Không thể quét lại!`,
         ticket: ticketInfo
       });
     }
@@ -485,7 +583,7 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
         success: true,
         valid: false,
         reason: 'CANCELLED',
-        message: `VÉ KHÔNG HỢP LỆ: Vé [${ticketCode}] đã bị hủy bỏ trên hệ thống, không được phép vào cổng!`,
+        message: `Vé [${ticketInfo.ticketCode}] đã bị hủy bỏ trên hệ thống, không được phép vào cổng!`,
         ticket: ticketInfo
       });
     }
@@ -496,7 +594,7 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
         success: true,
         valid: false,
         reason: 'UNPAID',
-        message: `VÉ CHƯA THANH TOÁN: Vé [${ticketCode}] đang ở trạng thái [${ticket.status}], chưa được xác nhận thanh toán!`,
+        message: `Vé [${ticketInfo.ticketCode}] chưa được xác nhận thanh toán (trạng thái: ${ticket.status})!`,
         ticket: ticketInfo
       });
     }
@@ -512,7 +610,7 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
         success: true,
         valid: false,
         reason: 'EXPIRED',
-        message: `VÉ ĐÃ QUÁ HẠN: Vé chỉ có hiệu lực vào ngày ${visitDateStr}. Hôm nay là ngày ${todayStr}!`,
+        message: `Vé đã quá hạn sử dụng (ngày tham quan: ${visitDateStr}, hôm nay: ${todayStr})!`,
         ticket: ticketInfo
       });
     }
@@ -522,21 +620,51 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
         success: true,
         valid: false,
         reason: 'FUTURE_DATE',
-        message: `VÉ CHƯA ĐẾN NGÀY: Vé được đặt cho ngày ${visitDateStr}. Hôm nay (${todayStr}) chưa tới ngày tham quan!`,
+        message: `Vé chưa đến ngày tham quan (ngày đặt: ${visitDateStr}, hôm nay: ${todayStr})!`,
         ticket: ticketInfo
       });
     }
 
-    // 7. VÉ HỢP LỆ! Thực hiện soát vé nếu autoCheckin
+    // 7. VÉ HỢP LỆ! Thực hiện soát vé và chuyển trạng thái sang 'used'
     if (autoCheckin) {
+      const targetId = ticket.id;
+      const targetCode = ticket.ticket_code || ticketCode;
+      const targetMongoId = ticket.mongo_id;
+
       await pgPool.query(
-        "UPDATE museum_tickets SET status = 'used', updated_at = CURRENT_TIMESTAMP WHERE ticket_code = $1 OR id = $1;",
-        [ticketCode]
+        `UPDATE museum_tickets 
+         SET status = 'used', updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $1 OR UPPER(ticket_code) = UPPER($2);`,
+        [targetId, targetCode]
       );
-      await Ticket.updateOne(
-        { $or: [{ ticketCode }, { _id: ticketCode }, { id: ticketCode }] },
-        { status: 'used' }
-      );
+
+      try {
+        await Ticket.updateOne(
+          {
+            $or: [
+              { ticketCode: targetCode },
+              { ticketCode: { $regex: new RegExp(`^${targetCode}$`, 'i') } },
+              ...(targetId ? [{ _id: targetId }, { id: targetId }] : []),
+              ...(targetMongoId ? [{ _id: targetMongoId }] : [])
+            ]
+          },
+          { $set: { status: 'used', updatedAt: new Date() } }
+        );
+      } catch {}
+
+      // Đồng bộ Elasticsearch nếu có
+      try {
+        await esIndexTicket({
+          ticketCode: targetCode,
+          userName: ticketInfo.userName,
+          userEmail: ticketInfo.userEmail,
+          userPhone: ticketInfo.userPhone,
+          ticketType: ticketInfo.ticketType || 'standard',
+          visitDate: ticketInfo.visitDate,
+          status: 'used'
+        });
+      } catch {}
+
       ticketInfo.status = 'used';
       ticketInfo.checkedInAt = new Date().toISOString();
 
@@ -544,7 +672,7 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
         await logAudit('CHECKIN_TICKET_QR', 'tickets', {
           userId: req.user?.id,
           username: req.user?.username,
-          details: { ticketCode, method: 'QR_SCANNER' }
+          details: { ticketCode: targetCode, method: 'QR_SCANNER' }
         });
       } catch {}
 
@@ -552,7 +680,7 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
         success: true,
         valid: true,
         reason: 'CHECKED_IN_SUCCESS',
-        message: `VÉ HỢP LỆ! Đã soát vé thành công cho [${ticketInfo.userName}]. Kính mời vào cổng!`,
+        message: `Vé hợp lệ. Đã soát vé vào cổng cho [${ticketInfo.userName}].`,
         ticket: ticketInfo
       });
     }
@@ -561,7 +689,7 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
       success: true,
       valid: true,
       reason: 'VALID',
-      message: `VÉ HỢP LỆ VÀ SẴN SÀNG VÀO CỔNG cho [${ticketInfo.userName}].`,
+      message: `Vé hợp lệ và sẵn sàng vào cổng cho [${ticketInfo.userName}].`,
       ticket: ticketInfo
     });
   } catch (err: any) {
@@ -604,14 +732,16 @@ adminTicketsRouter.put('/:code/checkin', async (req: AuthRequest, res: Response)
     }
 
     // 2. Cập nhật vào PostgreSQL
+    const targetId = ticket.id;
+    const targetCode = ticket.ticket_code || code;
     await pgPool.query(
-      "UPDATE museum_tickets SET status = 'used', updated_at = CURRENT_TIMESTAMP WHERE ticket_code = $1 OR id = $1;",
-      [code]
+      "UPDATE museum_tickets SET status = 'used', updated_at = CURRENT_TIMESTAMP WHERE id = $1 OR UPPER(ticket_code) = UPPER($2);",
+      [targetId, targetCode]
     );
 
     // 3. Cập nhật vào MongoDB
     await Ticket.updateOne(
-      { $or: [{ ticketCode: code }, { _id: code }, { id: code }] },
+      { $or: [{ ticketCode: targetCode }, { _id: targetId }, { id: targetId }] },
       { status: 'used' }
     );
 
