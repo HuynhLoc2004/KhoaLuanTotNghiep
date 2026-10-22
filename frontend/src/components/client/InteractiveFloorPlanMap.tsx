@@ -386,6 +386,27 @@ export const AUTHENTIC_TOUR_FLOW_ARROWS = [
   { x1: 56.9, y1: 52.6, x2: 56.9, y2: 50.0 }
 ];
 
+export const AUTHENTIC_ROOM_DISPLAY_LABELS: Record<string, { lines: string[]; fontSize?: number; yOffset?: number }> = {
+  'node_p_01': { lines: ['Thời kỳ', 'Nguyên thủy'], fontSize: 1.25, yOffset: 1.0 },
+  'node_p_02': { lines: ['Dựng nước &', 'Giữ nước'], fontSize: 1.05, yOffset: 1.0 },
+  'node_p_03': { lines: ['Thời Ngô - Đinh', 'Tiền Lê'], fontSize: 1.0, yOffset: 1.2 },
+  'node_p_04': { lines: ['Thời Lý'], fontSize: 1.35, yOffset: 1.0 },
+  'node_p_05': { lines: ['Thời Trần - Hồ'], fontSize: 1.35, yOffset: 1.0 },
+  'node_p_06': { lines: ['Văn hóa', 'Champa'], fontSize: 1.15, yOffset: 3.5 },
+  'node_p_07': { lines: ['Văn hóa Óc Eo', '(Vương quốc Phù Nam cổ)'], fontSize: 1.45, yOffset: 1.2 },
+  'node_p_08': { lines: ['Điêu khắc', 'Campuchia'], fontSize: 1.0, yOffset: 0.8 },
+  'node_p_09': { lines: ['Thời Lê - Mạc', 'Trịnh - Nguyễn'], fontSize: 0.95, yOffset: 2.2 },
+  'node_p_10': { lines: ['Thời', 'Tây Sơn'], fontSize: 1.1, yOffset: 1.2 },
+  'node_p_11': { lines: ['Súng', 'Thần công'], fontSize: 1.0, yOffset: 3.0 },
+  'node_p_12': { lines: ['Thời Nguyễn'], fontSize: 1.35, yOffset: 1.0 },
+  'node_p_13': { lines: ['Sưu tập', 'Dương Hà'], fontSize: 1.1, yOffset: 1.0 },
+  'node_p_14': { lines: ['Thương mại', 'Hàng hải'], fontSize: 1.1, yOffset: 1.2 },
+  'node_p_15': { lines: ['Cổ vật', 'Tàu đắm'], fontSize: 1.0, yOffset: 1.0 },
+  'node_p_16': { lines: ['Sưu tập Vương', 'Hồng Sển'], fontSize: 1.0, yOffset: 1.0 },
+  'node_p_17': { lines: ['Dân tộc phía Nam', 'Việt Nam'], fontSize: 1.25, yOffset: 1.0 },
+  'node_p_18': { lines: ['Tượng Phật giáo', 'Châu Á'], fontSize: 1.1, yOffset: 1.2 }
+};
+
 export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = ({
   floorPlan,
   onSelectRoom360,
@@ -772,6 +793,29 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
     return clean.slice(0, 15) + '…';
   };
 
+  const getNodeLabelLines = (node: FloorPlanNode) => {
+    const normId = (node.id || '').toLowerCase().replace(/-/g, '_');
+    const codeMatch = node.code?.match(/\d+/);
+    const num = codeMatch ? parseInt(codeMatch[0], 10) : 0;
+    const numKey = num >= 1 && num <= 18 ? `node_p_${num < 10 ? '0' + num : num}` : '';
+
+    const cfg = AUTHENTIC_ROOM_DISPLAY_LABELS[normId] || (numKey ? AUTHENTIC_ROOM_DISPLAY_LABELS[numKey] : null);
+    if (cfg) return cfg;
+
+    const rawName = (node.name || '').trim();
+    if (!rawName) return { lines: ['Gian phòng'], fontSize: 1.05, yOffset: 0.5 };
+    if (rawName.length > 14) {
+      const words = rawName.split(' ');
+      const mid = Math.ceil(words.length / 2);
+      return {
+        lines: [words.slice(0, mid).join(' '), words.slice(mid).join(' ')],
+        fontSize: 1.05,
+        yOffset: 0.5
+      };
+    }
+    return { lines: [rawName], fontSize: 1.15, yOffset: 0.5 };
+  };
+
 
   const getNodeBox = (node: FloorPlanNode) => {
     const normId = (node.id || '').toLowerCase().replace(/-/g, '_');
@@ -1095,16 +1139,45 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                   >
                     {roomNumber}
                   </text>
-                  <text
-                    x={box.x + box.width / 2}
-                    y={box.height > 14 ? box.y + box.height / 2 + 1.2 : box.y + box.height - 2.0}
-                    textAnchor="middle"
-                    fontSize={box.width < 9 ? '0.78' : '0.86'}
-                    fontWeight="600"
-                    fill="#2B241E"
-                  >
-                    {shortName}
-                  </text>
+                  {(() => {
+                    const labelCfg = getNodeLabelLines(node);
+                    const lines = labelCfg.lines;
+                    const fSize = labelCfg.fontSize || 1.1;
+                    const yBase = box.y + box.height / 2 + (labelCfg.yOffset || 0);
+
+                    if (lines.length === 1) {
+                      return (
+                        <text
+                          x={box.x + box.width / 2}
+                          y={yBase + 0.4}
+                          textAnchor="middle"
+                          fontSize={fSize}
+                          fontWeight="700"
+                          fill="#1A1108"
+                        >
+                          {lines[0]}
+                        </text>
+                      );
+                    }
+
+                    return (
+                      <text
+                        x={box.x + box.width / 2}
+                        y={yBase - 0.7}
+                        textAnchor="middle"
+                        fontSize={fSize}
+                        fontWeight="700"
+                        fill="#1A1108"
+                      >
+                        <tspan x={box.x + box.width / 2} dy="0">
+                          {lines[0]}
+                        </tspan>
+                        <tspan x={box.x + box.width / 2} dy={fSize * 1.25}>
+                          {lines[1]}
+                        </tspan>
+                      </text>
+                    );
+                  })()}
                 </g>
               );
             })}
@@ -1740,17 +1813,49 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
                       </g>
                     )}
 
-                    {/* Tên gian phòng chữ đen rõ nét theo phong cách kiến trúc */}
-                    <text
-                      x={box.x + box.width / 2}
-                      y={box.height > 14 ? box.y + box.height / 2 + 1.2 : box.y + box.height - 2.0}
-                      fill={isSelected ? '#821519' : '#2B241E'}
-                      fontSize={box.width < 9 ? '0.78' : '0.86'}
-                      fontWeight={isSelected ? '800' : '600'}
-                      textAnchor="middle"
-                    >
-                      {shortName}
-                    </text>
+                    {/* Tên gian phòng rõ nét, nổi bật, cỡ chữ lớn chuẩn phong cách kiến trúc */}
+                    {(() => {
+                      const labelCfg = getNodeLabelLines(node);
+                      const lines = labelCfg.lines;
+                      const fSize = labelCfg.fontSize || 1.1;
+                      const yBase = box.y + box.height / 2 + (labelCfg.yOffset || 0);
+                      const textColor = isSelected ? '#821519' : '#1A1108';
+
+                      if (lines.length === 1) {
+                        return (
+                          <text
+                            x={box.x + box.width / 2}
+                            y={yBase + 0.4}
+                            textAnchor="middle"
+                            fontSize={fSize}
+                            fontWeight={isSelected ? '800' : '700'}
+                            fill={textColor}
+                            letterSpacing="0.02px"
+                          >
+                            {lines[0]}
+                          </text>
+                        );
+                      }
+
+                      return (
+                        <text
+                          x={box.x + box.width / 2}
+                          y={yBase - 0.7}
+                          textAnchor="middle"
+                          fontSize={fSize}
+                          fontWeight={isSelected ? '800' : '700'}
+                          fill={textColor}
+                          letterSpacing="0.02px"
+                        >
+                          <tspan x={box.x + box.width / 2} dy="0">
+                            {lines[0]}
+                          </tspan>
+                          <tspan x={box.x + box.width / 2} dy={fSize * 1.25}>
+                            {lines[1]}
+                          </tspan>
+                        </text>
+                      );
+                    })()}
                   </g>
                 );
               })}

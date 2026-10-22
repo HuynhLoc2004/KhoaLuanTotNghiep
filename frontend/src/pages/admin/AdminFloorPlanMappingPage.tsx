@@ -522,14 +522,14 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
             </span>
           </div>
 
-          {/* Vùng sơ đồ InteractiveFloorPlanMap (ẩn panel chi tiết thừa để sơ đồ rộng rãi) */}
+          {/* Vùng sơ đồ InteractiveFloorPlanMap (kèm bảng chú thích 18 phòng chuẩn poster gốc) */}
           <div style={{ padding: 10, width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
             {previewFloorPlan && (
               <InteractiveFloorPlanMap
                 floorPlan={previewFloorPlan}
                 clientTheme="dark"
                 hideSidePanel={true}
-                hideLegend={true}
+                hideLegend={false}
                 selectedNodeId={selectedNode?.id}
                 onNodeSelect={(nodeId) => setSelectedNodeId(nodeId)}
                 rooms={allRooms}
@@ -582,7 +582,7 @@ export const AdminFloorPlanMappingPage: React.FC<AdminFloorPlanMappingPageProps>
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <span>{node.code || `P-${idx + 1}`}</span>
+                    <span>{node.code || `P-${idx + 1}`}: {node.name || 'Gian phòng'}</span>
                     {isMapped && <Check size={10} style={{ color: '#4ADE80' }} />}
                   </button>
                 );
