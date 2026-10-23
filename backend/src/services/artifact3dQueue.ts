@@ -58,6 +58,9 @@ export interface I3DJobData {
   artifactId: string;
   imagePath: string;
   backImagePath?: string;
+  multiImages?: string[];
+  reconstructionMode?: 'single' | 'front_back' | 'multiview';
+  angleLabels?: string[];
   depthScale: number;
   resolution: number;
   userId?: string;
@@ -82,6 +85,7 @@ function computeFileHash(filePath: string): string {
 
 /**
  * Thêm một tác vụ dựng 3D vào hàng đợi bất đồng bộ (Queue: artifact_3d)
+ * Hỗ trợ chế độ tái tạo đơn (Single-view 1 mặt) và ghép đa góc độ (Multi-view nhiều ảnh)
  */
 export async function enqueue3DReconstruction(
   artifactId: string,
@@ -89,10 +93,27 @@ export async function enqueue3DReconstruction(
   backImagePath?: string,
   depthScale = 1.0,
   resolution = 110,
-  userId?: string
+  userId?: string,
+  options?: {
+    multiImages?: string[];
+    reconstructionMode?: 'single' | 'front_back' | 'multiview';
+    angleLabels?: string[];
+  }
 ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string }> {
-  // 1. Kiểm tra cache dựa trên SHA256 (kèm mã phân biệt mặt sau độc lập v16 chất liệu liền mạch không rãnh ghép)
-  const fileHash = computeFileHash(imagePath) + (backImagePath ? `_back_${computeFileHash(backImagePath)}` : '_seamless_patina_v16');
+  const multiImages = (options?.multiImages || []).filter(p => p && fs.existsSync(p));
+  const reconstructionMode = options?.reconstructionMode || (
+    multiImages.length > 0 ? 'multiview' : (backImagePath ? 'front_back' : 'single')
+  );
+
+  // 1. Kiểm tra cache dựa trên SHA256 tổng hợp của tất cả ảnh đầu vào và chế độ tái tạo
+  let fileHash = computeFileHash(imagePath);
+  if (backImagePath && fs.existsSync(backImagePath)) {
+    fileHash += `_back_${computeFileHash(backImagePath).substring(0, 8)}`;
+  }
+  if (multiImages.length > 0) {
+    fileHash += `_multi_${multiImages.map(p => computeFileHash(p).substring(0, 6)).join('_')}`;
+  }
+  fileHash += `_${reconstructionMode}_trellis_v17`;
   const cacheKey = `artifact:3d_cache:${fileHash}`;
 
   const cached = await cacheGet<{ model3dUrl: string; metadata: any }>(cacheKey);
@@ -102,7 +123,7 @@ export async function enqueue3DReconstruction(
     const localGlbPath = path.join(MODELS_3D_DIR, localGlbFilename);
 
     if (fs.existsSync(localGlbPath)) {
-      console.log(`[3D Queue] Tìm thấy trong Cache cho mã băm ${fileHash.substring(0, 10)}... Trả về ngay lập tức.`);
+      console.log(`[3D Queue] Tìm thấy trong Cache cho chế độ ${reconstructionMode} (${fileHash.substring(0, 10)}...). Trả về ngay.`);
       if (userId) await releaseUser3DLock(userId);
       await updateArtifact3DState(artifactId, {
         model3dUrl: cached.model3dUrl,
@@ -110,6 +131,7 @@ export async function enqueue3DReconstruction(
         processingError: '',
         modelMetadata: {
           ...cached.metadata,
+          reconstructionMode,
           inputImageSha256: fileHash
         }
       });
@@ -131,6 +153,9 @@ export async function enqueue3DReconstruction(
     artifactId,
     imagePath,
     backImagePath: backImagePath || undefined,
+    multiImages: multiImages.length > 0 ? multiImages : undefined,
+    reconstructionMode,
+    angleLabels: options?.angleLabels,
     depthScale,
     resolution,
     userId,
@@ -196,10 +221,24 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
     return;
   }
 
+  // Chuẩn bị danh sách ảnh phụ (ảnh mặt sau + các góc chụp tư liệu)
+  const extraImages: string[] = [];
+  if (job.backImagePath && fs.existsSync(job.backImagePath) && !extraImages.includes(job.backImagePath)) {
+    extraImages.push(job.backImagePath);
+  }
+  if (job.multiImages && job.multiImages.length > 0) {
+    for (const p of job.multiImages) {
+      if (p && fs.existsSync(p) && !extraImages.includes(p)) {
+        extraImages.push(p);
+      }
+    }
+  }
+
   // Gọi TRELLIS qua HuggingFace Spaces (gradio_client)
   try {
     const trellisRes = await generate3DWithTrellis({
       imagePath,
+      multiImages: extraImages,
       destFilePath: outGlbPath,
       jobId,
     });
@@ -216,12 +255,26 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
       console.warn(`[3D Consumer] R2 upload warning (vẫn phục vụ từ VPS local):`, r2Err.message);
     }
 
-    const fileHash = computeFileHash(imagePath) + '_trellis_hf_spaces';
+    const reconstructionMode = trellisRes.reconstructionMode || job.reconstructionMode || (extraImages.length > 0 ? 'multiview' : 'single');
+    const inputImagesCount = trellisRes.inputImagesCount || (1 + extraImages.length);
+
+    let fileHash = computeFileHash(imagePath);
+    if (job.backImagePath && fs.existsSync(job.backImagePath)) {
+      fileHash += `_back_${computeFileHash(job.backImagePath).substring(0, 8)}`;
+    }
+    if (extraImages.length > 0) {
+      fileHash += `_multi_${extraImages.map(p => computeFileHash(p).substring(0, 6)).join('_')}`;
+    }
+    fileHash += `_${reconstructionMode}_trellis_v17`;
+
     const metadata = {
       aiEngine: trellisRes.engine,
       format: 'glb',
       sizeBytes: trellisRes.sizeBytes,
       generationTimeSeconds: trellisRes.generationTimeSeconds,
+      reconstructionMode,
+      inputImagesCount,
+      angleLabels: job.angleLabels || (extraImages.length > 0 ? ['Mặt trước', ...extraImages.map((_, i) => `Góc #${i + 1}`)] : ['Mặt trước']),
       generatedAt: new Date(),
       inputImageSha256: fileHash
     };

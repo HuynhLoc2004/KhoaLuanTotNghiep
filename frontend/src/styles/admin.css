@@ -1727,6 +1727,46 @@
   }
 }
 
+/* Tối ưu hóa Responsive cho Modal Hồ sơ Cổ vật & Khởi tạo 3D */
+.modal-artifact-responsive {
+  max-width: min(860px, 96vw) !important;
+  width: 100% !important;
+}
+
+@media (max-width: 768px) {
+  .modal-artifact-responsive {
+    max-width: 96vw !important;
+    max-height: 94dvh !important;
+  }
+  .modal-artifact-responsive .modal-header {
+    padding: 12px 14px;
+  }
+  .modal-artifact-responsive .modal-body {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  .modal-artifact-responsive .modal-footer {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-artifact-responsive {
+    width: 98vw !important;
+    max-height: 96dvh !important;
+    border-radius: 8px !important;
+  }
+  .modal-artifact-responsive .modal-footer {
+    flex-direction: column-reverse;
+  }
+  .modal-artifact-responsive .modal-footer button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 @keyframes modalFadeIn {
   from {
     opacity: 0;

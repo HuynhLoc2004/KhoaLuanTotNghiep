@@ -172,12 +172,13 @@ def connect_to_trellis():
     )
 
 
-def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
+def generate_3d_with_trellis(image_path: str, output_glb_path: str, multiimage_paths: list = None) -> dict:
     """
     Goi TRELLIS Space qua gradio_client de tao mo hinh 3D tu anh:
       1. /start_session: Khoi tao thu muc phien tren server (tranh loi FileNotFoundError)
       2. /preprocess_image: Tach nen va chuan hoa anh sang RGBA vuong
       3. /generate_and_extract_glb: Tao mesh 3D va xuat file .glb hoan chinh
+      (Ho tro multiimage_paths cho che do ghep da goc do Multi-view)
     """
     image_path = str(image_path)
     output_glb_path = str(output_glb_path)
@@ -212,12 +213,12 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
         # Buoc 2: Tien xu ly anh (tach nen, can chinh 512x512 RGBA)
         image_input_param = handle_file(working_image)
         try:
-            log("Buoc 2/3: Tien xu ly tach nen va chuan hoa anh (/preprocess_image)...")
+            log("Buoc 2/3: Tien xu ly tach nen va chuan hoa anh chinh (/preprocess_image)...")
             preprocessed = client.predict(
                 image=handle_file(working_image),
                 api_name="/preprocess_image"
             )
-            log(f"[OK] Tien xu ly thanh cong: {type(preprocessed).__name__}")
+            log(f"[OK] Tien xu ly anh chinh thanh cong: {type(preprocessed).__name__}")
             if isinstance(preprocessed, dict) and preprocessed.get("path"):
                 image_input_param = handle_file(preprocessed["path"])
             elif isinstance(preprocessed, str) and os.path.exists(preprocessed):
@@ -225,14 +226,43 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
             elif preprocessed:
                 image_input_param = preprocessed
         except Exception as pe:
-            log(f"[WARN] /preprocess_image gap loi ({pe}), su dung anh truc tiep...")
+            log(f"[WARN] /preprocess_image gap loi ({pe}), su dung anh goc truc tiep...")
             image_input_param = handle_file(working_image)
 
+        # Xu ly cac anh goc bo sung (Multi-view / Cac mat chup khac) neu co
+        multi_handles = []
+        if multiimage_paths and len(multiimage_paths) > 0:
+            log(f"[Multi-View] Phat hien {len(multiimage_paths)} anh goc phu, dang tien xu ly cho che do ghep da goc do...")
+            for idx, extra_path in enumerate(multiimage_paths):
+                if not extra_path or not os.path.exists(extra_path):
+                    log(f"[WARN] Khong tim thay anh goc phu #{idx+1}: {extra_path}, bo qua.")
+                    continue
+                try:
+                    opt_extra = prepare_optimized_image(extra_path)
+                    try:
+                        prep_extra = client.predict(
+                            image=handle_file(opt_extra),
+                            api_name="/preprocess_image"
+                        )
+                        if isinstance(prep_extra, dict) and prep_extra.get("path"):
+                            multi_handles.append(handle_file(prep_extra["path"]))
+                        elif isinstance(prep_extra, str) and os.path.exists(prep_extra):
+                            multi_handles.append(handle_file(prep_extra))
+                        else:
+                            multi_handles.append(handle_file(opt_extra))
+                        log(f"[Multi-View] Da tien xu ly thanh cong anh goc #{idx+1}")
+                    except Exception as extra_pe:
+                        log(f"[Multi-View] Tien xu ly anh goc #{idx+1} loi ({extra_pe}), su dung anh goc truc tiep")
+                        multi_handles.append(handle_file(opt_extra))
+                except Exception as ex_err:
+                    log(f"[Multi-View] Loi chuan bi anh #{idx+1}: {ex_err}")
+
         # Buoc 3: Tao mo hinh 3D va trich xuat GLB
-        log("Buoc 3/3: Dang chay TRELLIS Inference & GLB Extraction (/generate_and_extract_glb)...")
+        mode_desc = f"Da goc do Multi-view ({1 + len(multi_handles)} anh)" if len(multi_handles) > 0 else "1 mat don (Single-view)"
+        log(f"Buoc 3/3: Dang chay TRELLIS Inference & GLB Extraction [/generate_and_extract_glb] - Che do: {mode_desc}...")
         result = client.predict(
             image=image_input_param,
-            multiimages=[],
+            multiimages=multi_handles,
             seed=0,
             ss_guidance_strength=7.5,
             ss_sampling_steps=12,
@@ -300,7 +330,9 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str) -> dict:
             "glb_path": output_glb_path,
             "size_bytes": file_size,
             "generation_time_seconds": round(total_time, 1),
-            "engine": "TRELLIS-image-large (Hugging Face Spaces)"
+            "engine": "TRELLIS-image-large (Hugging Face Spaces)",
+            "reconstruction_mode": "multiview" if len(multi_handles) > 0 else "single",
+            "input_images_count": 1 + len(multi_handles)
         }
 
     except Exception as e:
@@ -328,9 +360,18 @@ def main():
     parser = argparse.ArgumentParser(description="TRELLIS 3D Generation Service")
     parser.add_argument("--image", required=True, help="Duong dan file anh dau vao")
     parser.add_argument("--output", required=True, help="Duong dan file .glb dau ra")
+    parser.add_argument("--multiimages", nargs="*", default=[], help="Danh sach anh goc bo sung (Multi-view)")
     args = parser.parse_args()
 
-    result = generate_3d_with_trellis(args.image, args.output)
+    extra_images = []
+    if args.multiimages:
+        for item in args.multiimages:
+            if "," in item:
+                extra_images.extend([p.strip() for p in item.split(",") if p.strip()])
+            elif item.strip():
+                extra_images.append(item.strip())
+
+    result = generate_3d_with_trellis(args.image, args.output, multiimage_paths=extra_images)
 
     # In ket qua JSON ra stdout de Node.js doc
     print(json.dumps(result, ensure_ascii=False))

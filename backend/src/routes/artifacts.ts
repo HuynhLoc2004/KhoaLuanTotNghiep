@@ -848,21 +848,77 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       }
     }
 
-    // Xác định ảnh nguồn mặt sau (nếu có)
-    const { backImageUrl } = req.body;
-    const targetBackImageUrl = backImageUrl || (artifact.images && artifact.images.length > 1 ? artifact.images[1] : null);
-    let localBackImagePath = targetBackImageUrl || '';
-    if (targetBackImageUrl && !targetBackImageUrl.startsWith('http')) {
-      const cleanRelB = targetBackImageUrl.replace(/^\/uploads\//, '');
-      const candidatesB = [
-        path.join(process.cwd(), 'public', 'uploads', cleanRelB),
-        path.join(ARTIFACTS_UPLOAD_DIR, path.basename(cleanRelB)),
-        path.join(process.cwd(), 'backend', 'public', 'uploads', cleanRelB)
+    // Hàm hỗ trợ ánh xạ đường dẫn URL/relative sang file vật lý trên VPS
+    const resolveToLocalOrUrl = (urlOrPath: string): string => {
+      if (!urlOrPath) return '';
+      let clean = urlOrPath;
+      if (clean.startsWith('http')) {
+        try {
+          const parsed = new URL(clean);
+          clean = parsed.pathname;
+        } catch {
+          return '';
+        }
+      }
+      const cleanRel = clean.replace(/^\/uploads\//, '').replace(/^uploads\//, '');
+      const candidates = [
+        path.join(process.cwd(), 'public', 'uploads', cleanRel),
+        path.join(ARTIFACTS_UPLOAD_DIR, path.basename(cleanRel)),
+        path.join(process.cwd(), 'backend', 'public', 'uploads', cleanRel)
       ];
-      for (const candB of candidatesB) {
-        if (fs.existsSync(candB)) {
-          localBackImagePath = candB;
-          break;
+      for (const cand of candidates) {
+        if (fs.existsSync(cand)) return cand;
+      }
+      return '';
+    };
+
+    // Xác định chế độ tái tạo 3D:
+    // 'single': Chỉ dùng 1 mặt trước (Mặt đơn - dùng làm baseline đối chiếu cho báo cáo luận văn)
+    // 'front_back': Dùng 2 mặt Trước & Sau
+    // 'multiview': Ghép toàn bộ góc chụp (Mặt trước + Mặt sau + Toàn bộ ảnh góc chụp xung quanh)
+    const {
+      backImageUrl,
+      reconstructionMode = 'multiview',
+      multiImageUrls
+    } = req.body;
+
+    let localBackImagePath = '';
+    const extraImagePaths: string[] = [];
+    const angleLabels: string[] = ['Ảnh Mặt Trước (Chính)'];
+
+    if (reconstructionMode !== 'single') {
+      // 1. Ảnh mặt sau
+      const targetBackImageUrl = backImageUrl || (artifact.images && artifact.images.length > 1 ? artifact.images[1] : null);
+      if (targetBackImageUrl) {
+        const resolvedBack = resolveToLocalOrUrl(targetBackImageUrl);
+        if (resolvedBack && fs.existsSync(resolvedBack)) {
+          localBackImagePath = resolvedBack;
+          angleLabels.push('Ảnh Mặt Sau');
+        }
+      }
+
+      // 2. Các góc chụp tư liệu đa hướng (Cạnh trái, Cạnh phải, Góc trên, Chi tiết hoa văn, v.v...)
+      if (reconstructionMode === 'multiview') {
+        const angleList = Array.isArray(multiImageUrls) && multiImageUrls.length > 0
+          ? multiImageUrls.map((u: string) => ({ url: u, label: 'Góc chụp tư liệu' }))
+          : (Array.isArray(artifact.anglePhotos) ? artifact.anglePhotos : []);
+
+        for (const item of angleList) {
+          const u = typeof item === 'string' ? item : item?.url;
+          const lbl = typeof item === 'object' && item?.label ? item.label : 'Góc chụp bổ sung';
+          if (u) {
+            const resolvedPath = resolveToLocalOrUrl(u);
+            if (
+              resolvedPath &&
+              fs.existsSync(resolvedPath) &&
+              resolvedPath !== localImagePath &&
+              resolvedPath !== localBackImagePath &&
+              !extraImagePaths.includes(resolvedPath)
+            ) {
+              extraImagePaths.push(resolvedPath);
+              angleLabels.push(lbl);
+            }
+          }
         }
       }
     }
@@ -878,17 +934,30 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       localBackImagePath || undefined,
       dScale,
       resValue,
-      userId
+      userId,
+      {
+        multiImages: extraImagePaths,
+        reconstructionMode: reconstructionMode as any,
+        angleLabels
+      }
     );
+
+    const modeLabels: Record<string, string> = {
+      single: '1 mặt trước (Single-view)',
+      front_back: '2 mặt Trước & Sau',
+      multiview: `Đa góc độ (${angleLabels.length} góc ảnh)`
+    };
 
     res.json({
       success: true,
       message: result.cached
-        ? 'Mô hình 3D đã được tải ngay lập tức từ bộ nhớ đệm Cache!'
-        : 'Đã đưa tác vụ dựng 3D vào hàng đợi xử lý nền. Vui lòng theo dõi trạng thái tiến trình.',
+        ? `Mô hình 3D [${modeLabels[reconstructionMode] || reconstructionMode}] đã được tải ngay lập tức từ bộ nhớ đệm Cache!`
+        : `Đã đưa tác vụ dựng 3D [${modeLabels[reconstructionMode] || reconstructionMode}] vào hàng đợi xử lý nền.`,
       data: {
         jobId: result.jobId,
         cached: result.cached,
+        reconstructionMode,
+        anglesUsed: angleLabels,
         model3dUrl: result.model3dUrl || artifact.model3dUrl,
         status: result.cached ? 'completed' : 'processing'
       }

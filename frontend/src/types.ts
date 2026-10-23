@@ -536,6 +536,11 @@ export interface ArtifactMetadata {
   depth?: number;
   generatedAt?: string;
   inputImageSha256?: string;
+  reconstructionMode?: 'single' | 'front_back' | 'multiview' | string;
+  inputImagesCount?: number;
+  aiEngine?: string;
+  generationTimeSeconds?: number;
+  angleLabels?: string[];
 }
 
 export interface ArtifactAnglePhoto {

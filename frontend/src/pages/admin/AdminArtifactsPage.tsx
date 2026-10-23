@@ -99,6 +99,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const [depthScale, setDepthScale] = useState(0.35);
   const [isProcessing3D, setIsProcessing3D] = useState(false);
   const [autoGenerate3D, setAutoGenerate3D] = useState(true);
+  const [reconstructionMode, setReconstructionMode] = useState<'single' | 'front_back' | 'multiview'>('multiview');
 
   // Multilingual Voice AI Drawer / Modal
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
@@ -489,7 +490,9 @@ export const AdminArtifactsPage: React.FC = () => {
         try {
           const genRes = await api.generate3DArtifact(targetId, {
             depthScale: 0.35,
-            resolution: 160
+            resolution: 160,
+            reconstructionMode,
+            multiImageUrls: (editingArtifact.anglePhotos || []).map((p: any) => p.url)
           });
           if (genRes.cached) {
             showToast('Mô hình 3D đã sẵn sàng từ bộ nhớ đệm (Cache)!', 'success');
@@ -780,6 +783,8 @@ export const AdminArtifactsPage: React.FC = () => {
     const targetId = artifact.id || (artifact as any)._id;
     setGeneratingArtifact({ ...artifact, id: targetId });
     setDepthScale(0.35);
+    const hasMultiple = (artifact.images && artifact.images.length > 1) || (artifact.anglePhotos && artifact.anglePhotos.length > 0);
+    setReconstructionMode(hasMultiple ? 'multiview' : 'single');
     setIsGenerateModalOpen(true);
   };
 
@@ -794,7 +799,9 @@ export const AdminArtifactsPage: React.FC = () => {
       setIsProcessing3D(true);
       const res = await api.generate3DArtifact(targetId, {
         depthScale: depthScale,
-        resolution: 160
+        resolution: 160,
+        reconstructionMode,
+        multiImageUrls: (generatingArtifact.anglePhotos || []).map((p: any) => p.url)
       });
 
       // Cập nhật ngay trạng thái processing vào danh sách cục bộ để nút lập tức chuyển sang hiệu ứng loading xoay mượt mà
@@ -1686,7 +1693,13 @@ export const AdminArtifactsPage: React.FC = () => {
                       {has3D ? (
                         <>
                           <Sparkles size={11} />
-                          <span>Mô hình 3D</span>
+                          <span>
+                            {art.modelMetadata?.reconstructionMode === 'multiview'
+                              ? `🏆 3D Đa góc (${art.modelMetadata?.inputImagesCount || 'N'})`
+                              : art.modelMetadata?.reconstructionMode === 'front_back'
+                              ? '🔄 3D 2 mặt'
+                              : '⚡ 3D 1 mặt'}
+                          </span>
                         </>
                       ) : isProcessing ? (
                         <span style={{ color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -1946,8 +1959,17 @@ export const AdminArtifactsPage: React.FC = () => {
                       </td>
                       <td>
                         {has3D && !isProcessing && (
-                          <span className="badge-3d-ready">
-                            <Box size={11} /> 3D Sẵn sàng
+                          <span
+                            className="badge-3d-ready"
+                            title={`Chế độ tái tạo: ${art.modelMetadata?.reconstructionMode || 'mặc định'} | ${art.modelMetadata?.inputImagesCount || 1} ảnh`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                          >
+                            <Box size={11} />{' '}
+                            {art.modelMetadata?.reconstructionMode === 'multiview'
+                              ? `🏆 3D Đa góc (${art.modelMetadata?.inputImagesCount || 'N'})`
+                              : art.modelMetadata?.reconstructionMode === 'front_back'
+                              ? '🔄 3D 2 mặt'
+                              : '⚡ 3D 1 mặt'}
                           </span>
                         )}
                         {isProcessing && (
@@ -2085,16 +2107,20 @@ export const AdminArtifactsPage: React.FC = () => {
       {isEditModalOpen && editingArtifact && (
         <div
           className="modal-backdrop"
-          style={{ zIndex: 1200 }}
+          style={{ zIndex: 1200, padding: 'clamp(8px, 2.5vw, 24px)' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSaving) handleCloseEditModal();
+          }}
         >
           <div
-            className="modal-card"
+            className="modal-card modal-artifact-responsive"
             style={{
-              maxWidth: 640,
+              maxWidth: 'min(860px, 96vw)',
               width: '100%',
-              maxHeight: 'calc(100vh - 36px)',
+              maxHeight: 'min(93vh, 920px)',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(212, 175, 55, 0.2)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2782,31 +2808,159 @@ export const AdminArtifactsPage: React.FC = () => {
                 <div
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     gap: 10,
-                    padding: '10px 14px',
+                    padding: '12px 14px',
                     borderRadius: 'var(--radius-sm, 6px)',
                     background: 'rgba(212, 168, 106, 0.08)',
                     border: '1px solid rgba(212, 168, 106, 0.25)',
                     marginTop: 2
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    id="autoGenerate3DCheckbox"
-                    checked={autoGenerate3D}
-                    onChange={(e) => setAutoGenerate3D(e.target.checked)}
-                    style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
-                  />
-                  <label htmlFor="autoGenerate3DCheckbox" style={{ fontSize: '12.5px', color: 'var(--heading-color)', fontWeight: 500, cursor: 'pointer', flex: 1, margin: 0 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      <Box size={13} style={{ color: 'var(--accent-gold)' }} />
-                      <strong>Tự động số hóa mô hình 3D sau khi lưu</strong>
-                    </span>
-                    <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
-                      Hệ thống sẽ xử lý ảnh tư liệu để tái tạo mô hình 3D xoay 360° trong tiến trình nền.
-                    </span>
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input
+                      type="checkbox"
+                      id="autoGenerate3DCheckbox"
+                      checked={autoGenerate3D}
+                      onChange={(e) => setAutoGenerate3D(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="autoGenerate3DCheckbox" style={{ fontSize: '12.5px', color: 'var(--heading-color)', fontWeight: 500, cursor: 'pointer', flex: 1, margin: 0 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <Box size={13} style={{ color: 'var(--accent-gold)' }} />
+                        <strong>Tự động số hóa mô hình 3D sau khi lưu</strong>
+                      </span>
+                      <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
+                        Hệ thống sẽ xử lý ảnh tư liệu để tái tạo mô hình 3D xoay 360° trong tiến trình nền.
+                      </span>
+                    </label>
+                  </div>
+
+                  {autoGenerate3D && (
+                    <div style={{
+                      marginTop: 4,
+                      padding: '12px',
+                      borderRadius: 6,
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      border: '1px solid rgba(212, 168, 106, 0.2)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <Sparkles size={13} />
+                          Chế độ tái tạo 3D AI (Phục vụ báo cáo so sánh đồ án)
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Khả dụng:{' '}
+                          <strong style={{ color: 'var(--accent-gold)' }}>
+                            {(editingArtifact.images?.[0] ? 1 : 0) +
+                              (editingArtifact.images?.[1] ? 1 : 0) +
+                              (editingArtifact.anglePhotos?.length || 0)}{' '}
+                            ảnh tư liệu
+                          </strong>
+                        </span>
+                      </div>
+
+                      {/* 3 Lựa chọn chế độ tái tạo */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8 }}>
+                        {/* Chế độ 1: 1 mặt đơn */}
+                        <div
+                          onClick={() => setReconstructionMode('single')}
+                          style={{
+                            padding: '9px 11px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            border: reconstructionMode === 'single' ? '1.5px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.08)',
+                            background: reconstructionMode === 'single' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '11.5px', fontWeight: 600, color: reconstructionMode === 'single' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                              ⚡ 1 Mặt trước (Single-view)
+                            </span>
+                            <span style={{ fontSize: '9.5px', padding: '1px 5px', borderRadius: 8, background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)' }}>
+                              1 ảnh
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                            Chỉ dùng 1 ảnh mặt trước. Dùng làm mô hình đối chứng (Baseline) để so sánh trong báo cáo.
+                          </span>
+                        </div>
+
+                        {/* Chế độ 2: 2 mặt trước - sau */}
+                        <div
+                          onClick={() => setReconstructionMode('front_back')}
+                          style={{
+                            padding: '9px 11px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            border: reconstructionMode === 'front_back' ? '1.5px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.08)',
+                            background: reconstructionMode === 'front_back' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '11.5px', fontWeight: 600, color: reconstructionMode === 'front_back' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                              🔄 2 Mặt Trước & Sau
+                            </span>
+                            <span style={{ fontSize: '9.5px', padding: '1px 5px', borderRadius: 8, background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)' }}>
+                              2 ảnh
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                            Tái tạo đồng thời diện mạo mặt trước và mặt sau thực tế của hiện vật.
+                          </span>
+                        </div>
+
+                        {/* Chế độ 3: Ghép đa góc độ */}
+                        <div
+                          onClick={() => setReconstructionMode('multiview')}
+                          style={{
+                            padding: '9px 11px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            border: reconstructionMode === 'multiview' ? '1.5px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.08)',
+                            background: reconstructionMode === 'multiview' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '11.5px', fontWeight: 600, color: reconstructionMode === 'multiview' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                              🏆 Ghép Đa Góc Độ (Multi-view)
+                            </span>
+                            <span style={{ fontSize: '9.5px', padding: '1px 6px', borderRadius: 8, background: 'rgba(212, 175, 55, 0.2)', color: 'var(--accent-gold)', fontWeight: 600 }}>
+                              {(editingArtifact.images?.[0] ? 1 : 0) +
+                                (editingArtifact.images?.[1] ? 1 : 0) +
+                                (editingArtifact.anglePhotos?.length || 0)}{' '}
+                              góc ảnh
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                            Dung hợp tất cả góc chụp (trước, sau, trái, phải, trên, chi tiết...) để mô hình chuẩn xác và tròn trịa nhất.
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Info size={12} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                        <span>
+                          Mô hình sau khi tạo sẽ được lưu kèm nhãn chế độ tương ứng để dễ dàng đối chứng khoa học và đưa vào báo cáo nghiệm thu đồ án.
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* File 3D (Tùy chọn) */}
@@ -2883,9 +3037,28 @@ export const AdminArtifactsPage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Box size={18} style={{ color: 'var(--accent-gold)' }} />
                 <div>
-                  <h2 className="modal-title" style={{ fontSize: '16px', margin: 0 }}>
-                    {activeViewerArtifact.name}
-                  </h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <h2 className="modal-title" style={{ fontSize: '16px', margin: 0 }}>
+                      {activeViewerArtifact.name}
+                    </h2>
+                    {activeViewerArtifact.modelMetadata?.reconstructionMode && (
+                      <span style={{
+                        fontSize: '11px',
+                        background: activeViewerArtifact.modelMetadata.reconstructionMode === 'multiview' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                        border: activeViewerArtifact.modelMetadata.reconstructionMode === 'multiview' ? '1px solid rgba(212, 175, 55, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
+                        color: activeViewerArtifact.modelMetadata.reconstructionMode === 'multiview' ? 'var(--accent-gold)' : 'var(--heading-color)',
+                        padding: '2px 8px',
+                        borderRadius: 12,
+                        fontWeight: 600
+                      }}>
+                        {activeViewerArtifact.modelMetadata.reconstructionMode === 'multiview'
+                          ? `🏆 Tái tạo Đa góc (${activeViewerArtifact.modelMetadata.inputImagesCount || 'N'} ảnh)`
+                          : activeViewerArtifact.modelMetadata.reconstructionMode === 'front_back'
+                          ? '🔄 Tái tạo 2 mặt'
+                          : '⚡ Tái tạo 1 mặt (Single-view)'}
+                      </span>
+                    )}
+                  </div>
                   <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
                     Mã số: {activeViewerArtifact.code} • {activeViewerArtifact.period || activeViewerArtifact.category}
                   </span>
@@ -2978,7 +3151,7 @@ export const AdminArtifactsPage: React.FC = () => {
             if (e.target === e.currentTarget) setIsGenerateModalOpen(false);
           }}
         >
-          <div className="modal-card" style={{ maxWidth: 480 }}>
+          <div className="modal-card modal-artifact-responsive" style={{ maxWidth: 'min(580px, 95vw)', width: '100%' }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Sparkles size={16} style={{ color: 'var(--accent-gold)' }} />
@@ -2997,7 +3170,7 @@ export const AdminArtifactsPage: React.FC = () => {
             </div>
 
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Xem trước ảnh nguồn */}
+              {/* Xem trước ảnh nguồn & thông tin */}
               <div
                 style={{
                   display: 'flex',
@@ -3037,26 +3210,171 @@ export const AdminArtifactsPage: React.FC = () => {
                       <div style={{ width: 56, height: 56, border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Camera size={16} style={{ color: 'var(--text-muted)' }} />
                       </div>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>Chưa có mặt sau</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>Chưa có sau</span>
                     </div>
                   )}
                 </div>
 
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--heading-color)', marginBottom: 2 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--heading-color)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {generatingArtifact.name}
                   </div>
                   <span style={{ fontSize: '11.5px', color: 'var(--accent-gold)', fontWeight: 600, display: 'block' }}>
                     Mã số: {generatingArtifact.code}
                   </span>
-                  <span style={{ fontSize: '11px', color: generatingArtifact.images && generatingArtifact.images[1] ? 'var(--success)' : 'var(--text-muted)', marginTop: 3, display: 'block' }}>
-                    {generatingArtifact.images && generatingArtifact.images[1]
-                      ? '✨ Đầy đủ ảnh 2 mặt: Tái tạo chi tiết mặt trước và mặt sau thực tế'
-                      : 'ℹ️ Dựng từ ảnh mặt trước (tự động đồng bộ màu sắc và khối lưng)'}
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 3, display: 'block' }}>
+                    {generatingArtifact.anglePhotos && generatingArtifact.anglePhotos.length > 0
+                      ? `✨ Có thêm ${generatingArtifact.anglePhotos.length} ảnh góc chụp xung quanh`
+                      : 'ℹ️ Bạn có thể tải thêm ảnh góc trong phần Chỉnh sửa hiện vật'}
                   </span>
                 </div>
               </div>
 
+              {/* Lựa chọn Chế độ Tái tạo 3D phục vụ nghiên cứu & so sánh đồ án */}
+              <div
+                style={{
+                  padding: '12px',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  border: '1px solid rgba(212, 168, 106, 0.25)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                  <label className="form-label" style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: 'var(--accent-gold)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Sparkles size={13} />
+                    Chế độ tái tạo 3D AI (So sánh thực nghiệm cho Luận văn):
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Khả dụng: <strong style={{ color: 'var(--accent-gold)' }}>
+                      {(generatingArtifact.images?.[0] ? 1 : 0) +
+                        (generatingArtifact.images?.[1] ? 1 : 0) +
+                        (generatingArtifact.anglePhotos?.length || 0)} ảnh
+                    </strong>
+                  </span>
+                </div>
+
+                {/* 3 Lựa chọn */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+                  {/* Chế độ 1: 1 mặt */}
+                  <div
+                    onClick={() => setReconstructionMode('single')}
+                    style={{
+                      padding: '9px 10px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      border: reconstructionMode === 'single' ? '1.5px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.08)',
+                      background: reconstructionMode === 'single' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 3
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 600, color: reconstructionMode === 'single' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                        ⚡ 1 Mặt trước (Single)
+                      </span>
+                      <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)' }}>
+                        1 ảnh
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                      Dựng từ 1 ảnh mặt trước (làm mô hình đối chứng so sánh).
+                    </span>
+                  </div>
+
+                  {/* Chế độ 2: 2 mặt */}
+                  <div
+                    onClick={() => setReconstructionMode('front_back')}
+                    style={{
+                      padding: '9px 10px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      border: reconstructionMode === 'front_back' ? '1.5px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.08)',
+                      background: reconstructionMode === 'front_back' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 3
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 600, color: reconstructionMode === 'front_back' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                        🔄 2 Mặt Trước - Sau
+                      </span>
+                      <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)' }}>
+                        2 ảnh
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                      Tái tạo đầy đủ chiều sâu khối trước và sau.
+                    </span>
+                  </div>
+
+                  {/* Chế độ 3: Đa góc độ */}
+                  <div
+                    onClick={() => setReconstructionMode('multiview')}
+                    style={{
+                      padding: '9px 10px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      border: reconstructionMode === 'multiview' ? '1.5px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.08)',
+                      background: reconstructionMode === 'multiview' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 3
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 600, color: reconstructionMode === 'multiview' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                        🏆 Ghép Đa Góc (Multi-view)
+                      </span>
+                      <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: 8, background: 'rgba(212,175,55,0.2)', color: 'var(--accent-gold)', fontWeight: 600 }}>
+                        {(generatingArtifact.images?.[0] ? 1 : 0) +
+                          (generatingArtifact.images?.[1] ? 1 : 0) +
+                          (generatingArtifact.anglePhotos?.length || 0)} ảnh
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                      Dung hợp toàn bộ các góc chụp xung quanh vào TRELLIS.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Danh sách ảnh góc độ sẽ nạp vào TRELLIS */}
+                <div style={{ borderTop: '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: 8 }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                    Ảnh sẽ nạp vào TRELLIS AI theo chế độ đã chọn:
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {/* Mặt trước */}
+                    {generatingArtifact.images?.[0] && (
+                      <span style={{ fontSize: '10.5px', background: 'rgba(212, 175, 55, 0.15)', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#e6c687', padding: '2px 8px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        ✓ Mặt trước (Chính)
+                      </span>
+                    )}
+
+                    {/* Mặt sau */}
+                    {reconstructionMode !== 'single' && generatingArtifact.images?.[1] && (
+                      <span style={{ fontSize: '10.5px', background: 'rgba(212, 175, 55, 0.15)', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#e6c687', padding: '2px 8px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        ✓ Mặt sau
+                      </span>
+                    )}
+
+                    {/* Các góc chụp phụ */}
+                    {reconstructionMode === 'multiview' &&
+                      generatingArtifact.anglePhotos?.map((p: any, idx: number) => (
+                        <span key={p.id || idx} style={{ fontSize: '10.5px', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.35)', color: '#a5b4fc', padding: '2px 8px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          ✓ {p.label || `Góc #${idx + 1}`}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              </div>
 
               {/* Cảnh báo lỗi nếu lần tạo trước thất bại hoặc hết hạn mức token */}
               {generatingArtifact.processingStatus === 'failed' && (

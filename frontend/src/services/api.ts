@@ -579,8 +579,22 @@ export const api = {
 
   async generate3DArtifact(
     id: string,
-    options?: { imageUrl?: string; depthScale?: number; resolution?: number }
-  ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string; status: string }> {
+    options?: {
+      imageUrl?: string;
+      backImageUrl?: string;
+      reconstructionMode?: 'single' | 'front_back' | 'multiview';
+      multiImageUrls?: string[];
+      depthScale?: number;
+      resolution?: number;
+    }
+  ): Promise<{
+    jobId: string;
+    cached: boolean;
+    model3dUrl?: string;
+    status: string;
+    reconstructionMode?: string;
+    anglesUsed?: string[];
+  }> {
     const res = await fetch(`${API_BASE}/artifacts/${id}/generate-3d`, {
       method: 'POST',
       headers: getAuthHeaders(true),

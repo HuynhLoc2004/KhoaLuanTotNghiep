@@ -63,6 +63,7 @@ export interface TrellisGenerateOptions {
   imagePath: string;
   destFilePath: string;
   jobId: string;
+  multiImages?: string[];
 }
 
 export interface TrellisGenerateResult {
@@ -70,6 +71,8 @@ export interface TrellisGenerateResult {
   format: string;
   generationTimeSeconds: number;
   engine: string;
+  reconstructionMode?: 'single' | 'multiview';
+  inputImagesCount?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +135,7 @@ export async function pingTrellis(): Promise<TrellisPingResult> {
 export async function generate3DWithTrellis(
   options: TrellisGenerateOptions
 ): Promise<TrellisGenerateResult> {
-  const { imagePath, destFilePath, jobId } = options;
+  const { imagePath, destFilePath, jobId, multiImages } = options;
 
   if (!fs.existsSync(TRELLIS_SCRIPT)) {
     throw new Error(`Không tìm thấy trellis_service.py tại: ${TRELLIS_SCRIPT}. Vui lòng kiểm tra cấu hình.`);
@@ -142,7 +145,8 @@ export async function generate3DWithTrellis(
     throw new Error(`File ảnh đầu vào không tồn tại: ${imagePath}`);
   }
 
-  console.log(`[TRELLIS Client] Bắt đầu Job ${jobId} | ảnh: ${path.basename(imagePath)} | script: ${TRELLIS_SCRIPT}`);
+  const validExtras = (multiImages || []).filter(p => p && fs.existsSync(p));
+  console.log(`[TRELLIS Client] Bắt đầu Job ${jobId} | ảnh chính: ${path.basename(imagePath)} | ảnh góc phụ: ${validExtras.length} | script: ${TRELLIS_SCRIPT}`);
 
   return new Promise<TrellisGenerateResult>((resolve, reject) => {
     const env = {
@@ -157,6 +161,10 @@ export async function generate3DWithTrellis(
       '--image', imagePath,
       '--output', destFilePath,
     ];
+
+    if (validExtras.length > 0) {
+      args.push('--multiimages', ...validExtras);
+    }
 
     const py = spawn(PYTHON_PATH, args, { env });
 
@@ -198,12 +206,14 @@ export async function generate3DWithTrellis(
           return;
         }
 
-        console.log(`[TRELLIS Client] ✓ Job ${jobId} hoàn tất! Size: ${(fileStats.size/1024/1024).toFixed(2)}MB, Time: ${parsed.generation_time_seconds}s`);
+        console.log(`[TRELLIS Client] ✓ Job ${jobId} hoàn tất! Size: ${(fileStats.size/1024/1024).toFixed(2)}MB, Time: ${parsed.generation_time_seconds}s, Mode: ${parsed.reconstruction_mode || (validExtras.length > 0 ? 'multiview' : 'single')}`);
         resolve({
           sizeBytes: fileStats.size,
           format: 'glb',
           generationTimeSeconds: parsed.generation_time_seconds || 0,
           engine: parsed.engine || 'TRELLIS (HuggingFace Spaces)',
+          reconstructionMode: parsed.reconstruction_mode || (validExtras.length > 0 ? 'multiview' : 'single'),
+          inputImagesCount: parsed.input_images_count || (1 + validExtras.length),
         });
       } else {
         const rawMsg = parsed.error
