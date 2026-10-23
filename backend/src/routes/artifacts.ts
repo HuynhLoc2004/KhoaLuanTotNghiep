@@ -897,7 +897,25 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
         }
       }
 
-      // 2. Các góc chụp tư liệu đa hướng (Cạnh trái, Cạnh phải, Góc trên, Chi tiết hoa văn, v.v...)
+      // 2. Tự động gom tất cả ảnh tư liệu khác trong danh sách images (từ ảnh thứ 3 trở đi)
+      if (reconstructionMode === 'multiview' && artifact.images && artifact.images.length > 2) {
+        for (let i = 2; i < artifact.images.length; i++) {
+          const extraImg = artifact.images[i];
+          const resolvedPath = resolveToLocalOrUrl(extraImg);
+          if (
+            resolvedPath &&
+            fs.existsSync(resolvedPath) &&
+            resolvedPath !== localImagePath &&
+            resolvedPath !== localBackImagePath &&
+            !extraImagePaths.includes(resolvedPath)
+          ) {
+            extraImagePaths.push(resolvedPath);
+            angleLabels.push(`Ảnh góc #${i + 1}`);
+          }
+        }
+      }
+
+      // 3. Các góc chụp tư liệu đa hướng từ multiImageUrls hoặc anglePhotos
       if (reconstructionMode === 'multiview') {
         const angleList = Array.isArray(multiImageUrls) && multiImageUrls.length > 0
           ? multiImageUrls.map((u: string) => ({ url: u, label: 'Góc chụp tư liệu' }))
