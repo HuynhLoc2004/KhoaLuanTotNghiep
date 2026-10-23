@@ -176,11 +176,6 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({
 
   const handleClose = () => {
     if (loading) return;
-    if (name.trim() || description.trim()) {
-      if (!window.confirm('Bạn có thông tin gian phòng chưa lưu. Bạn có chắc chắn muốn đóng và hủy bỏ?')) {
-        return;
-      }
-    }
     onClose();
   };
 

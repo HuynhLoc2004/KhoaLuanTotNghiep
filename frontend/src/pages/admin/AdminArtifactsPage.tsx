@@ -309,18 +309,6 @@ export const AdminArtifactsPage: React.FC = () => {
 
   const handleCloseEditModal = () => {
     if (isSaving) return;
-    const hasData = Boolean(
-      (editingArtifact?.name && editingArtifact.name.trim()) ||
-      (editingArtifact?.description && editingArtifact.description.trim()) ||
-      (editingArtifact?.dimensions && editingArtifact.dimensions.trim()) ||
-      (editingArtifact?.images && editingArtifact.images.length > 0)
-    );
-
-    if (hasData) {
-      if (!window.confirm('Bạn có nội dung thông tin hiện vật chưa lưu. Bạn có chắc chắn muốn đóng và hủy bỏ?')) {
-        return;
-      }
-    }
     setIsEditModalOpen(false);
   };
 

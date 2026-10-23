@@ -100,11 +100,6 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onU
 
   const handleClose = () => {
     if (loading || uploading) return;
-    if (name.trim() !== (room.name || '').trim() || description.trim() !== (room.description || '').trim()) {
-      if (!window.confirm('Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn đóng và hủy bỏ?')) {
-        return;
-      }
-    }
     onClose();
   };
 
