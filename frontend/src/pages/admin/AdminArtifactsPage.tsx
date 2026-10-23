@@ -42,7 +42,7 @@ import {
   Globe
 } from 'lucide-react';
 import { api, API_ROOT } from '../../services/api';
-import { Artifact, LanguageItem } from '../../types';
+import { Artifact, LanguageItem, MuseumRoom } from '../../types';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { Pagination } from '../../components/Pagination';
 import { useToast } from '../../components/Toast';
@@ -57,6 +57,7 @@ export const AdminArtifactsPage: React.FC = () => {
 
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
+  const [rooms, setRooms] = useState<MuseumRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -70,7 +71,16 @@ export const AdminArtifactsPage: React.FC = () => {
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingArtifact, setEditingArtifact] = useState<Partial<Artifact> | null>(null);
-  const [editFormErrors, setEditFormErrors] = useState<{ code?: string; name?: string }>({});
+  const [editFormErrors, setEditFormErrors] = useState<{
+    code?: string;
+    name?: string;
+    category?: string;
+    period?: string;
+    origin?: string;
+    dimensions?: string;
+    description?: string;
+    images?: string;
+  }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isIsolatingImage, setIsIsolatingImage] = useState(false);
@@ -154,9 +164,19 @@ export const AdminArtifactsPage: React.FC = () => {
     }
   };
 
+  const fetchRooms = async () => {
+    try {
+      const data = await api.getRooms();
+      setRooms(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('[AdminArtifacts] Không thể tải danh sách phòng:', err);
+    }
+  };
+
   useEffect(() => {
     fetchArtifacts();
     fetchLanguages();
+    fetchRooms();
   }, []);
 
   // Lắng nghe phím Escape để đóng nhanh các modal
@@ -351,29 +371,112 @@ export const AdminArtifactsPage: React.FC = () => {
     e.preventDefault();
     if (!editingArtifact) return;
 
-    const errors: { code?: string; name?: string } = {};
-    const codeVal = editingArtifact.code?.trim() || '';
-    const nameVal = editingArtifact.name?.trim() || '';
+    const errors: {
+      code?: string;
+      name?: string;
+      category?: string;
+      period?: string;
+      origin?: string;
+      dimensions?: string;
+      description?: string;
+      images?: string;
+    } = {};
 
-    if (!codeVal) errors.code = 'Vui lòng nhập mã định danh hiện vật';
-    if (!nameVal) errors.name = 'Vui lòng nhập tên cổ vật di sản';
+    const codeVal = (editingArtifact.code || '').trim().toUpperCase().replace(/\s+/g, '');
+    const nameVal = (editingArtifact.name || '').trim();
+    const catVal = (editingArtifact.category || '').trim();
+    const periodVal = (editingArtifact.period || '').trim();
+    const originVal = (editingArtifact.origin || '').trim();
+    let dimVal = (editingArtifact.dimensions || '').trim();
+    const descVal = (editingArtifact.description || '').trim();
+
+    // 1. Mã định danh
+    if (!codeVal) {
+      errors.code = 'Mã định danh là bắt buộc (Ví dụ: HV-403, BT-101)';
+    } else if (codeVal.length < 3) {
+      errors.code = 'Mã định danh phải có tối thiểu 3 ký tự (Ví dụ: HV-403)';
+    } else if (/^\d+$/.test(codeVal)) {
+      errors.code = 'Mã định danh cần có tiền tố bảo tàng (Ví dụ: HV-403, không được chỉ là số)';
+    } else if (/[!@#$%^&*()+=[\]{}|\\:;"'<>,?/~`]/.test(codeVal)) {
+      errors.code = 'Mã định danh không được chứa ký tự đặc biệt';
+    }
+
+    // 2. Tên cổ vật di sản
+    if (!nameVal) {
+      errors.name = 'Vui lòng nhập tên cổ vật di sản';
+    } else if (nameVal.length < 3) {
+      errors.name = 'Tên cổ vật phải có tối thiểu 3 ký tự (Ví dụ: Tượng Bồ Tát Tara sa thạch)';
+    } else if (/^\d+$/.test(nameVal)) {
+      errors.name = 'Tên cổ vật phải là tên gọi di sản văn hóa (Ví dụ: "Tượng Bồ Tát Tara", không được chỉ là số thuần túy)';
+    } else if (/^(.)\1+$/.test(nameVal) || /^(test|abc|xyz|asdf|qwer|123)$/i.test(nameVal)) {
+      errors.name = 'Vui lòng nhập tên gọi cổ vật di sản thực tế, mang giá trị văn hóa - lịch sử';
+    }
+
+    // 3. Danh mục / Loại hình
+    if (catVal && /^\d+$/.test(catVal)) {
+      errors.category = 'Danh mục / Loại hình phải là phân loại bảo tàng (Ví dụ: Gốm sứ, Đồ đồng...)';
+    }
+
+    // 4. Niên đại / Triều đại
+    if (periodVal && /^\d+$/.test(periodVal)) {
+      errors.period = 'Niên đại cần ghi rõ thời kỳ lịch sử (Ví dụ: Thế kỷ XI - XIV, Thời Lý - Trần...)';
+    }
+
+    // 5. Nguồn gốc / Khảo cổ
+    if (originVal && /^\d+$/.test(originVal)) {
+      errors.origin = 'Nguồn gốc khảo cổ cần ghi rõ xuất xứ (Ví dụ: Bảo tàng Lịch sử TP.HCM, Khảo cổ Óc Eo...)';
+    }
+
+    // 6. Kích thước đo đạc
+    if (dimVal) {
+      if (/^\d+(\.\d+)?$/.test(dimVal)) {
+        dimVal = `Cao ${dimVal} cm`;
+      } else if (!/(cm|mm|m|inch|kg|g|gram|dài|rộng|cao|sâu|đường kính|ø)/i.test(dimVal)) {
+        errors.dimensions = 'Kích thước cần kèm đơn vị đo lường (cm, mm, m, kg...) hoặc quy cách (Ví dụ: Cao 34 cm, Rộng 20 cm hoặc Ø 34 cm)';
+      }
+    }
+
+    // 7. Thông tin khảo cứu & Ý nghĩa lịch sử
+    if (descVal) {
+      if (descVal.length < 10) {
+        errors.description = 'Thông tin khảo cứu lịch sử cần tối thiểu 10 ký tự (mô tả hoa văn mỹ thuật, hoàn cảnh phát hiện hoặc giá trị văn hóa)';
+      } else if (/^(.)\1+$/.test(descVal) || /^(qaa|asd|asdf|qwer|test|123456)$/i.test(descVal)) {
+        errors.description = 'Vui lòng nhập thông tin khảo cứu có ý nghĩa thực tế về cổ vật, không nhập ký tự ngẫu nhiên';
+      }
+    }
+
+    // 8. Hình ảnh tư liệu (ít nhất 1 ảnh tư liệu mặt trước)
+    const hasImage = Boolean(
+      editingArtifact.thumbnailUrl ||
+      (editingArtifact.images && editingArtifact.images.length > 0 && editingArtifact.images[0]) ||
+      editingArtifact.originalPhotoUrl
+    );
+    if (!hasImage) {
+      errors.images = 'Hồ sơ hiện vật bắt buộc phải có ít nhất 1 ảnh chụp tư liệu (Mặt trước) để phục vụ trưng bày và số hóa 3D';
+    }
 
     if (Object.keys(errors).length > 0) {
       setEditFormErrors(errors);
-      showToast('Vui lòng nhập đầy đủ các trường bắt buộc', 'error');
+      showToast('Thông tin hồ sơ chưa hợp lệ theo chuẩn bảo tàng di sản. Vui lòng kiểm tra các mục được đánh dấu đỏ!', 'error');
       return;
     }
 
     setEditFormErrors({});
+    const normalizedArtifact: Partial<Artifact> = {
+      ...editingArtifact,
+      code: codeVal,
+      name: nameVal,
+      dimensions: dimVal
+    };
 
     try {
       setIsSaving(true);
       let savedArtifact: Artifact;
-      if (editingArtifact.id) {
-        savedArtifact = await api.updateArtifact(editingArtifact.id, editingArtifact);
+      if (normalizedArtifact.id) {
+        savedArtifact = await api.updateArtifact(normalizedArtifact.id, normalizedArtifact);
         showToast('Đã cập nhật hồ sơ hiện vật thành công!', 'success');
       } else {
-        savedArtifact = await api.createArtifact(editingArtifact);
+        savedArtifact = await api.createArtifact(normalizedArtifact);
         showToast('Đã thêm hồ sơ hiện vật mới vào sổ lưu trữ di sản!', 'success');
       }
 
@@ -2040,15 +2143,16 @@ export const AdminArtifactsPage: React.FC = () => {
                       className="form-control"
                       value={editingArtifact.code || ''}
                       onChange={(e) => {
-                        setEditingArtifact({ ...editingArtifact, code: e.target.value });
+                        const val = e.target.value.toUpperCase().replace(/\s+/g, '');
+                        setEditingArtifact({ ...editingArtifact, code: val });
                         if (editFormErrors.code) setEditFormErrors((prev) => ({ ...prev, code: undefined }));
                       }}
-                      placeholder="HV-101..."
+                      placeholder="HV-403, BT-101..."
                       style={{ borderColor: editFormErrors.code ? '#EF4444' : undefined }}
                       required
                     />
                     {editFormErrors.code && (
-                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block', lineHeight: 1.35 }}>
                         {editFormErrors.code}
                       </span>
                     )}
@@ -2068,7 +2172,7 @@ export const AdminArtifactsPage: React.FC = () => {
                       required
                     />
                     {editFormErrors.name && (
-                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block', lineHeight: 1.35 }}>
                         {editFormErrors.name}
                       </span>
                     )}
@@ -2078,24 +2182,70 @@ export const AdminArtifactsPage: React.FC = () => {
                 {/* Hàng 2: Danh mục & Niên đại */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                   <div className="form-group">
-                    <label className="form-label">Danh mục / Loại hình</label>
+                    <label className="form-label">Danh mục / Loại hình di sản</label>
                     <input
                       type="text"
                       className="form-control"
+                      list="heritage-category-list"
                       value={editingArtifact.category || ''}
-                      onChange={(e) => setEditingArtifact({ ...editingArtifact, category: e.target.value })}
+                      onChange={(e) => {
+                        setEditingArtifact({ ...editingArtifact, category: e.target.value });
+                        if (editFormErrors.category) setEditFormErrors((prev) => ({ ...prev, category: undefined }));
+                      }}
                       placeholder="Gốm sứ, Đồ đồng, Điêu khắc..."
+                      style={{ borderColor: editFormErrors.category ? '#EF4444' : undefined }}
                     />
+                    <datalist id="heritage-category-list">
+                      <option value="Gốm sứ cổ truyền" />
+                      <option value="Đồ đồng & Kim loại di sản" />
+                      <option value="Điêu khắc đá & Sa thạch" />
+                      <option value="Văn hóa Óc Eo - Phù Nam" />
+                      <option value="Văn hóa Champa" />
+                      <option value="Văn hóa Đông Sơn - Sa Huỳnh" />
+                      <option value="Cổ vật Cung đình triều Nguyễn" />
+                      <option value="Binh khí & Vũ khí cổ" />
+                      <option value="Trang phục & Dệt thêu cổ truyền" />
+                      <option value="Châu báu & Kim hoàn cổ" />
+                      <option value="Mộc bản, Châu bản & Thư tịch cổ" />
+                      <option value="Tượng thờ & Pháp khí tôn giáo" />
+                      <option value="Bảo vật Quốc gia" />
+                    </datalist>
+                    {editFormErrors.category && (
+                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                        {editFormErrors.category}
+                      </span>
+                    )}
                   </div>
                   <div className="form-group">
                     <label className="form-label">Niên đại / Triều đại</label>
                     <input
                       type="text"
                       className="form-control"
+                      list="heritage-period-list"
                       value={editingArtifact.period || ''}
-                      onChange={(e) => setEditingArtifact({ ...editingArtifact, period: e.target.value })}
-                      placeholder="Thế kỷ VII - IX, Thời Lý - Trần..."
+                      onChange={(e) => {
+                        setEditingArtifact({ ...editingArtifact, period: e.target.value });
+                        if (editFormErrors.period) setEditFormErrors((prev) => ({ ...prev, period: undefined }));
+                      }}
+                      placeholder="Thế kỷ XI - XIV, Thời Lý - Trần..."
+                      style={{ borderColor: editFormErrors.period ? '#EF4444' : undefined }}
                     />
+                    <datalist id="heritage-period-list">
+                      <option value="Thời Tiền sử & Sơ sử (Đông Sơn, Sa Huỳnh, Đồng Nai)" />
+                      <option value="Đầu Công nguyên - Thế kỷ VI (Văn hóa Óc Eo sớm)" />
+                      <option value="Thế kỷ VII - IX (Óc Eo / Champa sớm)" />
+                      <option value="Thời Ngô - Đinh - Tiền Lê (Thế kỷ X)" />
+                      <option value="Thời Lý - Trần (Thế kỷ XI - XIV)" />
+                      <option value="Thời Hậu Lê - Mạc (Thế kỷ XV - XVI)" />
+                      <option value="Thời Lê Trung Hưng - Tây Sơn (Thế kỷ XVII - XVIII)" />
+                      <option value="Triều Nguyễn (1802 - 1945)" />
+                      <option value="Thời kỳ Cận - Hiện đại (Thế kỷ XX)" />
+                    </datalist>
+                    {editFormErrors.period && (
+                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                        {editFormErrors.period}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -2106,34 +2256,144 @@ export const AdminArtifactsPage: React.FC = () => {
                     <input
                       type="text"
                       className="form-control"
+                      list="heritage-origin-list"
                       value={editingArtifact.origin || ''}
-                      onChange={(e) => setEditingArtifact({ ...editingArtifact, origin: e.target.value })}
-                      placeholder="Đồng Nai, Quảng Nam, Huế..."
+                      onChange={(e) => {
+                        setEditingArtifact({ ...editingArtifact, origin: e.target.value });
+                        if (editFormErrors.origin) setEditFormErrors((prev) => ({ ...prev, origin: undefined }));
+                      }}
+                      placeholder="Bảo tàng Lịch sử TP.HCM, Khảo cổ Óc Eo..."
+                      style={{ borderColor: editFormErrors.origin ? '#EF4444' : undefined }}
                     />
+                    <datalist id="heritage-origin-list">
+                      <option value="Bảo tàng Lịch sử TP.HCM" />
+                      <option value="Khai quật Di chỉ Giồng Cá Vồ (Cần Giờ, TP.HCM)" />
+                      <option value="Khu di tích Khảo cổ Óc Eo - Ba Thê (An Giang)" />
+                      <option value="Thánh địa Mỹ Sơn & Trà Kiệu (Quảng Nam)" />
+                      <option value="Cố đô Huế & Hoàng cung triều Nguyễn (Thừa Thiên Huế)" />
+                      <option value="Di tích Hoàng thành Thăng Long (Hà Nội)" />
+                      <option value="Di chỉ Khảo cổ học Đông Sơn (Thanh Hóa)" />
+                      <option value="Khai quật tàu cổ Cù Lao Chàm (Quảng Nam)" />
+                      <option value="Khai quật tàu cổ Hòn Dầm (Kiên Giang)" />
+                      <option value="Sưu tập tư nhân hiến tặng bảo tàng" />
+                    </datalist>
+                    {editFormErrors.origin && (
+                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
+                        {editFormErrors.origin}
+                      </span>
+                    )}
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Kích thước đo đạc</label>
+                    <label className="form-label">
+                      Kích thước đo đạc <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(Kèm đơn vị cm/mm)</span>
+                    </label>
                     <input
                       type="text"
                       className="form-control"
+                      list="heritage-dimensions-list"
                       value={editingArtifact.dimensions || ''}
-                      onChange={(e) => setEditingArtifact({ ...editingArtifact, dimensions: e.target.value })}
-                      placeholder="Cao 42cm, Rộng 28cm..."
+                      onChange={(e) => {
+                        setEditingArtifact({ ...editingArtifact, dimensions: e.target.value });
+                        if (editFormErrors.dimensions) setEditFormErrors((prev) => ({ ...prev, dimensions: undefined }));
+                      }}
+                      onBlur={(e) => {
+                        const val = e.target.value.trim();
+                        if (/^\d+(\.\d+)?$/.test(val)) {
+                          setEditingArtifact({ ...editingArtifact, dimensions: `Cao ${val} cm` });
+                          if (editFormErrors.dimensions) setEditFormErrors((prev) => ({ ...prev, dimensions: undefined }));
+                        }
+                      }}
+                      placeholder="Ví dụ: Cao 34 cm, Rộng 20 cm hoặc Ø 34 cm"
+                      style={{ borderColor: editFormErrors.dimensions ? '#EF4444' : undefined }}
                     />
+                    <datalist id="heritage-dimensions-list">
+                      <option value="Cao 34 cm, Rộng 20 cm, Sâu 15 cm" />
+                      <option value="Đường kính 34 cm, Cao 12 cm" />
+                      <option value="Cao 34 cm, Trọng lượng 2.5 kg" />
+                      <option value="Dài 45 cm, Rộng 25 cm, Cao 34 cm" />
+                      <option value="Đường kính miệng 22 cm, Cao 34 cm" />
+                    </datalist>
+                    {editFormErrors.dimensions && (
+                      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block', lineHeight: 1.35 }}>
+                        {editFormErrors.dimensions}
+                      </span>
+                    )}
                   </div>
+                </div>
+
+                {/* Hàng 4: Gian phòng trưng bày 360° */}
+                <div className="form-group">
+                  <label className="form-label">Gian phòng trưng bày 360° (Tùy chọn liên kết)</label>
+                  <select
+                    className="form-control"
+                    value={editingArtifact.roomId || ''}
+                    onChange={(e) => {
+                      const selRoom = rooms.find((r) => r.id === e.target.value);
+                      setEditingArtifact({
+                        ...editingArtifact,
+                        roomId: e.target.value || undefined,
+                        roomCode: selRoom?.code || undefined
+                      });
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <option value="">-- Chưa gán gian phòng (Lưu kho bảo quản) --</option>
+                    {rooms.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} ({r.code})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Giới thiệu lịch sử */}
                 <div className="form-group">
-                  <label className="form-label">Thông tin khảo cứu & Ý nghĩa lịch sử</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label className="form-label" style={{ margin: 0 }}>
+                      Thông tin khảo cứu & Ý nghĩa lịch sử
+                    </label>
+                    <span style={{
+                      fontSize: '11px',
+                      color: (editingArtifact.description?.trim().length || 0) < 10 && (editingArtifact.description?.trim().length || 0) > 0 ? '#EF4444' : 'var(--text-muted)'
+                    }}>
+                      {editingArtifact.description?.trim().length || 0} ký tự (tối thiểu 10 ký tự nếu nhập)
+                    </span>
+                  </div>
                   <textarea
                     className="form-control"
                     rows={3}
                     value={editingArtifact.description || ''}
-                    onChange={(e) => setEditingArtifact({ ...editingArtifact, description: e.target.value })}
-                    placeholder="Mô tả nguồn gốc, hoa văn mỹ thuật và giá trị lịch sử của cổ vật..."
+                    onChange={(e) => {
+                      setEditingArtifact({ ...editingArtifact, description: e.target.value });
+                      if (editFormErrors.description) setEditFormErrors((prev) => ({ ...prev, description: undefined }));
+                    }}
+                    placeholder="Mô tả nguồn gốc khai quật, hoa văn mỹ thuật đặc sắc và giá trị văn hóa - lịch sử của cổ vật..."
+                    style={{ borderColor: editFormErrors.description ? '#EF4444' : undefined }}
                   />
+                  {editFormErrors.description && (
+                    <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block', lineHeight: 1.35 }}>
+                      {editFormErrors.description}
+                    </span>
+                  )}
                 </div>
+
+                {/* Thông báo lỗi ảnh tư liệu nếu chưa có */}
+                {editFormErrors.images && (
+                  <div style={{
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#EF4444',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}>
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>{editFormErrors.images}</span>
+                  </div>
+                )}
 
                 {/* Quản lý Ảnh tư liệu 2 mặt: Mặt Trước & Mặt Sau */}
                 <div className="form-group">

@@ -357,12 +357,19 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
       images, thumbnailUrl, originalPhotoUrl, anglePhotos,
       model3dUrl, audioNarrationUrl, voiceLanguage, roomId, roomCode, topicId
     } = req.body;
-    if (!name || !code) {
+    const cleanName = String(name || '').trim();
+    const cleanCode = String(code || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (!cleanName || !cleanCode) {
       return res.status(400).json({ success: false, message: 'Tên và Mã hiện vật là bắt buộc' });
+    }
+    if (cleanName.length < 3 || /^\d+$/.test(cleanName)) {
+      return res.status(400).json({ success: false, message: 'Tên cổ vật phải là tên gọi di sản hợp lệ (tối thiểu 3 ký tự, không được chỉ gồm số)' });
+    }
+    if (cleanCode.length < 3 || /^\d+$/.test(cleanCode)) {
+      return res.status(400).json({ success: false, message: 'Mã định danh hiện vật cần có tiền tố bảo tàng (Ví dụ: HV-403, không được chỉ gồm số)' });
     }
 
     // Kiểm tra trùng mã code trên cả MongoDB và PostgreSQL Primary
-    const cleanCode = code.trim();
     const existing = await ArtifactModel.findOne({ code: cleanCode });
     let pgExisting = false;
     try {
@@ -370,7 +377,7 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
       if (pgCheck.rows.length > 0) pgExisting = true;
     } catch {}
     if (existing || pgExisting) {
-      return res.status(400).json({ success: false, message: `Mã hiện vật "${code}" đã tồn tại trên hệ thống` });
+      return res.status(400).json({ success: false, message: `Mã hiện vật "${cleanCode}" đã tồn tại trên hệ thống` });
     }
 
     const _id = new mongoose.Types.ObjectId();
@@ -433,8 +440,20 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Mã định danh hiện vật (ID) không hợp lệ' });
     }
 
-    if (req.body.code) {
-      const newCode = String(req.body.code).trim();
+    if (req.body.name !== undefined) {
+      const cleanName = String(req.body.name).trim();
+      if (!cleanName || cleanName.length < 3 || /^\d+$/.test(cleanName)) {
+        return res.status(400).json({ success: false, message: 'Tên cổ vật phải là tên gọi di sản hợp lệ (tối thiểu 3 ký tự, không được chỉ gồm số)' });
+      }
+      req.body.name = cleanName;
+    }
+
+    if (req.body.code !== undefined) {
+      const newCode = String(req.body.code).trim().toUpperCase().replace(/\s+/g, '');
+      if (!newCode || newCode.length < 3 || /^\d+$/.test(newCode)) {
+        return res.status(400).json({ success: false, message: 'Mã định danh hiện vật cần có tiền tố bảo tàng (Ví dụ: HV-403, không được chỉ gồm số)' });
+      }
+      req.body.code = newCode;
       const dupMongo = await ArtifactModel.findOne({ code: newCode, id: { $ne: id }, _id: { $ne: id } });
       let dupPg = false;
       try {

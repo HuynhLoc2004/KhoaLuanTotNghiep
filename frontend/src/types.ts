@@ -554,6 +554,9 @@ export interface Artifact {
   origin: string;
   description: string;
   dimensions?: string;
+  roomId?: string;
+  roomCode?: string;
+  topicId?: string;
   images: string[];
   thumbnailUrl: string;
   originalPhotoUrl?: string;
