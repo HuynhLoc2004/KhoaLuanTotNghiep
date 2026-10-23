@@ -44,6 +44,13 @@ export interface IArtifact extends Document {
   processingError?: string;
   modelMetadata?: IArtifactMetadata;
   translations?: Record<string, IArtifactTranslation>;
+  originalPhotoUrl?: string;
+  anglePhotos?: Array<{
+    id: string;
+    angle: string;
+    label: string;
+    url: string;
+  }>;
   orderIndex: number;
   createdAt: Date;
   updatedAt: Date;
@@ -64,6 +71,8 @@ const ArtifactSchema = new Schema<IArtifact>(
     dimensions: { type: String, default: '' },
     images: { type: [String], default: [] },
     thumbnailUrl: { type: String, default: '' },
+    originalPhotoUrl: { type: String, default: '' },
+    anglePhotos: { type: [Schema.Types.Mixed], default: [] },
     model3dUrl: { type: String, default: '' },
     audioNarrationUrl: { type: String, default: '' },
     voiceLanguage: { type: String, default: 'vi' },

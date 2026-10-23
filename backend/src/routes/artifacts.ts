@@ -22,6 +22,43 @@ if (!fs.existsSync(ARTIFACTS_UPLOAD_DIR)) {
   fs.mkdirSync(ARTIFACTS_UPLOAD_DIR, { recursive: true });
 }
 
+/**
+ * Helper tìm và trả về URL ảnh gốc trước khi tách nền
+ */
+function resolveOriginalPhoto(art: any): string {
+  if (art.originalPhotoUrl && typeof art.originalPhotoUrl === 'string' && !art.originalPhotoUrl.includes('isolated_')) {
+    return art.originalPhotoUrl;
+  }
+  if (Array.isArray(art.images)) {
+    const raw = art.images.find((img: string) => img && typeof img === 'string' && !img.includes('isolated_'));
+    if (raw) return raw;
+  }
+  const iso = art.thumbnailUrl || (art.images && art.images[0]) || '';
+  if (iso && typeof iso === 'string' && iso.includes('isolated_')) {
+    try {
+      const base = path.basename(iso).replace(/^isolated_\d+_/, '');
+      const cleanStem = base.replace(/\.[^/.]+$/, '');
+      const searchDirs = [
+        ARTIFACTS_UPLOAD_DIR,
+        path.join(process.cwd(), 'public', 'uploads', 'artifacts'),
+        path.join(process.cwd(), 'backend', 'public', 'uploads', 'artifacts'),
+        path.join(process.cwd(), 'public', 'uploads'),
+        path.join(process.cwd(), 'backend', 'public', 'uploads')
+      ];
+      for (const dir of searchDirs) {
+        if (fs.existsSync(dir)) {
+          const files = fs.readdirSync(dir);
+          const match = files.find(f => !f.startsWith('isolated_') && (f.startsWith(cleanStem) || f.includes(cleanStem)));
+          if (match) {
+            return `/uploads/artifacts/${match}`;
+          }
+        }
+      }
+    } catch {}
+  }
+  return art.originalPhotoUrl || (art.images && art.images[0]) || art.thumbnailUrl || '';
+}
+
 // Cấu hình Multer cho ảnh
 const storageImage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, ARTIFACTS_UPLOAD_DIR),
@@ -103,6 +140,7 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
       const pgRes = await pgPool.query(`
         SELECT id, code, name, room_id as "roomId", room_code as "roomCode", topic_id as "topicId",
                category, period, origin, description, dimensions, images, thumbnail_url as "thumbnailUrl",
+               original_photo_url as "originalPhotoUrl", angle_photos as "anglePhotos",
                model_3d_url as "model3dUrl", audio_narration_url as "audioNarrationUrl",
                voice_language as "voiceLanguage", qr_code_url as "qrCodeUrl", status,
                processing_status as "processingStatus", processing_error as "processingError",
@@ -114,7 +152,10 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
       `, params);
 
       if (pgRes.rows.length > 0) {
-        formatted = pgRes.rows;
+        formatted = pgRes.rows.map((row: any) => ({
+          ...row,
+          anglePhotos: Array.isArray(row.anglePhotos) ? row.anglePhotos : (typeof row.anglePhotos === 'string' ? JSON.parse(row.anglePhotos || '[]') : [])
+        }));
       }
     } catch (pgErr: any) {
       console.warn('[Artifacts PG List Warning]:', pgErr.message);
@@ -230,6 +271,7 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
       const pgRes = await pgPool.query(`
         SELECT id, code, name, room_id as "roomId", room_code as "roomCode", topic_id as "topicId",
                category, period, origin, description, dimensions, images, thumbnail_url as "thumbnailUrl",
+               original_photo_url as "originalPhotoUrl", angle_photos as "anglePhotos",
                model_3d_url as "model3dUrl", audio_narration_url as "audioNarrationUrl",
                voice_language as "voiceLanguage", qr_code_url as "qrCodeUrl", status,
                processing_status as "processingStatus", processing_error as "processingError",
@@ -285,6 +327,18 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
       }
     }
 
+    // Chuẩn hóa anglePhotos và originalPhotoUrl cho phản hồi
+    artifact.anglePhotos = Array.isArray(artifact.anglePhotos)
+      ? artifact.anglePhotos
+      : (typeof artifact.anglePhotos === 'string' ? JSON.parse(artifact.anglePhotos || '[]') : []);
+
+    if (!artifact.originalPhotoUrl || artifact.originalPhotoUrl.includes('isolated_')) {
+      const resolved = resolveOriginalPhoto(artifact);
+      if (resolved && !resolved.includes('isolated_')) {
+        artifact.originalPhotoUrl = resolved;
+      }
+    }
+
     await cacheSet(cacheKey, artifact, 600); // 10 phút TTL
     res.json({ success: true, data: artifact });
   } catch (err: any) {
@@ -298,7 +352,11 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
  */
 artifactsRouter.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, code, category, period, origin, description, dimensions, images, thumbnailUrl, model3dUrl, audioNarrationUrl, voiceLanguage, roomId, roomCode, topicId } = req.body;
+    const {
+      name, code, category, period, origin, description, dimensions,
+      images, thumbnailUrl, originalPhotoUrl, anglePhotos,
+      model3dUrl, audioNarrationUrl, voiceLanguage, roomId, roomCode, topicId
+    } = req.body;
     if (!name || !code) {
       return res.status(400).json({ success: false, message: 'Tên và Mã hiện vật là bắt buộc' });
     }
@@ -331,6 +389,8 @@ artifactsRouter.post('/', async (req: Request, res: Response) => {
       dimensions: dimensions || '',
       images: Array.isArray(images) ? images : [],
       thumbnailUrl: thumbnailUrl || (Array.isArray(images) && images.length > 0 ? images[0] : ''),
+      originalPhotoUrl: originalPhotoUrl || (Array.isArray(images) && images.length > 0 ? images[0] : ''),
+      anglePhotos: Array.isArray(anglePhotos) ? anglePhotos : [],
       model3dUrl: model3dUrl || '',
       audioNarrationUrl: audioNarrationUrl || '',
       voiceLanguage: voiceLanguage || 'vi',
@@ -650,11 +710,18 @@ artifactsRouter.post('/isolate-image', async (req: Request, res: Response) => {
         : { $or: [{ id: artifactId }, { code: artifactId }] };
       const art = await ArtifactModel.findOne(query);
       if (art) {
+        // Ghi nhận và bảo tồn tuyệt đối ảnh gốc lúc tải lên
+        if (!art.originalPhotoUrl || art.originalPhotoUrl.includes('isolated_')) {
+          const currentFirst = art.images && art.images[0] ? art.images[0] : imageUrl;
+          art.originalPhotoUrl = !currentFirst.includes('isolated_') ? currentFirst : imageUrl;
+        }
+        // Ảnh tách nền chỉ dùng cho thumbnailUrl để hiển thị card/badge
         art.thumbnailUrl = newUrl;
-        if (art.images && art.images.length > 0) {
-          art.images[0] = newUrl;
-        } else {
-          art.images = [newUrl];
+        // Ảnh gốc luôn được bảo tồn ở images[0] để người xem chiêm ngưỡng ảnh gốc chân thực
+        if (!art.images || art.images.length === 0) {
+          art.images = [art.originalPhotoUrl || imageUrl];
+        } else if (art.images[0].includes('isolated_')) {
+          art.images[0] = art.originalPhotoUrl || imageUrl;
         }
         await art.save();
         await pgUpsertArtifact(art.toObject());

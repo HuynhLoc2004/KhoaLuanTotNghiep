@@ -233,12 +233,12 @@ export async function pgUpsertArtifact(artifact: any) {
     await pgPool.query(`
       INSERT INTO artifacts (
         id, code, name, room_id, room_code, topic_id, category, period, origin,
-        description, dimensions, images, thumbnail_url, model_3d_url,
-        audio_narration_url, voice_language, qr_code_url, status,
+        description, dimensions, images, thumbnail_url, original_photo_url, angle_photos,
+        model_3d_url, audio_narration_url, voice_language, qr_code_url, status,
         processing_status, processing_error, model_metadata, translations,
         order_index, mongo_id, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
         code = EXCLUDED.code,
         name = EXCLUDED.name,
@@ -252,6 +252,8 @@ export async function pgUpsertArtifact(artifact: any) {
         dimensions = EXCLUDED.dimensions,
         images = EXCLUDED.images,
         thumbnail_url = EXCLUDED.thumbnail_url,
+        original_photo_url = COALESCE(EXCLUDED.original_photo_url, artifacts.original_photo_url),
+        angle_photos = EXCLUDED.angle_photos,
         model_3d_url = EXCLUDED.model_3d_url,
         audio_narration_url = EXCLUDED.audio_narration_url,
         voice_language = EXCLUDED.voice_language,
@@ -278,6 +280,8 @@ export async function pgUpsertArtifact(artifact: any) {
       artifact.dimensions || '',
       JSON.stringify(artifact.images || []),
       artifact.thumbnailUrl || '',
+      artifact.originalPhotoUrl || '',
+      JSON.stringify(artifact.anglePhotos || []),
       artifact.model3dUrl || '',
       artifact.audioNarrationUrl || '',
       artifact.voiceLanguage || 'vi',

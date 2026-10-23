@@ -164,6 +164,8 @@ export async function initPostgresTables(): Promise<boolean> {
           dimensions VARCHAR(128),
           images JSONB DEFAULT '[]',
           thumbnail_url TEXT,
+          original_photo_url TEXT,
+          angle_photos JSONB DEFAULT '[]',
           model_3d_url TEXT,
           audio_narration_url TEXT,
           voice_language VARCHAR(32) DEFAULT 'vi',
@@ -442,6 +444,8 @@ export async function initPostgresTables(): Promise<boolean> {
         ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE rooms ADD COLUMN IF NOT EXISTS audio_url TEXT;
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
+        ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS original_photo_url TEXT;
+        ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS angle_photos JSONB DEFAULT '[]';
         ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE floor_plan_nodes ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS mongo_id VARCHAR(64);

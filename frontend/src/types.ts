@@ -538,6 +538,13 @@ export interface ArtifactMetadata {
   inputImageSha256?: string;
 }
 
+export interface ArtifactAnglePhoto {
+  id: string;
+  angle: 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' | 'detail' | string;
+  label: string;
+  url: string;
+}
+
 export interface Artifact {
   id: string;
   code: string;
@@ -549,6 +556,8 @@ export interface Artifact {
   dimensions?: string;
   images: string[];
   thumbnailUrl: string;
+  originalPhotoUrl?: string;
+  anglePhotos?: ArtifactAnglePhoto[];
   model3dUrl?: string;
   audioNarrationUrl?: string;
   voiceLanguage?: string;

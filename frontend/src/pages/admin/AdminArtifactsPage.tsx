@@ -99,6 +99,11 @@ export const AdminArtifactsPage: React.FC = () => {
   const [isTranslatingAi, setIsTranslatingAi] = useState(false);
   const [workingVoiceTranslations, setWorkingVoiceTranslations] = useState<Record<string, any>>({});
 
+  // Angle photos state for multi-perspective documentation
+  const [selectedAngleType, setSelectedAngleType] = useState<string>('left');
+  const [customAngleLabel, setCustomAngleLabel] = useState<string>('');
+  const [isUploadingAnglePhoto, setIsUploadingAnglePhoto] = useState(false);
+
   // Heritage Confirm Dialog
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -449,6 +454,12 @@ export const AdminArtifactsPage: React.FC = () => {
         if (slot === 0) {
           if (currentImgs.length === 0) currentImgs.push(url);
           else currentImgs[0] = url;
+          return {
+            ...prev,
+            images: currentImgs,
+            thumbnailUrl: url,
+            originalPhotoUrl: url
+          };
         } else {
           if (currentImgs.length === 0) {
             currentImgs.push(url); // slot 0 placeholder
@@ -458,23 +469,24 @@ export const AdminArtifactsPage: React.FC = () => {
           } else {
             currentImgs[1] = url;
           }
+          return {
+            ...prev,
+            images: currentImgs,
+            thumbnailUrl: currentImgs[0] || url
+          };
         }
-        return {
-          ...prev,
-          images: currentImgs,
-          thumbnailUrl: currentImgs[0] || url
-        };
       });
       showToast(slot === 0 ? 'Đã tải ảnh mặt trước thành công' : 'Đã tải ảnh mặt sau thành công', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi tải ảnh hiện vật', 'error');
     } finally {
       setIsUploadingImage(false);
+      e.target.value = '';
     }
   };
 
   const handleIsolateFrontImage = async () => {
-    const frontImg = editingArtifact?.images?.[0] || editingArtifact?.thumbnailUrl;
+    const frontImg = editingArtifact?.originalPhotoUrl || editingArtifact?.images?.[0] || editingArtifact?.thumbnailUrl;
     if (!frontImg) {
       showToast('Chưa có ảnh mặt trước để tách nền', 'warning');
       return;
@@ -486,10 +498,12 @@ export const AdminArtifactsPage: React.FC = () => {
       setEditingArtifact((prev) => {
         if (!prev) return prev;
         const currentImgs = [...(prev.images || [])];
-        if (currentImgs.length === 0) currentImgs.push(res.url);
-        else currentImgs[0] = res.url;
+        const orig = prev.originalPhotoUrl || frontImg;
+        if (currentImgs.length === 0) currentImgs.push(orig);
+        else if (currentImgs[0].includes('isolated_')) currentImgs[0] = orig;
         return {
           ...prev,
+          originalPhotoUrl: orig,
           images: currentImgs,
           thumbnailUrl: res.url
         };
@@ -503,7 +517,7 @@ export const AdminArtifactsPage: React.FC = () => {
   };
 
   const handleQuickIsolate = async (art: Artifact) => {
-    const targetImg = art.thumbnailUrl || (art.images && art.images.length > 0 ? art.images[0] : null);
+    const targetImg = art.originalPhotoUrl || art.thumbnailUrl || (art.images && art.images.length > 0 ? art.images[0] : null);
     if (!targetImg) {
       showToast('Hiện vật chưa có ảnh để tách nền', 'warning');
       return;
@@ -520,10 +534,11 @@ export const AdminArtifactsPage: React.FC = () => {
           prev.map((item) => {
             const itemId = String(item.id || (item as any)._id);
             if (itemId === targetId) {
+              const orig = item.originalPhotoUrl || targetImg;
               const newImages = item.images && item.images.length > 0
-                ? [res.url, ...item.images.slice(1)]
-                : [res.url];
-              return { ...item, thumbnailUrl: res.url, images: newImages };
+                ? [orig, ...item.images.slice(1)]
+                : [orig];
+              return { ...item, originalPhotoUrl: orig, thumbnailUrl: res.url, images: newImages };
             }
             return item;
           })
@@ -539,6 +554,62 @@ export const AdminArtifactsPage: React.FC = () => {
     } finally {
       setIsolatingArtId(null);
     }
+  };
+
+  const handleUploadAnglePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const angleTypeMap: Record<string, string> = {
+      front: 'Mặt trước (Chính diện)',
+      back: 'Mặt sau',
+      left: 'Cạnh trái',
+      right: 'Cạnh phải',
+      top: 'Góc trên nhìn xuống',
+      bottom: 'Góc dưới đáy',
+      detail: 'Chi tiết hoa văn',
+      custom: customAngleLabel.trim() || 'Góc đặc tả'
+    };
+
+    const finalLabel = selectedAngleType === 'custom'
+      ? (customAngleLabel.trim() || 'Góc đặc tả')
+      : (angleTypeMap[selectedAngleType] || 'Góc tư liệu');
+
+    try {
+      setIsUploadingAnglePhoto(true);
+      const res = await api.uploadArtifactImage(file);
+      const newAnglePhoto = {
+        id: `angle_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        angle: selectedAngleType,
+        label: finalLabel,
+        url: res.url
+      };
+
+      setEditingArtifact((prev) => {
+        if (!prev) return prev;
+        const currentAngles = prev.anglePhotos ? [...prev.anglePhotos] : [];
+        return {
+          ...prev,
+          anglePhotos: [...currentAngles, newAnglePhoto]
+        };
+      });
+      showToast(`Đã thêm ảnh góc "${finalLabel}" thành công!`, 'success');
+      setCustomAngleLabel('');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi tải ảnh góc chụp', 'error');
+    } finally {
+      setIsUploadingAnglePhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteAnglePhoto = (index: number) => {
+    setEditingArtifact((prev) => {
+      if (!prev || !prev.anglePhotos) return prev;
+      const next = [...prev.anglePhotos];
+      next.splice(index, 1);
+      return { ...prev, anglePhotos: next };
+    });
   };
 
   const handleModelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2166,6 +2237,171 @@ export const AdminArtifactsPage: React.FC = () => {
                         </label>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                {/* KHỐI ẢNH CHỤP XUNG QUANH HIỆN VẬT (GÓC TƯ LIỆU ĐA HƯỚNG) */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  border: '1px solid rgba(212, 175, 55, 0.25)',
+                  background: 'rgba(212, 175, 55, 0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Compass size={15} style={{ color: 'var(--accent-gold)' }} />
+                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--heading-color)' }}>
+                        Ảnh chụp xung quanh hiện vật (Các hướng: Trái, Phải, Sau, Trên...)
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--accent-gold)', fontWeight: 600 }}>
+                      {editingArtifact.anglePhotos?.length || 0} góc chụp
+                    </span>
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    Admin tải lên ảnh gốc các góc (mặt trước, sau, trái, phải, góc trên hoặc chi tiết hoa văn) để khách tham quan chiêm ngưỡng xung quanh hiện vật bằng ảnh gốc chất lượng cao.
+                  </p>
+
+                  {/* Danh sách ảnh góc đã thêm */}
+                  {editingArtifact.anglePhotos && editingArtifact.anglePhotos.length > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                      maxHeight: 180,
+                      overflowY: 'auto',
+                      padding: 4,
+                      background: 'rgba(0,0,0,0.2)',
+                      borderRadius: 4
+                    }}>
+                      {editingArtifact.anglePhotos.map((item, idx) => (
+                        <div
+                          key={item.id || idx}
+                          style={{
+                            position: 'relative',
+                            width: 80,
+                            height: 80,
+                            borderRadius: 6,
+                            overflow: 'hidden',
+                            border: '1px solid rgba(212, 175, 55, 0.3)',
+                            background: '#0a0a0a',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          <img
+                            src={item.url.startsWith('http') ? item.url : `${API_ROOT}${item.url}`}
+                            alt={item.label}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
+                          />
+                          <div style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            background: 'rgba(0,0,0,0.75)',
+                            color: '#e6c687',
+                            fontSize: '9.5px',
+                            textAlign: 'center',
+                            padding: '1px 2px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {item.label}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAnglePhoto(idx)}
+                            style={{
+                              position: 'absolute',
+                              top: 2,
+                              right: 2,
+                              background: 'rgba(239, 68, 68, 0.85)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: 18,
+                              height: 18,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer'
+                            }}
+                            title={`Xóa góc ${item.label}`}
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Thanh thêm góc chụp mới */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    paddingTop: 4,
+                    borderTop: '1px dashed rgba(255,255,255,0.08)'
+                  }}>
+                    <select
+                      className="form-control"
+                      value={selectedAngleType}
+                      onChange={(e) => setSelectedAngleType(e.target.value)}
+                      style={{ width: 140, fontSize: '11.5px', height: 32, padding: '2px 8px' }}
+                    >
+                      <option value="left">Cạnh trái</option>
+                      <option value="right">Cạnh phải</option>
+                      <option value="front">Mặt trước</option>
+                      <option value="back">Mặt sau</option>
+                      <option value="top">Góc trên xuống</option>
+                      <option value="bottom">Góc dưới đáy</option>
+                      <option value="detail">Chi tiết hoa văn</option>
+                      <option value="custom">Tùy chỉnh...</option>
+                    </select>
+
+                    {selectedAngleType === 'custom' && (
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Nhập tên góc chụp..."
+                        value={customAngleLabel}
+                        onChange={(e) => setCustomAngleLabel(e.target.value)}
+                        style={{ width: 130, fontSize: '11.5px', height: 32, padding: '2px 8px' }}
+                      />
+                    )}
+
+                    <label
+                      className="btn btn-secondary btn-sm"
+                      style={{
+                        cursor: isUploadingAnglePhoto ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        height: 32,
+                        fontSize: '11.5px',
+                        padding: '0 12px'
+                      }}
+                    >
+                      {isUploadingAnglePhoto ? <Loader2 size={12} className="spin" /> : <Upload size={12} />}
+                      <span>{isUploadingAnglePhoto ? 'Đang tải ảnh...' : 'Tải ảnh góc chụp này'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        disabled={isUploadingAnglePhoto}
+                        onChange={handleUploadAnglePhoto}
+                      />
+                    </label>
                   </div>
                 </div>
 

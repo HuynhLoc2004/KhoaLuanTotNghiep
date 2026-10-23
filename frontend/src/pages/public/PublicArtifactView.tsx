@@ -55,12 +55,49 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   const [selectedVoiceLang, setSelectedVoiceLang] = useState<string>('auto');
 
   // Gallery lightbox
+  const [lightboxList, setLightboxList] = useState<Array<{ url: string; label?: string }>>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // QR Modal
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Danh sách ảnh lưu trữ tư liệu gốc (ưu tiên ảnh gốc tải lên, loại bỏ ảnh đã tách nền)
+  const displayArchiveImages = React.useMemo(() => {
+    if (!artifact) return [];
+    const list: string[] = [];
+    const orig = artifact.originalPhotoUrl || (artifact.images && artifact.images.find((img) => img && !img.includes('isolated_')));
+    if (orig) {
+      list.push(orig);
+    } else if (artifact.images && artifact.images.length > 0) {
+      list.push(artifact.images[0]);
+    }
+    if (Array.isArray(artifact.images)) {
+      artifact.images.forEach((img) => {
+        if (img && !list.includes(img) && !img.includes('isolated_')) {
+          list.push(img);
+        }
+      });
+    }
+    return list;
+  }, [artifact]);
+
+  // Lắng nghe bàn phím ESC, ArrowLeft, ArrowRight để điều hướng ảnh trong lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isLightboxOpen) return;
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+      } else if (e.key === 'ArrowLeft') {
+        setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : (lightboxList.length > 0 ? lightboxList.length - 1 : 0)));
+      } else if (e.key === 'ArrowRight') {
+        setActiveImageIndex((prev) => (prev < lightboxList.length - 1 ? prev + 1 : 0));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, lightboxList.length]);
 
   // Determine artifact ID from props or URL
   const targetId = React.useMemo(() => {
@@ -755,27 +792,73 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             </div>
           </div>
 
-          {/* Photographic Archive Gallery */}
-          {artifact.images && artifact.images.length > 0 && (
+          {/* Photographic Archive Gallery (Ảnh tư liệu gốc) */}
+          {displayArchiveImages.length > 0 && (
             <div className="photo-gallery-section">
               <h3 className="section-heading">
                 <Layers size={15} />
                 <span>{t('artifact.archivedImages', 'Hình ảnh lưu trữ tư liệu')}</span>
-                <span className="spec-count" data-no-auto-translate="true">({artifact.images.length})</span>
+                <span className="spec-count" data-no-auto-translate="true">({displayArchiveImages.length})</span>
               </h3>
               <div className="photo-grid">
-                {artifact.images.map((imgUrl, i) => {
+                {displayArchiveImages.map((imgUrl, i) => {
                   const fullUrl = imgUrl.startsWith('http') ? imgUrl : `${API_ROOT}${imgUrl}`;
                   return (
                     <div
                       key={i}
-                      className={`photo-thumb ${i === activeImageIndex ? 'active' : ''}`}
+                      className="photo-thumb"
                       onClick={() => {
+                        setLightboxList(
+                          displayArchiveImages.map((u, idx) => ({
+                            url: u,
+                            label: `${displayName} - ${t('artifact.archivedImages', 'Ảnh tư liệu gốc')} (${idx + 1}/${displayArchiveImages.length})`
+                          }))
+                        );
                         setActiveImageIndex(i);
                         setIsLightboxOpen(true);
                       }}
+                      title={`${displayName} - ${t('artifact.viewOriginal', 'Bấm để xem ảnh gốc nguyên bản')}`}
                     >
                       <img src={fullUrl} alt={`${displayName} ${i + 1}`} loading="lazy" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Angle / Perspective Photos Gallery (Xem xung quanh hiện vật dựa trên ảnh gốc) */}
+          {artifact.anglePhotos && artifact.anglePhotos.length > 0 && (
+            <div className="photo-gallery-section angle-photos-section">
+              <h3 className="section-heading">
+                <Compass size={15} />
+                <span>{t('artifact.aroundPhotos', 'Ảnh chụp các hướng xung quanh')}</span>
+                <span className="spec-count" data-no-auto-translate="true">({artifact.anglePhotos.length})</span>
+              </h3>
+              <p className="section-subtext">
+                {t('artifact.aroundPhotosHint', 'Khám phá chi tiết hiện vật qua ảnh chụp thực tế các góc (trái, phải, trước, sau, trên, dưới...)')}
+              </p>
+              <div className="photo-grid">
+                {artifact.anglePhotos.map((item, idx) => {
+                  const fullUrl = item.url.startsWith('http') ? item.url : `${API_ROOT}${item.url}`;
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className="photo-thumb angle-thumb"
+                      onClick={() => {
+                        setLightboxList(
+                          artifact.anglePhotos!.map((p, pIdx) => ({
+                            url: p.url,
+                            label: `${displayName} - ${p.label || 'Ảnh góc chụp'} (${pIdx + 1}/${artifact.anglePhotos!.length})`
+                          }))
+                        );
+                        setActiveImageIndex(idx);
+                        setIsLightboxOpen(true);
+                      }}
+                      title={`Xem ảnh góc: ${item.label}`}
+                    >
+                      <img src={fullUrl} alt={item.label} loading="lazy" />
+                      <span className="angle-thumb-badge">{item.label}</span>
                     </div>
                   );
                 })}
@@ -785,43 +868,75 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         </aside>
       </main>
 
-      {/* Lightbox Modal */}
-      {isLightboxOpen && artifact.images && (
+      {/* Lightbox Modal (Xem ảnh gốc độ phân giải cao + lướt chuyển mượt mà) */}
+      {isLightboxOpen && lightboxList.length > 0 && (
         <div className="artifact-lightbox-modal" onClick={() => setIsLightboxOpen(false)}>
-          <button className="lightbox-close" onClick={() => setIsLightboxOpen(false)}>
-            <X size={24} />
-          </button>
           <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={
-                artifact.images[activeImageIndex].startsWith('http')
-                  ? artifact.images[activeImageIndex]
-                  : `${API_ROOT}${artifact.images[activeImageIndex]}`
-              }
-              alt=""
-            />
-            {artifact.images.length > 1 && (
+            <div className="lightbox-header">
+              <span className="lightbox-title">
+                {lightboxList[activeImageIndex]?.label || `${displayName} (${activeImageIndex + 1}/${lightboxList.length})`}
+              </span>
+              <button
+                className="lightbox-close"
+                onClick={() => setIsLightboxOpen(false)}
+                title="Đóng xem ảnh (ESC)"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="lightbox-image-wrap">
+              <img
+                src={
+                  lightboxList[activeImageIndex]?.url?.startsWith('http')
+                    ? lightboxList[activeImageIndex].url
+                    : `${API_ROOT}${lightboxList[activeImageIndex]?.url || ''}`
+                }
+                alt={lightboxList[activeImageIndex]?.label || displayName}
+              />
+            </div>
+
+            {lightboxList.length > 1 && (
               <>
                 <button
                   className="lightbox-nav-btn prev"
                   onClick={() =>
                     setActiveImageIndex((prev) =>
-                      prev > 0 ? prev - 1 : artifact.images.length - 1
+                      prev > 0 ? prev - 1 : lightboxList.length - 1
                     )
                   }
+                  title="Ảnh trước (Phím mũi tên trái)"
                 >
-                  <ChevronLeft size={28} />
+                  <ChevronLeft size={30} />
                 </button>
                 <button
                   className="lightbox-nav-btn next"
                   onClick={() =>
                     setActiveImageIndex((prev) =>
-                      prev < artifact.images.length - 1 ? prev + 1 : 0
+                      prev < lightboxList.length - 1 ? prev + 1 : 0
                     )
                   }
+                  title="Ảnh tiếp theo (Phím mũi tên phải)"
                 >
-                  <ChevronRight size={28} />
+                  <ChevronRight size={30} />
                 </button>
+
+                {/* Dải thumbnail xem nhanh các góc ảnh */}
+                <div className="lightbox-thumbnails">
+                  {lightboxList.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`lightbox-thumb-mini ${idx === activeImageIndex ? 'active' : ''}`}
+                      onClick={() => setActiveImageIndex(idx)}
+                      title={item.label}
+                    >
+                      <img
+                        src={item.url.startsWith('http') ? item.url : `${API_ROOT}${item.url}`}
+                        alt=""
+                      />
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </div>
