@@ -622,11 +622,85 @@ systemRouter.post('/branding', authenticate, requireAdmin, async (req: AuthReque
       });
     }
 
+    if (targetMuseumName.length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên bảo tàng phải có tối thiểu 5 ký tự (Ví dụ: Bảo tàng Lịch sử TP.HCM).'
+      });
+    }
+
+    if (/^\d+$/.test(targetMuseumName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên bảo tàng không thể chỉ gồm số thuần túy.'
+      });
+    }
+
     if (!targetShortName) {
       return res.status(400).json({
         success: false,
         message: 'Tên rút gọn của bảo tàng không được để trống.'
       });
+    }
+
+    if (targetShortName.length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên rút gọn phải có tối thiểu 3 ký tự (Ví dụ: Bảo tàng Lịch sử).'
+      });
+    }
+
+    if (/^\d+$/.test(targetShortName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên rút gọn không thể chỉ gồm số.'
+      });
+    }
+
+    if (req.body.contactEmail !== undefined && String(req.body.contactEmail).trim()) {
+      const email = String(req.body.contactEmail).trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Hộp thư điện tử (Email) không đúng định dạng (Ví dụ: contact@baotanglichsu.vn).'
+        });
+      }
+    }
+
+    if (req.body.hotline !== undefined && String(req.body.hotline).trim()) {
+      const hl = String(req.body.hotline).trim();
+      const digitCount = (hl.match(/\d/g) || []).length;
+      if (digitCount < 8 || /[a-zA-Z]/.test(hl)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Số điện thoại/Hotline không hợp lệ (tối thiểu 8 chữ số và không chứa chữ cái).'
+        });
+      }
+    }
+
+    if (req.body.footerThesisEnabled !== false && (req.body.footerThesisTopic !== undefined || req.body.footerStudentName !== undefined)) {
+      if (req.body.footerThesisTopic !== undefined && !String(req.body.footerThesisTopic).trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tên đề tài nghiên cứu không được để trống khi bật ở Footer.'
+        });
+      }
+      if (req.body.footerStudentName !== undefined) {
+        const sName = String(req.body.footerStudentName).trim();
+        if (!sName) {
+          return res.status(400).json({
+            success: false,
+            message: 'Họ tên sinh viên thực hiện không được để trống.'
+          });
+        }
+        if (/^\d+$/.test(sName)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Họ tên sinh viên không thể chỉ là số thuần túy.'
+          });
+        }
+      }
     }
 
     const {

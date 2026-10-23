@@ -76,6 +76,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   };
 
   const [form, setForm] = useState<SystemBranding>(branding);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const isInitialLoadRef = useRef(true);
@@ -170,6 +171,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
     const updated = [...menuItems];
     updated[index] = { ...updated[index], ...patch };
     updateMenuItems(updated);
+    if (Object.keys(formErrors).some((k) => k.startsWith(`menuItem_${index}`))) {
+      setFormErrors((prev) => {
+        const next = { ...prev };
+        delete next[`menuItem_${index}_label`];
+        delete next[`menuItem_${index}_target`];
+        return next;
+      });
+    }
   };
 
   const handleDeleteMenuItem = (index: number) => {
@@ -228,6 +237,14 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
     subChildren[subIndex] = { ...subChildren[subIndex], ...patch };
     parent.children = subChildren;
     updateMenuItems(updated);
+    if (Object.keys(formErrors).some((k) => k.startsWith(`subMenuItem_${parentIndex}_${subIndex}`))) {
+      setFormErrors((prev) => {
+        const next = { ...prev };
+        delete next[`subMenuItem_${parentIndex}_${subIndex}_label`];
+        delete next[`subMenuItem_${parentIndex}_${subIndex}_target`];
+        return next;
+      });
+    }
   };
 
   const handleDeleteSubItem = (parentIndex: number, subIndex: number) => {
@@ -269,6 +286,201 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       ...prev,
       [field]: value
     }));
+    if (formErrors[field as string]) {
+      setFormErrors((prev) => {
+        const next = { ...prev };
+        delete next[field as string];
+        return next;
+      });
+    }
+  };
+
+  // Helper render thông báo lỗi trực quan ngay dưới ô input
+  const renderFieldError = (field: string) => {
+    if (!formErrors[field]) return null;
+    return (
+      <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block', lineHeight: 1.35 }}>
+        {formErrors[field]}
+      </span>
+    );
+  };
+
+  // Kiểm tra tính hợp lệ toàn diện theo đúng bản chất chủ đề bảo tàng di sản
+  const validateForm = (sectionTarget?: string): { isValid: boolean; errors: Record<string, string>; targetSection?: string } => {
+    const errs: Record<string, string> = {};
+    let firstErrorSection = '';
+
+    const addErr = (field: string, msg: string, secId: string) => {
+      errs[field] = msg;
+      if (!firstErrorSection) firstErrorSection = secId;
+    };
+
+    const isGlobal = !sectionTarget || sectionTarget.includes('tất cả');
+    const checkBrand = isGlobal || sectionTarget.includes('Nhận diện') || sectionTarget.includes('phần 1') || sectionTarget === 'panel-brand';
+    const checkMenu = isGlobal || sectionTarget.includes('Menu') || sectionTarget.includes('phần 2') || sectionTarget === 'panel-header-menu';
+    const checkHero = isGlobal || sectionTarget.includes('Hero') || sectionTarget.includes('phần 3') || sectionTarget === 'panel-hero';
+    const checkIntro = isGlobal || sectionTarget.includes('Giới thiệu') || sectionTarget.includes('phần 4') || sectionTarget === 'panel-intro';
+    const checkRooms = isGlobal || sectionTarget.includes('Gian phòng') || sectionTarget.includes('phần 5') || sectionTarget === 'panel-rooms';
+    const checkArtifacts = isGlobal || sectionTarget.includes('Cổ vật') || sectionTarget.includes('phần 6') || sectionTarget === 'panel-artifacts';
+    const checkGuide = isGlobal || sectionTarget.includes('Cẩm nang') || sectionTarget.includes('phần 7') || sectionTarget === 'panel-guide-preview';
+    const checkFooter = isGlobal || sectionTarget.includes('Chân trang') || sectionTarget.includes('phần 8') || sectionTarget === 'panel-footer';
+
+    // 1. Nhận diện & Logo
+    if (checkBrand) {
+      const mName = form.museumName?.trim() || '';
+      if (!mName) {
+        addErr('museumName', 'Tên đầy đủ của bảo tàng không được để trống', 'panel-brand');
+      } else if (mName.length < 5) {
+        addErr('museumName', 'Tên bảo tàng phải có tối thiểu 5 ký tự (Ví dụ: Bảo tàng Lịch sử TP.HCM)', 'panel-brand');
+      } else if (/^\d+$/.test(mName)) {
+        addErr('museumName', 'Tên bảo tàng không thể chỉ gồm số thuần túy', 'panel-brand');
+      }
+
+      const sName = form.shortName?.trim() || '';
+      if (!sName) {
+        addErr('shortName', 'Tên rút gọn của bảo tàng không được để trống', 'panel-brand');
+      } else if (sName.length < 3) {
+        addErr('shortName', 'Tên rút gọn phải có tối thiểu 3 ký tự (Ví dụ: Bảo tàng Lịch sử)', 'panel-brand');
+      } else if (/^\d+$/.test(sName)) {
+        addErr('shortName', 'Tên rút gọn không thể chỉ gồm số', 'panel-brand');
+      }
+
+      const emblem = form.emblemText?.trim() || '';
+      if (emblem && emblem.length > 6) {
+        addErr('emblemText', 'Biểu trưng viết tắt (Emblem) tối đa 6 ký tự', 'panel-brand');
+      }
+    }
+
+    // 2. Menu Header
+    if (checkMenu) {
+      const items = form.headerMenuItems || [];
+      items.forEach((item, i) => {
+        if (!item.label?.trim()) {
+          addErr(`menuItem_${i}_label`, `Tên mục menu #${i + 1} không được để trống`, 'panel-header-menu');
+        }
+        if (item.linkType === 'custom' && (!item.target?.trim() || !/^(https?:\/\/|\/|#)/i.test(item.target.trim()))) {
+          addErr(`menuItem_${i}_target`, `Đường dẫn menu #${i + 1} phải bắt đầu bằng /, # hoặc https://`, 'panel-header-menu');
+        }
+        if (item.children) {
+          item.children.forEach((sub, s) => {
+            if (!sub.label?.trim()) {
+              addErr(`subMenuItem_${i}_${s}_label`, `Tên mục con #${i + 1}.${s + 1} không được để trống`, 'panel-header-menu');
+            }
+            if (sub.linkType === 'custom' && (!sub.target?.trim() || !/^(https?:\/\/|\/|#)/i.test(sub.target.trim()))) {
+              addErr(`subMenuItem_${i}_${s}_target`, `Đường dẫn mục con #${i + 1}.${s + 1} không hợp lệ`, 'panel-header-menu');
+            }
+          });
+        }
+      });
+    }
+
+    // 3. Banner Hero
+    if (checkHero) {
+      const hTitle = form.heroTitle?.trim() || '';
+      if (!hTitle) {
+        addErr('heroTitle', 'Tiêu đề Banner Hero không được để trống', 'panel-hero');
+      } else if (hTitle.length < 3) {
+        addErr('heroTitle', 'Tiêu đề Banner Hero phải có tối thiểu 3 ký tự', 'panel-hero');
+      }
+
+      const hCta1 = form.heroCta1Text?.trim() || '';
+      if (!hCta1) {
+        addErr('heroCta1Text', 'Tên nút bấm chính (Nút 1) không được để trống', 'panel-hero');
+      }
+    }
+
+    // 4. Giới thiệu Không gian
+    if (checkIntro) {
+      const iTitle = form.introTitle?.trim() || '';
+      if (!iTitle) {
+        addErr('introTitle', 'Tiêu đề khối giới thiệu không được để trống', 'panel-intro');
+      } else if (iTitle.length < 3) {
+        addErr('introTitle', 'Tiêu đề khối giới thiệu phải có tối thiểu 3 ký tự', 'panel-intro');
+      }
+
+      const iDesc = form.introDesc?.trim() || '';
+      if (iDesc && iDesc.length < 10) {
+        addErr('introDesc', 'Đoạn văn thuyết minh kiến trúc cần tối thiểu 10 ký tự', 'panel-intro');
+      }
+    }
+
+    // 5. Gian phòng 360°
+    if (checkRooms) {
+      const rTitle = form.roomsTitle?.trim() || '';
+      if (!rTitle) {
+        addErr('roomsTitle', 'Tiêu đề khối Gian phòng 360° không được để trống', 'panel-rooms');
+      } else if (rTitle.length < 3) {
+        addErr('roomsTitle', 'Tiêu đề khối Gian phòng phải có tối thiểu 3 ký tự', 'panel-rooms');
+      }
+
+      const rCta = form.roomsCtaText?.trim() || '';
+      if (!rCta) {
+        addErr('roomsCtaText', 'Tên nút điều hướng gian phòng không được để trống', 'panel-rooms');
+      }
+    }
+
+    // 6. Cổ vật 3D
+    if (checkArtifacts) {
+      const aTitle = form.artifactsTitle?.trim() || '';
+      if (!aTitle) {
+        addErr('artifactsTitle', 'Tiêu đề kho Cổ vật 3D không được để trống', 'panel-artifacts');
+      } else if (aTitle.length < 3) {
+        addErr('artifactsTitle', 'Tiêu đề kho Cổ vật phải có tối thiểu 3 ký tự', 'panel-artifacts');
+      }
+
+      const aCta = form.artifactsCtaText?.trim() || '';
+      if (!aCta) {
+        addErr('artifactsCtaText', 'Tên nút điều hướng cổ vật không được để trống', 'panel-artifacts');
+      }
+    }
+
+    // 7. Cẩm nang & Sơ đồ
+    if (checkGuide) {
+      const gTitle = form.guideTitle?.trim() || '';
+      if (!gTitle) {
+        addErr('guideTitle', 'Tiêu đề khối Cẩm nang không được để trống', 'panel-guide-preview');
+      } else if (gTitle.length < 3) {
+        addErr('guideTitle', 'Tiêu đề Cẩm nang phải có tối thiểu 3 ký tự', 'panel-guide-preview');
+      }
+    }
+
+    // 8. Chân trang & Liên hệ
+    if (checkFooter) {
+      const hotline = form.hotline?.trim() || '';
+      if (hotline) {
+        const digitCount = (hotline.match(/\d/g) || []).length;
+        if (digitCount < 8 || /[a-zA-Z]/.test(hotline)) {
+          addErr('hotline', 'Số điện thoại/Hotline không hợp lệ (Ví dụ: (028) 3829 8146, tối thiểu 8 chữ số)', 'panel-footer');
+        }
+      }
+
+      const email = form.contactEmail?.trim() || '';
+      if (email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          addErr('contactEmail', 'Hộp thư điện tử (Email) không đúng định dạng (Ví dụ: contact@baotanglichsu.vn)', 'panel-footer');
+        }
+      }
+
+      if (form.footerThesisEnabled !== false) {
+        const tTopic = form.footerThesisTopic?.trim() || '';
+        if (!tTopic) {
+          addErr('footerThesisTopic', 'Tên đề tài nghiên cứu không được để trống khi bật ở Footer', 'panel-footer');
+        }
+        const sName = form.footerStudentName?.trim() || '';
+        if (!sName) {
+          addErr('footerStudentName', 'Họ tên sinh viên thực hiện không được để trống', 'panel-footer');
+        } else if (/^\d+$/.test(sName)) {
+          addErr('footerStudentName', 'Họ tên sinh viên không thể chỉ là số thuần túy', 'panel-footer');
+        }
+      }
+    }
+
+    return {
+      isValid: Object.keys(errs).length === 0,
+      errors: errs,
+      targetSection: firstErrorSection
+    };
   };
 
   // Xử lý upload ảnh Logo (Tự động đồng bộ ngay vào CSDL & Client)
@@ -342,16 +554,17 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
   // Lưu toàn bộ hoặc từng phần
   const handleSave = async (sectionName?: string) => {
-    if (!form.museumName?.trim()) {
-      showToast('Tên đầy đủ của bảo tàng không được để trống', 'warning');
-      selectSection('panel-brand');
+    const { isValid, errors: validationErrors, targetSection } = validateForm(sectionName);
+    if (!isValid) {
+      setFormErrors(validationErrors);
+      if (targetSection && targetSection !== activeSectionId) {
+        selectSection(targetSection);
+      }
+      showToast('Một số ô nhập liệu chưa hợp lệ. Vui lòng kiểm tra lại các trường được đánh dấu đỏ!', 'warning');
       return;
     }
-    if (!form.shortName?.trim()) {
-      showToast('Tên rút gọn của bảo tàng không được để trống', 'warning');
-      selectSection('panel-brand');
-      return;
-    }
+
+    setFormErrors({});
 
     try {
       setIsSaving(true);
@@ -663,8 +876,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.museumName}
                 onChange={(e) => handleChange('museumName', e.target.value)}
                 placeholder="VD: Bảo tàng Lịch sử Thành phố Hồ Chí Minh"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.museumName ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('museumName')}
               <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                 Hiển thị trên Navbar, Chân trang và tiêu đề chính các trang
               </span>
@@ -679,8 +893,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.shortName}
                 onChange={(e) => handleChange('shortName', e.target.value)}
                 placeholder="VD: Bảo tàng Lịch sử"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.shortName ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('shortName')}
               <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                 Hiển thị trên góc trái thanh Navbar và Sidebar Admin
               </span>
@@ -696,8 +911,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.emblemText}
                 onChange={(e) => handleChange('emblemText', e.target.value.toUpperCase())}
                 placeholder="BT"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.emblemText ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }}
               />
+              {renderFieldError('emblemText')}
               <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                 Hiển thị huy hiệu dạng chữ khi bảo tàng chưa tải ảnh logo lên
               </span>
@@ -712,8 +928,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.tagline}
                 onChange={(e) => handleChange('tagline', e.target.value)}
                 placeholder="VD: Hệ thống Tour 360 Không gian Di sản"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.tagline ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('tagline')}
             </div>
           </div>
 
@@ -931,23 +1148,25 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                               >
                                 #{idx + 1}
                               </span>
-                              <input
-                                type="text"
-                                value={item.label}
-                                onChange={(e) => handleUpdateMenuItem(idx, { label: e.target.value })}
-                                placeholder="Tên mục menu..."
-                                style={{
-                                  flex: 1,
-                                  minWidth: 120,
-                                  padding: '6px 10px',
-                                  background: 'var(--bg-surface)',
-                                  border: '1px solid var(--border-color)',
-                                  borderRadius: 6,
-                                  color: 'var(--text-main)',
-                                  fontSize: 12.5,
-                                  fontWeight: 600
-                                }}
-                              />
+                              <div style={{ flex: 1, minWidth: 120 }}>
+                                <input
+                                  type="text"
+                                  value={item.label}
+                                  onChange={(e) => handleUpdateMenuItem(idx, { label: e.target.value })}
+                                  placeholder="Tên mục menu..."
+                                  style={{
+                                    width: '100%',
+                                    padding: '6px 10px',
+                                    background: 'var(--bg-surface)',
+                                    border: `1px solid ${formErrors[`menuItem_${idx}_label`] ? '#EF4444' : 'var(--border-color)'}`,
+                                    borderRadius: 6,
+                                    color: 'var(--text-main)',
+                                    fontSize: 12.5,
+                                    fontWeight: 600
+                                  }}
+                                />
+                                {renderFieldError(`menuItem_${idx}_label`)}
+                              </div>
                               {item.children && item.children.length > 0 && (
                                 <span
                                   title={`${item.children.length} menu con xổ xuống`}
@@ -1035,42 +1254,46 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                                 <option value="guide">#guide (Khối sơ đồ & cẩm nang)</option>
                               </select>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <input
-                                  type="text"
-                                  value={item.target}
-                                  onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
-                                  placeholder="https://..."
-                                  style={{
-                                    flex: 1,
-                                    minWidth: 100,
-                                    padding: '6px 8px',
-                                    background: 'var(--bg-surface)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: 6,
-                                    color: 'var(--text-main)',
-                                    fontSize: 12
-                                  }}
-                                />
-                                <label
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    fontSize: 11,
-                                    color: 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                  title="Mở tab mới"
-                                >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                   <input
-                                    type="checkbox"
-                                    checked={item.isNewTab || false}
-                                    onChange={(e) => handleUpdateMenuItem(idx, { isNewTab: e.target.checked })}
+                                    type="text"
+                                    value={item.target}
+                                    onChange={(e) => handleUpdateMenuItem(idx, { target: e.target.value })}
+                                    placeholder="https://..."
+                                    style={{
+                                      flex: 1,
+                                      minWidth: 100,
+                                      padding: '6px 8px',
+                                      background: 'var(--bg-surface)',
+                                      border: `1px solid ${formErrors[`menuItem_${idx}_target`] ? '#EF4444' : 'var(--border-color)'}`,
+                                      borderRadius: 6,
+                                      color: 'var(--text-main)',
+                                      fontSize: 12
+                                    }}
                                   />
-                                  <span>Tab mới</span>
-                                </label>
+                                  <label
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      fontSize: 11,
+                                      color: 'var(--text-muted)',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Mở tab mới"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={item.isNewTab || false}
+                                      onChange={(e) => handleUpdateMenuItem(idx, { isNewTab: e.target.checked })}
+                                      style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                    />
+                                    Tab mới
+                                  </label>
+                                </div>
+                                {renderFieldError(`menuItem_${idx}_target`)}
                               </div>
                             )}
                           </td>
@@ -1157,22 +1380,24 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                                 >
                                   {idx + 1}.{sIdx + 1}
                                 </span>
-                                <input
-                                  type="text"
-                                  value={sub.label}
-                                  onChange={(e) => handleUpdateSubItem(idx, sIdx, { label: e.target.value })}
-                                  placeholder="Tên menu con..."
-                                  style={{
-                                    flex: 1,
-                                    minWidth: 100,
-                                    padding: '5px 8px',
-                                    background: 'var(--bg-surface)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: 4,
-                                    color: 'var(--text-main)',
-                                    fontSize: 12
-                                  }}
-                                />
+                                <div style={{ flex: 1, minWidth: 100 }}>
+                                  <input
+                                    type="text"
+                                    value={sub.label}
+                                    onChange={(e) => handleUpdateSubItem(idx, sIdx, { label: e.target.value })}
+                                    placeholder="Tên menu con..."
+                                    style={{
+                                      width: '100%',
+                                      padding: '5px 8px',
+                                      background: 'var(--bg-surface)',
+                                      border: `1px solid ${formErrors[`subMenuItem_${idx}_${sIdx}_label`] ? '#EF4444' : 'var(--border-color)'}`,
+                                      borderRadius: 4,
+                                      color: 'var(--text-main)',
+                                      fontSize: 12
+                                    }}
+                                  />
+                                  {renderFieldError(`subMenuItem_${idx}_${sIdx}_label`)}
+                                </div>
                               </div>
                             </td>
 
@@ -1238,21 +1463,24 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                                   <option value="guide">#guide (Cẩm nang)</option>
                                 </select>
                               ) : (
-                                <input
-                                  type="text"
-                                  value={sub.target}
-                                  onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
-                                  placeholder="https://..."
-                                  style={{
-                                    width: '100%',
-                                    padding: '5px 8px',
-                                    background: 'var(--bg-surface)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: 4,
-                                    color: 'var(--text-main)',
-                                    fontSize: 11.5
-                                  }}
-                                />
+                                <div>
+                                  <input
+                                    type="text"
+                                    value={sub.target}
+                                    onChange={(e) => handleUpdateSubItem(idx, sIdx, { target: e.target.value })}
+                                    placeholder="https://..."
+                                    style={{
+                                      width: '100%',
+                                      padding: '5px 8px',
+                                      background: 'var(--bg-surface)',
+                                      border: `1px solid ${formErrors[`subMenuItem_${idx}_${sIdx}_target`] ? '#EF4444' : 'var(--border-color)'}`,
+                                      borderRadius: 4,
+                                      color: 'var(--text-main)',
+                                      fontSize: 11.5
+                                    }}
+                                  />
+                                  {renderFieldError(`subMenuItem_${idx}_${sIdx}_target`)}
+                                </div>
                               )}
                             </td>
 
@@ -1376,8 +1604,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.heroTitle || ''}
                 onChange={(e) => handleChange('heroTitle', e.target.value)}
                 placeholder="VD: Bảo tàng Lịch sử TP. Hồ Chí Minh"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.heroTitle ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('heroTitle')}
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
@@ -1389,8 +1618,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.heroTagline || ''}
                 onChange={(e) => handleChange('heroTagline', e.target.value)}
                 placeholder="VD: Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động."
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.heroTagline ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
+              {renderFieldError('heroTagline')}
             </div>
 
             <div>
@@ -1402,8 +1632,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.heroCta1Text || ''}
                 onChange={(e) => handleChange('heroCta1Text', e.target.value)}
                 placeholder="Bắt Đầu Tour 360°"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.heroCta1Text ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('heroCta1Text')}
             </div>
 
             <div>
@@ -1415,8 +1646,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.heroCta2Text || ''}
                 onChange={(e) => handleChange('heroCta2Text', e.target.value)}
                 placeholder="Chiêm Ngưỡng Cổ Vật 3D"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.heroCta2Text ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('heroCta2Text')}
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
@@ -1428,8 +1660,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.heroVideoUrl || ''}
                 onChange={(e) => handleChange('heroVideoUrl', e.target.value)}
                 placeholder="VD: https://assets.example.com/museum-hero.mp4"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.heroVideoUrl ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('heroVideoUrl')}
               <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                 Nếu để trống, hệ thống sẽ ưu tiên hiển thị ảnh nền toàn cảnh bên dưới.
               </span>
@@ -1531,8 +1764,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.introTag || ''}
                 onChange={(e) => handleChange('introTag', e.target.value)}
                 placeholder="Kiến Trúc & Không Gian"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.introTag ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('introTag')}
             </div>
 
             <div>
@@ -1544,8 +1778,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.introTitle || ''}
                 onChange={(e) => handleChange('introTitle', e.target.value)}
                 placeholder="Bảo Tàng Lịch Sử TP. Hồ Chí Minh"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.introTitle ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('introTitle')}
             </div>
 
             <div>
@@ -1557,8 +1792,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.introBadgeText || ''}
                 onChange={(e) => handleChange('introBadgeText', e.target.value)}
                 placeholder="Di tích Kiến trúc Nghệ thuật Cấp Quốc gia"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.introBadgeText ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('introBadgeText')}
             </div>
 
             <div>
@@ -1570,8 +1806,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.introCtaText || ''}
                 onChange={(e) => handleChange('introCtaText', e.target.value)}
                 placeholder="Khám phá gian trưng bày"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.introCtaText ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('introCtaText')}
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
@@ -1583,8 +1820,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.introDesc || ''}
                 onChange={(e) => handleChange('introDesc', e.target.value)}
                 placeholder="VD: Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều."
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.introDesc ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
+              {renderFieldError('introDesc')}
             </div>
           </div>
 
@@ -1696,8 +1934,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.roomsTag || ''}
                 onChange={(e) => handleChange('roomsTag', e.target.value)}
                 placeholder="Không Gian Thực Tế Ảo"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.roomsTag ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('roomsTag')}
             </div>
 
             <div>
@@ -1709,8 +1948,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.roomsTitle || ''}
                 onChange={(e) => handleChange('roomsTitle', e.target.value)}
                 placeholder="Hệ Thống Gian Phòng Tour 360°"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.roomsTitle ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('roomsTitle')}
             </div>
 
             <div>
@@ -1722,8 +1962,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.roomsCtaText || ''}
                 onChange={(e) => handleChange('roomsCtaText', e.target.value)}
                 placeholder="Khám phá tất cả gian phòng 360°"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.roomsCtaText ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('roomsCtaText')}
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
@@ -1735,8 +1976,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.roomsDesc || ''}
                 onChange={(e) => handleChange('roomsDesc', e.target.value)}
                 placeholder="VD: Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng..."
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.roomsDesc ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
+              {renderFieldError('roomsDesc')}
             </div>
 
             <div style={{ gridColumn: '1 / -1', padding: '16px', background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: 10 }}>
@@ -1920,8 +2162,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.artifactsTag || ''}
                 onChange={(e) => handleChange('artifactsTag', e.target.value)}
                 placeholder="Bảo Vật Di Sản & Mô Hình 3D"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.artifactsTag ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('artifactsTag')}
             </div>
 
             <div>
@@ -1933,8 +2176,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.artifactsTitle || ''}
                 onChange={(e) => handleChange('artifactsTitle', e.target.value)}
                 placeholder="Kho Tàng Cổ Vật & Bảo Vật Di Sản"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.artifactsTitle ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('artifactsTitle')}
             </div>
 
             <div>
@@ -1946,8 +2190,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.artifactsCtaText || ''}
                 onChange={(e) => handleChange('artifactsCtaText', e.target.value)}
                 placeholder="Khám phá toàn bộ kho hiện vật"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.artifactsCtaText ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('artifactsCtaText')}
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
@@ -1959,8 +2204,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.artifactsDesc || ''}
                 onChange={(e) => handleChange('artifactsDesc', e.target.value)}
                 placeholder="VD: Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác..."
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.artifactsDesc ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
+              {renderFieldError('artifactsDesc')}
             </div>
 
             <div style={{ gridColumn: '1 / -1', padding: '16px', background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: 10 }}>
@@ -2179,8 +2425,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.guideTag || ''}
                 onChange={(e) => handleChange('guideTag', e.target.value)}
                 placeholder="Kế Hoạch & Sơ Đồ"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.guideTag ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('guideTag')}
             </div>
 
             <div>
@@ -2192,8 +2439,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.guideTitle || ''}
                 onChange={(e) => handleChange('guideTitle', e.target.value)}
                 placeholder="Cẩm Nang & Sơ Đồ Tham Quan Thực Địa"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.guideTitle ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('guideTitle')}
             </div>
 
             <div>
@@ -2205,8 +2453,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.guideCtaText || ''}
                 onChange={(e) => handleChange('guideCtaText', e.target.value)}
                 placeholder="Xem cẩm nang & sơ đồ tham quan"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.guideCtaText ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('guideCtaText')}
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
@@ -2218,8 +2467,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.guideDesc || ''}
                 onChange={(e) => handleChange('guideDesc', e.target.value)}
                 placeholder="Khám phá sơ đồ không gian kiến trúc bảo tàng, định vị các cánh trưng bày và tra cứu thông tin thực tế..."
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.guideDesc ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13, resize: 'vertical' }}
               />
+              {renderFieldError('guideDesc')}
             </div>
             {renderSectionNavFooter(6, 'Phần 7: Khối Cẩm nang')}
           </div>
@@ -2269,8 +2519,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.address}
                 onChange={(e) => handleChange('address', e.target.value)}
                 placeholder="Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.address ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('address')}
             </div>
 
             <div>
@@ -2282,8 +2533,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.hotline}
                 onChange={(e) => handleChange('hotline', e.target.value)}
                 placeholder="(028) 3829 8146"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.hotline ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('hotline')}
             </div>
 
             <div>
@@ -2295,8 +2547,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.contactEmail}
                 onChange={(e) => handleChange('contactEmail', e.target.value)}
                 placeholder="huynhtanlocpp09@gmail.com"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.contactEmail ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('contactEmail')}
             </div>
 
             <div>
@@ -2308,8 +2561,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.city}
                 onChange={(e) => handleChange('city', e.target.value)}
                 placeholder="TP. Hồ Chí Minh"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.city ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('city')}
             </div>
 
             <div>
@@ -2321,8 +2575,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.emailSenderName}
                 onChange={(e) => handleChange('emailSenderName', e.target.value)}
                 placeholder="Bảo Tàng Lịch Sử TP.HCM"
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.emailSenderName ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('emailSenderName')}
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
@@ -2334,8 +2589,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 value={form.footerCopyrightText || ''}
                 onChange={(e) => handleChange('footerCopyrightText', e.target.value)}
                 placeholder={`VD: ${form.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}. Tất cả quyền được bảo lưu.`}
-                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.footerCopyrightText ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 8, color: 'var(--text-main)', fontSize: 13 }}
               />
+              {renderFieldError('footerCopyrightText')}
               <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                 Hệ thống tự động thêm biểu tượng © và năm hiện hành {new Date().getFullYear()} vào trước dòng này.
               </span>
@@ -2388,8 +2644,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                       value={form.footerThesisTitle ?? ''}
                       onChange={(e) => handleChange('footerThesisTitle', e.target.value)}
                       placeholder="VD: Đề tài Khóa luận Tốt nghiệp"
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.footerThesisTitle ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                     />
+                    {renderFieldError('footerThesisTitle')}
                   </div>
 
                   <div>
@@ -2401,8 +2658,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                       value={form.footerThesisTopic ?? ''}
                       onChange={(e) => handleChange('footerThesisTopic', e.target.value)}
                       placeholder="VD: Hệ thống Tour 360 Không gian Di sản & Số hóa Hiện vật 3D"
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.footerThesisTopic ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                     />
+                    {renderFieldError('footerThesisTopic')}
                   </div>
 
                   <div>
@@ -2414,8 +2672,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                       value={form.footerStudentName ?? ''}
                       onChange={(e) => handleChange('footerStudentName', e.target.value)}
                       placeholder="VD: Huỳnh Tấn Lộc"
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.footerStudentName ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                     />
+                    {renderFieldError('footerStudentName')}
                   </div>
 
                   <div>
@@ -2427,8 +2686,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                       value={form.footerStudentId ?? ''}
                       onChange={(e) => handleChange('footerStudentId', e.target.value)}
                       placeholder="VD: 2004xxxx (Tùy chọn)"
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.footerStudentId ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                     />
+                    {renderFieldError('footerStudentId')}
                   </div>
 
                   <div>
@@ -2440,8 +2700,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                       value={form.footerInstructorName ?? ''}
                       onChange={(e) => handleChange('footerInstructorName', e.target.value)}
                       placeholder="VD: ThS. Nguyễn Văn A / TS. Trần Văn B"
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.footerInstructorName ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                     />
+                    {renderFieldError('footerInstructorName')}
                   </div>
 
                   <div>
@@ -2453,8 +2714,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                       value={form.footerUniversity ?? ''}
                       onChange={(e) => handleChange('footerUniversity', e.target.value)}
                       placeholder="VD: Khoa Công nghệ Thông tin"
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.footerUniversity ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                     />
+                    {renderFieldError('footerUniversity')}
                   </div>
 
                   <div style={{ gridColumn: '1 / -1' }}>
@@ -2466,8 +2728,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                       value={form.footerThesisNote ?? ''}
                       onChange={(e) => handleChange('footerThesisNote', e.target.value)}
                       placeholder="VD: Niên khóa 2026 • Bảo vệ Đề án Tốt nghiệp Đại học"
-                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
+                      style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-card)', border: `1px solid ${formErrors.footerThesisNote ? '#EF4444' : 'var(--border-color)'}`, borderRadius: 6, color: 'var(--text-main)', fontSize: 12.5 }}
                     />
+                    {renderFieldError('footerThesisNote')}
                   </div>
                 </div>
               )}
