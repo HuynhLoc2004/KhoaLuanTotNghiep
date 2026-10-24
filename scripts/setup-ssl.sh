@@ -33,11 +33,17 @@ certbot certonly --standalone \
     --keep-until-expiring
 
 # 4. Khởi động lại container frontend để Nginx nạp chứng chỉ SSL mới
-echo ">>> [4/4] Khởi động lại Nginx Frontend để kích hoạt HTTPS..."
+echo ">>> [4/4] Nạp chứng chỉ SSL vào Nginx Frontend..."
 docker start museum_frontend 2>/dev/null || (docker compose restart frontend 2>/dev/null || docker-compose restart frontend 2>/dev/null)
+sleep 2
+
+# Nạp trực tiếp chứng chỉ vào Nginx container và reload ngay lập tức
+docker exec museum_frontend cp -L "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" /etc/nginx/ssl/cert.pem 2>/dev/null || true
+docker exec museum_frontend cp -L "/etc/letsencrypt/live/$DOMAIN/privkey.pem" /etc/nginx/ssl/key.pem 2>/dev/null || true
+docker exec museum_frontend nginx -s reload 2>/dev/null || true
 
 # 5. Cấu hình tự động gia hạn (Auto-renewal cron)
-(crontab -l 2>/dev/null | grep -v "certbot renew" ; echo "0 3 1 * * certbot renew --quiet && docker restart museum_frontend") | crontab -
+(crontab -l 2>/dev/null | grep -v "certbot renew" ; echo "0 3 1 * * certbot renew --quiet && docker exec museum_frontend cp -L /etc/letsencrypt/live/$DOMAIN/fullchain.pem /etc/nginx/ssl/cert.pem && docker exec museum_frontend cp -L /etc/letsencrypt/live/$DOMAIN/privkey.pem /etc/nginx/ssl/key.pem && docker exec museum_frontend nginx -s reload") | crontab -
 
 echo "========================================================="
 echo "🎉 CHỨNG CHỈ SSL ĐÃ ĐƯỢC CÀI ĐẶT THÀNH CÔNG!"

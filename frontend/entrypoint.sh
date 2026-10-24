@@ -9,8 +9,8 @@ LE_PRIVKEY=$(find /etc/letsencrypt/live -name "privkey.pem" 2>/dev/null | head -
 
 if [ -n "$LE_FULLCHAIN" ] && [ -n "$LE_PRIVKEY" ] && [ -s "$LE_FULLCHAIN" ]; then
     echo "[SSL] Sử dụng chứng chỉ Let's Encrypt: $LE_FULLCHAIN"
-    cp "$LE_FULLCHAIN" /etc/nginx/ssl/cert.pem
-    cp "$LE_PRIVKEY" /etc/nginx/ssl/key.pem
+    cp -L "$LE_FULLCHAIN" /etc/nginx/ssl/cert.pem
+    cp -L "$LE_PRIVKEY" /etc/nginx/ssl/key.pem
 else
     if [ ! -f /etc/nginx/ssl/cert.pem ]; then
         echo "[SSL] Tạo chứng chỉ SSL tự ký cho cổng 443..."
