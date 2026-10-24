@@ -3,22 +3,38 @@ set -e
 
 mkdir -p /etc/nginx/ssl /var/www/certbot
 
-# Kiểm tra xem chứng chỉ Let's Encrypt đã được cấp chưa
-LE_FULLCHAIN=$(find /etc/letsencrypt/live -name "fullchain.pem" 2>/dev/null | head -n 1)
-LE_PRIVKEY=$(find /etc/letsencrypt/live -name "privkey.pem" 2>/dev/null | head -n 1)
+# Tên miền chính thức của hệ thống
+DOMAIN="${DOMAIN:-museumhcm.duckdns.org}"
 
-if [ -n "$LE_FULLCHAIN" ] && [ -n "$LE_PRIVKEY" ] && [ -s "$LE_FULLCHAIN" ]; then
-    echo "[SSL] Sử dụng chứng chỉ Let's Encrypt: $LE_FULLCHAIN"
-    cp -L "$LE_FULLCHAIN" /etc/nginx/ssl/cert.pem
-    cp -L "$LE_PRIVKEY" /etc/nginx/ssl/key.pem
+# Ưu tiên số 1: Chứng chỉ Let's Encrypt cho tên miền chính thức museumhcm.duckdns.org
+if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
+    echo "[SSL] Sử dụng chứng chỉ Let's Encrypt chính thức cho: $DOMAIN"
+    cp -L "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" /etc/nginx/ssl/cert.pem
+    cp -L "/etc/letsencrypt/live/$DOMAIN/privkey.pem" /etc/nginx/ssl/key.pem
 else
-    if [ ! -f /etc/nginx/ssl/cert.pem ]; then
-        echo "[SSL] Tạo chứng chỉ SSL tự ký cho cổng 443..."
-        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-            -keyout /etc/nginx/ssl/key.pem \
-            -out /etc/nginx/ssl/cert.pem \
-            -subj "/CN=103-178-233-206.sslip.io" 2>/dev/null
+    # Ưu tiên số 2: Tìm kiếm chứng chỉ Let's Encrypt khớp tên miền
+    LE_FULLCHAIN=$(find /etc/letsencrypt/live -name "fullchain.pem" 2>/dev/null | grep -i "$DOMAIN" | head -n 1)
+    if [ -z "$LE_FULLCHAIN" ]; then
+        LE_FULLCHAIN=$(find /etc/letsencrypt/live -name "fullchain.pem" 2>/dev/null | head -n 1)
     fi
+
+    if [ -n "$LE_FULLCHAIN" ]; then
+        LE_DIR=$(dirname "$LE_FULLCHAIN")
+        if [ -f "$LE_DIR/privkey.pem" ]; then
+            echo "[SSL] Sử dụng chứng chỉ Let's Encrypt: $LE_DIR"
+            cp -L "$LE_FULLCHAIN" /etc/nginx/ssl/cert.pem
+            cp -L "$LE_DIR/privkey.pem" /etc/nginx/ssl/key.pem
+        fi
+    fi
+fi
+
+# Nếu vẫn chưa có chứng chỉ hợp lệ, tạo chứng chỉ dự phòng đúng tên miền $DOMAIN
+if [ ! -f /etc/nginx/ssl/cert.pem ] || [ ! -s /etc/nginx/ssl/cert.pem ]; then
+    echo "[SSL] Tạo chứng chỉ SSL dự phòng cho cổng 443 ($DOMAIN)..."
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout /etc/nginx/ssl/key.pem \
+        -out /etc/nginx/ssl/cert.pem \
+        -subj "/CN=$DOMAIN" 2>/dev/null
 fi
 
 # Tích hợp MIME types cho mô hình 3D (.glb, .gltf) vào hệ thống Nginx chuẩn
