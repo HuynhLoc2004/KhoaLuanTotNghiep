@@ -311,14 +311,31 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Xử lý dữ liệu khi quét trúng mã QR (Hỗ trợ URL, mã Code và ID)
+  // Xử lý dữ liệu khi quét trúng mã QR (Chỉ áp dụng cho Hiện vật & Không gian phòng, không quét vé)
   const handleQRCodeDetected = (rawData: string) => {
     setIsScanning(false);
-    playBeep();
-    setScanSuccessResult(rawData);
+    setErrorMsg(null);
 
     const trimmed = (rawData || '').trim();
-    console.log('[QRScanner] Đã quét thành công mã QR:', trimmed);
+    console.log('[QRScanner] Đã quét mã QR:', trimmed);
+
+    // 1. Kiểm tra nếu quét nhầm mã vé tham quan
+    const isTicket =
+      trimmed.toUpperCase().startsWith('TKT-') ||
+      trimmed.toLowerCase().includes('/ticket/') ||
+      trimmed.toLowerCase().includes('/booking/') ||
+      trimmed.toLowerCase().includes('ticketcode') ||
+      trimmed.toLowerCase().includes('ticket_code') ||
+      trimmed.toLowerCase().includes('order=');
+
+    if (isTicket) {
+      setErrorMsg('Mã này là vé tham quan. Máy quét này chỉ dùng để khám phá Hiện vật & Gian phòng trưng bày (Soát vé chỉ áp dụng tại trang quản trị).');
+      showToast('Mã vé tham quan chỉ được soát vé tại trang quản trị.', 'warning');
+      setTimeout(() => {
+        setIsScanning(true);
+      }, 2500);
+      return;
+    }
 
     let parsedArtifactQuery: string | null = null;
     let parsedRoomQuery: string | null = null;
@@ -347,7 +364,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       }
     } catch {}
 
-    // Làm sạch và loại bỏ các giá trị rác 'undefined' / 'null'
+    // Làm sạch các giá trị rác 'undefined' / 'null'
     if (parsedArtifactQuery && (parsedArtifactQuery === 'undefined' || parsedArtifactQuery === 'null' || !parsedArtifactQuery.trim())) {
       parsedArtifactQuery = null;
     }
@@ -358,7 +375,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     let detectedRoom: MuseumRoom | null = null;
     let detectedArtifact: Artifact | null = null;
 
-    // 1. Nếu có query room trong URL -> Tìm phòng chính xác
+    // 1. Tìm phòng
     if (parsedRoomQuery) {
       const q = parsedRoomQuery.toLowerCase();
       detectedRoom = rooms.find(
@@ -369,7 +386,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       ) || null;
     }
 
-    // 2. Nếu có query artifact trong URL -> Tìm hiện vật chính xác
+    // 2. Tìm hiện vật
     if (parsedArtifactQuery) {
       const q = parsedArtifactQuery.toLowerCase();
       detectedArtifact = artifacts.find(
@@ -380,10 +397,9 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       ) || null;
     }
 
-    // 3. Nếu không có query trong URL hoặc chưa match, thử đối sánh trực tiếp với text/mã
+    // 3. Đối sánh trực tiếp mã nếu không có query
     if (!detectedRoom && !detectedArtifact) {
       const cleanRaw = trimmed.toLowerCase();
-      // Ưu tiên đối sánh Gian phòng (Code: GP-01, ID...)
       detectedRoom = rooms.find(
         (r) =>
           (r.code && r.code.toLowerCase() === cleanRaw) ||
@@ -391,7 +407,6 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
           ((r as any)._id && (r as any)._id.toString().toLowerCase() === cleanRaw)
       ) || null;
 
-      // Tiếp theo đối sánh Hiện vật (Code: HV-001, ID...)
       if (!detectedRoom) {
         detectedArtifact = artifacts.find(
           (a) =>
@@ -402,7 +417,20 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       }
     }
 
-    // Tìm tên để hiển thị thông báo thân thiện
+    // Nếu không khớp Hiện vật hay Gian phòng nào
+    if (!detectedRoom && !detectedArtifact && !parsedArtifactQuery && !parsedRoomQuery) {
+      setErrorMsg('Mã QR này không thuộc hiện vật hoặc gian phòng trưng bày nào trong bảo tàng.');
+      showToast('Không tìm thấy hiện vật hoặc gian phòng trưng bày tương ứng.', 'warning');
+      setTimeout(() => {
+        setIsScanning(true);
+      }, 2500);
+      return;
+    }
+
+    // Phát âm thanh thông báo và lưu kết quả
+    playBeep();
+    setScanSuccessResult(rawData);
+
     if (detectedRoom) {
       setMatchedItemName(`Gian phòng 360°: ${detectedRoom.name}`);
     } else if (detectedArtifact) {
@@ -411,7 +439,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       setMatchedItemName(`Hiện vật: ${parsedArtifactQuery}`);
     }
 
-    // Điều hướng an toàn tuyệt đối
+    // Điều hướng chi tiết
     setTimeout(() => {
       if (detectedRoom && onSelectRoomForTour) {
         onClose();
@@ -427,11 +455,11 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
           window.location.href = trimmed;
         } else {
-          showToast(`Nội dung mã QR: ${trimmed}`, 'info');
+          showToast(`Mã hiện vật/phòng: ${trimmed}`, 'info');
           onClose();
         }
       }
-    }, 500);
+    }, 600);
   };
 
   if (!isOpen) return null;
@@ -449,7 +477,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 16
+        padding: 'max(12px, env(safe-area-inset-top, 12px)) 12px max(12px, env(safe-area-inset-bottom, 12px)) 12px',
+        overflowY: 'auto'
       }}
       onClick={onClose}
     >
@@ -457,11 +486,12 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         className="qr-scanner-card"
         style={{
           width: '100%',
-          maxWidth: 440,
-          background: '#0B0F19',
+          maxWidth: 420,
+          maxHeight: 'min(92vh, 660px)',
+          background: 'linear-gradient(180deg, #0e121e 0%, #080b12 100%)',
           border: '1px solid rgba(212, 175, 55, 0.35)',
           borderRadius: 20,
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 30px rgba(212, 175, 55, 0.15)',
+          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 25px rgba(212, 175, 55, 0.12)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -492,30 +522,36 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+            padding: '14px 18px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(14, 18, 30, 0.95)',
+            flexShrink: 0
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
+                width: 34,
+                height: 34,
+                borderRadius: 10,
                 background: 'rgba(212, 175, 55, 0.15)',
+                border: '1px solid rgba(212, 175, 55, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#D4AF37'
+                color: '#D4AF37',
+                flexShrink: 0
               }}
             >
               <Camera size={17} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#F8FAFC' }}>
-                Quét Mã QR Hiện Vật
+              <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: '#F8FAFC', letterSpacing: '0.2px' }}>
+                Quét mã QR Trưng bày
               </h3>
-              <div style={{ fontSize: 11, color: '#94A3B8' }}>Camera trực tiếp trên trình duyệt</div>
+              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
+                Khám phá Hiện vật 3D & Phòng 360°
+              </div>
             </div>
           </div>
 
@@ -547,11 +583,14 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             position: 'relative',
             width: '100%',
             aspectRatio: '1 / 1',
+            maxHeight: '44vh',
+            minHeight: 250,
             background: '#000',
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            flexShrink: 1
           }}
         >
           {/* Live Video stream khi được trình duyệt hỗ trợ */}
@@ -567,7 +606,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
               />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-              {/* Khung ngắm Hologram / Laser Target */}
+              {/* Khung ngắm Target */}
               <div
                 style={{
                   position: 'absolute',
@@ -592,8 +631,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                       left: 0,
                       right: 0,
                       height: 3,
-                      background: 'linear-gradient(90deg, transparent 0%, #10B981 50%, transparent 100%)',
-                      boxShadow: '0 0 14px #10B981',
+                      background: 'linear-gradient(90deg, transparent 0%, #D4AF37 50%, transparent 100%)',
+                      boxShadow: '0 0 14px #D4AF37',
                       animation: 'qrLaserScan 2s infinite ease-in-out'
                     }}
                   />
@@ -601,7 +640,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
               </div>
             </>
           ) : (
-            /* Giao diện Camera Trình duyệt Phổ quát (Hỗ trợ 100% mọi trình duyệt kể cả Chrome trên HTTP) */
+            /* Giao diện Chụp & Quét máy ảnh thích ứng đa thiết bị */
             <div
               style={{
                 width: '100%',
@@ -610,36 +649,36 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '24px 20px',
+                padding: '20px 16px',
                 textAlign: 'center',
                 background: 'radial-gradient(circle at center, #151C2C 0%, #080B12 100%)',
                 position: 'relative'
               }}
             >
-              {/* Vòng tròn Icon Camera nổi bật */}
+              {/* Vòng tròn Icon Camera */}
               <div
                 style={{
-                  width: 76,
-                  height: 76,
+                  width: 68,
+                  height: 68,
                   borderRadius: '50%',
                   background: 'rgba(212, 175, 55, 0.12)',
                   border: '2px solid rgba(212, 175, 55, 0.35)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: 14,
-                  boxShadow: '0 0 25px rgba(212, 175, 55, 0.2)'
+                  marginBottom: 12,
+                  boxShadow: '0 0 25px rgba(212, 175, 55, 0.18)'
                 }}
               >
-                <Camera size={38} color="#D4AF37" />
+                <Camera size={32} color="#D4AF37" />
               </div>
 
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#F8FAFC', marginBottom: 6 }}>
-                Quét Mã QR Bằng Camera
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#F8FAFC', marginBottom: 4 }}>
+                Quét mã QR qua máy ảnh
               </div>
 
-              <p style={{ fontSize: 12, color: '#94A3B8', maxWidth: 320, lineHeight: 1.5, margin: '0 0 16px 0' }}>
-                Hỗ trợ tất cả trình duyệt (Google Chrome, Safari, Cốc Cốc, Edge...) trực tiếp trên thiết bị của bạn.
+              <p style={{ fontSize: 12, color: '#94A3B8', maxWidth: 290, lineHeight: 1.45, margin: '0 0 16px 0' }}>
+                Hướng máy ảnh về phía mã QR trên bục hiện vật hoặc phòng trưng bày.
               </p>
 
               {/* Nút hành động chính: Mở máy ảnh chụp mã QR */}
@@ -651,36 +690,36 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '11px 22px',
+                  padding: '10px 20px',
                   borderRadius: 10,
                   background: 'linear-gradient(135deg, #D4AF37 0%, #AA820A 100%)',
                   color: '#0B0F19',
-                  fontSize: 13.5,
+                  fontSize: 13,
                   fontWeight: 700,
                   border: 'none',
                   cursor: isProcessingImage ? 'wait' : 'pointer',
-                  boxShadow: '0 6px 20px rgba(212, 175, 55, 0.35)',
+                  boxShadow: '0 4px 16px rgba(212, 175, 55, 0.3)',
                   transition: 'transform 0.15s ease'
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
               >
-                <Camera size={17} />
-                <span>Mở Camera Chụp & Quét Mã</span>
+                <Camera size={16} />
+                <span>Mở máy ảnh quét mã</span>
               </button>
 
               {/* Thông báo lỗi hoặc hướng dẫn nếu có */}
               {errorMsg && (
                 <div
                   style={{
-                    marginTop: 14,
+                    marginTop: 12,
                     padding: '8px 12px',
                     borderRadius: 8,
                     background: 'rgba(239, 68, 68, 0.12)',
                     border: '1px solid rgba(239, 68, 68, 0.25)',
                     color: '#FCA5A5',
                     fontSize: 11.5,
-                    maxWidth: 320,
+                    maxWidth: 300,
                     lineHeight: 1.4
                   }}
                 >
@@ -753,13 +792,14 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         {/* Thanh công cụ: Mở Camera, Tải ảnh, Đèn pin, Lật camera */}
         <div
           style={{
-            padding: '12px 18px',
+            padding: '10px 16px',
             background: '#070A12',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 10,
-            borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+            gap: 8,
+            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+            flexShrink: 0
           }}
         >
           {/* Nút Mở máy ảnh chụp trực tiếp */}
@@ -861,15 +901,16 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         {/* Hướng dẫn ngắn chân modal */}
         <div
           style={{
-            padding: '10px 20px 14px 20px',
+            padding: '9px 16px 12px 16px',
             fontSize: 11.5,
-            color: '#94A3B8',
+            color: '#8b949e',
             textAlign: 'center',
             background: '#070A12',
-            borderTop: '1px solid rgba(255, 255, 255, 0.03)'
+            borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+            flexShrink: 0
           }}
         >
-          Hướng camera vào mã QR dán trên chân đế hiện vật hoặc standee phòng để mở ngay mô hình 3D & Tour 360°.
+          Áp dụng cho mã QR hiện vật 3D và không gian phòng trưng bày 360°.
         </div>
       </div>
 
