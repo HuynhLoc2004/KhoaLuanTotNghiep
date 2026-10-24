@@ -12,7 +12,11 @@ import {
   Loader2,
   RefreshCw,
   Eye,
-  Check
+  Check,
+  Upload,
+  ShieldAlert,
+  ExternalLink,
+  Copy
 } from 'lucide-react';
 import { API_BASE } from '../services/api';
 
@@ -50,10 +54,13 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
   const isAutoDetectingRef = useRef<boolean>(true);
   const detectionTimerRef = useRef<any>(null);
   const statusPollingRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isInsecureHttp, setIsInsecureHttp] = useState(false);
+  const [copiedFlag, setCopiedFlag] = useState(false);
   const [frames, setFrames] = useState<CapturedFrame[]>([]);
   const [isAutoDetecting, setIsAutoDetecting] = useState(true);
   const [isCapturingFlash, setIsCapturingFlash] = useState(false);
@@ -112,8 +119,15 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         }
 
         // 2. Khởi tạo Camera gốc chất lượng cao
-        if (!navigator?.mediaDevices?.getUserMedia) {
-          throw new Error('Trình duyệt không hỗ trợ WebRTC Camera.');
+        const isSecure = typeof window !== 'undefined' && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        const hasGetUserMedia = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+
+        if (!hasGetUserMedia) {
+          if (!isSecure && window.location.protocol === 'http:') {
+            setIsInsecureHttp(true);
+            throw new Error('Trình duyệt Chrome bảo mật chặn WebRTC Camera khi truy cập bằng HTTP (Không bảo mật). Yêu cầu HTTPS hoặc bật cờ cho phép trong Chrome flags.');
+          }
+          throw new Error('Thiết bị hoặc trình duyệt này không tìm thấy phần cứng máy ảnh khả dụng.');
         }
 
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -142,7 +156,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         console.error('[Realtime Camera Init Error]:', err);
         setCameraError(
           err.name === 'NotAllowedError'
-            ? 'Bạn chưa cấp quyền truy cập Camera. Vui lòng cho phép quyền máy ảnh trong cài đặt trình duyệt để tiếp tục.'
+            ? 'Bạn chưa cấp quyền truy cập Camera. Vui lòng bấm vào biểu tượng ổ khóa cạnh thanh địa chỉ và bật Máy ảnh thành Cho phép.'
             : (err.message || 'Không thể khởi động camera.')
         );
       }
@@ -155,6 +169,31 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       stopCamera();
     };
   }, [isOpen, stopCamera]);
+
+  // Mô phỏng Stream liên tục từ chùm ảnh có sẵn (Dành cho máy tính / Môi trường HTTP)
+  const handleSimulateStreamFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0 || !sessionId) return;
+    setCameraError(null);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const localUrl = URL.createObjectURL(file);
+      const nextIndex = frames.length + i + 1;
+
+      const newFrame: CapturedFrame = {
+        index: nextIndex,
+        url: localUrl,
+        isUploading: true,
+        isUploaded: false,
+        timestamp: Date.now()
+      };
+
+      setFrames((prev) => [...prev, newFrame]);
+      await uploadFrame(file, nextIndex, localUrl, sessionId);
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+  };
 
   // Upload frame lên Server (Lưu Cloudinary + Đẩy RabbitMQ)
   const uploadFrame = useCallback(async (blob: Blob, frameIdx: number, localPreviewUrl: string, currSessionId: string) => {
@@ -605,42 +644,194 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           </div>
         </div>
 
-        {/* Camera Error Alert */}
+        {/* Camera Error Alert & HTTP Guidance */}
         {cameraError && (
           <div
             style={{
               position: 'absolute',
               inset: 20,
-              background: 'rgba(15, 15, 15, 0.95)',
+              background: 'rgba(18, 18, 18, 0.96)',
+              backdropFilter: 'blur(10px)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 14,
+              gap: 16,
               padding: 24,
-              borderRadius: 12,
-              textAlign: 'center'
+              borderRadius: 14,
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              textAlign: 'center',
+              zIndex: 5,
+              maxWidth: 580,
+              margin: 'auto'
             }}
           >
-            <AlertTriangle size={36} style={{ color: '#ef4444' }} />
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#fca5a5', maxWidth: 420 }}>
-              {cameraError}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
+            <div
               style={{
-                marginTop: 8,
-                padding: '8px 18px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: 6,
-                color: '#fff',
-                cursor: 'pointer'
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                background: 'rgba(239, 68, 68, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              Đóng lại
-            </button>
+              <ShieldAlert size={28} style={{ color: '#ef4444' }} />
+            </div>
+
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#fca5a5' }}>
+                {isInsecureHttp ? 'Trình duyệt yêu cầu HTTPS để bật Camera trực tiếp' : 'Không thể khởi động Camera'}
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#d1d5db', marginTop: 6, lineHeight: 1.5, maxWidth: 500 }}>
+                {isInsecureHttp
+                  ? 'Theo chính sách bảo mật của Google Chrome & W3C, Camera WebRTC chỉ được phép hoạt động trên HTTPS hoặc Localhost. Bạn đang truy cập qua HTTP nên Chrome tự động ẩn quyền máy ảnh.'
+                  : cameraError}
+              </div>
+            </div>
+
+            {isInsecureHttp ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 4 }}>
+                {/* Nút 1: Chuyển sang HTTPS */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = window.location.href.replace('http:', 'https:');
+                  }}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  <ExternalLink size={15} />
+                  <span>Chuyển sang HTTPS (Bảo mật)</span>
+                </button>
+
+                {/* Nút 2: Mô phỏng Stream bằng chùm ảnh có sẵn */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 8,
+                    background: 'rgba(212, 168, 106, 0.15)',
+                    border: '1px solid var(--accent-gold, #d4a86a)',
+                    color: 'var(--accent-gold, #d4a86a)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  <Upload size={15} />
+                  <span>Chọn chùm ảnh từ máy để Mô phỏng Stream vào RabbitMQ</span>
+                </button>
+
+                {/* Hướng dẫn bật cờ Chrome cho HTTP */}
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    background: 'rgba(0, 0, 0, 0.45)',
+                    borderRadius: 8,
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    fontSize: '11px',
+                    color: '#9ca3af',
+                    textAlign: 'left',
+                    lineHeight: 1.5
+                  }}
+                >
+                  <div style={{ fontWeight: 600, color: '#e5e7eb', marginBottom: 4 }}>
+                    💡 Cách mở Camera trực tiếp trên Chrome HTTP:
+                  </div>
+                  <div>1. Mở tab mới gõ: <code style={{ color: '#f59e0b', background: 'rgba(0,0,0,0.5)', padding: '1px 4px', borderRadius: 3 }}>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></div>
+                  <div>2. Dán địa chỉ: <code style={{ color: '#10b981', background: 'rgba(0,0,0,0.5)', padding: '1px 4px', borderRadius: 3 }}>{typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : 'http://museumhcm.duckdns.org'}</code></div>
+                  <div>3. Chọn <b>Enabled</b> và bấm <b>Relaunch</b> lại Chrome.</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const domain = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : 'http://museumhcm.duckdns.org';
+                      navigator.clipboard.writeText(domain);
+                      setCopiedFlag(true);
+                      setTimeout(() => setCopiedFlag(false), 2000);
+                    }}
+                    style={{
+                      marginTop: 6,
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: 4,
+                      color: '#e5e7eb',
+                      padding: '4px 8px',
+                      fontSize: '10.5px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Copy size={11} />
+                    <span>{copiedFlag ? 'Đã chép domain!' : 'Sao chép địa chỉ domain'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    padding: '8px 14px',
+                    background: 'rgba(212, 168, 106, 0.15)',
+                    border: '1px solid var(--accent-gold, #d4a86a)',
+                    borderRadius: 6,
+                    color: 'var(--accent-gold, #d4a86a)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Chọn ảnh từ máy
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    padding: '8px 14px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: 6,
+                    color: '#fff',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Đóng lại
+                </button>
+              </div>
+            )}
+
+            {/* Input file ẩn cho chế độ mô phỏng stream */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleSimulateStreamFiles}
+            />
           </div>
         )}
 
