@@ -27,11 +27,13 @@ import {
   X,
   CheckCircle2,
   Layout,
-  Building2
+  Building2,
+  Radio
 } from 'lucide-react';
 import { NewRoomModal } from '../components/NewRoomModal';
 import { Pannellum360Viewer } from '../viewer360/Pannellum360Viewer';
 import { SpatialRoomViewer } from '../components/SpatialRoomViewer';
+import { RealtimeRoomScannerModal } from '../components/RealtimeRoomScannerModal';
 import { api, API_BASE } from '../services/api';
 import { MuseumRoom } from '../types';
 import { useToast } from '../components/Toast';
@@ -143,6 +145,7 @@ export const PocStitchingPage: React.FC = () => {
   const [copiedHistoryUrl, setCopiedHistoryUrl] = useState<string | null>(null);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
+  const [isRealtimeModalOpen, setIsRealtimeModalOpen] = useState(false);
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
 
   // Chuyển góc nhìn mượt mà (Fade effect)
@@ -1346,6 +1349,23 @@ export const PocStitchingPage: React.FC = () => {
                           disabled={isProcessing}
                         />
                       </label>
+
+                      {/* Nút thứ 4: Quét phòng Realtime Stream (AMQP Queue) */}
+                      <button
+                        type="button"
+                        className="studio-action-btn"
+                        style={{
+                          borderColor: 'rgba(16, 185, 129, 0.45)',
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.08) 100%)',
+                          cursor: isProcessing ? 'wait' : 'pointer'
+                        }}
+                        onClick={() => setIsRealtimeModalOpen(true)}
+                        disabled={isProcessing}
+                        title="Khởi động camera quay quét liên tục theo thời gian thực (RabbitMQ AMQP Stream). Tự động nhận diện góc mới, đẩy lên Cloudinary và tìm điểm chung toàn diện."
+                      >
+                        <Radio size={20} style={{ color: '#10b981' }} />
+                        <span>Quét phòng Realtime (AMQP)</span>
+                      </button>
                     </div>
 
                     {/* Hộp xác nhận Video đã chọn - Người dùng bấm xác nhận mới gửi lên server */}
@@ -2341,6 +2361,30 @@ export const PocStitchingPage: React.FC = () => {
           onClose={() => setIsWebcamModalOpen(false)}
           onCaptured={handleWebcamCaptured}
           startIndex={verifiedFrames.length}
+        />
+
+        {/* Modal Quét phòng Realtime Stream (AMQP Queue) */}
+        <RealtimeRoomScannerModal
+          isOpen={isRealtimeModalOpen}
+          onClose={() => setIsRealtimeModalOpen(false)}
+          onCompleted={(result) => {
+            setIsRealtimeModalOpen(false);
+            setCurrentStep(5);
+            const resData: any = {
+              panoramaUrl: normalizePanoUrl(result.panoramaUrl),
+              thumbnailUrl: normalizePanoUrl(result.thumbnailUrl || result.panoramaUrl),
+              inputFramesCount: result.totalFrames,
+              views: result.views || []
+            };
+            setStitchResult(resData);
+            setActiveViewUrl(resData.panoramaUrl);
+            setViewerMode('pano360');
+            fetchHistory();
+            showToast(`Đã tạo thành công không gian 360° từ ${result.totalFrames} góc quét AMQP!`, 'success');
+            setTimeout(() => {
+              viewerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 350);
+          }}
         />
 
         {/* Custom Heritage Confirm Modal */}

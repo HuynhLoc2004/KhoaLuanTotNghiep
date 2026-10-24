@@ -31,6 +31,7 @@ import { seedDefaultRoles } from './models/Role.js';
 import { seedDefaultAdmin } from './models/User.js';
 import { getRedisStatus } from './services/redis.js';
 import { startArtifact3DConsumer } from './services/artifact3dQueue.js';
+import { startRealtimeStreamConsumer } from './services/realtimeStreamService.js';
 import { initRealtimeRedisSubscriber } from './services/realtimeSync.js';
 import { initPostgresTables, getPgStatus } from './db/postgres.js';
 import { runStartupDataSync } from './db/syncEngine.js';
@@ -276,6 +277,9 @@ connectMongoDB().then(async () => {
 
   // Khởi động Worker Consumer lắng nghe hàng đợi xử lý 3D
   startArtifact3DConsumer();
+
+  // Khởi động Worker Consumer lắng nghe hàng đợi xử lý ảnh phòng realtime AMQP
+  startRealtimeStreamConsumer();
 
   // Khởi động kênh Redis Pub/Sub đồng bộ thời gian thực cho mọi container/client
   initRealtimeRedisSubscriber();

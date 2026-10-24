@@ -12,6 +12,13 @@ import { RoomModel } from '../models/Room.js';
 import { FloorPlanMapModel } from '../models/FloorPlanMap.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 import { pgPool } from '../db/postgres.js';
+import {
+  createStreamSession,
+  getStreamSession,
+  getAllStreamSessions,
+  addFrameToSession,
+  triggerStitchSession
+} from '../services/realtimeStreamService.js';
 
 export const stitchRouter = Router();
 
@@ -1582,6 +1589,122 @@ stitchRouter.post('/panoramas/cleanup-orphans', async (req: Request, res: Respon
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// ==============================================================================
+// REALTIME AMQP CAMERA STREAM & STITCHING API
+// ==============================================================================
+
+/**
+ * POST /api/stitch/realtime/session/start
+ * Khởi tạo một phiên quay quét phòng realtime
+ */
+stitchRouter.post('/realtime/session/start', async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    const session = createStreamSession(name);
+    return res.json({
+      success: true,
+      session
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/stitch/realtime/frame
+ * Tiếp nhận một khung hình góc quét từ camera điện thoại (multipart/form-data hoặc JSON base64)
+ * Tự động đẩy vào Cloudinary và RabbitMQ AMQP broker
+ */
+stitchRouter.post('/realtime/frame', uploadSingleFrame, async (req: Request, res: Response) => {
+  try {
+    const sessionId = (req.body.sessionId || '').trim();
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Thiếu sessionId của phiên quét.' });
+    }
+
+    let inputData: Buffer | string | null = null;
+    let ext = '.jpg';
+
+    if (req.file) {
+      inputData = req.file.path;
+      ext = path.extname(req.file.originalname).toLowerCase() || '.jpg';
+    } else if (req.body.imageBase64) {
+      inputData = req.body.imageBase64;
+    }
+
+    if (!inputData) {
+      return res.status(400).json({ success: false, message: 'Không tìm thấy dữ liệu ảnh frame.' });
+    }
+
+    const frame = await addFrameToSession(sessionId, inputData, ext);
+    const session = getStreamSession(sessionId);
+
+    return res.json({
+      success: true,
+      frame,
+      totalFrames: session?.frames.length || 0,
+      message: `Đã lưu góc ảnh #${frame.index} vào Cloudinary & đưa vào hàng đợi RabbitMQ.`
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/stitch/realtime/session/:sessionId/finish
+ * Hoàn tất phiên quay quét và kích hoạt tiến trình ghép ảnh nền (OpenCV Worker) qua RabbitMQ
+ */
+stitchRouter.post('/realtime/session/:sessionId/finish', async (req: Request, res: Response) => {
+  try {
+    const sessionId = String(req.params.sessionId);
+    const session = await triggerStitchSession(sessionId);
+    return res.json({
+      success: true,
+      session,
+      message: `Đã kích hoạt tác vụ ghép không gian phòng 360° từ ${session.frames.length} góc ảnh trên RabbitMQ.`
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/stitch/realtime/session/:sessionId/status
+ * Tra cứu tiến độ và kết quả của phiên quét realtime
+ */
+stitchRouter.get('/realtime/session/:sessionId/status', async (req: Request, res: Response) => {
+  try {
+    const sessionId = String(req.params.sessionId);
+    const session = getStreamSession(sessionId);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Phiên quét không tồn tại.' });
+    }
+    return res.json({
+      success: true,
+      session
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/stitch/realtime/sessions
+ * Lấy lịch sử các phiên quét realtime gần đây
+ */
+stitchRouter.get('/realtime/sessions', async (req: Request, res: Response) => {
+  try {
+    const sessions = getAllStreamSessions();
+    return res.json({
+      success: true,
+      sessions
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 
 
 

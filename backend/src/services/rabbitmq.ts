@@ -15,7 +15,8 @@ let isConnecting = false;
 export const QUEUES = {
   STITCHING: 'stitching_queue',
   ARTIFACT_3D: 'artifact_3d_queue',
-  NOTIFICATIONS: 'notifications_queue'
+  NOTIFICATIONS: 'notifications_queue',
+  REALTIME_ROOM_STREAM: 'realtime_room_stream_queue'
 } as const;
 
 /**
