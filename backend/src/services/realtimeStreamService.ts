@@ -10,6 +10,7 @@ import { broadcastRealtimeEvent } from './realtimeSync.js';
 
 export interface StreamFrame {
   index: number;
+  sectorIndex?: number;
   timestamp: number;
   cloudinaryUrl: string;
   localPath: string;
@@ -98,7 +99,8 @@ export function getAllStreamSessions(): StreamSession[] {
 export async function addFrameToSession(
   sessionId: string,
   dataBufferOrPath: Buffer | string,
-  ext: string = '.jpg'
+  ext: string = '.jpg',
+  sectorIndex?: number
 ): Promise<StreamFrame> {
   const session = sessions.get(sessionId);
   if (!session) {
@@ -109,11 +111,13 @@ export async function addFrameToSession(
     throw new Error(`Phiên quét [${sessionId}] đang ở trạng thái [${session.status}], không thể thêm góc ảnh.`);
   }
 
-  const frameIdx = session.frames.length + 1;
+  const frameIdx = sectorIndex !== undefined ? sectorIndex + 1 : session.frames.length + 1;
   const sessionDir = path.join(REALTIME_DIR, sessionId);
   if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
-  const localFilename = `frame_${String(frameIdx).padStart(4, '0')}_${Date.now()}${ext}`;
+  const localFilename = sectorIndex !== undefined
+    ? `frame_sec_${sectorIndex}_${Date.now()}${ext}`
+    : `frame_${String(frameIdx).padStart(4, '0')}_${Date.now()}${ext}`;
   const localFilePath = path.join(sessionDir, localFilename);
 
   let fileSize = 0;
@@ -146,13 +150,31 @@ export async function addFrameToSession(
 
   const frame: StreamFrame = {
     index: frameIdx,
+    sectorIndex,
     timestamp: Date.now(),
     cloudinaryUrl,
     localPath: localFilePath,
     sizeBytes: fileSize
   };
 
-  session.frames.push(frame);
+  // Nếu đã có góc chụp cũ cho sectorIndex này (ví dụ chụp lại cho nét hơn), thay thế frame cũ
+  if (sectorIndex !== undefined) {
+    const existingIdx = session.frames.findIndex((f) => f.sectorIndex === sectorIndex);
+    if (existingIdx >= 0) {
+      const oldFrame = session.frames[existingIdx];
+      try {
+        if (oldFrame.localPath && fs.existsSync(oldFrame.localPath)) {
+          fs.unlinkSync(oldFrame.localPath);
+        }
+      } catch (_) {}
+      session.frames[existingIdx] = frame;
+    } else {
+      session.frames.push(frame);
+    }
+  } else {
+    session.frames.push(frame);
+  }
+
   session.updatedAt = Date.now();
   session.message = `Đã thu thập ${session.frames.length} góc chụp toàn cảnh.`;
 
@@ -161,6 +183,7 @@ export async function addFrameToSession(
     type: 'NEW_FRAME',
     sessionId,
     frameIndex: frameIdx,
+    sectorIndex,
     cloudinaryUrl,
     timestamp: frame.timestamp
   });
@@ -215,6 +238,13 @@ export async function processSessionStitching(sessionId: string): Promise<void> 
     session.status = 'processing';
     session.progress = 25;
     session.message = `Đang chuẩn bị ${session.frames.length} góc ảnh từ Cloudinary & lưu trữ cục bộ...`;
+
+    // Sắp xếp các góc ảnh đúng tuần tự chu vi 360 độ theo chiều kim đồng hồ (0° -> 45° -> ... -> 315°)
+    session.frames.sort((a, b) => {
+      const secA = a.sectorIndex !== undefined ? a.sectorIndex : a.index;
+      const secB = b.sectorIndex !== undefined ? b.sectorIndex : b.index;
+      return secA - secB;
+    });
 
     let imagePaths = session.frames.map((f) => f.localPath).filter((p) => p && fs.existsSync(p));
 

@@ -8,9 +8,11 @@ import {
   RefreshCw,
   Check,
   Upload,
-  Copy,
-  ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Compass,
+  RotateCw,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { API_BASE } from '../services/api';
 
@@ -25,14 +27,27 @@ interface RealtimeRoomScannerModalProps {
   }) => void;
 }
 
-interface CapturedFrame {
-  index: number;
-  url: string;
-  isUploading: boolean;
-  isUploaded: boolean;
-  cloudinaryUrl?: string;
-  timestamp: number;
+export interface RoomSector {
+  id: number;            // 0..7
+  targetAngle: number;   // 0, 45, 90, 135, 180, 225, 270, 315
+  label: string;         // Tên mô tả: Chính diện, Trước - Phải, Bên phải, v.v.
+  shortLabel: string;    // '0°', '45°', '90°', '135°', '180°', '225°', '270°', '315°'
+  directionName: string; // Tên hướng ngắn: Trước, T-Phải, Phải, S-Phải, Sau, S-Trái, Trái, T-Trái
+  isCaptured: boolean;
+  thumbnailUrl?: string;
+  blob?: Blob;
 }
+
+const INITIAL_SECTORS: RoomSector[] = [
+  { id: 0, targetAngle: 0, label: 'Chính diện', shortLabel: '0°', directionName: 'Trước', isCaptured: false },
+  { id: 1, targetAngle: 45, label: 'Trước - Phải', shortLabel: '45°', directionName: 'T-Phải', isCaptured: false },
+  { id: 2, targetAngle: 90, label: 'Bên phải', shortLabel: '90°', directionName: 'Phải', isCaptured: false },
+  { id: 3, targetAngle: 135, label: 'Sau - Phải', shortLabel: '135°', directionName: 'S-Phải', isCaptured: false },
+  { id: 4, targetAngle: 180, label: 'Phía sau', shortLabel: '180°', directionName: 'Sau', isCaptured: false },
+  { id: 5, targetAngle: 225, label: 'Sau - Trái', shortLabel: '225°', directionName: 'S-Trái', isCaptured: false },
+  { id: 6, targetAngle: 270, label: 'Bên trái', shortLabel: '270°', directionName: 'Trái', isCaptured: false },
+  { id: 7, targetAngle: 315, label: 'Trước - Trái', shortLabel: '315°', directionName: 'T-Trái', isCaptured: false }
+];
 
 export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> = ({
   isOpen,
@@ -46,20 +61,31 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
   const prevImageDataRef = useRef<Uint8ClampedArray | null>(null);
   const lastCaptureTimeRef = useRef<number>(0);
   const isAutoDetectingRef = useRef<boolean>(true);
-  const detectionTimerRef = useRef<any>(null);
   const statusPollingRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraCaptureRef = useRef<HTMLInputElement>(null);
+
+  // Tham chiếu con quay hồi chuyển & căn góc
+  const initialHeadingRef = useRef<number | null>(null);
+  const lastHeadingRef = useRef<number>(0);
+  const steadyTimeRef = useRef<number>(0);
+  const stabilityCheckIntervalRef = useRef<any>(null);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isInsecureHttp, setIsInsecureHttp] = useState(false);
-  const [copiedFlag, setCopiedFlag] = useState(false);
-  const [frames, setFrames] = useState<CapturedFrame[]>([]);
+
+  // Quản lý 8 cung góc 360°
+  const [sectors, setSectors] = useState<RoomSector[]>(INITIAL_SECTORS);
+  const [activeSectorId, setActiveSectorId] = useState<number>(0);
+  const [currentHeading, setCurrentHeading] = useState<number>(0);
+  const [hasGyro, setHasGyro] = useState<boolean>(false);
+  const [stabilityProgress, setStabilityProgress] = useState<number>(0);
   const [isAutoDetecting, setIsAutoDetecting] = useState(true);
   const [isCapturingFlash, setIsCapturingFlash] = useState(false);
-  const [motionDelta, setMotionDelta] = useState<number>(0);
+
+  // Tiến trình ghép RabbitMQ / AMQP
   const [isProcessingStitch, setIsProcessingStitch] = useState(false);
   const [stitchProgress, setStitchProgress] = useState(0);
   const [stitchMessage, setStitchMessage] = useState<string>('');
@@ -67,15 +93,22 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
 
   isAutoDetectingRef.current = isAutoDetecting;
 
-  // Dừng camera an toàn
+  // Tính toán số góc đã chụp và góc còn thiếu
+  const capturedCount = sectors.filter((s) => s.isCaptured).length;
+  const coveragePercent = Math.round((capturedCount / 8) * 100);
+  const missingSectors = sectors.filter((s) => !s.isCaptured);
+  const isComplete = capturedCount >= 8;
+  const isReadyToStitch = capturedCount >= 6;
+
+  // Dừng camera và giải phóng cảm biến
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
-    if (detectionTimerRef.current) {
-      clearInterval(detectionTimerRef.current);
-      detectionTimerRef.current = null;
+    if (stabilityCheckIntervalRef.current) {
+      clearInterval(stabilityCheckIntervalRef.current);
+      stabilityCheckIntervalRef.current = null;
     }
     if (statusPollingRef.current) {
       clearInterval(statusPollingRef.current);
@@ -84,14 +117,115 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
     setIsCameraReady(false);
   }, []);
 
-  // Khởi động phiên quét mới và kết nối Camera (Đa nền tảng: iOS, Android, PC)
+  // Upload frame lên Server theo sectorIndex
+  const uploadSectorFrame = useCallback(
+    async (blob: Blob, sectorIdx: number, localPreviewUrl: string, currSessionId: string) => {
+      try {
+        setAmqpStatus('transmitting');
+        const formData = new FormData();
+        formData.append('sessionId', currSessionId);
+        formData.append('sectorIndex', String(sectorIdx));
+        formData.append('frame', blob, `frame_sector_${sectorIdx}.jpg`);
+
+        const res = await fetch(`${API_BASE}/stitch/realtime/frame`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const json = await res.json();
+        if (json.success && json.frame) {
+          // Lưu thành công lên Cloudinary
+        }
+      } catch (err) {
+        console.warn('[Sector Frame Upload Warning]:', err);
+      } finally {
+        setAmqpStatus('connected');
+      }
+    },
+    []
+  );
+
+  // Chụp một khung hình chính xác cho một góc nhất định (sectorIdx: 0..7)
+  const captureSector = useCallback(
+    (targetSectorIdx: number) => {
+      if (!videoRef.current || !isCameraReady || !sessionId) return;
+      const video = videoRef.current;
+      if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+      if (!fullCanvasRef.current) {
+        fullCanvasRef.current = document.createElement('canvas');
+      }
+      const canvas = fullCanvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Hiệu ứng nháy máy ảnh & rung xúc giác (haptic)
+      setIsCapturingFlash(true);
+      setTimeout(() => setIsCapturingFlash(false), 220);
+      try {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate(50);
+        }
+      } catch (_) {}
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return;
+          const localUrl = URL.createObjectURL(blob);
+
+          // Cập nhật trạng thái góc chụp
+          setSectors((prev) =>
+            prev.map((s) =>
+              s.id === targetSectorIdx
+                ? {
+                    ...s,
+                    isCaptured: true,
+                    thumbnailUrl: localUrl,
+                    blob
+                  }
+                : s
+            )
+          );
+
+          lastCaptureTimeRef.current = Date.now();
+          steadyTimeRef.current = 0;
+          setStabilityProgress(0);
+
+          // Tự động chuyển góc ngắm tới góc còn thiếu tiếp theo theo chiều kim đồng hồ
+          setSectors((latest) => {
+            const nextMissing = latest.find((s) => !s.isCaptured && s.id !== targetSectorIdx);
+            if (nextMissing) {
+              setActiveSectorId(nextMissing.id);
+            }
+            return latest;
+          });
+
+          // Upload lên server với sectorIndex
+          uploadSectorFrame(blob, targetSectorIdx, localUrl, sessionId);
+        },
+        'image/jpeg',
+        0.92
+      );
+    },
+    [isCameraReady, sessionId, uploadSectorFrame]
+  );
+
+  // Khởi động phiên quét mới và kết nối Camera
   const initSessionAndCamera = useCallback(async () => {
     try {
       setCameraError(null);
       setIsInsecureHttp(false);
-      setFrames([]);
+      setSectors(INITIAL_SECTORS);
+      setActiveSectorId(0);
       setIsProcessingStitch(false);
       setStitchProgress(0);
+      initialHeadingRef.current = null;
+      lastHeadingRef.current = 0;
+      steadyTimeRef.current = 0;
 
       // 1. Khởi tạo phiên quét mới trên Server & RabbitMQ
       let currSessionId = sessionId;
@@ -99,7 +233,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         const res = await fetch(`${API_BASE}/stitch/realtime/session/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `Quét không gian phòng - ${new Date().toLocaleTimeString('vi-VN')}` })
+          body: JSON.stringify({ name: `Quét không gian phòng 360 - ${new Date().toLocaleTimeString('vi-VN')}` })
         });
         const json = await res.json();
         if (json.success && json.session) {
@@ -117,7 +251,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       if (!hasGetUserMedia) {
         if (!isSecure && window.location.protocol === 'http:') {
           setIsInsecureHttp(true);
-          throw new Error('Chrome/Safari yêu cầu HTTPS để bật Camera trực tiếp. Trên điện thoại bạn có thể bấm "Chọn ảnh từ máy" bên dưới để test ngay.');
+          throw new Error('Chrome/Safari yêu cầu HTTPS để bật Camera trực tiếp.');
         }
         throw new Error('Thiết bị hoặc trình duyệt không tìm thấy phần cứng máy ảnh khả dụng.');
       }
@@ -139,7 +273,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           if (stream) break;
         } catch (attemptErr: any) {
           lastErr = attemptErr;
-          console.warn('[Camera Try Constraint Note]:', attemptErr?.name, attemptErr?.message);
         }
       }
 
@@ -161,12 +294,13 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       const isDenied = err.name === 'NotAllowedError' || err.name === 'SecurityError';
       setCameraError(
         isDenied
-          ? 'Bạn chưa cấp quyền truy cập Camera. Vui lòng bấm vào biểu tượng ổ khóa/cài đặt cạnh thanh địa chỉ và bật Máy ảnh thành Cho phép.'
+          ? 'Bạn chưa cấp quyền truy cập Camera. Vui lòng bấm vào biểu tượng cài đặt/ổ khóa cạnh thanh địa chỉ và bật Máy ảnh thành Cho phép.'
           : (err.message || 'Không thể khởi động camera.')
       );
     }
   }, [sessionId]);
 
+  // Quản lý Vòng đời & Cảm biến hướng DeviceOrientation
   useEffect(() => {
     if (!isOpen) {
       stopCamera();
@@ -175,160 +309,180 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
 
     initSessionAndCamera();
 
+    // Xử lý sự kiện con quay hồi chuyển trên điện thoại di động
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      let rawHeading: number | null = null;
+
+      // iOS Safari Compass Heading
+      if ((e as any).webkitCompassHeading !== undefined && (e as any).webkitCompassHeading !== null) {
+        rawHeading = (e as any).webkitCompassHeading;
+      }
+      // Android / Standard Alpha (Z-axis rotation)
+      else if (e.alpha !== null && e.alpha !== undefined) {
+        rawHeading = (360 - e.alpha) % 360;
+      }
+
+      if (rawHeading !== null && !isNaN(rawHeading)) {
+        setHasGyro(true);
+
+        // Chuẩn hóa góc ban đầu người dùng đứng đối diện làm mốc 0 độ
+        if (initialHeadingRef.current === null) {
+          initialHeadingRef.current = rawHeading;
+        }
+
+        const rel = (rawHeading - initialHeadingRef.current + 360) % 360;
+        setCurrentHeading(rel);
+
+        // Xác định sector gần nhất với hướng ngắm hiện tại (mỗi sector 45 độ: ±22.5 độ)
+        const aimingIdx = Math.round(rel / 45) % 8;
+        setActiveSectorId(aimingIdx);
+      }
+    };
+
+    // Yêu cầu quyền cảm biến hướng trên iOS 13+ nếu có
+    if (
+      typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof (DeviceOrientationEvent as any).requestPermission === 'function'
+    ) {
+      (DeviceOrientationEvent as any)
+        .requestPermission()
+        .then((permissionState: string) => {
+          if (permissionState === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+          }
+        })
+        .catch(() => undefined);
+    } else if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+
     return () => {
       stopCamera();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('deviceorientation', handleOrientation, true);
+      }
     };
   }, [isOpen, initSessionAndCamera, stopCamera]);
 
-  // Upload frame lên Server (Lưu Cloudinary + Đẩy RabbitMQ)
-  const uploadFrame = useCallback(async (blob: Blob, frameIdx: number, localPreviewUrl: string, currSessionId: string) => {
-    try {
-      setAmqpStatus('transmitting');
-      const formData = new FormData();
-      formData.append('sessionId', currSessionId);
-      formData.append('frame', blob, `frame_${frameIdx}.jpg`);
-
-      const res = await fetch(`${API_BASE}/stitch/realtime/frame`, {
-        method: 'POST',
-        body: formData
-      });
-
-      const json = await res.json();
-      if (json.success && json.frame) {
-        setFrames((prev) =>
-          prev.map((f) =>
-            f.index === frameIdx
-              ? {
-                  ...f,
-                  isUploading: false,
-                  isUploaded: true,
-                  cloudinaryUrl: json.frame.cloudinaryUrl
-                }
-              : f
-          )
-        );
-      }
-    } catch (err) {
-      console.warn('[Frame Upload Warning]:', err);
-    } finally {
-      setAmqpStatus('connected');
-    }
-  }, []);
-
-  // Chụp một khung hình từ video stream
-  const captureCurrentFrame = useCallback((currSessionId: string) => {
-    if (!videoRef.current || !isCameraReady) return;
-    const video = videoRef.current;
-    if (video.videoWidth === 0 || video.videoHeight === 0) return;
-
-    if (!fullCanvasRef.current) {
-      fullCanvasRef.current = document.createElement('canvas');
-    }
-    const canvas = fullCanvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Hiệu ứng nháy máy ảnh & haptic rung
-    setIsCapturingFlash(true);
-    setTimeout(() => setIsCapturingFlash(false), 200);
-    try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(35);
-      }
-    } catch (_) {}
-
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const localUrl = URL.createObjectURL(blob);
-        const nextIndex = frames.length + 1;
-
-        const newFrame: CapturedFrame = {
-          index: nextIndex,
-          url: localUrl,
-          isUploading: true,
-          isUploaded: false,
-          timestamp: Date.now()
-        };
-
-        setFrames((prev) => [...prev, newFrame]);
-        lastCaptureTimeRef.current = Date.now();
-
-        // Gửi frame lên server
-        uploadFrame(blob, nextIndex, localUrl, currSessionId);
-      },
-      'image/jpeg',
-      0.92
-    );
-  }, [isCameraReady, frames.length, uploadFrame]);
-
-  // Thuật toán phát hiện góc mới tự động (Visual Difference Detector)
+  // Thuật toán kiểm tra độ ổn định (Stability & Auto-Capture Engine)
+  // Chỉ chụp DUY NHẤT 1 LẦN cho mỗi sector khi người dùng giữ yên máy trong vùng góc đó
   useEffect(() => {
-    if (!isCameraReady || !sessionId || isProcessingStitch) return;
+    if (!isCameraReady || isProcessingStitch) return;
 
-    if (!sampleCanvasRef.current) {
-      sampleCanvasRef.current = document.createElement('canvas');
-      sampleCanvasRef.current.width = 64;
-      sampleCanvasRef.current.height = 36;
+    if (stabilityCheckIntervalRef.current) {
+      clearInterval(stabilityCheckIntervalRef.current);
     }
 
-    const sampleCanvas = sampleCanvasRef.current;
-    const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
-    if (!sampleCtx) return;
-
-    // Chụp ngay frame đầu tiên khi camera vừa sẵn sàng
-    if (frames.length === 0 && Date.now() - lastCaptureTimeRef.current > 1500) {
-      captureCurrentFrame(sessionId);
-    }
-
-    detectionTimerRef.current = setInterval(() => {
-      if (!isAutoDetectingRef.current || !videoRef.current || !isCameraReady) return;
-      const video = videoRef.current;
-      if (video.videoWidth === 0 || video.videoHeight === 0) return;
-
-      sampleCtx.drawImage(video, 0, 0, 64, 36);
-      const currentData = sampleCtx.getImageData(0, 0, 64, 36).data;
-
-      if (!prevImageDataRef.current) {
-        prevImageDataRef.current = new Uint8ClampedArray(currentData);
+    stabilityCheckIntervalRef.current = setInterval(() => {
+      if (!isAutoDetectingRef.current) {
+        setStabilityProgress(0);
         return;
       }
 
-      // Tính toán độ lệch thị giác (Mean Absolute Difference)
-      let diffSum = 0;
-      const len = currentData.length;
-      for (let i = 0; i < len; i += 4) {
-        const dR = Math.abs(currentData[i] - prevImageDataRef.current[i]);
-        const dG = Math.abs(currentData[i + 1] - prevImageDataRef.current[i + 1]);
-        const dB = Math.abs(currentData[i + 2] - prevImageDataRef.current[i + 2]);
-        diffSum += (dR + dG + dB) / 3;
+      const activeSector = sectors[activeSectorId];
+      // Nếu góc này đã được chụp rồi, không bao giờ chụp lại tự động nữa
+      if (!activeSector || activeSector.isCaptured) {
+        setStabilityProgress(0);
+        steadyTimeRef.current = 0;
+        return;
       }
 
-      const avgDiff = diffSum / (len / 4);
-      const deltaPercent = Math.min(100, Math.round((avgDiff / 255) * 100));
-      setMotionDelta(deltaPercent);
+      // 1. Kiểm tra nếu có cảm biến con quay hồi chuyển
+      if (hasGyro) {
+        let diff = Math.abs(currentHeading - activeSector.targetAngle);
+        if (diff > 180) diff = 360 - diff;
 
-      const now = Date.now();
-      const timeSinceLast = now - lastCaptureTimeRef.current;
+        // Nếu ngắm đúng trong phạm vi ±16 độ của sector mục tiêu
+        if (diff <= 16) {
+          const deltaHeading = Math.abs(currentHeading - lastHeadingRef.current);
+          lastHeadingRef.current = currentHeading;
 
-      // Ngưỡng phát hiện góc mới: Delta > 18% và cách lần chụp trước tối thiểu 1.1s
-      if (deltaPercent >= 18 && timeSinceLast >= 1100) {
+          // Nếu tay người dùng giữ êm (độ dịch chuyển < 2.5 độ)
+          if (deltaHeading < 2.5) {
+            steadyTimeRef.current += 150;
+            const progress = Math.min(100, Math.round((steadyTimeRef.current / 800) * 100));
+            setStabilityProgress(progress);
+
+            // Giữ yên liên tục đủ 800ms -> BẬP! Chụp ngay 1 góc duy nhất
+            if (steadyTimeRef.current >= 800) {
+              steadyTimeRef.current = 0;
+              setStabilityProgress(0);
+              captureSector(activeSector.id);
+            }
+          } else {
+            steadyTimeRef.current = Math.max(0, steadyTimeRef.current - 100);
+            setStabilityProgress(Math.min(100, Math.round((steadyTimeRef.current / 800) * 100)));
+          }
+        } else {
+          steadyTimeRef.current = 0;
+          setStabilityProgress(0);
+        }
+      }
+      // 2. Chế độ dự phòng khi không có con quay hồi chuyển (Dựa trên độ ổn định quang học)
+      else if (videoRef.current && videoRef.current.videoWidth > 0) {
+        if (!sampleCanvasRef.current) {
+          sampleCanvasRef.current = document.createElement('canvas');
+          sampleCanvasRef.current.width = 64;
+          sampleCanvasRef.current.height = 36;
+        }
+        const sampleCtx = sampleCanvasRef.current.getContext('2d', { willReadFrequently: true });
+        if (!sampleCtx) return;
+
+        sampleCtx.drawImage(videoRef.current, 0, 0, 64, 36);
+        const currentData = sampleCtx.getImageData(0, 0, 64, 36).data;
+
+        if (!prevImageDataRef.current) {
+          prevImageDataRef.current = new Uint8ClampedArray(currentData);
+          return;
+        }
+
+        let diffSum = 0;
+        const len = currentData.length;
+        for (let i = 0; i < len; i += 4) {
+          diffSum += (Math.abs(currentData[i] - prevImageDataRef.current[i]) +
+                      Math.abs(currentData[i + 1] - prevImageDataRef.current[i + 1]) +
+                      Math.abs(currentData[i + 2] - prevImageDataRef.current[i + 2])) / 3;
+        }
+        const avgDiff = diffSum / (len / 4);
+        const deltaPercent = Math.min(100, Math.round((avgDiff / 255) * 100));
         prevImageDataRef.current = new Uint8ClampedArray(currentData);
-        captureCurrentFrame(sessionId);
+
+        // Nếu máy giữ yên (độ sai khác thị giác < 8%) và cách lần chụp trước tối thiểu 1.5s
+        const timeSinceLast = Date.now() - lastCaptureTimeRef.current;
+        if (deltaPercent < 8 && timeSinceLast >= 1500) {
+          steadyTimeRef.current += 150;
+          const progress = Math.min(100, Math.round((steadyTimeRef.current / 900) * 100));
+          setStabilityProgress(progress);
+
+          if (steadyTimeRef.current >= 900) {
+            steadyTimeRef.current = 0;
+            setStabilityProgress(0);
+            captureSector(activeSector.id);
+          }
+        } else {
+          steadyTimeRef.current = 0;
+          setStabilityProgress(0);
+        }
       }
-    }, 280);
+    }, 150);
 
     return () => {
-      if (detectionTimerRef.current) {
-        clearInterval(detectionTimerRef.current);
-        detectionTimerRef.current = null;
+      if (stabilityCheckIntervalRef.current) {
+        clearInterval(stabilityCheckIntervalRef.current);
+        stabilityCheckIntervalRef.current = null;
       }
     };
-  }, [isCameraReady, sessionId, isProcessingStitch, frames.length, captureCurrentFrame]);
+  }, [isCameraReady, isProcessingStitch, hasGyro, currentHeading, activeSectorId, sectors, captureSector]);
+
+  // Đặt lại hướng ban đầu (Hiệu chỉnh lại 0 độ về hướng hiện tại)
+  const handleCalibrateHeading = () => {
+    if (typeof window !== 'undefined') {
+      initialHeadingRef.current = null;
+      try {
+        if ('vibrate' in navigator) navigator.vibrate(25);
+      } catch (_) {}
+    }
+  };
 
   // Chuyển hướng nhanh sang HTTPS khi người dùng truy cập qua HTTP
   const handleSwitchToHttps = () => {
@@ -340,12 +494,11 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
     }
   };
 
-  // Mô phỏng Stream liên tục từ chùm ảnh có sẵn hoặc ảnh chụp camera native (Dành cho di động / HTTP)
+  // Hỗ trợ chụp trực tiếp từ máy ảnh native (Dành cho di động / HTTP)
   const handleSimulateStreamFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    // Đảm bảo có sessionId trước khi tải lên
     let currSessionId = sessionId;
     if (!currSessionId) {
       try {
@@ -371,37 +524,52 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const localUrl = URL.createObjectURL(file);
-      const nextIndex = frames.length + i + 1;
 
-      const newFrame: CapturedFrame = {
-        index: nextIndex,
-        url: localUrl,
-        isUploading: true,
-        isUploaded: false,
-        timestamp: Date.now()
-      };
+      // Điền vào góc đang chọn hoặc góc còn thiếu tiếp theo
+      let targetSecIdx = activeSectorId;
+      const targetSec = sectors[targetSecIdx];
+      if (targetSec.isCaptured) {
+        const nextMissing = sectors.find((s) => !s.isCaptured);
+        if (nextMissing) targetSecIdx = nextMissing.id;
+      }
 
-      setFrames((prev) => [...prev, newFrame]);
-      await uploadFrame(file, nextIndex, localUrl, currSessionId);
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      setSectors((prev) =>
+        prev.map((s) =>
+          s.id === targetSecIdx
+            ? {
+                ...s,
+                isCaptured: true,
+                thumbnailUrl: localUrl,
+                blob: file
+              }
+            : s
+        )
+      );
+
+      await uploadSectorFrame(file, targetSecIdx, localUrl, currSessionId);
+
+      // Nhảy sang góc tiếp theo
+      setActiveSectorId((prev) => (prev + 1) % 8);
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
-    // Reset value để cho phép chụp liên tiếp nhiều lần
     e.target.value = '';
   };
 
   // Hoàn tất quét & Gửi lệnh ghép ảnh qua RabbitMQ
   const handleFinishAndStitch = async () => {
     if (!sessionId) return;
-    if (frames.length === 0) {
-      alert('Vui lòng quay lia máy để thu thập ít nhất 1 góc ảnh trước khi ghép.');
+    if (capturedCount < 6) {
+      alert(
+        `Bạn mới chụp ${capturedCount}/8 góc phòng. Để tạo không gian toàn cảnh 360° chuẩn quốc tế không bị méo uốn lượn, vui lòng quay chụp tối thiểu 6 góc (khuyến nghị đủ 8 góc quanh phòng).`
+      );
       return;
     }
 
     try {
       setIsProcessingStitch(true);
       setStitchProgress(15);
-      setStitchMessage('Đang đóng gói các góc ảnh và gửi thông điệp vào RabbitMQ AMQP...');
+      setStitchMessage('Đang đóng gói 8 góc ảnh chuẩn không gian và gửi thông điệp vào RabbitMQ AMQP...');
 
       const res = await fetch(`${API_BASE}/stitch/realtime/session/${sessionId}/finish`, {
         method: 'POST'
@@ -421,12 +589,12 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           if (pollJson.success && pollJson.session) {
             const sess = pollJson.session;
             setStitchProgress(sess.progress || Math.min(95, attempts * 5));
-            setStitchMessage(sess.message || 'Đang xử lý thuật toán phân tích điểm chung...');
+            setStitchMessage(sess.message || 'Thuật toán OpenCV đang phân tích điểm đặc trưng RootSIFT...');
 
             if (sess.status === 'completed' && sess.result) {
               clearInterval(statusPollingRef.current);
               setStitchProgress(100);
-              setStitchMessage('Hoàn tất ghép không gian 360°!');
+              setStitchMessage('Hoàn tất ghép không gian 360° chuẩn bảo tàng!');
 
               setTimeout(() => {
                 onCompleted({
@@ -462,6 +630,8 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
 
   if (!isOpen) return null;
 
+  const currentSector = sectors[activeSectorId] || sectors[0];
+
   const modalContent = (
     <div
       style={{
@@ -479,20 +649,22 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         overflow: 'hidden'
       }}
     >
-      {/* Explicit Keyframes for modal spinner rotation */}
       <style>{`
         @keyframes realtimeSpinKeyframes {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulseGlowTarget {
+          0% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.15); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 0.9; }
         }
         .realtime-spinner-rotate {
           animation: realtimeSpinKeyframes 0.9s linear infinite !important;
           transform-origin: center center !important;
-          display: inline-block !important;
+        }
+        .radar-target-pulse {
+          animation: pulseGlowTarget 1.5s ease-in-out infinite;
         }
       `}</style>
 
@@ -502,10 +674,10 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '12px 16px',
-          paddingTop: 'max(12px, env(safe-area-inset-top, 12px))',
-          borderBottom: '1px solid rgba(212, 168, 106, 0.2)',
-          background: 'rgba(20, 18, 16, 0.98)',
+          padding: '10px 16px',
+          paddingTop: 'max(10px, env(safe-area-inset-top, 10px))',
+          borderBottom: '1px solid rgba(212, 168, 106, 0.25)',
+          background: 'rgba(18, 16, 14, 0.98)',
           backdropFilter: 'blur(10px)',
           flexShrink: 0,
           gap: 12
@@ -528,11 +700,28 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             <Camera size={16} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#f5f0eb', letterSpacing: '0.2px' }}>
-              Quét không gian phòng
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#f5f0eb', letterSpacing: '0.2px' }}>
+                Quét không gian phòng 360°
+              </span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: isReadyToStitch ? 'rgba(34, 197, 94, 0.2)' : 'rgba(212, 168, 106, 0.2)',
+                  color: isReadyToStitch ? '#4ade80' : 'var(--accent-gold, #d4a86a)',
+                  border: isReadyToStitch ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(212, 168, 106, 0.35)'
+                }}
+              >
+                {capturedCount}/8 góc ({coveragePercent}%)
+              </span>
             </div>
             <div style={{ fontSize: '11px', color: '#a89f91', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Di chuyển máy ảnh xoay chậm quanh phòng để ghi lại các góc
+              {isComplete
+                ? 'Đã phủ kín toàn bộ 8 góc 360°! Bạn có thể bấm Ghép ảnh.'
+                : `Xoay máy lần lượt 8 hướng để thu thập không gian (Còn thiếu ${8 - capturedCount} góc)`}
             </div>
           </div>
         </div>
@@ -545,8 +734,8 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             border: '1px solid rgba(255, 255, 255, 0.12)',
             color: '#d1d5db',
             borderRadius: '50%',
-            width: 34,
-            height: 34,
+            width: 32,
+            height: 32,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -556,7 +745,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           }}
           title="Đóng máy ảnh"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
       </div>
 
@@ -590,99 +779,245 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           />
         )}
 
-        {/* Viewfinder Overlays */}
+        {/* VIEWINDER HUD & 360 RADAR COMPASS OVERLAY */}
         <div
           style={{
             position: 'absolute',
-            inset: 16,
+            inset: 12,
             pointerEvents: 'none',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between'
           }}
         >
-          {/* Top Bar inside Viewfinder: Subtle Frame Counter & Active Status */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Top Row: 360° Compass Radar & Direction Guidance */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+            {/* 360° Circular Radar Compass Widget */}
             <div
               style={{
-                background: 'rgba(20, 18, 16, 0.78)',
+                pointerEvents: 'auto',
+                background: 'rgba(16, 14, 12, 0.82)',
                 backdropFilter: 'blur(8px)',
-                padding: '5px 12px',
-                borderRadius: 20,
+                borderRadius: 16,
                 border: '1px solid rgba(212, 168, 106, 0.35)',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: 'var(--accent-gold, #d4a86a)',
+                padding: '8px 10px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6
+                gap: 10,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
               }}
             >
-              <Layers size={13} />
-              <span>Đã chụp: {frames.length} góc</span>
+              {/* Circular SVG Radar */}
+              <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
+                <svg width="72" height="72" viewBox="0 0 100 100">
+                  {/* Outer circle track */}
+                  <circle cx="50" cy="50" r="42" fill="rgba(0,0,0,0.4)" stroke="rgba(212, 168, 106, 0.3)" strokeWidth="2" strokeDasharray="3 3" />
+                  
+                  {/* Subtle crosshairs */}
+                  <line x1="50" y1="12" x2="50" y2="88" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+                  <line x1="12" y1="50" x2="88" y2="50" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+
+                  {/* 8 Sector Nodes around 360° circle */}
+                  {sectors.map((sec) => {
+                    const rad = ((sec.targetAngle - 90) * Math.PI) / 180;
+                    const cx = 50 + 38 * Math.cos(rad);
+                    const cy = 50 + 38 * Math.sin(rad);
+                    const isTarget = sec.id === activeSectorId;
+
+                    return (
+                      <g key={sec.id}>
+                        {isTarget && (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r="8"
+                            fill="none"
+                            stroke="var(--accent-gold, #d4a86a)"
+                            strokeWidth="2"
+                            className="radar-target-pulse"
+                          />
+                        )}
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={sec.isCaptured ? 6 : 4.5}
+                          fill={sec.isCaptured ? '#22c55e' : isTarget ? 'var(--accent-gold, #d4a86a)' : 'rgba(255,255,255,0.25)'}
+                          stroke={sec.isCaptured ? '#15803d' : isTarget ? '#ffffff' : 'rgba(212, 168, 106, 0.4)'}
+                          strokeWidth="1.5"
+                        />
+                      </g>
+                    );
+                  })}
+
+                  {/* Compass pointer needle indicating user's live orientation */}
+                  <g transform={`rotate(${currentHeading}, 50, 50)`}>
+                    <polygon points="50,18 45,50 55,50" fill="var(--accent-gold, #d4a86a)" />
+                    <polygon points="50,82 45,50 55,50" fill="rgba(255,255,255,0.3)" />
+                    <circle cx="50" cy="50" r="3.5" fill="#ffffff" />
+                  </g>
+                </svg>
+
+                {/* Reset 0° Calibrate Button */}
+                <button
+                  type="button"
+                  onClick={handleCalibrateHeading}
+                  style={{
+                    position: 'absolute',
+                    bottom: -4,
+                    right: -4,
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    background: 'rgba(20, 18, 16, 0.9)',
+                    border: '1px solid rgba(212, 168, 106, 0.5)',
+                    color: 'var(--accent-gold, #d4a86a)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                  title="Đặt lại hướng chính diện 0°"
+                >
+                  <RotateCw size={10} />
+                </button>
+              </div>
+
+              {/* Radar Status Details */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+                  Góc đang ngắm:
+                </span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: currentSector.isCaptured ? '#4ade80' : 'var(--accent-gold, #d4a86a)' }}>
+                  {currentSector.shortLabel} ({currentSector.label})
+                </span>
+                <span style={{ fontSize: '10px', color: currentSector.isCaptured ? '#22c55e' : '#e5ded5' }}>
+                  {currentSector.isCaptured ? '✓ Đã chụp' : 'Chưa chụp (Cần bắt)'}
+                </span>
+              </div>
             </div>
 
-            {/* Subtle status dot when uploading/capturing */}
-            {amqpStatus === 'transmitting' && (
-              <div
-                style={{
-                  background: 'rgba(20, 18, 16, 0.78)',
-                  backdropFilter: 'blur(8px)',
-                  padding: '5px 10px',
-                  borderRadius: 20,
-                  border: '1px solid rgba(212, 168, 106, 0.35)',
-                  fontSize: '11px',
-                  color: '#d4a86a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
-              >
-                <div
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: 'var(--accent-gold, #d4a86a)'
-                  }}
+            {/* Dynamic Guidance Pill */}
+            <div
+              style={{
+                background: 'rgba(16, 14, 12, 0.85)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: 20,
+                border: '1px solid rgba(212, 168, 106, 0.35)',
+                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                maxWidth: '60%'
+              }}
+            >
+              {currentSector.isCaptured ? (
+                <>
+                  <CheckCircle2 size={14} style={{ color: '#4ade80', flexShrink: 0 }} />
+                  <span style={{ fontSize: '11px', color: '#e5e7eb', fontWeight: 500, lineHeight: 1.3 }}>
+                    Góc {currentSector.shortLabel} đã có! Xoay tiếp sang góc khác.
+                  </span>
+                </>
+              ) : stabilityProgress > 0 ? (
+                <>
+                  <div
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      border: '2px solid var(--accent-gold, #d4a86a)',
+                      borderTopColor: 'transparent',
+                      flexShrink: 0
+                    }}
+                    className="realtime-spinner-rotate"
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--accent-gold, #d4a86a)', fontWeight: 600 }}>
+                    Giữ yên máy {stabilityProgress}%...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Compass size={14} style={{ color: 'var(--accent-gold, #d4a86a)', flexShrink: 0 }} />
+                  <span style={{ fontSize: '11px', color: '#f3f4f6', fontWeight: 500, lineHeight: 1.3 }}>
+                    Căn vào góc {currentSector.shortLabel} rồi giữ yên máy để tự chụp
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Center Target Crosshair & Stability Ring */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 160,
+              height: 160,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none'
+            }}
+          >
+            {/* Viewfinder 4 Corner Brackets */}
+            <div style={{ position: 'absolute', top: 0, left: 0, width: 22, height: 22, borderTop: '2px solid rgba(212, 168, 106, 0.8)', borderLeft: '2px solid rgba(212, 168, 106, 0.8)', borderTopLeftRadius: 4 }} />
+            <div style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderTop: '2px solid rgba(212, 168, 106, 0.8)', borderRight: '2px solid rgba(212, 168, 106, 0.8)', borderTopRightRadius: 4 }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 22, height: 22, borderBottom: '2px solid rgba(212, 168, 106, 0.8)', borderLeft: '2px solid rgba(212, 168, 106, 0.8)', borderBottomLeftRadius: 4 }} />
+            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderBottom: '2px solid rgba(212, 168, 106, 0.8)', borderRight: '2px solid rgba(212, 168, 106, 0.8)', borderBottomRightRadius: 4 }} />
+
+            {/* Circular Stability Progress Indicator */}
+            {stabilityProgress > 0 && !currentSector.isCaptured && (
+              <svg width="84" height="84" viewBox="0 0 84 84" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="42" cy="42" r="34" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
+                <circle
+                  cx="42"
+                  cy="42"
+                  r="34"
+                  fill="none"
+                  stroke="var(--accent-gold, #d4a86a)"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={213.6}
+                  strokeDashoffset={213.6 - (213.6 * stabilityProgress) / 100}
+                  style={{ transition: 'stroke-dashoffset 0.15s ease' }}
                 />
-                <span>Đang xử lý góc...</span>
-              </div>
+              </svg>
             )}
+
+            {/* Center Reticle Dot */}
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: currentSector.isCaptured ? '#22c55e' : 'var(--accent-gold, #d4a86a)',
+                boxShadow: currentSector.isCaptured
+                  ? '0 0 12px rgba(34, 197, 94, 0.8)'
+                  : '0 0 12px rgba(212, 168, 106, 0.8)'
+              }}
+            />
           </div>
 
-          {/* 4 Professional Viewfinder Corner Brackets */}
-          <div style={{ position: 'absolute', inset: 8, pointerEvents: 'none' }}>
-            {/* Top-Left */}
-            <div style={{ position: 'absolute', top: 0, left: 0, width: 22, height: 22, borderTop: '2px solid rgba(212, 168, 106, 0.7)', borderLeft: '2px solid rgba(212, 168, 106, 0.7)', borderTopLeftRadius: 3 }} />
-            {/* Top-Right */}
-            <div style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderTop: '2px solid rgba(212, 168, 106, 0.7)', borderRight: '2px solid rgba(212, 168, 106, 0.7)', borderTopRightRadius: 3 }} />
-            {/* Bottom-Left */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 22, height: 22, borderBottom: '2px solid rgba(212, 168, 106, 0.7)', borderLeft: '2px solid rgba(212, 168, 106, 0.7)', borderBottomLeftRadius: 3 }} />
-            {/* Bottom-Right */}
-            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderBottom: '2px solid rgba(212, 168, 106, 0.7)', borderRight: '2px solid rgba(212, 168, 106, 0.7)', borderBottomRightRadius: 3 }} />
-          </div>
-
-          {/* Subtle Bottom Instruction Pill */}
+          {/* Bottom Missing Angles Pill */}
           <div style={{ alignSelf: 'center', display: 'flex', justifyContent: 'center' }}>
             <span
               style={{
                 fontSize: '11px',
                 fontWeight: 500,
-                background: 'rgba(20, 18, 16, 0.82)',
+                background: 'rgba(20, 18, 16, 0.85)',
                 backdropFilter: 'blur(6px)',
-                padding: '4px 12px',
+                padding: '5px 14px',
                 borderRadius: 16,
                 border: '1px solid rgba(212, 168, 106, 0.25)',
                 color: '#e5ded5',
                 textAlign: 'center'
               }}
             >
-              {isAutoDetecting
-                ? motionDelta >= 18
-                  ? 'Đang nhận diện góc mới...'
-                  : 'Xoay máy ảnh chậm rãi quanh phòng'
-                : 'Chế độ chụp từng góc thủ công'}
+              {isComplete
+                ? 'Đã đủ 8/8 góc 360°! Bấm "Ghép ảnh 360°" bên dưới để hoàn tất.'
+                : `Còn thiếu: ${missingSectors.map((s) => s.shortLabel).join(', ')}`}
             </span>
           </div>
         </div>
@@ -733,7 +1068,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               </div>
               <div style={{ fontSize: '12px', color: '#a89f91', marginTop: 6, lineHeight: 1.5 }}>
                 {isInsecureHttp
-                  ? 'Trình duyệt Safari/Chrome trên di động chỉ cho phép bật camera trực tiếp liên tục khi truy cập qua HTTPS. Bạn có thể bấm chuyển sang HTTPS để dùng chế độ tự động, hoặc chụp ảnh trực tiếp bằng máy ảnh bên dưới.'
+                  ? 'Trình duyệt Safari/Chrome trên di động chỉ cho phép bật camera trực tiếp liên tục khi truy cập qua HTTPS. Bạn có thể bấm chuyển sang HTTPS để dùng chế độ tự động, hoặc chụp từng góc bằng máy ảnh bên dưới.'
                   : cameraError}
               </div>
             </div>
@@ -782,7 +1117,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 }}
               >
                 <Camera size={16} />
-                <span>Mở máy ảnh chụp trực tiếp</span>
+                <span>Mở máy ảnh chụp góc {currentSector.shortLabel}</span>
               </button>
 
               <button
@@ -827,21 +1162,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 <RefreshCw size={13} />
                 <span>Thử kết nối lại máy ảnh</span>
               </button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  padding: '6px 14px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#8b8478',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                Đóng lại
-              </button>
             </div>
 
             <input
@@ -881,7 +1201,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               zIndex: 20
             }}
           >
-            {/* Circular Progress Gauge & Spinning Loader */}
             <div
               style={{
                 position: 'relative',
@@ -892,7 +1211,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 justifyContent: 'center'
               }}
             >
-              {/* Circular Progress Track & Indicator linked to stitchProgress */}
               <svg
                 width="68"
                 height="68"
@@ -903,7 +1221,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                   transform: 'rotate(-90deg)'
                 }}
               >
-                {/* Background Track */}
                 <circle
                   cx="34"
                   cy="34"
@@ -912,7 +1229,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                   stroke="rgba(255, 255, 255, 0.12)"
                   strokeWidth="3.5"
                 />
-                {/* Active Progress Arc */}
                 <circle
                   cx="34"
                   cy="34"
@@ -929,13 +1245,11 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 />
               </svg>
 
-              {/* Center Continuous Spinning Loader */}
               <Loader2
                 size={30}
                 className="realtime-spinner-rotate spin"
                 style={{
-                  color: 'var(--accent-gold, #d4a86a)',
-                  animation: 'realtimeSpinKeyframes 0.9s linear infinite'
+                  color: 'var(--accent-gold, #d4a86a)'
                 }}
               />
             </div>
@@ -944,10 +1258,9 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               Đang ghép không gian toàn cảnh 360°...
             </div>
             <div style={{ fontSize: '12px', color: '#a89f91', maxWidth: 360, textAlign: 'center', lineHeight: 1.5 }}>
-              {stitchMessage || 'Hệ thống đang trích xuất đặc trưng điểm ảnh và liên kết không gian...'}
+              {stitchMessage || 'Thuật toán RootSIFT đang nắn thẳng đứng kiến trúc và ghép nối mặt trụ...'}
             </div>
 
-            {/* Horizontal Progress Bar */}
             <div style={{ width: '85%', maxWidth: 280, height: 6, background: 'rgba(255, 255, 255, 0.1)', borderRadius: 3, overflow: 'hidden' }}>
               <div
                 style={{
@@ -966,61 +1279,102 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         )}
       </div>
 
-      {/* Filmstrip Bottom Thumbnails */}
-      {frames.length > 0 && (
-        <div
-          style={{
-            padding: '8px 14px',
-            background: 'rgba(18, 16, 14, 0.98)',
-            borderTop: '1px solid rgba(212, 168, 106, 0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            overflowX: 'auto',
-            flexShrink: 0
-          }}
-        >
-          <span style={{ fontSize: '11px', color: '#a89f91', whiteSpace: 'nowrap', fontWeight: 500 }}>
-            Chuỗi góc ({frames.length}):
-          </span>
-          {frames.map((f) => (
+      {/* 8-SECTOR INTERACTIVE FILMSTRIP GRID */}
+      <div
+        style={{
+          padding: '8px 12px',
+          background: 'rgba(18, 16, 14, 0.98)',
+          borderTop: '1px solid rgba(212, 168, 106, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          overflowX: 'auto',
+          flexShrink: 0,
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
+        {sectors.map((sec) => {
+          const isActive = sec.id === activeSectorId;
+          return (
             <div
-              key={f.index}
+              key={sec.id}
+              onClick={() => setActiveSectorId(sec.id)}
               style={{
                 position: 'relative',
-                width: 46,
-                height: 46,
-                borderRadius: 6,
+                width: 60,
+                height: 58,
+                borderRadius: 8,
                 overflow: 'hidden',
-                border: '1px solid rgba(212, 168, 106, 0.4)',
+                border: isActive
+                  ? '2px solid var(--accent-gold, #d4a86a)'
+                  : sec.isCaptured
+                  ? '1px solid rgba(34, 197, 94, 0.6)'
+                  : '1px dashed rgba(255, 255, 255, 0.2)',
                 flexShrink: 0,
-                background: '#000'
+                background: sec.isCaptured ? '#000' : 'rgba(255, 255, 255, 0.04)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+                boxShadow: isActive ? '0 0 8px rgba(212, 168, 106, 0.4)' : 'none'
               }}
+              title={`Góc ${sec.shortLabel} (${sec.label})`}
             >
-              <img
-                src={f.url}
-                alt={`Góc ${f.index}`}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+              {sec.thumbnailUrl ? (
+                <>
+                  <img
+                    src={sec.thumbnailUrl}
+                    alt={sec.label}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      background: '#15803d',
+                      borderRadius: '50%',
+                      width: 14,
+                      height: 14,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Check size={9} style={{ color: '#fff' }} />
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <Camera size={14} style={{ color: isActive ? 'var(--accent-gold, #d4a86a)' : '#6b7280' }} />
+                  <span style={{ fontSize: '9px', color: isActive ? 'var(--accent-gold, #d4a86a)' : '#9ca3af', fontWeight: 600 }}>
+                    {sec.directionName}
+                  </span>
+                </div>
+              )}
+
+              {/* Bottom Angle Label */}
               <span
                 style={{
                   position: 'absolute',
                   bottom: 2,
-                  right: 2,
+                  left: 2,
                   fontSize: '9px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   background: 'rgba(18, 15, 13, 0.85)',
-                  color: '#f5f0eb',
-                  padding: '1px 4px',
+                  color: sec.isCaptured ? '#4ade80' : '#f5f0eb',
+                  padding: '1px 3px',
                   borderRadius: 3
                 }}
               >
-                #{f.index}
+                {sec.shortLabel}
               </span>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       {/* Control Actions Bottom Bar Responsive for Mobile */}
       <div
@@ -1028,54 +1382,54 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '12px 18px',
-          paddingBottom: 'max(14px, env(safe-area-inset-bottom, 14px))',
+          padding: '10px 16px',
+          paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))',
           background: 'rgba(20, 18, 16, 0.98)',
           borderTop: '1px solid rgba(212, 168, 106, 0.2)',
-          gap: 12,
+          gap: 10,
           flexShrink: 0
         }}
       >
-        {/* Nút Bật/Tắt Tự động bắt góc */}
+        {/* Toggle Tự bắt góc */}
         <button
           type="button"
           onClick={() => setIsAutoDetecting((prev) => !prev)}
           style={{
-            padding: '9px 12px',
+            padding: '8px 10px',
             borderRadius: 8,
             border: isAutoDetecting ? '1px solid var(--accent-gold, #d4a86a)' : '1px solid rgba(255, 255, 255, 0.15)',
             background: isAutoDetecting ? 'rgba(212, 168, 106, 0.15)' : 'rgba(255, 255, 255, 0.05)',
             color: isAutoDetecting ? 'var(--accent-gold, #d4a86a)' : '#8b8478',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: 600,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 5,
             whiteSpace: 'nowrap'
           }}
         >
-          <Camera size={14} />
-          <span>{isAutoDetecting ? 'Tự bắt góc: Bật' : 'Tự bắt góc: Tắt'}</span>
+          <Camera size={13} />
+          <span>{isAutoDetecting ? 'Tự bắt: Bật' : 'Tự bắt: Tắt'}</span>
         </button>
 
-        {/* Pro Camera Shutter Button */}
+        {/* Nút chụp góc đang chọn (Shutter Button) */}
         <button
           type="button"
           onClick={() => {
             if (isCameraReady && sessionId) {
-              captureCurrentFrame(sessionId);
+              captureSector(currentSector.id);
             } else {
               cameraCaptureRef.current?.click();
             }
           }}
           disabled={isProcessingStitch}
           style={{
-            width: 58,
-            height: 58,
+            width: 56,
+            height: 56,
             borderRadius: '50%',
             background: 'transparent',
-            border: '3px solid rgba(255, 255, 255, 0.8)',
+            border: '3px solid rgba(255, 255, 255, 0.85)',
             padding: 3,
             display: 'flex',
             alignItems: 'center',
@@ -1084,42 +1438,54 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             transition: 'transform 0.15s ease',
             flexShrink: 0
           }}
-          title={isCameraReady ? 'Chụp góc hiện tại' : 'Mở máy ảnh chụp góc mới'}
+          title={`Chụp góc ${currentSector.shortLabel} (${currentSector.label})`}
         >
           <div
             style={{
               width: '100%',
               height: '100%',
               borderRadius: '50%',
-              background: 'var(--accent-gold, #d4a86a)',
+              background: currentSector.isCaptured ? '#22c55e' : 'var(--accent-gold, #d4a86a)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#000',
+              fontWeight: 700,
+              fontSize: '11px',
               transition: 'background 0.2s'
             }}
-          />
+          >
+            {currentSector.shortLabel}
+          </div>
         </button>
 
-        {/* Nút Hoàn tất quét & Ghép 360 */}
+        {/* Nút Ghép ảnh 360 */}
         <button
           type="button"
           onClick={handleFinishAndStitch}
-          disabled={frames.length === 0 || isProcessingStitch}
+          disabled={capturedCount === 0 || isProcessingStitch}
           style={{
             padding: '9px 14px',
             borderRadius: 8,
-            background: frames.length > 0 ? 'linear-gradient(135deg, #8c2d19 0%, #6e2010 100%)' : 'rgba(255, 255, 255, 0.08)',
-            border: frames.length > 0 ? '1px solid rgba(212, 168, 106, 0.45)' : '1px solid rgba(255, 255, 255, 0.1)',
-            color: frames.length > 0 ? '#ffffff' : '#8b8478',
+            background: isReadyToStitch
+              ? 'linear-gradient(135deg, #8c2d19 0%, #6e2010 100%)'
+              : 'rgba(255, 255, 255, 0.08)',
+            border: isReadyToStitch
+              ? '1px solid rgba(212, 168, 106, 0.5)'
+              : '1px solid rgba(255, 255, 255, 0.1)',
+            color: isReadyToStitch ? '#ffffff' : '#8b8478',
             fontSize: '12px',
             fontWeight: 600,
-            cursor: frames.length > 0 ? 'pointer' : 'not-allowed',
+            cursor: capturedCount > 0 ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            boxShadow: frames.length > 0 ? '0 4px 12px rgba(140, 45, 25, 0.35)' : 'none',
+            boxShadow: isReadyToStitch ? '0 4px 14px rgba(140, 45, 25, 0.4)' : 'none',
             whiteSpace: 'nowrap'
           }}
         >
           <Check size={14} />
-          <span>Ghép ảnh ({frames.length})</span>
+          <span>Ghép ảnh ({capturedCount}/8)</span>
         </button>
       </div>
     </div>

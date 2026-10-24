@@ -1623,6 +1623,10 @@ stitchRouter.post('/realtime/frame', uploadSingleFrame, async (req: Request, res
       return res.status(400).json({ success: false, message: 'Thiếu sessionId của phiên quét.' });
     }
 
+    const sectorIndex = req.body.sectorIndex !== undefined && req.body.sectorIndex !== ''
+      ? parseInt(String(req.body.sectorIndex), 10)
+      : undefined;
+
     let inputData: Buffer | string | null = null;
     let ext = '.jpg';
 
@@ -1637,7 +1641,7 @@ stitchRouter.post('/realtime/frame', uploadSingleFrame, async (req: Request, res
       return res.status(400).json({ success: false, message: 'Không tìm thấy dữ liệu ảnh frame.' });
     }
 
-    const frame = await addFrameToSession(sessionId, inputData, ext);
+    const frame = await addFrameToSession(sessionId, inputData, ext, sectorIndex);
     const session = getStreamSession(sessionId);
 
     return res.json({
