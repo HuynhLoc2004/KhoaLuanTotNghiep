@@ -9,7 +9,8 @@ import {
   Check,
   Upload,
   Copy,
-  ExternalLink
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
 import { API_BASE } from '../services/api';
 
@@ -48,6 +49,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
   const detectionTimerRef = useRef<any>(null);
   const statusPollingRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraCaptureRef = useRef<HTMLInputElement>(null);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -328,11 +330,43 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
     };
   }, [isCameraReady, sessionId, isProcessingStitch, frames.length, captureCurrentFrame]);
 
-  // Mô phỏng Stream liên tục từ chùm ảnh có sẵn (Dành cho máy tính / Môi trường HTTP)
+  // Chuyển hướng nhanh sang HTTPS khi người dùng truy cập qua HTTP
+  const handleSwitchToHttps = () => {
+    const currentUrl = window.location.href;
+    if (currentUrl.startsWith('http:')) {
+      window.location.href = currentUrl.replace(/^http:/i, 'https:');
+    } else {
+      initSessionAndCamera();
+    }
+  };
+
+  // Mô phỏng Stream liên tục từ chùm ảnh có sẵn hoặc ảnh chụp camera native (Dành cho di động / HTTP)
   const handleSimulateStreamFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length === 0 || !sessionId) return;
+    if (files.length === 0) return;
+
+    // Đảm bảo có sessionId trước khi tải lên
+    let currSessionId = sessionId;
+    if (!currSessionId) {
+      try {
+        const res = await fetch(`${API_BASE}/stitch/realtime/session/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: `Quét không gian phòng - ${new Date().toLocaleTimeString('vi-VN')}` })
+        });
+        const json = await res.json();
+        if (json.success && json.session) {
+          currSessionId = json.session.id;
+          setSessionId(json.session.id);
+        }
+      } catch (sessErr) {
+        console.warn('Session create error:', sessErr);
+      }
+    }
+    if (!currSessionId) return;
+
     setCameraError(null);
+    setIsInsecureHttp(false);
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -348,9 +382,12 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       };
 
       setFrames((prev) => [...prev, newFrame]);
-      await uploadFrame(file, nextIndex, localUrl, sessionId);
+      await uploadFrame(file, nextIndex, localUrl, currSessionId);
       await new Promise((resolve) => setTimeout(resolve, 350));
     }
+
+    // Reset value để cho phép chụp liên tiếp nhiều lần
+    e.target.value = '';
   };
 
   // Hoàn tất quét & Gửi lệnh ghép ảnh qua RabbitMQ
@@ -696,37 +733,39 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               </div>
               <div style={{ fontSize: '12px', color: '#a89f91', marginTop: 6, lineHeight: 1.5 }}>
                 {isInsecureHttp
-                  ? 'Trình duyệt chỉ cho phép truy cập camera trực tiếp khi trang web được bảo mật HTTPS. Bạn có thể chọn tải ảnh chụp từ thư viện thiết bị bên dưới để tiếp tục.'
+                  ? 'Trình duyệt Safari/Chrome trên di động chỉ cho phép bật camera trực tiếp liên tục khi truy cập qua HTTPS. Bạn có thể bấm chuyển sang HTTPS để dùng chế độ tự động, hoặc chụp ảnh trực tiếp bằng máy ảnh bên dưới.'
                   : cameraError}
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 4 }}>
-              <button
-                type="button"
-                onClick={initSessionAndCamera}
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: 8,
-                  background: 'rgba(212, 168, 106, 0.15)',
-                  border: '1px solid var(--accent-gold, #d4a86a)',
-                  color: 'var(--accent-gold, #d4a86a)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8
-                }}
-              >
-                <RefreshCw size={15} />
-                <span>Thử kết nối lại máy ảnh</span>
-              </button>
+              {isInsecureHttp && (
+                <button
+                  type="button"
+                  onClick={handleSwitchToHttps}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, #1e3a5f 0%, #0f233a 100%)',
+                    border: '1px solid rgba(147, 197, 253, 0.4)',
+                    color: '#93c5fd',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  <ShieldCheck size={16} />
+                  <span>Chuyển sang kết nối an toàn (HTTPS)</span>
+                </button>
+              )}
 
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => cameraCaptureRef.current?.click()}
                 style={{
                   padding: '10px 16px',
                   borderRadius: 8,
@@ -742,15 +781,58 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                   gap: 8
                 }}
               >
+                <Camera size={16} />
+                <span>Mở máy ảnh chụp trực tiếp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  background: 'rgba(212, 168, 106, 0.12)',
+                  border: '1px solid var(--accent-gold, #d4a86a)',
+                  color: 'var(--accent-gold, #d4a86a)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8
+                }}
+              >
                 <Upload size={15} />
                 <span>Tải ảnh từ thư viện thiết bị</span>
               </button>
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={initSessionAndCamera}
                 style={{
                   padding: '8px 14px',
+                  borderRadius: 8,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#cbd5e1',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <RefreshCw size={13} />
+                <span>Thử kết nối lại máy ảnh</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '6px 14px',
                   background: 'transparent',
                   border: 'none',
                   color: '#8b8478',
@@ -761,6 +843,15 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 Đóng lại
               </button>
             </div>
+
+            <input
+              ref={cameraCaptureRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handleSimulateStreamFiles}
+            />
 
             <input
               ref={fileInputRef}
@@ -971,8 +1062,14 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         {/* Pro Camera Shutter Button */}
         <button
           type="button"
-          onClick={() => sessionId && captureCurrentFrame(sessionId)}
-          disabled={!isCameraReady || isProcessingStitch}
+          onClick={() => {
+            if (isCameraReady && sessionId) {
+              captureCurrentFrame(sessionId);
+            } else {
+              cameraCaptureRef.current?.click();
+            }
+          }}
+          disabled={isProcessingStitch}
           style={{
             width: 58,
             height: 58,
@@ -983,18 +1080,18 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: isCameraReady ? 'pointer' : 'not-allowed',
+            cursor: isProcessingStitch ? 'not-allowed' : 'pointer',
             transition: 'transform 0.15s ease',
             flexShrink: 0
           }}
-          title="Chụp góc hiện tại"
+          title={isCameraReady ? 'Chụp góc hiện tại' : 'Mở máy ảnh chụp góc mới'}
         >
           <div
             style={{
               width: '100%',
               height: '100%',
               borderRadius: '50%',
-              background: isCameraReady ? 'var(--accent-gold, #d4a86a)' : 'rgba(255, 255, 255, 0.25)',
+              background: 'var(--accent-gold, #d4a86a)',
               transition: 'background 0.2s'
             }}
           />
