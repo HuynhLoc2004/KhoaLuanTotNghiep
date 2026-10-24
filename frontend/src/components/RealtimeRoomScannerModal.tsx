@@ -442,6 +442,23 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         overflow: 'hidden'
       }}
     >
+      {/* Explicit Keyframes for modal spinner rotation */}
+      <style>{`
+        @keyframes realtimeSpinKeyframes {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        .realtime-spinner-rotate {
+          animation: realtimeSpinKeyframes 0.9s linear infinite !important;
+          transform-origin: center center !important;
+          display: inline-block !important;
+        }
+      `}</style>
+
       {/* Top Bar Header Responsive */}
       <div
         style={{
@@ -773,7 +790,65 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               zIndex: 20
             }}
           >
-            <Loader2 size={42} className="spinner" style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+            {/* Circular Progress Gauge & Spinning Loader */}
+            <div
+              style={{
+                position: 'relative',
+                width: 68,
+                height: 68,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              {/* Circular Progress Track & Indicator linked to stitchProgress */}
+              <svg
+                width="68"
+                height="68"
+                viewBox="0 0 68 68"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  transform: 'rotate(-90deg)'
+                }}
+              >
+                {/* Background Track */}
+                <circle
+                  cx="34"
+                  cy="34"
+                  r="28"
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.12)"
+                  strokeWidth="3.5"
+                />
+                {/* Active Progress Arc */}
+                <circle
+                  cx="34"
+                  cy="34"
+                  r="28"
+                  fill="none"
+                  stroke="var(--accent-gold, #d4a86a)"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeDasharray={175.93}
+                  strokeDashoffset={175.93 - (175.93 * Math.max(0, Math.min(100, stitchProgress))) / 100}
+                  style={{
+                    transition: 'stroke-dashoffset 0.4s ease'
+                  }}
+                />
+              </svg>
+
+              {/* Center Continuous Spinning Loader */}
+              <Loader2
+                size={30}
+                className="realtime-spinner-rotate spin"
+                style={{
+                  color: 'var(--accent-gold, #d4a86a)',
+                  animation: 'realtimeSpinKeyframes 0.9s linear infinite'
+                }}
+              />
+            </div>
+
             <div style={{ fontSize: '16px', fontWeight: 600, color: '#f5f0eb', textAlign: 'center' }}>
               Đang ghép không gian toàn cảnh 360°...
             </div>
@@ -781,18 +856,19 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               {stitchMessage || 'Hệ thống đang trích xuất đặc trưng điểm ảnh và liên kết không gian...'}
             </div>
 
-            {/* Progress Bar */}
+            {/* Horizontal Progress Bar */}
             <div style={{ width: '85%', maxWidth: 280, height: 6, background: 'rgba(255, 255, 255, 0.1)', borderRadius: 3, overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${stitchProgress}%`,
                   height: '100%',
                   background: 'linear-gradient(90deg, #d4a86a 0%, #8c2d19 100%)',
-                  transition: 'width 0.4s ease'
+                  transition: 'width 0.4s ease',
+                  boxShadow: '0 0 10px rgba(212, 168, 106, 0.35)'
                 }}
               />
             </div>
-            <span style={{ fontSize: '11px', color: '#8b8478' }}>
+            <span style={{ fontSize: '11px', color: '#8b8478', fontWeight: 500 }}>
               Tiến độ: {stitchProgress}%
             </span>
           </div>
