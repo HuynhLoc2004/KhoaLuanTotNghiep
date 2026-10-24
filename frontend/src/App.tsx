@@ -698,20 +698,22 @@ const AppContent: React.FC = () => {
           }}
         />
 
-        {/* Nút nổi Trợ lý Di sản Ảo AI ở góc dưới màn hình */}
-        <button
-          type="button"
-          className="client-floating-ai-btn"
-          onClick={() => setIsAIAssistantOpen(true)}
-          title="Trò chuyện và hỏi đáp cùng Trợ lý Di sản Ảo AI"
-          aria-label="Trợ lý AI"
-        >
-          <div className="client-floating-ai-icon-wrap">
-            <Bot size={20} />
-            <span className="client-floating-ai-pulse" />
-          </div>
-          <span className="client-floating-ai-label">Trợ lý AI</span>
-        </button>
+        {/* Nút nổi Trợ lý Di sản Ảo AI ở góc dưới màn hình - ẩn khi modal trợ lý đang mở để tránh chồng lấn */}
+        {!isAIAssistantOpen && (
+          <button
+            type="button"
+            className="client-floating-ai-btn"
+            onClick={() => setIsAIAssistantOpen(true)}
+            title="Trò chuyện và hỏi đáp cùng Trợ lý Di sản Ảo AI"
+            aria-label="Trợ lý AI"
+          >
+            <div className="client-floating-ai-icon-wrap">
+              <Bot size={20} />
+              <span className="client-floating-ai-pulse" />
+            </div>
+            <span className="client-floating-ai-label">Trợ lý AI</span>
+          </button>
+        )}
 
         {/* Cửa sổ Trợ lý Di sản Ảo AI */}
         <ClientAIAssistantModal

@@ -8143,36 +8143,56 @@ html {
   }
 }
 
-/* Backdrop: Trong suốt trên Desktop để không che trang, có nền mờ trên Mobile */
+/* Backdrop: Trong suốt trên Desktop để đóng khi click ngoài, có nền mờ chống cuộn trên Mobile */
 .ai-widget-backdrop {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  pointer-events: none;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 @media (max-width: 768px) {
   .ai-widget-backdrop {
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: stretch;
+    touch-action: none;
+    overscroll-behavior: contain;
   }
 }
 
 /* ==========================================================================
    AI ASSISTANT WIDGET (SYNCHRONIZED WITH CLIENT PORTAL DESIGN SYSTEM)
    ========================================================================== */
+.ai-widget-mobile-handle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .ai-widget-mobile-handle {
+    display: block;
+    width: 38px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 2px;
+    margin: 8px auto 2px;
+    flex-shrink: 0;
+  }
+}
+
 .ai-widget-window {
   position: fixed;
-  bottom: 80px;
-  right: 20px;
-  width: 375px;
-  height: 520px;
+  bottom: 24px;
+  right: 24px;
+  width: 385px;
+  height: 560px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 100px);
+  max-height: calc(100dvh - 48px);
   z-index: 10001;
   pointer-events: auto;
   background: #0E131F;
@@ -8186,6 +8206,7 @@ html {
   -webkit-backdrop-filter: blur(16px);
   animation: aiWidgetDockIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: inherit;
+  overscroll-behavior: contain;
 }
 
 @keyframes aiWidgetDockIn {
@@ -8199,19 +8220,35 @@ html {
   }
 }
 
+@keyframes aiWidgetSlideUp {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @media (max-width: 768px) {
   .ai-widget-window {
-    position: relative;
-    bottom: auto;
-    right: auto;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: 100%;
     max-width: 100%;
-    height: 84vh;
-    max-height: 84vh;
-    border-radius: 18px 18px 0 0;
+    height: 85dvh;
+    max-height: 85dvh;
+    border-radius: 20px 20px 0 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-bottom: none;
     border-left: none;
     border-right: none;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    animation: aiWidgetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
@@ -8309,6 +8346,9 @@ html {
 .ai-chat-stream {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 14px 12px;
   display: flex;
   flex-direction: column;
@@ -8524,6 +8564,7 @@ html {
 /* Footer Input CAPSULE TINH TẾ */
 .ai-widget-input-footer {
   padding: 10px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
   background: #121824;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;

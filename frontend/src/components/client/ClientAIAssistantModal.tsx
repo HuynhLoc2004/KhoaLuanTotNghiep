@@ -48,6 +48,20 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Khóa cuộn trang nền khi mở modal để chống trôi lên trôi xuống trên mọi màn hình
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      const originalTouchAction = document.body.style.touchAction;
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.touchAction = originalTouchAction;
+      };
+    }
+  }, [isOpen]);
+
   // Lời chào mở đầu gọn gàng, tinh tế
   useEffect(() => {
     if (messages.length === 0) {
@@ -158,6 +172,7 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
   return (
     <div className="ai-widget-backdrop" onClick={onClose}>
       <div className="ai-widget-window" onClick={(e) => e.stopPropagation()}>
+        <div className="ai-widget-mobile-handle" />
         {/* HEADER GIAO DIỆN BẢO TÀNG SỐ ĐỒNG BỘ CLIENT */}
         <div className="ai-widget-header">
           <div className="ai-widget-header-brand">
