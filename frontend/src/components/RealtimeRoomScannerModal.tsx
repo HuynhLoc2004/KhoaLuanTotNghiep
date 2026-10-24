@@ -3,21 +3,13 @@ import { createPortal } from 'react-dom';
 import {
   X,
   Camera,
-  Play,
-  RotateCw,
-  Radio,
-  Sparkles,
   Layers,
-  CheckCircle2,
-  AlertTriangle,
   Loader2,
   RefreshCw,
-  Eye,
   Check,
   Upload,
-  ShieldAlert,
-  ExternalLink,
-  Copy
+  Copy,
+  ExternalLink
 } from 'lucide-react';
 import { API_BASE } from '../services/api';
 
@@ -105,7 +97,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         const res = await fetch(`${API_BASE}/stitch/realtime/session/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `Quét phòng trực tiếp AMQP - ${new Date().toLocaleTimeString('vi-VN')}` })
+          body: JSON.stringify({ name: `Quét không gian phòng - ${new Date().toLocaleTimeString('vi-VN')}` })
         });
         const json = await res.json();
         if (json.success && json.session) {
@@ -456,52 +448,37 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '10px 14px',
-          paddingTop: 'max(10px, env(safe-area-inset-top, 10px))',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
-          background: 'rgba(20, 20, 20, 0.95)',
+          padding: '12px 16px',
+          paddingTop: 'max(12px, env(safe-area-inset-top, 12px))',
+          borderBottom: '1px solid rgba(212, 168, 106, 0.2)',
+          background: 'rgba(20, 18, 16, 0.98)',
+          backdropFilter: 'blur(10px)',
           flexShrink: 0,
-          gap: 8
+          gap: 12
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 30,
-              height: 30,
+              width: 32,
+              height: 32,
               borderRadius: '50%',
-              background: 'rgba(212, 168, 106, 0.2)',
+              background: 'rgba(212, 168, 106, 0.15)',
               border: '1px solid var(--accent-gold, #d4a86a)',
               flexShrink: 0
             }}
           >
-            <Radio size={16} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+            <Camera size={16} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Quét phòng Realtime
-              </span>
-              <span
-                style={{
-                  fontSize: '9.5px',
-                  fontWeight: 600,
-                  padding: '1px 6px',
-                  borderRadius: 10,
-                  background: 'rgba(16, 185, 129, 0.2)',
-                  color: '#10b981',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                ● AMQP 5672
-              </span>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#f5f0eb', letterSpacing: '0.2px' }}>
+              Quét không gian phòng
             </div>
-            <div style={{ fontSize: '10px', color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Lưu Cloudinary • Tự động nhận diện góc lia
+            <div style={{ fontSize: '11px', color: '#a89f91', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Di chuyển máy ảnh xoay chậm quanh phòng để ghi lại các góc
             </div>
           </div>
         </div>
@@ -510,9 +487,9 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           type="button"
           onClick={onClose}
           style={{
-            background: 'rgba(255, 255, 255, 0.12)',
-            border: 'none',
-            color: '#e5e7eb',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            color: '#d1d5db',
             borderRadius: '50%',
             width: 34,
             height: 34,
@@ -520,9 +497,10 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            flexShrink: 0
+            flexShrink: 0,
+            transition: 'background 0.2s'
           }}
-          title="Đóng camera"
+          title="Đóng máy ảnh"
         >
           <X size={18} />
         </button>
@@ -558,139 +536,122 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           />
         )}
 
-        {/* HUD Scanner Overlay */}
+        {/* Viewfinder Overlays */}
         <div
           style={{
             position: 'absolute',
-            inset: 10,
-            border: '1px dashed rgba(212, 168, 106, 0.35)',
-            borderRadius: 12,
+            inset: 16,
             pointerEvents: 'none',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: 10
+            justifyContent: 'space-between'
           }}
         >
-          {/* Top Info Badges */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+          {/* Top Bar inside Viewfinder: Subtle Frame Counter & Active Status */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div
               style={{
-                background: 'rgba(0, 0, 0, 0.7)',
-                backdropFilter: 'blur(6px)',
-                padding: '4px 10px',
-                borderRadius: 16,
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                fontSize: '11px',
+                background: 'rgba(20, 18, 16, 0.78)',
+                backdropFilter: 'blur(8px)',
+                padding: '5px 12px',
+                borderRadius: 20,
+                border: '1px solid rgba(212, 168, 106, 0.35)',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--accent-gold, #d4a86a)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6
               }}
             >
+              <Layers size={13} />
+              <span>Đã chụp: {frames.length} góc</span>
+            </div>
+
+            {/* Subtle status dot when uploading/capturing */}
+            {amqpStatus === 'transmitting' && (
               <div
                 style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: amqpStatus === 'transmitting' ? '#f59e0b' : '#10b981',
-                  boxShadow: '0 0 6px currentColor'
+                  background: 'rgba(20, 18, 16, 0.78)',
+                  backdropFilter: 'blur(8px)',
+                  padding: '5px 10px',
+                  borderRadius: 20,
+                  border: '1px solid rgba(212, 168, 106, 0.35)',
+                  fontSize: '11px',
+                  color: '#d4a86a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
                 }}
-              />
-              <span>{amqpStatus === 'transmitting' ? 'Đang gửi...' : 'RabbitMQ: Live'}</span>
-            </div>
-
-            <div
-              style={{
-                background: 'rgba(0, 0, 0, 0.7)',
-                backdropFilter: 'blur(6px)',
-                padding: '4px 10px',
-                borderRadius: 16,
-                border: '1px solid rgba(212, 168, 106, 0.5)',
-                fontSize: '12px',
-                fontWeight: 700,
-                color: 'var(--accent-gold, #d4a86a)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5
-              }}
-            >
-              <Layers size={13} />
-              <span>Đã bắt: {frames.length} góc</span>
-            </div>
+              >
+                <div
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: 'var(--accent-gold, #d4a86a)'
+                  }}
+                />
+                <span>Đang xử lý góc...</span>
+              </div>
+            )}
           </div>
 
-          {/* Center Crosshair / Rotation Guide */}
-          <div
-            style={{
-              alignSelf: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 6,
-              opacity: 0.9
-            }}
-          >
-            <div
-              style={{
-                width: 74,
-                height: 74,
-                borderRadius: '50%',
-                border: `2px solid ${motionDelta >= 18 ? 'var(--accent-gold, #d4a86a)' : 'rgba(255, 255, 255, 0.35)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'border-color 0.2s ease',
-                boxShadow: motionDelta >= 18 ? '0 0 14px rgba(212, 168, 106, 0.6)' : 'none'
-              }}
-            >
-              <RotateCw size={26} style={{ color: motionDelta >= 18 ? 'var(--accent-gold, #d4a86a)' : '#fff' }} />
-            </div>
+          {/* 4 Professional Viewfinder Corner Brackets */}
+          <div style={{ position: 'absolute', inset: 8, pointerEvents: 'none' }}>
+            {/* Top-Left */}
+            <div style={{ position: 'absolute', top: 0, left: 0, width: 22, height: 22, borderTop: '2px solid rgba(212, 168, 106, 0.7)', borderLeft: '2px solid rgba(212, 168, 106, 0.7)', borderTopLeftRadius: 3 }} />
+            {/* Top-Right */}
+            <div style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderTop: '2px solid rgba(212, 168, 106, 0.7)', borderRight: '2px solid rgba(212, 168, 106, 0.7)', borderTopRightRadius: 3 }} />
+            {/* Bottom-Left */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 22, height: 22, borderBottom: '2px solid rgba(212, 168, 106, 0.7)', borderLeft: '2px solid rgba(212, 168, 106, 0.7)', borderBottomLeftRadius: 3 }} />
+            {/* Bottom-Right */}
+            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderBottom: '2px solid rgba(212, 168, 106, 0.7)', borderRight: '2px solid rgba(212, 168, 106, 0.7)', borderBottomRightRadius: 3 }} />
+          </div>
+
+          {/* Subtle Bottom Instruction Pill */}
+          <div style={{ alignSelf: 'center', display: 'flex', justifyContent: 'center' }}>
             <span
               style={{
-                fontSize: '10.5px',
-                fontWeight: 600,
-                background: 'rgba(0, 0, 0, 0.75)',
-                padding: '3px 8px',
-                borderRadius: 10,
-                color: '#e5e7eb',
-                textAlign: 'center',
-                maxWidth: 240
+                fontSize: '11px',
+                fontWeight: 500,
+                background: 'rgba(20, 18, 16, 0.82)',
+                backdropFilter: 'blur(6px)',
+                padding: '4px 12px',
+                borderRadius: 16,
+                border: '1px solid rgba(212, 168, 106, 0.25)',
+                color: '#e5ded5',
+                textAlign: 'center'
               }}
             >
-              {isAutoDetecting ? 'Xoay camera từ từ để bắt góc' : 'Chế độ chụp thủ công'}
-            </span>
-          </div>
-
-          {/* Bottom Scanner status */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '10px', color: '#9ca3af', background: 'rgba(0,0,0,0.65)', padding: '3px 6px', borderRadius: 4 }}>
-              Độ lệch: {motionDelta}% {motionDelta >= 18 ? '● Bắt góc' : '○ Đều tay'}
-            </span>
-            <span style={{ fontSize: '10px', color: '#9ca3af', background: 'rgba(0,0,0,0.65)', padding: '3px 6px', borderRadius: 4 }}>
-              Cloudinary: Online
+              {isAutoDetecting
+                ? motionDelta >= 18
+                  ? 'Đang nhận diện góc mới...'
+                  : 'Xoay máy ảnh chậm rãi quanh phòng'
+                : 'Chế độ chụp từng góc thủ công'}
             </span>
           </div>
         </div>
 
-        {/* Camera Error Alert & Mobile Guidance Card */}
+        {/* Camera Error Alert & Fallback Card */}
         {cameraError && (
           <div
             style={{
               position: 'absolute',
-              inset: 12,
-              background: 'rgba(18, 18, 18, 0.96)',
-              backdropFilter: 'blur(10px)',
+              inset: 16,
+              background: 'rgba(24, 20, 18, 0.97)',
+              backdropFilter: 'blur(12px)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 14,
-              padding: '20px 16px',
-              borderRadius: 14,
-              border: '1px solid rgba(239, 68, 68, 0.35)',
+              gap: 16,
+              padding: '24px 20px',
+              borderRadius: 12,
+              border: '1px solid rgba(212, 168, 106, 0.3)',
               textAlign: 'center',
               zIndex: 10,
-              maxWidth: 480,
+              maxWidth: 440,
               margin: 'auto',
               maxHeight: '90%',
               overflowY: 'auto'
@@ -698,88 +659,85 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           >
             <div
               style={{
-                width: 46,
-                height: 46,
+                width: 48,
+                height: 48,
                 borderRadius: '50%',
-                background: 'rgba(239, 68, 68, 0.15)',
+                background: 'rgba(212, 168, 106, 0.12)',
+                border: '1px solid var(--accent-gold, #d4a86a)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}
             >
-              <ShieldAlert size={24} style={{ color: '#ef4444' }} />
+              <Camera size={24} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
             </div>
 
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#fca5a5' }}>
-                {isInsecureHttp ? 'Trình duyệt yêu cầu HTTPS để bật Camera' : 'Không thể khởi động Camera'}
+              <div style={{ fontSize: '15px', fontWeight: 600, color: '#f5f0eb' }}>
+                {isInsecureHttp ? 'Yêu cầu kết nối an toàn (HTTPS)' : 'Không thể kết nối máy ảnh'}
               </div>
-              <div style={{ fontSize: '11.5px', color: '#d1d5db', marginTop: 4, lineHeight: 1.45 }}>
+              <div style={{ fontSize: '12px', color: '#a89f91', marginTop: 6, lineHeight: 1.5 }}>
                 {isInsecureHttp
-                  ? 'Theo chính sách bảo mật của Chrome & iOS Safari, WebRTC Camera chỉ hoạt động trên HTTPS hoặc Localhost.'
+                  ? 'Trình duyệt chỉ cho phép truy cập camera trực tiếp khi trang web được bảo mật HTTPS. Bạn có thể chọn tải ảnh chụp từ thư viện thiết bị bên dưới để tiếp tục.'
                   : cameraError}
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 2 }}>
-              {/* Nút Thử lại */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 4 }}>
               <button
                 type="button"
                 onClick={initSessionAndCamera}
                 style={{
-                  padding: '9px 14px',
+                  padding: '10px 16px',
                   borderRadius: 8,
-                  background: 'rgba(255, 255, 255, 0.12)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  color: '#fff',
-                  fontSize: '12px',
+                  background: 'rgba(212, 168, 106, 0.15)',
+                  border: '1px solid var(--accent-gold, #d4a86a)',
+                  color: 'var(--accent-gold, #d4a86a)',
+                  fontSize: '13px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6
+                  gap: 8
                 }}
               >
-                <RefreshCw size={14} />
-                <span>Thử khởi động lại Camera</span>
+                <RefreshCw size={15} />
+                <span>Thử kết nối lại máy ảnh</span>
               </button>
 
-              {/* Nút Chọn chùm ảnh từ Album điện thoại / Máy tính */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  padding: '10px 14px',
+                  padding: '10px 16px',
                   borderRadius: 8,
-                  background: 'rgba(212, 168, 106, 0.18)',
-                  border: '1px solid var(--accent-gold, #d4a86a)',
-                  color: 'var(--accent-gold, #d4a86a)',
-                  fontSize: '12.5px',
+                  background: 'linear-gradient(135deg, #8c2d19 0%, #6e2010 100%)',
+                  border: '1px solid rgba(212, 168, 106, 0.4)',
+                  color: '#ffffff',
+                  fontSize: '13px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6
+                  gap: 8
                 }}
               >
-                <Upload size={14} />
-                <span>Chọn ảnh từ Album để stream vào RabbitMQ</span>
+                <Upload size={15} />
+                <span>Tải ảnh từ thư viện thiết bị</span>
               </button>
 
-              {/* Nút Đóng */}
               <button
                 type="button"
                 onClick={onClose}
                 style={{
                   padding: '8px 14px',
                   background: 'transparent',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  borderRadius: 6,
-                  color: '#9ca3af',
-                  fontSize: '11.5px',
+                  border: 'none',
+                  color: '#8b8478',
+                  fontSize: '12px',
                   cursor: 'pointer'
                 }}
               >
@@ -787,7 +745,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               </button>
             </div>
 
-            {/* Input file ẩn cho chế độ chọn ảnh từ album */}
             <input
               ref={fileInputRef}
               type="file"
@@ -805,23 +762,23 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(10, 10, 10, 0.94)',
+              background: 'rgba(18, 15, 13, 0.96)',
               backdropFilter: 'blur(12px)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 16,
-              padding: 20,
+              padding: 24,
               zIndex: 20
             }}
           >
-            <Loader2 size={40} className="spinner" style={{ color: 'var(--accent-gold, #d4a86a)' }} />
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--accent-gold, #d4a86a)', textAlign: 'center' }}>
-              Worker đang tự động tìm điểm chung & ghép 360°...
+            <Loader2 size={42} className="spinner" style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+            <div style={{ fontSize: '16px', fontWeight: 600, color: '#f5f0eb', textAlign: 'center' }}>
+              Đang ghép không gian toàn cảnh 360°...
             </div>
-            <div style={{ fontSize: '11.5px', color: '#9ca3af', maxWidth: 360, textAlign: 'center', lineHeight: 1.4 }}>
-              {stitchMessage}
+            <div style={{ fontSize: '12px', color: '#a89f91', maxWidth: 360, textAlign: 'center', lineHeight: 1.5 }}>
+              {stitchMessage || 'Hệ thống đang trích xuất đặc trưng điểm ảnh và liên kết không gian...'}
             </div>
 
             {/* Progress Bar */}
@@ -830,13 +787,13 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 style={{
                   width: `${stitchProgress}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, var(--accent-gold, #d4a86a) 0%, #10b981 100%)',
+                  background: 'linear-gradient(90deg, #d4a86a 0%, #8c2d19 100%)',
                   transition: 'width 0.4s ease'
                 }}
               />
             </div>
-            <span style={{ fontSize: '10px', color: '#6b7280' }}>
-              Tiến độ: {stitchProgress}% • Hàng đợi RabbitMQ AMQP
+            <span style={{ fontSize: '11px', color: '#8b8478' }}>
+              Tiến độ: {stitchProgress}%
             </span>
           </div>
         )}
@@ -846,17 +803,17 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       {frames.length > 0 && (
         <div
           style={{
-            padding: '6px 12px',
-            background: 'rgba(15, 15, 15, 0.96)',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '8px 14px',
+            background: 'rgba(18, 16, 14, 0.98)',
+            borderTop: '1px solid rgba(212, 168, 106, 0.15)',
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 10,
             overflowX: 'auto',
             flexShrink: 0
           }}
         >
-          <span style={{ fontSize: '10px', color: '#9ca3af', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '11px', color: '#a89f91', whiteSpace: 'nowrap', fontWeight: 500 }}>
             Chuỗi góc ({frames.length}):
           </span>
           {frames.map((f) => (
@@ -864,9 +821,9 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               key={f.index}
               style={{
                 position: 'relative',
-                width: 44,
-                height: 44,
-                borderRadius: 5,
+                width: 46,
+                height: 46,
+                borderRadius: 6,
                 overflow: 'hidden',
                 border: '1px solid rgba(212, 168, 106, 0.4)',
                 flexShrink: 0,
@@ -881,37 +838,18 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               <span
                 style={{
                   position: 'absolute',
-                  bottom: 1,
-                  right: 1,
-                  fontSize: '8.5px',
-                  fontWeight: 700,
-                  background: 'rgba(0,0,0,0.7)',
-                  color: '#fff',
-                  padding: '1px 3px',
-                  borderRadius: 2
+                  bottom: 2,
+                  right: 2,
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  background: 'rgba(18, 15, 13, 0.85)',
+                  color: '#f5f0eb',
+                  padding: '1px 4px',
+                  borderRadius: 3
                 }}
               >
                 #{f.index}
               </span>
-              {f.isUploaded && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 1,
-                    left: 1,
-                    background: '#10b981',
-                    borderRadius: '50%',
-                    width: 10,
-                    height: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                  title="Đã lưu Cloudinary & RabbitMQ"
-                >
-                  <Check size={7} style={{ color: '#fff' }} />
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -923,11 +861,11 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '10px 14px',
+          padding: '12px 18px',
           paddingBottom: 'max(14px, env(safe-area-inset-bottom, 14px))',
-          background: 'rgba(20, 20, 20, 0.98)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.12)',
-          gap: 10,
+          background: 'rgba(20, 18, 16, 0.98)',
+          borderTop: '1px solid rgba(212, 168, 106, 0.2)',
+          gap: 12,
           flexShrink: 0
         }}
       >
@@ -936,47 +874,54 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           type="button"
           onClick={() => setIsAutoDetecting((prev) => !prev)}
           style={{
-            padding: '8px 10px',
+            padding: '9px 12px',
             borderRadius: 8,
             border: isAutoDetecting ? '1px solid var(--accent-gold, #d4a86a)' : '1px solid rgba(255, 255, 255, 0.15)',
             background: isAutoDetecting ? 'rgba(212, 168, 106, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-            color: isAutoDetecting ? 'var(--accent-gold, #d4a86a)' : '#9ca3af',
-            fontSize: '11px',
+            color: isAutoDetecting ? 'var(--accent-gold, #d4a86a)' : '#8b8478',
+            fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 5,
+            gap: 6,
             whiteSpace: 'nowrap'
           }}
         >
-          <Sparkles size={13} />
-          <span>{isAutoDetecting ? 'Tự bắt: BẬT' : 'Tự bắt: TẮT'}</span>
+          <Camera size={14} />
+          <span>{isAutoDetecting ? 'Tự bắt góc: Bật' : 'Tự bắt góc: Tắt'}</span>
         </button>
 
-        {/* Nút chụp thủ công */}
+        {/* Pro Camera Shutter Button */}
         <button
           type="button"
           onClick={() => sessionId && captureCurrentFrame(sessionId)}
           disabled={!isCameraReady || isProcessingStitch}
           style={{
-            width: 52,
-            height: 52,
+            width: 58,
+            height: 58,
             borderRadius: '50%',
-            background: 'var(--accent-gold, #d4a86a)',
-            border: '3px solid rgba(255, 255, 255, 0.35)',
+            background: 'transparent',
+            border: '3px solid rgba(255, 255, 255, 0.8)',
+            padding: 3,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#1a1410',
             cursor: isCameraReady ? 'pointer' : 'not-allowed',
-            boxShadow: '0 0 14px rgba(212, 168, 106, 0.45)',
-            transition: 'transform 0.1s ease',
+            transition: 'transform 0.15s ease',
             flexShrink: 0
           }}
-          title="Bấm để bắt góc này thủ công"
+          title="Chụp góc hiện tại"
         >
-          <Camera size={22} />
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              background: isCameraReady ? 'var(--accent-gold, #d4a86a)' : 'rgba(255, 255, 255, 0.25)',
+              transition: 'background 0.2s'
+            }}
+          />
         </button>
 
         {/* Nút Hoàn tất quét & Ghép 360 */}
@@ -985,23 +930,23 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           onClick={handleFinishAndStitch}
           disabled={frames.length === 0 || isProcessingStitch}
           style={{
-            padding: '8px 12px',
+            padding: '9px 14px',
             borderRadius: 8,
-            background: frames.length > 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(255, 255, 255, 0.1)',
-            border: 'none',
-            color: '#fff',
-            fontSize: '11.5px',
-            fontWeight: 700,
+            background: frames.length > 0 ? 'linear-gradient(135deg, #8c2d19 0%, #6e2010 100%)' : 'rgba(255, 255, 255, 0.08)',
+            border: frames.length > 0 ? '1px solid rgba(212, 168, 106, 0.45)' : '1px solid rgba(255, 255, 255, 0.1)',
+            color: frames.length > 0 ? '#ffffff' : '#8b8478',
+            fontSize: '12px',
+            fontWeight: 600,
             cursor: frames.length > 0 ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            boxShadow: frames.length > 0 ? '0 4px 10px rgba(16, 185, 129, 0.3)' : 'none',
+            boxShadow: frames.length > 0 ? '0 4px 12px rgba(140, 45, 25, 0.35)' : 'none',
             whiteSpace: 'nowrap'
           }}
         >
-          <CheckCircle2 size={14} />
-          <span>Ghép ({frames.length})</span>
+          <Check size={14} />
+          <span>Ghép ảnh ({frames.length})</span>
         </button>
       </div>
     </div>

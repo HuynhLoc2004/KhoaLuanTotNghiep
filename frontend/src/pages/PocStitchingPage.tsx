@@ -1350,21 +1350,16 @@ export const PocStitchingPage: React.FC = () => {
                         />
                       </label>
 
-                      {/* Nút thứ 4: Quét phòng Realtime Stream (AMQP Queue) */}
+                      {/* Nút thứ 4: Quét phòng trực tiếp qua camera */}
                       <button
                         type="button"
                         className="studio-action-btn"
-                        style={{
-                          borderColor: 'rgba(16, 185, 129, 0.45)',
-                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.08) 100%)',
-                          cursor: isProcessing ? 'wait' : 'pointer'
-                        }}
                         onClick={() => setIsRealtimeModalOpen(true)}
                         disabled={isProcessing}
-                        title="Khởi động camera quay quét liên tục theo thời gian thực (RabbitMQ AMQP Stream). Tự động nhận diện góc mới, đẩy lên Cloudinary và tìm điểm chung toàn diện."
+                        title="Quay quét không gian phòng trực tiếp qua máy ảnh để tự động ghi góc và ghép ảnh 360°"
                       >
-                        <Radio size={20} style={{ color: '#10b981' }} />
-                        <span>Quét phòng Realtime (AMQP)</span>
+                        <Camera size={20} />
+                        <span>Quét phòng trực tiếp</span>
                       </button>
                     </div>
 
