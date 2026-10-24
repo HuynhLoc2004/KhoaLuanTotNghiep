@@ -12,7 +12,8 @@ import {
   Compass,
   RotateCw,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 import { API_BASE } from '../services/api';
 
@@ -95,9 +96,9 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
   const isComplete = capturedCount >= 8;
   const isReadyToStitch = capturedCount >= 6;
 
-  // Xác định góc đang ngắm:
+  // Xác định góc mục tiêu:
   // - Nếu có con quay hồi chuyển: góc thực tế theo hướng xoay điện thoại
-  // - Nếu không có con quay (PC/Laptop): góc người dùng chọn để chụp
+  // - Nếu không có con quay (PC/Laptop hoặc chưa bật la bàn): góc người dùng đang được hệ thống hướng dẫn
   const aimingSectorId = hasGyro ? Math.round(currentHeading / 45) % 8 : selectedSectorId;
   const activeSector = sectors[aimingSectorId] || sectors[0];
   const targetSector = sectors.find((s) => !s.isCaptured) || sectors[0];
@@ -179,9 +180,9 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           if (!blob) return;
           const localUrl = URL.createObjectURL(blob);
 
-          // Cập nhật trạng thái góc chụp
-          setSectors((prev) =>
-            prev.map((s) =>
+          // Cập nhật trạng thái góc chụp & tự động chỉ dẫn góc còn thiếu tiếp theo
+          setSectors((prev) => {
+            const updated = prev.map((s) =>
               s.id === targetSectorIdx
                 ? {
                     ...s,
@@ -190,23 +191,20 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                     blob
                   }
                 : s
-            )
-          );
+            );
+
+            // Tìm góc còn thiếu tiếp theo để hướng kim la bàn và chỉ dẫn
+            const nextMissing = updated.find((s) => !s.isCaptured && s.id !== targetSectorIdx);
+            if (nextMissing) {
+              setSelectedSectorId(nextMissing.id);
+            }
+
+            return updated;
+          });
 
           lastCapturedHeadingRef.current = currentHeading;
           steadyTimeRef.current = 0;
           setStabilityProgress(0);
-
-          // Nếu thiết bị không có con quay (PC/Laptop), chuyển góc chọn sang góc còn thiếu tiếp theo
-          if (!hasGyro) {
-            setSectors((latest) => {
-              const nextMissing = latest.find((s) => !s.isCaptured && s.id !== targetSectorIdx);
-              if (nextMissing) {
-                setSelectedSectorId(nextMissing.id);
-              }
-              return latest;
-            });
-          }
 
           // Upload lên server với sectorIndex
           uploadSectorFrame(blob, targetSectorIdx, localUrl, sessionId);
@@ -215,8 +213,60 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         0.92
       );
     },
-    [isCameraReady, sessionId, hasGyro, currentHeading, uploadSectorFrame]
+    [isCameraReady, sessionId, currentHeading, uploadSectorFrame]
   );
+
+  // Xử lý sự kiện con quay hồi chuyển trên điện thoại di động
+  const handleOrientation = useCallback((e: any) => {
+    let rawHeading: number | null = null;
+
+    // iOS Safari Compass Heading (0 = North, clockwise)
+    if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+      rawHeading = e.webkitCompassHeading;
+    }
+    // Android / Standard alpha (0..360)
+    else if (e.alpha !== null && e.alpha !== undefined && !isNaN(e.alpha)) {
+      rawHeading = (360 - e.alpha) % 360;
+    }
+
+    if (rawHeading !== null && !isNaN(rawHeading)) {
+      setHasGyro(true);
+
+      // Chuẩn hóa góc ban đầu người dùng đứng đối diện làm mốc 0 độ
+      if (initialHeadingRef.current === null) {
+        initialHeadingRef.current = rawHeading;
+      }
+
+      const rel = (rawHeading - initialHeadingRef.current + 360) % 360;
+      setCurrentHeading(rel);
+    }
+  }, []);
+
+  // Yêu cầu cấp quyền cảm biến hướng cho iOS Safari (cần tương tác chạm của người dùng)
+  const handleRequestGyroPermission = useCallback(async () => {
+    if (
+      typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof (DeviceOrientationEvent as any).requestPermission === 'function'
+    ) {
+      try {
+        const state = await (DeviceOrientationEvent as any).requestPermission();
+        if (state === 'granted') {
+          setHasGyro(true);
+          window.addEventListener('deviceorientation', handleOrientation, true);
+          window.addEventListener('deviceorientationabsolute' as any, handleOrientation, true);
+        } else {
+          alert('Bạn chưa cấp quyền cảm biến con quay hồi chuyển trên điện thoại. Hãy dùng chế độ bấm chụp từng góc.');
+        }
+      } catch (err) {
+        console.warn('Gyro permission error:', err);
+        window.addEventListener('deviceorientation', handleOrientation, true);
+      }
+    } else {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+      window.addEventListener('deviceorientationabsolute' as any, handleOrientation, true);
+      setHasGyro(true);
+    }
+  }, [handleOrientation]);
 
   // Khởi động phiên quét mới và kết nối Camera
   const initSessionAndCamera = useCallback(async () => {
@@ -314,67 +364,21 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
 
     initSessionAndCamera();
 
-    // Xử lý sự kiện con quay hồi chuyển trên điện thoại di động
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      let rawHeading: number | null = null;
-
-      // iOS Safari Compass Heading
-      if ((e as any).webkitCompassHeading !== undefined && (e as any).webkitCompassHeading !== null) {
-        rawHeading = (e as any).webkitCompassHeading;
-      }
-      // Android / Standard Alpha (Z-axis rotation)
-      else if (e.alpha !== null && e.alpha !== undefined && !isNaN(e.alpha)) {
-        rawHeading = (360 - e.alpha) % 360;
-      }
-
-      if (rawHeading !== null && !isNaN(rawHeading)) {
-        setHasGyro(true);
-
-        // Chuẩn hóa góc ban đầu người dùng đứng đối diện làm mốc 0 độ
-        if (initialHeadingRef.current === null) {
-          initialHeadingRef.current = rawHeading;
-        }
-
-        const rel = (rawHeading - initialHeadingRef.current + 360) % 360;
-        setCurrentHeading(rel);
-      }
-    };
-
     if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
       window.addEventListener('deviceorientation', handleOrientation, true);
+      window.addEventListener('deviceorientationabsolute' as any, handleOrientation, true);
     }
 
     return () => {
       stopCamera();
       if (typeof window !== 'undefined') {
         window.removeEventListener('deviceorientation', handleOrientation, true);
+        window.removeEventListener('deviceorientationabsolute' as any, handleOrientation, true);
       }
     };
-  }, [isOpen, initSessionAndCamera, stopCamera]);
-
-  // Yêu cầu cấp quyền cảm biến hướng cho iOS Safari (cần tương tác người dùng)
-  const handleRequestGyroPermission = async () => {
-    if (
-      typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof (DeviceOrientationEvent as any).requestPermission === 'function'
-    ) {
-      try {
-        const state = await (DeviceOrientationEvent as any).requestPermission();
-        if (state === 'granted') {
-          setHasGyro(true);
-        } else {
-          alert('Bạn chưa cấp quyền cảm biến con quay hồi chuyển. Bạn có thể sử dụng chế độ bấm chụp từng góc thủ công.');
-        }
-      } catch (err) {
-        console.warn('Gyro permission error:', err);
-      }
-    } else {
-      alert('Trình duyệt hoặc thiết bị này không hỗ trợ con quay hồi chuyển phần cứng. Hãy sử dụng chế độ bấm chụp từng góc.');
-    }
-  };
+  }, [isOpen, initSessionAndCamera, stopCamera, handleOrientation]);
 
   // Thuật toán kiểm tra độ ổn định & Tự động chụp (CHỈ KÍCH HOẠT KHI CÓ CON QUAY HỒI CHUYỂN THỰC TẾ)
-  // Tuyệt đối KHÔNG tự động chụp khi không có cảm biến con quay (trên PC/Laptop) để tránh chụp lặp
   useEffect(() => {
     if (!isCameraReady || isProcessingStitch || !hasGyro) {
       setStabilityProgress(0);
@@ -392,14 +396,13 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       }
 
       const currentSector = sectors[aimingSectorId];
-      // Nếu góc này đã chụp rồi, không bao giờ chụp lại
       if (!currentSector || currentSector.isCaptured) {
         setStabilityProgress(0);
         steadyTimeRef.current = 0;
         return;
       }
 
-      // Kiểm tra xem camera đã xoay ít nhất 22 độ so với vị trí chụp trước đó chưa (ngăn chụp lặp một chỗ)
+      // Kiểm tra xem camera đã xoay ít nhất 22 độ so với vị trí chụp trước đó chưa
       let headingMoved = Math.abs(currentHeading - lastCapturedHeadingRef.current);
       if (headingMoved > 180) headingMoved = 360 - headingMoved;
       if (lastCapturedHeadingRef.current !== -999 && headingMoved < 22) {
@@ -602,7 +605,9 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
 
   if (!isOpen) return null;
 
-  // Hướng kim la bàn hiển thị
+  // Hướng kim la bàn hiển thị:
+  // - Khi có con quay hồi chuyển: kim xoay theo góc thực tế của điện thoại
+  // - Khi ở chế độ thủ công (chưa bật la bàn): kim chỉ tới góc đang được hướng dẫn chụp
   const compassNeedleAngle = hasGyro ? currentHeading : activeSector.targetAngle;
 
   const modalContent = (
@@ -632,12 +637,19 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           50% { transform: scale(1.15); opacity: 0.5; }
           100% { transform: scale(1); opacity: 0.9; }
         }
+        @keyframes bounceGlow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
         .realtime-spinner-rotate {
           animation: realtimeSpinKeyframes 0.9s linear infinite !important;
           transform-origin: center center !important;
         }
         .radar-target-pulse {
           animation: pulseGlowTarget 1.5s ease-in-out infinite;
+        }
+        .bounce-banner {
+          animation: bounceGlow 1.8s ease-in-out infinite;
         }
       `}</style>
 
@@ -696,7 +708,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 ? 'Đã đủ 8 góc 360°! Bạn có thể bấm Ghép ảnh.'
                 : hasGyro
                 ? `Xoay máy lần lượt 8 hướng quanh phòng (Còn thiếu ${8 - capturedCount} góc)`
-                : `Chế độ bấm chụp từng góc (Chọn góc và bấm nút chụp bên dưới)`}
+                : `Lần lượt xoay máy chụp 8 góc quanh phòng (Còn thiếu ${8 - capturedCount} góc)`}
             </div>
           </div>
         </div>
@@ -766,184 +778,201 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           }}
         >
           {/* Top Row: 360° Compass Radar & Direction Guidance */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-            {/* 360° Circular Radar Compass Widget */}
-            <div
-              style={{
-                pointerEvents: 'auto',
-                background: 'rgba(16, 14, 12, 0.85)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: 16,
-                border: '1px solid rgba(212, 168, 106, 0.35)',
-                padding: '8px 10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
-              }}
-            >
-              {/* Circular SVG Radar */}
-              <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
-                <svg width="72" height="72" viewBox="0 0 100 100">
-                  {/* Outer circle track */}
-                  <circle cx="50" cy="50" r="42" fill="rgba(0,0,0,0.4)" stroke="rgba(212, 168, 106, 0.3)" strokeWidth="2" strokeDasharray="3 3" />
-                  
-                  {/* Subtle crosshairs */}
-                  <line x1="50" y1="12" x2="50" y2="88" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-                  <line x1="12" y1="50" x2="88" y2="50" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+              {/* 360° Circular Radar Compass Widget */}
+              <div
+                style={{
+                  pointerEvents: 'auto',
+                  background: 'rgba(16, 14, 12, 0.85)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: 16,
+                  border: '1px solid rgba(212, 168, 106, 0.35)',
+                  padding: '8px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
+                }}
+              >
+                {/* Circular SVG Radar */}
+                <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
+                  <svg width="72" height="72" viewBox="0 0 100 100">
+                    {/* Outer circle track */}
+                    <circle cx="50" cy="50" r="42" fill="rgba(0,0,0,0.4)" stroke="rgba(212, 168, 106, 0.3)" strokeWidth="2" strokeDasharray="3 3" />
+                    
+                    {/* Subtle crosshairs */}
+                    <line x1="50" y1="12" x2="50" y2="88" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+                    <line x1="12" y1="50" x2="88" y2="50" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
 
-                  {/* 8 Sector Nodes around 360° circle */}
-                  {sectors.map((sec) => {
-                    const rad = ((sec.targetAngle - 90) * Math.PI) / 180;
-                    const cx = 50 + 38 * Math.cos(rad);
-                    const cy = 50 + 38 * Math.sin(rad);
-                    const isTarget = sec.id === (hasGyro ? targetSector.id : selectedSectorId);
+                    {/* 8 Sector Nodes around 360° circle */}
+                    {sectors.map((sec) => {
+                      const rad = ((sec.targetAngle - 90) * Math.PI) / 180;
+                      const cx = 50 + 38 * Math.cos(rad);
+                      const cy = 50 + 38 * Math.sin(rad);
+                      const isTarget = sec.id === (hasGyro ? targetSector.id : selectedSectorId);
 
-                    return (
-                      <g key={sec.id}>
-                        {isTarget && (
+                      return (
+                        <g key={sec.id}>
+                          {isTarget && (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r="8"
+                              fill="none"
+                              stroke="var(--accent-gold, #d4a86a)"
+                              strokeWidth="2"
+                              className="radar-target-pulse"
+                            />
+                          )}
                           <circle
                             cx={cx}
                             cy={cy}
-                            r="8"
-                            fill="none"
-                            stroke="var(--accent-gold, #d4a86a)"
-                            strokeWidth="2"
-                            className="radar-target-pulse"
+                            r={sec.isCaptured ? 6 : 4.5}
+                            fill={sec.isCaptured ? '#22c55e' : isTarget ? 'var(--accent-gold, #d4a86a)' : 'rgba(255,255,255,0.25)'}
+                            stroke={sec.isCaptured ? '#15803d' : isTarget ? '#ffffff' : 'rgba(212, 168, 106, 0.4)'}
+                            strokeWidth="1.5"
                           />
-                        )}
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={sec.isCaptured ? 6 : 4.5}
-                          fill={sec.isCaptured ? '#22c55e' : isTarget ? 'var(--accent-gold, #d4a86a)' : 'rgba(255,255,255,0.25)'}
-                          stroke={sec.isCaptured ? '#15803d' : isTarget ? '#ffffff' : 'rgba(212, 168, 106, 0.4)'}
-                          strokeWidth="1.5"
-                        />
-                      </g>
-                    );
-                  })}
+                        </g>
+                      );
+                    })}
 
-                  {/* Compass pointer needle indicating orientation */}
-                  <g transform={`rotate(${compassNeedleAngle}, 50, 50)`}>
-                    <polygon points="50,18 45,50 55,50" fill="var(--accent-gold, #d4a86a)" />
-                    <polygon points="50,82 45,50 55,50" fill="rgba(255,255,255,0.3)" />
-                    <circle cx="50" cy="50" r="3.5" fill="#ffffff" />
-                  </g>
-                </svg>
+                    {/* Compass pointer needle indicating orientation */}
+                    <g transform={`rotate(${compassNeedleAngle}, 50, 50)`}>
+                      <polygon points="50,18 45,50 55,50" fill="var(--accent-gold, #d4a86a)" />
+                      <polygon points="50,82 45,50 55,50" fill="rgba(255,255,255,0.3)" />
+                      <circle cx="50" cy="50" r="3.5" fill="#ffffff" />
+                    </g>
+                  </svg>
 
-                {/* Reset 0° Calibrate Button (Chỉ khi có gyro) */}
-                {hasGyro && (
-                  <button
-                    type="button"
-                    onClick={handleCalibrateHeading}
-                    style={{
-                      position: 'absolute',
-                      bottom: -4,
-                      right: -4,
-                      width: 20,
-                      height: 20,
-                      borderRadius: '50%',
-                      background: 'rgba(20, 18, 16, 0.9)',
-                      border: '1px solid rgba(212, 168, 106, 0.5)',
-                      color: 'var(--accent-gold, #d4a86a)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: 0
-                    }}
-                    title="Đặt lại hướng chính diện 0°"
-                  >
-                    <RotateCw size={10} />
-                  </button>
-                )}
-              </div>
-
-              {/* Radar Status Details */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
-                  {hasGyro ? 'Góc đang ngắm:' : 'Góc đang chọn:'}
-                </span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: activeSector.isCaptured ? '#4ade80' : 'var(--accent-gold, #d4a86a)' }}>
-                  {activeSector.shortLabel} ({activeSector.label})
-                </span>
-                <span style={{ fontSize: '10px', color: activeSector.isCaptured ? '#22c55e' : '#e5ded5' }}>
-                  {activeSector.isCaptured ? '✓ Đã chụp' : 'Chưa chụp'}
-                </span>
-              </div>
-            </div>
-
-            {/* Dynamic Guidance Pill */}
-            <div
-              style={{
-                pointerEvents: 'auto',
-                background: 'rgba(16, 14, 12, 0.88)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: 20,
-                border: '1px solid rgba(212, 168, 106, 0.35)',
-                padding: '6px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                maxWidth: '60%'
-              }}
-            >
-              {hasGyro ? (
-                activeSector.isCaptured ? (
-                  <>
-                    <CheckCircle2 size={14} style={{ color: '#4ade80', flexShrink: 0 }} />
-                    <span style={{ fontSize: '11px', color: '#e5e7eb', fontWeight: 500, lineHeight: 1.3 }}>
-                      Góc {activeSector.shortLabel} đã có! Xoay tiếp tới góc {targetSector.shortLabel}.
-                    </span>
-                  </>
-                ) : stabilityProgress > 0 ? (
-                  <>
-                    <div
+                  {/* Reset 0° Calibrate Button */}
+                  {hasGyro && (
+                    <button
+                      type="button"
+                      onClick={handleCalibrateHeading}
                       style={{
-                        width: 14,
-                        height: 14,
+                        position: 'absolute',
+                        bottom: -4,
+                        right: -4,
+                        width: 20,
+                        height: 20,
                         borderRadius: '50%',
-                        border: '2px solid var(--accent-gold, #d4a86a)',
-                        borderTopColor: 'transparent',
-                        flexShrink: 0
+                        background: 'rgba(20, 18, 16, 0.9)',
+                        border: '1px solid rgba(212, 168, 106, 0.5)',
+                        color: 'var(--accent-gold, #d4a86a)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        padding: 0
                       }}
-                      className="realtime-spinner-rotate"
-                    />
-                    <span style={{ fontSize: '11px', color: 'var(--accent-gold, #d4a86a)', fontWeight: 600 }}>
-                      Giữ yên máy {stabilityProgress}%...
-                    </span>
-                  </>
+                      title="Đặt lại hướng chính diện 0°"
+                    >
+                      <RotateCw size={10} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Radar Status Details */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+                    {hasGyro ? 'Góc đang ngắm:' : 'Góc mục tiêu:'}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: activeSector.isCaptured ? '#4ade80' : 'var(--accent-gold, #d4a86a)' }}>
+                    {activeSector.shortLabel} ({activeSector.label})
+                  </span>
+                  <span style={{ fontSize: '10px', color: activeSector.isCaptured ? '#22c55e' : '#e5ded5' }}>
+                    {activeSector.isCaptured ? '✓ Đã chụp' : 'Chưa chụp'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dynamic Guidance Pill */}
+              <div
+                style={{
+                  pointerEvents: 'auto',
+                  background: 'rgba(16, 14, 12, 0.88)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: 20,
+                  border: '1px solid rgba(212, 168, 106, 0.35)',
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  maxWidth: '55%'
+                }}
+              >
+                {hasGyro ? (
+                  activeSector.isCaptured ? (
+                    <>
+                      <CheckCircle2 size={14} style={{ color: '#4ade80', flexShrink: 0 }} />
+                      <span style={{ fontSize: '11px', color: '#e5e7eb', fontWeight: 500, lineHeight: 1.3 }}>
+                        Đã xong {activeSector.shortLabel}! Xoay tiếp tới góc {targetSector.shortLabel}.
+                      </span>
+                    </>
+                  ) : stabilityProgress > 0 ? (
+                    <>
+                      <div
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          border: '2px solid var(--accent-gold, #d4a86a)',
+                          borderTopColor: 'transparent',
+                          flexShrink: 0
+                        }}
+                        className="realtime-spinner-rotate"
+                      />
+                      <span style={{ fontSize: '11px', color: 'var(--accent-gold, #d4a86a)', fontWeight: 600 }}>
+                        Giữ yên máy {stabilityProgress}%...
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Compass size={14} style={{ color: 'var(--accent-gold, #d4a86a)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '11px', color: '#f3f4f6', fontWeight: 500, lineHeight: 1.3 }}>
+                        Xoay máy về góc {activeSector.shortLabel} và giữ yên để tự chụp
+                      </span>
+                    </>
+                  )
                 ) : (
                   <>
                     <Compass size={14} style={{ color: 'var(--accent-gold, #d4a86a)', flexShrink: 0 }} />
                     <span style={{ fontSize: '11px', color: '#f3f4f6', fontWeight: 500, lineHeight: 1.3 }}>
-                      Xoay máy hướng về góc {activeSector.shortLabel} và giữ yên để tự chụp
+                      Xoay máy về hướng {activeSector.shortLabel} ({activeSector.directionName}) rồi bấm nút chụp
                     </span>
                   </>
-                )
-              ) : (
+                )}
+              </div>
+            </div>
+
+            {/* Nút Kích hoạt La Bàn Tự Động cực kỳ nổi bật trên iPhone / Safari nếu chưa bật */}
+            {!hasGyro && (
+              <div style={{ display: 'flex', justifyContent: 'center', pointerEvents: 'auto', width: '100%' }}>
                 <button
                   type="button"
                   onClick={handleRequestGyroPermission}
+                  className="bounce-banner"
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
+                    background: 'linear-gradient(135deg, #8c2d19 0%, #b45309 50%, #d4a86a 100%)',
+                    border: '1px solid rgba(255, 255, 255, 0.8)',
+                    color: '#ffffff',
+                    padding: '8px 16px',
+                    borderRadius: 24,
+                    fontSize: '12px',
+                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
-                    color: '#f3f4f6'
+                    gap: 8,
+                    boxShadow: '0 4px 16px rgba(180, 83, 9, 0.55)',
+                    cursor: 'pointer'
                   }}
                 >
-                  <Camera size={14} style={{ color: 'var(--accent-gold, #d4a86a)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '11px', fontWeight: 500, lineHeight: 1.3, textAlign: 'left' }}>
-                    Chế độ thủ công: Bấm nút chụp bên dưới để lưu góc {activeSector.shortLabel}
-                  </span>
+                  <Sparkles size={15} />
+                  <span>Chạm vào đây để Bật La Bàn Tự Động Xoay (iOS)</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Center Target Crosshair & Stability Ring */}
@@ -1415,7 +1444,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             whiteSpace: 'nowrap'
           }}
         >
-          {hasGyro ? <Compass size={13} /> : <Camera size={13} />}
+          {hasGyro ? <Compass size={13} /> : <Compass size={13} />}
           <span>{hasGyro ? (isAutoDetecting ? 'Tự bắt: Bật' : 'Tự bắt: Tắt') : 'Bật La Bàn'}</span>
         </button>
 
@@ -1431,8 +1460,8 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           }}
           disabled={isProcessingStitch}
           style={{
-            width: 56,
-            height: 56,
+            width: 58,
+            height: 58,
             borderRadius: '50%',
             background: 'transparent',
             border: '3px solid rgba(255, 255, 255, 0.85)',
@@ -1453,15 +1482,17 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               borderRadius: '50%',
               background: activeSector.isCaptured ? '#22c55e' : 'var(--accent-gold, #d4a86a)',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#000',
-              fontWeight: 700,
-              fontSize: '11px',
-              transition: 'background 0.2s'
+              fontWeight: 800,
+              fontSize: '12px',
+              transition: 'background 0.2s',
+              boxShadow: '0 0 10px rgba(212, 168, 106, 0.5)'
             }}
           >
-            {activeSector.shortLabel}
+            <span>{activeSector.shortLabel}</span>
           </div>
         </button>
 
