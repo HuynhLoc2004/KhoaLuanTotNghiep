@@ -39,7 +39,7 @@ export interface RoomSector {
   blob?: Blob;
 }
 
-const INITIAL_SECTORS: RoomSector[] = [
+const SECTORS_8: RoomSector[] = [
   { id: 0, targetAngle: 0, label: 'Chính diện', shortLabel: '0°', directionName: 'Trước', isCaptured: false },
   { id: 1, targetAngle: 45, label: 'Trước - Phải', shortLabel: '45°', directionName: 'T-Phải', isCaptured: false },
   { id: 2, targetAngle: 90, label: 'Bên phải', shortLabel: '90°', directionName: 'Phải', isCaptured: false },
@@ -49,6 +49,23 @@ const INITIAL_SECTORS: RoomSector[] = [
   { id: 6, targetAngle: 270, label: 'Bên trái', shortLabel: '270°', directionName: 'Trái', isCaptured: false },
   { id: 7, targetAngle: 315, label: 'Trước - Trái', shortLabel: '315°', directionName: 'T-Trái', isCaptured: false }
 ];
+
+const SECTORS_12: RoomSector[] = [
+  { id: 0, targetAngle: 0, label: 'Chính diện (0°)', shortLabel: '0°', directionName: '0°', isCaptured: false },
+  { id: 1, targetAngle: 30, label: 'Trước - Phải 1', shortLabel: '30°', directionName: '30°', isCaptured: false },
+  { id: 2, targetAngle: 60, label: 'Trước - Phải 2', shortLabel: '60°', directionName: '60°', isCaptured: false },
+  { id: 3, targetAngle: 90, label: 'Bên phải (90°)', shortLabel: '90°', directionName: 'Phải', isCaptured: false },
+  { id: 4, targetAngle: 120, label: 'Sau - Phải 1', shortLabel: '120°', directionName: '120°', isCaptured: false },
+  { id: 5, targetAngle: 150, label: 'Sau - Phải 2', shortLabel: '150°', directionName: '150°', isCaptured: false },
+  { id: 6, targetAngle: 180, label: 'Phía sau (180°)', shortLabel: '180°', directionName: 'Sau', isCaptured: false },
+  { id: 7, targetAngle: 210, label: 'Sau - Trái 1', shortLabel: '210°', directionName: '210°', isCaptured: false },
+  { id: 8, targetAngle: 240, label: 'Sau - Trái 2', shortLabel: '240°', directionName: '240°', isCaptured: false },
+  { id: 9, targetAngle: 270, label: 'Bên trái (270°)', shortLabel: '270°', directionName: 'Trái', isCaptured: false },
+  { id: 10, targetAngle: 300, label: 'Trước - Trái 1', shortLabel: '300°', directionName: '300°', isCaptured: false },
+  { id: 11, targetAngle: 330, label: 'Trước - Trái 2', shortLabel: '330°', directionName: '330°', isCaptured: false }
+];
+
+const INITIAL_SECTORS: RoomSector[] = SECTORS_8;
 
 export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> = ({
   isOpen,
@@ -74,8 +91,13 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isInsecureHttp, setIsInsecureHttp] = useState(false);
 
-  // Quản lý 8 cung góc 360°
-  const [sectors, setSectors] = useState<RoomSector[]>(INITIAL_SECTORS);
+  // Quản lý cung góc 360° & Chế độ ống kính
+  const [angleMode, setAngleMode] = useState<'8' | '12'>('8');
+  const [lensMode, setLensMode] = useState<'0.5x' | '1x'>('0.5x');
+  const [showNativeCamPrompt, setShowNativeCamPrompt] = useState<boolean>(false);
+  const [zoomRange, setZoomRange] = useState<{ min: number; max: number } | null>(null);
+
+  const [sectors, setSectors] = useState<RoomSector[]>(SECTORS_8);
   const [selectedSectorId, setSelectedSectorId] = useState<number>(0);
   const [currentHeading, setCurrentHeading] = useState<number>(0);
   const [hasGyro, setHasGyro] = useState<boolean>(false);
@@ -90,16 +112,19 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
   const [amqpStatus, setAmqpStatus] = useState<'connected' | 'transmitting' | 'idle'>('connected');
 
   // Tính toán số góc đã chụp và góc còn thiếu
+  const totalSectors = sectors.length;
   const capturedCount = sectors.filter((s) => s.isCaptured).length;
-  const coveragePercent = Math.round((capturedCount / 8) * 100);
+  const coveragePercent = Math.round((capturedCount / totalSectors) * 100);
   const missingSectors = sectors.filter((s) => !s.isCaptured);
-  const isComplete = capturedCount >= 8;
-  const isReadyToStitch = capturedCount >= 6;
+  const isComplete = capturedCount >= totalSectors;
+  const minRequired = totalSectors === 8 ? 6 : 8;
+  const isReadyToStitch = capturedCount >= minRequired;
 
   // Xác định góc mục tiêu:
   // - Nếu có con quay hồi chuyển: góc thực tế theo hướng xoay điện thoại
   // - Nếu không có con quay (PC/Laptop hoặc chưa bật la bàn): góc người dùng đang được hệ thống hướng dẫn
-  const aimingSectorId = hasGyro ? Math.round(currentHeading / 45) % 8 : selectedSectorId;
+  const stepAngle = 360 / totalSectors;
+  const aimingSectorId = hasGyro ? Math.round(currentHeading / stepAngle) % totalSectors : selectedSectorId;
   const activeSector = sectors[aimingSectorId] || sectors[0];
   const targetSector = sectors.find((s) => !s.isCaptured) || sectors[0];
 
@@ -343,6 +368,25 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         await videoRef.current.play().catch(() => undefined);
       }
 
+      // Tự động kiểm tra và kích hoạt góc siêu rộng 0.5x nếu phần cứng hỗ trợ
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        try {
+          const caps: any = (videoTrack.getCapabilities && videoTrack.getCapabilities()) || {};
+          if (caps.zoom) {
+            setZoomRange({ min: caps.zoom.min || 1, max: caps.zoom.max || 1 });
+            if (caps.zoom.min !== undefined && caps.zoom.min <= 0.8) {
+              await videoTrack.applyConstraints({
+                advanced: [{ zoom: caps.zoom.min } as any]
+              });
+              setLensMode('0.5x');
+            }
+          }
+        } catch (zoomErr) {
+          console.warn('[Zoom Init Warning]:', zoomErr);
+        }
+      }
+
       setIsCameraReady(true);
     } catch (err: any) {
       console.error('[Realtime Camera Init Error]:', err);
@@ -354,6 +398,57 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       );
     }
   }, [sessionId]);
+
+  // Chuyển đổi ống kính: 0.5x Siêu Rộng hoặc 1x Tiêu chuẩn
+  const handleSwitchLens = useCallback(
+    async (mode: '0.5x' | '1x') => {
+      setLensMode(mode);
+      if (!streamRef.current) return;
+      const track = streamRef.current.getVideoTracks()[0];
+      if (!track) return;
+
+      let zoomSuccess = false;
+      try {
+        const caps: any = (track.getCapabilities && track.getCapabilities()) || {};
+        if (caps.zoom) {
+          const targetZoom = mode === '0.5x' ? (caps.zoom.min || 0.5) : 1.0;
+          await track.applyConstraints({
+            advanced: [{ zoom: targetZoom } as any]
+          });
+          zoomSuccess = true;
+        }
+      } catch (err) {
+        console.warn('[Switch Lens Zoom Error]:', err);
+      }
+
+      // Nếu trình duyệt (đặc biệt Safari trên iOS) không cho zoom WebRTC sang 0.5x
+      if (mode === '0.5x' && !zoomSuccess) {
+        setShowNativeCamPrompt(true);
+      }
+    },
+    []
+  );
+
+  // Chuyển đổi giữa Chế độ 8 góc (cho cam 0.5x) và Chế độ 12 góc (cho cam 1x)
+  const handleSwitchAngleMode = useCallback(
+    (newMode: '8' | '12') => {
+      if (capturedCount > 0) {
+        const confirmChange = window.confirm(
+          `Bạn đã chụp ${capturedCount} góc. Việc đổi chế độ sang ${newMode} góc sẽ làm mới lại danh sách các góc chụp để chia đều chu vi 360°. Bạn có muốn tiếp tục?`
+        );
+        if (!confirmChange) return;
+      }
+      setAngleMode(newMode);
+      setSectors(newMode === '8' ? SECTORS_8 : SECTORS_12);
+      setSelectedSectorId(0);
+      initialHeadingRef.current = null;
+      lastHeadingRef.current = 0;
+      lastCapturedHeadingRef.current = -999;
+      steadyTimeRef.current = 0;
+      setStabilityProgress(0);
+    },
+    [capturedCount]
+  );
 
   // Quản lý Vòng đời & Cảm biến hướng DeviceOrientation
   useEffect(() => {
@@ -402,20 +497,22 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         return;
       }
 
-      // Kiểm tra xem camera đã xoay ít nhất 22 độ so với vị trí chụp trước đó chưa
+      // Kiểm tra xem camera đã xoay ít nhất một khoảng hợp lý so với vị trí chụp trước đó chưa
       let headingMoved = Math.abs(currentHeading - lastCapturedHeadingRef.current);
       if (headingMoved > 180) headingMoved = 360 - headingMoved;
-      if (lastCapturedHeadingRef.current !== -999 && headingMoved < 22) {
+      const minStepThreshold = (360 / totalSectors) * 0.45;
+      if (lastCapturedHeadingRef.current !== -999 && headingMoved < minStepThreshold) {
         setStabilityProgress(0);
         steadyTimeRef.current = 0;
         return;
       }
 
-      // Kiểm tra độ lệch với góc mục tiêu của sector (±14 độ)
+      // Kiểm tra độ lệch với góc mục tiêu của sector
       let diff = Math.abs(currentHeading - currentSector.targetAngle);
       if (diff > 180) diff = 360 - diff;
+      const maxTolerance = (360 / totalSectors) * 0.32; // ~14° cho 8 góc, ~9.6° cho 12 góc
 
-      if (diff <= 14) {
+      if (diff <= maxTolerance) {
         const deltaHeading = Math.abs(currentHeading - lastHeadingRef.current);
         lastHeadingRef.current = currentHeading;
 
@@ -524,7 +621,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       await uploadSectorFrame(file, targetSecIdx, localUrl, currSessionId);
 
       // Nhảy sang góc tiếp theo
-      setSelectedSectorId((prev) => (prev + 1) % 8);
+      setSelectedSectorId((prev) => (prev + 1) % totalSectors);
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
@@ -534,9 +631,9 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
   // Hoàn tất quét & Gửi lệnh ghép ảnh qua RabbitMQ
   const handleFinishAndStitch = async () => {
     if (!sessionId) return;
-    if (capturedCount < 6) {
+    if (capturedCount < minRequired) {
       alert(
-        `Bạn mới chụp ${capturedCount}/8 góc phòng. Để tạo không gian toàn cảnh 360° chuẩn không bị méo uốn lượn, vui lòng quay chụp tối thiểu 6 góc (khuyến nghị đủ 8 góc quanh phòng).`
+        `Bạn mới chụp ${capturedCount}/${totalSectors} góc phòng. Để tạo không gian toàn cảnh 360° chuẩn không bị méo uốn lượn, vui lòng quay chụp tối thiểu ${minRequired} góc (khuyến nghị đủ ${totalSectors} góc quanh phòng).`
       );
       return;
     }
@@ -544,7 +641,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
     try {
       setIsProcessingStitch(true);
       setStitchProgress(15);
-      setStitchMessage('Đang đóng gói 8 góc ảnh chuẩn không gian và gửi thông điệp vào RabbitMQ AMQP...');
+      setStitchMessage(`Đang đóng gói ${capturedCount} góc ảnh chuẩn không gian và gửi thông điệp vào RabbitMQ AMQP...`);
 
       const res = await fetch(`${API_BASE}/stitch/realtime/session/${sessionId}/finish`, {
         method: 'POST'
@@ -700,40 +797,88 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                   border: isReadyToStitch ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(212, 168, 106, 0.35)'
                 }}
               >
-                {capturedCount}/8 góc ({coveragePercent}%)
+                {capturedCount}/{totalSectors} góc ({coveragePercent}%)
               </span>
             </div>
             <div style={{ fontSize: '11px', color: '#a89f91', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {isComplete
-                ? 'Đã đủ 8 góc 360°! Bạn có thể bấm Ghép ảnh.'
+                ? `Đã đủ ${totalSectors} góc 360°! Bạn có thể bấm Ghép ảnh.`
                 : hasGyro
-                ? `Xoay máy lần lượt 8 hướng quanh phòng (Còn thiếu ${8 - capturedCount} góc)`
-                : `Lần lượt xoay máy chụp 8 góc quanh phòng (Còn thiếu ${8 - capturedCount} góc)`}
+                ? `Xoay máy lần lượt ${totalSectors} hướng quanh phòng (Còn thiếu ${totalSectors - capturedCount} góc)`
+                : `Lần lượt xoay máy chụp ${totalSectors} góc quanh phòng (Còn thiếu ${totalSectors - capturedCount} góc)`}
             </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            color: '#d1d5db',
-            borderRadius: '50%',
-            width: 32,
-            height: 32,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexShrink: 0,
-            transition: 'background 0.2s'
-          }}
-          title="Đóng máy ảnh"
-        >
-          <X size={16} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Nút chuyển đổi chế độ 8 góc (0.5x Siêu rộng) vs 12 góc (1x Chuẩn) */}
+          <div
+            style={{
+              display: 'flex',
+              background: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: 16,
+              padding: 2,
+              border: '1px solid rgba(212, 168, 106, 0.3)'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => handleSwitchAngleMode('8')}
+              style={{
+                border: 'none',
+                background: angleMode === '8' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
+                color: angleMode === '8' ? '#000' : '#d1d5db',
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: 12,
+                cursor: 'pointer'
+              }}
+              title="8 góc (Khuyên dùng khi có camera 0.5x)"
+            >
+              8 góc (0.5x)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSwitchAngleMode('12')}
+              style={{
+                border: 'none',
+                background: angleMode === '12' ? 'var(--accent-gold, #d4a86a)' : 'transparent',
+                color: angleMode === '12' ? '#000' : '#d1d5db',
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: 12,
+                cursor: 'pointer'
+              }}
+              title="12 góc (Khuyên dùng khi máy chỉ có camera 1x)"
+            >
+              12 góc (1x)
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#d1d5db',
+              borderRadius: '50%',
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+              transition: 'background 0.2s'
+            }}
+            title="Đóng máy ảnh"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Main Viewport */}
@@ -1029,15 +1174,68 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             />
           </div>
 
-          {/* Bottom Missing Angles Pill */}
-          <div style={{ alignSelf: 'center', display: 'flex', justifyContent: 'center' }}>
+          {/* Lens FOV Mode Switcher (0.5x Siêu Rộng vs 1x Chuẩn) */}
+          <div style={{ alignSelf: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, pointerEvents: 'auto' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'rgba(20, 18, 16, 0.88)',
+                backdropFilter: 'blur(8px)',
+                padding: '3px 6px',
+                borderRadius: 20,
+                border: '1px solid rgba(212, 168, 106, 0.45)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleSwitchLens('0.5x')}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 14,
+                  border: 'none',
+                  background: lensMode === '0.5x' ? 'linear-gradient(135deg, #d4a86a 0%, #b45309 100%)' : 'transparent',
+                  color: lensMode === '0.5x' ? '#000000' : '#d1d5db',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Góc siêu rộng 0.5x: Ôm trọn cả trần nhà & sàn gạch phòng"
+              >
+                0.5x Siêu Rộng
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSwitchLens('1x')}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 14,
+                  border: 'none',
+                  background: lensMode === '1x' ? 'linear-gradient(135deg, #d4a86a 0%, #b45309 100%)' : 'transparent',
+                  color: lensMode === '1x' ? '#000000' : '#d1d5db',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Góc 1x chuẩn"
+              >
+                1x Chuẩn
+              </button>
+            </div>
+
+            {/* Bottom Missing Angles Pill */}
             <span
               style={{
                 fontSize: '11px',
                 fontWeight: 500,
                 background: 'rgba(20, 18, 16, 0.85)',
                 backdropFilter: 'blur(6px)',
-                padding: '5px 14px',
+                padding: '4px 12px',
                 borderRadius: 16,
                 border: '1px solid rgba(212, 168, 106, 0.25)',
                 color: '#e5ded5',
@@ -1045,11 +1243,78 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               }}
             >
               {isComplete
-                ? 'Đã đủ 8/8 góc 360°! Bấm "Ghép ảnh 360°" bên dưới để hoàn tất.'
+                ? `Đã đủ ${totalSectors}/${totalSectors} góc 360°! Bấm "Ghép ảnh 360°" bên dưới để hoàn tất.`
                 : `Còn thiếu: ${missingSectors.map((s) => s.shortLabel).join(', ')}`}
             </span>
           </div>
         </div>
+
+        {/* Thông báo hướng dẫn mở Camera Gốc 0.5x trên iPhone / Android khi WebRTC bị giới hạn */}
+        {showNativeCamPrompt && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 80,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(24, 20, 18, 0.97)',
+              border: '1px solid var(--accent-gold, #d4a86a)',
+              borderRadius: 14,
+              padding: '12px 16px',
+              maxWidth: '92%',
+              width: 380,
+              zIndex: 30,
+              boxShadow: '0 8px 30px rgba(0,0,0,0.7)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              pointerEvents: 'auto'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Camera size={15} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-gold, #d4a86a)' }}>
+                  Chụp góc Siêu Rộng 0.5x sắc nét
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNativeCamPrompt(false)}
+                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 2 }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <p style={{ fontSize: '11px', color: '#e5e7eb', margin: 0, lineHeight: 1.45 }}>
+              Trình duyệt Safari/Chrome bảo mật không cho đổi phần cứng sang 0.5x trực tiếp qua Web. Bạn hãy bấm nút bên dưới để mở <b>Máy ảnh gốc của điện thoại</b> và chạm vào số <b>0.5</b> để chụp bao trọn cả trần lẫn sàn!
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNativeCamPrompt(false);
+                cameraCaptureRef.current?.click();
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #8c2d19 0%, #b45309 100%)',
+                color: '#ffffff',
+                border: '1px solid rgba(212, 168, 106, 0.5)',
+                padding: '8px 14px',
+                borderRadius: 8,
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6
+              }}
+            >
+              <Camera size={14} />
+              <span>Mở Máy Ảnh Gốc để chọn 0.5x</span>
+            </button>
+          </div>
+        )}
 
         {/* Camera Error Alert & Fallback Card */}
         {cameraError && (
@@ -1419,34 +1684,59 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           flexShrink: 0
         }}
       >
-        {/* Toggle Tự bắt góc (Chỉ áp dụng khi có cảm biến xoay) */}
-        <button
-          type="button"
-          onClick={() => {
-            if (!hasGyro) {
-              handleRequestGyroPermission();
-            } else {
-              setIsAutoDetecting((prev) => !prev);
-            }
-          }}
-          style={{
-            padding: '8px 10px',
-            borderRadius: 8,
-            border: hasGyro && isAutoDetecting ? '1px solid var(--accent-gold, #d4a86a)' : '1px solid rgba(255, 255, 255, 0.15)',
-            background: hasGyro && isAutoDetecting ? 'rgba(212, 168, 106, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-            color: hasGyro && isAutoDetecting ? 'var(--accent-gold, #d4a86a)' : '#8b8478',
-            fontSize: '11px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {hasGyro ? <Compass size={13} /> : <Compass size={13} />}
-          <span>{hasGyro ? (isAutoDetecting ? 'Tự bắt: Bật' : 'Tự bắt: Tắt') : 'Bật La Bàn'}</span>
-        </button>
+        {/* Toggle Tự bắt góc & Nút Cam 0.5x */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (!hasGyro) {
+                handleRequestGyroPermission();
+              } else {
+                setIsAutoDetecting((prev) => !prev);
+              }
+            }}
+            style={{
+              padding: '8px 10px',
+              borderRadius: 8,
+              border: hasGyro && isAutoDetecting ? '1px solid var(--accent-gold, #d4a86a)' : '1px solid rgba(255, 255, 255, 0.15)',
+              background: hasGyro && isAutoDetecting ? 'rgba(212, 168, 106, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+              color: hasGyro && isAutoDetecting ? 'var(--accent-gold, #d4a86a)' : '#8b8478',
+              fontSize: '11px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Compass size={13} />
+            <span>{hasGyro ? (isAutoDetecting ? 'Tự bắt' : 'Thủ công') : 'Bật La Bàn'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => cameraCaptureRef.current?.click()}
+            style={{
+              padding: '8px 10px',
+              borderRadius: 8,
+              border: '1px solid rgba(212, 168, 106, 0.45)',
+              background: 'rgba(212, 168, 106, 0.12)',
+              color: 'var(--accent-gold, #d4a86a)',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              whiteSpace: 'nowrap'
+            }}
+            title="Mở ứng dụng Camera gốc của máy để chọn góc 0.5x siêu nét"
+          >
+            <Camera size={13} />
+            <span>Cam 0.5x</span>
+          </button>
+        </div>
 
         {/* Nút chụp góc đang chọn (Shutter Button) */}
         <button
@@ -1522,7 +1812,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           }}
         >
           <Check size={14} />
-          <span>Ghép ảnh ({capturedCount}/8)</span>
+          <span>Ghép ảnh ({capturedCount}/{totalSectors})</span>
         </button>
       </div>
     </div>
