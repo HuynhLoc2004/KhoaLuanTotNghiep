@@ -53,11 +53,70 @@ const STITCHER_SCRIPT = process.env.STITCHER_SCRIPT || path.join(__dirname, '../
 const sessions = new Map<string, StreamSession>();
 let isConsumerInitialized = false;
 
+function getSessionDiskPath(sessionId: string): string {
+  return path.join(REALTIME_DIR, sessionId, 'session.json');
+}
+
+export function saveSessionToDisk(session: StreamSession): void {
+  try {
+    const sessionDir = path.join(REALTIME_DIR, session.id);
+    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+    fs.writeFileSync(getSessionDiskPath(session.id), JSON.stringify(session, null, 2), 'utf-8');
+  } catch (err: any) {
+    console.warn(`[Realtime Session] Không thể lưu session.json cho ${session.id}:`, err.message);
+  }
+}
+
+export function restoreSessionFromDisk(sessionId: string): StreamSession | null {
+  try {
+    const jsonPath = getSessionDiskPath(sessionId);
+    if (fs.existsSync(jsonPath)) {
+      const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      if (data && data.id === sessionId) {
+        sessions.set(sessionId, data);
+        return data;
+      }
+    }
+
+    // Nếu không có session.json nhưng có thư mục chứa ảnh frame trên đĩa
+    const sessionDir = path.join(REALTIME_DIR, sessionId);
+    if (fs.existsSync(sessionDir)) {
+      const files = fs.readdirSync(sessionDir).filter((f) => f.startsWith('frame_') && (f.endsWith('.jpg') || f.endsWith('.jpeg') || f.endsWith('.png')));
+      if (files.length > 0) {
+        const frames: StreamFrame[] = files.map((filename, idx) => ({
+          index: idx + 1,
+          timestamp: Date.now(),
+          cloudinaryUrl: `/uploads/realtime_scans/${sessionId}/${filename}`,
+          localPath: path.join(sessionDir, filename),
+          sizeBytes: fs.statSync(path.join(sessionDir, filename)).size
+        }));
+
+        const recovered: StreamSession = {
+          id: sessionId,
+          name: `Khôi phục phiên quét #${sessionId.slice(-5)}`,
+          status: 'recording',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          frames,
+          progress: 0,
+          message: `Đã khôi phục ${frames.length} góc ảnh từ đĩa.`
+        };
+        sessions.set(sessionId, recovered);
+        saveSessionToDisk(recovered);
+        return recovered;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[Realtime Session] Không thể khôi phục ${sessionId} từ đĩa:`, err.message);
+  }
+  return null;
+}
+
 /**
  * Khởi tạo một phiên quay quét phòng realtime mới
  */
-export function createStreamSession(name?: string): StreamSession {
-  const sessionId = `stream_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+export function createStreamSession(name?: string, customSessionId?: string): StreamSession {
+  const sessionId = customSessionId || `stream_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const sessionDir = path.join(REALTIME_DIR, sessionId);
   if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
@@ -73,14 +132,15 @@ export function createStreamSession(name?: string): StreamSession {
   };
 
   sessions.set(sessionId, session);
+  saveSessionToDisk(session);
   return session;
 }
 
 /**
- * Lấy thông tin phiên quét
+ * Lấy thông tin phiên quét (tự động khôi phục từ đĩa nếu server vừa khởi động lại)
  */
 export function getStreamSession(sessionId: string): StreamSession | null {
-  return sessions.get(sessionId) || null;
+  return sessions.get(sessionId) || restoreSessionFromDisk(sessionId) || null;
 }
 
 /**
@@ -102,9 +162,10 @@ export async function addFrameToSession(
   ext: string = '.jpg',
   sectorIndex?: number
 ): Promise<StreamFrame> {
-  const session = sessions.get(sessionId);
+  let session = sessions.get(sessionId) || restoreSessionFromDisk(sessionId);
   if (!session) {
-    throw new Error(`Phiên quét [${sessionId}] không tồn tại hoặc đã hết hạn.`);
+    // Tự động khởi tạo phiên để không bao giờ bị mất kết nối hay lỗi phiên quét không tồn tại
+    session = createStreamSession(undefined, sessionId);
   }
 
   if (session.status !== 'recording') {
@@ -177,6 +238,7 @@ export async function addFrameToSession(
 
   session.updatedAt = Date.now();
   session.message = `Đã thu thập ${session.frames.length} góc chụp toàn cảnh.`;
+  saveSessionToDisk(session);
 
   // Đẩy sự kiện góc chụp mới vào RabbitMQ AMQP Broker
   await sendToRabbitMQ(QUEUES.REALTIME_ROOM_STREAM, {
@@ -195,7 +257,7 @@ export async function addFrameToSession(
  * Kích hoạt lệnh hoàn tất quét & ghép ảnh trong hàng đợi RabbitMQ
  */
 export async function triggerStitchSession(sessionId: string): Promise<StreamSession> {
-  const session = sessions.get(sessionId);
+  let session = sessions.get(sessionId) || restoreSessionFromDisk(sessionId);
   if (!session) {
     throw new Error(`Phiên quét [${sessionId}] không tồn tại.`);
   }
@@ -208,6 +270,7 @@ export async function triggerStitchSession(sessionId: string): Promise<StreamSes
   session.progress = 10;
   session.message = `Đang đưa tác vụ ghép ${session.frames.length} góc ảnh vào hàng đợi RabbitMQ...`;
   session.updatedAt = Date.now();
+  saveSessionToDisk(session);
 
   // Đẩy yêu cầu vào RabbitMQ
   const pushed = await sendToRabbitMQ(QUEUES.REALTIME_ROOM_STREAM, {
@@ -231,13 +294,14 @@ export async function triggerStitchSession(sessionId: string): Promise<StreamSes
  * Thực thi thuật toán OpenCV Global Feature Matching & Blending cho toàn bộ ảnh của phiên
  */
 export async function processSessionStitching(sessionId: string): Promise<void> {
-  const session = sessions.get(sessionId);
+  const session = sessions.get(sessionId) || restoreSessionFromDisk(sessionId);
   if (!session) return;
 
   try {
     session.status = 'processing';
     session.progress = 25;
     session.message = `Đang chuẩn bị ${session.frames.length} góc ảnh từ Cloudinary & lưu trữ cục bộ...`;
+    saveSessionToDisk(session);
 
     // Sắp xếp các góc ảnh đúng tuần tự chu vi 360 độ theo chiều kim đồng hồ (0° -> 45° -> ... -> 315°)
     session.frames.sort((a, b) => {
@@ -403,12 +467,14 @@ export async function processSessionStitching(sessionId: string): Promise<void> 
     };
 
     broadcastRealtimeEvent('rooms_updated', session.result);
+    saveSessionToDisk(session);
     console.log(`[Realtime Stream Service] Phiên quét ${sessionId} đã hoàn tất ghép thành công: ${finalPanoramaUrl}`);
   } catch (err: any) {
     session.status = 'failed';
     session.error = err.message || 'Lỗi ghép không gian phòng';
     session.message = `Ghép không gian thất bại: ${err.message}`;
     session.updatedAt = Date.now();
+    saveSessionToDisk(session);
     console.error(`[Realtime Stream Service Stitch Error on ${sessionId}]:`, err);
   }
 }
