@@ -91,6 +91,9 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isInsecureHttp, setIsInsecureHttp] = useState(false);
 
+  // Nhận diện thiết bị di động (iPhone / Android) hay máy tính (Laptop / PC)
+  const isMobileDevice = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
   // Quản lý cung góc 360° & Chế độ ống kính
   const [angleMode, setAngleMode] = useState<'8' | '12'>('8');
   const [lensMode, setLensMode] = useState<'0.5x' | '1x'>('0.5x');
@@ -408,6 +411,8 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       if (!track) return;
 
       let zoomSuccess = false;
+
+      // Cách 1: Thử áp dụng thuộc tính zoom phần cứng W3C (hỗ trợ Chrome Android, Safari iOS 17+)
       try {
         const caps: any = (track.getCapabilities && track.getCapabilities()) || {};
         if (caps.zoom) {
@@ -421,7 +426,35 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         console.warn('[Switch Lens Zoom Error]:', err);
       }
 
-      // Nếu trình duyệt (đặc biệt Safari trên iOS) không cho zoom WebRTC sang 0.5x
+      // Cách 2: Quét danh sách camera vật lý để tìm ống kính góc siêu rộng Ultra-Wide
+      if (mode === '0.5x' && !zoomSuccess && typeof navigator !== 'undefined' && navigator.mediaDevices?.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoInputs = devices.filter((d) => d.kind === 'videoinput');
+          const ultraDevice = videoInputs.find(
+            (d) =>
+              d.label.toLowerCase().includes('ultra') ||
+              d.label.toLowerCase().includes('0.5') ||
+              d.label.toLowerCase().includes('wide-angle')
+          );
+          if (ultraDevice && ultraDevice.deviceId && ultraDevice.deviceId !== track.getSettings()?.deviceId) {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+              video: { deviceId: { exact: ultraDevice.deviceId } }
+            });
+            streamRef.current?.getTracks().forEach((t) => t.stop());
+            streamRef.current = newStream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = newStream;
+              await videoRef.current.play().catch(() => undefined);
+            }
+            zoomSuccess = true;
+          }
+        } catch (enumErr) {
+          console.warn('[Enumerate Device Switch Warning]:', enumErr);
+        }
+      }
+
+      // Nếu thiết bị không hỗ trợ zoom WebRTC (như Webcam máy tính hoặc iOS Safari hạn chế)
       if (mode === '0.5x' && !zoomSuccess) {
         setShowNativeCamPrompt(true);
       }
@@ -1275,7 +1308,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Camera size={15} style={{ color: 'var(--accent-gold, #d4a86a)' }} />
                 <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-gold, #d4a86a)' }}>
-                  Chụp góc Siêu Rộng 0.5x sắc nét
+                  {isMobileDevice ? 'Chụp góc Siêu Rộng 0.5x sắc nét' : 'Thông tin camera 0.5x (Laptop / PC)'}
                 </span>
               </div>
               <button
@@ -1287,32 +1320,53 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               </button>
             </div>
             <p style={{ fontSize: '11px', color: '#e5e7eb', margin: 0, lineHeight: 1.45 }}>
-              Trình duyệt Safari/Chrome bảo mật không cho đổi phần cứng sang 0.5x trực tiếp qua Web. Bạn hãy bấm nút bên dưới để mở <b>Máy ảnh gốc của điện thoại</b> và chạm vào số <b>0.5</b> để chụp bao trọn cả trần lẫn sàn!
+              {isMobileDevice
+                ? 'Trình duyệt Safari/Chrome bảo mật không cho đổi phần cứng sang 0.5x trực tiếp qua Web. Bạn hãy bấm nút bên dưới để mở Máy ảnh gốc của điện thoại và chạm vào số 0.5 để chụp bao trọn cả trần lẫn sàn!'
+                : 'Bạn đang mở trên máy tính (Laptop/PC). Webcam máy tính chỉ có 1 mắt kính góc cố định, không có phần cứng ống kính góc siêu rộng 0.5x như điện thoại di động (iPhone/Android). Vui lòng dùng điện thoại mở trang web để quét phòng 360° với camera 0.5x nhé!'}
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                setShowNativeCamPrompt(false);
-                cameraCaptureRef.current?.click();
-              }}
-              style={{
-                background: 'linear-gradient(135deg, #8c2d19 0%, #b45309 100%)',
-                color: '#ffffff',
-                border: '1px solid rgba(212, 168, 106, 0.5)',
-                padding: '8px 14px',
-                borderRadius: 8,
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6
-              }}
-            >
-              <Camera size={14} />
-              <span>Mở Máy Ảnh Gốc để chọn 0.5x</span>
-            </button>
+            {isMobileDevice ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNativeCamPrompt(false);
+                  cameraCaptureRef.current?.click();
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #8c2d19 0%, #b45309 100%)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(212, 168, 106, 0.5)',
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <Camera size={14} />
+                <span>Mở Máy Ảnh Gốc để chọn 0.5x</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowNativeCamPrompt(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: '#f3f4f6',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  padding: '7px 12px',
+                  borderRadius: 8,
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Đã hiểu (Dùng camera hiện tại)
+              </button>
+            )}
           </div>
         )}
 
