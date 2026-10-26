@@ -603,10 +603,12 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       const localUrl = URL.createObjectURL(file);
 
       let targetSecIdx = selectedSectorId;
-      const targetSec = sectors[targetSecIdx];
-      if (targetSec.isCaptured) {
-        const nextMissing = sectors.find((s) => !s.isCaptured);
-        if (nextMissing) targetSecIdx = nextMissing.id;
+      if (files.length > 1) {
+        const targetSec = sectors[targetSecIdx];
+        if (targetSec.isCaptured) {
+          const nextMissing = sectors.find((s) => !s.isCaptured);
+          if (nextMissing) targetSecIdx = nextMissing.id;
+        }
       }
 
       setSectors((prev) =>
@@ -623,7 +625,12 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       );
 
       await uploadSectorFrame(file, targetSecIdx, localUrl, sid);
-      setSelectedSectorId((prev) => (prev + 1) % totalSectors);
+      const nextMissing = sectors.find((s) => !s.isCaptured && s.id !== targetSecIdx);
+      if (nextMissing) {
+        setSelectedSectorId(nextMissing.id);
+      } else {
+        setSelectedSectorId((prev) => (prev + 1) % totalSectors);
+      }
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
@@ -1517,20 +1524,23 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               type="button"
               onClick={() => cameraCaptureRef.current?.click()}
               style={{
-                width: 30,
-                height: 30,
+                padding: '6px 10px',
                 borderRadius: 4,
-                border: '1px solid #362F29',
-                background: '#24201D',
-                color: '#A3978C',
+                border: '1px solid #D4A86A',
+                background: 'rgba(212, 168, 106, 0.12)',
+                color: '#D4A86A',
+                fontSize: '11px',
+                fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
+                gap: 5,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
               }}
-              title="Mở máy ảnh thiết bị"
+              title="Mở máy ảnh thiết bị (Hỗ trợ chọn ống kính 0.5x Siêu Rộng)"
             >
               <Camera size={13} />
+              <span>Chụp 0.5x</span>
             </button>
           </div>
 

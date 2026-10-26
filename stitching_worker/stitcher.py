@@ -1219,8 +1219,10 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     5. Hòa trộn Voronoi Mặt Trụ Tuần Hoàn (Periodic Cylinder Distance Transform):
        - Dán và hòa trộn mềm theo modulo W_360 tại mí nối 0°/360° -> Mép trái và mép phải nối liền 100% không tì vết!
     """
-    # 0. Khử trùng lặp khung hình khi đứng yên trước khi ghép
-    image_paths = filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=36)
+    # 0. Chỉ khử khung hình khi có quá nhiều frame liên tục (> 16 frames từ video/live stream).
+    # Với chùm ảnh từng góc phòng cố định (8 hoặc 12 góc), bảo tồn tuyệt đối 100% tất cả các góc!
+    if len(image_paths) > 16:
+        image_paths = filter_smart_keyframes(image_paths, target_dim=800, max_keyframes=36)
 
     N_raw = len(image_paths)
     if N_raw == 0:
@@ -1246,18 +1248,19 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
     if len(raw_images) == 1:
         return raw_images[0], False, None
 
-    # 2. Khử các ảnh chụp đứng yên trùng lặp tuyệt đối (MSE < 5.0)
-    filtered = [raw_images[0]]
-    for idx in range(1, len(raw_images)):
-        prev = filtered[-1]
-        cur = raw_images[idx]
-        if prev.shape == cur.shape:
-            diff = float(np.mean(np.abs(prev.astype(np.float32) - cur.astype(np.float32))))
-            if diff < 5.0:
-                log(f"[*] Bỏ qua ảnh chụp trùng góc {idx} (diff={diff:.2f})")
-                continue
-        filtered.append(cur)
-    raw_images = filtered
+    # 2. Khử các ảnh chụp đứng yên trùng lặp tuyệt đối (chỉ áp dụng cho stream liên tục > 16 ảnh)
+    if len(raw_images) > 16:
+        filtered = [raw_images[0]]
+        for idx in range(1, len(raw_images)):
+            prev = filtered[-1]
+            cur = raw_images[idx]
+            if prev.shape == cur.shape:
+                diff = float(np.mean(np.abs(prev.astype(np.float32) - cur.astype(np.float32))))
+                if diff < 5.0:
+                    log(f"[*] Bỏ qua ảnh chụp trùng góc {idx} (diff={diff:.2f})")
+                    continue
+            filtered.append(cur)
+        raw_images = filtered
     N = len(raw_images)
     log(f"[*] Tiếp nhận {N} góc phòng độc lập...")
 
@@ -1339,7 +1342,7 @@ def run_sequential_cylindrical_stitcher(image_paths, target_width=4096):
 
         # Giữ đúng độ dời hình học thực tế giữa 2 ảnh để khớp khít 100% các thanh xà, mái hiên, viền cửa
         min_step = float(w0 * 0.02)
-        max_step = float(w0 * 0.65)
+        max_step = float(w0 * 0.85)
         step_dx = max(min_step, min(max_step, abs(best_dx)))
         max_physical_dy = float(h0 * 0.15)
         safe_dy = max(-max_physical_dy, min(max_physical_dy, best_dy))
@@ -1711,7 +1714,7 @@ def run_equiangular_cylindrical_stitcher(image_paths, target_width=4096, target_
 # PHẦN 7: PIPELINE ĐIỀU PHỐI CHÍNH (MAIN PIPELINE)
 # ============================================================================
 
-def run_stitch(image_paths, output_path, target_width=0):
+def run_stitch(image_paths, output_path, target_width=0, preserve_order=False):
     t0 = time.time()
     if not image_paths or len(image_paths) < 1:
         return {"success": False, "error": "ERR_TOO_FEW_IMAGES", "detail": "Vui lòng chọn ít nhất 1 ảnh."}
@@ -1756,8 +1759,12 @@ def run_stitch(image_paths, output_path, target_width=0):
             return {"success": False, "error": "ERR_SINGLE_PANO", "detail": str(e)}
 
     # TRƯỜNG HỢP 2: CHÙM ẢNH TỪNG GÓC XOAY 360°
-    sorted_paths = resolve_capture_sequence(image_paths)
-    log(f"[*] Tiếp nhận {len(sorted_paths)} ảnh góc chụp xoay quanh...")
+    if preserve_order:
+        sorted_paths = list(image_paths)
+        log(f"[*] Bảo tồn tuyệt đối thứ tự {len(sorted_paths)} ảnh góc chụp 360° tuần hoàn...")
+    else:
+        sorted_paths = resolve_capture_sequence(image_paths)
+        log(f"[*] Tiếp nhận {len(sorted_paths)} ảnh góc chụp xoay quanh...")
 
     final_pano = None
     engine_used = "none"
@@ -2101,6 +2108,7 @@ def main():
     parser.add_argument("--keyframes", type=int, default=0, help="Số khung hình cắt từ video")
     parser.add_argument("--verify-image", help="Thẩm định 1 khung hình chụp")
     parser.add_argument("--prev-image", default=None, help="Khung hình trước đó")
+    parser.add_argument("--preserve-order", action="store_true", help="Bảo tồn tuyệt đối thứ tự mảng ảnh từ caller")
 
     args = parser.parse_args()
 
@@ -2128,7 +2136,7 @@ def main():
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    res = run_stitch(args.images, args.output, target_width=args.width)
+    res = run_stitch(args.images, args.output, target_width=args.width, preserve_order=args.preserve_order)
     print(json.dumps(res, ensure_ascii=True, indent=2))
     sys.exit(0 if res.get("success") else 1)
 

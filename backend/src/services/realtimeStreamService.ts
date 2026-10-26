@@ -303,24 +303,36 @@ export async function processSessionStitching(sessionId: string): Promise<void> 
     session.message = `Đang chuẩn bị ${session.frames.length} góc ảnh từ Cloudinary & lưu trữ cục bộ...`;
     saveSessionToDisk(session);
 
-    // Sắp xếp các góc ảnh đúng tuần tự chu vi 360 độ theo chiều kim đồng hồ (0° -> 45° -> ... -> 315°)
-    session.frames.sort((a, b) => {
-      const secA = a.sectorIndex !== undefined ? a.sectorIndex : a.index;
-      const secB = b.sectorIndex !== undefined ? b.sectorIndex : b.index;
-      return secA - secB;
-    });
+    // 1. Phân loại và khử trùng lặp theo sectorIndex (chỉ giữ lại góc chụp mới nhất cho mỗi cung góc 360°)
+    const sectorMap = new Map<number, StreamFrame>();
+    const nonSectorFrames: StreamFrame[] = [];
 
-    let imagePaths = session.frames.map((f) => f.localPath).filter((p) => p && fs.existsSync(p));
+    for (const f of session.frames) {
+      if (f.sectorIndex !== undefined && f.sectorIndex !== null) {
+        sectorMap.set(f.sectorIndex, f);
+      } else {
+        nonSectorFrames.push(f);
+      }
+    }
+
+    let orderedFrames: StreamFrame[] = [];
+    if (sectorMap.size > 0) {
+      // Sắp xếp góc chụp tuần hoàn chuẩn hình học chu vi 360° (0° -> 45° -> 90° -> ... -> 315°)
+      const sortedKeys = Array.from(sectorMap.keys()).sort((a, b) => a - b);
+      orderedFrames = sortedKeys.map((sec) => sectorMap.get(sec)!);
+    } else {
+      orderedFrames = nonSectorFrames.sort((a, b) => a.index - b.index);
+    }
+
+    let imagePaths = orderedFrames.map((f) => f.localPath).filter((p) => p && fs.existsSync(p));
 
     if (imagePaths.length === 0) {
       throw new Error('Không tìm thấy tệp ảnh hợp lệ trên máy chủ để tiến hành ghép.');
     }
 
     // Tối ưu hóa tải tài nguyên cho VPS (2 vCPU / 8GB RAM):
-    // Nếu người dùng lia máy quét nhiều góc (ví dụ 30 - 80 góc):
-    // Hệ thống tự động chọn lọc 18 - 24 khung hình vàng (Golden Keyframes) trải đều 360°,
-    // vừa đảm bảo độ liền mạch tuyệt đối không góc chết, vừa giảm thời gian ghép từ 5 phút xuống 15-25s,
-    // và kiểm soát RAM tiêu thụ dưới 350 MB (hoàn toàn an toàn, không bao giờ lo quá tải VPS).
+    // Với chụp ảnh từng góc cố định (8 hoặc 12 góc), bảo tồn trọn vẹn 100% các góc chụp!
+    // Chỉ chọn lọc Golden Keyframes khi quét lia video liên tục (> 24 khung hình):
     const MAX_STITCH_FRAMES = 24;
     let actualProcessPaths = imagePaths;
     if (imagePaths.length > MAX_STITCH_FRAMES) {
@@ -349,7 +361,8 @@ export async function processSessionStitching(sessionId: string): Promise<void> 
     const args = [
       STITCHER_SCRIPT,
       '--images-file', tempJsonFile,
-      '--output', outputPath
+      '--output', outputPath,
+      '--preserve-order'
     ];
 
     console.log(`[Realtime Stitch Worker] Bắt đầu ghép ${actualProcessPaths.length} ảnh cho session ${sessionId}...`);
