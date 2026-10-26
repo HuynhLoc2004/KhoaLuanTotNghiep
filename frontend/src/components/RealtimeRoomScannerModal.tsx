@@ -5,13 +5,9 @@ import {
   Camera,
   RefreshCw,
   Check,
-  Upload,
   ShieldCheck,
   Compass,
-  RotateCw,
-  CheckCircle2,
   AlertCircle,
-  Sparkles,
   Loader2
 } from 'lucide-react';
 import { API_BASE } from '../services/api';
@@ -28,11 +24,11 @@ interface RealtimeRoomScannerModalProps {
 }
 
 export interface RoomSector {
-  id: number;            // 0..7 hoặc 0..11
-  targetAngle: number;   // 0, 45, 90, ...
-  label: string;         // 'Chính diện', 'Trước - Phải', ...
-  shortLabel: string;    // '0°', '45°', ...
-  directionName: string; // 'Trước', 'T-Phải', ...
+  id: number;
+  targetAngle: number;
+  label: string;
+  shortLabel: string;
+  directionName: string;
   isCaptured: boolean;
   thumbnailUrl?: string;
   blob?: Blob;
@@ -186,7 +182,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           console.warn('[Sector Frame Upload Warn]:', json.message);
         }
       } catch (err) {
-        console.warn('[Sector Frame Upload Network Error]:', err);
+        console.warn('[Sector Frame Upload Error]:', err);
       }
     },
     [ensureServerSession]
@@ -212,10 +208,10 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
 
       // Hiệu ứng nháy máy ảnh & rung phản hồi (haptic)
       setIsCapturingFlash(true);
-      setTimeout(() => setIsCapturingFlash(false), 160);
+      setTimeout(() => setIsCapturingFlash(false), 140);
       try {
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-          navigator.vibrate(40);
+          navigator.vibrate(35);
         }
       } catch (_) {}
 
@@ -291,7 +287,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           window.addEventListener('deviceorientation', handleOrientation, true);
           window.addEventListener('deviceorientationabsolute' as any, handleOrientation, true);
         } else {
-          alert('Cần cấp quyền cảm biến để máy tự nhận diện góc quay. Bạn vẫn có thể bấm nút chụp thủ công từng góc.');
+          alert('Chưa cấp quyền cảm biến góc quay. Bạn có thể bấm chụp thủ công từng góc.');
         }
       } catch (err) {
         console.warn('Gyro permission error:', err);
@@ -387,7 +383,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       const isDenied = err.name === 'NotAllowedError' || err.name === 'SecurityError';
       setCameraError(
         isDenied
-          ? 'Bạn chưa cho phép truy cập Camera. Vui lòng cấp quyền trong cài đặt trình duyệt để tiếp tục.'
+          ? 'Chưa cấp quyền truy cập máy ảnh. Vui lòng bật quyền Camera trong cài đặt trình duyệt để tiếp tục.'
           : (err.message || 'Không thể khởi động camera.')
       );
     }
@@ -403,7 +399,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
 
       let zoomSuccess = false;
 
-      // Cách 1: Áp dụng zoom phần cứng W3C
+      // Áp dụng zoom phần cứng W3C
       try {
         const caps: any = (track.getCapabilities && track.getCapabilities()) || {};
         if (caps.zoom) {
@@ -417,7 +413,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         console.warn('[Switch Lens Zoom Error]:', err);
       }
 
-      // Cách 2: Tìm camera Ultra-Wide
+      // Tìm camera Ultra-Wide
       if (mode === '0.5x' && !zoomSuccess && typeof navigator !== 'undefined' && navigator.mediaDevices?.enumerateDevices) {
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
@@ -458,7 +454,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
       if (newMode === angleMode) return;
       if (capturedCount > 0) {
         const ok = window.confirm(
-          `Bạn đã chụp ${capturedCount} góc. Đổi sang ${newMode} góc sẽ thiết lập lại danh sách góc để chia đều 360°. Bạn có muốn tiếp tục?`
+          `Bạn đã chụp ${capturedCount} góc. Việc đổi chế độ sang ${newMode} góc sẽ thiết lập lại danh sách góc chụp 360°. Bạn có muốn tiếp tục?`
         );
         if (!ok) return;
       }
@@ -521,7 +517,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         return;
       }
 
-      // Đã xoay góc đáng kể so với góc vừa chụp
       let headingMoved = Math.abs(currentHeading - lastCapturedHeadingRef.current);
       if (headingMoved > 180) headingMoved = 360 - headingMoved;
       const minStepThreshold = (360 / totalSectors) * 0.45;
@@ -531,7 +526,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         return;
       }
 
-      // Độ lệch với góc đích
       let diff = Math.abs(currentHeading - currentSector.targetAngle);
       if (diff > 180) diff = 360 - diff;
       const maxTolerance = (360 / totalSectors) * 0.32;
@@ -540,7 +534,6 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         const deltaHeading = Math.abs(currentHeading - lastHeadingRef.current);
         lastHeadingRef.current = currentHeading;
 
-        // Nếu giữ vững máy
         if (deltaHeading < 2.2) {
           steadyTimeRef.current += 150;
           const progress = Math.min(100, Math.round((steadyTimeRef.current / 800) * 100));
@@ -637,11 +630,11 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
     e.target.value = '';
   };
 
-  // Hoàn tất quét & Gửi lệnh ghép ảnh (SELF-HEALING TỰ ĐỘNG KHẮC PHỤC MẤT PHIÊN)
+  // Hoàn tất quét & Gửi lệnh ghép ảnh (Self-Healing)
   const handleFinishAndStitch = async () => {
     if (capturedCount < minRequired) {
       alert(
-        `Bạn đã chụp ${capturedCount}/${totalSectors} góc. Cần tối thiểu ${minRequired} góc (khuyến nghị đủ ${totalSectors} góc) để ghép không gian phòng 360° chuẩn không bị méo.`
+        `Cần tối thiểu ${minRequired}/${totalSectors} góc chụp để ghép không gian phòng 360° chuẩn không bị méo.`
       );
       return;
     }
@@ -649,7 +642,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
     try {
       setIsProcessingStitch(true);
       setStitchProgress(10);
-      setStitchMessage('Đang kết nối và gửi yêu cầu vào hàng đợi xử lý...');
+      setStitchMessage('Đang kết nối hệ thống và đưa dữ liệu vào hàng đợi...');
 
       let sid: string = sessionIdRef.current || (await ensureServerSession());
 
@@ -661,14 +654,13 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
 
       // CƠ CHẾ SELF-HEALING: Nếu phiên bị mất hoặc server vừa khởi động lại
       if (!res.ok || !json.success) {
-        console.warn('[Self-Healing] Phiên quét không tồn tại trên server, đang tự động đồng bộ lại từ thiết bị...');
-        setStitchMessage('Đang đồng bộ lại các góc ảnh từ thiết bị lên máy chủ...');
+        console.warn('[Self-Healing] Đồng bộ lại các góc ảnh từ thiết bị lên máy chủ...');
+        setStitchMessage('Đang đồng bộ dữ liệu góc ảnh lên máy chủ...');
 
-        // 1. Tạo phiên mới trên server
         const newSessRes = await fetch(`${API_BASE}/stitch/realtime/session/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `Quét phòng 360 khôi phục - ${new Date().toLocaleTimeString('vi-VN')}` })
+          body: JSON.stringify({ name: `Quét phòng 360 - ${new Date().toLocaleTimeString('vi-VN')}` })
         });
         const newSessJson = await newSessRes.json();
         if (!newSessJson.success || !newSessJson.session) {
@@ -678,14 +670,13 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         sid = newSessJson.session.id;
         updateSessionId(sid);
 
-        // 2. Re-upload toàn bộ ảnh đã chụp lưu trong bộ nhớ
         const capturedSectors = sectors.filter((s) => s.isCaptured && s.blob);
         let uploaded = 0;
         for (const sec of capturedSectors) {
           if (sec.blob) {
             uploaded++;
             setStitchProgress(Math.round(10 + (uploaded / capturedSectors.length) * 20));
-            setStitchMessage(`Đang tải ảnh góc ${sec.shortLabel} (${uploaded}/${capturedSectors.length})...`);
+            setStitchMessage(`Đang tải góc ${sec.shortLabel} (${uploaded}/${capturedSectors.length})...`);
 
             const fd = new FormData();
             fd.append('sessionId', sid);
@@ -699,8 +690,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           }
         }
 
-        // 3. Kích hoạt finish lại với phiên mới
-        setStitchMessage('Đang kích hoạt thuật toán ghép 360 qua RabbitMQ...');
+        setStitchMessage('Đang kích hoạt thuật toán ghép toàn cảnh 360°...');
         res = await fetch(`${API_BASE}/stitch/realtime/session/${sid}/finish`, {
           method: 'POST'
         });
@@ -710,7 +700,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         }
       }
 
-      // Bắt đầu Polling trạng thái tiến trình
+      // Polling trạng thái tiến trình
       let attempts = 0;
       if (statusPollingRef.current) clearInterval(statusPollingRef.current);
       statusPollingRef.current = setInterval(async () => {
@@ -721,12 +711,12 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           if (pollJson.success && pollJson.session) {
             const sess = pollJson.session;
             setStitchProgress(sess.progress || Math.min(95, 20 + attempts * 4));
-            setStitchMessage(sess.message || 'Thuật toán OpenCV đang trích xuất điểm đặc trưng & hòa trộn...');
+            setStitchMessage(sess.message || 'Thuật toán RootSIFT đang trích xuất điểm đặc trưng & nắn hình trụ...');
 
             if (sess.status === 'completed' && sess.result) {
               clearInterval(statusPollingRef.current);
               setStitchProgress(100);
-              setStitchMessage('Hoàn tất ghép không gian phòng 360°!');
+              setStitchMessage('Hoàn tất ghép không gian phòng 360°.');
 
               setTimeout(() => {
                 onCompleted({
@@ -770,11 +760,11 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
         position: 'fixed',
         inset: 0,
         zIndex: 99999999,
-        background: '#000000',
+        background: '#1A1715',
         display: 'flex',
         flexDirection: 'column',
-        color: '#f3f4f6',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        color: '#EBE5DF',
+        fontFamily: "var(--font-family, 'Be Vietnam Pro', -apple-system, sans-serif)",
         width: '100vw',
         height: '100dvh',
         maxHeight: '100dvh',
@@ -788,46 +778,36 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes pulseTargetRing {
-          0% { transform: scale(1); opacity: 0.85; }
-          50% { transform: scale(1.2); opacity: 0.35; }
-          100% { transform: scale(1); opacity: 0.85; }
-        }
         .rt-spinner {
           animation: rtSpin 0.9s linear infinite !important;
           transform-origin: center center !important;
         }
-        .rt-pulse-ring {
-          animation: pulseTargetRing 1.4s ease-in-out infinite;
-        }
       `}</style>
 
-      {/* TOP BAR: THIẾT KẾ TINH GỌN, CHUẨN NATIVE CAMERA, KHÔNG BAO GIỜ BỊ RỚT DÒNG */}
+      {/* ZONE 1: ADMIN HEADER BAR (VỮNG CHÃI, CHUẨN DESIGN SYSTEM BẢO TÀNG) */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '8px 14px',
+          padding: '8px 12px',
           paddingTop: 'max(8px, env(safe-area-inset-top, 8px))',
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#1A1715',
+          borderBottom: '1px solid #362F29',
           flexShrink: 0,
           height: 48,
           zIndex: 20
         }}
       >
-        {/* Nút Đóng X */}
+        {/* Nút Đóng */}
         <button
           type="button"
           onClick={onClose}
           style={{
-            background: 'rgba(255, 255, 255, 0.12)',
-            border: 'none',
-            color: '#f3f4f6',
-            borderRadius: '50%',
+            background: '#24201D',
+            border: '1px solid #362F29',
+            color: '#EBE5DF',
+            borderRadius: 6,
             width: 32,
             height: 32,
             display: 'flex',
@@ -836,20 +816,20 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             cursor: 'pointer',
             flexShrink: 0
           }}
-          title="Đóng camera"
+          title="Đóng máy ảnh"
         >
-          <X size={16} />
+          <X size={15} />
         </button>
 
-        {/* Chuyển đổi chế độ 8 góc vs 12 góc */}
+        {/* Tab chọn 8 góc (0.5x) vs 12 góc (1x) */}
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: 20,
+            background: '#24201D',
+            borderRadius: 6,
             padding: 2,
-            border: '1px solid rgba(255, 255, 255, 0.12)'
+            border: '1px solid #362F29'
           }}
         >
           <button
@@ -857,14 +837,14 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             onClick={() => handleSwitchAngleMode('8')}
             style={{
               border: 'none',
-              background: angleMode === '8' ? '#ffffff' : 'transparent',
-              color: angleMode === '8' ? '#000000' : '#d1d5db',
+              background: angleMode === '8' ? '#8C2D19' : 'transparent',
+              color: angleMode === '8' ? '#F9F6F0' : '#A3978C',
               fontSize: '11px',
-              fontWeight: 700,
+              fontWeight: angleMode === '8' ? 600 : 500,
               padding: '4px 10px',
-              borderRadius: 16,
+              borderRadius: 4,
               cursor: 'pointer',
-              transition: 'all 0.15s ease'
+              transition: 'background 0.15s ease'
             }}
           >
             8 góc (0.5x)
@@ -874,33 +854,33 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
             onClick={() => handleSwitchAngleMode('12')}
             style={{
               border: 'none',
-              background: angleMode === '12' ? '#ffffff' : 'transparent',
-              color: angleMode === '12' ? '#000000' : '#d1d5db',
+              background: angleMode === '12' ? '#8C2D19' : 'transparent',
+              color: angleMode === '12' ? '#F9F6F0' : '#A3978C',
               fontSize: '11px',
-              fontWeight: 700,
+              fontWeight: angleMode === '12' ? 600 : 500,
               padding: '4px 10px',
-              borderRadius: 16,
+              borderRadius: 4,
               cursor: 'pointer',
-              transition: 'all 0.15s ease'
+              transition: 'background 0.15s ease'
             }}
           >
             12 góc (1x)
           </button>
         </div>
 
-        {/* Badge đếm góc đã chụp */}
+        {/* Badge tiến độ */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 5,
-            background: isComplete ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-            border: isComplete ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(255, 255, 255, 0.12)',
-            color: isComplete ? '#4ade80' : '#f3f4f6',
-            padding: '3px 8px',
-            borderRadius: 14,
-            fontSize: '12px',
-            fontWeight: 700,
+            background: '#24201D',
+            border: '1px solid #362F29',
+            color: isComplete ? '#7F9E87' : '#D4A86A',
+            padding: '4px 8px',
+            borderRadius: 6,
+            fontSize: '11px',
+            fontWeight: 600,
             flexShrink: 0
           }}
         >
@@ -909,14 +889,14 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: isComplete ? '#4ade80' : '#f59e0b'
+              background: isComplete ? '#7F9E87' : '#D4A86A'
             }}
           />
-          <span>{capturedCount}/{totalSectors}</span>
+          <span>{capturedCount}/{totalSectors} góc</span>
         </div>
       </div>
 
-      {/* VIEWFINDER CAMERA TOÀN MÀN HÌNH */}
+      {/* ZONE 2: VIEWFINDER KHUNG NGẮM CAMERA */}
       <div
         style={{
           flex: 1,
@@ -925,7 +905,7 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#000000'
+          background: '#0D0C0B'
         }}
       >
         <video
@@ -948,279 +928,259 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               position: 'absolute',
               inset: 0,
               background: '#ffffff',
-              opacity: 0.7,
+              opacity: 0.4,
               pointerEvents: 'none',
-              transition: 'opacity 0.16s ease-out'
+              transition: 'opacity 0.12s ease-out'
             }}
           />
         )}
 
-        {/* HUD LỚP PHỦ TỐI GIẢN */}
+        {/* HUD THANH ĐIỀU HƯỚNG DUY NHẤT Ở TRÊN CÙNG (KHÔNG RƠI RỚT NHIỀU HỘP) */}
         <div
           style={{
             position: 'absolute',
-            inset: 12,
-            pointerEvents: 'none',
+            top: 10,
+            left: 10,
+            right: 10,
+            background: 'rgba(26, 23, 21, 0.9)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid #362F29',
+            borderRadius: 6,
+            padding: '6px 10px',
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between'
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            zIndex: 10
           }}
         >
-          {/* Top Row: Mini Radar La Bàn & Chỉ dẫn ngắn */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            {/* Radar la bàn tròn 44px tinh gọn */}
+          {/* La bàn mini & Hướng góc */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
             <div
               onClick={handleCalibrateHeading}
               style={{
-                pointerEvents: 'auto',
-                width: 44,
-                height: 44,
+                width: 32,
+                height: 32,
                 borderRadius: '50%',
-                background: 'rgba(0, 0, 0, 0.55)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: '#24201D',
+                border: '1px solid #362F29',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0
               }}
-              title="Chạm để đặt lại hướng 0°"
+              title="Chạm để căn lại hướng 0°"
             >
-              <svg width="40" height="40" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeDasharray="2 2" />
+              <svg width="28" height="28" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#473E36" strokeWidth="1.5" strokeDasharray="3 3" />
                 {sectors.map((sec) => {
                   const rad = ((sec.targetAngle - 90) * Math.PI) / 180;
                   const cx = 40 + 30 * Math.cos(rad);
                   const cy = 40 + 30 * Math.sin(rad);
                   const isTarget = sec.id === (hasGyro ? targetSector.id : selectedSectorId);
                   return (
-                    <g key={sec.id}>
-                      {isTarget && (
-                        <circle cx={cx} cy={cy} r="5" fill="none" stroke="#f59e0b" strokeWidth="1.5" className="rt-pulse-ring" />
-                      )}
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={sec.isCaptured ? 4 : 3}
-                        fill={sec.isCaptured ? '#22c55e' : isTarget ? '#f59e0b' : 'rgba(255,255,255,0.3)'}
-                      />
-                    </g>
+                    <circle
+                      key={sec.id}
+                      cx={cx}
+                      cy={cy}
+                      r={sec.isCaptured ? 3.5 : isTarget ? 3 : 2}
+                      fill={sec.isCaptured ? '#7F9E87' : isTarget ? '#D4A86A' : '#473E36'}
+                    />
                   );
                 })}
-                {/* Kim chỉ hướng */}
                 <g transform={`rotate(${compassNeedleAngle}, 40, 40)`}>
-                  <polygon points="40,16 36,40 44,40" fill="#f59e0b" />
-                  <polygon points="40,64 36,40 44,40" fill="rgba(255,255,255,0.4)" />
-                  <circle cx="40" cy="40" r="2.5" fill="#ffffff" />
+                  <polygon points="40,16 37,40 43,40" fill="#D4A86A" />
+                  <polygon points="40,64 37,40 43,40" fill="#473E36" />
+                  <circle cx="40" cy="40" r="2.5" fill="#EBE5DF" />
                 </g>
               </svg>
             </div>
 
-            {/* Chỉ dẫn ngắn 1 dòng thanh lịch */}
-            <div
-              style={{
-                pointerEvents: 'auto',
-                background: 'rgba(0, 0, 0, 0.55)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                padding: '5px 12px',
-                borderRadius: 20,
-                fontSize: '11px',
-                fontWeight: 600,
-                color: '#f3f4f6',
-                maxWidth: '65%',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              {hasGyro ? (
-                activeSector.isCaptured ? (
-                  `✓ Xong ${activeSector.shortLabel}. Xoay tới ${targetSector.shortLabel}`
-                ) : stabilityProgress > 0 ? (
-                  `Giữ yên máy... ${stabilityProgress}%`
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#D4A86A' }}>
+                  Góc {activeSector.shortLabel}
+                </span>
+                <span style={{ fontSize: '10px', color: activeSector.isCaptured ? '#7F9E87' : '#A3978C' }}>
+                  {activeSector.isCaptured ? '· Đã chụp' : `(${activeSector.label})`}
+                </span>
+              </div>
+              <div style={{ fontSize: '10px', color: '#7E7368', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {hasGyro ? (
+                  activeSector.isCaptured ? (
+                    `Xoay tiếp sang góc ${targetSector.shortLabel}`
+                  ) : stabilityProgress > 0 ? (
+                    `Giữ yên máy: ${stabilityProgress}%`
+                  ) : (
+                    `Xoay máy về hướng ${activeSector.shortLabel} và giữ yên`
+                  )
                 ) : (
-                  `Xoay về ${activeSector.shortLabel} và giữ yên`
-                )
-              ) : (
-                `Chụp hướng ${activeSector.shortLabel} (${activeSector.directionName})`
-              )}
+                  `Căn máy theo hướng ${activeSector.directionName} rồi bấm chụp`
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Nút chạm bật La Bàn (Chỉ hiện khi chưa cấp quyền iOS) */}
+          {/* Nút bật cảm biến la bàn trên iOS nếu chưa cấp quyền */}
           {!hasGyro && (
-            <div style={{ alignSelf: 'center', pointerEvents: 'auto' }}>
-              <button
-                type="button"
-                onClick={handleRequestGyroPermission}
-                style={{
-                  background: 'rgba(0, 0, 0, 0.75)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid #f59e0b',
-                  color: '#f59e0b',
-                  padding: '6px 14px',
-                  borderRadius: 20,
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  cursor: 'pointer'
-                }}
-              >
-                <Sparkles size={13} />
-                <span>Chạm để bật tự xoay la bàn (iOS)</span>
-              </button>
-            </div>
-          )}
-
-          {/* Vùng ngắm trung tâm (Reticle thanh mảnh phong cách Leica) */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 120,
-              height: 120,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none'
-            }}
-          >
-            {/* 4 góc khung ngắm */}
-            <div style={{ position: 'absolute', top: 0, left: 0, width: 14, height: 14, borderTop: '1.5px solid rgba(255,255,255,0.7)', borderLeft: '1.5px solid rgba(255,255,255,0.7)' }} />
-            <div style={{ position: 'absolute', top: 0, right: 0, width: 14, height: 14, borderTop: '1.5px solid rgba(255,255,255,0.7)', borderRight: '1.5px solid rgba(255,255,255,0.7)' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 14, height: 14, borderBottom: '1.5px solid rgba(255,255,255,0.7)', borderLeft: '1.5px solid rgba(255,255,255,0.7)' }} />
-            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderBottom: '1.5px solid rgba(255,255,255,0.7)', borderRight: '1.5px solid rgba(255,255,255,0.7)' }} />
-
-            {/* Vòng tròn đếm độ ổn định khi giữ máy */}
-            {stabilityProgress > 0 && !activeSector.isCaptured && (
-              <svg width="60" height="60" viewBox="0 0 60 60" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="3" />
-                <circle
-                  cx="30"
-                  cy="30"
-                  r="24"
-                  fill="none"
-                  stroke="#f59e0b"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeDasharray={150.8}
-                  strokeDashoffset={150.8 - (150.8 * stabilityProgress) / 100}
-                  style={{ transition: 'stroke-dashoffset 0.15s ease' }}
-                />
-              </svg>
-            )}
-
-            {/* Điểm tâm ngắm */}
-            <div
+            <button
+              type="button"
+              onClick={handleRequestGyroPermission}
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: activeSector.isCaptured ? '#22c55e' : '#f59e0b'
-              }}
-            />
-          </div>
-
-          {/* Phím chuyển ống kính 0.5x vs 1x kiểu Apple Camera */}
-          <div style={{ alignSelf: 'center', pointerEvents: 'auto' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'rgba(0, 0, 0, 0.5)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                padding: '3px 6px',
-                borderRadius: 24,
-                border: '1px solid rgba(255, 255, 255, 0.15)'
+                background: '#8C2D19',
+                border: '1px solid #702212',
+                color: '#F9F6F0',
+                borderRadius: 4,
+                padding: '4px 8px',
+                fontSize: '10px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                flexShrink: 0
               }}
             >
-              <button
-                type="button"
-                onClick={() => handleSwitchLens('0.5x')}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  border: 'none',
-                  background: lensMode === '0.5x' ? '#ffffff' : 'transparent',
-                  color: lensMode === '0.5x' ? '#000000' : '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '11px',
-                  cursor: 'pointer'
-                }}
-              >
-                .5
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSwitchLens('1x')}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  border: 'none',
-                  background: lensMode === '1x' ? '#ffffff' : 'transparent',
-                  color: lensMode === '1x' ? '#000000' : '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '11px',
-                  cursor: 'pointer'
-                }}
-              >
-                1x
-              </button>
-            </div>
-          </div>
+              Bật cảm biến
+            </button>
+          )}
         </div>
 
-        {/* Modal hướng dẫn khi Safari/trình duyệt không cho đổi sang 0.5x */}
+        {/* TÂM NGẮM LEICA THANH MẢNH */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 100,
+            height: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none'
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, width: 12, height: 12, borderTop: '1px solid #D4A86A', borderLeft: '1px solid #D4A86A' }} />
+          <div style={{ position: 'absolute', top: 0, right: 0, width: 12, height: 12, borderTop: '1px solid #D4A86A', borderRight: '1px solid #D4A86A' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, width: 12, height: 12, borderBottom: '1px solid #D4A86A', borderLeft: '1px solid #D4A86A' }} />
+          <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderBottom: '1px solid #D4A86A', borderRight: '1px solid #D4A86A' }} />
+
+          {/* Vòng đếm ổn định */}
+          {stabilityProgress > 0 && !activeSector.isCaptured && (
+            <svg width="50" height="50" viewBox="0 0 50 50" style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+              <circle
+                cx="25"
+                cy="25"
+                r="20"
+                fill="none"
+                stroke="#D4A86A"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeDasharray={125.6}
+                strokeDashoffset={125.6 - (125.6 * stabilityProgress) / 100}
+                style={{ transition: 'stroke-dashoffset 0.15s ease' }}
+              />
+            </svg>
+          )}
+
+          {/* Chấm tâm */}
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: activeSector.isCaptured ? '#7F9E87' : '#D4A86A'
+            }}
+          />
+        </div>
+
+        {/* NÚT CHUYỂN ỐNG KÍNH 0.5X vs 1X TINH TẾ */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(36, 32, 29, 0.9)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid #362F29',
+            borderRadius: 6,
+            padding: 2,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 2,
+            zIndex: 10
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => handleSwitchLens('0.5x')}
+            style={{
+              border: 'none',
+              background: lensMode === '0.5x' ? '#8C2D19' : 'transparent',
+              color: lensMode === '0.5x' ? '#F9F6F0' : '#A3978C',
+              fontWeight: 600,
+              fontSize: '11px',
+              padding: '3px 9px',
+              borderRadius: 4,
+              cursor: 'pointer'
+            }}
+          >
+            0.5x
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSwitchLens('1x')}
+            style={{
+              border: 'none',
+              background: lensMode === '1x' ? '#8C2D19' : 'transparent',
+              color: lensMode === '1x' ? '#F9F6F0' : '#A3978C',
+              fontWeight: 600,
+              fontSize: '11px',
+              padding: '3px 9px',
+              borderRadius: 4,
+              cursor: 'pointer'
+            }}
+          >
+            1.0x
+          </button>
+        </div>
+
+        {/* Thông báo camera 0.5x chuẩn Admin */}
         {showNativeCamPrompt && (
           <div
             style={{
               position: 'absolute',
-              bottom: 20,
+              bottom: 16,
               left: 16,
               right: 16,
               maxWidth: 380,
               margin: '0 auto',
-              background: 'rgba(20, 20, 20, 0.95)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: 14,
+              background: '#24201D',
+              border: '1px solid #362F29',
+              borderRadius: 8,
               padding: '14px 16px',
               zIndex: 30,
-              boxShadow: '0 8px 30px rgba(0,0,0,0.8)'
+              boxShadow: '0 8px 24px rgba(0,0,0,0.6)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Camera size={15} style={{ color: '#f59e0b' }} />
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#f59e0b' }}>
-                  Ống kính góc siêu rộng (0.5x)
-                </span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#D4A86A' }}>
+                Thông tin ống kính 0.5x
+              </span>
               <button
                 type="button"
                 onClick={() => setShowNativeCamPrompt(false)}
-                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 2 }}
+                style={{ background: 'none', border: 'none', color: '#A3978C', cursor: 'pointer', padding: 2 }}
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             </div>
-            <p style={{ fontSize: '11px', color: '#d1d5db', margin: 0, lineHeight: 1.45, marginBottom: 10 }}>
+            <p style={{ fontSize: '11px', color: '#EBE5DF', margin: 0, lineHeight: 1.5, marginBottom: 10 }}>
               {isMobileDevice
-                ? 'Trình duyệt Web không có quyền chuyển thẳng sang phần cứng ống kính 0.5x của iPhone/Android. Bạn có thể mở Máy ảnh gốc bên dưới để bấm vào số 0.5 chụp trọn cả trần nhà và sàn!'
-                : 'Webcam máy tính chỉ có một ống kính góc cố định, không có phần cứng camera 0.5x. Hãy dùng điện thoại mở web để quét phòng với camera 0.5x nhé!'}
+                ? 'Trình duyệt chưa hỗ trợ chuyển trực tiếp sang camera 0.5x của thiết bị. Bạn có thể mở ứng dụng máy ảnh gốc bên dưới để chọn góc 0.5x.'
+                : 'Máy tính hiện tại không có phần cứng camera góc siêu rộng 0.5x. Vui lòng mở hệ thống trên điện thoại di động.'}
             </p>
             {isMobileDevice ? (
               <button
@@ -1231,22 +1191,17 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 }}
                 style={{
                   width: '100%',
-                  background: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
+                  background: '#8C2D19',
+                  color: '#F9F6F0',
+                  border: '1px solid #702212',
+                  padding: '7px 12px',
+                  borderRadius: 6,
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
                 }}
               >
-                <Camera size={14} />
-                <span>Mở máy ảnh gốc chọn 0.5x</span>
+                Mở máy ảnh thiết bị
               </button>
             ) : (
               <button
@@ -1254,11 +1209,11 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 onClick={() => setShowNativeCamPrompt(false)}
                 style={{
                   width: '100%',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  color: '#f3f4f6',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  background: '#2C2723',
+                  color: '#EBE5DF',
+                  border: '1px solid #362F29',
                   padding: '7px 12px',
-                  borderRadius: 8,
+                  borderRadius: 6,
                   fontSize: '11px',
                   fontWeight: 600,
                   cursor: 'pointer'
@@ -1270,34 +1225,33 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           </div>
         )}
 
-        {/* Lỗi Camera / Chưa cấp quyền */}
+        {/* Lỗi Camera / Quyền truy cập */}
         {cameraError && (
           <div
             style={{
               position: 'absolute',
               inset: 20,
-              background: 'rgba(20, 20, 20, 0.95)',
-              backdropFilter: 'blur(16px)',
+              background: '#24201D',
+              border: '1px solid #362F29',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 14,
+              gap: 12,
               padding: 20,
-              borderRadius: 14,
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: 8,
               textAlign: 'center',
               zIndex: 30,
-              maxWidth: 380,
+              maxWidth: 360,
               margin: 'auto'
             }}
           >
-            <AlertCircle size={32} style={{ color: '#ef4444' }} />
+            <AlertCircle size={28} style={{ color: '#D9534F' }} />
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#f3f4f6' }}>
-                {isInsecureHttp ? 'Yêu cầu kết nối HTTPS' : 'Không thể mở máy ảnh'}
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#EBE5DF' }}>
+                {isInsecureHttp ? 'Yêu cầu kết nối bảo mật HTTPS' : 'Không thể kết nối máy ảnh'}
               </div>
-              <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: 4, lineHeight: 1.45 }}>
+              <div style={{ fontSize: '11px', color: '#A3978C', marginTop: 4, lineHeight: 1.5 }}>
                 {cameraError}
               </div>
             </div>
@@ -1309,11 +1263,11 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                   onClick={handleSwitchToHttps}
                   style={{
                     padding: '8px 12px',
-                    borderRadius: 8,
-                    background: '#1d4ed8',
-                    border: 'none',
-                    color: '#ffffff',
-                    fontSize: '12px',
+                    borderRadius: 6,
+                    background: '#8C2D19',
+                    border: '1px solid #702212',
+                    color: '#F9F6F0',
+                    fontSize: '11px',
                     fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
@@ -1332,11 +1286,11 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 onClick={() => cameraCaptureRef.current?.click()}
                 style={{
                   padding: '8px 12px',
-                  borderRadius: 8,
-                  background: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontSize: '12px',
+                  borderRadius: 6,
+                  background: '#2C2723',
+                  border: '1px solid #362F29',
+                  color: '#EBE5DF',
+                  fontSize: '11px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -1354,10 +1308,10 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
                 onClick={initSessionAndCamera}
                 style={{
                   padding: '7px 12px',
-                  borderRadius: 8,
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#cbd5e1',
+                  borderRadius: 6,
+                  background: 'transparent',
+                  border: '1px solid #362F29',
+                  color: '#A3978C',
                   fontSize: '11px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1373,15 +1327,13 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
           </div>
         )}
 
-        {/* Modal Xử lý Ghép 360 với tiến trình */}
+        {/* Modal Xử lý Ghép 360 */}
         {isProcessingStitch && (
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(10, 10, 10, 0.94)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
+              background: 'rgba(26, 23, 21, 0.96)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -1391,280 +1343,274 @@ export const RealtimeRoomScannerModal: React.FC<RealtimeRoomScannerModalProps> =
               zIndex: 40
             }}
           >
-            <div style={{ position: 'relative', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="64" height="64" viewBox="0 0 64 64" style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
-                <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="3.5" />
+            <div style={{ position: 'relative', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="56" height="56" viewBox="0 0 56 56" style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
+                <circle cx="28" cy="28" r="23" fill="none" stroke="#24201D" strokeWidth="3" />
                 <circle
-                  cx="32"
-                  cy="32"
-                  r="26"
+                  cx="28"
+                  cy="28"
+                  r="23"
                   fill="none"
-                  stroke="#f59e0b"
-                  strokeWidth="3.5"
+                  stroke="#D4A86A"
+                  strokeWidth="3"
                   strokeLinecap="round"
-                  strokeDasharray={163.36}
-                  strokeDashoffset={163.36 - (163.36 * Math.max(0, Math.min(100, stitchProgress))) / 100}
+                  strokeDasharray={144.5}
+                  strokeDashoffset={144.5 - (144.5 * Math.max(0, Math.min(100, stitchProgress))) / 100}
                   style={{ transition: 'stroke-dashoffset 0.3s ease' }}
                 />
               </svg>
-              <Loader2 size={24} className="rt-spinner" style={{ color: '#f59e0b' }} />
+              <Loader2 size={22} className="rt-spinner" style={{ color: '#D4A86A' }} />
             </div>
 
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#f3f4f6' }}>
-                Đang ghép không gian phòng 360°...
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#EBE5DF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Đang ghép toàn cảnh 360°
               </div>
-              <div style={{ fontSize: '11px', color: '#9ca3af', maxWidth: 280, marginTop: 4, lineHeight: 1.4 }}>
-                {stitchMessage || 'Đang phân tích và hòa trộn các góc ảnh...'}
+              <div style={{ fontSize: '11px', color: '#A3978C', maxWidth: 280, marginTop: 4, lineHeight: 1.45 }}>
+                {stitchMessage || 'Đang xử lý hòa trộn và cân chỉnh mặt trụ...'}
               </div>
             </div>
 
-            <div style={{ width: 220, height: 4, background: 'rgba(255, 255, 255, 0.1)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: 200, height: 4, background: '#24201D', borderRadius: 2, overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${stitchProgress}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, #f59e0b 0%, #22c55e 100%)',
+                  background: '#8C2D19',
                   transition: 'width 0.3s ease'
                 }}
               />
             </div>
-            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>{stitchProgress}%</span>
+            <span style={{ fontSize: '11px', color: '#D4A86A', fontWeight: 600 }}>{stitchProgress}%</span>
           </div>
         )}
       </div>
 
-      {/* DẢI FILMSTRIP CÁC GÓC CHỤP */}
-      <div
-        style={{
-          height: 52,
-          padding: '4px 10px',
-          background: 'rgba(10, 10, 10, 0.9)',
-          backdropFilter: 'blur(10px)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          overflowX: 'auto',
-          flexShrink: 0,
-          WebkitOverflowScrolling: 'touch'
-        }}
-      >
-        {sectors.map((sec) => {
-          const isActive = sec.id === (hasGyro ? aimingSectorId : selectedSectorId);
-          return (
-            <div
-              key={sec.id}
-              onClick={() => setSelectedSectorId(sec.id)}
+      {/* ZONE 3: BẢN ĐIỀU KHIỂN DƯỚI (SOLID CONSOLE, BẢO TÀNG HERITAGE) */}
+      <div style={{ background: '#1A1715', borderTop: '1px solid #362F29', flexShrink: 0 }}>
+        {/* HÀNG 1: FILMSTRIP DẢI PHIM CÁC GÓC */}
+        <div
+          style={{
+            height: 48,
+            padding: '4px 10px',
+            borderBottom: '1px solid #24201D',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          {sectors.map((sec) => {
+            const isActive = sec.id === (hasGyro ? aimingSectorId : selectedSectorId);
+            return (
+              <div
+                key={sec.id}
+                onClick={() => setSelectedSectorId(sec.id)}
+                style={{
+                  position: 'relative',
+                  width: 40,
+                  height: 38,
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                  border: isActive
+                    ? '1.5px solid #D4A86A'
+                    : sec.isCaptured
+                    ? '1px solid #7F9E87'
+                    : '1px solid #362F29',
+                  flexShrink: 0,
+                  background: sec.isCaptured ? '#0D0C0B' : '#24201D',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'border-color 0.15s ease'
+                }}
+                title={`Góc ${sec.shortLabel}`}
+              >
+                {sec.thumbnailUrl ? (
+                  <>
+                    <img src={sec.thumbnailUrl} alt={sec.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 1,
+                        right: 1,
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: '#7F9E87'
+                      }}
+                    />
+                  </>
+                ) : (
+                  <span style={{ fontSize: '10px', color: isActive ? '#D4A86A' : '#7E7368', fontWeight: 600 }}>
+                    {sec.shortLabel}
+                  </span>
+                )}
+
+                {sec.thumbnailUrl && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      fontSize: '7px',
+                      fontWeight: 600,
+                      color: '#EBE5DF',
+                      background: 'rgba(26,23,21,0.85)',
+                      textAlign: 'center',
+                      lineHeight: '10px'
+                    }}
+                  >
+                    {sec.shortLabel}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* HÀNG 2: THANH NÚT CHỤP VÀ HÀNH ĐỘNG (3 CỘT ĐỐI XỨNG, KHÔNG BAO GIỜ TRÀN) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 16px',
+            paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))',
+            height: 72
+          }}
+        >
+          {/* CỘT TRÁI: Chế độ Tự động / Thủ công & Nút máy ảnh phụ */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-start' }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (!hasGyro) {
+                  handleRequestGyroPermission();
+                } else {
+                  setIsAutoDetecting((prev) => !prev);
+                }
+              }}
               style={{
-                position: 'relative',
-                width: 44,
-                height: 42,
-                borderRadius: 6,
-                overflow: 'hidden',
-                border: isActive
-                  ? '2px solid #f59e0b'
-                  : sec.isCaptured
-                  ? '1px solid rgba(34, 197, 94, 0.6)'
-                  : '1px dashed rgba(255, 255, 255, 0.18)',
-                flexShrink: 0,
-                background: sec.isCaptured ? '#000000' : 'rgba(255, 255, 255, 0.04)',
+                padding: '6px 10px',
+                borderRadius: 4,
+                border: '1px solid #362F29',
+                background: hasGyro && isAutoDetecting ? 'rgba(212, 168, 106, 0.12)' : '#24201D',
+                color: hasGyro && isAutoDetecting ? '#D4A86A' : '#A3978C',
+                fontSize: '11px',
+                fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease'
+                gap: 5,
+                whiteSpace: 'nowrap'
               }}
-              title={`Góc ${sec.shortLabel}`}
             >
-              {sec.thumbnailUrl ? (
-                <>
-                  <img src={sec.thumbnailUrl} alt={sec.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 1,
-                      right: 1,
-                      background: '#15803d',
-                      borderRadius: '50%',
-                      width: 12,
-                      height: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Check size={8} style={{ color: '#fff' }} />
-                  </div>
-                </>
-              ) : (
-                <span style={{ fontSize: '10px', color: isActive ? '#f59e0b' : '#9ca3af', fontWeight: 700 }}>
-                  {sec.shortLabel}
-                </span>
-              )}
+              <Compass size={13} />
+              <span>{hasGyro ? (isAutoDetecting ? 'Tự động' : 'Thủ công') : 'La bàn'}</span>
+            </button>
 
-              {sec.thumbnailUrl && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    bottom: 1,
-                    left: 2,
-                    fontSize: '8px',
-                    fontWeight: 700,
-                    color: '#4ade80',
-                    background: 'rgba(0,0,0,0.6)',
-                    padding: '0 2px',
-                    borderRadius: 2
-                  }}
-                >
-                  {sec.shortLabel}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* THANH ĐIỀU KHIỂN CHỤP NATIVE: 3 CỘT ĐỐI XỨNG, KHÔNG BAO GIỜ TRÀN MÀN HÌNH */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 16px',
-          paddingBottom: 'max(14px, env(safe-area-inset-bottom, 14px))',
-          background: '#000000',
-          flexShrink: 0,
-          height: 78
-        }}
-      >
-        {/* CỘT TRÁI: Nút Tự bắt & Camera Upload */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-start' }}>
-          <button
-            type="button"
-            onClick={() => {
-              if (!hasGyro) {
-                handleRequestGyroPermission();
-              } else {
-                setIsAutoDetecting((prev) => !prev);
-              }
-            }}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: hasGyro && isAutoDetecting ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.15)',
-              background: hasGyro && isAutoDetecting ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.08)',
-              color: hasGyro && isAutoDetecting ? '#f59e0b' : '#9ca3af',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Compass size={13} />
-            <span>{hasGyro ? (isAutoDetecting ? 'Tự bắt' : 'Thủ công') : 'La bàn'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => cameraCaptureRef.current?.click()}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              background: 'rgba(255, 255, 255, 0.08)',
-              color: '#d1d5db',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-            title="Mở ứng dụng máy ảnh gốc"
-          >
-            <Camera size={14} />
-          </button>
-        </div>
-
-        {/* CỘT GIỮA: Nút Shutter Apple Camera kinh điển */}
-        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-          <button
-            type="button"
-            onClick={() => {
-              if (isCameraReady) {
-                captureSector(activeSector.id);
-              } else {
-                cameraCaptureRef.current?.click();
-              }
-            }}
-            disabled={isProcessingStitch}
-            style={{
-              width: 62,
-              height: 62,
-              borderRadius: '50%',
-              background: 'transparent',
-              border: '3px solid rgba(255, 255, 255, 0.9)',
-              padding: 3,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: isProcessingStitch ? 'not-allowed' : 'pointer',
-              transition: 'transform 0.12s ease'
-            }}
-            title={`Chụp góc ${activeSector.shortLabel}`}
-          >
-            <div
+            <button
+              type="button"
+              onClick={() => cameraCaptureRef.current?.click()}
               style={{
-                width: '100%',
-                height: '100%',
-                borderRadius: '50%',
-                background: activeSector.isCaptured ? '#22c55e' : '#f59e0b',
+                width: 30,
+                height: 30,
+                borderRadius: 4,
+                border: '1px solid #362F29',
+                background: '#24201D',
+                color: '#A3978C',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#000000',
-                fontWeight: 800,
-                fontSize: '11px'
+                cursor: 'pointer'
+              }}
+              title="Mở máy ảnh thiết bị"
+            >
+              <Camera size={13} />
+            </button>
+          </div>
+
+          {/* CỘT GIỮA: Nút Shutter chuẩn chuyên nghiệp */}
+          <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (isCameraReady) {
+                  captureSector(activeSector.id);
+                } else {
+                  cameraCaptureRef.current?.click();
+                }
+              }}
+              disabled={isProcessingStitch}
+              style={{
+                width: 58,
+                height: 58,
+                borderRadius: '50%',
+                background: 'transparent',
+                border: '2px solid #D4A86A',
+                padding: 3,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: isProcessingStitch ? 'not-allowed' : 'pointer',
+                transition: 'transform 0.1s ease'
+              }}
+              title={`Chụp góc ${activeSector.shortLabel}`}
+            >
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  background: activeSector.isCaptured ? '#7F9E87' : '#8C2D19',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#F9F6F0',
+                  fontWeight: 700,
+                  fontSize: '11px'
+                }}
+              >
+                {activeSector.isCaptured ? <Check size={16} /> : activeSector.shortLabel}
+              </div>
+            </button>
+          </div>
+
+          {/* CỘT PHẢI: Nút Ghép ảnh chuẩn nút Admin Bảo Tàng */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={handleFinishAndStitch}
+              disabled={capturedCount < minRequired || isProcessingStitch}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 4,
+                background: isReadyToStitch ? '#8C2D19' : '#24201D',
+                border: isReadyToStitch ? '1px solid #702212' : '1px solid #362F29',
+                color: isReadyToStitch ? '#F9F6F0' : '#7E7368',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: isReadyToStitch ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                whiteSpace: 'nowrap',
+                maxWidth: 100,
+                boxShadow: isReadyToStitch ? '0 2px 8px rgba(140, 45, 25, 0.4)' : 'none'
               }}
             >
-              {activeSector.isCaptured ? <Check size={16} style={{ color: '#fff' }} /> : activeSector.shortLabel}
-            </div>
-          </button>
-        </div>
-
-        {/* CỘT PHẢI: Nút Ghép ảnh (Không bao giờ tràn màn hình di động) */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={handleFinishAndStitch}
-            disabled={capturedCount < minRequired || isProcessingStitch}
-            style={{
-              padding: '7px 12px',
-              borderRadius: 20,
-              background: isReadyToStitch ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'rgba(255, 255, 255, 0.08)',
-              border: isReadyToStitch ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
-              color: isReadyToStitch ? '#000000' : '#6b7280',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: isReadyToStitch ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              whiteSpace: 'nowrap',
-              maxWidth: 96,
-              boxShadow: isReadyToStitch ? '0 2px 10px rgba(245, 158, 11, 0.4)' : 'none'
-            }}
-          >
-            <Check size={12} />
-            <span>Ghép ({capturedCount})</span>
-          </button>
+              <Check size={12} />
+              <span>Ghép ({capturedCount})</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Hidden file inputs for camera fallback & upload */}
+      {/* Inputs tệp ẩn */}
       <input
         ref={cameraCaptureRef}
         type="file"
