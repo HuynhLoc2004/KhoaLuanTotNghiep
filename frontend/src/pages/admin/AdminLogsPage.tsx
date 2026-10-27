@@ -89,6 +89,10 @@ export const AdminLogsPage: React.FC = () => {
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [deletingArchiveId, setDeletingArchiveId] = useState<string | null>(null);
 
+  // Chống đóng nhầm modal khi vuốt chuột hoặc scroll trượt ra ngoài
+  const inspectorBackdropRef = React.useRef(false);
+  const cleanupBackdropRef = React.useRef(false);
+
   // Debounce tìm kiếm từ khóa (350ms) để không bị giật lag khi gõ
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -854,9 +858,33 @@ export const AdminLogsPage: React.FC = () => {
 
       {/* 5. MODAL PHÂN TÍCH LOG TỪNG PHẦN (LOG INSPECTOR) */}
       {selectedLog && (
-        <div className="modal-backdrop" onClick={() => setSelectedLog(null)}>
+        <div
+          className="modal-backdrop"
+          onMouseDown={(e) => {
+            inspectorBackdropRef.current = e.target === e.currentTarget;
+          }}
+          onMouseUp={(e) => {
+            if (inspectorBackdropRef.current && e.target === e.currentTarget) {
+              setSelectedLog(null);
+            }
+            inspectorBackdropRef.current = false;
+          }}
+          onTouchStart={(e) => {
+            inspectorBackdropRef.current = e.target === e.currentTarget;
+          }}
+          onTouchEnd={(e) => {
+            if (inspectorBackdropRef.current && e.target === e.currentTarget) {
+              setSelectedLog(null);
+            }
+            inspectorBackdropRef.current = false;
+          }}
+        >
           <div
             className="log-inspector-modal panel"
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             style={{
               width: 820,
@@ -1117,17 +1145,42 @@ export const AdminLogsPage: React.FC = () => {
         </div>
       )}
 
-      {/* 6. MODAL QUẢN LÝ LƯU TRỮ & DỌN DẸP NHẬT KÝ (NOSQL MONGODB) */}
+      {/* 6. MODAL QUẢN LÝ LƯU TRỮ & DỌN DẸP NHẬT KÝ */}
       {isCleanupModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsCleanupModalOpen(false)}>
+        <div
+          className="modal-backdrop"
+          onMouseDown={(e) => {
+            cleanupBackdropRef.current = e.target === e.currentTarget;
+          }}
+          onMouseUp={(e) => {
+            if (cleanupBackdropRef.current && e.target === e.currentTarget) {
+              setIsCleanupModalOpen(false);
+            }
+            cleanupBackdropRef.current = false;
+          }}
+          onTouchStart={(e) => {
+            cleanupBackdropRef.current = e.target === e.currentTarget;
+          }}
+          onTouchEnd={(e) => {
+            if (cleanupBackdropRef.current && e.target === e.currentTarget) {
+              setIsCleanupModalOpen(false);
+            }
+            cleanupBackdropRef.current = false;
+          }}
+        >
           <div
             className="log-inspector-modal"
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: 740,
-              maxWidth: 'calc(100vw - 24px)',
-              height: 640,
-              maxHeight: 'calc(100vh - 40px)',
+              width: '100%',
+              maxWidth: 620,
+              height: 560,
+              maxHeight: 'calc(100vh - 32px)',
+              minHeight: 460,
               display: 'flex',
               flexDirection: 'column',
               boxSizing: 'border-box',
@@ -1135,25 +1188,44 @@ export const AdminLogsPage: React.FC = () => {
             }}
           >
             {/* Header */}
-            <div className="inspector-header">
+            <div
+              style={{
+                padding: '14px 20px',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(0, 0, 0, 0.14)',
+                flexShrink: 0
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <Archive size={17} style={{ color: 'var(--primary)' }} />
-                <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                  Quản lý Lưu trữ & Dọn dẹp Nhật ký (NoSQL MongoDB)
+                <Archive size={16} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Lưu trữ & Dọn dẹp nhật ký
                 </span>
               </div>
               <button
                 type="button"
                 className="btn-close-modal"
                 onClick={() => setIsCleanupModalOpen(false)}
-                title="Đóng modal"
+                title="Đóng"
               >
                 <X size={15} />
               </button>
             </div>
 
             {/* Tabs */}
-            <div className="inspector-nav-tabs">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 16px',
+                borderBottom: '1px solid var(--border-color)',
+                background: 'rgba(0, 0, 0, 0.08)',
+                flexShrink: 0
+              }}
+            >
               <button
                 type="button"
                 className={`inspector-tab ${cleanupModalTab === 'clean' ? 'active' : ''}`}
@@ -1163,7 +1235,7 @@ export const AdminLogsPage: React.FC = () => {
                 }}
               >
                 <Trash2 size={13} style={{ marginRight: 6, display: 'inline', verticalAlign: '-1px' }} />
-                <span>Đề xuất dọn dẹp an toàn</span>
+                <span>Dọn dẹp nhật ký</span>
               </button>
               <button
                 type="button"
@@ -1174,14 +1246,14 @@ export const AdminLogsPage: React.FC = () => {
                 }}
               >
                 <RotateCcw size={13} style={{ marginRight: 6, display: 'inline', verticalAlign: '-1px' }} />
-                <span>Lịch sử Lưu trữ & Khôi phục (Restore)</span>
+                <span>Bản sao lưu</span>
                 {archivesList.length > 0 && (
                   <span style={{
                     marginLeft: 6,
-                    background: 'rgba(212, 168, 106, 0.2)',
+                    background: 'rgba(212, 168, 106, 0.15)',
                     color: 'var(--primary)',
                     fontSize: 10.5,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     padding: '1px 6px',
                     borderRadius: 10
                   }}>
@@ -1192,227 +1264,157 @@ export const AdminLogsPage: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="inspector-body" style={{ padding: '18px 22px' }}>
-              {/* TAB 1: ĐỀ XUẤT DỌN DẸP */}
+            <div
+              className="inspector-body"
+              style={{
+                padding: '18px 20px',
+                flex: '1 1 auto',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxSizing: 'border-box'
+              }}
+            >
+              {/* TAB 1: DỌN DẸP */}
               {cleanupModalTab === 'clean' && (
-                <div>
-                  <div style={{
-                    background: 'rgba(212, 168, 106, 0.06)',
-                    border: '1px solid rgba(212, 168, 106, 0.2)',
-                    borderRadius: 7,
-                    padding: '10px 14px',
-                    fontSize: 12.5,
-                    color: 'var(--text-main)',
-                    lineHeight: 1.5,
-                    marginBottom: 16
-                  }}>
-                    <strong style={{ color: 'var(--primary)' }}>Chiến lược dọn dẹp an toàn: </strong>
-                    Hệ thống tự động đề xuất phân loại bản ghi để giải phóng bộ nhớ RAM và đĩa cứng cho VPS mà
-                    <strong> không mất đi vết tra cứu (audit trace)</strong>. Bạn có thể khôi phục (restore) lại các bản ghi đã xóa bất cứ lúc nào.
-                  </div>
-
-                  {/* Chọn nhóm đề xuất */}
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 6 }}>
-                      Chọn đối tượng dọn dẹp đề xuất:
-                    </label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <label style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 10,
-                        padding: '10px 12px',
-                        borderRadius: 6,
-                        border: cleanType === 'BOT_SCANS_ONLY' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                        background: cleanType === 'BOT_SCANS_ONLY' ? 'rgba(212, 168, 106, 0.08)' : 'rgba(0, 0, 0, 0.1)',
-                        cursor: 'pointer'
-                      }}>
-                        <input
-                          type="radio"
-                          name="cleanType"
-                          checked={cleanType === 'BOT_SCANS_ONLY'}
-                          onChange={() => {
-                            setCleanType('BOT_SCANS_ONLY');
-                            fetchCleanupPreview('BOT_SCANS_ONLY', cleanupDays);
-                          }}
-                          style={{ marginTop: 2 }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                              Chỉ dọn bot dò quét 404 & request rác
-                            </span>
-                            <span style={{
-                              fontSize: 10,
-                              fontWeight: 700,
-                              background: 'rgba(34, 197, 94, 0.15)',
-                              color: '#22C55E',
-                              padding: '1px 6px',
-                              borderRadius: 4
-                            }}>
-                              Khuyên dùng (An toàn 100%)
-                            </span>
-                          </div>
-                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
-                            Lọc sạch các request dò quét tự động từ Internet (như <code>/service-account.json</code>, <code>/.env</code>, <code>/pdown</code>,...).
-                            Bảo toàn 100% hoạt động của khách tham quan và nhân sự bảo tàng.
-                          </div>
-                        </div>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                  <div>
+                    {/* Chọn đối tượng dọn dẹp */}
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 8 }}>
+                        Phạm vi dọn dẹp:
                       </label>
-
-                      <label style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 10,
-                        padding: '10px 12px',
-                        borderRadius: 6,
-                        border: cleanType === 'ROUTINE_INFO' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                        background: cleanType === 'ROUTINE_INFO' ? 'rgba(212, 168, 106, 0.08)' : 'rgba(0, 0, 0, 0.1)',
-                        cursor: 'pointer'
-                      }}>
-                        <input
-                          type="radio"
-                          name="cleanType"
-                          checked={cleanType === 'ROUTINE_INFO'}
-                          onChange={() => {
-                            setCleanType('ROUTINE_INFO');
-                            fetchCleanupPreview('ROUTINE_INFO', cleanupDays);
-                          }}
-                          style={{ marginTop: 2 }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                            Dọn nhật ký thông thường cũ (INFO / SUCCESS)
-                          </span>
-                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
-                            Dọn các lượt xem trang và gọi API định kỳ đã cũ. <strong>Bảo lưu tuyệt đối</strong> toàn bộ Sự cố (ERROR) và Hành động Quản trị.
-                          </div>
-                        </div>
-                      </label>
-
-                      <label style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 10,
-                        padding: '10px 12px',
-                        borderRadius: 6,
-                        border: cleanType === 'FULL_PRUNE_WITH_TRACE_PRESERVED' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                        background: cleanType === 'FULL_PRUNE_WITH_TRACE_PRESERVED' ? 'rgba(212, 168, 106, 0.08)' : 'rgba(0, 0, 0, 0.1)',
-                        cursor: 'pointer'
-                      }}>
-                        <input
-                          type="radio"
-                          name="cleanType"
-                          checked={cleanType === 'FULL_PRUNE_WITH_TRACE_PRESERVED'}
-                          onChange={() => {
-                            setCleanType('FULL_PRUNE_WITH_TRACE_PRESERVED');
-                            fetchCleanupPreview('FULL_PRUNE_WITH_TRACE_PRESERVED', cleanupDays);
-                          }}
-                          style={{ marginTop: 2 }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                            Dọn dẹp toàn diện (Bảo lưu Sự cố & Hành động Admin)
-                          </span>
-                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
-                            Dọn toàn bộ log cũ ngoại trừ Lỗi hệ thống và Nhật ký nhân sự quản trị.
-                          </div>
-                        </div>
-                      </label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {([
+                          {
+                            type: 'BOT_SCANS_ONLY',
+                            title: 'Yêu cầu không hợp lệ & Dò quét cổng',
+                            desc: 'Dọn các yêu cầu lỗi 404 và truy cập quét tự động từ Internet.'
+                          },
+                          {
+                            type: 'ROUTINE_INFO',
+                            title: 'Nhật ký truy cập thường nhật',
+                            desc: 'Dọn lượt xem trang và gọi API định kỳ. Luôn bảo lưu lỗi sự cố và tác vụ quản trị.'
+                          },
+                          {
+                            type: 'FULL_PRUNE_WITH_TRACE_PRESERVED',
+                            title: 'Dọn dẹp tối ưu dung lượng',
+                            desc: 'Giải phóng bộ nhớ tối đa, luôn bảo lưu sự cố và toàn bộ lịch sử quản trị.'
+                          }
+                        ] as const).map((item) => {
+                          const isSelected = cleanType === item.type;
+                          return (
+                            <label
+                              key={item.type}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: 10,
+                                padding: '10px 12px',
+                                borderRadius: 6,
+                                border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                                background: isSelected ? 'rgba(212, 168, 106, 0.06)' : 'rgba(0, 0, 0, 0.1)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="cleanType"
+                                checked={isSelected}
+                                onChange={() => {
+                                  setCleanType(item.type);
+                                  fetchCleanupPreview(item.type, cleanupDays);
+                                }}
+                                style={{ marginTop: 2, accentColor: 'var(--primary)' }}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                                  {item.title}
+                                </div>
+                                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                                  {item.desc}
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Khoảng thời gian */}
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 5 }}>
-                      Khoảng thời gian cần dọn dẹp:
-                    </label>
-                    <select
-                      className="form-control"
-                      value={cleanupDays}
-                      onChange={(e) => {
-                        const days = parseInt(e.target.value, 10);
-                        setCleanupDays(days);
-                        fetchCleanupPreview(cleanType, days);
-                      }}
-                      style={{ fontSize: 12.5 }}
-                    >
-                      <option value={3}>Cũ hơn 3 ngày (Khuyên dùng cho bot rác)</option>
-                      <option value={7}>Cũ hơn 7 ngày</option>
-                      <option value={14}>Cũ hơn 14 ngày</option>
-                      <option value={30}>Cũ hơn 30 ngày</option>
-                      <option value={60}>Cũ hơn 60 ngày</option>
-                      <option value={90}>Cũ hơn 90 ngày</option>
-                    </select>
-                  </div>
+                    {/* Khoảng thời gian */}
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 5 }}>
+                        Thời gian lưu trữ:
+                      </label>
+                      <select
+                        className="form-control"
+                        value={cleanupDays}
+                        onChange={(e) => {
+                          const days = parseInt(e.target.value, 10);
+                          setCleanupDays(days);
+                          fetchCleanupPreview(cleanType, days);
+                        }}
+                        style={{ fontSize: 12.5, width: '100%', boxSizing: 'border-box' }}
+                      >
+                        <option value={3}>Bản ghi cũ hơn 3 ngày</option>
+                        <option value={7}>Bản ghi cũ hơn 7 ngày</option>
+                        <option value={14}>Bản ghi cũ hơn 14 ngày</option>
+                        <option value={30}>Bản ghi cũ hơn 30 ngày</option>
+                        <option value={60}>Bản ghi cũ hơn 60 ngày</option>
+                        <option value={90}>Bản ghi cũ hơn 90 ngày</option>
+                      </select>
+                    </div>
 
-                  {/* Dự báo an toàn (Preview Card) */}
-                  <div style={{
-                    background: 'rgba(0, 0, 0, 0.25)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 7,
-                    padding: '12px 14px',
-                    marginBottom: 16
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <ShieldCheck size={14} style={{ color: '#22C55E' }} />
-                        Dự báo an toàn & Tài nguyên giải phóng:
-                      </span>
-                      {loadingPreview && (
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Đang tính toán...</span>
+                    {/* Dự kiến giải phóng (Preview Card) */}
+                    <div style={{
+                      background: 'rgba(0, 0, 0, 0.18)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 6,
+                      padding: '10px 14px',
+                      marginBottom: 12
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Dự kiến giải phóng:
+                        </span>
+                        {loadingPreview && (
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Đang tính toán...</span>
+                        )}
+                      </div>
+
+                      {previewData && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                          <div>
+                            <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--heading-color)' }}>
+                              {previewData.candidateCount.toLocaleString('vi-VN')} bản ghi
+                            </span>
+                            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginLeft: 6 }}>
+                              (~{previewData.estimatedFreeMb} MB)
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                            Bảo lưu an toàn: <strong style={{ color: 'var(--heading-color)' }}>{previewData.protectedErrorsCount} sự cố</strong> • <strong style={{ color: 'var(--heading-color)' }}>{previewData.protectedAdminAuditCount} quản trị</strong>
+                          </div>
+                        </div>
                       )}
                     </div>
 
-                    {previewData && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
-                        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px 10px', borderRadius: 5 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Bản ghi sẽ dọn:</span>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: '#EF4444' }}>
-                            {previewData.candidateCount.toLocaleString('vi-VN')} bản ghi
-                          </span>
-                          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>
-                            ~{previewData.estimatedFreeMb} MB giải phóng
-                          </span>
-                        </div>
-
-                        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px 10px', borderRadius: 5 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Bảo lưu an toàn (Không xóa):</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: '#22C55E', display: 'block' }}>
-                            {previewData.protectedErrorsCount} Sự cố / Lỗi
-                          </span>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                            {previewData.protectedAdminAuditCount} Tác vụ Admin
-                          </span>
-                        </div>
-
-                        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px 10px', borderRadius: 5 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Tổng bản ghi trong DB:</span>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--heading-color)' }}>
-                            {previewData.totalLogsCount.toLocaleString('vi-VN')}
-                          </span>
-                          <span style={{ fontSize: 10.5, color: '#22C55E', display: 'block', marginTop: 1 }}>
-                            Giảm tải RAM working-set
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    {/* Tùy chọn đóng gói sao lưu */}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', marginBottom: 6, color: 'var(--text-main)' }}>
+                      <input
+                        type="checkbox"
+                        checked={backupBeforeDelete}
+                        onChange={(e) => setBackupBeforeDelete(e.target.checked)}
+                        style={{ accentColor: 'var(--primary)' }}
+                      />
+                      <span>Tạo bản sao lưu nén (.json.gz) trước khi xóa để khôi phục khi cần</span>
+                    </label>
                   </div>
 
-                  {/* Tùy chọn đóng gói sao lưu */}
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: 'pointer', marginBottom: 18 }}>
-                    <input
-                      type="checkbox"
-                      checked={backupBeforeDelete}
-                      onChange={(e) => setBackupBeforeDelete(e.target.checked)}
-                    />
-                    <span>
-                      <strong>Tự động đóng gói nén sao lưu (.json.gz)</strong> trước khi xóa để có thể <strong>Khôi phục (Restore)</strong> bất cứ lúc nào
-                    </span>
-                  </label>
-
                   {/* Action buttons */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
                     <button
                       type="button"
                       className="btn btn-secondary btn-sm"
@@ -1423,13 +1425,13 @@ export const AdminLogsPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      className="btn btn-danger btn-sm"
+                      className="btn btn-primary btn-sm"
                       onClick={handleExecuteArchiveAndPrune}
                       disabled={cleaningUp || !previewData || previewData.candidateCount === 0}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     >
                       <Trash2 size={13} />
-                      <span>{cleaningUp ? 'Đang dọn & đóng gói...' : `Dọn dẹp ${previewData ? previewData.candidateCount : 0} bản ghi`}</span>
+                      <span>{cleaningUp ? 'Đang dọn dẹp...' : `Dọn dẹp (${previewData ? previewData.candidateCount.toLocaleString('vi-VN') : 0} bản ghi)`}</span>
                     </button>
                   </div>
                 </div>
@@ -1437,10 +1439,10 @@ export const AdminLogsPage: React.FC = () => {
 
               {/* TAB 2: LỊCH SỬ LƯU TRỮ & KHÔI PHỤC */}
               {cleanupModalTab === 'archives' && (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0 }}>
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-                      Các gói nhật ký được nén (.json.gz) lưu trữ tại máy chủ. Bạn có thể khôi phục lại bất kỳ gói nào vào MongoDB chỉ với 1 click.
+                      Danh sách các bản sao lưu có thể khôi phục lại cơ sở dữ liệu bất cứ lúc nào.
                     </p>
                     <button
                       type="button"
@@ -1456,57 +1458,63 @@ export const AdminLogsPage: React.FC = () => {
 
                   {loadingArchives && (
                     <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-muted)' }}>
-                      Đang tải danh sách gói lưu trữ...
+                      Đang tải danh sách bản sao lưu...
                     </div>
                   )}
 
                   {!loadingArchives && archivesList.length === 0 && (
                     <div style={{
-                      padding: '36px 20px',
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '30px 20px',
                       textAlign: 'center',
-                      background: 'rgba(0, 0, 0, 0.15)',
+                      background: 'rgba(0, 0, 0, 0.1)',
                       borderRadius: 8,
-                      border: '1px dashed var(--border-color)'
+                      border: '1px dashed var(--border-color)',
+                      marginBottom: 14
                     }}>
-                      <Archive size={30} style={{ color: 'var(--text-muted)', marginBottom: 8, opacity: 0.5 }} />
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--heading-color)', marginBottom: 4 }}>
-                        Chưa có gói lưu trữ nào
+                      <Archive size={28} style={{ color: 'var(--text-muted)', marginBottom: 8, opacity: 0.4 }} />
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--heading-color)', marginBottom: 3 }}>
+                        Chưa có bản sao lưu nào
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto' }}>
-                        Khi bạn thực hiện dọn dẹp ở tab "Đề xuất dọn dẹp" và chọn sao lưu, các gói nén sẽ xuất hiện tại đây để bạn có thể Khôi phục hoặc Tải về.
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', maxWidth: 360 }}>
+                        Khi thực hiện dọn dẹp và bật tùy chọn sao lưu, các gói nén sẽ xuất hiện tại đây để khôi phục hoặc tải về.
                       </div>
                     </div>
                   )}
 
                   {!loadingArchives && archivesList.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 380, overflowY: 'auto' }}>
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14, paddingRight: 4 }}>
                       {archivesList.map((pkg: any) => (
                         <div
                           key={pkg._id}
                           style={{
                             background: 'rgba(0, 0, 0, 0.2)',
                             border: '1px solid var(--border-color)',
-                            borderRadius: 7,
-                            padding: '12px 14px',
+                            borderRadius: 6,
+                            padding: '10px 12px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             flexWrap: 'wrap',
-                            gap: 10
+                            gap: 8
                           }}
                         >
-                          <div style={{ flex: 1, minWidth: 260 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                          <div style={{ flex: 1, minWidth: 220 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--heading-color)' }}>
                                 {pkg.fileName}
                               </span>
                               {pkg.restoredAt && (
                                 <span style={{
                                   fontSize: 10,
                                   fontWeight: 600,
-                                  background: 'rgba(34, 197, 94, 0.15)',
-                                  color: '#22C55E',
-                                  padding: '1px 6px',
+                                  color: 'var(--primary)',
+                                  background: 'rgba(212, 168, 106, 0.12)',
+                                  padding: '1px 5px',
                                   borderRadius: 4
                                 }}>
                                   Đã khôi phục
@@ -1514,21 +1522,20 @@ export const AdminLogsPage: React.FC = () => {
                               )}
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, fontSize: 11.5, color: 'var(--text-muted)' }}>
-                              <span>Phân loại: <strong>{getCategoryLabel(pkg.category)}</strong></span>
-                              <span>Số lượng: <strong style={{ color: 'var(--primary)' }}>{pkg.recordCount?.toLocaleString('vi-VN')} bản ghi</strong></span>
-                              <span>Kích thước nén: <strong>{formatBytes(pkg.fileSizeBytes)}</strong></span>
-                              <span>Tạo lúc: {formatDateTime(pkg.createdAt)}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, fontSize: 11, color: 'var(--text-muted)' }}>
+                              <span>Số lượng: <strong style={{ color: 'var(--text-main)' }}>{pkg.recordCount?.toLocaleString('vi-VN')}</strong></span>
+                              <span>Dung lượng: <strong>{formatBytes(pkg.fileSizeBytes)}</strong></span>
+                              <span>{formatDateTime(pkg.createdAt)}</span>
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <button
                               type="button"
                               className="btn btn-secondary btn-xs"
                               onClick={() => handleRestoreArchive(pkg._id, pkg.fileName)}
                               disabled={restoringId === pkg._id}
-                              title="Khôi phục dữ liệu từ gói này trở lại vào MongoDB"
+                              title="Khôi phục lại vào cơ sở dữ liệu"
                               style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                             >
                               <RotateCcw size={11} className={restoringId === pkg._id ? 'spin' : ''} />
@@ -1539,11 +1546,9 @@ export const AdminLogsPage: React.FC = () => {
                               type="button"
                               className="btn btn-secondary btn-xs"
                               onClick={() => handleDownloadArchive(pkg._id, pkg.fileName)}
-                              title="Tải tệp nén .json.gz về máy tính"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                              title="Tải tệp nén về máy tính"
                             >
                               <Download size={11} />
-                              <span>Tải file</span>
                             </button>
 
                             <button
@@ -1551,8 +1556,8 @@ export const AdminLogsPage: React.FC = () => {
                               className="btn btn-secondary btn-xs"
                               onClick={() => handleDeleteArchive(pkg._id)}
                               disabled={deletingArchiveId === pkg._id}
-                              title="Xóa vĩnh viễn tệp nén khỏi VPS"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#EF4444' }}
+                              title="Xóa tệp lưu trữ"
+                              style={{ color: '#EF4444' }}
                             >
                               <Trash2 size={11} />
                             </button>
@@ -1562,7 +1567,7 @@ export const AdminLogsPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--border-color)', flexShrink: 0 }}>
                     <button
                       type="button"
                       className="btn btn-secondary btn-sm"
