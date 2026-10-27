@@ -113,10 +113,26 @@ def load_and_orient_image(image_path, max_dim=0):
 
 def preprocess_lighting_clahe(img, clip_limit=1.0, grid_size=(8, 8)):
     """
-    Bảo tồn 100% màu sắc, ánh sáng và chi tiết tự nhiên từ camera:
-    - Giữ nguyên màu thực tế của tường, vật thể, không gian.
-    - Không làm sẫm màu/cháy tối (crushed shadows) và không gây bệt ảo như tranh vẽ.
+    Tiền xử lý làm dịu nhẹ các đốm chói lóa đèn trần trên từng khung hình:
+    - Giúp thuật toán SIFT không bị nhiễu bởi quầng sáng gắt của bóng đèn.
+    - Bảo tồn màu sắc và độ tương phản tự nhiên của ảnh gốc.
     """
+    if img is None or img.size == 0:
+        return img
+    try:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if np.max(gray) >= 235:
+            lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            l_f = l.astype(np.float32)
+            mask = l_f > 225.0
+            if np.any(mask):
+                over = l_f[mask] - 225.0
+                l_f[mask] = 225.0 + over * 0.55
+                l_out = np.clip(l_f, 0, 255).astype(np.uint8)
+                return cv2.cvtColor(cv2.merge([l_out, a, b]), cv2.COLOR_LAB2BGR)
+    except Exception:
+        pass
     return img
 
 
@@ -504,8 +520,63 @@ def cylindrical_to_equirectangular(cyl_img, f_cam=None, out_w=4096, out_h=2048):
 
 
 def enhance_museum_details(image):
-    """Bảo tồn độ sắc nét chân thực của không gian, không tạo quầng sáng halo hay làm gắt viền."""
-    return image
+    """
+    Nâng sáng tự nhiên cho toàn cảnh 360° & Triệt tiêu ánh sáng chói từ đèn trần / đèn rọi (Anti-Glare HDR Tone Mapping):
+    1. Làm việc trên kênh Luminance (L) trong không gian màu LAB để bảo tồn 100% màu sắc nguyên bản, không làm biến màu tường.
+    2. Nâng sáng thông minh thích ứng (Adaptive Shadow & Midtone Boost):
+       - Tự động đo độ sáng trung bình của phòng: nếu phòng tối (mean < 100), nâng sáng mạnh hơn (+20-25%).
+       - Kết hợp CLAHE vi mô nhẹ để làm nổi bật vân gỗ, kết cấu tường và hiện vật trưng bày.
+    3. Triệt tiêu chói lóa ánh đèn (Highlight Soft Roll-off / Anti-Glare):
+       - Nhận diện vùng đèn rọi chói gắt (L > 205).
+       - Nén dải sáng mềm mại (soft exponential knee) đưa các vệt sáng chói về mức êm dịu, giữ lại viền đèn/chao đèn
+         thay vì bị cháy trắng xóa (blown-out white clipping).
+    4. Thêm nhẹ độ ấm và sắc sảo (Micro-Vibrance +4%) cho không gian bảo tàng.
+    """
+    if image is None or image.size == 0:
+        return image
+
+    try:
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        l_f = l.astype(np.float32)
+        mean_l = float(np.mean(l_f))
+
+        # 1. Thích ứng độ sáng thông minh theo mức sáng thực tế của phòng
+        if mean_l < 90.0:
+            gamma = 0.80  # Phòng tối: nâng sáng rõ nét
+        elif mean_l < 130.0:
+            gamma = 0.84  # Phòng vừa: nâng sáng vừa phải, dịu mắt
+        else:
+            gamma = 0.90  # Phòng đã đủ sáng: giữ cân bằng
+
+        l_norm = l_f / 255.0
+        l_lifted = np.power(l_norm, gamma) * 255.0
+
+        # CLAHE vi mô nhẹ để làm sắc nét tường và hiện vật
+        clahe = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(8, 8))
+        l_clahe = clahe.apply(np.clip(l_lifted, 0, 255).astype(np.uint8)).astype(np.float32)
+        l_enhanced = 0.60 * l_clahe + 0.40 * l_lifted
+
+        # 2. Xử lý triệt tiêu chói lóa đèn trần / đèn rọi (Anti-Glare Soft Roll-off)
+        glare_thresh = 205.0
+        glare_mask = l_enhanced > glare_thresh
+        if np.any(glare_mask):
+            over = l_enhanced[glare_mask] - glare_thresh
+            max_over = 255.0 - glare_thresh  # 50.0
+            compressed = max_over * (1.0 - np.exp(-over / 35.0))
+            l_enhanced[glare_mask] = glare_thresh + compressed * 0.68
+
+        l_final = np.clip(l_enhanced, 0, 255).astype(np.uint8)
+        enhanced_lab = cv2.merge([l_final, a, b])
+        enhanced_bgr = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
+        # 3. Micro-vibrance +4% cho màu sắc ấm áp tự nhiên
+        hsv = cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
+        hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.05, 0, 255)
+        return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+    except Exception as e:
+        log(f"[!] Cảnh báo enhance_museum_details: {e}")
+        return image
 
 
 
