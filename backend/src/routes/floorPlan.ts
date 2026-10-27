@@ -29,6 +29,16 @@ import {
 
 export const floorPlanRouter = Router();
 
+// In-memory cache tầng backend cho active floor plan: Tăng tốc phản hồi <1ms và chống giật lag / timeout
+let cachedActiveFloorPlan: any = null;
+let lastFloorPlanCacheTime = 0;
+const FLOOR_PLAN_CACHE_TTL_MS = 25000; // 25s TTL
+
+export function invalidateFloorPlanCache() {
+  cachedActiveFloorPlan = null;
+  lastFloorPlanCacheTime = 0;
+}
+
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -119,6 +129,14 @@ export async function sanitizeFloorPlanNodes(floorPlan: any): Promise<boolean> {
  */
 floorPlanRouter.get('/', async (req: Request, res: Response) => {
   try {
+    const now = Date.now();
+    if (cachedActiveFloorPlan && (now - lastFloorPlanCacheTime < FLOOR_PLAN_CACHE_TTL_MS)) {
+      return res.json({
+        success: true,
+        data: cachedActiveFloorPlan
+      });
+    }
+
     // 1. Kiểm tra số lượng sơ đồ trong CSDL MongoDB
     let totalCount = await FloorPlanMapModel.countDocuments();
     if (totalCount === 0) {
@@ -137,6 +155,8 @@ floorPlanRouter.get('/', async (req: Request, res: Response) => {
     }
 
     if (totalCount === 0) {
+      cachedActiveFloorPlan = null;
+      lastFloorPlanCacheTime = now;
       return res.json({
         success: true,
         data: null
@@ -164,6 +184,9 @@ floorPlanRouter.get('/', async (req: Request, res: Response) => {
       await sanitizeFloorPlanNodes(floorPlan);
     }
 
+    cachedActiveFloorPlan = floorPlan || null;
+    lastFloorPlanCacheTime = Date.now();
+
     // Nếu CSDL không có bản đồ nào (hoặc đã bị xóa), trả về null, tuyệt đối KHÔNG tự sinh mock rác
     res.json({
       success: true,
@@ -171,6 +194,12 @@ floorPlanRouter.get('/', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[FloorPlanRoute GET Error]:', error);
+    if (cachedActiveFloorPlan) {
+      return res.json({
+        success: true,
+        data: cachedActiveFloorPlan
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Không thể tải sơ đồ mặt bằng: ' + (error.message || '')
@@ -307,6 +336,7 @@ floorPlanRouter.post('/activate/:id', async (req: Request, res: Response) => {
     }
 
     // Phát sóng sự kiện Realtime cho toàn bộ Client
+    invalidateFloorPlanCache();
     broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
 
     res.json({
@@ -367,6 +397,7 @@ floorPlanRouter.delete('/:id', async (req: Request, res: Response) => {
       }
     }
 
+    invalidateFloorPlanCache();
     res.json({
       success: true,
       message: 'Đã xóa sơ đồ mặt bằng thành công'
@@ -441,6 +472,7 @@ floorPlanRouter.post('/analyze', upload.single('file'), async (req: Request, res
       });
 
       // Phát sóng đồng bộ thời gian thực cho khách tham quan và admin
+      invalidateFloorPlanCache();
       broadcastRealtimeEvent('floor_plan_updated', analyzedMap);
     }
 
@@ -524,6 +556,7 @@ floorPlanRouter.put('/:id/node-mapping', async (req: Request, res: Response) => 
       broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
     }
 
+    invalidateFloorPlanCache();
     res.json({
       success: true,
       message: roomId ? 'Gán gian phòng 360° thành công' : 'Đã gỡ liên kết gian phòng',
@@ -593,6 +626,7 @@ floorPlanRouter.put('/:id/batch-mapping', async (req: Request, res: Response) =>
       broadcastRealtimeEvent('floor_plan_updated', targetMap.toObject ? targetMap.toObject() : targetMap);
     }
 
+    invalidateFloorPlanCache();
     res.json({
       success: true,
       message: 'Đã lưu toàn bộ liên kết không gian sơ đồ thành công',

@@ -54,10 +54,22 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
   const [isMapLightboxOpen, setIsMapLightboxOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
-  // Dữ liệu Sơ đồ mặt bằng & Mạng Topo Không gian thực tế từ CSDL
-  const [floorPlan, setFloorPlan] = useState<FloorPlanMap | null>(null);
+  // Dữ liệu Sơ đồ mặt bằng & Mạng Topo Không gian thực tế từ CSDL (Ưu tiên cache để render tức thì không giật lag)
+  const [floorPlan, setFloorPlan] = useState<FloorPlanMap | null>(() => {
+    try {
+      const cached = sessionStorage.getItem('museum_cached_floor_plan');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return null;
+  });
   const [allRooms, setAllRooms] = useState<MuseumRoom[]>([]);
-  const [loadingFloorPlan, setLoadingFloorPlan] = useState<boolean>(true);
+  const [loadingFloorPlan, setLoadingFloorPlan] = useState<boolean>(() => {
+    try {
+      return !sessionStorage.getItem('museum_cached_floor_plan');
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -74,7 +86,14 @@ export const ClientGuidePage: React.FC<ClientGuidePageProps> = ({
       ])
         .then(([dataFp, dataRooms]) => {
           if (isMounted) {
-            setFloorPlan(dataFp || null);
+            if (dataFp) {
+              setFloorPlan(dataFp);
+              try {
+                sessionStorage.setItem('museum_cached_floor_plan', JSON.stringify(dataFp));
+              } catch {}
+            } else if (!floorPlan) {
+              setFloorPlan(null);
+            }
             if (Array.isArray(dataRooms)) {
               setAllRooms(dataRooms);
             }

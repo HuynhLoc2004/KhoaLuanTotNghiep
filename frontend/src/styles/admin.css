@@ -7241,6 +7241,66 @@ select option {
   border-radius: 4px;
 }
 
+.guide-subtabs-bar button {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+.admin-guide-active-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-guide-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .admin-guide-active-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 12px 10px !important;
+    gap: 12px !important;
+  }
+
+  .admin-guide-active-card > div:first-child {
+    width: 100% !important;
+  }
+
+  .admin-guide-card-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .admin-guide-card-actions .btn {
+    width: 100% !important;
+    justify-content: center !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  .admin-guide-card-info {
+    width: 100% !important;
+  }
+
+  .mapping-header-actions .btn {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+}
+
 @media (max-width: 768px) {
   .admin-guide-header {
     flex-direction: column;

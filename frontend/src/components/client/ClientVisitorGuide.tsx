@@ -15,7 +15,13 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  const [floorPlan, setFloorPlan] = useState<FloorPlanMap | null>(null);
+  const [floorPlan, setFloorPlan] = useState<FloorPlanMap | null>(() => {
+    try {
+      const cached = sessionStorage.getItem('museum_cached_floor_plan');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return null;
+  });
 
   // Nạp sơ đồ mặt bằng đang active và lắng nghe đồng bộ thời gian thực
   useEffect(() => {
@@ -23,13 +29,14 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
     const fetchActiveFloorPlan = async () => {
       try {
         const fp = await api.getFloorPlan();
-        if (isMounted) {
-          setFloorPlan(fp || null);
+        if (isMounted && fp) {
+          setFloorPlan(fp);
+          try {
+            sessionStorage.setItem('museum_cached_floor_plan', JSON.stringify(fp));
+          } catch {}
         }
       } catch {
-        if (isMounted) {
-          setFloorPlan(null);
-        }
+        // Keep existing cached floorPlan if available
       }
     };
 

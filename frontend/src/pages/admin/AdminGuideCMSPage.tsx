@@ -498,7 +498,7 @@ export const AdminGuideCMSPage: React.FC = () => {
   ] as const;
 
   return (
-    <div className="admin-content admin-guide-cms-page" style={{ padding: '24px 28px', paddingBottom: 60 }}>
+    <div className="admin-content admin-guide-cms-page" style={{ paddingBottom: 60 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG QUẢN TRỊ TRANG CẨM NANG & SƠ ĐỒ */}
       <div className="settings-header admin-guide-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -733,20 +733,8 @@ export const AdminGuideCMSPage: React.FC = () => {
 
             {/* 1. Bản đồ đang áp dụng trên Client (Live) */}
             {activeFloorPlan ? (
-              <div
-                style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 8,
-                  padding: '14px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: 16
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div className="admin-guide-active-card">
+                <div className="admin-guide-card-info" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div
                     style={{
                       width: 110,
@@ -806,7 +794,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="admin-guide-card-actions">
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -859,7 +847,7 @@ export const AdminGuideCMSPage: React.FC = () => {
                   <p style={{ margin: 0, fontSize: 13 }}>Chưa có sơ đồ nào trong thư viện.</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 14 }}>
                   {floorPlansRepo.map((item) => {
                     const isLive = item.id === activeFloorPlanId || item.active;
                     const isActivating = activatingId === item.id;

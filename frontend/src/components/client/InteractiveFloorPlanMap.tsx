@@ -455,6 +455,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const rafPanRef = useRef<number | null>(null);
 
   const handleZoomIn = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -484,15 +485,27 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isPanning || zoom <= 1) return;
-    setPan({
-      x: e.clientX - dragStartRef.current.x,
-      y: e.clientY - dragStartRef.current.y
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    if (rafPanRef.current) cancelAnimationFrame(rafPanRef.current);
+    rafPanRef.current = requestAnimationFrame(() => {
+      setPan({
+        x: clientX - dragStartRef.current.x,
+        y: clientY - dragStartRef.current.y
+      });
     });
   };
 
   const handlePointerUp = () => {
+    if (rafPanRef.current) cancelAnimationFrame(rafPanRef.current);
     setIsPanning(false);
   };
+
+  useEffect(() => {
+    return () => {
+      if (rafPanRef.current) cancelAnimationFrame(rafPanRef.current);
+    };
+  }, []);
 
   // Sync selected node only when parent explicitly passes externalSelectedNodeId
   useEffect(() => {
@@ -1389,7 +1402,7 @@ export const InteractiveFloorPlanMap: React.FC<InteractiveFloorPlanMapProps> = (
               transform={`translate(${pan.x / 4}, ${pan.y / 4}) scale(${zoom})`}
               style={{
                 transformOrigin: '50% 50%',
-                transition: isPanning ? 'none' : 'transform 0.18s ease-out'
+                willChange: isPanning ? 'transform' : 'auto'
               }}
             >
               {/* === LỚP 0: NỀN TẢNG KIẾN TRÚC MẶT BẰNG BẢO TÀNG === */}
