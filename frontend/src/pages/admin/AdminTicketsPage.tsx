@@ -535,18 +535,9 @@ export const AdminTicketsPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px' }}>
+    <div className="admin-content admin-tickets-page">
       {/* 1. TIÊU ĐỀ TRANG QUẢN TRỊ */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-          marginBottom: 16
-        }}
-      >
+      <div className="tickets-header-row">
         <div>
           <h1
             style={{
@@ -563,7 +554,7 @@ export const AdminTicketsPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn btn-primary btn-sm"
@@ -589,29 +580,11 @@ export const AdminTicketsPage: React.FC = () => {
       </div>
 
       {/* 2. CHUYỂN ĐỔI TAB CON TỐI GIẢN */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 4,
-          borderBottom: '1px solid var(--border-color)',
-          marginBottom: 18
-        }}
-      >
+      <div className="tickets-tabs-nav">
         <button
           type="button"
           onClick={() => setSubTab('tickets')}
-          style={{
-            padding: '8px 16px',
-            fontSize: 13,
-            fontWeight: subTab === 'tickets' ? 600 : 500,
-            color: subTab === 'tickets' ? 'var(--text-main)' : 'var(--text-muted)',
-            border: 'none',
-            borderBottom: subTab === 'tickets' ? '2px solid var(--text-main)' : '2px solid transparent',
-            background: 'transparent',
-            cursor: 'pointer',
-            marginBottom: -1,
-            transition: 'all 0.15s ease'
-          }}
+          className={`tickets-tab-btn ${subTab === 'tickets' ? 'active' : ''}`}
         >
           Soát vé & Danh sách vé
         </button>
@@ -619,18 +592,7 @@ export const AdminTicketsPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setSubTab('pricing')}
-          style={{
-            padding: '8px 16px',
-            fontSize: 13,
-            fontWeight: subTab === 'pricing' ? 600 : 500,
-            color: subTab === 'pricing' ? 'var(--text-main)' : 'var(--text-muted)',
-            border: 'none',
-            borderBottom: subTab === 'pricing' ? '2px solid var(--text-main)' : '2px solid transparent',
-            background: 'transparent',
-            cursor: 'pointer',
-            marginBottom: -1,
-            transition: 'all 0.15s ease'
-          }}
+          className={`tickets-tab-btn ${subTab === 'pricing' ? 'active' : ''}`}
         >
           Bảng giá & Khung giờ
         </button>
@@ -638,18 +600,7 @@ export const AdminTicketsPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setSubTab('orders')}
-          style={{
-            padding: '8px 16px',
-            fontSize: 13,
-            fontWeight: subTab === 'orders' ? 600 : 500,
-            color: subTab === 'orders' ? 'var(--text-main)' : 'var(--text-muted)',
-            border: 'none',
-            borderBottom: subTab === 'orders' ? '2px solid var(--text-main)' : '2px solid transparent',
-            background: 'transparent',
-            cursor: 'pointer',
-            marginBottom: -1,
-            transition: 'all 0.15s ease'
-          }}
+          className={`tickets-tab-btn ${subTab === 'orders' ? 'active' : ''}`}
         >
           Lịch sử đặt vé
         </button>
@@ -660,115 +611,61 @@ export const AdminTicketsPage: React.FC = () => {
           ======================================================== */}
       {subTab === 'tickets' && (
         <>
-          {/* KPI TỐI GIẢN */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              marginBottom: 18,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
-            }}
-          >
-            <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Tổng số vé
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
-                {stats.totalTickets}
-              </div>
+          {/* LƯỚI THỐNG KÊ KPI */}
+          <div className="tickets-stats-grid">
+            <div className="tickets-stat-item">
+              <span className="tickets-stat-label">Tổng số vé</span>
+              <span className="tickets-stat-value">{stats.totalTickets}</span>
             </div>
 
-            <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Chưa sử dụng
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
-                {stats.activeTickets}
-              </div>
+            <div className="tickets-stat-item">
+              <span className="tickets-stat-label">Chưa sử dụng</span>
+              <span className="tickets-stat-value">{stats.activeTickets}</span>
             </div>
 
-            <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Đã vào cổng
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
-                {stats.usedTickets}
-              </div>
+            <div className="tickets-stat-item">
+              <span className="tickets-stat-label">Đã vào cổng</span>
+              <span className="tickets-stat-value">{stats.usedTickets}</span>
             </div>
 
-            <div style={{ padding: '14px 20px' }}>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Doanh thu bán vé
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
-                {formatVND(stats.totalRevenue)}
-              </div>
+            <div className="tickets-stat-item">
+              <span className="tickets-stat-label">Doanh thu bán vé</span>
+              <span className="tickets-stat-value">{formatVND(stats.totalRevenue)}</span>
             </div>
           </div>
 
-          {/* BỘ LỌC */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              padding: '12px 16px',
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 240 }}>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Search
-                  size={14}
-                  style={{
-                    position: 'absolute',
-                    left: 12,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)'
-                  }}
-                />
+          {/* BỘ LỌC TÌM KIẾM */}
+          <div className="tickets-toolbar-card">
+            <div className="tickets-search-form">
+              <div className="tickets-search-wrapper">
+                <Search size={14} className="tickets-search-icon" />
                 <input
                   type="text"
-                  className="form-control form-control-sm"
+                  className="tickets-search-input"
                   placeholder="Tìm theo mã vé, tên khách, email, số điện thoại..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 34px',
-                    background: 'var(--bg-main)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 6,
-                    color: 'var(--text-main)',
-                    fontSize: 13
-                  }}
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    className="tickets-search-clear"
+                    onClick={() => setSearchTerm('')}
+                    title="Xóa tìm kiếm"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="tickets-filter-group">
+              <div className="tickets-select-box">
                 <Filter size={13} style={{ color: 'var(--text-muted)' }} />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{
-                    padding: '6px 10px',
-                    background: '#1c1917',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 6,
-                    color: '#f8fafc',
-                    fontSize: 12.5,
-                    colorScheme: 'dark'
-                  }}
+                  className="tickets-filter-select"
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="paid">Chưa sử dụng</option>
@@ -780,15 +677,7 @@ export const AdminTicketsPage: React.FC = () => {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                style={{
-                  padding: '6px 10px',
-                  background: '#1c1917',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 6,
-                  color: '#f8fafc',
-                  fontSize: 12.5,
-                  colorScheme: 'dark'
-                }}
+                className="tickets-filter-select"
               >
                 <option value="all">Tất cả loại vé</option>
                 <option value="standard">Tiêu chuẩn</option>
@@ -801,15 +690,8 @@ export const AdminTicketsPage: React.FC = () => {
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                style={{
-                  padding: '6px 10px',
-                  background: '#1c1917',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 6,
-                  color: '#f8fafc',
-                  fontSize: 12.5,
-                  colorScheme: 'dark'
-                }}
+                className="tickets-date-input"
+                title="Lọc theo ngày tham quan"
               />
 
               {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || dateFilter) && (
@@ -822,7 +704,7 @@ export const AdminTicketsPage: React.FC = () => {
                     setTypeFilter('all');
                     setDateFilter('');
                   }}
-                  style={{ fontSize: 12 }}
+                  style={{ fontSize: 12, padding: '5px 10px', whiteSpace: 'nowrap' }}
                 >
                   Xóa lọc
                 </button>
@@ -830,17 +712,10 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* BẢNG DANH SÁCH VÉ (RESPONSIVE CHUẨN) */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              overflow: 'hidden',
-              marginBottom: 16
-            }}
-          >
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+          {/* BẢNG VÀ CARDS DANH SÁCH VÉ (RESPONSIVE CHUẨN) */}
+          <div className="tickets-table-card">
+            {/* Desktop Table View */}
+            <div className="tickets-table-scroll">
               <table style={{ minWidth: 780, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
@@ -934,6 +809,98 @@ export const AdminTicketsPage: React.FC = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Cards View (Hiện khi màn hình <= 768px) */}
+            <div className="tickets-mobile-list" style={{ padding: '10px' }}>
+              {isLoading ? (
+                <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>
+                  <RefreshCw size={18} className="spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+                  <span>Đang tải danh sách vé...</span>
+                </div>
+              ) : tickets.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>
+                  Không tìm thấy vé tham quan nào phù hợp.
+                </div>
+              ) : (
+                tickets.map((t) => (
+                  <div key={t.id || t.ticketCode} className="tickets-mobile-card">
+                    <div className="tickets-mobile-card-header">
+                      <span className="tickets-mobile-code-badge">
+                        #{t.ticketCode}
+                      </span>
+                      <div>{renderStatusBadge(t.status)}</div>
+                    </div>
+
+                    <div className="tickets-mobile-card-meta">
+                      <div className="tickets-mobile-meta-row">
+                        <span className="tickets-mobile-meta-label">Khách:</span>
+                        <span className="tickets-mobile-meta-val" style={{ fontWeight: 600 }}>
+                          {t.userName || 'Khách vãng lai'}
+                        </span>
+                      </div>
+                      <div className="tickets-mobile-meta-row">
+                        <span className="tickets-mobile-meta-label">Liên hệ:</span>
+                        <span className="tickets-mobile-meta-val" style={{ fontSize: 11.5 }}>
+                          {t.userEmail || t.userPhone || '—'}
+                        </span>
+                      </div>
+                      <div className="tickets-mobile-meta-row">
+                        <span className="tickets-mobile-meta-label">Loại vé:</span>
+                        <span className="tickets-mobile-meta-val">
+                          {getTicketTypeLabel(t.ticketType)}
+                        </span>
+                      </div>
+                      <div className="tickets-mobile-meta-row">
+                        <span className="tickets-mobile-meta-label">Lịch xem:</span>
+                        <span className="tickets-mobile-meta-val">
+                          {formatDate(t.visitDate)} ({t.timeSlot || 'Cả ngày'})
+                        </span>
+                      </div>
+                      <div className="tickets-mobile-meta-row" style={{ paddingTop: 4, borderTop: '1px dashed var(--border-color)' }}>
+                        <span className="tickets-mobile-meta-label">Giá vé:</span>
+                        <span style={{ color: 'var(--accent-gold)', fontWeight: 700, fontSize: 13 }}>
+                          {formatVND(t.totalAmount)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="tickets-mobile-card-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm tickets-mobile-btn"
+                        onClick={() => setDetailTicket(t)}
+                      >
+                        <Eye size={13} />
+                        <span>Xem chi tiết</span>
+                      </button>
+
+                      {t.status === 'paid' && (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm tickets-mobile-btn"
+                          onClick={() => setCheckinTarget(t)}
+                        >
+                          <CheckCircle size={13} />
+                          <span>Soát vé</span>
+                        </button>
+                      )}
+
+                      {t.status === 'paid' && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm tickets-mobile-btn"
+                          onClick={() => setCancelTarget(t)}
+                          style={{ color: '#EF4444' }}
+                        >
+                          <XCircle size={13} />
+                          <span>Hủy</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Phân trang chuẩn hệ thống [6, 9, 12, 18, 24] */}
@@ -1563,7 +1530,7 @@ export const AdminTicketsPage: React.FC = () => {
             </div>
 
             {/* Mã QR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px', background: '#0D111A', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)', marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px', background: '#12100e', borderRadius: 12, border: '1px solid rgba(212, 168, 106, 0.2)', marginBottom: 16 }}>
               <div
                 style={{
                   background: '#FFFFFF',
@@ -2142,10 +2109,10 @@ export const AdminTicketsPage: React.FC = () => {
 
         .admin-ticket-dialog-card {
           margin: auto;
-          background: linear-gradient(180deg, #181E2B 0%, #131722 100%);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 16px;
-          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(212, 175, 55, 0.12);
+          background: #181512;
+          border: 1px solid rgba(212, 168, 106, 0.25);
+          border-radius: 14px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(212, 168, 106, 0.15);
           padding: 24px 28px;
           width: 100%;
           max-width: 520px;
@@ -2170,7 +2137,7 @@ export const AdminTicketsPage: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid rgba(212, 168, 106, 0.15);
           padding-bottom: 16px;
           margin-bottom: 20px;
         }
@@ -2179,8 +2146,8 @@ export const AdminTicketsPage: React.FC = () => {
           width: 38px;
           height: 38px;
           border-radius: 10px;
-          background: rgba(212, 175, 55, 0.12);
-          border: 1px solid rgba(212, 175, 55, 0.25);
+          background: rgba(212, 168, 106, 0.12);
+          border: 1px solid rgba(212, 168, 106, 0.25);
           display: flex;
           align-items: center;
           justify-content: center;

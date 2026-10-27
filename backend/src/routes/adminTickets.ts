@@ -335,7 +335,7 @@ adminTicketsRouter.get('/', async (req: AuthRequest, res: Response) => {
 interface QRParseResult {
   isValidTicketFormat: boolean;
   ticketCode: string;
-  alienType?: 'VIETQR' | 'ZALO' | 'SOCIAL' | 'EXTERNAL_URL' | 'WIFI' | 'VCARD' | 'UNKNOWN_FORMAT';
+  alienType?: 'VIETQR' | 'ZALO' | 'SOCIAL' | 'EXTERNAL_URL' | 'WIFI' | 'VCARD' | 'UNKNOWN_FORMAT' | 'INVALID_SYSTEM_BILL';
   alienMessage?: string;
 }
 
@@ -414,11 +414,16 @@ function parseTicketCodeFromQR(raw: string): QRParseResult {
           return { isValidTicketFormat: true, ticketCode: cleanCode };
         }
       }
+      // Hỗ trợ đơn hàng / hóa đơn hệ thống bảo tàng
+      const order = parsed.order || parsed.orderCode || parsed.order_code;
+      if (order && (parsed.museum === 'BTLS_TPHCM' || parsed.system === 'BTLS' || /^\d{6,12}$/.test(String(order)))) {
+        return { isValidTicketFormat: true, ticketCode: String(order).trim() };
+      }
       return {
         isValidTicketFormat: false,
         ticketCode: '',
-        alienType: 'UNKNOWN_FORMAT',
-        alienMessage: 'Dữ liệu JSON trong mã QR không thuộc định dạng vé tham quan Bảo tàng.'
+        alienType: 'INVALID_SYSTEM_BILL',
+        alienMessage: 'Mã QR không thuộc hệ thống vé hoặc hóa đơn chính thức của Bảo tàng Lịch sử TP.HCM.'
       };
     } catch {}
   }
@@ -431,6 +436,11 @@ function parseTicketCodeFromQR(raw: string): QRParseResult {
       if (tParam && (/BTLS-\d{4}-[A-Z0-9]+/i.test(tParam) || /TK_\d+_[A-Z0-9]+/i.test(tParam))) {
         return { isValidTicketFormat: true, ticketCode: tParam.trim().toUpperCase() };
       }
+      // Hóa đơn thanh toán hoặc xác nhận vé từ hệ thống
+      const oParam = url.searchParams.get('orderCode') || url.searchParams.get('order');
+      if (oParam && (url.hostname.includes('museum') || url.hostname.includes('duckdns') || url.hostname.includes('localhost') || /^\d{6,12}$/.test(oParam))) {
+        return { isValidTicketFormat: true, ticketCode: oParam.trim() };
+      }
       const matchInPath = url.pathname.match(/BTLS-\d{4}-[A-Z0-9]+/i) || url.pathname.match(/TK_\d+_[A-Z0-9]+/i);
       if (matchInPath) {
         return { isValidTicketFormat: true, ticketCode: matchInPath[0].toUpperCase() };
@@ -438,8 +448,8 @@ function parseTicketCodeFromQR(raw: string): QRParseResult {
       return {
         isValidTicketFormat: false,
         ticketCode: '',
-        alienType: 'EXTERNAL_URL',
-        alienMessage: `Liên kết website ngoài (${url.hostname}). Cổng soát vé chỉ chấp nhận mã QR vé tham quan của Bảo tàng.`
+        alienType: 'INVALID_SYSTEM_BILL',
+        alienMessage: `Liên kết website ngoài (${url.hostname}). Cổng soát vé chỉ chấp nhận mã vé hoặc hóa đơn chính thức của Bảo tàng Lịch sử TP.HCM.`
       };
     } catch {}
   }
@@ -453,13 +463,18 @@ function parseTicketCodeFromQR(raw: string): QRParseResult {
   if (tkMatch) {
     return { isValidTicketFormat: true, ticketCode: tkMatch[0].toUpperCase() };
   }
+  // Hóa đơn số đơn hàng: BTLS-ORDER-123456 hoặc Đơn hàng #123456 hoặc số orderCode 6-12 số
+  const orderMatch = trimmed.match(/^(?:BTLS-ORDER-|ORDER#?|HD-)?(\d{6,12})$/i) || trimmed.match(/Đơn hàng #?(\d{6,12})/i);
+  if (orderMatch && orderMatch[1]) {
+    return { isValidTicketFormat: true, ticketCode: orderMatch[1] };
+  }
 
   // 8. Các trường hợp chuỗi ký tự bất kỳ không thuộc cấu trúc vé
   return {
     isValidTicketFormat: false,
     ticketCode: '',
-    alienType: 'UNKNOWN_FORMAT',
-    alienMessage: 'Mã QR không thuộc hệ thống vé Bảo tàng (nội dung không khớp chuẩn mã vé BTLS).'
+    alienType: 'INVALID_SYSTEM_BILL',
+    alienMessage: 'Mã QR không hợp lệ. Cổng soát vé chỉ chấp nhận mã vé hoặc hóa đơn chính thức của Bảo tàng Lịch sử TP.HCM.'
   };
 }
 
@@ -489,8 +504,8 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
       return res.status(200).json({
         success: false,
         valid: false,
-        reason: parseResult.alienType || 'INVALID_QR_TYPE',
-        message: parseResult.alienMessage || 'Mã QR không thuộc hệ thống vé Bảo tàng Lịch sử TP.HCM.'
+        reason: parseResult.alienType || 'INVALID_SYSTEM_BILL',
+        message: parseResult.alienMessage || 'Mã QR không hợp lệ. Cổng soát vé chỉ chấp nhận vé hoặc hóa đơn của Bảo tàng Lịch sử TP.HCM.'
       });
     }
 
@@ -498,7 +513,7 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
 
     // 1. Tìm vé trong PostgreSQL
     let ticket: any = null;
-    const pgRes = await pgPool.query(
+    let pgRes = await pgPool.query(
       `SELECT * FROM museum_tickets WHERE UPPER(ticket_code) = UPPER($1) OR id = $1 LIMIT 1;`,
       [ticketCode]
     );
@@ -506,14 +521,35 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
     if (pgRes.rows.length > 0) {
       ticket = pgRes.rows[0];
     } else {
+      // Tìm theo mã hóa đơn / đơn hàng
+      pgRes = await pgPool.query(
+        `SELECT * FROM museum_tickets WHERE order_id = $1 OR notes LIKE $2 OR notes LIKE $3 ORDER BY created_at DESC LIMIT 1;`,
+        [ticketCode, `%#${ticketCode}%`, `%${ticketCode}%`]
+      );
+      if (pgRes.rows.length > 0) {
+        ticket = pgRes.rows[0];
+      }
+    }
+
+    if (!ticket) {
       // Fallback sang MongoDB
-      const mongoDoc = await Ticket.findOne({
+      let mongoDoc = await Ticket.findOne({
         $or: [
           { ticketCode: { $regex: new RegExp(`^${ticketCode}$`, 'i') } },
           { _id: ticketCode },
           { id: ticketCode }
         ]
       }).lean();
+
+      if (!mongoDoc) {
+        mongoDoc = await Ticket.findOne({
+          $or: [
+            { orderId: ticketCode },
+            { notes: { $regex: new RegExp(`#?${ticketCode}`, 'i') } }
+          ]
+        }).sort({ createdAt: -1 }).lean();
+      }
+
       if (mongoDoc) {
         ticket = {
           id: mongoDoc._id.toString(),
@@ -542,7 +578,7 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
         success: false,
         valid: false,
         reason: 'NOT_FOUND',
-        message: `Mã vé [${ticketCode}] không tồn tại trên hệ thống Bảo tàng. Vui lòng kiểm tra lại vé!`,
+        message: `Mã vé hoặc hóa đơn [${ticketCode}] không tồn tại trên hệ thống Bảo tàng. Vui lòng kiểm tra lại vé!`,
         ticketCode
       });
     }

@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  FileImage
+  FileImage,
+  ImageIcon
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -59,7 +60,12 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // Âm thanh báo thành công qua Web Audio API (không phụ thuộc file ngoài)
+  // Trạng thái tải ảnh (preview + decode progress)
+  const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isDecodingImage, setIsDecodingImage] = useState<boolean>(false);
+
+  // Âm thanh báo thành công qua Web Audio API
   const playSuccessSound = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -115,6 +121,9 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
     setIsScanning(true);
     setIsVerifying(false);
     setManualCode('');
+    setUploadedPreview(null);
+    setUploadedFileName(null);
+    setIsDecodingImage(false);
 
     if (scanMode === 'camera') {
       startCamera();
@@ -140,7 +149,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
 
     if (!hasGetUserMedia) {
       setIsLiveCameraSupported(false);
-      setCameraError('Trình duyệt yêu cầu HTTPS để bật Camera trực tiếp. Vui lòng nhập mã vé hoặc tải ảnh QR.');
+      setCameraError('Trình duyệt yêu cầu HTTPS để bật Camera trực tiếp. Vui lòng dùng tab Nhập mã hoặc Tải ảnh.');
       setScanMode('manual');
       return;
     }
@@ -279,38 +288,129 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
       });
     } finally {
       setIsVerifying(false);
+      setIsDecodingImage(false);
     }
+  };
+
+  // Hàm quét mã QR trên ảnh với đa tầng giải thuật (BarcodeDetector + Multi-scale jsQR)
+  const decodeQRFromImageElement = async (img: HTMLImageElement): Promise<string | null> => {
+    // 1. Thử BarcodeDetector native (cực nhanh, chính xác cao trên Chrome/Edge/Android/iOS)
+    if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+      try {
+        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+        const barcodes = await detector.detect(img);
+        if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+          return barcodes[0].rawValue.trim();
+        }
+      } catch (err) {
+        console.warn('[BarcodeDetector fallback to jsQR]:', err);
+      }
+    }
+
+    // 2. Thử jsQR với nhiều kích thước scale khác nhau
+    const scales = [
+      { maxDim: 1200 }, // Kích thước tối ưu cho ảnh camera độ phân giải cao
+      { maxDim: 600 },  // Kích thước thu nhỏ cho ảnh chụp tổng thể hóa đơn
+      { maxDim: 0 }     // Kích thước gốc của ảnh
+    ];
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+
+    for (const s of scales) {
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+
+      if (s.maxDim > 0 && (w > s.maxDim || h > s.maxDim)) {
+        if (w > h) {
+          h = Math.round((h * s.maxDim) / w);
+          w = s.maxDim;
+        } else {
+          w = Math.round((w * s.maxDim) / h);
+          h = s.maxDim;
+        }
+      }
+
+      canvas.width = w;
+      canvas.height = h;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+
+      try {
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'attemptBoth'
+        });
+
+        if (code && code.data && code.data.trim()) {
+          return code.data.trim();
+        }
+      } catch (e) {
+        console.warn('[jsQR decode pass failed]:', e);
+      }
+    }
+
+    return null;
   };
 
   // Xử lý file ảnh upload
   const processUploadedFile = (file: File) => {
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      playErrorSound();
+      setResult({
+        valid: false,
+        reason: 'INVALID_FILE_TYPE',
+        message: 'Tệp tải lên không phải hình ảnh hợp lệ. Vui lòng chọn tệp định dạng JPG, PNG hoặc WebP.'
+      });
+      return;
+    }
+
+    setIsDecodingImage(true);
+    setUploadedFileName(file.name);
+
     const reader = new FileReader();
     reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setUploadedPreview(dataUrl);
+
       const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height);
-          if (code && code.data) {
-            handleQRCodeDetected(code.data);
+      img.onload = async () => {
+        try {
+          const qrText = await decodeQRFromImageElement(img);
+          if (qrText) {
+            handleQRCodeDetected(qrText);
           } else {
+            setIsDecodingImage(false);
             playErrorSound();
             setResult({
               valid: false,
               reason: 'UNREADABLE_QR_IMAGE',
-              message: 'Không tìm thấy hoặc không thể giải mã mã QR từ ảnh tải lên. Vui lòng chọn ảnh rõ nét hơn.'
+              message: 'Không tìm thấy hoặc không thể giải mã mã QR từ ảnh tải lên. Vui lòng chọn ảnh chụp rõ nét hơn, đủ ánh sáng và chứa mã QR hoặc hóa đơn của Bảo tàng.'
             });
           }
+        } catch (err: any) {
+          setIsDecodingImage(false);
+          playErrorSound();
+          setResult({
+            valid: false,
+            reason: 'DECODE_ERROR',
+            message: err.message || 'Lỗi khi phân tích hình ảnh.'
+          });
         }
       };
-      img.src = event.target?.result as string;
+      img.onerror = () => {
+        setIsDecodingImage(false);
+        playErrorSound();
+        setResult({
+          valid: false,
+          reason: 'IMAGE_LOAD_FAILED',
+          message: 'Không thể tải hình ảnh. Vui lòng thử lại với một bức ảnh khác.'
+        });
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -335,6 +435,9 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
     setIsScanning(true);
     setIsVerifying(false);
     setManualCode('');
+    setUploadedPreview(null);
+    setUploadedFileName(null);
+    setIsDecodingImage(false);
     if (scanMode === 'manual' && manualInputRef.current) {
       manualInputRef.current.focus();
     }
@@ -377,29 +480,17 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
         className="scanner-modal-panel panel"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Modal */}
+        {/* Header Modal - Chuẩn Heritage Dark Bronze */}
         <div className="scanner-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: 'rgba(212, 168, 106, 0.12)',
-                color: '#D4A86A',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <QrCode size={17} />
+            <div className="scanner-header-icon-wrap">
+              <QrCode size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: 14.5, fontWeight: 600, margin: 0, color: '#F3F4F6' }}>
+              <h3 className="scanner-header-title">
                 Soát vé tham quan qua mã QR
               </h3>
-              <p style={{ fontSize: 11.5, color: '#9CA3AF', margin: 0 }}>
+              <p className="scanner-header-subtitle">
                 Hệ thống kiểm tra tính hợp lệ & chống gian lận
               </p>
             </div>
@@ -468,7 +559,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           </label>
         </div>
 
-        {/* Body Modal (Cố định chiều cao và bố cục, triệt tiêu co rút) */}
+        {/* Body Modal */}
         <div className="scanner-modal-body">
           {/* 1. MÀN HÌNH KẾT QUẢ SOÁT VÉ */}
           {result ? (
@@ -479,16 +570,16 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                   className="scanner-status-banner"
                   style={{
                     background: result.valid
-                      ? 'rgba(16, 185, 129, 0.08)'
+                      ? 'rgba(16, 185, 129, 0.1)'
                       : result.reason === 'ALREADY_USED'
-                      ? 'rgba(239, 68, 68, 0.08)'
-                      : 'rgba(245, 158, 11, 0.08)',
+                      ? 'rgba(239, 68, 68, 0.1)'
+                      : 'rgba(245, 158, 11, 0.1)',
                     border: `1px solid ${
                       result.valid
-                        ? 'rgba(16, 185, 129, 0.3)'
+                        ? 'rgba(16, 185, 129, 0.35)'
                         : result.reason === 'ALREADY_USED'
-                        ? 'rgba(239, 68, 68, 0.3)'
-                        : 'rgba(245, 158, 11, 0.3)'
+                        ? 'rgba(239, 68, 68, 0.35)'
+                        : 'rgba(245, 158, 11, 0.35)'
                     }`
                   }}
                 >
@@ -496,10 +587,10 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                     className="scanner-status-icon-wrap"
                     style={{
                       background: result.valid
-                        ? 'rgba(16, 185, 129, 0.15)'
+                        ? 'rgba(16, 185, 129, 0.18)'
                         : result.reason === 'ALREADY_USED'
-                        ? 'rgba(239, 68, 68, 0.15)'
-                        : 'rgba(245, 158, 11, 0.15)',
+                        ? 'rgba(239, 68, 68, 0.18)'
+                        : 'rgba(245, 158, 11, 0.18)',
                       color: result.valid
                         ? '#10B981'
                         : result.reason === 'ALREADY_USED'
@@ -543,8 +634,8 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                         ? 'Vé đã bị hủy bỏ'
                         : result.reason === 'UNPAID'
                         ? 'Vé chưa thanh toán'
-                        : result.reason === 'VIETQR' || result.reason === 'ZALO' || result.reason === 'SOCIAL' || result.reason === 'EXTERNAL_URL'
-                        ? 'Mã QR không thuộc hệ thống vé'
+                        : result.reason === 'INVALID_SYSTEM_BILL' || result.reason === 'VIETQR' || result.reason === 'ZALO' || result.reason === 'SOCIAL' || result.reason === 'EXTERNAL_URL'
+                        ? 'Mã QR không hợp lệ'
                         : result.reason === 'NOT_FOUND'
                         ? 'Mã vé không tồn tại'
                         : 'Mã QR không hợp lệ'}
@@ -558,7 +649,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                 {/* Bảng thông tin chi tiết vé */}
                 {result.ticket && (
                   <div className="scanner-ticket-card">
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-gold, #D4A86A)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
                       Thông tin vé tham quan
                     </div>
 
@@ -621,6 +712,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                     type="button"
                     onClick={handleManualCheckin}
                     disabled={isCheckingInManual}
+                    className="btn btn-primary"
                     style={{
                       flex: 1,
                       height: 40,
@@ -629,12 +721,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                       justifyContent: 'center',
                       gap: 6,
                       fontSize: 13,
-                      fontWeight: 600,
-                      borderRadius: 6,
-                      background: '#10B981',
-                      border: 'none',
-                      color: '#FFFFFF',
-                      cursor: 'pointer'
+                      fontWeight: 600
                     }}
                   >
                     <CheckCircle2 size={15} />
@@ -644,7 +731,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
 
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-outline"
                   onClick={handleScanNext}
                   style={{
                     flex: 1,
@@ -654,9 +741,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                     justifyContent: 'center',
                     gap: 6,
                     fontSize: 13,
-                    fontWeight: 600,
-                    borderRadius: 6,
-                    cursor: 'pointer'
+                    fontWeight: 600
                   }}
                 >
                   <span>Quét vé tiếp theo</span>
@@ -667,79 +752,56 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           ) : (
             /* 2. KHU VỰC CÁC TAB QUÉT */
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
-              {/* Tab 1: Camera */}
+              {/* Tab 1: Camera Viewfinder Chuẩn Heritage Bảo Tàng */}
               {scanMode === 'camera' && (
                 <div className="scanner-camera-wrap">
-                  <div style={{ position: 'relative', width: '100%', height: 280, borderRadius: 8, overflow: 'hidden', background: '#000' }}>
+                  <div className="scanner-viewport-box">
                     <video
                       ref={videoRef}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block'
-                      }}
+                      className="scanner-video-el"
                     />
                     <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-                    {/* Khung ngắm quét mã QR với hiệu ứng Laser */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: 170,
-                        height: 170,
-                        border: '2px solid rgba(212, 168, 106, 0.8)',
-                        borderRadius: 10,
-                        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
-                        pointerEvents: 'none',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          height: 2,
-                          background: '#EF4444',
-                          boxShadow: '0 0 6px #EF4444',
-                          animation: 'scannerLaser 2s infinite ease-in-out'
-                        }}
-                      />
+                    {/* Khung ngắm chuẩn Museum Heritage (4 góc vàng tinh tế, không hiệu ứng AI chói lóa) */}
+                    <div className="scanner-viewfinder-frame">
+                      {/* 4 góc vàng cổ điển */}
+                      <span className="scanner-corner corner-tl" />
+                      <span className="scanner-corner corner-tr" />
+                      <span className="scanner-corner corner-bl" />
+                      <span className="scanner-corner corner-br" />
+
+                      {/* Tia quét vàng dịu dàng, trang nhã */}
+                      <div className="scanner-soft-guide-line" />
                     </div>
 
                     {/* Nút điều khiển camera phụ */}
-                    <div style={{ position: 'absolute', bottom: 10, right: 10, display: 'flex', gap: 6, zIndex: 5 }}>
+                    <div className="scanner-cam-controls">
                       {hasTorch && (
                         <button
                           type="button"
-                          className="btn btn-xs btn-secondary"
+                          className="btn-cam-ctrl"
                           onClick={toggleTorch}
                           title={isTorchOn ? 'Tắt đèn Flash' : 'Bật đèn Flash'}
-                          style={{ background: 'rgba(0, 0, 0, 0.65)', color: isTorchOn ? '#D4A86A' : '#FFF' }}
+                          style={{ color: isTorchOn ? 'var(--accent-gold, #D4A86A)' : '#FFF' }}
                         >
-                          {isTorchOn ? <Zap size={13} /> : <ZapOff size={13} />}
+                          {isTorchOn ? <Zap size={14} /> : <ZapOff size={14} />}
                         </button>
                       )}
 
                       <button
                         type="button"
-                        className="btn btn-xs btn-secondary"
+                        className="btn-cam-ctrl"
                         onClick={() => setFacingMode(facingMode === 'environment' ? 'user' : 'environment')}
                         title="Đổi camera trước/sau"
-                        style={{ background: 'rgba(0, 0, 0, 0.65)' }}
                       >
-                        <RefreshCw size={13} />
+                        <RefreshCw size={14} />
                       </button>
                     </div>
                   </div>
 
                   {!isVerifying && (
-                    <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: '#9CA3AF' }}>
-                      Hướng camera vào mã QR trên vé của khách tham quan để quét tự động.
+                    <div className="scanner-hint-text">
+                      Đặt mã QR trên vé hoặc hóa đơn của Bảo tàng vào giữa khung ngắm để kiểm tra tự động.
                     </div>
                   )}
                 </div>
@@ -749,13 +811,13 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
               {scanMode === 'manual' && (
                 <form onSubmit={handleManualSubmit} className="scanner-manual-wrap">
                   <div className="scanner-icon-circle">
-                    <Keyboard size={22} style={{ color: '#D4A86A' }} />
+                    <Keyboard size={22} style={{ color: 'var(--accent-gold, #D4A86A)' }} />
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#F3F4F6', marginBottom: 4 }}>
-                    Nhập mã vé hoặc quét mã vạch
+                    Nhập mã vé hoặc mã hóa đơn
                   </div>
-                  <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 16, textAlign: 'center', maxWidth: 380 }}>
-                    Hỗ trợ nhập mã vé (VD: BTLS-2026-688D37) hoặc dùng đầu đọc súng quét barcode cắm cổng USB.
+                  <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 16, textAlign: 'center', maxWidth: 380, lineHeight: 1.5 }}>
+                    Hỗ trợ nhập mã vé (VD: <strong style={{ color: 'var(--accent-gold, #D4A86A)' }}>BTLS-2026-688D37</strong>) hoặc mã hóa đơn, hoặc dùng đầu đọc súng quét barcode cắm cổng USB.
                   </div>
 
                   {cameraError && (
@@ -780,7 +842,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                     <input
                       ref={manualInputRef}
                       type="text"
-                      placeholder="VD: BTLS-2026-688D37..."
+                      placeholder="VD: BTLS-2026-688D37 hoặc mã hóa đơn..."
                       className="form-control"
                       value={manualCode}
                       onChange={(e) => setManualCode(e.target.value)}
@@ -799,48 +861,79 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                 </form>
               )}
 
-              {/* Tab 3: Tải ảnh QR lên */}
+              {/* Tab 3: Tải ảnh QR lên (Hỗ trợ đa tầng & Preview ảnh) */}
               {scanMode === 'upload' && (
-                <div
-                  className="scanner-upload-dropzone"
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const files = e.dataTransfer.files;
-                    if (files && files[0]) {
-                      processUploadedFile(files[0]);
-                    }
-                  }}
-                >
-                  <div className="scanner-icon-circle">
-                    <Upload size={22} style={{ color: '#D4A86A' }} />
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#F3F4F6', marginBottom: 4 }}>
-                    Tải ảnh mã QR vé tham quan
-                  </div>
-                  <div style={{ fontSize: 12, color: '#9CA3AF', maxWidth: 360, textAlign: 'center', lineHeight: 1.5, marginBottom: 14 }}>
-                    Nhấp vào đây hoặc kéo thả ảnh chụp mã QR (JPG, PNG, WebP) để hệ thống nhận diện và đối chiếu.
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      fileInputRef.current?.click();
-                    }}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <FileImage size={13} />
-                    <span>Chọn ảnh từ thiết bị</span>
-                  </button>
+                <div className="scanner-upload-container">
+                  {uploadedPreview ? (
+                    <div className="scanner-preview-card">
+                      <div className="scanner-preview-img-wrap">
+                        <img src={uploadedPreview} alt="Ảnh mã QR tải lên" className="scanner-preview-img" />
+                        {isDecodingImage && (
+                          <div className="scanner-preview-overlay">
+                            <RefreshCw size={24} className="spin" style={{ color: 'var(--accent-gold, #D4A86A)' }} />
+                            <span style={{ fontSize: 12, color: '#F3F4F6', marginTop: 8 }}>Đang phân tích mã QR...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="scanner-preview-info">
+                        <span style={{ fontSize: 12, color: '#E2E8F0', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                          {uploadedFileName || 'Ảnh đã chọn'}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <Upload size={11} />
+                          <span>Chọn ảnh khác</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="scanner-upload-dropzone"
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const files = e.dataTransfer.files;
+                        if (files && files[0]) {
+                          processUploadedFile(files[0]);
+                        }
+                      }}
+                    >
+                      <div className="scanner-icon-circle">
+                        <Upload size={22} style={{ color: 'var(--accent-gold, #D4A86A)' }} />
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#F3F4F6', marginBottom: 4 }}>
+                        Tải ảnh vé hoặc hóa đơn tham quan
+                      </div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF', maxWidth: 360, textAlign: 'center', lineHeight: 1.5, marginBottom: 14 }}>
+                        Kéo thả ảnh chụp mã QR vé hoặc hóa đơn (JPG, PNG, WebP) vào đây hoặc nhấp để chọn tệp. Hệ thống sẽ nhận diện và đối chiếu tự động.
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <FileImage size={13} />
+                        <span>Chọn ảnh từ thiết bị</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Đang gửi dữ liệu kiểm tra */}
               {isVerifying && (
-                <div style={{ textAlign: 'center', padding: '12px 0', color: '#D4A86A' }}>
+                <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--accent-gold, #D4A86A)' }}>
                   <RefreshCw size={17} className="spin" style={{ marginBottom: 4 }} />
                   <div style={{ fontSize: 12, fontWeight: 500 }}>Đang kiểm tra vé và đối chiếu cơ sở dữ liệu...</div>
                 </div>
@@ -861,18 +954,12 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
       </div>
 
       <style>{`
-        @keyframes scannerLaser {
-          0% { top: 4px; opacity: 0.8; }
-          50% { top: calc(100% - 6px); opacity: 1; }
-          100% { top: 4px; opacity: 0.8; }
-        }
-
         .scanner-modal-backdrop {
           position: fixed;
           inset: 0;
           background: rgba(0, 0, 0, 0.75);
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -880,19 +967,19 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           padding: 16px;
         }
 
-        /* Khung modal cố định kích thước 580x570px trên mọi tab */
+        /* Khung modal chuẩn kích thước Heritage Admin */
         .scanner-modal-panel {
           width: 580px;
           max-width: 100%;
-          height: 570px;
+          height: 580px;
           max-height: calc(100vh - 32px);
           display: flex;
           flex-direction: column;
           padding: 0;
           overflow: hidden;
           border-radius: 12px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
-          background: #131722;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(212, 168, 106, 0.2);
+          background: #181512;
           border: 1px solid rgba(212, 168, 106, 0.25);
         }
 
@@ -900,14 +987,41 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           height: 60px;
           flex-shrink: 0;
           padding: 0 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid rgba(212, 168, 106, 0.15);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: #0F1219;
+          background: #12100e;
         }
 
-        /* Nút Close X chuẩn Admin Bảo Tàng */
+        .scanner-header-icon-wrap {
+          width: 34px;
+          height: 34px;
+          border-radius: 8px;
+          background: rgba(212, 168, 106, 0.12);
+          border: 1px solid rgba(212, 168, 106, 0.25);
+          color: var(--accent-gold, #D4A86A);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .scanner-header-title {
+          font-size: 14.5px;
+          font-weight: 600;
+          margin: 0;
+          color: #F8FAFC;
+          letter-spacing: -0.01em;
+        }
+
+        .scanner-header-subtitle {
+          font-size: 11.5px;
+          color: #9CA3AF;
+          margin: 0;
+          margin-top: 1px;
+        }
+
         .btn-close-modal {
           display: inline-flex;
           align-items: center;
@@ -930,21 +1044,21 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
         }
 
         .scanner-control-bar {
-          height: 48px;
+          height: 50px;
           flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 0 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(0, 0, 0, 0.2);
+          border-bottom: 1px solid rgba(212, 168, 106, 0.1);
+          background: rgba(0, 0, 0, 0.25);
           gap: 10px;
         }
 
         .scanner-pill-group {
           display: inline-flex;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(212, 168, 106, 0.15);
           border-radius: 8px;
           padding: 3px;
           gap: 2px;
@@ -954,7 +1068,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          padding: 5px 12px;
+          padding: 5px 13px;
           border-radius: 6px;
           border: none;
           background: transparent;
@@ -968,12 +1082,12 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
 
         .scanner-pill-btn:hover {
           color: #F3F4F6;
-          background: rgba(255, 255, 255, 0.04);
+          background: rgba(255, 255, 255, 0.05);
         }
 
         .scanner-pill-btn.active {
-          background: #D4A86A;
-          color: #0F1219;
+          background: var(--accent-gold, #D4A86A);
+          color: #12100e;
           font-weight: 600;
         }
 
@@ -991,13 +1105,12 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
         }
 
         .scanner-auto-toggle input {
-          accent-color: #D4A86A;
+          accent-color: var(--accent-gold, #D4A86A);
           cursor: pointer;
           width: 14px;
           height: 14px;
         }
 
-        /* Thân Modal cố định kích thước, không co rút khi chuyển tab */
         .scanner-modal-body {
           flex: 1;
           min-height: 0;
@@ -1005,27 +1118,146 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          background: #11141D;
+          background: #15120f;
         }
 
         .scanner-modal-footer {
           height: 50px;
           flex-shrink: 0;
           padding: 0 20px;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          border-top: 1px solid rgba(212, 168, 106, 0.15);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: #0F1219;
+          background: #12100e;
         }
 
-        /* Các khối giao diện cho từng tab để chiếm trọn chiều cao */
+        /* Camera Viewport */
         .scanner-camera-wrap {
           display: flex;
           flex-direction: column;
           align-items: center;
         }
 
+        .scanner-viewport-box {
+          position: relative;
+          width: 100%;
+          height: 290px;
+          border-radius: 10px;
+          overflow: hidden;
+          background: #000;
+          border: 1px solid rgba(212, 168, 106, 0.2);
+        }
+
+        .scanner-video-el {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        /* Viewfinder Frame với 4 góc vàng cổ điển */
+        .scanner-viewfinder-frame {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 180px;
+          height: 180px;
+          box-shadow: 0 0 0 9999px rgba(10, 8, 6, 0.65);
+          pointer-events: none;
+          overflow: hidden;
+        }
+
+        .scanner-corner {
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          border-color: var(--accent-gold, #D4A86A);
+          border-style: solid;
+        }
+
+        .corner-tl {
+          top: 0;
+          left: 0;
+          border-width: 3px 0 0 3px;
+          border-top-left-radius: 4px;
+        }
+
+        .corner-tr {
+          top: 0;
+          right: 0;
+          border-width: 3px 3px 0 0;
+          border-top-right-radius: 4px;
+        }
+
+        .corner-bl {
+          bottom: 0;
+          left: 0;
+          border-width: 0 0 3px 3px;
+          border-bottom-left-radius: 4px;
+        }
+
+        .corner-br {
+          bottom: 0;
+          right: 0;
+          border-width: 0 3px 3px 0;
+          border-bottom-right-radius: 4px;
+        }
+
+        /* Tia quét mềm mại màu vàng nhã nhặn */
+        .scanner-soft-guide-line {
+          position: absolute;
+          left: 8px;
+          right: 8px;
+          height: 2px;
+          background: linear-gradient(90deg, transparent 0%, rgba(212, 168, 106, 0.85) 50%, transparent 100%);
+          box-shadow: 0 0 8px rgba(212, 168, 106, 0.6);
+          animation: scannerSoftSweep 2.4s ease-in-out infinite;
+        }
+
+        @keyframes scannerSoftSweep {
+          0% { top: 12px; opacity: 0.3; }
+          50% { top: calc(100% - 14px); opacity: 1; }
+          100% { top: 12px; opacity: 0.3; }
+        }
+
+        .scanner-cam-controls {
+          position: absolute;
+          bottom: 10px;
+          right: 10px;
+          display: flex;
+          gap: 6px;
+          z-index: 5;
+        }
+
+        .btn-cam-ctrl {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          background: rgba(18, 16, 14, 0.8);
+          color: #FFF;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .btn-cam-ctrl:hover {
+          background: rgba(212, 168, 106, 0.2);
+          border-color: rgba(212, 168, 106, 0.4);
+        }
+
+        .scanner-hint-text {
+          text-align: center;
+          margin-top: 14px;
+          font-size: 12px;
+          color: #9CA3AF;
+          line-height: 1.5;
+        }
+
+        /* Tab 2: Nhập mã */
         .scanner-manual-wrap {
           flex: 1;
           display: flex;
@@ -1035,7 +1267,17 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           padding: 20px;
         }
 
+        /* Tab 3: Tải ảnh */
+        .scanner-upload-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
         .scanner-upload-dropzone {
+          width: 100%;
           flex: 1;
           display: flex;
           flex-direction: column;
@@ -1043,14 +1285,63 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           justify-content: center;
           border: 2px dashed rgba(212, 168, 106, 0.35);
           border-radius: 10px;
-          background: rgba(255, 255, 255, 0.02);
+          background: rgba(212, 168, 106, 0.02);
           cursor: pointer;
           padding: 24px 20px;
           transition: all 0.2s ease;
         }
         .scanner-upload-dropzone:hover {
           border-color: rgba(212, 168, 106, 0.65);
-          background: rgba(212, 168, 106, 0.04);
+          background: rgba(212, 168, 106, 0.05);
+        }
+
+        .scanner-preview-card {
+          width: 100%;
+          max-width: 380px;
+          border: 1px solid rgba(212, 168, 106, 0.25);
+          border-radius: 10px;
+          padding: 12px;
+          background: rgba(255, 255, 255, 0.02);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .scanner-preview-img-wrap {
+          position: relative;
+          width: 100%;
+          height: 220px;
+          border-radius: 8px;
+          overflow: hidden;
+          background: #000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .scanner-preview-img {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+        }
+
+        .scanner-preview-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.75);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .scanner-preview-info {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 4px;
         }
 
         .scanner-icon-circle {
@@ -1058,6 +1349,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           height: 48px;
           border-radius: 12px;
           background: rgba(212, 168, 106, 0.12);
+          border: 1px solid rgba(212, 168, 106, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1085,7 +1377,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
 
         .scanner-ticket-card {
           background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(212, 168, 106, 0.15);
           border-radius: 8px;
           padding: 12px 16px;
           margin-bottom: 12px;
@@ -1120,7 +1412,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           font-family: monospace;
           font-size: 13px;
           font-weight: 600;
-          color: #D4A86A;
+          color: var(--accent-gold, #D4A86A);
           background: rgba(212, 168, 106, 0.1);
           border: 1px solid rgba(212, 168, 106, 0.25);
           padding: 2px 7px;
@@ -1136,7 +1428,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           .scanner-modal-panel {
             width: 100%;
             height: 94vh;
-            max-height: 600px;
+            max-height: 620px;
             border-radius: 10px;
           }
           .scanner-modal-header {
@@ -1171,6 +1463,13 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           .scanner-ticket-grid {
             grid-template-columns: 1fr;
             gap: 8px;
+          }
+          .scanner-viewport-box {
+            height: 240px;
+          }
+          .scanner-viewfinder-frame {
+            width: 150px;
+            height: 150px;
           }
         }
       `}</style>

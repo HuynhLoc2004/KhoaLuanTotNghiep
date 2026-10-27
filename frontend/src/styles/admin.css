@@ -7988,3 +7988,371 @@ select option {
   }
 }
 
+/* ==========================================================================
+   TICKETS MANAGEMENT PAGE (QUẢN LÝ VÉ THAM QUAN) - RESPONSIVE & HERITAGE
+   ========================================================================== */
+
+.admin-tickets-page {
+  padding: 24px 28px;
+}
+
+@media (max-width: 640px) {
+  .admin-tickets-page {
+    padding: 12px 14px;
+  }
+}
+
+.tickets-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tickets-tabs-nav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 18px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tickets-tabs-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.tickets-tab-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.tickets-tab-btn:hover {
+  color: var(--text-main);
+}
+.tickets-tab-btn.active {
+  font-weight: 600;
+  color: var(--text-main);
+  border-bottom-color: var(--accent-gold);
+}
+
+/* Lưới KPI Vé */
+.tickets-stats-grid {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.tickets-stat-item {
+  padding: 14px 20px;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+.tickets-stat-item:last-child {
+  border-right: none;
+}
+
+.tickets-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.tickets-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .tickets-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .tickets-stat-item:nth-child(2) {
+    border-right: none;
+  }
+  .tickets-stat-item:nth-child(1),
+  .tickets-stat-item:nth-child(2) {
+    border-bottom: 1px solid var(--border-color);
+  }
+  .tickets-stat-item {
+    padding: 12px 14px;
+  }
+  .tickets-stat-value {
+    font-size: 17px;
+  }
+}
+
+/* Thanh công cụ tìm kiếm và bộ lọc vé */
+.tickets-toolbar-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.tickets-search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.tickets-search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.tickets-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.tickets-search-input {
+  width: 100%;
+  padding: 8px 34px 8px 34px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-size: 13px;
+  transition: var(--transition-fast);
+}
+.tickets-search-input:focus {
+  border-color: var(--accent-gold);
+  outline: none;
+}
+
+.tickets-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tickets-search-clear:hover {
+  color: var(--text-main);
+}
+
+.tickets-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tickets-select-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.tickets-filter-select {
+  padding: 6px 10px;
+  background: #1c1917 !important;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: #f8fafc;
+  font-size: 12.5px;
+  color-scheme: dark;
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  outline: none;
+  transition: var(--transition-fast);
+}
+.tickets-filter-select:focus {
+  border-color: var(--accent-gold);
+}
+
+.tickets-date-input {
+  padding: 6px 10px;
+  background: #1c1917 !important;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: #f8fafc;
+  font-size: 12.5px;
+  color-scheme: dark;
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  outline: none;
+}
+.tickets-date-input:focus {
+  border-color: var(--accent-gold);
+}
+
+@media (max-width: 640px) {
+  .tickets-toolbar-card {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tickets-search-form {
+    width: 100%;
+    min-width: 0;
+  }
+  .tickets-filter-group {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .tickets-select-box {
+    width: 100%;
+  }
+  .tickets-filter-select {
+    width: 100%;
+  }
+  .tickets-date-input {
+    width: 100%;
+    grid-column: span 2;
+  }
+}
+
+/* Thẻ bảng vé và chế độ xem Mobile Cards */
+.tickets-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.tickets-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.tickets-mobile-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .tickets-table-scroll {
+    display: none !important;
+  }
+
+  .tickets-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tickets-mobile-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .tickets-mobile-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .tickets-mobile-code-badge {
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-gold);
+    background: rgba(212, 168, 106, 0.1);
+    border: 1px solid rgba(212, 168, 106, 0.25);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .tickets-mobile-card-meta {
+    background: var(--bg-subtle);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tickets-mobile-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .tickets-mobile-meta-label {
+    color: var(--text-muted);
+  }
+
+  .tickets-mobile-meta-val {
+    color: var(--text-main);
+    font-weight: 500;
+  }
+
+  .tickets-mobile-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-color);
+  }
+
+  .tickets-mobile-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    white-space: nowrap;
+  }
+}
+
+
