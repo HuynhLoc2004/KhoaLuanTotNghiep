@@ -39,24 +39,24 @@ export const GLOBAL_LANGUAGE_PRESETS: LanguagePreset[] = [
   { code: 'ru', name: 'Russian', nativeName: 'Русский', flagIcon: '🇷🇺', voiceName: 'ru-RU-Wavenet-C', gender: 'female', label: 'Nga' },
   { code: 'it', name: 'Italian', nativeName: 'Italiano', flagIcon: '🇮🇹', voiceName: 'it-IT-Neural2-A', gender: 'female', label: 'Ý' },
   { code: 'th', name: 'Thai', nativeName: 'ไทย', flagIcon: '🇹🇭', voiceName: 'th-TH-Standard-A', gender: 'female', label: 'Thái Lan' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', flagIcon: '🇩🇪', voiceName: 'de-DE-Neural2-F', gender: 'female', label: 'Nước Đức (Đức)' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', flagIcon: '🇩🇪', voiceName: 'de-DE-Neural2-F', gender: 'female', label: 'Đức' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', flagIcon: '🇰🇷', voiceName: 'ko-KR-Neural2-A', gender: 'female', label: 'Hàn Quốc' },
   { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', flagIcon: '🇮🇩', voiceName: 'id-ID-Standard-A', gender: 'female', label: 'Indonesia' },
   { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu', flagIcon: '🇲🇾', voiceName: 'ms-MY-Standard-A', gender: 'female', label: 'Malaysia' },
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', flagIcon: '🇵🇹', voiceName: 'pt-PT-Wavenet-A', gender: 'female', label: 'Bồ Đào Nha' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flagIcon: '🇦🇪', voiceName: 'ar-XA-Wavenet-A', gender: 'female', label: 'Ả Rập' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flagIcon: '🇮🇳', voiceName: 'hi-IN-Neural2-A', gender: 'female', label: 'Ấn Độ (Hindi)' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flagIcon: '🇮🇳', voiceName: 'hi-IN-Neural2-A', gender: 'female', label: 'Ấn Độ' },
   { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', flagIcon: '🇳🇱', voiceName: 'nl-NL-Standard-A', gender: 'female', label: 'Hà Lan' },
   { code: 'pl', name: 'Polish', nativeName: 'Polski', flagIcon: '🇵🇱', voiceName: 'pl-PL-Wavenet-A', gender: 'female', label: 'Ba Lan' },
   { code: 'sv', name: 'Swedish', nativeName: 'Svenska', flagIcon: '🇸🇪', voiceName: 'sv-SE-Wavenet-A', gender: 'female', label: 'Thụy Điển' },
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flagIcon: '🇹🇷', voiceName: 'tr-TR-Standard-A', gender: 'female', label: 'Thổ Nhĩ Kỳ' },
   { code: 'el', name: 'Greek', nativeName: 'Ελληνικά', flagIcon: '🇬🇷', voiceName: 'el-GR-Standard-A', gender: 'female', label: 'Hy Lạp' },
-  { code: 'km', name: 'Khmer', nativeName: 'ភាសាខ្មែរ', flagIcon: '🇰🇭', voiceName: 'km-KH-Standard-A', gender: 'female', label: 'Campuchia (Khmer)' },
+  { code: 'km', name: 'Khmer', nativeName: 'ភាសាខ្មែរ', flagIcon: '🇰🇭', voiceName: 'km-KH-Standard-A', gender: 'female', label: 'Campuchia' },
   { code: 'lo', name: 'Lao', nativeName: 'ພາສາລາວ', flagIcon: '🇱🇦', voiceName: 'lo-LA-Standard-A', gender: 'female', label: 'Lào' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', flagIcon: '🇯🇵', voiceName: 'ja-JP-Neural2-B', gender: 'female', label: 'Nhật Bản' },
   { code: 'zh', name: 'Chinese', nativeName: '中文 (简体)', flagIcon: '🇨🇳', voiceName: 'cmn-CN-Wavenet-A', gender: 'female', label: 'Trung Quốc' },
   { code: 'fr', name: 'French', nativeName: 'Français', flagIcon: '🇫🇷', voiceName: 'fr-FR-Neural2-A', gender: 'female', label: 'Pháp' },
-  { code: 'en', name: 'English', nativeName: 'English', flagIcon: '🇬🇧', voiceName: 'en-US-Neural2-F', gender: 'female', label: 'Anh (UK/US)' },
+  { code: 'en', name: 'English', nativeName: 'English', flagIcon: '🇬🇧', voiceName: 'en-US-Neural2-F', gender: 'female', label: 'Tiếng Anh' },
 ];
 
 export const AdminLanguagePage: React.FC = () => {
@@ -232,7 +232,6 @@ export const AdminLanguagePage: React.FC = () => {
         langName: lang.nativeName,
         flag: lang.flagIcon || '🌐'
       });
-      showToast(`Đang phát giọng đọc AI [${lang.nativeName}]`, 'info');
     } catch (err: any) {
       // Fallback: nếu lỗi mạng mới phát qua giọng đọc trình duyệt
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -388,7 +387,7 @@ export const AdminLanguagePage: React.FC = () => {
   const activePercent = languages.length > 0 ? Math.round((activeCount / languages.length) * 100) : 0;
 
   return (
-    <div className="admin-content admin-language-page" style={{ padding: '24px 28px', overscrollBehaviorY: 'contain' }}>
+    <div className="admin-content admin-language-page" style={{ overscrollBehaviorY: 'contain' }}>
       <div className="lang-management-page">
         {/* HEADER SECTION */}
         <div className="lang-header-row">
@@ -504,44 +503,46 @@ export const AdminLanguagePage: React.FC = () => {
         {/* AUDIO PLAYER BANNER NẾU ĐANG NGHE THỬ */}
         {previewAudio && (
           <div className="lang-audio-banner">
-            <div className="lang-audio-banner-left">
-              <div className="lang-audio-equalizer">
-                <span className="lang-eq-bar" />
-                <span className="lang-eq-bar" />
-                <span className="lang-eq-bar" />
-                <span className="lang-eq-bar" />
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>{previewAudio.flag}</span>
-                  <span>{t('langPage.playingSample', 'Đang phát mẫu giọng đọc AI:')} {previewAudio.langName}</span>
+            <div className="lang-audio-banner-header">
+              <div className="lang-audio-banner-left">
+                <div className="lang-audio-equalizer">
+                  <span className="lang-eq-bar" />
+                  <span className="lang-eq-bar" />
+                  <span className="lang-eq-bar" />
+                  <span className="lang-eq-bar" />
                 </div>
-                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                  {t('langPage.playingSampleDesc', 'Kiểm tra ngữ điệu, nhịp độ và sự lưu loát của bản ghi âm')}
+                <div className="lang-audio-meta">
+                  <div className="lang-audio-title">
+                    <span className="lang-audio-flag">{previewAudio.flag}</span>
+                    <span>{t('langPage.playingSample', 'Phát mẫu giọng đọc AI:')} <strong>{previewAudio.langName}</strong></span>
+                  </div>
+                  <span className="lang-audio-desc">
+                    {t('langPage.playingSampleDesc', 'Kiểm tra ngữ điệu, nhịp độ và sự lưu loát của bản ghi âm')}
+                  </span>
                 </div>
               </div>
+
+              <button
+                type="button"
+                className="lang-audio-close-btn"
+                onClick={() => setPreviewAudio(null)}
+                title={t('common.close', 'Đóng')}
+              >
+                <X size={15} />
+                <span className="lang-audio-close-text">{t('common.close', 'Đóng')}</span>
+              </button>
             </div>
 
-            <div className="lang-audio-controls">
+            <div className="lang-audio-player-wrapper">
               <audio
                 controls
                 autoPlay
                 key={previewAudio.url}
                 src={previewAudio.url}
-                style={{ height: 36, maxWidth: 360, width: '100%' }}
+                className="lang-audio-player"
               >
                 {t('langPage.browserNoAudio', 'Trình duyệt không hỗ trợ audio.')}
               </audio>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setPreviewAudio(null)}
-                title={t('common.close', 'Đóng')}
-                style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
-              >
-                <X size={14} />
-                <span style={{ fontSize: '12px' }}>{t('common.close', 'Tắt')}</span>
-              </button>
             </div>
           </div>
         )}
@@ -578,8 +579,8 @@ export const AdminLanguagePage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value as any)}
             >
               <option value="all">{t('langPage.filterAll', 'Tất cả trạng thái')} ({languages.length})</option>
-              <option value="active">{t('langPage.filterActive', 'Đang hiển thị trên Client')} ({activeCount})</option>
-              <option value="inactive">{t('langPage.filterInactive', 'Đang tạm tắt')} ({languages.length - activeCount})</option>
+              <option value="active">{t('langPage.filterActiveShort', 'Đang hiển thị')} ({activeCount})</option>
+              <option value="inactive">{t('langPage.filterInactiveShort', 'Đang tạm tắt')} ({languages.length - activeCount})</option>
             </select>
           </div>
 
@@ -923,12 +924,12 @@ export const AdminLanguagePage: React.FC = () => {
                       onChange={(e) => handleApplyPreset(e.target.value)}
                       data-no-auto-translate="true"
                     >
-                      <option value="">{t('langPage.presetPlaceholder', '-- Chọn mẫu để tự động điền (hoặc tự nhập thông tin bên dưới) --')}</option>
+                      <option value="">{t('langPage.presetPlaceholder', '-- Chọn ngôn ngữ mẫu --')}</option>
                       {GLOBAL_LANGUAGE_PRESETS.map((p) => {
                         const exists = languages.some((l) => l.code === p.code);
                         return (
                           <option key={p.code} value={p.code} disabled={exists}>
-                            {`${p.flagIcon} ${p.label} (${p.nativeName} - ${p.name})${exists ? ' — [' + (currentLang === 'vi' ? 'Đã có' : 'Active') + ']' : ''}`}
+                            {`${p.flagIcon} ${p.label} (${p.nativeName})${exists ? ' — [' + (currentLang === 'vi' ? 'Đã có' : 'Active') + ']' : ''}`}
                           </option>
                         );
                       })}
@@ -936,7 +937,7 @@ export const AdminLanguagePage: React.FC = () => {
                   </div>
 
                   {/* Mã ISO & Cờ (Responsive Grid) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
+                  <div className="modal-form-row-2col">
                     <div className="form-group">
                       <label className="form-label">
                         {t('langPage.isoCode', 'Mã ISO')} <span style={{ color: 'var(--error)' }}>*</span>
@@ -1020,7 +1021,7 @@ export const AdminLanguagePage: React.FC = () => {
                   </div>
 
                   {/* Giọng đọc TTS & Giới tính (Responsive Grid) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+                  <div className="modal-form-row-2col">
                     <div className="form-group">
                       <label className="form-label">{t('langPage.ttsVoiceCode', 'Mã giọng đọc (TTS Voice)')}</label>
                       <input
