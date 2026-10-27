@@ -292,12 +292,21 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
     }
   };
 
-  // Hàm quét mã QR trên ảnh với đa tầng giải thuật (BarcodeDetector + Multi-scale jsQR)
-  const decodeQRFromImageElement = async (img: HTMLImageElement): Promise<string | null> => {
+  // Hàm quét mã QR trên ảnh với đa tầng giải thuật (BarcodeDetector + Multi-scale jsQR + 4 hướng xoay)
+  const decodeQRFromImageElement = async (img: HTMLImageElement, file?: File): Promise<string | null> => {
     // 1. Thử BarcodeDetector native (cực nhanh, chính xác cao trên Chrome/Edge/Android/iOS)
     if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
       try {
         const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+        if (file && typeof createImageBitmap !== 'undefined') {
+          try {
+            const bmp = await createImageBitmap(file);
+            const barcodes = await detector.detect(bmp);
+            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+              return barcodes[0].rawValue.trim();
+            }
+          } catch {}
+        }
         const barcodes = await detector.detect(img);
         if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
           return barcodes[0].rawValue.trim();
@@ -307,16 +316,16 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
       }
     }
 
-    // 2. Thử jsQR với nhiều kích thước scale khác nhau
+    // 2. Thử jsQR với nhiều kích thước scale và 4 góc xoay (0, 90, 180, 270)
     const scales = [
       { maxDim: 1200 }, // Kích thước tối ưu cho ảnh camera độ phân giải cao
-      { maxDim: 600 },  // Kích thước thu nhỏ cho ảnh chụp tổng thể hóa đơn
+      { maxDim: 700 },  // Kích thước thu nhỏ cho ảnh chụp tổng thể hóa đơn
       { maxDim: 0 }     // Kích thước gốc của ảnh
     ];
 
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return null;
+    const baseCanvas = document.createElement('canvas');
+    const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+    if (!baseCtx) return null;
 
     for (const s of scales) {
       let w = img.naturalWidth || img.width;
@@ -332,22 +341,45 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
         }
       }
 
-      canvas.width = w;
-      canvas.height = h;
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
+      baseCanvas.width = w;
+      baseCanvas.height = h;
+      baseCtx.clearRect(0, 0, w, h);
+      baseCtx.drawImage(img, 0, 0, w, h);
 
-      try {
-        const imageData = ctx.getImageData(0, 0, w, h);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'attemptBoth'
-        });
-
-        if (code && code.data && code.data.trim()) {
-          return code.data.trim();
+      for (const angle of [0, 90, 180, 270]) {
+        let testCanvas = baseCanvas;
+        if (angle !== 0) {
+          testCanvas = document.createElement('canvas');
+          if (angle === 90 || angle === 270) {
+            testCanvas.width = baseCanvas.height;
+            testCanvas.height = baseCanvas.width;
+          } else {
+            testCanvas.width = baseCanvas.width;
+            testCanvas.height = baseCanvas.height;
+          }
+          const tctx = testCanvas.getContext('2d');
+          if (tctx) {
+            tctx.translate(testCanvas.width / 2, testCanvas.height / 2);
+            tctx.rotate((angle * Math.PI) / 180);
+            tctx.drawImage(baseCanvas, -baseCanvas.width / 2, -baseCanvas.height / 2);
+          }
         }
-      } catch (e) {
-        console.warn('[jsQR decode pass failed]:', e);
+
+        const tctx = testCanvas.getContext('2d', { willReadFrequently: true });
+        if (tctx) {
+          try {
+            const imageData = tctx.getImageData(0, 0, testCanvas.width, testCanvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'attemptBoth'
+            });
+
+            if (code && code.data && code.data.trim()) {
+              return code.data.trim();
+            }
+          } catch (e) {
+            console.warn('[jsQR decode pass failed]:', e);
+          }
+        }
       }
     }
 
@@ -379,7 +411,7 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
       const img = new Image();
       img.onload = async () => {
         try {
-          const qrText = await decodeQRFromImageElement(img);
+          const qrText = await decodeQRFromImageElement(img, file);
           if (qrText) {
             handleQRCodeDetected(qrText);
           } else {
@@ -770,8 +802,11 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
                       <span className="scanner-corner corner-bl" />
                       <span className="scanner-corner corner-br" />
 
-                      {/* Tia quét vàng dịu dàng, trang nhã */}
-                      <div className="scanner-soft-guide-line" />
+                      {/* Dấu định tâm chữ thập máy ảnh (Viewfinder Focus Reticle) */}
+                      <div className="scanner-center-crosshair">
+                        <span className="crosshair-h" />
+                        <span className="crosshair-v" />
+                      </div>
                     </div>
 
                     {/* Nút điều khiển camera phụ */}
@@ -1205,21 +1240,34 @@ export const AdminTicketScannerModal: React.FC<AdminTicketScannerModalProps> = (
           border-bottom-right-radius: 4px;
         }
 
-        /* Tia quét mềm mại màu vàng nhã nhặn */
-        .scanner-soft-guide-line {
+        /* Dấu định tâm chữ thập ống kính máy ảnh (DSLR Viewfinder Focus Reticle) */
+        .scanner-center-crosshair {
           position: absolute;
-          left: 8px;
-          right: 8px;
-          height: 2px;
-          background: linear-gradient(90deg, transparent 0%, rgba(212, 168, 106, 0.85) 50%, transparent 100%);
-          box-shadow: 0 0 8px rgba(212, 168, 106, 0.6);
-          animation: scannerSoftSweep 2.4s ease-in-out infinite;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 24px;
+          height: 24px;
+          pointer-events: none;
+          opacity: 0.75;
         }
 
-        @keyframes scannerSoftSweep {
-          0% { top: 12px; opacity: 0.3; }
-          50% { top: calc(100% - 14px); opacity: 1; }
-          100% { top: 12px; opacity: 0.3; }
+        .crosshair-h {
+          position: absolute;
+          top: 11px;
+          left: 0;
+          width: 24px;
+          height: 2px;
+          background: var(--accent-gold, #D4A86A);
+        }
+
+        .crosshair-v {
+          position: absolute;
+          left: 11px;
+          top: 0;
+          width: 2px;
+          height: 24px;
+          background: var(--accent-gold, #D4A86A);
         }
 
         .scanner-cam-controls {
