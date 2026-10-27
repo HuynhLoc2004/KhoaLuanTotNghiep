@@ -85,11 +85,12 @@ export const AdminUsersPage: React.FC = () => {
   const [toggleStatusTarget, setToggleStatusTarget] = useState<UserItem | null>(null);
   const [isTogglingStatus, setIsTogglingStatus] = useState<boolean>(false);
 
-  const fetchUsers = async (page = pagination.page, limit = pagination.limit) => {
+  const fetchUsers = async (page = pagination.page, limit = pagination.limit, overrideSearch?: string) => {
     try {
       setIsLoading(true);
+      const querySearch = overrideSearch !== undefined ? overrideSearch : searchTerm;
       const res: UserListResponse = await api.getUsers({
-        search: searchTerm,
+        search: querySearch.trim(),
         role: roleFilter,
         status: statusFilter,
         page,
@@ -108,23 +109,32 @@ export const AdminUsersPage: React.FC = () => {
     }
   };
 
-  // Lọc nhanh tức thời (Debounced 250ms)
+  // Tự động tải lại danh sách khi thay đổi vai trò hoặc trạng thái
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchUsers(1, pagination.limit);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [searchTerm, roleFilter, statusFilter]);
+    fetchUsers(1, pagination.limit);
+  }, [roleFilter, statusFilter]);
 
+  // Tìm kiếm: Validate bắt buộc nhập từ khóa
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchUsers(1, pagination.limit);
+    const trimmed = searchTerm.trim();
+    if (!trimmed) {
+      showToast('Vui lòng nhập từ khóa tìm kiếm (tên, email hoặc số điện thoại)', 'warning');
+      return;
+    }
+    fetchUsers(1, pagination.limit, trimmed);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    fetchUsers(1, pagination.limit, '');
   };
 
   const handleClearFilters = () => {
     setSearchTerm('');
     setRoleFilter('all');
     setStatusFilter('all');
+    fetchUsers(1, pagination.limit, '');
   };
 
   const handleRefresh = () => {
@@ -187,46 +197,66 @@ export const AdminUsersPage: React.FC = () => {
     setIsFormModalOpen(true);
   };
 
-  // Validate form client-side
+  // Validate form client-side chuẩn nghiệp vụ
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
+    const trimmedName = formData.fullName.trim();
+    const trimmedEmail = formData.email.trim();
+    const trimmedUsername = formData.username.trim();
+    const trimmedPhone = formData.phone.trim();
 
-    if (!formData.fullName.trim()) {
+    // 1. Họ và tên
+    if (!trimmedName) {
       errors.fullName = 'Họ và tên không được để trống';
-    } else if (formData.fullName.trim().length < 2) {
-      errors.fullName = 'Họ và tên phải có ít nhất 2 ký tự';
+    } else if (trimmedName.length < 2) {
+      errors.fullName = 'Họ và tên phải có tối thiểu 2 ký tự';
+    } else if (trimmedName.length > 70) {
+      errors.fullName = 'Họ và tên không được vượt quá 70 ký tự';
+    } else if (!/^[\p{L}\s'.-]+$/u.test(trimmedName)) {
+      errors.fullName = 'Họ và tên chỉ được chứa chữ cái và khoảng trắng hợp lệ';
     }
 
-    if (!formData.email.trim()) {
+    // 2. Email
+    if (!trimmedEmail) {
       errors.email = 'Địa chỉ email không được để trống';
     } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email.trim())) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(trimmedEmail)) {
         errors.email = 'Định dạng email không hợp lệ (VD: user@example.com)';
       }
     }
 
+    // 3. Mật khẩu
     if (!editingUser) {
       if (!formData.password) {
         errors.password = 'Mật khẩu khởi tạo không được để trống';
       } else if (formData.password.length < 6) {
         errors.password = 'Mật khẩu phải có tối thiểu 6 ký tự';
+      } else if (formData.password.includes(' ')) {
+        errors.password = 'Mật khẩu không được chứa khoảng trắng';
       }
-    } else if (formData.password && formData.password.length < 6) {
-      errors.password = 'Mật khẩu mới phải có tối thiểu 6 ký tự';
+    } else if (formData.password) {
+      if (formData.password.length < 6) {
+        errors.password = 'Mật khẩu mới phải có tối thiểu 6 ký tự';
+      } else if (formData.password.includes(' ')) {
+        errors.password = 'Mật khẩu không được chứa khoảng trắng';
+      }
     }
 
-    if (formData.phone && formData.phone.trim()) {
-      const phoneRegex = /^[0-9+() -]{9,15}$/;
-      if (!phoneRegex.test(formData.phone.trim())) {
-        errors.phone = 'Số điện thoại không hợp lệ (từ 9 đến 15 chữ số)';
+    // 4. Số điện thoại (Tùy chọn nhưng nếu nhập phải chuẩn Việt Nam hoặc quốc tế)
+    if (trimmedPhone) {
+      const phoneClean = trimmedPhone.replace(/[\s.-]/g, '');
+      const phoneRegex = /^(0|\+84)[0-9]{9,10}$/;
+      if (!phoneRegex.test(phoneClean)) {
+        errors.phone = 'Số điện thoại không hợp lệ (VD: 0912345678 hoặc +84912345678)';
       }
     }
 
-    if (formData.username && formData.username.trim()) {
-      const usernameRegex = /^[a-zA-Z0-9_.-]{3,30}$/;
-      if (!usernameRegex.test(formData.username.trim())) {
-        errors.username = 'Tên đăng nhập từ 3 - 30 ký tự, không chứa dấu cách hoặc ký tự đặc biệt';
+    // 5. Tên đăng nhập (Tùy chọn khi tạo mới, không thể sửa khi edit)
+    if (trimmedUsername) {
+      const usernameRegex = /^[a-zA-Z0-9._-]{3,30}$/;
+      if (!usernameRegex.test(trimmedUsername)) {
+        errors.username = 'Tên đăng nhập từ 3 - 30 ký tự (chữ, số, _, -, .)';
       }
     }
 
@@ -370,7 +400,7 @@ export const AdminUsersPage: React.FC = () => {
   const toIndex = Math.min(pagination.page * pagination.limit, pagination.total);
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px' }}>
+    <div className="admin-content admin-users-page">
       {/* 1. THANH TIÊU ĐỀ TRANG */}
       <div
         style={{
@@ -426,154 +456,90 @@ export const AdminUsersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. THANH CHỈ SỐ KPI TỐI GIẢN (KHÔNG DÙNG ICON/CARDLET MÀU MÈ) */}
-      <div
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 8,
-          marginBottom: 18,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
-        }}
-      >
-        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Tổng người dùng
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
-            {stats.totalUsers || pagination.total}
-          </div>
+      {/* 2. THANH CHỈ SỐ KPI TỐI GIẢN */}
+      <div className="users-stats-grid">
+        <div className="users-stat-card">
+          <div className="users-stat-label">Tổng người dùng</div>
+          <div className="users-stat-value">{stats.totalUsers || pagination.total}</div>
         </div>
 
-        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Khách tham quan
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
-            {stats.clientCount}
-          </div>
+        <div className="users-stat-card">
+          <div className="users-stat-label">Khách tham quan</div>
+          <div className="users-stat-value">{stats.clientCount}</div>
         </div>
 
-        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Quản trị & Nhân viên
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
-            {stats.adminCount + stats.staffCount}
-          </div>
+        <div className="users-stat-card">
+          <div className="users-stat-label">Quản trị & Nhân viên</div>
+          <div className="users-stat-value">{stats.adminCount + stats.staffCount}</div>
         </div>
 
-        <div style={{ padding: '14px 20px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Đang hoạt động
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
-            {stats.activeCount}
-          </div>
+        <div className="users-stat-card">
+          <div className="users-stat-label">Đang hoạt động</div>
+          <div className="users-stat-value">{stats.activeCount}</div>
         </div>
       </div>
 
       {/* 3. BỘ LỌC & TÌM KIẾM GỌN GÀNG */}
-      <div
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 8,
-          padding: '12px 16px',
-          marginBottom: 16,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12
-        }}
-      >
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 260 }}>
-          <div style={{ position: 'relative', width: '100%' }}>
-            <Search
-              size={14}
-              style={{
-                position: 'absolute',
-                left: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--text-muted)'
-              }}
-            />
+      <div className="users-toolbar-card">
+        <form onSubmit={handleSearchSubmit} className="users-search-form">
+          <div className="users-search-wrapper">
+            <Search size={14} className="users-search-icon" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm theo tên, email, số điện thoại..."
-              style={{
-                width: '100%',
-                padding: '8px 12px 8px 34px',
-                background: 'var(--bg-main)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 6,
-                color: 'var(--text-main)',
-                fontSize: 13
-              }}
+              className="users-search-input"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                className="users-search-clear"
+                onClick={handleClearSearch}
+                title="Xóa từ khóa"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
-          <button type="submit" className="btn btn-secondary btn-sm" style={{ flexShrink: 0 }}>
+          <button type="submit" className="btn btn-primary btn-sm users-search-btn">
             Tìm kiếm
           </button>
         </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Filter size={13} style={{ color: 'var(--text-muted)' }} />
+        <div className="users-filter-group">
+          <div className="users-select-wrapper">
+            <Filter size={13} className="users-filter-icon" />
             <select
-              className="admin-select"
+              className="admin-select users-filter-select"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                background: '#1c1917',
-                border: '1px solid var(--border-color)',
-                borderRadius: 6,
-                color: '#f8fafc',
-                fontSize: 12.5,
-                colorScheme: 'dark'
-              }}
             >
-              <option value="all" style={{ background: '#1c1917', color: '#f8fafc' }}>Tất cả vai trò</option>
-              <option value="admin" style={{ background: '#1c1917', color: '#f8fafc' }}>Quản trị viên</option>
-              <option value="staff" style={{ background: '#1c1917', color: '#f8fafc' }}>Nhân viên</option>
-              <option value="client" style={{ background: '#1c1917', color: '#f8fafc' }}>Khách tham quan</option>
+              <option value="all">Tất cả vai trò</option>
+              <option value="admin">Quản trị viên</option>
+              <option value="staff">Nhân viên</option>
+              <option value="client">Khách tham quan</option>
             </select>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="users-select-wrapper">
             <select
-              className="admin-select"
+              className="admin-select users-filter-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                background: '#1c1917',
-                border: '1px solid var(--border-color)',
-                borderRadius: 6,
-                color: '#f8fafc',
-                fontSize: 12.5,
-                colorScheme: 'dark'
-              }}
             >
-              <option value="all" style={{ background: '#1c1917', color: '#f8fafc' }}>Tất cả trạng thái</option>
-              <option value="active" style={{ background: '#1c1917', color: '#f8fafc' }}>Đang hoạt động</option>
-              <option value="locked" style={{ background: '#1c1917', color: '#f8fafc' }}>Tạm khóa</option>
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="locked">Tạm khóa</option>
             </select>
           </div>
 
           {(searchTerm || roleFilter !== 'all' || statusFilter !== 'all') && (
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm users-reset-btn"
               onClick={handleClearFilters}
               title="Đặt lại toàn bộ điều kiện lọc"
-              style={{ fontSize: 12, padding: '5px 10px' }}
             >
               Xóa bộ lọc
             </button>
@@ -581,9 +547,10 @@ export const AdminUsersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. BẢNG DANH SÁCH NGƯỜI DÙNG */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
+      {/* 4. BẢNG DANH SÁCH NGƯỜI DÙNG & THẺ MOBILE */}
+      <div className="users-table-card">
+        {/* DESKTOP TABLE */}
+        <div className="users-table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
               <tr
@@ -759,7 +726,7 @@ export const AdminUsersPage: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               onClick={() => setDeleteTarget(u)}
                               title="Xóa tài khoản"
-                              style={{ padding: '4px 8px', color: '#EF4444' }}
+                              style={{ padding: '4px 8px', color: 'var(--error)' }}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -772,6 +739,119 @@ export const AdminUsersPage: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* MOBILE CARDS LIST */}
+        <div className="users-mobile-list">
+          {isLoading ? (
+            <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
+              <RefreshCw size={18} className="spin" style={{ margin: '0 auto 8px', display: 'block', color: 'var(--primary)' }} />
+              <span>Đang nạp danh sách tài khoản...</span>
+            </div>
+          ) : users.length === 0 ? (
+            <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
+              <span>Không có người dùng nào phù hợp với bộ lọc.</span>
+            </div>
+          ) : (
+            users.map((u) => {
+              const initial = (u.fullName || u.username || 'U').charAt(0).toUpperCase();
+              return (
+                <div key={u.id} className="users-mobile-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div className="users-avatar-circle">{initial}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, color: 'var(--heading-color)', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {u.fullName || u.username}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          @{u.username}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`users-role-pill role-${u.role || 'client'}`}>
+                      {getRoleLabel(u.role)}
+                    </span>
+                  </div>
+
+                  <div className="users-mobile-card-meta">
+                    <div style={{ fontSize: '12.5px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 6, wordBreak: 'break-all' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Email:</span>
+                      <span>{u.email}</span>
+                    </div>
+                    {u.phone && (
+                      <div style={{ fontSize: '12.5px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: 'var(--text-muted)' }}>SĐT:</span>
+                        <span>{u.phone}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: '50%',
+                            background: u.isActive ? '#22C55E' : '#64748B',
+                            display: 'inline-block'
+                          }}
+                        />
+                        <span style={{ color: u.isActive ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                          {u.isActive ? 'Đang hoạt động' : 'Tạm khóa'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Tạo: {formatDate(u.createdAt)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="users-mobile-card-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleOpenDetail(u)}
+                      title="Xem chi tiết"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                    >
+                      <Eye size={13} />
+                      <span>Chi tiết</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleOpenEdit(u)}
+                      title="Sửa"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                    >
+                      <Edit3 size={13} />
+                      <span>Sửa</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setToggleStatusTarget(u)}
+                      title={u.isActive ? 'Tạm khóa tài khoản' : 'Kích hoạt tài khoản'}
+                      style={{ padding: '6px 10px' }}
+                    >
+                      {u.isActive ? <Lock size={13} /> : <Unlock size={13} />}
+                    </button>
+                    {u.username !== 'admin' && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setDeleteTarget(u)}
+                        title="Xóa tài khoản"
+                        style={{ padding: '6px 10px', color: 'var(--error)' }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* 5. PHÂN TRANG CHUẨN CỦA HỆ THỐNG QUẢN TRỊ */}
@@ -788,145 +868,140 @@ export const AdminUsersPage: React.FC = () => {
         )}
       </div>
 
-      {/* 6. MODAL XEM CHI TIẾT HỒ SƠ & LỊCH SỬ ĐẶT VÉ (GỌN GÀNG, TỐI GIẢN) */}
+      {/* 6. MODAL XEM CHI TIẾT HỒ SƠ & LỊCH SỬ ĐẶT VÉ (CHUẨN HÓA DI SẢN) */}
       {detailUser && (
-        <div className="modal-backdrop" onClick={() => setDetailUser(null)}>
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 1200 }}
+          onClick={() => setDetailUser(null)}
+        >
           <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
+            className="modal-card"
             style={{
-              maxWidth: 640,
-              width: '92%',
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              padding: '20px 24px',
-              maxHeight: '90vh',
-              overflowY: 'auto'
+              maxWidth: 600,
+              width: 'min(600px, 94vw)',
+              maxHeight: 'min(90vh, 720px)',
+              display: 'flex',
+              flexDirection: 'column'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: 12,
-                marginBottom: 16
-              }}
-            >
+            <div className="modal-header">
               <div>
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--heading-color)' }}>
+                <h2 className="modal-title">
                   Hồ sơ: {detailUser.fullName || detailUser.username}
-                </h3>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
                   @{detailUser.username} • {getRoleLabel(detailUser.role)}
-                </div>
+                </p>
               </div>
-
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setDetailUser(null)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: 4
-                }}
+                title="Đóng"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            {/* Bảng thông tin cá nhân dạng 2 cột đơn giản */}
             <div
+              className="modal-body"
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                gap: 12,
-                marginBottom: 16,
-                fontSize: 12.5
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                overflowY: 'auto'
               }}
             >
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Email: </span>
-                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{detailUser.email}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Số điện thoại: </span>
-                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{detailUser.phone || 'Chưa cung cấp'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Trạng thái: </span>
-                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
-                  {detailUser.isActive ? 'Đang hoạt động' : 'Tạm khóa'}
-                </span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Ngày tạo tài khoản: </span>
-                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
-                  {formatDateTime(detailUser.createdAt)}
-                </span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Lần đăng nhập cuối: </span>
-                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
-                  {formatDateTime(detailUser.lastLogin)}
-                </span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Ghi chú quản trị: </span>
-                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
-                  {detailUser.notes || 'Không có'}
-                </span>
-              </div>
-            </div>
-
-            {/* Dữ liệu tổng hợp vé tham quan */}
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
-                  Thông tin vé & Đặt chỗ tham quan
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  Tổng chi tiêu:{' '}
-                  <strong style={{ color: 'var(--text-main)' }}>
-                    {formatVND(detailUser.bookingStats?.totalSpent || 0)}
-                  </strong>
-                </div>
-              </div>
-
+              {/* Bảng thông tin cá nhân */}
               <div
                 style={{
-                  padding: '12px 14px',
-                  background: 'var(--bg-main)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: 12
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: 12,
+                  fontSize: 13
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-main)', fontWeight: 600 }}>
-                    {detailUser.bookingStats?.totalBookings && detailUser.bookingStats.totalBookings > 0
-                      ? `Đã đăng ký ${detailUser.bookingStats.totalBookings} vé tham quan bảo tàng`
-                      : 'Chưa có vé tham quan nào trong hệ thống'}
+                  <span style={{ color: 'var(--text-muted)' }}>Email: </span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{detailUser.email}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Số điện thoại: </span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{detailUser.phone || 'Chưa cung cấp'}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Trạng thái: </span>
+                  <span style={{ color: detailUser.isActive ? '#22C55E' : 'var(--text-muted)', fontWeight: 600 }}>
+                    {detailUser.isActive ? 'Đang hoạt động' : 'Tạm khóa'}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Ngày tạo tài khoản: </span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                    {formatDateTime(detailUser.createdAt)}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Lần đăng nhập cuối: </span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                    {formatDateTime(detailUser.lastLogin)}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Ghi chú quản trị: </span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                    {detailUser.notes || 'Không có'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dữ liệu tổng hợp vé tham quan */}
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--heading-color)' }}>
+                    Thông tin vé & Đặt chỗ tham quan
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                    Vé tham quan được lưu trữ và quản lý tập trung tại trang Dashboard Vé riêng biệt
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    Tổng chi tiêu:{' '}
+                    <strong style={{ color: 'var(--accent-gold)' }}>
+                      {formatVND(detailUser.bookingStats?.totalSpent || 0)}
+                    </strong>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 12
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 600 }}>
+                      {detailUser.bookingStats?.totalBookings && detailUser.bookingStats.totalBookings > 0
+                        ? `Đã đăng ký ${detailUser.bookingStats.totalBookings} vé tham quan bảo tàng`
+                        : 'Chưa có vé tham quan nào trong hệ thống'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                      Vé tham quan được lưu trữ và quản lý tập trung tại trang Dashboard Vé riêng biệt
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
+            <div className="modal-footer">
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
+                className="btn btn-secondary"
                 onClick={() => setDetailUser(null)}
               >
                 Đóng
@@ -936,143 +1011,132 @@ export const AdminUsersPage: React.FC = () => {
         </div>
       )}
 
-      {/* 7. MODAL THÊM MỚI / CHỈNH SỬA (CÓ VALIDATION ĐẦY ĐỦ & RESPONSIVE) */}
+      {/* 7. MODAL THÊM MỚI / CHỈNH SỬA (CHUẨN FORM QUẢN TRỊ ADMIN HERITAGE & RESPONSIVE) */}
       {isFormModalOpen && (
-        <div className="modal-backdrop" onClick={() => !isSaving && setIsFormModalOpen(false)}>
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 1200 }}
+          onClick={() => !isSaving && setIsFormModalOpen(false)}
+        >
           <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
+            className="modal-card"
             style={{
               maxWidth: 540,
-              width: '92%',
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              padding: '20px 24px',
-              maxHeight: '90vh',
-              overflowY: 'auto'
+              width: 'min(540px, 94vw)',
+              maxHeight: 'min(90vh, 720px)',
+              display: 'flex',
+              flexDirection: 'column'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: 12,
-                marginBottom: 16
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--heading-color)' }}>
-                {editingUser ? 'Chỉnh sửa tài khoản người dùng' : 'Thêm mới tài khoản người dùng'}
-              </h3>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-title">
+                  {editingUser ? 'Chỉnh sửa tài khoản người dùng' : 'Thêm mới tài khoản người dùng'}
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                  {editingUser
+                    ? 'Cập nhật quyền hạn, thông tin liên lạc và trạng thái hoạt động'
+                    : 'Thiết lập thông tin đăng nhập, phân quyền vai trò và trạng thái tài khoản'}
+                </p>
+              </div>
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setIsFormModalOpen(false)}
                 disabled={isSaving}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: 4
-                }}
+                title="Đóng"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitForm} noValidate>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <form
+              onSubmit={handleSubmitForm}
+              noValidate
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: '1 1 auto',
+                minHeight: 0,
+                overflow: 'hidden'
+              }}
+            >
+              <div
+                className="modal-body"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  overflowY: 'auto',
+                  flex: '1 1 auto',
+                  minHeight: 0
+                }}
+              >
                 {/* Họ và tên */}
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Họ và tên *
+                <div className="form-group">
+                  <label className="form-label">
+                    Họ và tên <span style={{ color: 'var(--error)' }}>*</span>
                   </label>
                   <input
                     type="text"
+                    className="form-control"
                     value={formData.fullName}
                     onChange={(e) => {
                       setFormData({ ...formData, fullName: e.target.value });
-                      if (formErrors.fullName) setFormErrors({ ...formErrors, fullName: undefined });
+                      if (formErrors.fullName) setFormErrors((prev) => ({ ...prev, fullName: undefined }));
                     }}
-                    placeholder="Nguyễn Văn A"
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      background: 'var(--bg-main)',
-                      border: `1px solid ${formErrors.fullName ? '#EF4444' : 'var(--border-color)'}`,
-                      borderRadius: 6,
-                      color: 'var(--text-main)',
-                      fontSize: 13
-                    }}
+                    placeholder="Ví dụ: Nguyễn Văn A"
+                    style={formErrors.fullName ? { borderColor: 'var(--error)' } : undefined}
                   />
                   {formErrors.fullName && (
-                    <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                    <span style={{ color: 'var(--error)', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
                       {formErrors.fullName}
                     </span>
                   )}
                 </div>
 
-                {/* Email & Tên đăng nhập (Responsive Grid) */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                      Địa chỉ Email *
+                {/* Email & Tên đăng nhập */}
+                <div className="modal-form-row-2col">
+                  <div className="form-group">
+                    <label className="form-label">
+                      Địa chỉ Email <span style={{ color: 'var(--error)' }}>*</span>
                     </label>
                     <input
                       type="email"
+                      className="form-control"
                       value={formData.email}
                       onChange={(e) => {
                         setFormData({ ...formData, email: e.target.value });
-                        if (formErrors.email) setFormErrors({ ...formErrors, email: undefined });
+                        if (formErrors.email) setFormErrors((prev) => ({ ...prev, email: undefined }));
                       }}
                       placeholder="user@example.com"
                       disabled={Boolean(editingUser)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        background: 'var(--bg-main)',
-                        border: `1px solid ${formErrors.email ? '#EF4444' : 'var(--border-color)'}`,
-                        borderRadius: 6,
-                        color: 'var(--text-main)',
-                        fontSize: 13,
-                        opacity: editingUser ? 0.6 : 1
-                      }}
+                      style={formErrors.email ? { borderColor: 'var(--error)' } : undefined}
                     />
                     {formErrors.email && (
-                      <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      <span style={{ color: 'var(--error)', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
                         {formErrors.email}
                       </span>
                     )}
                   </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                      Tên đăng nhập
-                    </label>
+                  <div className="form-group">
+                    <label className="form-label">Tên đăng nhập</label>
                     <input
                       type="text"
+                      className="form-control"
                       value={formData.username}
                       onChange={(e) => {
                         setFormData({ ...formData, username: e.target.value });
-                        if (formErrors.username) setFormErrors({ ...formErrors, username: undefined });
+                        if (formErrors.username) setFormErrors((prev) => ({ ...prev, username: undefined }));
                       }}
                       placeholder="Để trống tự tạo từ email"
                       disabled={Boolean(editingUser)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        background: 'var(--bg-main)',
-                        border: `1px solid ${formErrors.username ? '#EF4444' : 'var(--border-color)'}`,
-                        borderRadius: 6,
-                        color: 'var(--text-main)',
-                        fontSize: 13,
-                        opacity: editingUser ? 0.6 : 1
-                      }}
+                      style={formErrors.username ? { borderColor: 'var(--error)' } : undefined}
                     />
                     {formErrors.username && (
-                      <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      <span style={{ color: 'var(--error)', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
                         {formErrors.username}
                       </span>
                     )}
@@ -1080,60 +1144,46 @@ export const AdminUsersPage: React.FC = () => {
                 </div>
 
                 {/* Mật khẩu & Số điện thoại */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                      {editingUser ? 'Mật khẩu mới (Bỏ qua nếu giữ nguyên)' : 'Mật khẩu khởi tạo *'}
+                <div className="modal-form-row-2col">
+                  <div className="form-group">
+                    <label className="form-label">
+                      {editingUser ? 'Mật khẩu mới (Bỏ qua nếu giữ nguyên)' : (
+                        <>Mật khẩu khởi tạo <span style={{ color: 'var(--error)' }}>*</span></>
+                      )}
                     </label>
                     <input
                       type="password"
+                      className="form-control"
                       value={formData.password}
                       onChange={(e) => {
                         setFormData({ ...formData, password: e.target.value });
-                        if (formErrors.password) setFormErrors({ ...formErrors, password: undefined });
+                        if (formErrors.password) setFormErrors((prev) => ({ ...prev, password: undefined }));
                       }}
                       placeholder={editingUser ? '••••••••' : 'Tối thiểu 6 ký tự'}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        background: 'var(--bg-main)',
-                        border: `1px solid ${formErrors.password ? '#EF4444' : 'var(--border-color)'}`,
-                        borderRadius: 6,
-                        color: 'var(--text-main)',
-                        fontSize: 13
-                      }}
+                      style={formErrors.password ? { borderColor: 'var(--error)' } : undefined}
                     />
                     {formErrors.password && (
-                      <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      <span style={{ color: 'var(--error)', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
                         {formErrors.password}
                       </span>
                     )}
                   </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                      Số điện thoại
-                    </label>
+                  <div className="form-group">
+                    <label className="form-label">Số điện thoại</label>
                     <input
                       type="tel"
+                      className="form-control"
                       value={formData.phone}
                       onChange={(e) => {
                         setFormData({ ...formData, phone: e.target.value });
-                        if (formErrors.phone) setFormErrors({ ...formErrors, phone: undefined });
+                        if (formErrors.phone) setFormErrors((prev) => ({ ...prev, phone: undefined }));
                       }}
                       placeholder="0912 345 678"
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        background: 'var(--bg-main)',
-                        border: `1px solid ${formErrors.phone ? '#EF4444' : 'var(--border-color)'}`,
-                        borderRadius: 6,
-                        color: 'var(--text-main)',
-                        fontSize: 13
-                      }}
+                      style={formErrors.phone ? { borderColor: 'var(--error)' } : undefined}
                     />
                     {formErrors.phone && (
-                      <span style={{ fontSize: 11.5, color: '#F87171', display: 'block', marginTop: 3 }}>
+                      <span style={{ color: 'var(--error)', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
                         {formErrors.phone}
                       </span>
                     )}
@@ -1141,23 +1191,13 @@ export const AdminUsersPage: React.FC = () => {
                 </div>
 
                 {/* Vai trò & Trạng thái */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                      Vai trò
-                    </label>
+                <div className="modal-form-row-2col">
+                  <div className="form-group">
+                    <label className="form-label">Vai trò</label>
                     <select
+                      className="form-control"
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        background: 'var(--bg-main)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 6,
-                        color: 'var(--text-main)',
-                        fontSize: 13
-                      }}
                     >
                       <option value="client">Khách tham quan</option>
                       <option value="staff">Nhân viên bảo tàng</option>
@@ -1165,22 +1205,12 @@ export const AdminUsersPage: React.FC = () => {
                     </select>
                   </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                      Trạng thái
-                    </label>
+                  <div className="form-group">
+                    <label className="form-label">Trạng thái</label>
                     <select
+                      className="form-control"
                       value={formData.isActive ? 'active' : 'locked'}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        background: 'var(--bg-main)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 6,
-                        color: 'var(--text-main)',
-                        fontSize: 13
-                      }}
                     >
                       <option value="active">Đang hoạt động</option>
                       <option value="locked">Tạm khóa tài khoản</option>
@@ -1188,43 +1218,24 @@ export const AdminUsersPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ghi chú */}
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
-                    Ghi chú nội bộ
-                  </label>
+                {/* Ghi chú nội bộ */}
+                <div className="form-group">
+                  <label className="form-label">Ghi chú nội bộ</label>
                   <textarea
                     rows={2}
+                    className="form-control"
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     placeholder="Ghi chú thêm về người dùng..."
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      background: 'var(--bg-main)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 6,
-                      color: 'var(--text-main)',
-                      fontSize: 13,
-                      resize: 'vertical'
-                    }}
+                    style={{ resize: 'vertical' }}
                   />
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: 10,
-                  marginTop: 20,
-                  paddingTop: 12,
-                  borderTop: '1px solid var(--border-color)'
-                }}
-              >
+              <div className="modal-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-secondary"
                   onClick={() => setIsFormModalOpen(false)}
                   disabled={isSaving}
                 >
@@ -1232,10 +1243,12 @@ export const AdminUsersPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-primary"
                   disabled={isSaving}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  {isSaving ? 'Đang lưu...' : editingUser ? 'Lưu thay đổi' : 'Tạo tài khoản'}
+                  {isSaving && <RefreshCw size={14} className="spin" />}
+                  <span>{isSaving ? 'Đang lưu...' : editingUser ? 'Lưu thay đổi' : 'Tạo tài khoản'}</span>
                 </button>
               </div>
             </form>
