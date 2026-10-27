@@ -294,20 +294,9 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
   };
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px' }}>
+    <div className="admin-content">
       {/* Header trang cấu hình */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-          marginBottom: 24,
-          paddingBottom: 20,
-          borderBottom: '1px solid var(--border-color)'
-        }}
-      >
+      <div className="admin-showcase-page-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <div
@@ -361,14 +350,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
       </div>
 
       {/* Thanh thông tin tóm tắt */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 14,
-          marginBottom: 24
-        }}
-      >
+      <div className="admin-showcase-summary-grid">
         <div
           style={{
             padding: '14px 16px',
@@ -453,18 +435,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           }}
         >
           {/* Section Header */}
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-color)',
-              background: 'rgba(255, 255, 255, 0.02)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12
-            }}
-          >
+          <div className="admin-showcase-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
@@ -507,7 +478,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
             </div>
           </div>
 
-          <div style={{ padding: '20px' }}>
+          <div className="admin-showcase-card-body">
             <div className="admin-showcase-split-grid">
               {/* Cột trái: Bộ chọn gian phòng */}
               <div>
@@ -516,7 +487,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 8 }}>
                     Cơ chế hiển thị:
                   </label>
-                  <div style={{ display: 'flex', gap: 14 }}>
+                  <div className="admin-showcase-radio-group">
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
                       <input
                         type="radio"
@@ -619,16 +590,12 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                           <div
                             key={r.id}
                             onClick={() => handleChange('roomsFeaturedId', r.id)}
+                            className="admin-showcase-artifact-item"
                             style={{
-                              padding: '8px 10px',
                               borderRadius: 6,
                               cursor: 'pointer',
                               background: isSelected ? 'rgba(212, 168, 106, 0.12)' : 'transparent',
                               border: isSelected ? '1px solid rgba(212, 168, 106, 0.4)' : '1px solid transparent',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: 10,
                               transition: 'all 0.15s ease'
                             }}
                           >
@@ -672,7 +639,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                     Ảnh bìa đại diện riêng (Tùy chọn - thay thế ảnh 360 mặc định):
                   </label>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div className="admin-showcase-input-row">
                     <input
                       type="text"
                       value={form.roomsShowcaseImageUrl || ''}
@@ -819,18 +786,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           }}
         >
           {/* Section Header */}
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-color)',
-              background: 'rgba(255, 255, 255, 0.02)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12
-            }}
-          >
+          <div className="admin-showcase-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
@@ -873,7 +829,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
             </div>
           </div>
 
-          <div style={{ padding: '20px' }}>
+          <div className="admin-showcase-card-body">
             <div className="admin-showcase-split-grid">
               {/* Cột trái: Bộ chọn & sắp xếp cổ vật */}
               <div>
@@ -882,7 +838,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 8 }}>
                     Cơ chế hiển thị Trang chủ:
                   </label>
-                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <div className="admin-showcase-radio-group">
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
                       <input
                         type="radio"
@@ -1088,16 +1044,12 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                           <div
                             key={a.id}
                             onClick={() => handleToggleArtifact(a.id)}
+                            className="admin-showcase-artifact-item"
                             style={{
-                              padding: '8px 10px',
                               borderRadius: 6,
                               cursor: 'pointer',
                               background: isSelected ? 'rgba(212, 168, 106, 0.12)' : 'transparent',
                               border: isSelected ? '1px solid rgba(212, 168, 106, 0.4)' : '1px solid transparent',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: 10,
                               transition: 'all 0.15s ease'
                             }}
                           >
@@ -1155,7 +1107,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                     Ảnh bìa đại diện riêng (Tùy chọn - áp dụng nếu chỉ trưng bày 1 hiện vật duy nhất):
                   </label>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div className="admin-showcase-input-row">
                     <input
                       type="text"
                       value={form.artifactsShowcaseImageUrl || ''}
@@ -1283,11 +1235,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                     </div>
                   ) : (
                     /* DẠNG NHIỀU HIỆN VẬT (LƯỚI CARDS GIỐNG HỆT TRANG CHỦ CLIENT) */
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                      gap: 10
-                    }}>
+                    <div className="admin-showcase-preview-grid">
                       {showcaseArtifacts.map((art, idx) => {
                         const thumb = getMediaUrl(art.thumbnailUrl || (art.images && art.images[0]));
                         return (
@@ -1439,18 +1387,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           }}
         >
           {/* Section Header */}
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-color)',
-              background: 'rgba(255, 255, 255, 0.02)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12
-            }}
-          >
+          <div className="admin-showcase-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
@@ -1478,7 +1415,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
             </div>
           </div>
 
-          <div style={{ padding: '20px' }}>
+          <div className="admin-showcase-card-body">
             <div className="admin-showcase-split-grid">
               {/* Cột trái: Cài đặt thông tin khối kiến trúc */}
               <div>
@@ -1486,7 +1423,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 6 }}>
                     Ảnh chụp kiến trúc bảo tàng:
                   </label>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div className="admin-showcase-input-row">
                     <input
                       type="text"
                       value={form.introImageUrl || ''}

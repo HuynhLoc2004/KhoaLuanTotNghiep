@@ -722,7 +722,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   };
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px', paddingBottom: 100 }}>
+    <div className="admin-content" style={{ paddingBottom: 100 }}>
       {/* 1. THANH TIÊU ĐỀ TRANG QUẢN TRỊ */}
       <div className="admin-cms-page-header">
         <div className="admin-cms-header-info">
@@ -781,7 +781,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
       {/* 2. THANH ĐIỀU HƯỚNG NHANH THEO TỪNG PHẦN (CHỌN TỪNG PHẦN ĐỘC LẬP) */}
       <div className="admin-cms-nav-tabs">
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', marginRight: 4, flexShrink: 0 }}>
           Chọn phần:
         </span>
         {HOMEPAGE_SECTIONS.map((sec) => {
@@ -805,6 +805,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                flexShrink: 0,
                 transition: 'all 0.15s ease'
               }}
             >
@@ -1030,7 +1031,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="admin-cms-section-actions">
 
               <button
                 type="button"
@@ -1093,6 +1094,11 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
             }}
           >
+            {/* Gợi ý cuộn ngang trên màn hình di động */}
+            <div className="admin-cms-table-hint">
+              <ArrowRight size={13} />
+              <span>Vuốt ngang bảng để xem đủ 5 cột (Kiểu liên kết, Đích đến, Hiển thị & Thao tác)</span>
+            </div>
             <div className="admin-cms-table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 12.5, textAlign: 'left' }}>
                 <thead>
