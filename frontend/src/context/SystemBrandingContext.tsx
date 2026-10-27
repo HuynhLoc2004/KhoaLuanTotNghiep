@@ -245,6 +245,27 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
           } catch {}
         });
 
+        eventSource.addEventListener('system_log_created', (e) => {
+          try {
+            const detail = JSON.parse(e.data);
+            window.dispatchEvent(new CustomEvent('museum:system_log_created', { detail }));
+          } catch {}
+        });
+
+        eventSource.addEventListener('tickets_updated', (e) => {
+          try {
+            const detail = JSON.parse(e.data);
+            window.dispatchEvent(new CustomEvent('museum:tickets_updated', { detail }));
+          } catch {}
+        });
+
+        eventSource.addEventListener('order_paid', (e) => {
+          try {
+            const detail = JSON.parse(e.data);
+            window.dispatchEvent(new CustomEvent('museum:order_paid', { detail }));
+          } catch {}
+        });
+
         eventSource.onerror = () => {
           if (eventSource) {
             eventSource.close();

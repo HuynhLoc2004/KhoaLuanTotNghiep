@@ -1338,11 +1338,12 @@ export const api = {
     return json;
   },
 
-  async exportSystemLogs(params?: { level?: string; module?: string; limit?: number }): Promise<void> {
+  async exportSystemLogs(params?: { level?: string; module?: string; limit?: number; lang?: string }): Promise<void> {
     const query = new URLSearchParams();
     if (params?.level && params.level !== 'all') query.append('level', params.level);
     if (params?.module && params.module !== 'all') query.append('module', params.module);
     if (params?.limit) query.append('limit', params.limit.toString());
+    if (params?.lang) query.append('lang', params.lang);
 
     const res = await fetch(`${API_BASE}/system/logs/export/json?${query.toString()}`, {
       headers: getAuthHeaders(true)
@@ -1352,11 +1353,12 @@ export const api = {
       throw new Error(errJson.message || 'Lỗi khi xuất tệp nhật ký');
     }
 
+    const langTag = params?.lang || 'vi';
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `system_logs_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `system_logs_${langTag}_${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

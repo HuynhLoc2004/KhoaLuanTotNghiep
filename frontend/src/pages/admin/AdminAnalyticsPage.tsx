@@ -412,10 +412,10 @@ export const AdminAnalyticsPage: React.FC = () => {
   const [artifactsPage, setArtifactsPage] = useState<number>(1);
   const [artifactsLimit, setArtifactsLimit] = useState<number>(6);
 
-  // Tải dữ liệu thực tế từ Backend API
-  const fetchAnalytics = async () => {
+  // Tải dữ liệu thực tế từ Backend API (Hỗ trợ Silent update không nhấp nháy UI)
+  const fetchAnalytics = async (isSilent = false) => {
     try {
-      setIsLoading(true);
+      if (!isSilent) setIsLoading(true);
       const res = await api.getAnalytics({
         timeRange,
         startDate: timeRange === 'custom' ? customStart : undefined,
@@ -424,19 +424,56 @@ export const AdminAnalyticsPage: React.FC = () => {
 
       if (res && res.success && res.data) {
         setAnalytics(res.data);
-      } else {
+      } else if (!isSilent) {
         showToast(res.message || 'Không thể tải dữ liệu thống kê', 'error');
       }
     } catch (err: any) {
-      showToast(err.message || 'Lỗi nạp báo cáo thống kê', 'error');
+      if (!isSilent) {
+        showToast(err.message || 'Lỗi nạp báo cáo thống kê', 'error');
+      }
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAnalytics();
+    fetchAnalytics(false);
   }, [timeRange]);
+
+  // Lắng nghe sự kiện Realtime SSE siêu tốc từ hệ thống
+  useEffect(() => {
+    const handleRealtimeUpdate = () => {
+      fetchAnalytics(true);
+    };
+
+    window.addEventListener('museum:tickets_updated', handleRealtimeUpdate);
+    window.addEventListener('museum:order_paid', handleRealtimeUpdate);
+    window.addEventListener('museum:system_log_created', handleRealtimeUpdate);
+
+    // Kênh EventSource dự phòng trực tiếp
+    let directSse: EventSource | null = null;
+    try {
+      directSse = new EventSource('/api/system/realtime-stream');
+      directSse.addEventListener('tickets_updated', handleRealtimeUpdate);
+      directSse.addEventListener('order_paid', handleRealtimeUpdate);
+      directSse.addEventListener('system_log_created', handleRealtimeUpdate);
+    } catch {}
+
+    // Polling tự động mỗi 15s để số liệu luôn mới nhất kể cả khi mất kết nối SSE
+    const pollTimer = setInterval(() => {
+      fetchAnalytics(true);
+    }, 15000);
+
+    return () => {
+      window.removeEventListener('museum:tickets_updated', handleRealtimeUpdate);
+      window.removeEventListener('museum:order_paid', handleRealtimeUpdate);
+      window.removeEventListener('museum:system_log_created', handleRealtimeUpdate);
+      if (directSse) {
+        directSse.close();
+      }
+      clearInterval(pollTimer);
+    };
+  }, [timeRange, customStart, customEnd]);
 
   const handleApplyCustomDate = () => {
     if (!customStart) {
@@ -1010,30 +1047,14 @@ export const AdminAnalyticsPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-content" style={{ padding: '24px 28px' }}>
-      {/* 1. HEADER & THAO TÁC TRANG CHUẨN ADMIN (KHÔNG CHẤM ĐỎ, NÚT CHUẨN ADMIN) */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-          marginBottom: 16
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: 'var(--heading-color)',
-              margin: 0
-            }}
-          >
+    <div className="admin-content admin-analytics-page" style={{ padding: '24px 28px' }}>
+      {/* 1. HEADER & THAO TÁC TRANG CHUẨN ADMIN */}
+      <div className="analytics-header">
+        <div className="analytics-title-group">
+          <h1 className="analytics-title">
             {t('analytics.title', 'Báo cáo & Thống kê')}
           </h1>
-          <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, margin: 0 }}>
+          <p className="analytics-subtitle">
             {t(
               'analytics.subtitle',
               'Báo cáo tổng hợp số liệu thực tế vé tham quan, doanh thu, không gian Tour 360° và hiện vật di sản'
@@ -1042,20 +1063,11 @@ export const AdminAnalyticsPage: React.FC = () => {
         </div>
 
         {/* Bộ lọc thời gian chuẩn Dropdown & Nút bấm */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div className="analytics-toolbar">
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="form-control"
-            style={{
-              fontSize: 12.5,
-              padding: '6px 12px',
-              borderRadius: 6,
-              background: 'var(--bg-card)',
-              color: 'var(--text-main)',
-              border: '1px solid var(--border-color)',
-              cursor: 'pointer'
-            }}
+            className="form-control analytics-time-select"
           >
             <option value="today">{t('analytics.timeRange.today', 'Hôm nay')}</option>
             <option value="week">{t('analytics.timeRange.week', '7 ngày qua')}</option>
@@ -1067,41 +1079,24 @@ export const AdminAnalyticsPage: React.FC = () => {
 
           {/* Ô chọn ngày tùy chỉnh khi chọn custom */}
           {timeRange === 'custom' && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <div className="analytics-custom-dates">
               <input
                 type="date"
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
-                className="form-control"
-                style={{
-                  fontSize: 12,
-                  padding: '5px 8px',
-                  borderRadius: 6,
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-main)',
-                  border: '1px solid var(--border-color)'
-                }}
+                className="form-control analytics-date-input"
               />
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>-</span>
               <input
                 type="date"
                 value={customEnd}
                 onChange={(e) => setCustomEnd(e.target.value)}
-                className="form-control"
-                style={{
-                  fontSize: 12,
-                  padding: '5px 8px',
-                  borderRadius: 6,
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-main)',
-                  border: '1px solid var(--border-color)'
-                }}
+                className="form-control analytics-date-input"
               />
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={handleApplyCustomDate}
-                style={{ padding: '5px 10px', fontSize: 12 }}
               >
                 {t('analytics.apply', 'Áp dụng')}
               </button>
@@ -1111,10 +1106,9 @@ export const AdminAnalyticsPage: React.FC = () => {
           {/* Nút Xuất Excel: chuẩn btn-primary hệ thống */}
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm analytics-export-btn"
             onClick={handleExportExcel}
             disabled={isExporting || isLoading}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             title="Xuất file Excel đồng bộ ngôn ngữ hiện tại của Quản trị viên"
           >
             <Download size={14} />
@@ -1128,10 +1122,9 @@ export const AdminAnalyticsPage: React.FC = () => {
           {/* Nút Làm mới: chuẩn btn-secondary hệ thống */}
           <button
             type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={fetchAnalytics}
+            className="btn btn-secondary btn-sm analytics-refresh-btn"
+            onClick={() => fetchAnalytics(false)}
             disabled={isLoading || isExporting}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <RefreshCw size={13} className={isLoading ? 'spin' : ''} />
             <span>{t('analytics.refresh', 'Làm mới')}</span>
@@ -1140,14 +1133,7 @@ export const AdminAnalyticsPage: React.FC = () => {
       </div>
 
       {/* 2. CHUYỂN ĐỔI TAB CON TỐI GIẢN (KHÔNG ICON, ĐÚNG CHUẨN ADMIN) */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 4,
-          borderBottom: '1px solid var(--border-color)',
-          marginBottom: 18
-        }}
-      >
+      <div className="analytics-subtabs">
         {[
           { id: 'overview', label: t('analytics.tabOverview', 'Tổng quan & Xu hướng') },
           { id: 'tickets', label: t('analytics.tabTickets', 'Doanh thu & Giao dịch vé') },
@@ -1159,19 +1145,8 @@ export const AdminAnalyticsPage: React.FC = () => {
             <button
               key={tab.id}
               type="button"
+              className={`analytics-subtab-btn ${isActive ? 'active' : ''}`}
               onClick={() => setSubTab(tab.id as any)}
-              style={{
-                padding: '8px 16px',
-                fontSize: 13,
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
-                border: 'none',
-                borderBottom: isActive ? '2px solid var(--text-main)' : '2px solid transparent',
-                background: 'transparent',
-                cursor: 'pointer',
-                marginBottom: -1,
-                transition: 'all 0.15s ease'
-              }}
             >
               {tab.label}
             </button>
@@ -1180,77 +1155,68 @@ export const AdminAnalyticsPage: React.FC = () => {
       </div>
 
       {/* 3. DÃY THẺ KPI TỐI GIẢN (CHIA 2 HÀNG 3 CỘT CÂN ĐỐI 100%, KHÔNG ICON MÀU MÈ) */}
-      <div
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 8,
-          marginBottom: 18,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)'
-        }}
-      >
-        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div className="analytics-kpi-grid">
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
             {t('analytics.kpiRevenue', 'Doanh thu bán vé')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+          <div className="kpi-val">
             {formatVND(kpis.totalRevenue)}
           </div>
         </div>
 
-        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
             {t('analytics.kpiTicketsSold', 'Vé đã phát hành')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+          <div className="kpi-val">
             {kpis.totalTicketsSold.toLocaleString()}
           </div>
         </div>
 
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
             {t('analytics.kpiCheckinRate', 'Tỷ lệ vào cổng')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+          <div className="kpi-val">
             {kpis.checkinRate}%
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
+            <span className="kpi-subval">
               ({kpis.totalTicketsUsed} / {kpis.totalTicketsSold} vé)
             </span>
           </div>
         </div>
 
-        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
             {t('analytics.kpiRooms', 'Gian phòng 360°')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+          <div className="kpi-val">
             {kpis.totalRooms}
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
+            <span className="kpi-subval">
               ({kpis.totalHotspots} hotspots)
             </span>
           </div>
         </div>
 
-        <div style={{ padding: '14px 20px', borderRight: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
             {t('analytics.kpi3DArtifacts', 'Số hóa 3D thực tế')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+          <div className="kpi-val">
             {kpis.total3DArtifacts}
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
+            <span className="kpi-subval">
               / {kpis.totalArtifacts} ({rate3D}%)
             </span>
           </div>
         </div>
 
-        <div style={{ padding: '14px 20px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
             {t('analytics.kpiUsers', 'Tài khoản người dùng')}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', marginTop: 4 }}>
+          <div className="kpi-val">
             {kpis.totalUsers}
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
+            <span className="kpi-subval">
               ({kpis.totalSystemLogs} nhật ký)
             </span>
           </div>
@@ -1648,24 +1614,12 @@ export const AdminAnalyticsPage: React.FC = () => {
       {subTab === 'tickets' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Bộ lọc vé */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              padding: '12px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 260 }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: 360 }}>
+          <div className="analytics-filter-toolbar">
+            <div className="analytics-filter-controls">
+              <div className="analytics-search-input-wrapper">
                 <Search
                   size={14}
-                  style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
+                  className="analytics-search-icon"
                 />
                 <input
                   type="text"
@@ -1676,17 +1630,6 @@ export const AdminAnalyticsPage: React.FC = () => {
                   }}
                   placeholder={t('analytics.searchPlaceholder', 'Tìm kiếm mã vé, tên khách hàng...')}
                   className="form-control"
-                  style={{
-                    width: '100%',
-                    paddingLeft: 32,
-                    fontSize: 12.5,
-                    paddingTop: 6,
-                    paddingBottom: 6,
-                    borderRadius: 6,
-                    background: 'var(--bg-main, #14171F)',
-                    color: 'var(--text-main)',
-                    border: '1px solid var(--border-color)'
-                  }}
                 />
               </div>
 
@@ -1696,15 +1639,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                   setTicketStatusFilter(e.target.value);
                   setTicketsPage(1);
                 }}
-                className="form-control"
-                style={{
-                  fontSize: 12.5,
-                  padding: '6px 10px',
-                  borderRadius: 6,
-                  background: 'var(--bg-main, #14171F)',
-                  color: 'var(--text-main)',
-                  border: '1px solid var(--border-color)'
-                }}
+                className="form-control analytics-status-select"
               >
                 <option value="all">{t('analytics.allStatus', 'Tất cả trạng thái')}</option>
                 <option value="paid">{t('analytics.statusPaid', 'Chưa sử dụng')}</option>
@@ -1713,7 +1648,7 @@ export const AdminAnalyticsPage: React.FC = () => {
               </select>
             </div>
 
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <div className="analytics-filter-count">
               Hiển thị <strong style={{ color: 'var(--text-main)' }}>{filteredTickets.length}</strong> giao dịch vé trong kỳ
             </div>
           </div>

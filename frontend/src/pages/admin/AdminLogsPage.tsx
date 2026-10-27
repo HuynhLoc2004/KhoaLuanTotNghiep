@@ -20,6 +20,8 @@ import {
 import { api } from '../../services/api';
 import { SystemLogItem, SystemLogStats, LogLevel } from '../../types';
 import { Pagination } from '../../components/Pagination';
+import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { useToast } from '../../components/Toast';
 
 const MODULE_LABELS: Record<string, string> = {
   ROOMS: 'Gian phòng 360°',
@@ -35,6 +37,9 @@ const MODULE_LABELS: Record<string, string> = {
 };
 
 export const AdminLogsPage: React.FC = () => {
+  const { currentLang } = useClientTranslation();
+  const { showToast } = useToast();
+
   // State dữ liệu danh sách log
   const [logs, setLogs] = useState<SystemLogItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -83,14 +88,6 @@ export const AdminLogsPage: React.FC = () => {
   const [loadingArchives, setLoadingArchives] = useState<boolean>(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [deletingArchiveId, setDeletingArchiveId] = useState<string | null>(null);
-
-  // Toast thông báo
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
-
-  const showToast = (text: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 3500);
-  };
 
   // Debounce tìm kiếm từ khóa (350ms) để không bị giật lag khi gõ
   useEffect(() => {
@@ -149,7 +146,7 @@ export const AdminLogsPage: React.FC = () => {
         setRefreshing(false);
       }
     },
-    [page, limit, selectedLevel, selectedModule, searchTerm, hasErrorOnly, computedDateRange]
+    [page, limit, selectedLevel, selectedModule, searchTerm, hasErrorOnly, computedDateRange, showToast]
   );
 
   // Tải thống kê
@@ -168,13 +165,18 @@ export const AdminLogsPage: React.FC = () => {
     fetchStats();
   }, [fetchStats]);
 
-  // Lắng nghe sự kiện Realtime SSE khi có log mới
+  // Lắng nghe sự kiện Realtime SSE siêu tốc khi có log mới
   useEffect(() => {
     if (!isLiveStreaming) return;
 
     const handleNewLog = (e: any) => {
       const newLog = e.detail;
       if (!newLog || !newLog._id) return;
+
+      // Kiểm tra bộ lọc người dùng đang chọn
+      if (selectedLevel !== 'all' && newLog.level !== selectedLevel) return;
+      if (selectedModule !== 'all' && newLog.module !== selectedModule) return;
+      if (hasErrorOnly && newLog.level !== 'ERROR') return;
 
       if (page === 1) {
         setLogs((prev) => {
@@ -187,10 +189,34 @@ export const AdminLogsPage: React.FC = () => {
     };
 
     window.addEventListener('museum:system_log_created' as any, handleNewLog);
+
+    // Kênh EventSource trực tiếp dự phòng đảm bảo log hiển thị <1ms
+    let directSse: EventSource | null = null;
+    try {
+      const streamUrl = `/api/system/realtime-stream`;
+      directSse = new EventSource(streamUrl);
+      directSse.addEventListener('system_log_created', (e: any) => {
+        try {
+          const detail = JSON.parse(e.data);
+          handleNewLog({ detail });
+        } catch {}
+      });
+    } catch {}
+
+    // Polling dự phòng mỗi 10s đảm bảo số liệu luôn chính xác 100%
+    const pollInterval = setInterval(() => {
+      fetchLogs(true);
+      fetchStats();
+    }, 10000);
+
     return () => {
       window.removeEventListener('museum:system_log_created' as any, handleNewLog);
+      if (directSse) {
+        directSse.close();
+      }
+      clearInterval(pollInterval);
     };
-  }, [isLiveStreaming, page, limit, fetchStats]);
+  }, [isLiveStreaming, page, limit, selectedLevel, selectedModule, hasErrorOnly, fetchStats, fetchLogs]);
 
   // Sao chép nội dung JSON
   const handleCopyJson = (data: any) => {
@@ -202,15 +228,21 @@ export const AdminLogsPage: React.FC = () => {
     } catch {}
   };
 
-  // Xuất file JSON an toàn (Bearer header, không truyền token trên URL query)
+  // Xuất file JSON an toàn đồng bộ với ngôn ngữ hệ thống đang chọn
   const handleExportJson = async () => {
     setExporting(true);
     try {
       await api.exportSystemLogs({
         level: selectedLevel !== 'all' ? selectedLevel : undefined,
-        module: selectedModule !== 'all' ? selectedModule : undefined
+        module: selectedModule !== 'all' ? selectedModule : undefined,
+        lang: currentLang
       });
-      showToast('Đã xuất tệp nhật ký an toàn về máy tính', 'success');
+      showToast(
+        currentLang === 'vi'
+          ? 'Đã xuất tệp nhật ký an toàn theo ngôn ngữ Tiếng Việt'
+          : `Đã xuất tệp nhật ký an toàn theo ngôn ngữ (${currentLang.toUpperCase()})`,
+        'success'
+      );
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi xuất tệp nhật ký', 'error');
     } finally {
@@ -447,13 +479,6 @@ export const AdminLogsPage: React.FC = () => {
 
   return (
     <div className="admin-content admin-logs-page" style={{ padding: '24px 28px' }}>
-      {/* Toast thông báo */}
-      {toastMessage && (
-        <div className={`admin-toast admin-toast-${toastMessage.type}`}>
-          <span>{toastMessage.text}</span>
-        </div>
-      )}
-
       {/* 1. TIÊU ĐỀ TRANG CHUẨN MỰC */}
       <div className="admin-logs-header">
         <div>
@@ -833,6 +858,16 @@ export const AdminLogsPage: React.FC = () => {
           <div
             className="log-inspector-modal panel"
             onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 820,
+              maxWidth: 'calc(100vw - 24px)',
+              height: 640,
+              maxHeight: 'calc(100vh - 40px)',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
+            }}
           >
             {/* Modal Header */}
             <div className="inspector-header">
@@ -1088,7 +1123,16 @@ export const AdminLogsPage: React.FC = () => {
           <div
             className="log-inspector-modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 720, width: '94%', maxHeight: '88vh' }}
+            style={{
+              width: 740,
+              maxWidth: 'calc(100vw - 24px)',
+              height: 640,
+              maxHeight: 'calc(100vh - 40px)',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
+            }}
           >
             {/* Header */}
             <div className="inspector-header">

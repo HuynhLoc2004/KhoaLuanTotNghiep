@@ -487,12 +487,164 @@ logsRouter.delete('/archives/:id', async (req: Request, res: Response) => {
 });
 
 /**
+ * Bản dịch xuất JSON nhật ký hệ thống đồng bộ theo 5 ngôn ngữ chuẩn mực
+ */
+const LOGS_I18N: Record<string, {
+  systemTitle: string;
+  fileType: string;
+  levelLabels: Record<string, string>;
+  moduleLabels: Record<string, string>;
+  roleLabels: Record<string, string>;
+}> = {
+  vi: {
+    systemTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
+    fileType: 'Nhật ký giám sát & an ninh hệ thống (System Logs)',
+    levelLabels: {
+      INFO: 'Thông tin (INFO)',
+      SUCCESS: 'Thành công (SUCCESS)',
+      WARN: 'Cảnh báo (WARN)',
+      ERROR: 'Sự cố / Lỗi (ERROR)'
+    },
+    moduleLabels: {
+      ROOMS: 'Gian phòng 360°',
+      ARTIFACTS: 'Cổ vật di sản 3D',
+      STITCHING: 'Ghép ảnh 360°',
+      FLOOR_PLAN: 'Sơ đồ mặt bằng',
+      TICKETS: 'Vé & Giao dịch thanh toán',
+      AUTH: 'Xác thực & Tài khoản',
+      SYSTEM: 'Hệ thống',
+      AI_VOICE: 'Trợ lý AI & Giọng nói',
+      DATABASE: 'Cơ sở dữ liệu',
+      SHOWCASE: 'Trưng bày'
+    },
+    roleLabels: {
+      ADMIN: 'Quản trị viên cấp cao',
+      STAFF: 'Nhân viên bảo tàng',
+      USER: 'Người dùng đã đăng ký',
+      GUEST: 'Khách tham quan'
+    }
+  },
+  en: {
+    systemTitle: 'Ho Chi Minh City History Museum',
+    fileType: 'System Audit & Monitoring Logs',
+    levelLabels: {
+      INFO: 'Information (INFO)',
+      SUCCESS: 'Success (SUCCESS)',
+      WARN: 'Warning (WARN)',
+      ERROR: 'Incident / Error (ERROR)'
+    },
+    moduleLabels: {
+      ROOMS: '360° Exhibition Rooms',
+      ARTIFACTS: '3D Heritage Artifacts',
+      STITCHING: '360° Image Stitching',
+      FLOOR_PLAN: 'Floor Plan Mapping',
+      TICKETS: 'Tickets & Payments',
+      AUTH: 'Authentication & Accounts',
+      SYSTEM: 'System & Infra',
+      AI_VOICE: 'AI Assistant & Voice',
+      DATABASE: 'Database',
+      SHOWCASE: 'Showcase'
+    },
+    roleLabels: {
+      ADMIN: 'System Administrator',
+      STAFF: 'Museum Staff',
+      USER: 'Registered User',
+      GUEST: 'Visitor / Guest'
+    }
+  },
+  fr: {
+    systemTitle: 'Musée d\'Histoire de Hô Chi Minh-Ville',
+    fileType: 'Journaux d\'audit et de surveillance du système',
+    levelLabels: {
+      INFO: 'Information (INFO)',
+      SUCCESS: 'Succès (SUCCESS)',
+      WARN: 'Avertissement (WARN)',
+      ERROR: 'Erreur / Incident (ERROR)'
+    },
+    moduleLabels: {
+      ROOMS: 'Salles 360°',
+      ARTIFACTS: 'Artefacts 3D',
+      STITCHING: 'Assemblage 360°',
+      FLOOR_PLAN: 'Plan d\'étage',
+      TICKETS: 'Billetterie et Paiements',
+      AUTH: 'Authentification et Comptes',
+      SYSTEM: 'Système',
+      AI_VOICE: 'Assistant IA et Voix',
+      DATABASE: 'Base de données',
+      SHOWCASE: 'Vitrine'
+    },
+    roleLabels: {
+      ADMIN: 'Administrateur',
+      STAFF: 'Personnel',
+      USER: 'Utilisateur enregistré',
+      GUEST: 'Visiteur'
+    }
+  },
+  zh: {
+    systemTitle: '胡志明市历史博物馆',
+    fileType: '系统审计与监控日志',
+    levelLabels: {
+      INFO: '信息 (INFO)',
+      SUCCESS: '成功 (SUCCESS)',
+      WARN: '警告 (WARN)',
+      ERROR: '故障 / 错误 (ERROR)'
+    },
+    moduleLabels: {
+      ROOMS: '360°全景展厅',
+      ARTIFACTS: '3D文物遗迹',
+      STITCHING: '360°图像拼接',
+      FLOOR_PLAN: '导览平面图',
+      TICKETS: '门票与支付',
+      AUTH: '认证与账户',
+      SYSTEM: '系统管理',
+      AI_VOICE: 'AI语音助理',
+      DATABASE: '数据库',
+      SHOWCASE: '展品陈列'
+    },
+    roleLabels: {
+      ADMIN: '超级管理员',
+      STAFF: '馆内工作人员',
+      USER: '注册用户',
+      GUEST: '访客'
+    }
+  },
+  ja: {
+    systemTitle: 'ホーチミン市歴史博物館',
+    fileType: 'システム監査および監視ログ',
+    levelLabels: {
+      INFO: '情報 (INFO)',
+      SUCCESS: '成功 (SUCCESS)',
+      WARN: '警告 (WARN)',
+      ERROR: '障害 / エラー (ERROR)'
+    },
+    moduleLabels: {
+      ROOMS: '360°展示室',
+      ARTIFACTS: '3D文化財遺物',
+      STITCHING: '360°画像スティッチング',
+      FLOOR_PLAN: 'フロアマップ',
+      TICKETS: 'チケット＆決済',
+      AUTH: '認証・アカウント',
+      SYSTEM: 'システム管理',
+      AI_VOICE: 'AI音声アシスタント',
+      DATABASE: 'データベース',
+      SHOWCASE: '展示ショーケース'
+    },
+    roleLabels: {
+      ADMIN: '管理者',
+      STAFF: 'スタッフ',
+      USER: '登録ユーザー',
+      GUEST: '一般来館者'
+    }
+  }
+};
+
+/**
  * GET /api/system/logs/export/json
- * Xuất dữ liệu nhật ký dạng JSON để tải về máy
+ * Xuất dữ liệu nhật ký dạng JSON chuẩn hóa theo ngôn ngữ hiện hành của hệ thống
  */
 logsRouter.get('/export/json', async (req: Request, res: Response) => {
   try {
-    const { level, module: logModule, limit = 500 } = req.query;
+    const { level, module: logModule, limit = 500, lang = 'vi' } = req.query;
     const filter: any = {};
     if (level && level !== 'all') filter.level = level;
     if (logModule && logModule !== 'all') filter.module = logModule;
@@ -503,10 +655,52 @@ logsRouter.get('/export/json', async (req: Request, res: Response) => {
       .limit(exportLimit)
       .lean();
 
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="system_logs_${Date.now()}.json"`);
-    res.send(JSON.stringify(logs, null, 2));
+    const currentLang = (typeof lang === 'string' && LOGS_I18N[lang.toLowerCase()]) ? lang.toLowerCase() : 'vi';
+    const dict = LOGS_I18N[currentLang];
+
+    const formattedLogs = logs.map((log: any) => ({
+      id: String(log._id),
+      recordedAt: log.createdAt ? new Date(log.createdAt).toLocaleString(currentLang === 'vi' ? 'vi-VN' : currentLang) : '',
+      timestampIso: log.createdAt ? new Date(log.createdAt).toISOString() : '',
+      level: dict.levelLabels[log.level] || log.level,
+      module: dict.moduleLabels[log.module] || log.module,
+      action: log.action || '',
+      message: log.message || '',
+      httpStatus: log.statusCode || 200,
+      durationMs: log.durationMs || 0,
+      resource: log.resource || '',
+      actor: {
+        username: log.username || 'System',
+        role: dict.roleLabels[log.role] || log.role || 'Guest',
+        ipAddress: log.ipAddress || ''
+      },
+      error: log.error && (log.error.name || log.error.message) ? {
+        name: log.error.name,
+        message: log.error.message,
+        code: log.error.code,
+        stack: log.error.stack
+      } : undefined,
+      metadata: log.details && Object.keys(log.details).length > 0 ? log.details : undefined
+    }));
+
+    const exportPayload = {
+      system: dict.systemTitle,
+      fileType: dict.fileType,
+      language: currentLang,
+      exportedAt: new Date().toISOString(),
+      totalRecords: formattedLogs.length,
+      filters: {
+        level: level || 'all',
+        module: logModule || 'all'
+      },
+      logs: formattedLogs
+    };
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="system_logs_${currentLang}_${new Date().toISOString().slice(0, 10)}.json"`);
+    res.send(JSON.stringify(exportPayload, null, 2));
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi xuất dữ liệu: ' + (err.message || '') });
   }
 });
+
