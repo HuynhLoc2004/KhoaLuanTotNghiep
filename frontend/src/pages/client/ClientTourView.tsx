@@ -250,15 +250,15 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '8px 16px',
-              borderRadius: 30,
-              background: 'rgba(15, 18, 24, 0.88)',
-              backdropFilter: 'blur(14px)',
-              WebkitBackdropFilter: 'blur(14px)',
-              color: '#F3F4F6',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              fontSize: '13px',
+              gap: 6,
+              padding: '6px 14px',
+              borderRadius: 24,
+              background: 'rgba(13, 17, 23, 0.82)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              color: '#E5E7EB',
+              border: '1px solid rgba(212, 168, 106, 0.22)',
+              fontSize: '12px',
               fontWeight: 500,
               cursor: 'pointer',
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
@@ -270,11 +270,11 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.22)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <ArrowLeft size={15} style={{ color: '#D4A86A' }} />
+            <ArrowLeft size={14} style={{ color: '#D4A86A' }} />
             <span>{t('tour.backHome', 'Trang chủ')}</span>
           </button>
         </div>
@@ -288,12 +288,12 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
           title="Nhấp để chuyển gian phòng"
           style={{
             pointerEvents: 'auto',
-            background: 'rgba(15, 18, 24, 0.88)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-            border: '1px solid rgba(212, 168, 106, 0.25)',
-            padding: '6px 16px',
-            borderRadius: 30,
+            background: 'rgba(13, 17, 23, 0.82)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(212, 168, 106, 0.22)',
+            padding: '5px 16px',
+            borderRadius: 24,
             textAlign: 'center',
             color: '#FFFFFF',
             cursor: 'pointer',
@@ -310,7 +310,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
           <div className="client-tour-title-desktop">
             <div
               style={{
-                fontSize: '13.5px',
+                fontSize: '12.5px',
                 fontWeight: 600,
                 letterSpacing: '0.01em',
                 whiteSpace: 'nowrap',
@@ -324,14 +324,14 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             </div>
             <div
               style={{
-                fontSize: '11px',
+                fontSize: '10.5px',
                 color: '#D4A86A',
                 letterSpacing: '0.02em',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 maxWidth: '100%',
-                opacity: 0.9
+                opacity: 0.95
               }}
             >
               {currentRoom.code ? `${currentRoom.code} • ` : ''}{period}
@@ -358,10 +358,10 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         </button>
 
         {/* CỤM NÚT ĐIỀU HƯỚNG BÊN PHẢI: THUYẾT MINH AI + BỘ CHỌN PHÒNG TÙY BIẾN + INFO */}
-        <div className="client-tour-actions" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="client-tour-actions" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
 
           {/* 1. NÚT NGHE GIỚI THIỆU VOICE AI & CHUYỂN ĐỔI NGÔN NGỮ ĐỒNG BỘ */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(15, 18, 24, 0.88)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(212, 168, 106, 0.3)', borderRadius: 30, padding: '3px 4px', boxShadow: '0 4px 16px rgba(0,0,0,0.35)', flexShrink: 0 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(13, 17, 23, 0.82)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(212, 168, 106, 0.22)', borderRadius: 24, padding: '2px 4px', boxShadow: '0 4px 16px rgba(0,0,0,0.35)', flexShrink: 0 }}>
             {/* Nút Play/Pause Audio Giới thiệu */}
             <button
               type="button"
@@ -371,13 +371,13 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '5px 12px',
-                borderRadius: 24,
+                gap: 5,
+                padding: '4px 10px',
+                borderRadius: 20,
                 border: 'none',
                 background: isPlayingVoice ? 'rgba(212, 168, 106, 0.22)' : 'transparent',
-                color: isPlayingVoice ? '#F59E0B' : '#E5E7EB',
-                fontSize: '12px',
+                color: isPlayingVoice ? '#D4A86A' : '#E5E7EB',
+                fontSize: '11.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
@@ -387,27 +387,27 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             >
               {isPlayingVoice ? (
                 <>
-                  <Pause size={13} style={{ fill: '#F59E0B', flexShrink: 0 }} />
+                  <Pause size={12} style={{ fill: '#D4A86A', flexShrink: 0 }} />
                   {/* Hiệu ứng sóng âm thanh tinh tế */}
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, height: 12, flexShrink: 0 }}>
-                    <span style={{ width: 2, height: 8, background: '#F59E0B', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out' }} />
-                    <span style={{ width: 2, height: 12, background: '#F59E0B', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out 0.2s' }} />
-                    <span style={{ width: 2, height: 6, background: '#F59E0B', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out 0.4s' }} />
+                    <span style={{ width: 2, height: 8, background: '#D4A86A', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out' }} />
+                    <span style={{ width: 2, height: 12, background: '#D4A86A', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out 0.2s' }} />
+                    <span style={{ width: 2, height: 6, background: '#D4A86A', borderRadius: 1, animation: 'audioWave 0.8s infinite ease-in-out 0.4s' }} />
                   </span>
-                  <span className="voice-text-full">{t('tour.voicePlaying', 'Đang giới thiệu...')}</span>
+                  <span className="voice-text-full">{t('tour.voicePlaying', 'Đang đọc...')}</span>
                   <span className="voice-text-short">{t('tour.voicePlayingShort', 'Đang đọc')}</span>
                 </>
               ) : (
                 <>
-                  <Volume2 size={14} style={{ color: '#D4A86A', flexShrink: 0 }} />
-                  <span className="voice-text-full">{t('tour.voiceAi', 'Nghe giới thiệu')}</span>
+                  <Volume2 size={13} style={{ color: '#D4A86A', flexShrink: 0 }} />
+                  <span className="voice-text-full">{t('tour.voiceAi', 'Thuyết minh')}</span>
                   <span className="voice-text-short">{t('tour.voiceAiShort', 'Nghe')}</span>
                 </>
               )}
             </button>
 
             {/* Vạch ngăn mảnh */}
-            <div style={{ width: 1, height: 16, background: 'rgba(255, 255, 255, 0.15)', margin: '0 2px', flexShrink: 0 }} />
+            <div style={{ width: 1, height: 14, background: 'rgba(212, 168, 106, 0.2)', margin: '0 2px', flexShrink: 0 }} />
 
             {/* Menu thả chuyển ngôn ngữ thuyết minh ngay tại nút */}
             <div ref={langDropdownRef} style={{ position: 'relative' }}>
@@ -418,20 +418,20 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 4,
-                  padding: '5px 8px',
-                  borderRadius: 20,
+                  gap: 3,
+                  padding: '4px 6px',
+                  borderRadius: 16,
                   border: 'none',
                   background: 'transparent',
-                  color: '#D1D5DB',
-                  fontSize: '11.5px',
+                  color: '#D4A86A',
+                  fontSize: '11px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   textTransform: 'uppercase'
                 }}
               >
                 <span>{currentLang}</span>
-                <ChevronDown size={11} style={{ opacity: 0.7 }} />
+                <ChevronDown size={10} style={{ opacity: 0.7 }} />
               </button>
 
               {/* Danh sách ngôn ngữ do Admin cấp */}
@@ -456,7 +456,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   }}
                 >
                   <div style={{ fontSize: '10px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 2 }}>
-                    Ngôn ngữ giọng đọc
+                    Ngôn ngữ thuyết minh
                   </div>
                   {activeLanguages.map((lang) => {
                     const isSelected = lang.code === currentLang;
@@ -492,7 +492,9 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>{lang.flagIcon || '🌐'}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: isSelected ? 'rgba(212, 168, 106, 0.25)' : 'rgba(255, 255, 255, 0.08)', color: '#D4A86A' }}>
+                            {lang.code.toUpperCase()}
+                          </span>
                           <span>{lang.nativeName || lang.name}</span>
                         </span>
                         {isSelected && <Check size={13} style={{ color: '#D4A86A' }} />}
@@ -513,43 +515,41 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
-                padding: '8px 14px',
-                borderRadius: 30,
-                background: 'rgba(15, 18, 24, 0.88)',
-                backdropFilter: 'blur(14px)',
-                WebkitBackdropFilter: 'blur(14px)',
-                color: '#F3F4F6',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                fontSize: '12.5px',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 24,
+                background: 'rgba(13, 17, 23, 0.82)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                color: '#E5E7EB',
+                border: '1px solid rgba(212, 168, 106, 0.22)',
+                fontSize: '11.5px',
                 fontWeight: 500,
                 cursor: 'pointer',
                 boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
-                transition: 'all 0.2s ease',
-                maxWidth: 240
+                transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.5)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.22)';
               }}
             >
-              <Compass size={14} style={{ color: '#D4A86A', flexShrink: 0 }} />
+              <Compass size={13} style={{ color: '#D4A86A', flexShrink: 0 }} />
               <span
                 style={{
                   whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  fontSize: '12px'
+                  fontSize: '11.5px'
                 }}
               >
-                {currentRoom.code ? `[${currentRoom.code}] ` : ''}{sanitizeMuseumText(currentRoom.name)}
+                {t('tour.changeRoom', 'Đổi gian phòng')}
               </span>
               <ChevronDown
-                size={13}
+                size={11}
                 style={{
-                  opacity: 0.7,
+                  color: '#D4A86A',
+                  opacity: 0.8,
                   flexShrink: 0,
                   transform: isRoomDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease'
@@ -663,14 +663,14 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               borderRadius: '50%',
-              background: 'rgba(15, 18, 24, 0.88)',
-              backdropFilter: 'blur(14px)',
-              WebkitBackdropFilter: 'blur(14px)',
-              color: '#F3F4F6',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              background: 'rgba(13, 17, 23, 0.82)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              color: '#D4A86A',
+              border: '1px solid rgba(212, 168, 106, 0.22)',
               cursor: 'pointer',
               boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
               transition: 'all 0.2s'
@@ -680,11 +680,11 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.22)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <Info size={16} style={{ color: '#D4A86A' }} />
+            <Info size={14} style={{ color: '#D4A86A' }} />
           </button>
         </div>
       </header>

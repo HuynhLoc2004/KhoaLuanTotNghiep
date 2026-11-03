@@ -754,35 +754,38 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         }
 
         .glass-toolbar {
-          background: rgba(15, 23, 42, 0.85);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          border-radius: 9999px;
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+          background: rgba(13, 17, 23, 0.82);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(212, 168, 106, 0.22);
+          border-radius: 28px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         }
         .glass-btn {
-          width: 38px;
-          height: 38px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.12);
-          border: none;
-          color: #FFFFFF;
+          background: transparent;
+          border: 1px solid transparent;
+          color: #D1D5DB;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s ease;
-          font-size: 14px;
+          font-size: 12.5px;
         }
         .glass-btn:hover {
-          background: #2563EB;
-          transform: translateY(-2px);
-          color: #FFFFFF;
+          background: rgba(212, 168, 106, 0.18);
+          border-color: rgba(212, 168, 106, 0.35);
+          color: #D4A86A;
+          transform: translateY(-1px);
         }
         .glass-btn.active {
-          background: #2563EB;
-          box-shadow: 0 0 12px rgba(37, 99, 235, 0.7);
+          background: rgba(212, 168, 106, 0.25);
+          border-color: rgba(212, 168, 106, 0.5);
+          color: #D4A86A;
+          box-shadow: 0 0 10px rgba(212, 168, 106, 0.3);
         }
         .studio-pin-mode-active .pnlm-hotspot-base,
         .studio-pin-mode-active .custom-hotspot-badge,
@@ -979,7 +982,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
             fontFamily: "'Be Vietnam Pro', sans-serif"
           }}
         >
-          <span>🏛️</span>
+          <i className="fa-solid fa-landmark" style={{ color: '#D4A86A', fontSize: 13 }}></i>
           <span>{cleanTitle}</span>
         </div>
       )}
@@ -989,14 +992,14 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
         <div
           style={{
             position: 'absolute',
-            bottom: 20,
+            bottom: 18,
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 20,
             pointerEvents: 'auto'
           }}
         >
-          <div className="glass-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px' }}>
+          <div className="glass-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px' }}>
             {/* Ghim Hotspot Toggle (Studio) */}
             {onTogglePinMode && (
               <button
@@ -1020,28 +1023,30 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
               </button>
             )}
 
+            {/* Little Planet Toggle (Chỉ hiện trong chế độ Studio) */}
+            {onTogglePinMode && (
+              <button
+                className={`glass-btn ${isLittlePlanet ? 'active' : ''}`}
+                title="Hiệu ứng Quả cầu hành tinh (Little Planet)"
+                onClick={handleTogglePlanet}
+              >
+                <i className="fa-solid fa-globe"></i>
+              </button>
+            )}
+
             {/* Home / Reset view */}
             <button
               className="glass-btn"
-              title="Góc nhìn chính diện (Góc siêu rộng 100°)"
+              title="Đặt lại góc nhìn chính diện"
               onClick={handleResetHome}
             >
               <i className="fa-solid fa-compass"></i>
             </button>
 
-            {/* Little Planet Toggle */}
-            <button
-              className={`glass-btn ${isLittlePlanet ? 'active' : ''}`}
-              title="Hiệu ứng Quả cầu hành tinh tí hon (Little Planet)"
-              onClick={handleTogglePlanet}
-            >
-              <i className="fa-solid fa-globe"></i>
-            </button>
-
             {/* Auto Rotate Toggle */}
             <button
               className={`glass-btn ${isAutoRotating ? 'active' : ''}`}
-              title="Tự động xoay quanh phòng"
+              title={isAutoRotating ? 'Dừng tự động xoay' : 'Tự động xoay quanh phòng'}
               onClick={handleToggleAutoRotate}
             >
               <i className="fa-solid fa-arrows-rotate"></i>

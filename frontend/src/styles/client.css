@@ -7975,11 +7975,11 @@ html {
     display: none !important;
   }
   .client-tour-back-btn {
-    padding: 8px !important;
+    padding: 6px !important;
     border-radius: 50% !important;
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
     justify-content: center !important;
     flex-shrink: 0 !important;
   }
@@ -7990,9 +7990,9 @@ html {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     max-width: none !important;
-    padding: 6px 12px !important;
-    height: 36px !important;
-    border-radius: 20px !important;
+    padding: 4px 10px !important;
+    height: 32px !important;
+    border-radius: 16px !important;
   }
 
   .client-tour-title-desktop {
