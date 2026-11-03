@@ -728,34 +728,75 @@ export async function pgUpsertUser(user: any) {
     const mongoId = user._id ? user._id.toString() : (user.mongoId || user.mongo_id || null);
     if (!id || !user.username) return;
 
-    await pgPool.query(`
-      INSERT INTO users (id, username, email, password_hash, full_name, role_id, is_active, phone, avatar_url, mongo_id, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
-      ON CONFLICT (id) DO UPDATE SET
-        username = EXCLUDED.username,
-        email = EXCLUDED.email,
-        password_hash = CASE WHEN EXCLUDED.password_hash != 'NO_PASSWORD_OTP_ONLY' THEN EXCLUDED.password_hash ELSE users.password_hash END,
-        full_name = EXCLUDED.full_name,
-        role_id = EXCLUDED.role_id,
-        is_active = EXCLUDED.is_active,
-        phone = COALESCE(EXCLUDED.phone, users.phone),
-        avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
-        mongo_id = COALESCE(EXCLUDED.mongo_id, users.mongo_id),
-        updated_at = CURRENT_TIMESTAMP;
-    `, [
-      id,
-      user.username,
-      user.email,
-      user.password || 'NO_PASSWORD_OTP_ONLY',
-      user.fullName || '',
-      user.role === 'admin' ? 'role-superadmin' : (user.role === 'editor' ? 'role-editor' : 'role-viewer'),
-      user.isActive ?? true,
-      user.phone || '',
-      user.avatar || user.avatarUrl || '',
-      mongoId
-    ]);
+    const roleId = user.role === 'admin' ? 'role-superadmin' : (user.role === 'editor' ? 'role-editor' : 'role-viewer');
+    const passwordHash = user.password || 'NO_PASSWORD_OTP_ONLY';
+    const fullName = user.fullName || '';
+    const isActive = user.isActive ?? true;
+    const phone = user.phone || '';
+    const avatarUrl = user.avatar || user.avatarUrl || '';
+
+    // 1. Kiểm tra xem người dùng đã tồn tại trong PostgreSQL theo id HOẶC username chưa
+    const existing = await pgPool.query(
+      'SELECT id FROM users WHERE id = $1 OR username = $2 LIMIT 1',
+      [id, user.username]
+    );
+
+    if (existing.rows.length > 0) {
+      const targetId = existing.rows[0].id;
+      await pgPool.query(`
+        UPDATE users SET
+          username = $2,
+          email = $3,
+          password_hash = CASE WHEN $4 != 'NO_PASSWORD_OTP_ONLY' THEN $4 ELSE users.password_hash END,
+          full_name = $5,
+          role_id = $6,
+          is_active = $7,
+          phone = COALESCE(NULLIF($8, ''), users.phone),
+          avatar_url = COALESCE(NULLIF($9, ''), users.avatar_url),
+          mongo_id = COALESCE($10, users.mongo_id),
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `, [
+        targetId,
+        user.username,
+        user.email,
+        passwordHash,
+        fullName,
+        roleId,
+        isActive,
+        phone,
+        avatarUrl,
+        mongoId
+      ]);
+    } else {
+      await pgPool.query(`
+        INSERT INTO users (id, username, email, password_hash, full_name, role_id, is_active, phone, avatar_url, mongo_id, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+        ON CONFLICT (username) DO UPDATE SET
+          email = EXCLUDED.email,
+          password_hash = CASE WHEN EXCLUDED.password_hash != 'NO_PASSWORD_OTP_ONLY' THEN EXCLUDED.password_hash ELSE users.password_hash END,
+          full_name = EXCLUDED.full_name,
+          role_id = EXCLUDED.role_id,
+          is_active = EXCLUDED.is_active,
+          phone = COALESCE(EXCLUDED.phone, users.phone),
+          avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
+          mongo_id = COALESCE(EXCLUDED.mongo_id, users.mongo_id),
+          updated_at = CURRENT_TIMESTAMP;
+      `, [
+        id,
+        user.username,
+        user.email,
+        passwordHash,
+        fullName,
+        roleId,
+        isActive,
+        phone,
+        avatarUrl,
+        mongoId
+      ]);
+    }
   } catch (err: any) {
-    console.warn(`[SyncEngine] Lỗi đồng bộ User sang PostgreSQL (${user.username}):`, err.message);
+    console.warn(`[SyncEngine] Lỗi đồng bộ User sang PostgreSQL (${user?.username}):`, err.message);
   }
 }
 
