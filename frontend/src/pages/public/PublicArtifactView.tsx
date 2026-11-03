@@ -433,9 +433,37 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   if (loading) {
     return (
       <div className="public-artifact-loading-screen">
-        <div className="artifact-spinner" />
-        <p className="loading-text">{t('artifact.loading', 'Đang tải không gian di sản 3D...')}</p>
-        <span className="loading-subtext">{branding.museumName}</span>
+        <div className="loading-emblem-wrap">
+          {branding.logoUrl ? (
+            <img src={branding.logoUrl} alt={branding.shortName || 'Museum'} className="loading-emblem-img" />
+          ) : (
+            <div className="loading-emblem-icon">
+              <Layers size={36} />
+            </div>
+          )}
+          <div className="loading-pulse-ring" />
+        </div>
+
+        <div className="loading-spinner-wrapper">
+          <div className="loading-spinner-ring" />
+          <div className="loading-spinner-core" />
+        </div>
+
+        <h3 className="loading-text">
+          {t('artifact.loading', 'Đang tải không gian di sản 3D...')}
+        </h3>
+
+        <span className="loading-subtext">
+          {branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}
+        </span>
+
+        <div className="loading-progress-track">
+          <div className="loading-progress-bar" />
+        </div>
+
+        <p className="loading-hint">
+          {t('artifact.loadingHint', 'Đang chuẩn bị mô hình số hóa đa chiều & hệ thống thuyết minh...')}
+        </p>
       </div>
     );
   }
@@ -444,11 +472,16 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     return (
       <div className="public-artifact-error-screen">
         <div className="error-card">
-          <Info size={48} className="error-icon" />
-          <h2>{t('artifact.notFound', 'Không tìm thấy cổ vật')}</h2>
-          <p>{error || t('artifact.notFoundDesc', 'Hiện vật không tồn tại hoặc đã được chuyển vào kho lưu trữ bảo quản.')}</p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '18px', flexWrap: 'wrap' }}>
+          <div className="error-icon-wrap">
+            <Info size={36} />
+          </div>
+          <h2 className="error-title">{t('artifact.notFound', 'Không tìm thấy cổ vật')}</h2>
+          <p className="error-desc">
+            {error || t('artifact.notFoundDesc', 'Hiện vật không tồn tại hoặc đã được chuyển vào kho lưu trữ bảo quản.')}
+          </p>
+          <div className="error-actions">
             <button
+              type="button"
               className="btn btn-secondary"
               onClick={() => {
                 setError(null);
@@ -456,16 +489,17 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
               }}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer' }}
             >
-              <RefreshCw size={18} />
-              {t('artifact.retry', 'Thử tải lại')}
+              <RefreshCw size={16} />
+              <span>{t('artifact.retry', 'Thử tải lại')}</span>
             </button>
             <button
+              type="button"
               className="btn btn-primary"
               onClick={onBackToTour || (() => (window.location.href = '/'))}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer' }}
             >
-              <Compass size={18} />
-              {t('artifact.backToTour', 'Quay lại tham quan gian phòng')}
+              <Compass size={16} />
+              <span>{t('artifact.backToTour', 'Quay lại tham quan gian phòng')}</span>
             </button>
           </div>
         </div>
