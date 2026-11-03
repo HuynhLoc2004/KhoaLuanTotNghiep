@@ -2296,7 +2296,7 @@ export const AdminArtifactsPage: React.FC = () => {
                 }}
               >
                 {/* Hàng 1: Mã hiện vật & Tên */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+                <div className="artifact-form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Mã định danh *</label>
                     <input
@@ -2341,7 +2341,7 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
 
                 {/* Hàng 2: Danh mục & Niên đại */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+                <div className="artifact-form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Danh mục / Loại hình di sản</label>
                     <input
@@ -2378,9 +2378,9 @@ export const AdminArtifactsPage: React.FC = () => {
                     )}
                   </div>
                   <div className="form-group">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <label className="form-label" style={{ margin: 0 }}>
-                        Niên đại / Triều đại (Chuyên đề phòng) *
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                      <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>
+                        Niên đại / Triều đại *
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <button
@@ -2464,7 +2464,7 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
 
                 {/* Hàng 3: Nguồn gốc & Kích thước */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+                <div className="artifact-form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Nguồn gốc / Khảo cổ</label>
                     <input
@@ -3153,7 +3153,7 @@ export const AdminArtifactsPage: React.FC = () => {
                       </div>
 
                       {/* 3 Lựa chọn dạng Radio sạch sẽ, chuẩn giao diện quản trị */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+                      <div className="artifact-3d-radios-grid">
                         {/* Chế độ 1: Chỉ mặt trước */}
                         <label
                           style={{

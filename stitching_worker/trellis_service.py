@@ -67,7 +67,6 @@ except Exception:
 # ---------------------------------------------------------------------------
 TRELLIS_SPACES = [
     "trellis-community/TRELLIS",
-    "JeffreyXiang/TRELLIS",
 ]
 
 
@@ -96,28 +95,47 @@ TRELLIS_TIMEOUT = int(os.environ.get("TRELLIS_TIMEOUT", "300"))
 
 def prepare_optimized_image(image_path: str) -> str:
     """
-    Kiem tra kich thuoc anh. Neu anh qua lon (> 1024px hoac > 1MB),
-    resize ve toi da 1024x1024 (giu ti le) de giam dung luong upload tu 3-10MB ve ~150KB.
-    TRELLIS noi bo chi can 512x512 de suy luan 3D.
+    Kiem tra kich thuoc va phien ban kenh Alpha cua anh.
+    Neu anh chua duoc tach nen (khong co alpha trong suot), tu dong dung rembg cuc bo
+    de tach phong nen phong bao tang truoc khi gui len TRELLIS, tranh loi The upstream Gradio app exception.
+    Dong thoi chuan hoa ve toi da 1024x1024.
     """
     try:
         from PIL import Image
-        with Image.open(image_path) as img:
+        with Image.open(image_path) as orig_img:
+            img = orig_img.copy()
+
+            # Kiem tra xem anh da co kenh alpha trong suot thuc su chua
+            has_alpha = False
+            if img.mode == "RGBA":
+                extrema = img.getextrema()
+                if len(extrema) >= 4 and extrema[3][0] < 240:
+                    has_alpha = True
+
+            if not has_alpha:
+                try:
+                    log("Phat hien anh chua co nen trong suot, dang su dung rembg cuc bo tach nen...")
+                    import rembg
+                    session = rembg.new_session("u2netp")
+                    img = rembg.remove(img.convert("RGB"), session=session)
+                    log("[OK] Da tach phong nen thanh cong bang rembg cuc bo!")
+                except Exception as re:
+                    log(f"[WARN] rembg cuc bo bo qua ({re}), tiep tuc xu ly anh...")
+
             w, h = img.size
-            file_size = os.path.getsize(image_path)
-            if max(w, h) > 1024 or file_size > 1024 * 1024:
+            if max(w, h) > 1024:
                 scale = 1024.0 / max(w, h)
                 new_w, new_h = max(1, int(w * scale)), max(1, int(h * scale))
-                log(f"Toi uu hoa anh: {w}x{h} ({file_size/1024:.0f}KB) -> {new_w}x{new_h} de upload nhanh...")
-                resized_img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-                temp_opt_path = os.path.join(tempfile.gettempdir(), f"trellis_opt_{int(time.time())}_{os.path.basename(image_path)}")
-                resized_img.save(temp_opt_path, format="PNG", optimize=True)
-                new_size = os.path.getsize(temp_opt_path)
-                log(f"[OK] Dung luong anh giam tu {file_size/1024:.0f}KB -> {new_size/1024:.0f}KB")
-                return temp_opt_path
+                log(f"Toi uu hoa anh: {w}x{h} -> {new_w}x{new_h} de upload nhanh...")
+                img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+            temp_opt_path = os.path.join(tempfile.gettempdir(), f"trellis_opt_{int(time.time())}_{os.path.splitext(os.path.basename(image_path))[0]}.png")
+            img.save(temp_opt_path, format="PNG", optimize=True)
+            log(f"[OK] Anh toi uu san sang cho TRELLIS: {temp_opt_path} ({os.path.getsize(temp_opt_path)/1024:.0f}KB)")
+            return temp_opt_path
     except Exception as e:
         log(f"[WARN] Khong the toi uu hoa anh ({e}), su dung anh goc.")
-    return image_path
+        return image_path
 
 
 def load_gradio_client():
@@ -260,19 +278,35 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str, multiimage_p
         # Buoc 3: Tao mo hinh 3D va trich xuat GLB
         mode_desc = f"Da goc do Multi-view ({1 + len(multi_handles)} anh)" if len(multi_handles) > 0 else "1 mat don (Single-view)"
         log(f"Buoc 3/3: Dang chay TRELLIS Inference & GLB Extraction [/generate_and_extract_glb] - Che do: {mode_desc}...")
-        result = client.predict(
-            image=image_input_param,
-            multiimages=multi_handles,
-            seed=0,
-            ss_guidance_strength=7.5,
-            ss_sampling_steps=12,
-            slat_guidance_strength=3.0,
-            slat_sampling_steps=12,
-            multiimage_algo="stochastic",
-            mesh_simplify=0.95,
-            texture_size=1024,
-            api_name="/generate_and_extract_glb"
-        )
+        try:
+            result = client.predict(
+                image=image_input_param,
+                multiimages=multi_handles if len(multi_handles) > 0 else [],
+                seed=0,
+                ss_guidance_strength=7.5,
+                ss_sampling_steps=12,
+                slat_guidance_strength=3.0,
+                slat_sampling_steps=12,
+                multiimage_algo="stochastic",
+                mesh_simplify=0.95,
+                texture_size=1024,
+                api_name="/generate_and_extract_glb"
+            )
+        except Exception as inf_err:
+            log(f"[WARN] Lan 1 tao GLB gap loi ({inf_err}), thu lai voi anh transparent truc tiep...")
+            result = client.predict(
+                image=handle_file(working_image),
+                multiimages=[],
+                seed=42,
+                ss_guidance_strength=7.5,
+                ss_sampling_steps=12,
+                slat_guidance_strength=3.0,
+                slat_sampling_steps=12,
+                multiimage_algo="stochastic",
+                mesh_simplify=0.95,
+                texture_size=1024,
+                api_name="/generate_and_extract_glb"
+            )
 
         t1 = time.time()
         log(f"[OK] TRELLIS hoan tat sau {t1-t0:.1f}s. Result type: {type(result).__name__}")

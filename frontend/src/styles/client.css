@@ -5244,13 +5244,14 @@ html {
 
 /* 3. THẺ HIỆN VẬT TIÊU BIỂU TEASER (KHI CÓ 1 HIỆN VẬT) */
 .client-artifact-featured-teaser {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  border-radius: 20px;
+  display: flex;
+  max-width: 760px;
+  margin: 0 auto;
+  border-radius: 18px;
   overflow: hidden;
   background: linear-gradient(145deg, rgba(16, 22, 33, 0.95) 0%, rgba(9, 13, 20, 0.98) 100%);
   border: 1px solid rgba(212, 168, 106, 0.24);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   cursor: pointer;
   transition: transform 0.25s ease, border-color 0.25s ease;
 }
@@ -5258,24 +5259,28 @@ html {
 .client-artifact-featured-teaser:hover {
   transform: translateY(-3px);
   border-color: rgba(212, 168, 106, 0.45);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
 }
 
 .client-artifact-teaser-media {
   position: relative;
-  min-height: 420px;
+  width: 280px;
+  min-width: 280px;
+  height: 280px;
   background: radial-gradient(circle at center, #171E2D 0%, #090C14 85%);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
 }
 
 .client-artifact-teaser-img {
-  max-height: 85%;
-  max-width: 85%;
+  max-height: 100%;
+  max-width: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.7));
-  transition: transform 0.5s ease;
+  border-radius: 8px;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.7));
+  transition: transform 0.4s ease;
 }
 
 .client-artifact-featured-teaser:hover .client-artifact-teaser-img {
@@ -5284,46 +5289,57 @@ html {
 
 .client-artifact-teaser-badge {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: 12px;
+  left: 12px;
   background: rgba(10, 14, 22, 0.9);
   border: 1px solid rgba(212, 168, 106, 0.35);
   color: #FDE68A;
-  padding: 6px 14px;
+  padding: 4px 12px;
   border-radius: 20px;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
 .client-artifact-teaser-content {
-  padding: clamp(28px, 4vw, 48px);
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  flex: 1;
 }
 
 .client-artifact-teaser-title {
   font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: clamp(1.6rem, 2.2vw, 2.1rem);
+  font-size: 1.35rem;
   font-weight: 700;
   color: #F8FAFC;
-  margin: 0 0 14px 0;
-  line-height: 1.32;
+  margin: 0 0 8px 0;
+  line-height: 1.35;
 }
 
 .client-artifact-teaser-desc {
-  font-size: 0.94rem;
-  line-height: 1.76;
+  font-size: 0.88rem;
+  line-height: 1.6;
   color: #94A3B8;
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 768px) {
   .client-artifact-featured-teaser {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    max-width: 360px;
   }
   .client-artifact-teaser-media {
-    min-height: 300px;
+    width: 100%;
+    min-width: 100%;
+    height: 240px;
+  }
+  .client-artifact-teaser-content {
+    padding: 18px 20px;
   }
 }
 

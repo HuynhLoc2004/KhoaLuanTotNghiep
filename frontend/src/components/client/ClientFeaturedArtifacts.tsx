@@ -123,22 +123,29 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
             </div>
 
             <div className="client-artifact-teaser-content">
-              <span className="client-section-eyebrow" style={{ marginBottom: 6 }}>
-                {localize(featuredSingle, 'period', (featuredSingle as any).period || 'Cổ vật di sản')}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                {featuredSingle.code && (
+                  <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "rgba(212, 168, 106, 0.15)", color: "#D4A86A", border: "1px solid rgba(212, 168, 106, 0.3)" }}>
+                    {featuredSingle.code}
+                  </span>
+                )}
+                <span className="client-section-eyebrow" style={{ margin: 0 }}>
+                  {localize(featuredSingle, "period", (featuredSingle as any).period || "Cổ vật di sản")}
+                </span>
+              </div>
               <h3 className="client-artifact-teaser-title">
-                {localize(featuredSingle, 'name', featuredSingle.name)}
+                {localize(featuredSingle, "name", featuredSingle.name)}
               </h3>
               <p className="client-artifact-teaser-desc">
                 {localize(
                   featuredSingle,
-                  'description',
+                  "description",
                   (featuredSingle as any).description ||
-                    'Hiện vật quý giá được lưu giữ tại Bảo tàng Lịch sử TP. Hồ Chí Minh, được phục dựng số hóa chi tiết nhằm lan tỏa giá trị di sản văn hóa dân tộc.'
+                    "Hiện vật quý giá được lưu giữ tại Bảo tàng Lịch sử TP. Hồ Chí Minh, được phục dựng số hóa chi tiết nhằm lan tỏa giá trị di sản văn hóa dân tộc."
                 )}
               </p>
 
-              <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+              <div>
                 <button
                   type="button"
                   className="client-intro-btn"
@@ -146,9 +153,10 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                     e.stopPropagation();
                     handleArtifactClick(featuredSingle);
                   }}
+                  style={{ padding: "8px 18px", fontSize: "13px" }}
                 >
-                  <span>{t('artifacts.viewDetailBtn', 'Chiêm ngưỡng chi tiết hiện vật')}</span>
-                  <ArrowRight size={14} style={{ marginLeft: 6, display: 'inline' }} />
+                  <span>{t("artifacts.viewDetailBtn", "Chiêm ngưỡng chi tiết hiện vật")}</span>
+                  <ArrowRight size={14} style={{ marginLeft: 6, display: "inline" }} />
                 </button>
               </div>
             </div>
@@ -207,7 +215,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
         )}
 
         {/* NÚT XEM TẤT CẢ HIỆN VẬT */}
-        {artifacts.length > 0 && (
+        {artifacts.length > 1 && (
           <div className="client-section-center-action reveal-on-scroll" style={{ marginTop: 28 }}>
             <button
               type="button"
