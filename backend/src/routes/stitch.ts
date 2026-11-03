@@ -370,25 +370,38 @@ function extractJsonFromOutput(raw: string): any {
  * KHÔNG cắt xén (no crop), KHÔNG bóp méo (no distortion), KHÔNG đắp viền mờ (no blur).
  */
 async function optimizeRoomViewImage(srcPath: string, destPath: string, maxDim = 2560) {
-  const meta = await sharp(srcPath).metadata();
-  const srcW = meta.width || 1920;
-  const srcH = meta.height || 1080;
+  try {
+    const meta = await sharp(srcPath, { failOn: 'none', failOnError: false } as any).metadata();
+    const srcW = meta.width || 1920;
+    const srcH = meta.height || 1080;
 
-  let pipeline = sharp(srcPath).rotate();
-  if (Math.max(srcW, srcH) > maxDim) {
-    pipeline = pipeline.resize({
-      width: srcW >= srcH ? maxDim : undefined,
-      height: srcH > srcW ? maxDim : undefined,
-      fit: 'inside',
-      withoutEnlargement: true
-    });
+    let pipeline = sharp(srcPath, { failOn: 'none', failOnError: false } as any).rotate();
+    if (Math.max(srcW, srcH) > maxDim) {
+      pipeline = pipeline.resize({
+        width: srcW >= srcH ? maxDim : undefined,
+        height: srcH > srcW ? maxDim : undefined,
+        fit: 'inside',
+        withoutEnlargement: true
+      });
+    }
+
+    const info = await pipeline
+      .jpeg({ quality: 92, mozjpeg: false })
+      .toFile(destPath);
+
+    return { width: info.width || srcW, height: info.height || srcH };
+  } catch (err: any) {
+    console.warn(`[optimizeRoomViewImage] Sharp warning/error for ${srcPath} (${err.message}), falling back to direct copy.`);
+    try {
+      if (srcPath !== destPath && fs.existsSync(srcPath)) {
+        fs.copyFileSync(srcPath, destPath);
+      }
+      return { width: 1920, height: 1080 };
+    } catch (copyErr: any) {
+    console.error(`[optimizeRoomViewImage] Copy failed:`, copyErr.message);
+      return { width: 1920, height: 1080 };
+    }
   }
-
-  const info = await pipeline
-    .jpeg({ quality: 94, mozjpeg: true })
-    .toFile(destPath);
-
-  return { width: info.width || srcW, height: info.height || srcH };
 }
 
 /**
