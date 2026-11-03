@@ -209,14 +209,15 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
 
   // Danh sách ID các cổ vật được chọn chỉ định cụ thể
   const selectedArtifactIds = useMemo(() => {
-    return form.artifactsFeaturedId
-      ? form.artifactsFeaturedId.split(',').map((s) => s.trim()).filter(Boolean)
-      : [];
+    if (!form.artifactsFeaturedId || form.artifactsFeaturedId === 'none') return [];
+    return form.artifactsFeaturedId.split(',').map((s) => s.trim()).filter(Boolean);
   }, [form.artifactsFeaturedId]);
 
   // Danh sách cổ vật thực tế sẽ trưng bày trên Trang chủ (Đồng bộ 100% với Client)
   const showcaseArtifacts = useMemo(() => {
     if (!artifacts || artifacts.length === 0) return [];
+
+    if (form.artifactsFeaturedId === 'none') return [];
 
     if (selectedArtifactIds.length > 0) {
       const selected: Artifact[] = [];
@@ -231,26 +232,23 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
           selected.push(found);
         }
       }
-      if (selected.length > 0) return selected;
+      return selected;
     }
 
-    // Tự động: Ưu tiên có mô hình 3D, lấy tối đa 4 hiện vật
+    // Tự động: Ưu tiên có mô hình 3D, lấy tối đa 2 hiện vật
     const sorted = [...artifacts].sort((a, b) => {
       if (a.model3dUrl && !b.model3dUrl) return -1;
       if (!a.model3dUrl && b.model3dUrl) return 1;
       return String(b.id || '').localeCompare(String(a.id || ''));
     });
-    return sorted.slice(0, 4);
-  }, [artifacts, selectedArtifactIds]);
+    return sorted.slice(0, 2);
+  }, [artifacts, selectedArtifactIds, form.artifactsFeaturedId]);
 
   const selectedArtifact = showcaseArtifacts[0] || null;
 
-  // Thêm / gỡ 1 cổ vật khỏi danh sách trưng bày
-  const handleToggleArtifact = (artifactId: string) => {
+  // Thêm / gỡ 1 cổ vật khỏi danh sách trưng bày & tự động đồng bộ realtime
+  const handleToggleArtifact = async (artifactId: string) => {
     let currentIds = [...selectedArtifactIds];
-    if (!form.artifactsFeaturedId) {
-      currentIds = showcaseArtifacts.map((a) => a.id);
-    }
     const idx = currentIds.indexOf(artifactId);
     if (idx >= 0) {
       currentIds.splice(idx, 1);
@@ -261,31 +259,53 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
       }
       currentIds.push(artifactId);
     }
-    handleChange('artifactsFeaturedId', currentIds.join(','));
+    const newVal = currentIds.length === 0 ? 'none' : currentIds.join(',');
+    handleChange('artifactsFeaturedId', newVal);
+    try {
+      await updateBranding({ ...form, artifactsFeaturedId: newVal });
+      setIsDirty(false);
+      showToast(
+        idx >= 0
+          ? 'Đã bỏ hiện vật khỏi Trang chủ và đồng bộ tức thì!'
+          : `Đã đưa hiện vật lên Trang chủ (Vị trí #${currentIds.length}) và đồng bộ tức thì!`,
+        'success'
+      );
+    } catch (e: any) {
+      console.error('[AdminShowcase] Auto-sync failed:', e);
+    }
   };
 
-  // Di chuyển thứ tự cổ vật
-  const handleMoveArtifact = (index: number, direction: 'up' | 'down') => {
+  // Di chuyển thứ tự cổ vật & đồng bộ
+  const handleMoveArtifact = async (index: number, direction: 'up' | 'down') => {
     let currentIds = [...selectedArtifactIds];
-    if (!form.artifactsFeaturedId) {
-      currentIds = showcaseArtifacts.map((a) => a.id);
-    }
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= currentIds.length) return;
     const temp = currentIds[index];
     currentIds[index] = currentIds[targetIndex];
     currentIds[targetIndex] = temp;
-    handleChange('artifactsFeaturedId', currentIds.join(','));
+    const newVal = currentIds.join(',');
+    handleChange('artifactsFeaturedId', newVal);
+    try {
+      await updateBranding({ ...form, artifactsFeaturedId: newVal });
+      setIsDirty(false);
+      showToast('Đã đổi thứ tự hiện vật và đồng bộ sang Trang chủ!', 'success');
+    } catch (e) {
+      console.error('[AdminShowcase] Auto-sync failed:', e);
+    }
   };
 
-  // Gỡ bỏ 1 cổ vật khỏi danh sách
-  const handleRemoveArtifact = (artifactId: string) => {
-    let currentIds = [...selectedArtifactIds];
-    if (!form.artifactsFeaturedId) {
-      currentIds = showcaseArtifacts.map((a) => a.id);
+  // Gỡ bỏ 1 cổ vật khỏi danh sách & đồng bộ
+  const handleRemoveArtifact = async (artifactId: string) => {
+    let currentIds = [...selectedArtifactIds].filter((id) => id !== artifactId);
+    const newVal = currentIds.length === 0 ? 'none' : currentIds.join(',');
+    handleChange('artifactsFeaturedId', newVal);
+    try {
+      await updateBranding({ ...form, artifactsFeaturedId: newVal });
+      setIsDirty(false);
+      showToast('Đã gỡ hiện vật khỏi Trang chủ và đồng bộ realtime!', 'success');
+    } catch (e) {
+      console.error('[AdminShowcase] Auto-sync failed:', e);
     }
-    currentIds = currentIds.filter((id) => id !== artifactId);
-    handleChange('artifactsFeaturedId', currentIds.join(','));
   };
 
   const getMediaUrl = (path?: string) => {
@@ -843,25 +863,32 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                       <input
                         type="radio"
                         name="artifact_selection_mode"
-                        checked={!form.artifactsFeaturedId}
-                        onChange={() => handleChange('artifactsFeaturedId', '')}
-                      />
-                      <span>Tự động (Lấy {showcaseArtifacts.length} cổ vật 3D mới nhất)</span>
-                    </label>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
-                      <input
-                        type="radio"
-                        name="artifact_selection_mode"
-                        checked={Boolean(form.artifactsFeaturedId)}
-                        onChange={() => {
-                          if (!form.artifactsFeaturedId) {
-                            handleChange('artifactsFeaturedId', showcaseArtifacts.map((a) => a.id).join(','));
-                          }
+                        checked={Boolean(form.artifactsFeaturedId && form.artifactsFeaturedId !== '')}
+                        onChange={async () => {
+                          const ids = selectedArtifactIds.length > 0 ? selectedArtifactIds.join(',') : (showcaseArtifacts.map((a) => a.id).join(',') || 'none');
+                          handleChange('artifactsFeaturedId', ids);
+                          await updateBranding({ ...form, artifactsFeaturedId: ids });
+                          setIsDirty(false);
+                          showToast('Đã chuyển sang chế độ Tùy chọn chỉ định!', 'success');
                         }}
                       />
                       <span style={{ fontWeight: 600, color: form.artifactsFeaturedId ? 'var(--gold)' : 'inherit' }}>
                         Tùy chọn chỉ định ({selectedArtifactIds.length} hiện vật đã chọn)
                       </span>
+                    </label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-main)' }}>
+                      <input
+                        type="radio"
+                        name="artifact_selection_mode"
+                        checked={!form.artifactsFeaturedId}
+                        onChange={async () => {
+                          handleChange('artifactsFeaturedId', '');
+                          await updateBranding({ ...form, artifactsFeaturedId: '' });
+                          setIsDirty(false);
+                          showToast('Đã chuyển sang chế độ Tự động (Lấy tối đa 2 cổ vật 3D mới nhất)!', 'success');
+                        }}
+                      />
+                      <span>Tự động (Lấy tối đa 2 cổ vật 3D mới nhất)</span>
                     </label>
                   </div>
                 </div>
@@ -1032,12 +1059,8 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                       </div>
                     ) : (
                       filteredArtifacts.map((a) => {
-                        const isSelected = form.artifactsFeaturedId
-                          ? selectedArtifactIds.includes(a.id)
-                          : showcaseArtifacts.some((sa) => sa.id === a.id);
-                        const selectedIdx = form.artifactsFeaturedId
-                          ? selectedArtifactIds.indexOf(a.id)
-                          : showcaseArtifacts.findIndex((sa) => sa.id === a.id);
+                        const isSelected = selectedArtifactIds.includes(a.id);
+                        const selectedIdx = selectedArtifactIds.indexOf(a.id);
                         const has3D = Boolean(a.model3dUrl);
 
                         return (

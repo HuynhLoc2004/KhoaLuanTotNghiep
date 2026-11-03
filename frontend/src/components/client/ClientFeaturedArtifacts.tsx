@@ -21,9 +21,12 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   const { branding } = useSystemBranding();
   const { t, localize } = useClientTranslation();
 
-  // Lấy danh sách hiện vật trưng bày: ưu tiên danh sách ID do Admin chỉ định cụ thể, nếu không có thì tự động lấy tối đa 8 hiện vật ưu tiên 3D
+  // Lấy danh sách hiện vật trưng bày: tuân thủ nghiêm ngặt danh sách Admin chỉ định (hoặc tối đa 2 hiện vật tiêu biểu ban đầu)
   const showcaseArtifacts = React.useMemo(() => {
     if (!artifacts || artifacts.length === 0) return [];
+
+    // Nếu Admin chỉ định không trưng bày hiện vật nào
+    if (branding.artifactsFeaturedId === 'none') return [];
 
     const featuredIds = branding.artifactsFeaturedId
       ? branding.artifactsFeaturedId.split(',').map((s) => s.trim()).filter(Boolean)
@@ -42,19 +45,17 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
           selected.push(found);
         }
       }
-      if (selected.length > 0) {
-        return selected;
-      }
+      return selected;
     }
 
-    // Tự động: Ưu tiên hiện vật có 3D trước, lấy tối đa 8 hiện vật đại diện
+    // Mặc định ban đầu nếu chưa từng cấu hình trong Trang chủ: Chỉ lấy tối đa 2 hiện vật tiêu biểu
     const sorted = [...artifacts].sort((a, b) => {
       if (a.model3dUrl && !b.model3dUrl) return -1;
       if (!a.model3dUrl && b.model3dUrl) return 1;
       return String(b.id || '').localeCompare(String(a.id || ''));
     });
 
-    return sorted.slice(0, 8);
+    return sorted.slice(0, 2);
   }, [artifacts, branding.artifactsFeaturedId]);
 
   const getArtifactThumb = (art?: Artifact) => {

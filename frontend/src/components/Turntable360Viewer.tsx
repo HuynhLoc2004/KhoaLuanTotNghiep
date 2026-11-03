@@ -581,18 +581,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
                 glbOriginalUVsRef.current.set(mesh, origUv.clone() as THREE.BufferAttribute);
               }
 
-              // 2. Tạo toạ độ UV phẳng dự phòng chuẩn xác theo toàn bộ khối vật thể (cho chế độ "Phủ ảnh phẳng 2D")
-              if (posAttr) {
-                const planarUvs = new Float32Array(posAttr.count * 2);
-                const v = new THREE.Vector3();
-                for (let i = 0; i < posAttr.count; i++) {
-                  v.fromBufferAttribute(posAttr, i);
-                  v.applyMatrix4(mesh.matrixWorld);
-                  planarUvs[i * 2] = (v.x - rootBox.min.x) / (rootSize.x || 1.0);
-                  planarUvs[i * 2 + 1] = (v.y - rootBox.min.y) / (rootSize.y || 1.0);
-                }
-                planarUVsRef.current.set(mesh, new THREE.BufferAttribute(planarUvs, 2));
-              }
+              // 2. Lưu ý: Toạ độ phẳng chỉ sinh ra khi chuyển sang chế độ "Phủ ảnh phẳng 2D" để không nghẽn CPU khi nạp mô hình
             }
 
             if (mesh.material) {
