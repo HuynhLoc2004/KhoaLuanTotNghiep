@@ -263,15 +263,15 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str, multiimage_p
                             api_name="/preprocess_image"
                         )
                         if isinstance(prep_extra, dict) and prep_extra.get("path"):
-                            multi_handles.append(handle_file(prep_extra["path"]))
+                            multi_handles.append({"image": handle_file(prep_extra["path"])})
                         elif isinstance(prep_extra, str) and os.path.exists(prep_extra):
-                            multi_handles.append(handle_file(prep_extra))
+                            multi_handles.append({"image": handle_file(prep_extra)})
                         else:
-                            multi_handles.append(handle_file(opt_extra))
+                            multi_handles.append({"image": handle_file(opt_extra)})
                         log(f"[Multi-View] Da tien xu ly thanh cong anh goc #{idx+1}")
                     except Exception as extra_pe:
                         log(f"[Multi-View] Tien xu ly anh goc #{idx+1} loi ({extra_pe}), su dung anh goc truc tiep")
-                        multi_handles.append(handle_file(opt_extra))
+                        multi_handles.append({"image": handle_file(opt_extra)})
                 except Exception as ex_err:
                     log(f"[Multi-View] Loi chuan bi anh #{idx+1}: {ex_err}")
 
