@@ -1042,7 +1042,16 @@ stitchRouter.get('/status/:jobId', async (req: Request, res: Response) => {
 
   // 2. Tra cứu MongoDB (khi tiến trình đã hoàn tất và lưu vào DB)
   try {
-    const doc = await PanoramaModel.findOne({ 'metadata.jobId': jobId }).lean();
+    let doc = await PanoramaModel.findOne({ 'metadata.jobId': jobId }).lean();
+    if (!doc && jobId.includes('_')) {
+      const parts = jobId.split('_');
+      const jobTime = parseInt(parts[1], 10);
+      if (jobTime && !isNaN(jobTime) && Date.now() - jobTime < 5 * 60 * 1000) {
+        doc = await PanoramaModel.findOne({
+          createdAt: { $gte: new Date(jobTime - 10000) }
+        }).sort({ createdAt: -1 }).lean();
+      }
+    }
     if (doc) {
       const views = (doc.metadata as any)?.views || [];
       return res.json({
@@ -1054,8 +1063,8 @@ stitchRouter.get('/status/:jobId', async (req: Request, res: Response) => {
         data: {
           id: doc.id,
           panoramaUrl: doc.panoramaUrl,
-          cloudinaryUrl: doc.cloudinaryUrl,
-          r2Url: doc.r2Url,
+          cloudinaryUrl: (doc as any).cloudinaryUrl,
+          r2Url: (doc as any).r2Url,
           localUrl: doc.localUrl,
           filename: doc.filename,
           width: doc.width,

@@ -780,10 +780,27 @@ export const PocStitchingPage: React.FC = () => {
     } catch (_) {}
   };
 
+  // Cho phép người dùng chủ động HỦY BỎ tiến trình khi bị treo hoặc xoay quá lâu
+  const handleCancelProcess = () => {
+    try {
+      localStorage.removeItem('active_stitching_job');
+    } catch (_) {}
+    releaseWakeLock();
+    setIsProcessing(false);
+    setVideoProcessingText(null);
+    setErrorMsg(null);
+    setCurrentStep(0);
+    setPendingVideoFile(null);
+    setSingleCreatingId(null);
+    fetchHistory();
+    showToast('Đã dừng tiến trình. Thư viện không gian đã được làm mới.', 'info');
+  };
+
   // Cơ chế thăm dò tự động (Polling): Đảm bảo tiến trình ghép ảnh không bị hủy khi tắt màn hình điện thoại hoặc chuyển tab
   const pollStitchJobStatus = async (jobId: string, shouldOpenRoom = false) => {
     let attempts = 0;
-    const maxAttempts = 60; // 60 * 2.5s = 150s
+    const maxAttempts = 36; // 36 * 2.5s = 90s
+    let unknownCount = 0;
     setIsProcessing(true);
     setErrorMsg(null);
     setVideoProcessingText('Đang duy trì kết nối & tiếp tục tạo không gian phòng...');
@@ -828,18 +845,67 @@ export const PocStitchingPage: React.FC = () => {
               if (json.message) {
                 setVideoProcessingText(json.message);
               }
+            } else if (json.status === 'unknown') {
+              unknownCount++;
+              // Nếu kiểm tra 2 lần mà server báo unknown: Thử đọc trực tiếp từ thư viện xem đã tạo xong chưa
+              if (unknownCount >= 2) {
+                try {
+                  const hRes = await fetch(`${API_BASE}/stitch/history?limit=3`, {
+                    headers: { 'Cache-Control': 'no-cache' }
+                  });
+                  if (hRes.ok) {
+                    const hJson = await hRes.json();
+                    const latest = hJson?.panoramas?.[0];
+                    if (latest && (Date.now() - new Date(latest.createdAt).getTime() < 4 * 60 * 1000)) {
+                      setCurrentStep(5);
+                      const resData: any = {
+                        id: latest.id,
+                        panoramaUrl: normalizePanoUrl(latest.url || latest.thumbnailUrl),
+                        thumbnailUrl: latest.thumbnailUrl,
+                        filename: latest.filename,
+                        width: latest.width,
+                        height: latest.height,
+                        views: latest.views || [],
+                        message: 'Tạo không gian phòng thành công'
+                      };
+                      setStitchResult(resData);
+                      setActiveViewUrl(resData.panoramaUrl);
+                      setViewerMode('pano360');
+                      setPendingVideoFile(null);
+                      fetchHistory();
+                      try { localStorage.removeItem('active_stitching_job'); } catch (_) {}
+                      releaseWakeLock();
+                      setIsProcessing(false);
+                      setVideoProcessingText(null);
+                      showToast('Đã nhận diện không gian phòng vừa tạo thành công!', 'success');
+                      return;
+                    }
+                  }
+                } catch (_) {}
+
+                if (unknownCount >= 4) {
+                  throw new Error('Tiến trình này đã kết thúc trên máy chủ. Bạn có thể kiểm tra Thư viện gian phòng bên dưới.');
+                }
+              }
             }
           }
         }
       } catch (pollErr: any) {
-        if (attempts >= maxAttempts) {
+        if (attempts >= maxAttempts || unknownCount >= 4) {
           throw pollErr;
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 2500));
     }
 
-    throw new Error('Đang tiếp tục xử lý trên máy chủ. Bạn có thể kiểm tra lại trong Thư viện gian phòng sau ít phút.');
+    try {
+      fetchHistory();
+      localStorage.removeItem('active_stitching_job');
+    } catch (_) {}
+    releaseWakeLock();
+    setIsProcessing(false);
+    setVideoProcessingText(null);
+    showToast('Đã dừng chờ tự động. Vui lòng kiểm tra Thư viện gian phòng bên dưới.', 'info');
   };
 
   // Tự động kiểm tra và khôi phục tiến trình khi mở lại màn hình điện thoại hoặc quay lại tab trình duyệt
@@ -922,8 +988,8 @@ export const PocStitchingPage: React.FC = () => {
       }, 7000);
 
       const formData = new FormData();
-      formData.append('video', pendingVideoFile);
       formData.append('jobId', jobId);
+      formData.append('video', pendingVideoFile);
 
       const res = await fetch(`${API_BASE}/stitch/video`, {
         method: 'POST',
@@ -1817,6 +1883,26 @@ export const PocStitchingPage: React.FC = () => {
                         )}
                       </button>
 
+                      {isProcessing && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={handleCancelProcess}
+                          style={{
+                            width: '100%',
+                            justifyContent: 'center',
+                            color: 'var(--error, #ef4444)',
+                            borderColor: 'rgba(239, 68, 68, 0.35)',
+                            padding: '7px 12px',
+                            fontSize: '12px',
+                            gap: 6
+                          }}
+                        >
+                          <RotateCcw size={12} />
+                          <span>Hủy tiến trình đang xoay</span>
+                        </button>
+                      )}
+
                       {stitchResult ? (
                         <button
                           type="button"
@@ -1963,6 +2049,17 @@ export const PocStitchingPage: React.FC = () => {
                             />
                           ))}
                         </div>
+
+                        {/* Nút Hủy tiến trình dành cho người dùng khi bị treo/xoay lâu */}
+                        <button
+                          type="button"
+                          className="studio-overlay-cancel-btn"
+                          onClick={handleCancelProcess}
+                          title="Hủy tiến trình đang xử lý và làm mới"
+                        >
+                          <RotateCcw size={13} />
+                          <span>Hủy tiến trình & Đặt lại</span>
+                        </button>
                       </div>
                     )}
 

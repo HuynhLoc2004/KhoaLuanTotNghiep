@@ -5751,6 +5751,34 @@
   background-color: var(--accent-gold);
 }
 
+.studio-overlay-cancel-btn {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 25;
+}
+
+.studio-overlay-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+  transform: translateY(-1px);
+}
+
+.studio-overlay-cancel-btn:active {
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .studio-frame-grid {
     grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
