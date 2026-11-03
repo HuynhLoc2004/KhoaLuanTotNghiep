@@ -6475,6 +6475,7 @@ select option {
 
 .admin-showcase-artifact-item {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
@@ -6482,6 +6483,26 @@ select option {
   border-radius: 6px;
   border: 1px solid var(--border-color);
   gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.admin-showcase-artifact-item > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.admin-showcase-badge-wrap {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
 }
 
 @media (max-width: 900px) {
@@ -6586,18 +6607,19 @@ select option {
 }
 
 @media (max-width: 480px) {
+  .admin-showcase-card-body {
+    padding: 12px 8px !important;
+  }
+
   .admin-showcase-preview-grid {
     grid-template-columns: 1fr !important;
   }
 
   .admin-showcase-artifact-item {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 6px !important;
-  }
-
-  .admin-showcase-artifact-item > div:last-child {
-    align-self: flex-end !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 7px 8px !important;
+    gap: 8px !important;
   }
 }
 

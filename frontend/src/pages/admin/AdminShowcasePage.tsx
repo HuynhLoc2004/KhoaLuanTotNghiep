@@ -599,7 +599,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                               transition: 'all 0.15s ease'
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1, textAlign: 'left' }}>
                               {r.thumbnailUrl ? (
                                 <img
                                   src={getMediaUrl(r.thumbnailUrl)}
@@ -607,22 +607,22 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                                   style={{ width: 38, height: 26, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
                                 />
                               ) : (
-                                <div style={{ width: 38, height: 26, background: 'rgba(255,255,255,0.05)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ width: 38, height: 26, background: 'rgba(255,255,255,0.05)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                   <Compass size={13} style={{ opacity: 0.5 }} />
                                 </div>
                               )}
-                              <div style={{ minWidth: 0 }}>
+                              <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
                                 <div style={{ fontSize: 12.5, fontWeight: isSelected ? 600 : 500, color: isSelected ? 'var(--gold)' : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {r.code ? `[${r.code}] ` : ''}{r.name}
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {(r as any).period || 'Gian trưng bày chuyên đề'} • {r.hotspots?.length || 0} điểm chú thích
                                 </div>
                               </div>
                             </div>
 
                             {isSelected && (
-                              <div style={{ color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
+                              <div className="admin-showcase-badge-wrap" style={{ color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
                                 <Check size={13} />
                                 <span>Đang chọn</span>
                               </div>
@@ -1053,7 +1053,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                               transition: 'all 0.15s ease'
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1, textAlign: 'left' }}>
                               {a.thumbnailUrl || (a.images && a.images[0]) ? (
                                 <img
                                   src={getMediaUrl(a.thumbnailUrl || (a.images && a.images[0]))}
@@ -1061,18 +1061,18 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                                   style={{ width: 34, height: 34, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
                                 />
                               ) : (
-                                <div style={{ width: 34, height: 34, background: 'rgba(255,255,255,0.05)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ width: 34, height: 34, background: 'rgba(255,255,255,0.05)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                   <Box size={14} style={{ opacity: 0.5 }} />
                                 </div>
                               )}
-                              <div style={{ minWidth: 0 }}>
+                              <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
                                 <div style={{ fontSize: 12.5, fontWeight: isSelected ? 600 : 500, color: isSelected ? 'var(--gold)' : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {a.code ? `[${a.code}] ` : ''}{a.name}
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   <span>{a.period || a.category || 'Di sản lịch sử'}</span>
                                   {has3D && (
-                                    <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--gold)' }}>
+                                    <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, background: 'rgba(212, 168, 106, 0.15)', color: 'var(--gold)', flexShrink: 0 }}>
                                       Mô hình 3D
                                     </span>
                                   )}
@@ -1080,7 +1080,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
                               </div>
                             </div>
 
-                            <div>
+                            <div className="admin-showcase-badge-wrap" style={{ flexShrink: 0 }}>
                               {isSelected ? (
                                 <div style={{ color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700 }}>
                                   <span style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(212, 168, 106, 0.25)', border: '1px solid rgba(212, 168, 106, 0.5)' }}>
