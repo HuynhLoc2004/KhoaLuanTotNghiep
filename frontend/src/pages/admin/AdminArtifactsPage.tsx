@@ -42,7 +42,8 @@ import {
   Globe
 } from 'lucide-react';
 import { api, API_ROOT } from '../../services/api';
-import { Artifact, LanguageItem, MuseumRoom } from '../../types';
+import { Artifact, LanguageItem, MuseumRoom, TopicItem } from '../../types';
+import { TopicManagementModal } from '../../components/TopicManagementModal';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { Pagination } from '../../components/Pagination';
 import { useToast } from '../../components/Toast';
@@ -58,6 +59,10 @@ export const AdminArtifactsPage: React.FC = () => {
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [languages, setLanguages] = useState<LanguageItem[]>([]);
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
+  const [showTopicModal, setShowTopicModal] = useState(false);
+  const [isCustomPeriod, setIsCustomPeriod] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -174,10 +179,20 @@ export const AdminArtifactsPage: React.FC = () => {
     }
   };
 
+  const fetchTopics = async () => {
+    try {
+      const data = await api.getTopics();
+      setTopics(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('[AdminArtifacts] Không thể tải danh sách chuyên đề:', err);
+    }
+  };
+
   useEffect(() => {
     fetchArtifacts();
     fetchLanguages();
     fetchRooms();
+    fetchTopics();
   }, []);
 
   // Lắng nghe phím Escape để đóng nhanh các modal
@@ -261,6 +276,13 @@ export const AdminArtifactsPage: React.FC = () => {
     return Array.from(new Set([...defaultCats, ...fromData]));
   }, [artifacts]);
 
+  // Lấy danh sách các chuyên đề/thời kỳ thực tế từ Topic DB và phòng hiện tại
+  const availablePeriods = useMemo(() => {
+    const topicNames = topics.map((t) => t.name?.trim()).filter(Boolean);
+    const roomPeriods = rooms.map((r) => r.period?.trim()).filter(Boolean) as string[];
+    return Array.from(new Set([...topicNames, ...roomPeriods]));
+  }, [topics, rooms]);
+
   // Lọc dữ liệu hiện vật
   const filteredArtifacts = useMemo(() => {
     return artifacts.filter((art) => {
@@ -277,6 +299,10 @@ export const AdminArtifactsPage: React.FC = () => {
         selectedCategory === 'all' ||
         art.category?.trim() === selectedCategory;
 
+      const matchesPeriod =
+        selectedPeriod === 'all' ||
+        (art.period && art.period.trim() === selectedPeriod);
+
       const matches3D =
         selectedStatus3D === 'all' ||
         (selectedStatus3D === 'has_3d' && !!art.model3dUrl) ||
@@ -284,9 +310,9 @@ export const AdminArtifactsPage: React.FC = () => {
         (selectedStatus3D === 'failed' && art.processingStatus === 'failed') ||
         (selectedStatus3D === 'no_3d' && !art.model3dUrl && art.processingStatus !== 'processing' && art.processingStatus !== 'failed');
 
-      return matchesSearch && matchesCategory && matches3D;
+      return matchesSearch && matchesCategory && matchesPeriod && matches3D;
     });
-  }, [artifacts, searchQuery, selectedCategory, selectedStatus3D]);
+  }, [artifacts, searchQuery, selectedCategory, selectedPeriod, selectedStatus3D]);
 
   // Phân trang danh sách
   const paginatedArtifacts = useMemo(() => {
@@ -305,6 +331,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const handleCreateNew = () => {
     setAutoGenerate3D(true);
     setEditFormErrors({});
+    setIsCustomPeriod(false);
     // Nếu trước đó đang nhập dở hồ sơ hiện vật mới và chưa lưu, giữ nguyên dữ liệu tránh mất công nhập lại
     if (editingArtifact && !editingArtifact.id && (editingArtifact.name?.trim() || editingArtifact.description?.trim())) {
       setIsEditModalOpen(true);
@@ -314,7 +341,7 @@ export const AdminArtifactsPage: React.FC = () => {
       code: `HV-${100 + Math.floor(Math.random() * 900)}`,
       name: '',
       category: 'Cổ vật di sản',
-      period: 'Thời Lý - Trần (Thế kỷ XI - XIV)',
+      period: '',
       origin: 'Bảo tàng Lịch sử TP.HCM',
       description: '',
       dimensions: '',
@@ -337,8 +364,30 @@ export const AdminArtifactsPage: React.FC = () => {
     const targetId = artifact.id || (artifact as any)._id;
     setAutoGenerate3D(!artifact.model3dUrl);
     setEditFormErrors({});
+    setIsCustomPeriod(false);
     setEditingArtifact({ ...artifact, id: targetId });
     setIsEditModalOpen(true);
+  };
+
+  const handlePeriodChange = (val: string) => {
+    if (val === '__custom__') {
+      setIsCustomPeriod(true);
+      return;
+    }
+    // Tự động tìm gian phòng tương ứng với chuyên đề này nếu chưa gán phòng
+    const valLower = val.trim().toLowerCase();
+    const matchedRoom = rooms.find((r) => {
+      const rPeriod = (r.period || '').trim().toLowerCase();
+      const rName = (r.name || '').trim().toLowerCase();
+      return (rPeriod && rPeriod === valLower) || (rName && (rName.includes(valLower) || valLower.includes(rName)));
+    });
+
+    setEditingArtifact((prev) => ({
+      ...prev,
+      period: val,
+      ...(!prev?.roomId && matchedRoom ? { roomId: matchedRoom.id, roomCode: matchedRoom.code } : {})
+    }));
+    if (editFormErrors.period) setEditFormErrors((prev) => ({ ...prev, period: undefined }));
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -1639,6 +1688,26 @@ export const AdminArtifactsPage: React.FC = () => {
             </select>
           </div>
 
+          {/* Lọc chuyên đề / Niên đại */}
+          <div style={{ flex: '0 1 200px', minWidth: 'min(100%, 150px)' }}>
+            <select
+              className="form-control"
+              style={{ fontSize: '13px', width: '100%' }}
+              value={selectedPeriod}
+              onChange={(e) => {
+                setSelectedPeriod(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="all">Tất cả chuyên đề ({artifacts.length})</option>
+              {availablePeriods.map((periodName) => (
+                <option key={periodName} value={periodName}>
+                  {periodName}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Lọc trạng thái 3D */}
           <div style={{ flex: '0 1 180px', minWidth: 'min(100%, 140px)' }}>
             <select
@@ -2309,30 +2378,83 @@ export const AdminArtifactsPage: React.FC = () => {
                     )}
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Niên đại / Triều đại</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      list="heritage-period-list"
-                      value={editingArtifact.period || ''}
-                      onChange={(e) => {
-                        setEditingArtifact({ ...editingArtifact, period: e.target.value });
-                        if (editFormErrors.period) setEditFormErrors((prev) => ({ ...prev, period: undefined }));
-                      }}
-                      placeholder="Thế kỷ XI - XIV, Thời Lý - Trần..."
-                      style={{ borderColor: editFormErrors.period ? '#EF4444' : undefined }}
-                    />
-                    <datalist id="heritage-period-list">
-                      <option value="Thời Tiền sử & Sơ sử (Đông Sơn, Sa Huỳnh, Đồng Nai)" />
-                      <option value="Đầu Công nguyên - Thế kỷ VI (Văn hóa Óc Eo sớm)" />
-                      <option value="Thế kỷ VII - IX (Óc Eo / Champa sớm)" />
-                      <option value="Thời Ngô - Đinh - Tiền Lê (Thế kỷ X)" />
-                      <option value="Thời Lý - Trần (Thế kỷ XI - XIV)" />
-                      <option value="Thời Hậu Lê - Mạc (Thế kỷ XV - XVI)" />
-                      <option value="Thời Lê Trung Hưng - Tây Sơn (Thế kỷ XVII - XVIII)" />
-                      <option value="Triều Nguyễn (1802 - 1945)" />
-                      <option value="Thời kỳ Cận - Hiện đại (Thế kỷ XX)" />
-                    </datalist>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <label className="form-label" style={{ margin: 0 }}>
+                        Niên đại / Triều đại (Chuyên đề phòng) *
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setIsCustomPeriod((prev) => !prev)}
+                          style={{ fontSize: '11px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          title="Chuyển đổi giữa danh sách chuyên đề và nhập tay tự do"
+                        >
+                          <Edit3 size={11} style={{ color: 'var(--accent-gold)' }} />
+                          <span>{isCustomPeriod ? 'Chọn danh sách' : 'Nhập tay'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setShowTopicModal(true)}
+                          style={{ fontSize: '11px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          title="Quản lý và thêm mới chuyên đề bảo tàng"
+                        >
+                          <Layers size={11} style={{ color: 'var(--accent-gold)' }} />
+                          <span>Quản lý chuyên đề</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {!isCustomPeriod ? (
+                      <select
+                        className="form-control"
+                        value={editingArtifact.period || ''}
+                        onChange={(e) => handlePeriodChange(e.target.value)}
+                        style={{
+                          borderColor: editFormErrors.period ? '#EF4444' : undefined,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="">-- Chọn chuyên đề trưng bày --</option>
+                        {availablePeriods.map((periodName) => (
+                          <option key={periodName} value={periodName}>
+                            {periodName}
+                          </option>
+                        ))}
+                        {editingArtifact.period && !availablePeriods.includes(editingArtifact.period) && (
+                          <option value={editingArtifact.period}>
+                            {editingArtifact.period} (Hiện có)
+                          </option>
+                        )}
+                        <option value="__custom__">── Nhập niên đại / thời kỳ khác (Tự do) ──</option>
+                      </select>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={editingArtifact.period || ''}
+                          onChange={(e) => {
+                            setEditingArtifact({ ...editingArtifact, period: e.target.value });
+                            if (editFormErrors.period) setEditFormErrors((prev) => ({ ...prev, period: undefined }));
+                          }}
+                          placeholder="Nhập niên đại hoặc thời kỳ lịch sử..."
+                          style={{ borderColor: editFormErrors.period ? '#EF4444' : undefined }}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setIsCustomPeriod(false)}
+                          style={{ fontSize: '11px', padding: '0 10px', whiteSpace: 'nowrap' }}
+                          title="Quay lại danh sách chuyên đề"
+                        >
+                          Danh sách
+                        </button>
+                      </div>
+                    )}
+
                     {editFormErrors.period && (
                       <span style={{ color: '#EF4444', fontSize: '11.5px', marginTop: 4, display: 'block' }}>
                         {editFormErrors.period}
@@ -2421,10 +2543,17 @@ export const AdminArtifactsPage: React.FC = () => {
                     value={editingArtifact.roomId || ''}
                     onChange={(e) => {
                       const selRoom = rooms.find((r) => r.id === e.target.value);
-                      setEditingArtifact({
-                        ...editingArtifact,
-                        roomId: e.target.value || undefined,
-                        roomCode: selRoom?.code || undefined
+                      setEditingArtifact((prev) => {
+                        const updated: Partial<Artifact> = {
+                          ...prev,
+                          roomId: e.target.value || undefined,
+                          roomCode: selRoom?.code || undefined
+                        };
+                        // Nếu chưa chọn chuyên đề/niên đại (hoặc đang rỗng), tự động điền chuyên đề của phòng vừa chọn!
+                        if (selRoom?.period && (!prev?.period || prev.period.trim() === '')) {
+                          updated.period = selRoom.period;
+                        }
+                        return updated;
                       });
                     }}
                     style={{ cursor: 'pointer' }}
@@ -2432,7 +2561,7 @@ export const AdminArtifactsPage: React.FC = () => {
                     <option value="">-- Chưa gán gian phòng (Lưu kho bảo quản) --</option>
                     {rooms.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {r.name} ({r.code})
+                        {r.name} {r.period ? `[${r.period}]` : ''} ({r.code})
                       </option>
                     ))}
                   </select>
@@ -4208,6 +4337,22 @@ export const AdminArtifactsPage: React.FC = () => {
         confirmText={confirmDialog.confirmText}
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Modal Quản lý chuyên đề trưng bày */}
+      <TopicManagementModal
+        isOpen={showTopicModal}
+        onClose={() => setShowTopicModal(false)}
+        onTopicCreated={(newTopic) => {
+          setEditingArtifact((prev) => ({ ...prev, period: newTopic.name }));
+          setTopics((prev) => {
+            if (prev.some((t) => t.id === newTopic.id)) return prev;
+            return [...prev, newTopic];
+          });
+        }}
+        onTopicsUpdated={(updatedTopics) => {
+          setTopics(updatedTopics);
+        }}
       />
     </div>
   );
