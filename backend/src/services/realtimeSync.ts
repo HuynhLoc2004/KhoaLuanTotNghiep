@@ -34,6 +34,12 @@ export const initRealtimeRedisSubscriber = () => {
 
   try {
     const subscriber = redisClient.duplicate();
+    subscriber.on('error', (err) => {
+      // Bắt lỗi kết nối để tránh Unhandled error event khi Redis container chưa sẵn sàng
+      if (isSubscriberInitialized) {
+        console.warn('[RealtimeSync Error]:', err.message);
+      }
+    });
     subscriber
       .connect()
       .then(() => {
