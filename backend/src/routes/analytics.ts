@@ -24,13 +24,18 @@ function calculateDateRange(timeRange: string, customStart?: string, customEnd?:
 
   if (timeRange === 'today') {
     start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   } else if (timeRange === 'week') {
-    start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    start = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
     start.setHours(0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   } else if (timeRange === 'month') {
     start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    end = new Date(now.getFullYear(), now.getMonth(), lastDayOfMonth, 23, 59, 59, 999);
   } else if (timeRange === 'year') {
     start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
   } else if (timeRange === 'custom' && customStart) {
     start = new Date(customStart);
     if (isNaN(start.getTime())) start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -148,7 +153,9 @@ analyticsRouter.get('/', async (req: AuthRequest, res: Response) => {
         totalTicketsUsed = parseInt(row.used_count, 10) || 0;
         activeTickets = parseInt(row.active_count, 10) || 0;
         cancelledTickets = parseInt(row.cancelled_count, 10) || 0;
-        hasPgData = true;
+        if (totalTicketsSold > 0) {
+          hasPgData = true;
+        }
       }
 
       // 1.2 Biểu đồ chuỗi thời gian (Timeline)

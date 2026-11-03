@@ -16,6 +16,7 @@ import {
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { useToast } from '../../components/Toast';
 import { Pagination } from '../../components/Pagination';
+import { AnalyticsInteractiveChart } from '../../components/admin/AnalyticsInteractiveChart';
 
 // Bản dịch xuất Excel đồng bộ theo 5 ngôn ngữ hệ thống
 const EXCEL_I18N: Record<string, any> = {
@@ -1160,7 +1161,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           <div className="kpi-label">
             {t('analytics.kpiRevenue', 'Doanh thu bán vé')}
           </div>
-          <div className="kpi-val">
+          <div className="kpi-val kpi-val-gold">
             {formatVND(kpis.totalRevenue)}
           </div>
         </div>
@@ -1228,186 +1229,12 @@ export const AdminAnalyticsPage: React.FC = () => {
           ======================================================== */}
       {subTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* 1. KHUNG BIỂU ĐỒ CHUỖI THỜI GIAN ĐỀU ĐẶN */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              padding: '16px 20px'
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 12,
-                marginBottom: 16
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
-                  {t('analytics.timelineTitle', 'Biểu đồ diễn biến doanh thu & lượt tham quan')}
-                </h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                  Diễn biến doanh thu thực tế và lưu lượng vé phát hành theo mốc thời gian
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--primary)' }} />
-                  <span style={{ color: 'var(--text-main)' }}>Doanh thu (VNĐ)</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 2, background: '#64748B' }} />
-                  <span style={{ color: 'var(--text-muted)' }}>Lượt vé bán</span>
-                </div>
-              </div>
-            </div>
-
-            {timelineData.length > 0 ? (
-              <div style={{ position: 'relative', width: '100%' }}>
-                {hoveredPoint && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 12,
-                      background: 'rgba(20, 23, 31, 0.95)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 6,
-                      padding: '6px 12px',
-                      zIndex: 10,
-                      pointerEvents: 'none',
-                      fontSize: 12
-                    }}
-                  >
-                    <div style={{ color: 'var(--text-muted)' }}>
-                      Ngày: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{hoveredPoint.dateLabel}</span>
-                    </div>
-                    <div style={{ color: 'var(--text-main)', fontWeight: 600, marginTop: 2 }}>
-                      Doanh thu: {formatVND(hoveredPoint.revenue)}
-                    </div>
-                    <div style={{ color: 'var(--text-muted)', marginTop: 2 }}>
-                      Vé bán: {hoveredPoint.tickets} • Soát vào: {hoveredPoint.checkins}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6 }}>
-                  <div
-                    style={{
-                      minWidth: Math.max(timelineData.length * 42, 600),
-                      height: 220,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'flex-end',
-                      position: 'relative'
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 28,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        pointerEvents: 'none',
-                        opacity: 0.12
-                      }}
-                    >
-                      <div style={{ borderTop: '1px dashed #fff', width: '100%' }} />
-                      <div style={{ borderTop: '1px dashed #fff', width: '100%' }} />
-                      <div style={{ borderTop: '1px dashed #fff', width: '100%' }} />
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-end',
-                        gap: 8,
-                        height: 180,
-                        zIndex: 1,
-                        borderBottom: '1px solid var(--border-color)',
-                        paddingBottom: 4
-                      }}
-                    >
-                      {timelineData.map((item, idx) => {
-                        const revPercent =
-                          item.revenue > 0
-                            ? Math.max(Math.round((item.revenue / maxRevenue) * 140), 10)
-                            : 3;
-                        const isHovered = hoveredPoint?.dateLabel === item.dateLabel;
-
-                        return (
-                          <div
-                            key={idx}
-                            onMouseEnter={() => setHoveredPoint(item)}
-                            onMouseLeave={() => setHoveredPoint(null)}
-                            style={{
-                              flex: 1,
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'flex-end',
-                              height: '100%',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {item.revenue > 0 && (
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  color: 'var(--text-muted)',
-                                  marginBottom: 3,
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >
-                                {item.revenue >= 1000 ? `${(item.revenue / 1000).toFixed(0)}k` : item.revenue}
-                              </div>
-                            )}
-
-                            <div
-                              style={{
-                                width: '100%',
-                                maxWidth: 20,
-                                height: `${revPercent}px`,
-                                background: item.revenue > 0 ? 'var(--primary)' : 'rgba(255, 255, 255, 0.05)',
-                                borderRadius: '2px 2px 0 0',
-                                opacity: isHovered ? 1 : 0.85,
-                                transition: 'all 0.15s ease'
-                              }}
-                            />
-
-                            <div
-                              style={{
-                                fontSize: 10.5,
-                                color: isHovered ? 'var(--text-main)' : 'var(--text-muted)',
-                                marginTop: 6,
-                                whiteSpace: 'nowrap'
-                              }}
-                            >
-                              {item.dateLabel.length > 5 ? item.dateLabel.slice(5) : item.dateLabel}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-                {t('analytics.noData', 'Không có dữ liệu trong khoảng thời gian này')}
-              </div>
-            )}
-          </div>
+          {/* 1. BIỂU ĐỒ DIỆN TÍCH & CỘT TƯƠNG TÁC CAO CẤP */}
+          <AnalyticsInteractiveChart
+            timelineData={timelineData}
+            timeRange={timeRange}
+            formatVND={formatVND}
+          />
 
           {/* 2. HAI KHUNG PHÂN BỔ: LOẠI VÉ & KÊNH THANH TOÁN (TỐI GIẢN CHUẨN ADMIN) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
