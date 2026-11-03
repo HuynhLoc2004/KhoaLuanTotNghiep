@@ -669,10 +669,10 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
   let stderrData = '';
   let isClosed = false;
 
-  // Timeout 60s cho quy trình ghép phòng
+  // Timeout 240s (4 phút) cho quy trình ghép phòng
   const timeoutTimer = setTimeout(() => {
     if (!isClosed) {
-      console.error('[Stitch API] Quá thời gian xử lý ghép phòng (60s). Hủy tiến trình...');
+      console.error('[Stitch API] Quá thời gian xử lý ghép phòng (240s). Hủy tiến trình...');
       isClosed = true;
       try { pyProcess.kill('SIGKILL'); } catch (kErr) { console.warn(kErr); }
       try { if (fs.existsSync(tempJsonFile)) fs.unlinkSync(tempJsonFile); } catch (_) {}
@@ -681,12 +681,22 @@ stitchRouter.post('/', uploadMiddleware, async (req: Request, res: Response) => 
         return stitchMultiViewRoom(req, res, imagePaths, outputPath, outFilename, primaryIdx, jobId);
       }
     }
-  }, 60000);
+  }, 240000);
 
   pyProcess.stdout.on('data', (d) => { stdoutData += d.toString(); });
   pyProcess.stderr.on('data', (d) => {
     stderrData += d.toString();
-    console.log(`[Stitch Worker Log]: ${d.toString().trim()}`);
+    const str = d.toString().trim();
+    console.log(`[Stitch Worker Log]: ${str}`);
+    if (jobId) {
+      if (str.includes('Tiếp nhận') || str.includes('Uốn cong')) {
+        updateStitchJob(jobId, 'processing', 35, 'Đang phân tích hình học và uốn cong quang học...');
+      } else if (str.includes('Định vị') || str.includes('SIFT') || str.includes('khớp')) {
+        updateStitchJob(jobId, 'processing', 60, 'Đang phân tích điểm đặc trưng và ghép mí...');
+      } else if (str.includes('Hòa trộn') || str.includes('Voronoi')) {
+        updateStitchJob(jobId, 'processing', 85, 'Đang hòa trộn ánh sáng đa băng tần...');
+      }
+    }
   });
 
   pyProcess.on('close', async (code) => {
@@ -813,29 +823,45 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
   let stderrData = '';
   let isClosed = false;
 
-  // Timeout 120s cho video
+  // Timeout 360s (6 phút) cho video (đặc biệt khi video nhiều khung hình như 1000-2000 frame)
   const timeoutTimer = setTimeout(() => {
     if (!isClosed) {
-      console.error('[Stitch Video API] Quá thời gian xử lý video (120s). Hủy tiến trình...');
+      console.error('[Stitch Video API] Quá thời gian xử lý video (360s). Hủy tiến trình...');
       isClosed = true;
       try { pyProcess.kill('SIGKILL'); } catch (kErr) { console.warn(kErr); }
       if (jobId) {
-        updateStitchJob(jobId, 'failed', 0, undefined, undefined, 'Timeout xử lý video (120s)');
+        updateStitchJob(jobId, 'failed', 0, undefined, undefined, 'Timeout xử lý video (360s)');
       }
       if (!res.headersSent) {
         return res.status(504).json({
           success: false,
           error: 'ERR_TIMEOUT',
-          message: 'Quá trình trích xuất và ghép video vượt quá thời gian cho phép (120s).'
+          message: 'Quá trình trích xuất và ghép video vượt quá thời gian cho phép (360s).'
         });
       }
     }
-  }, 120000);
+  }, 360000);
 
   pyProcess.stdout.on('data', (d) => { stdoutData += d.toString(); });
   pyProcess.stderr.on('data', (d) => {
     stderrData += d.toString();
-    console.log(`[OpenCV Video Worker Log]: ${d.toString().trim()}`);
+    const str = d.toString().trim();
+    console.log(`[OpenCV Video Worker Log]: ${str}`);
+    if (jobId) {
+      if (str.includes('Nhận diện Khép vòng') || str.includes('Đã lọc')) {
+        updateStitchJob(jobId, 'processing', 30, 'Đã nhận diện khép vòng 360°, đang lọc góc ảnh sắc nét...');
+      } else if (str.includes('tiếp nhận') && str.includes('sắc nét')) {
+        updateStitchJob(jobId, 'processing', 45, 'Đã chọn lọc các góc sắc nét, đang uốn trụ quang học...');
+      } else if (str.includes('Bắt đầu xử lý') || (str.includes('Tiếp nhận') && str.includes('góc phòng'))) {
+        updateStitchJob(jobId, 'processing', 60, 'Đang phân tích quang học và khớp nối các góc...');
+      } else if (str.includes('Khép Vòng 360° tự động thành công')) {
+        updateStitchJob(jobId, 'processing', 75, 'Đã khớp khít vòng 360°, đang tinh chỉnh chân trời...');
+      } else if (str.includes('Hòa trộn')) {
+        updateStitchJob(jobId, 'processing', 85, 'Đang hòa trộn ánh sáng và hoàn thiện không gian 360°...');
+      } else if (str.includes('Không gian phòng hoàn chỉnh') || str.includes('Đã tạo thành công')) {
+        updateStitchJob(jobId, 'processing', 92, 'Ghép không gian hoàn tất, đang đồng bộ CDN Cloudflare & Cloudinary...');
+      }
+    }
   });
 
   pyProcess.on('close', async (code) => {
