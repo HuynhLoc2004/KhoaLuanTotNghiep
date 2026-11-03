@@ -5343,63 +5343,91 @@ html {
   }
 }
 
-/* 4. LƯỚI HIỆN VẬT TEASER (KHI CÓ NHIỀU HIỆN VẬT) */
+/* 4. LƯỚI HIỆN VẬT TIÊU BIỂU RESPONSIVE CHUẨN BẢO TÀNG */
 .client-artifacts-gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+  width: 100%;
+}
+
+.client-artifacts-gallery-grid.single-item {
+  display: flex !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+}
+
+.client-artifacts-gallery-grid.single-item .client-artifact-gallery-card {
+  width: 100% !important;
+  max-width: 360px !important;
 }
 
 .client-artifact-gallery-card {
   background: #111622;
-  border: 1px solid rgba(212, 168, 106, 0.2);
-  border-radius: 18px;
+  border: 1px solid rgba(212, 168, 106, 0.22);
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .client-artifact-gallery-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
   border-color: #D4A86A;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 168, 106, 0.15);
 }
 
 .client-artifact-gallery-media {
-  height: 240px;
-  background: radial-gradient(circle at center, #171E2D 0%, #090C14 85%);
+  height: 230px;
+  background: radial-gradient(circle at center, #182030 0%, #0A0E17 90%);
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
 }
 
 .client-artifact-gallery-media img {
-  max-height: 85%;
-  max-width: 85%;
+  max-height: 100%;
+  max-width: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.65));
-  transition: transform 0.4s ease;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.7));
+  transition: transform 0.35s ease;
 }
 
 .client-artifact-gallery-card:hover .client-artifact-gallery-media img {
-  transform: scale(1.05);
+  transform: scale(1.06);
+}
+
+.client-media-placeholder-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
 }
 
 .client-artifact-gallery-badge {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: rgba(10, 14, 22, 0.9);
-  border: 1px solid rgba(212, 168, 106, 0.4);
-  color: #FDE68A;
+  background: rgba(10, 14, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
   font-size: 0.68rem;
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.client-artifact-gallery-badge.has-3d {
+  background: rgba(212, 168, 106, 0.2);
+  border-color: rgba(212, 168, 106, 0.5);
+  color: #FDE68A;
 }
 
 .client-artifact-gallery-body {
@@ -5409,28 +5437,111 @@ html {
   flex: 1;
 }
 
+.client-artifact-gallery-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .client-artifact-gallery-period {
   font-size: 0.74rem;
   color: #D4A86A;
-  margin-bottom: 5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-artifact-gallery-code {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94A3B8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .client-artifact-gallery-title {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #F8FAFC;
-  margin: 0 0 14px 0;
+  margin: 0 0 8px 0;
   line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.client-artifact-gallery-desc {
+  font-size: 0.82rem;
+  color: #94A3B8;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .client-artifact-gallery-action {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.8rem;
+  gap: 6px;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #D4A86A;
   margin-top: auto;
+  transition: gap 0.2s ease;
+}
+
+.client-artifact-gallery-card:hover .client-artifact-gallery-action {
+  gap: 10px;
+  color: #FDE68A;
+}
+
+/* KHUNG TRẠNG THÁI TRỐNG CĂN GIỮA ĐỐI XỨNG */
+.client-artifacts-empty-state {
+  margin: 36px auto;
+  max-width: 480px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 22, 34, 0.65);
+  border: 1px dashed rgba(212, 168, 106, 0.25);
+  border-radius: 16px;
+  padding: 36px 24px;
+  box-sizing: border-box;
+}
+
+.client-artifacts-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(212, 168, 106, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #D4A86A;
+  margin-bottom: 14px;
+}
+
+.client-artifacts-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #EDE5DF;
+  margin: 0 0 6px 0;
+  letter-spacing: 0.2px;
+}
+
+.client-artifacts-empty-desc {
+  font-size: 12.5px;
+  color: #94A3B8;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* 4. KHỐI CẨM NANG: THÔNG BÁO THAM QUAN & SƠ ĐỒ MẶT BẰNG (GỌN GÀNG, KHÔNG RƯỜM RÀ) */
@@ -5525,7 +5636,8 @@ html {
 
 @media (max-width: 1200px) {
   .client-artifacts-gallery-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
   }
 }
 
@@ -5540,7 +5652,17 @@ html {
   }
 
   .client-artifacts-gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 580px) {
+  .client-artifacts-gallery-grid {
     grid-template-columns: 1fr;
+    max-width: 380px;
+    margin: 0 auto;
+    gap: 16px;
   }
 }
 

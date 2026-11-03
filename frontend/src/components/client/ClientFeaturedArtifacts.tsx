@@ -21,7 +21,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
   const { branding } = useSystemBranding();
   const { t, localize } = useClientTranslation();
 
-  // Lấy danh sách hiện vật trưng bày: ưu tiên danh sách ID do Admin chỉ định cụ thể, nếu không có thì tự động lấy tối đa 4 hiện vật ưu tiên 3D
+  // Lấy danh sách hiện vật trưng bày: ưu tiên danh sách ID do Admin chỉ định cụ thể, nếu không có thì tự động lấy tối đa 8 hiện vật ưu tiên 3D
   const showcaseArtifacts = React.useMemo(() => {
     if (!artifacts || artifacts.length === 0) return [];
 
@@ -47,18 +47,15 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
       }
     }
 
-    // Tự động: Ưu tiên hiện vật có 3D trước, lấy tối đa 4 hiện vật đại diện
+    // Tự động: Ưu tiên hiện vật có 3D trước, lấy tối đa 8 hiện vật đại diện
     const sorted = [...artifacts].sort((a, b) => {
       if (a.model3dUrl && !b.model3dUrl) return -1;
       if (!a.model3dUrl && b.model3dUrl) return 1;
       return String(b.id || '').localeCompare(String(a.id || ''));
     });
 
-    return sorted.slice(0, 4);
+    return sorted.slice(0, 8);
   }, [artifacts, branding.artifactsFeaturedId]);
-
-  const featuredSingle = showcaseArtifacts[0];
-  const isSingleArtifact = showcaseArtifacts.length === 1;
 
   const getArtifactThumb = (art?: Artifact) => {
     if (!art) return '';
@@ -95,79 +92,21 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
           </p>
         </div>
 
-        {/* NẾU CHỈ CÓ 1 HIỆN VẬT: HIỂN THỊ THẺ ĐƠN TIÊU BIỂU CÂN ĐỐI */}
-        {isSingleArtifact && featuredSingle ? (
+        {/* LƯỚI THẺ HIỆN VẬT RESPONSIVE HOẶC TRẠNG THÁI TRỐNG CĂN GIỮA */}
+        {showcaseArtifacts.length > 0 ? (
           <div
-            className="client-artifact-featured-teaser reveal-on-scroll"
-            onClick={() => handleArtifactClick(featuredSingle)}
-            role="button"
-            tabIndex={0}
-            title={t('artifacts.clickToEnter', 'Bấm để xem chi tiết hiện vật')}
+            className={`client-artifacts-gallery-grid ${showcaseArtifacts.length === 1 ? 'single-item' : ''} reveal-on-scroll`}
           >
-            <div className="client-artifact-teaser-media">
-              {getArtifactThumb(featuredSingle) ? (
-                <img
-                  src={getArtifactThumb(featuredSingle)}
-                  alt={localize(featuredSingle, 'name', featuredSingle.name)}
-                  className="client-artifact-teaser-img"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="client-media-placeholder">
-                  <Box size={36} strokeWidth={1.5} />
-                </div>
-              )}
-              <div className="client-artifact-teaser-badge">
-                <span>{featuredSingle.model3dUrl ? 'Bảo vật số hóa 3D' : 'Hiện vật di sản'}</span>
-              </div>
-            </div>
-
-            <div className="client-artifact-teaser-content">
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                {featuredSingle.code && (
-                  <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "rgba(212, 168, 106, 0.15)", color: "#D4A86A", border: "1px solid rgba(212, 168, 106, 0.3)" }}>
-                    {featuredSingle.code}
-                  </span>
-                )}
-                <span className="client-section-eyebrow" style={{ margin: 0 }}>
-                  {localize(featuredSingle, "period", (featuredSingle as any).period || "Cổ vật di sản")}
-                </span>
-              </div>
-              <h3 className="client-artifact-teaser-title">
-                {localize(featuredSingle, "name", featuredSingle.name)}
-              </h3>
-              <p className="client-artifact-teaser-desc">
-                {localize(
-                  featuredSingle,
-                  "description",
-                  (featuredSingle as any).description ||
-                    "Hiện vật quý giá được lưu giữ tại Bảo tàng Lịch sử TP. Hồ Chí Minh, được phục dựng số hóa chi tiết nhằm lan tỏa giá trị di sản văn hóa dân tộc."
-                )}
-              </p>
-
-              <div>
-                <button
-                  type="button"
-                  className="client-intro-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleArtifactClick(featuredSingle);
-                  }}
-                  style={{ padding: "8px 18px", fontSize: "13px" }}
-                >
-                  <span>{t("artifacts.viewDetailBtn", "Chiêm ngưỡng chi tiết hiện vật")}</span>
-                  <ArrowRight size={14} style={{ marginLeft: 6, display: "inline" }} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : showcaseArtifacts.length > 1 ? (
-          /* NẾU CÓ NHIỀU HIỆN VẬT: HIỂN THỊ LƯỚI GALLERY CARD TRANG TRỌNG */
-          <div className="client-artifacts-gallery-grid reveal-on-scroll">
             {showcaseArtifacts.map((art) => {
               const thumbUrl = getArtifactThumb(art);
               const artName = localize(art, 'name', art.name);
               const artPeriod = localize(art, 'period', (art as any).period || 'Cổ vật di sản');
+              const artDesc = localize(
+                art,
+                'description',
+                (art as any).description ||
+                  'Hiện vật quý giá được lưu giữ tại Bảo tàng Lịch sử TP. Hồ Chí Minh, phục vụ trải nghiệm tham quan trực quan.'
+              );
 
               return (
                 <div
@@ -182,22 +121,33 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                     {thumbUrl ? (
                       <img src={thumbUrl} alt={artName} loading="lazy" />
                     ) : (
-                      <div className="client-media-placeholder">
-                        <Box size={28} strokeWidth={1.5} />
+                      <div className="client-media-placeholder-inner">
+                        <Box size={32} strokeWidth={1.5} />
                       </div>
                     )}
-                    {art.model3dUrl && (
-                      <div className="client-artifact-gallery-badge">
+                    {art.model3dUrl ? (
+                      <div className="client-artifact-gallery-badge has-3d">
                         <span>3D Scan</span>
+                      </div>
+                    ) : (
+                      <div className="client-artifact-gallery-badge">
+                        <span>Di sản</span>
                       </div>
                     )}
                   </div>
 
                   <div className="client-artifact-gallery-body">
-                    <span className="client-artifact-gallery-period">{artPeriod}</span>
+                    <div className="client-artifact-gallery-meta">
+                      <span className="client-artifact-gallery-period">{artPeriod}</span>
+                      {art.code && <span className="client-artifact-gallery-code">{art.code}</span>}
+                    </div>
+
                     <h3 className="client-artifact-gallery-title">{artName}</h3>
+
+                    <p className="client-artifact-gallery-desc">{artDesc}</p>
+
                     <div className="client-artifact-gallery-action">
-                      <span>{t('artifacts.viewLink', 'Chiêm ngưỡng hiện vật')}</span>
+                      <span>{t('artifacts.viewDetail', 'Chiêm ngưỡng chi tiết')}</span>
                       <ArrowRight size={13} />
                     </div>
                   </div>
@@ -206,26 +156,37 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
             })}
           </div>
         ) : (
-          <div className="client-media-placeholder" style={{ minHeight: 240, margin: '20px 0' }}>
-            <Box size={36} strokeWidth={1.5} />
-            <span className="client-media-placeholder-title">
+          <div className="client-artifacts-empty-state reveal-on-scroll">
+            <div className="client-artifacts-empty-icon">
+              <Box size={24} strokeWidth={1.75} />
+            </div>
+            <h4 className="client-artifacts-empty-title">
               {t('artifacts.noArtifactTitle', 'Đang cập nhật kho bảo vật số hóa')}
-            </span>
+            </h4>
+            <p className="client-artifacts-empty-desc">
+              {t(
+                'artifacts.noArtifactDesc',
+                'Hệ thống đang đồng bộ và chuẩn bị các hiện vật di sản 3D tiêu biểu để trưng bày tại đây.'
+              )}
+            </p>
           </div>
         )}
 
         {/* NÚT XEM TẤT CẢ HIỆN VẬT */}
-        {artifacts.length > 1 && (
-          <div className="client-section-center-action reveal-on-scroll" style={{ marginTop: 28 }}>
+        {artifacts.length > 0 && (
+          <div className="client-section-center-action reveal-on-scroll" style={{ marginTop: 32 }}>
             <button
               type="button"
               className="client-intro-btn"
               onClick={onViewAllArtifacts}
             >
-              {t(
-                branding.artifactsCtaText || 'artifacts.btnViewAll',
-                branding.artifactsCtaText || `Khám phá toàn bộ kho cổ vật (${artifacts.length})`
-              )}
+              <span>
+                {t(
+                  branding.artifactsCtaText || 'artifacts.btnViewAll',
+                  branding.artifactsCtaText || `Khám phá toàn bộ kho cổ vật (${artifacts.length})`
+                )}
+              </span>
+              <ArrowRight size={14} style={{ marginLeft: 6, display: 'inline' }} />
             </button>
           </div>
         )}

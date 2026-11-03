@@ -495,3 +495,4 @@ export const AnalyticsInteractiveChart: React.FC<AnalyticsInteractiveChartProps>
     </div>
   );
 };
+
