@@ -57,10 +57,13 @@ import { PanoramaModel } from './models/Panorama.js';
 
 // Serve static uploads with explicit CORS for WebGL & Canvas textures and 3D models
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads'), {
+  maxAge: '30d',
+  immutable: true,
   setHeaders: (res, filePath) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
     if (filePath.endsWith('.glb')) {
       res.setHeader('Content-Type', 'model/gltf-binary');
     } else if (filePath.endsWith('.gltf')) {

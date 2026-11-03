@@ -249,7 +249,8 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
       const r2FileStream = fs.createReadStream(outGlbPath);
       const r2Url = await uploadToR2(`models_3d/${outFilename}`, r2FileStream, 'model/gltf-binary', trellisRes.sizeBytes);
       if (r2Url) {
-        console.log(`[3D Consumer] Đã sync lên Cloudflare R2 backup:`, r2Url);
+        console.log(`[3D Consumer] Đã đồng bộ lên Cloudflare R2 CDN siêu tốc:`, r2Url);
+        finalModelUrl = r2Url;
       }
     } catch (r2Err: any) {
       console.warn(`[3D Consumer] R2 upload warning (vẫn phục vụ từ VPS local):`, r2Err.message);

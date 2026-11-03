@@ -40,6 +40,9 @@ interface Turntable360ViewerProps {
 const PLINTH_RADIUS = 1.25;
 const PLINTH_HEIGHT = 0.06;
 
+// Kích hoạt bộ nhớ đệm Three.js Client Cache (tải tức thì từ RAM khi xem lại)
+THREE.Cache.enabled = true;
+
 export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   modelUrl,
   imageUrl,
@@ -92,6 +95,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   }, [isAutoRotating]);
 
   const [isLoadingModel, setIsLoadingModel] = useState(false);
+  const [modelLoadProgress, setModelLoadProgress] = useState(0);
   const [modelError, setModelError] = useState<string | null>(null);
   const [lightingPreset, setLightingPreset] = useState<'museum' | 'daylight'>('museum');
   const [wireframeMode, setWireframeMode] = useState(false);
@@ -513,6 +517,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     if (!fullModelUrl || !turntableGroupRef.current) return;
 
     setIsLoadingModel(true);
+    setModelLoadProgress(0);
     setModelError(null);
 
     // Xóa mô hình cũ nếu có
@@ -667,7 +672,12 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
 
         setIsLoadingModel(false);
       },
-      undefined,
+      (xhr) => {
+        if (xhr.lengthComputable && xhr.total > 0) {
+          const percent = Math.min(Math.round((xhr.loaded / xhr.total) * 100), 100);
+          setModelLoadProgress(percent);
+        }
+      },
       (err) => {
         console.error('[Turntable Viewer] Lỗi tải GLTF:', err);
         setModelError('Không thể nạp file 3D .glb. Vui lòng thử tạo lại mô hình.');
@@ -968,7 +978,7 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
         </div>
       )}
 
-      {/* Loading Spinner khi tải file GLB */}
+      {/* Loading Spinner khi tải file GLB với thanh tiến trình % thực tế */}
       {isLoadingModel && (
         <div
           style={{
@@ -978,15 +988,47 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(12, 14, 20, 0.75)',
-            backdropFilter: 'blur(6px)',
+            background: 'rgba(12, 14, 20, 0.85)',
+            backdropFilter: 'blur(8px)',
             zIndex: 12
           }}
         >
-          <Loader2 size={36} style={{ color: 'var(--accent-gold, #d4a86a)' }} className="spin" />
-          <p style={{ color: 'rgba(255, 255, 255, 0.9)', marginTop: 12, fontSize: '0.88rem', fontWeight: 500 }}>
-            Đang tải dữ liệu không gian 3D...
+          <div style={{ position: 'relative', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+            <Loader2 size={52} style={{ color: 'var(--accent-gold, #d4a86a)' }} className="spin" />
+            {modelLoadProgress > 0 && (
+              <span style={{
+                position: 'absolute',
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#fff',
+                textShadow: '0 1px 3px rgba(0,0,0,0.8)'
+              }}>
+                {modelLoadProgress}%
+              </span>
+            )}
+          </div>
+          <p style={{ color: '#F8FAFC', margin: '0 0 10px 0', fontSize: '0.92rem', fontWeight: 600 }}>
+            {modelLoadProgress > 0
+              ? `Đang nạp mô hình 3D... ${modelLoadProgress}%`
+              : 'Đang tải dữ liệu không gian 3D...'}
           </p>
+          <div style={{
+            width: 200,
+            height: 4,
+            background: 'rgba(255, 255, 255, 0.12)',
+            borderRadius: 4,
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            <div style={{
+              height: '100%',
+              width: modelLoadProgress > 0 ? `${modelLoadProgress}%` : '40%',
+              background: 'linear-gradient(90deg, #D4A86A, #FDE68A)',
+              borderRadius: 4,
+              transition: 'width 0.2s ease',
+              animation: modelLoadProgress > 0 ? 'none' : 'progressSlide 1.5s infinite ease-in-out'
+            }} />
+          </div>
         </div>
       )}
 
