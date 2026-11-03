@@ -502,7 +502,7 @@ export const AdminArtifactsPage: React.FC = () => {
       editingArtifact.originalPhotoUrl
     );
     if (!hasImage) {
-      errors.images = 'Hồ sơ hiện vật bắt buộc phải có ít nhất 1 ảnh chụp tư liệu (Mặt trước) để phục vụ trưng bày và số hóa 3D';
+      errors.images = 'Hồ sơ hiện vật bắt buộc phải có ít nhất 1 ảnh chụp tư liệu để phục vụ trưng bày và số hóa 3D';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -623,7 +623,7 @@ export const AdminArtifactsPage: React.FC = () => {
           };
         }
       });
-      showToast(slot === 0 ? 'Đã tải ảnh mặt trước thành công' : 'Đã tải ảnh mặt sau thành công', 'success');
+      showToast('Đã tải ảnh tư liệu thành công', 'success');
     } catch (err: any) {
       showToast(err.message || 'Lỗi tải ảnh hiện vật', 'error');
     } finally {
@@ -681,7 +681,7 @@ export const AdminArtifactsPage: React.FC = () => {
         originalPhotoUrl: chosen
       };
     });
-    showToast('Đã đặt làm ảnh chính (Mặt trước)', 'info');
+    showToast('Đã đặt làm ảnh đại diện chính', 'info');
   };
 
   const handleDeleteImage = (index: number) => {
@@ -701,7 +701,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const handleIsolateFrontImage = async () => {
     const frontImg = editingArtifact?.originalPhotoUrl || editingArtifact?.images?.[0] || editingArtifact?.thumbnailUrl;
     if (!frontImg) {
-      showToast('Chưa có ảnh mặt trước để tách nền', 'warning');
+      showToast('Chưa có ảnh đại diện để tách nền', 'warning');
       return;
     }
     try {
@@ -2624,7 +2624,7 @@ export const AdminArtifactsPage: React.FC = () => {
                         Hình ảnh tư liệu hiện vật (Tải 1 hoặc nhiều ảnh)
                       </label>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>
-                        Chọn 1 ảnh (mặt trước) hoặc nhiều ảnh các góc để đối chứng và tái tạo mô hình 3D
+                        Tải lên 1 hoặc nhiều ảnh chụp hiện vật ở các góc độ khác nhau để lưu trữ tư liệu và tái tạo mô hình 3D
                       </span>
                     </div>
 
@@ -2699,7 +2699,7 @@ export const AdminArtifactsPage: React.FC = () => {
                               borderRadius: 4,
                               boxShadow: '0 1px 4px rgba(0,0,0,0.4)'
                             }}>
-                              {isPrimary ? 'Mặt trước (Chính)' : isBack ? 'Mặt sau' : `Góc #${idx + 1}`}
+                              {isPrimary ? 'Ảnh đại diện' : `Ảnh góc #${idx + 1}`}
                             </div>
 
                             {/* Nút xóa ảnh */}
@@ -2759,7 +2759,7 @@ export const AdminArtifactsPage: React.FC = () => {
                                     padding: '2px 0',
                                     textDecoration: 'underline'
                                   }}
-                                  title="Đặt ảnh này làm mặt trước chính"
+                                  title="Đặt ảnh này làm ảnh đại diện chính"
                                 >
                                   Đặt làm ảnh chính
                                 </button>
@@ -3154,7 +3154,7 @@ export const AdminArtifactsPage: React.FC = () => {
 
                       {/* 3 Lựa chọn dạng Radio sạch sẽ, chuẩn giao diện quản trị */}
                       <div className="artifact-3d-radios-grid">
-                        {/* Chế độ 1: Chỉ mặt trước */}
+                        {/* Chế độ 1: 1 ảnh đại diện */}
                         <label
                           style={{
                             display: 'flex',
@@ -3177,15 +3177,15 @@ export const AdminArtifactsPage: React.FC = () => {
                           />
                           <div>
                             <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'single' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                              Chỉ mặt trước
+                              1 ảnh đại diện
                             </div>
                             <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                              Dựng 3D từ 1 ảnh mặt trước
+                              Dựng 3D từ 1 ảnh đại diện duy nhất
                             </div>
                           </div>
                         </label>
 
-                        {/* Chế độ 2: Hai mặt trước & sau */}
+                        {/* Chế độ 2: 2 góc ảnh đối xứng */}
                         <label
                           style={{
                             display: 'flex',
@@ -3208,10 +3208,10 @@ export const AdminArtifactsPage: React.FC = () => {
                           />
                           <div>
                             <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'front_back' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                              Hai mặt (Trước & Sau)
+                              2 góc ảnh
                             </div>
                             <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                              Ghép ảnh mặt trước và mặt sau
+                              Ghép 2 góc ảnh bổ trợ lẫn nhau
                             </div>
                           </div>
                         </label>
@@ -3479,7 +3479,7 @@ export const AdminArtifactsPage: React.FC = () => {
                         alt="Trước"
                         style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
                       />
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>Mặt trước</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>Ảnh đại diện</span>
                     </div>
                   ) : null}
 
@@ -3491,14 +3491,14 @@ export const AdminArtifactsPage: React.FC = () => {
                         alt="Sau"
                         style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent-gold)' }}
                       />
-                      <span style={{ fontSize: '10px', color: 'var(--accent-gold)', display: 'block', marginTop: 2 }}>Mặt sau ✓</span>
+                      <span style={{ fontSize: '10px', color: 'var(--accent-gold)', display: 'block', marginTop: 2 }}>Ảnh góc 2 ✓</span>
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', opacity: 0.6 }}>
                       <div style={{ width: 56, height: 56, border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Camera size={16} style={{ color: 'var(--text-muted)' }} />
                       </div>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>Chưa có sau</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>Chưa có góc 2</span>
                     </div>
                   )}
                 </div>
@@ -3544,7 +3544,7 @@ export const AdminArtifactsPage: React.FC = () => {
 
                 {/* 3 Lựa chọn dạng Radio sạch sẽ, chuẩn giao diện */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8 }}>
-                  {/* Chế độ 1: Chỉ mặt trước */}
+                  {/* Chế độ 1: 1 ảnh đại diện */}
                   <label
                     style={{
                       display: 'flex',
@@ -3567,15 +3567,15 @@ export const AdminArtifactsPage: React.FC = () => {
                     />
                     <div>
                       <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'single' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                        Chỉ mặt trước
+                        1 ảnh đại diện
                       </div>
                       <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                        Dựng 3D từ 1 ảnh mặt trước
+                        Dựng 3D từ 1 ảnh đại diện duy nhất
                       </div>
                     </div>
                   </label>
 
-                  {/* Chế độ 2: Hai mặt trước & sau */}
+                  {/* Chế độ 2: 2 góc ảnh đối xứng */}
                   <label
                     style={{
                       display: 'flex',
@@ -3598,10 +3598,10 @@ export const AdminArtifactsPage: React.FC = () => {
                     />
                     <div>
                       <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'front_back' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                        Hai mặt (Trước & Sau)
+                        2 góc ảnh
                       </div>
                       <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                        Ghép ảnh mặt trước và mặt sau
+                        Ghép 2 góc ảnh bổ trợ lẫn nhau
                       </div>
                     </div>
                   </label>
@@ -3644,17 +3644,17 @@ export const AdminArtifactsPage: React.FC = () => {
                     Ảnh tư liệu áp dụng theo chế độ đã chọn:
                   </span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {/* Mặt trước */}
+                    {/* Ảnh đại diện */}
                     {generatingArtifact.images?.[0] && (
                       <span style={{ fontSize: '10.5px', background: 'rgba(212, 175, 55, 0.12)', border: '1px solid rgba(212, 175, 55, 0.3)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
-                        Mặt trước
+                        Ảnh đại diện
                       </span>
                     )}
 
-                    {/* Mặt sau */}
+                    {/* Ảnh góc 2 */}
                     {reconstructionMode !== 'single' && generatingArtifact.images?.[1] && (
                       <span style={{ fontSize: '10.5px', background: 'rgba(212, 175, 55, 0.12)', border: '1px solid rgba(212, 175, 55, 0.3)', color: 'var(--accent-gold)', padding: '2px 8px', borderRadius: 4 }}>
-                        Mặt sau
+                        Ảnh góc 2
                       </span>
                     )}
 
