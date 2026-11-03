@@ -285,19 +285,6 @@ async function finalizePanoramaAndRespond(
     }
   ];
 
-  // Xác định phương pháp tạo không gian: webcam | upload | video | realtime
-  let resolvedCreationMethod: string = (req.body.creationMethod || '').toString().toLowerCase().trim();
-  if (!resolvedCreationMethod) {
-    if (req.body.isWebcam === 'true' || req.body.isWebcam === true) {
-      resolvedCreationMethod = 'webcam';
-    } else {
-      const hasWebcamFile = (Array.isArray(req.files) ? (req.files as any[]) : []).some(
-        (f) => String(f.originalname || f.filename || '').toLowerCase().includes('webcam')
-      );
-      resolvedCreationMethod = hasWebcamFile ? 'webcam' : 'upload';
-    }
-  }
-
   let panoDoc: any = null;
   try {
     const stats = fs.existsSync(outputPath) ? fs.statSync(outputPath) : null;
@@ -318,10 +305,8 @@ async function finalizePanoramaAndRespond(
         sizeBytes: stats ? stats.size : 0,
         inputFramesCount: imagePathsCount,
         status: 'ready',
-        creationMethod: resolvedCreationMethod,
         metadata: {
           engine: engineName,
-          creationMethod: resolvedCreationMethod,
           roomType: roomViews.length > 1 ? 'multi_view' : 'single',
           viewsCount: roomViews.length,
           views: roomViews,
@@ -343,7 +328,6 @@ async function finalizePanoramaAndRespond(
     r2Url: cloudR2Url,
     localUrl: `${baseUrl}/uploads/${outFilename}`,
     filename: outFilename,
-    creationMethod: resolvedCreationMethod,
     width,
     height,
     aspectRatio: (width && height) ? Number((width / height).toFixed(2)) : 1.77,
@@ -941,10 +925,8 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
               sizeBytes: stats ? stats.size : 0,
               inputFramesCount: result.keyframesExtracted || 18,
               status: 'ready',
-              creationMethod: 'video',
               metadata: {
                 engine: 'OpenCV Video Keyframe Stitcher (Phương án A)',
-                creationMethod: 'video',
                 videoDurationSec: result.videoDurationSec,
                 processingTimeSec: result.processingTimeSec,
                 keyframesExtracted: result.keyframesExtracted || 18,
@@ -968,7 +950,6 @@ stitchRouter.post('/video', uploadVideoMiddleware, async (req: Request, res: Res
           r2Url: cloudR2Url,
           localUrl: `${baseUrl}/uploads/${outFilename}`,
           filename: outFilename,
-          creationMethod: 'video',
           width: result.width,
           height: result.height,
           aspectRatio: result.aspectRatio || 2.0,
@@ -1319,24 +1300,9 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
       console.warn('[Stitch Match Mongo Warning]:', mErr.message);
     }
 
-    // 5. Định dạng kết quả trả về kèm thông tin liên kết phòng & phương pháp tạo
+    // 5. Định dạng kết quả trả về kèm thông tin liên kết phòng
     const panoramas = dbPanos.map((p: any) => {
       const usedInRooms = roomUsageMap.get(p.filename) || [];
-      let creationMethod = p.creationMethod || p.metadata?.creationMethod;
-      if (!creationMethod) {
-        const fn = String(p.filename || '').toLowerCase();
-        const eng = String(p.metadata?.engine || '').toLowerCase();
-        const tit = String(p.title || '').toLowerCase();
-        if (fn.startsWith('stitched_video_') || fn.includes('_video_') || eng.includes('video') || tit.includes('video')) {
-          creationMethod = 'video';
-        } else if (fn.startsWith('stitched_realtime_') || fn.includes('realtime') || p.metadata?.roomType === 'realtime_amqp_stream' || eng.includes('rabbitmq') || eng.includes('amqp')) {
-          creationMethod = 'realtime';
-        } else if (fn.includes('webcam') || eng.includes('webcam')) {
-          creationMethod = 'webcam';
-        } else {
-          creationMethod = 'upload';
-        }
-      }
       return {
         id: p.id || `pano-${p._id}`,
         filename: p.filename,
@@ -1351,7 +1317,6 @@ stitchRouter.get('/history', async (req: Request, res: Response) => {
         views: p.metadata?.views || [],
         usedInRooms,
         isUsed: usedInRooms.length > 0,
-        creationMethod,
         createdAt: p.createdAt
       };
     });

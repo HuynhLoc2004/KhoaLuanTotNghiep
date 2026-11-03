@@ -208,7 +208,6 @@ export const PocStitchingPage: React.FC = () => {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
   const [isRealtimeModalOpen, setIsRealtimeModalOpen] = useState(false);
-  const [activeCreationMethod, setActiveCreationMethod] = useState<'upload' | 'webcam' | 'video' | 'realtime'>('upload');
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
 
   // Chuyển góc nhìn mượt mà (Fade effect)
@@ -442,7 +441,6 @@ export const PocStitchingPage: React.FC = () => {
 
   // 1. CHỤP ẢNH TỪNG TẤM BẰNG CAMERA NATIVE ĐIỆN THOẠI & TỰ ĐỘNG THẨM ĐỊNH PYTHON
   const handleNativeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setActiveCreationMethod('upload');
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -531,7 +529,6 @@ export const PocStitchingPage: React.FC = () => {
 
   // 2. CHỌN ẢNH TỪ THƯ VIỆN / ALBUM IPHONE (1 ẢNH PANO HOẶC CHÙM ẢNH ĐÃ CHỤP SẴN)
   const handleBatchSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setActiveCreationMethod('upload');
     const rawFiles = Array.from(e.target.files || []);
     if (rawFiles.length === 0) return;
 
@@ -592,7 +589,6 @@ export const PocStitchingPage: React.FC = () => {
   // Ảnh chụp bằng webcam máy tính đi qua đúng quy trình thẩm định như ảnh album
   const handleWebcamCaptured = async (files: File[]) => {
     if (files.length === 0) return;
-    setActiveCreationMethod('webcam');
     await verifyFrameSequence(files, 'webcam');
   };
 
@@ -756,7 +752,6 @@ export const PocStitchingPage: React.FC = () => {
   const handleSelectVideo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setActiveCreationMethod('video');
     setPendingVideoFile(file);
     e.target.value = '';
     showToast(`Đã chọn video: "${file.name}". Bấm "Xác nhận & Bắt đầu" để tạo ảnh 360°.`, 'info');
@@ -996,7 +991,6 @@ export const PocStitchingPage: React.FC = () => {
       const formData = new FormData();
       formData.append('mode', 'spatial');
       formData.append('jobId', jobId);
-      formData.append('creationMethod', activeCreationMethod);
 
       if (frame.serverPath) {
         formData.append('serverPaths', JSON.stringify([frame.serverPath]));
@@ -1071,7 +1065,6 @@ export const PocStitchingPage: React.FC = () => {
     const formData = new FormData();
     formData.append('mode', 'spatial');
     formData.append('jobId', jobId);
-    formData.append('creationMethod', activeCreationMethod);
 
     let targetFrames = framesToStitch;
     if (framesToStitch.length > 120) {
@@ -2449,7 +2442,6 @@ export const PocStitchingPage: React.FC = () => {
           isOpen={isRealtimeModalOpen}
           onClose={() => setIsRealtimeModalOpen(false)}
           onCompleted={(result) => {
-            setActiveCreationMethod('realtime');
             setIsRealtimeModalOpen(false);
             setCurrentStep(5);
             const resData: any = {

@@ -16,7 +16,6 @@ export interface IPanorama extends Document {
   inputFramesCount?: number;
   status: 'ready' | 'processing' | 'failed';
   linkedRoomId?: string;
-  creationMethod?: string;
   metadata?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
@@ -38,7 +37,6 @@ const PanoramaSchema = new Schema<IPanorama>({
   inputFramesCount: { type: Number, default: 0 },
   status: { type: String, enum: ['ready', 'processing', 'failed'], default: 'ready' },
   linkedRoomId: { type: String, default: null },
-  creationMethod: { type: String, default: null },
   metadata: { type: Schema.Types.Mixed, default: {} }
 }, {
   timestamps: true,

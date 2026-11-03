@@ -451,10 +451,8 @@ export async function processSessionStitching(sessionId: string): Promise<void> 
         aspectRatio: 2.0,
         inputFramesCount: session.frames.length,
         status: 'ready',
-        creationMethod: 'realtime',
         metadata: {
           engine: 'RabbitMQ Realtime AMQP Stream Engine',
-          creationMethod: 'realtime',
           roomType: 'realtime_amqp_stream',
           viewsCount: views.length,
           views,
