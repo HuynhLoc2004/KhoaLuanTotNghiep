@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Edit2, Check, RotateCw, Layers, AlertCircle, HelpCircle } from 'lucide-react';
 import { TopicItem } from '../types';
 import { api } from '../services/api';
@@ -26,6 +26,7 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const newNameInputRef = useRef<HTMLInputElement>(null);
 
   // State chỉnh sửa chuyên đề
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,12 +66,16 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isCreating && !isUpdating) {
-        onClose();
+        if (editingId) {
+          handleCancelEdit();
+        } else {
+          onClose();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCreating, isUpdating, onClose]);
+  }, [isCreating, isUpdating, editingId, onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -80,7 +85,7 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Thêm chuyên đề mới
+  // Thêm chuyên đề mới - Tuyệt đối không đóng modal để người dùng tiếp tục thao tác
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newName.trim();
@@ -102,6 +107,11 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
       setTopics(updatedList);
       if (onTopicCreated) onTopicCreated(created);
       if (onTopicsUpdated) onTopicsUpdated(updatedList);
+
+      // Giữ focus lại ở ô nhập để người dùng có thể thêm tiếp chuyên đề khác
+      setTimeout(() => {
+        newNameInputRef.current?.focus();
+      }, 50);
     } catch (err: any) {
       showToast(err.message || 'Lỗi thêm chuyên đề', 'error');
     } finally {
@@ -123,7 +133,7 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
     setEditDesc('');
   };
 
-  // Lưu sửa
+  // Lưu sửa - Tuyệt đối không đóng modal
   const handleSaveEdit = async (id: string) => {
     const trimmed = editName.trim();
     if (!trimmed) {
@@ -186,24 +196,17 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
       }}
     >
       <div
-        className="modal-card"
-        style={{
-          maxWidth: 680,
-          width: '100%',
-          maxHeight: 'min(90vh, 760px)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
+        className="modal-card topic-modal-card"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(212, 168, 106, 0.12)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="topic-modal-header-content">
+            <div className="topic-modal-header-icon">
               <Layers size={18} />
             </div>
-            <div>
+            <div className="topic-modal-header-text">
               <h2 className="modal-title">Quản lý Chuyên đề Trưng bày</h2>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              <p className="topic-modal-header-sub">
                 Hệ thống chuyên đề động: Tự do thêm, sửa tên và xóa các nhóm thời kỳ của bảo tàng
               </p>
             </div>
@@ -212,55 +215,45 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
             type="button"
             className="modal-close-btn"
             onClick={onClose}
-            title="Đóng"
+            title="Đóng (Esc)"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="modal-body" style={{ maxHeight: '72vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="modal-body topic-modal-body">
           {/* Form thêm chuyên đề mới */}
           <form
             onSubmit={handleCreate}
-            style={{
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md)',
-              padding: '14px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10
-            }}
+            className="topic-modal-create-box"
           >
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="topic-modal-create-title">
               <Plus size={15} style={{ color: 'var(--accent-gold)' }} />
               <span>Tạo thêm Chuyên đề trưng bày mới</span>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            <div className="topic-modal-create-row">
               <input
+                ref={newNameInputRef}
                 type="text"
-                className="form-control"
+                className="form-control topic-modal-input-name"
                 placeholder="Tên chuyên đề mới *"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                style={{ flex: '1 1 180px', fontSize: '13px' }}
                 disabled={isCreating}
               />
               <input
                 type="text"
-                className="form-control"
+                className="form-control topic-modal-input-desc"
                 placeholder="Mô tả tóm tắt (tùy chọn)..."
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                style={{ flex: '1.5 1 200px', fontSize: '13px' }}
                 disabled={isCreating}
               />
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="btn btn-primary topic-modal-btn-add"
                 disabled={isCreating || !newName.trim()}
-                style={{ padding: '8px 14px', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 {isCreating ? <RotateCw size={14} className="spin" /> : <Plus size={14} />}
                 <span>Thêm</span>
@@ -270,11 +263,11 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
 
           {/* Danh sách các chuyên đề hiện có */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)' }}>
+            <div className="topic-modal-list-header">
+              <span className="topic-modal-list-title">
                 Danh sách chuyên đề hiện có ({topics.length})
               </span>
-              <span style={{ fontSize: '11.5px', color: 'var(--text-light)' }}>
+              <span className="topic-modal-list-hint">
                 Tự động đồng bộ vào các bộ chọn của gian phòng
               </span>
             </div>
@@ -292,49 +285,56 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {topics.map((t) => {
                   const isEditing = editingId === t.id;
+                  const roomCount = t.roomCount || 0;
 
                   return (
                     <div
                       key={t.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 12,
-                        padding: '10px 14px',
-                        background: isEditing ? 'rgba(212, 168, 106, 0.08)' : 'var(--bg-subtle)',
-                        border: isEditing ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-sm)',
-                        transition: 'all 0.15s ease'
-                      }}
+                      className={`topic-modal-item ${isEditing ? 'is-editing' : ''}`}
                     >
                       {isEditing ? (
                         /* Đang sửa */
-                        <div style={{ display: 'flex', flex: 1, flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                        <div className="topic-modal-edit-box">
                           <input
                             type="text"
-                            className="form-control"
+                            className="form-control topic-modal-edit-name"
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            style={{ flex: '1 1 140px', fontSize: '13px' }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveEdit(t.id);
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                handleCancelEdit();
+                              }
+                            }}
                             autoFocus
                           />
                           <input
                             type="text"
-                            className="form-control"
+                            className="form-control topic-modal-edit-desc"
                             value={editDesc}
                             onChange={(e) => setEditDesc(e.target.value)}
                             placeholder="Mô tả..."
-                            style={{ flex: '1.5 1 160px', fontSize: '13px' }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveEdit(t.id);
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                handleCancelEdit();
+                              }
+                            }}
                           />
-                          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <div className="topic-modal-edit-actions">
                             <button
                               type="button"
                               className="btn btn-primary btn-sm"
                               onClick={() => handleSaveEdit(t.id)}
                               disabled={isUpdating || !editName.trim()}
-                              title="Lưu thay đổi"
-                              style={{ padding: '6px 12px' }}
+                              title="Lưu thay đổi (Enter)"
+                              style={{ padding: '6px 14px' }}
                             >
                               {isUpdating ? <RotateCw size={13} className="spin" /> : <Check size={13} />}
                               <span>Lưu</span>
@@ -343,49 +343,42 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={handleCancelEdit}
-                              title="Hủy sửa"
-                              style={{ padding: '6px 10px' }}
+                              title="Hủy sửa (Esc)"
+                              style={{ padding: '6px 12px' }}
                             >
                               <X size={13} />
+                              <span>Hủy</span>
                             </button>
                           </div>
                         </div>
                       ) : (
                         /* Chế độ xem */
                         <>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--heading-color)' }}>
+                          <div className="topic-modal-item-content">
+                            <div className="topic-modal-item-title-row">
+                              <span className="topic-modal-item-title">
                                 {t.name}
                               </span>
                               <span
-                                style={{
-                                  fontSize: '11px',
-                                  padding: '1px 7px',
-                                  borderRadius: 4,
-                                  background: (t.roomCount || 0) > 0 ? 'rgba(212, 168, 106, 0.15)' : 'var(--bg-surface)',
-                                  color: (t.roomCount || 0) > 0 ? 'var(--accent-gold)' : 'var(--text-muted)',
-                                  border: '1px solid var(--border-color)',
-                                  fontWeight: 600
-                                }}
+                                className={`topic-modal-item-badge ${roomCount > 0 ? 'has-rooms' : 'no-rooms'}`}
                               >
-                                {t.roomCount || 0} phòng
+                                {roomCount} phòng
                               </span>
                             </div>
                             {t.description && (
-                              <span style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                              <span className="topic-modal-item-desc">
                                 {t.description}
                               </span>
                             )}
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div className="topic-modal-item-actions">
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleStartEdit(t)}
                               title="Sửa tên chuyên đề"
-                              style={{ width: 30, height: 30, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                              style={{ width: 32, height: 32, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               <Edit2 size={13} />
                             </button>
@@ -395,21 +388,21 @@ export const TopicManagementModal: React.FC<TopicManagementModalProps> = ({
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleDelete(t)}
                               title={
-                                (t.roomCount || 0) > 0
-                                  ? `Đang có ${t.roomCount} phòng trực thuộc, không thể xóa`
+                                roomCount > 0
+                                  ? `Đang có ${roomCount} phòng trực thuộc, không thể xóa`
                                   : 'Xóa chuyên đề'
                               }
-                              disabled={(t.roomCount || 0) > 0}
+                              disabled={roomCount > 0}
                               style={{
-                                width: 30,
-                                height: 30,
+                                width: 32,
+                                height: 32,
                                 padding: 0,
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: (t.roomCount || 0) > 0 ? 'var(--text-light)' : 'var(--error)',
-                                opacity: (t.roomCount || 0) > 0 ? 0.4 : 1,
-                                cursor: (t.roomCount || 0) > 0 ? 'not-allowed' : 'pointer'
+                                color: roomCount > 0 ? 'var(--text-light)' : 'var(--error)',
+                                opacity: roomCount > 0 ? 0.4 : 1,
+                                cursor: roomCount > 0 ? 'not-allowed' : 'pointer'
                               }}
                             >
                               <Trash2 size={13} />
