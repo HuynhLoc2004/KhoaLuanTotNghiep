@@ -1189,6 +1189,7 @@ export async function runStartupDataSync() {
     // Tự động dọn dẹp triệt để các mã QR base64 cũ trong PostgreSQL & MongoDB
     try {
       await pgPool.query("UPDATE artifacts SET qr_code_url = NULL;");
+    await enrichLyArtifactsData();
       await ArtifactModel.updateMany({}, { $unset: { qrCodeUrl: 1 } });
     } catch (cleanupErr) {
       console.warn('[SyncEngine] Lỗi dọn mã QR:', cleanupErr);
@@ -2083,3 +2084,91 @@ export async function seedHeritageMuseumData() {
   console.log('[SyncEngine] Đã hoàn tất đồng bộ 18 Gian phòng & Cổ vật di sản thật sang PostgreSQL và MongoDB!');
 }
 
+
+export const LY_ARTIFACTS_DATA = [
+  {
+    code: 'HV-158',
+    name: 'Mô hình nhà đất nung',
+    category: 'Cổ vật di sản',
+    period: 'Thời Lý',
+    origin: 'Bảo tàng Lịch sử TP.HCM',
+    dimensions: 'Dài 26.5 cm x Rộng 18.0 cm x Cao 15.0 cm',
+    roomCode: 'P-230',
+    description: 'Mô hình kiến trúc nhà đất nung thời Lý (thế kỷ XI - XIII) là hiện vật khảo cổ học quý giá cung cấp tư liệu nguyên gốc về nghệ thuật kiến trúc cung đình và dân gian Đại Việt. Hiện vật mô phỏng kiến trúc nhà mái dốc lợp ngói âm dương truyền thống, bờ nóc và diềm mái chạm khắc tinh xảo họa tiết hoa văn lá đề, mây cuộn và cánh hoa sen đặc trưng của mỹ thuật Phật giáo thời Lý. Tường nhà trổ hoa văn ô thoáng hình học, kết cấu mộc truyền thống độc đáo, phản ánh trình độ kỹ thuật nung luyện gốm kiến trúc đạt đến đỉnh cao được lưu giữ và trưng bày trang trọng tại Bảo tàng Lịch sử TP. Hồ Chí Minh.',
+    narrationScript: 'Chào mừng quý khách đến chiêm ngưỡng Mô hình nhà đất nung thời Lý, hiện vật quý giá niên đại thế kỷ thứ 11 đến thế kỷ 13, hiện đang được lưu giữ tại Bảo tàng Lịch sử Thành phố Hồ Chí Minh. Trải qua gần một thiên niên kỷ, trong khi phần lớn các công trình kiến trúc bằng gỗ thời Lý đã tiêu biến theo thời gian, mô hình đất nung này chính là tư liệu vật chất chân thực nhất tái hiện không gian kiến trúc truyền thống Đại Việt. Quý khách có thể quan sát hệ thống mái dốc lợp ngói âm dương, các họa tiết hoa sen, lá đề uốn lượn uyển chuyển mang đậm triết lý Phật giáo, cùng hệ thống tường bao hoa gió tinh tế. Hiện vật không chỉ thể hiện bàn tay tài hoa của các nghệ nhân nung gốm Đại Việt mà còn là biểu tượng sống động cho sự phồn vinh và bản sắc kiến trúc dân tộc thời Lý.'
+  },
+  {
+    code: 'HV-661',
+    name: 'Bát',
+    category: 'Cổ vật di sản',
+    period: 'Thời Lý',
+    origin: 'Bảo tàng Lịch sử TP.HCM',
+    dimensions: 'Đường kính miệng 16.5 cm, Đường kính đáy 6.2 cm, Cao 7.5 cm',
+    roomCode: 'P-230',
+    description: 'Bát gốm men thời Lý (thế kỷ XI - XIII) là tuyệt phẩm đỉnh cao của dòng gốm ngự dụng và quý tộc thời Lý. Hiện vật có xương gốm tinh xảo, thành vát mỏng nhẹ, miệng loe thanh thoát. Lòng bát áp dụng kỹ thuật khắc chìm và in khuôn nổi (ám họa) họa tiết hoa sen nở rộ nhiều tầng cánh mềm mại. Toàn thân phủ lớp men ngọc (celadon) trong trẻo, sắc men bóng mịn như ngọc thạch, ánh lên nét huyền ảo khi ánh sáng chiếu xuyên qua các đường rãnh hoa văn dày mỏng. Đáy bát để mộc bộc lộ chất đất sét tinh khiết được lọc rửa công phu, đại diện cho thời kỳ hoàng kim của nghệ thuật gốm men Đại Việt.',
+    narrationScript: 'Kính thưa quý khách, trước mắt quý khách là Bát gốm men ngọc ám họa hoa sen thời Lý, một kiệt tác tiêu biểu cho thời kỳ hoàng kim của nghệ thuật chế tác gốm cổ Việt Nam thế kỷ 11 đến thế kỷ 13. Chiếc bát sở hữu dáng hình thanh thoát, thành gốm mỏng nhẹ và được phủ lớp men ngọc bóng mịn, tạo hiệu ứng thị giác lung linh như một khối ngọc thạch. Điểm đặc sắc nhất nằm ở lòng bát, nơi các nghệ nhân thời Lý đã khéo léo chạm khắc chìm đóa sen nhiều tầng cánh đang bung nở – biểu tượng của sự thuần khiết và giác ngộ trong văn hóa Phật giáo Lý triều. Hiện vật là bằng chứng đanh thép cho kỹ nghệ làm gốm đỉnh cao và thẩm mỹ cung đình tinh tế của tổ tiên ta nghìn năm trước.'
+  },
+  {
+    code: 'HV-901',
+    name: 'Khối hoa sen',
+    category: 'Cổ vật di sản',
+    period: 'Thời Lý',
+    origin: 'Bảo tàng Lịch sử TP.HCM',
+    dimensions: 'Đường kính 32.0 cm, Đường kính lỗ tâm 12.0 cm, Cao 14.5 cm',
+    roomCode: 'P-230',
+    description: 'Khối hoa sen thời Lý (thế kỷ XI - XIII) là bộ phận điêu khắc kiến trúc và tôn giáo độc đáo, thường dùng làm bệ đỡ tượng Phật, bệ kê cột hoặc trang trí đỉnh tháp chùa thời Lý. Khối đất nung được tạo hình tròn đều đặn với ba lớp cánh sen úp ngửa đan xen uyển chuyển, mỗi cánh sen đều có gờ chỉ viền đôi và chạm nổi hoa văn đôi rồng thời Lý hoặc dây lá uốn lượn hình chữ S mềm mại. Tâm khối hoa sen khoét rỗng hình tròn để ngậm mộng cột hoặc thân tượng. Màu đất nung đỏ hồng ấm áp, chất đất mịn và độ nung già chứng minh kỹ thuật chế tác điêu luyện của các thợ thủ công cung đình Thăng Long.',
+    narrationScript: 'Xin trân trọng giới thiệu đến quý khách Khối hoa sen trang trí kiến trúc thời Lý, hiện vật điêu khắc đất nung quý báu có niên đại từ thế kỷ thứ 11 đến thế kỷ 13. Dưới triều đại nhà Lý, hoa sen được tôn vinh là biểu tượng tối thượng của Phật giáo thanh tịnh. Khối hoa sen này được chế tác với nhiều lớp cánh bung nở đối xứng, các cánh sen chạm trổ họa tiết hoa văn mềm mại, uyển chuyển đặc trưng của mỹ thuật Lý. Trong kiến trúc cổ, hiện vật từng giữ vai trò làm bệ đỡ trang nghiêm cho các pho tượng Phật hoặc làm bệ cột chùa cổ nguy nga. Mời quý khách xoay ngắm mô hình 3D để quan sát từng đường nét điêu khắc tinh xảo, cảm nhận hào khí và chiều sâu văn hóa tâm linh của thời đại Lý triều.'
+  },
+  {
+    code: 'HV-749',
+    name: 'Tượng phật Thời Lý',
+    category: 'Cổ vật di sản',
+    period: 'Thời Lý',
+    origin: 'Bảo tàng Lịch sử TP.HCM',
+    dimensions: 'Rộng 48.0 cm x Sâu 38.0 cm x Cao 85.0 cm (Cả bệ: Cao 115.0 cm)',
+    roomCode: 'P-230',
+    description: 'Tượng phật Thời Lý (thế kỷ XI - XIII) là kiệt tác điêu khắc tôn giáo tiêu biểu của mỹ thuật Đại Việt thời Lý. Đức Phật được tạc trong tư thế kiết già tọa thiền định trên tòa sen tam tầng, hai tay đặt trong lòng kết ấn Thiền định (Dhyana Mudra). Khuôn mặt tượng đôn hậu, ánh mắt khép nhẹ nhìn xuống với nụ cười từ bi, cổ cao ba ngấn, tóc kết xoắn ốc (usnisa). Áo cà sa buông mềm mại phủ qua vai với những nếp gấp uốn lượn tự nhiên ôm sát thân hình thanh thoát, mang đậm phong cách mỹ thuật Phật giáo thuần Việt thời Lý. Bệ đá bên dưới được chia tầng với hoa văn sóng nước thủy ba thời Lý và đôi rồng chầu dâng hoa sen.',
+    narrationScript: 'Kính mời quý khách chiêm ngưỡng Tượng Phật thời Lý, pho tượng mang tinh hoa nghệ thuật điêu khắc tôn giáo đỉnh cao thế kỷ 11 đến thế kỷ 13, hiện diện trang trọng tại Gian phòng Thời Lý của Bảo tàng Lịch sử Thành phố Hồ Chí Minh. Đức Phật tĩnh tọa an nhiên trong tư thế kiết già trên đài sen, đôi bàn tay buông thư thái kết ấn thiền định. Từng đường nét khuôn mặt đôn hậu, nụ cười thanh thoát và nếp áo cà sa mềm mại uốn lượn đều toát lên tinh thần từ bi, hỷ xả và sự an lạc nội tâm. Dưới thời Lý, Phật giáo là quốc giáo, định hình nên bản sắc văn hóa hòa ái, vị tha và thịnh trị của Đại Việt. Mời quý khách chiêm ngưỡng toàn diện pho tượng 3D để cảm nhận sự trang nghiêm, tĩnh tại và vẻ đẹp trường tồn qua nghìn năm lịch sử.'
+  }
+];
+
+export async function enrichLyArtifactsData() {
+  try {
+    const roomP230 = await Room.findOne({ $or: [{ code: 'P-230' }, { id: 'P-230' }, { name: /Thời Lý/i }] }).lean();
+    const targetRoomId = roomP230 ? (roomP230.id || roomP230._id?.toString()) : 'P-230';
+
+    for (const item of LY_ARTIFACTS_DATA) {
+      const art = await ArtifactModel.findOne({ $or: [{ code: item.code }, { name: item.name }] });
+      if (art) {
+        art.dimensions = item.dimensions;
+        art.description = item.description;
+        art.period = item.period;
+        art.category = item.category;
+        art.origin = item.origin;
+        art.roomCode = item.roomCode;
+        if (targetRoomId) art.roomId = targetRoomId;
+
+        const currentTrans = (typeof art.translations === 'object' && art.translations) ? art.translations : {};
+        const viTrans = currentTrans.vi || {};
+        art.translations = {
+          ...currentTrans,
+          vi: {
+            ...viTrans,
+            name: item.name,
+            period: item.period,
+            description: item.description,
+            narrationScript: item.narrationScript
+          }
+        };
+        art.markModified('translations');
+        await art.save();
+
+        await pgUpsertArtifact(art.toObject ? art.toObject() : art);
+        console.log('[SyncEngine] Đã làm giàu dữ liệu thật cho cổ vật ' + item.code + ' (' + item.name + ')');
+      }
+    }
+    await cacheDelPattern('artifacts:*');
+  } catch (err) {
+    console.warn('[SyncEngine] Lỗi enrichLyArtifactsData:', err.message);
+  }
+}
