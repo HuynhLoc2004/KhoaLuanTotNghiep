@@ -2168,7 +2168,7 @@ export async function enrichLyArtifactsData() {
       }
     }
     await cacheDelPattern('artifacts:*');
-  } catch (err) {
-    console.warn('[SyncEngine] Lỗi enrichLyArtifactsData:', err.message);
+  } catch (err: any) {
+    console.warn('[SyncEngine] Lỗi enrichLyArtifactsData:', err?.message || err);
   }
 }
