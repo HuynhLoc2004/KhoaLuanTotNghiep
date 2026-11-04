@@ -96,7 +96,11 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
         {/* LƯỚI THẺ HIỆN VẬT RESPONSIVE HOẶC TRẠNG THÁI TRỐNG CĂN GIỮA */}
         {showcaseArtifacts.length > 0 ? (
           <div
-            className={`client-artifacts-gallery-grid ${showcaseArtifacts.length === 1 ? 'single-item' : ''} reveal-on-scroll`}
+            className={`client-artifacts-gallery-grid count-${showcaseArtifacts.length} ${
+              showcaseArtifacts.length === 1 ? 'single-item' : ''
+            } ${showcaseArtifacts.length === 2 ? 'two-items' : ''} ${
+              showcaseArtifacts.length === 3 ? 'three-items' : ''
+            } reveal-on-scroll`}
           >
             {showcaseArtifacts.map((art) => {
               const thumbUrl = getArtifactThumb(art);
