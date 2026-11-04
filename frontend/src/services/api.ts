@@ -477,11 +477,12 @@ export const api = {
   },
 
   // === QUẢN TRỊ HIỆN VẬT & MÔ PHỎNG 3D CỔ VẬT (ARTIFACTS & 3D RECONSTRUCTION) ===
-  async getArtifacts(params?: { category?: string; search?: string; status?: string }): Promise<Artifact[]> {
+  async getArtifacts(params?: { category?: string; search?: string; status?: string; roomId?: string }): Promise<Artifact[]> {
     const query = new URLSearchParams();
     if (params?.category) query.append('category', params.category);
     if (params?.search) query.append('search', params.search);
     if (params?.status) query.append('status', params.status);
+    if (params?.roomId) query.append('roomId', params.roomId);
 
     const res = await fetch(`${API_BASE}/artifacts?${query.toString()}`);
     const json = await safeJson(res, 'Lỗi kết nối khi tải danh sách hiện vật');

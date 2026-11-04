@@ -531,6 +531,7 @@ const AppContent: React.FC = () => {
       <ClientTourView
         currentRoom={publicTourRoom}
         allRooms={rooms}
+        artifacts={artifacts}
         onBackToHome={() => {
           setPublicTourRoom(null);
           try {
